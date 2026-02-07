@@ -48,11 +48,46 @@ export function ImportDataDialog() {
     const lines = csvText.trim().split("\n");
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
+    // Parse headers - preserve original case for proper field mapping
+    const headerLine = lines[0];
+    const headers: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    
+    for (let i = 0; i < headerLine.length; i++) {
+      const char = headerLine[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        headers.push(current.trim().replace(/^["']|["']$/g, ""));
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    headers.push(current.trim().replace(/^["']|["']$/g, ""));
+
     const records: Record<string, string>[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim().replace(/^["']|["']$/g, ""));
+      // Parse each row with proper CSV handling (quotes can contain commas)
+      const values: string[] = [];
+      let currentVal = "";
+      let inQuotesVal = false;
+      
+      for (let j = 0; j < lines[i].length; j++) {
+        const char = lines[i][j];
+        if (char === '"') {
+          inQuotesVal = !inQuotesVal;
+        } else if (char === ',' && !inQuotesVal) {
+          values.push(currentVal.trim().replace(/^["']|["']$/g, ""));
+          currentVal = "";
+        } else {
+          currentVal += char;
+        }
+      }
+      values.push(currentVal.trim().replace(/^["']|["']$/g, ""));
+
       const record: Record<string, string> = {};
       headers.forEach((header, index) => {
         record[header] = values[index] || "";
