@@ -5,14 +5,18 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { CommissionSummary } from "@/components/dashboard/CommissionSummary";
 import { TrainingProgress } from "@/components/dashboard/TrainingProgress";
 import { Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user } = useAuth();
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
+
   return (
     <DashboardLayout>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-          Welcome back, Jane
+          Welcome back, {firstName}
         </h1>
         <p className="text-muted-foreground mt-1">
           Here's what's happening with your travel business today.
