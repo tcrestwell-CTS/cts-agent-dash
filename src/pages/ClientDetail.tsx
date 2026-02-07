@@ -40,12 +40,22 @@ import {
   Users,
   DollarSign,
   ExternalLink,
+  UserPlus,
+  MoreHorizontal,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { useClientBookings } from "@/hooks/useBookings";
+import { useCompanions, useDeleteCompanion, Companion } from "@/hooks/useCompanions";
+import { CompanionDialog } from "@/components/clients/CompanionDialog";
 import { useState, useEffect } from "react";
 import { format, differenceInYears, isPast, isFuture, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,10 +73,14 @@ const ClientDetail = () => {
   const navigate = useNavigate();
   const { data: client, isLoading, error, refetch } = useClient(clientId!);
   const { bookings: clientBookings, loading: bookingsLoading } = useClientBookings(clientId);
+  const { data: companions = [], isLoading: companionsLoading } = useCompanions(clientId);
+  const deleteCompanion = useDeleteCompanion();
   const deleteClient = useDeleteClient();
   const updateClient = useUpdateClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Record<string, string | null>>({});
+  const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
+  const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
 
   useEffect(() => {
     if (client) {
@@ -1078,7 +1092,64 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Travel Companions */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Travel Companions
+            </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditingCompanion(null);
+                setCompanionDialogOpen(true);
+              }}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Companion
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {companionsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : companions.length === 0 ? (
+              <p className="text-muted-foreground text-sm italic">No travel companions added</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {companions.map((companion) => (
+                  <CompanionCard
+                    key={companion.id}
+                    companion={companion}
+                    onEdit={() => {
+                      setEditingCompanion(companion);
+                      setCompanionDialogOpen(true);
+                    }}
+                    onDelete={() => {
+                      if (clientId) {
+                        deleteCompanion.mutate({ id: companion.id, clientId });
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Companion Dialog */}
+      <CompanionDialog
+        open={companionDialogOpen}
+        onOpenChange={setCompanionDialogOpen}
+        clientId={clientId!}
+        companion={editingCompanion}
+      />
     </DashboardLayout>
   );
 };
@@ -1192,6 +1263,87 @@ function BookingHistoryItem({
           </div>
         </div>
         <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
+      </div>
+    </div>
+  );
+}
+
+function CompanionCard({
+  companion,
+  onEdit,
+  onDelete,
+}: {
+  companion: Companion;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const getRelationshipLabel = (rel: string) => {
+    return rel.charAt(0).toUpperCase() + rel.slice(1);
+  };
+
+  const formatBirthday = (birthday: string | null) => {
+    if (!birthday) return null;
+    const date = new Date(birthday);
+    const age = differenceInYears(new Date(), date);
+    return `${format(date, "MMM d, yyyy")} (${age} years)`;
+  };
+
+  return (
+    <div className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">
+              {companion.first_name} {companion.last_name || ""}
+            </span>
+            <Badge variant="outline" className="text-xs">
+              {getRelationshipLabel(companion.relationship)}
+            </Badge>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+            {companion.birthday && (
+              <p className="flex items-center gap-1">
+                <Cake className="h-3 w-3" />
+                {formatBirthday(companion.birthday)}
+              </p>
+            )}
+            {companion.email && (
+              <p className="flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                {companion.email}
+              </p>
+            )}
+            {companion.phone && (
+              <p className="flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {companion.phone}
+              </p>
+            )}
+            {companion.known_traveler_number && (
+              <p className="flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                KTN: {companion.known_traveler_number}
+              </p>
+            )}
+          </div>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
