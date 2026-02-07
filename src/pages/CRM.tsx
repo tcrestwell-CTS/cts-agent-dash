@@ -4,14 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Users } from "lucide-react";
 import { useClientWithBookings } from "@/hooks/useClients";
+import { useIsAdmin } from "@/hooks/useAdmin";
 import { AddClientDialog } from "@/components/crm/AddClientDialog";
 import { ClientCard } from "@/components/crm/ClientCard";
+import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type StatusFilter = "all" | "active" | "lead" | "inactive";
 
 const CRM = () => {
   const { data: clients, isLoading, error } = useClientWithBookings();
+  const { data: isAdmin } = useIsAdmin();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
@@ -58,7 +61,10 @@ const CRM = () => {
             Manage your clients and track their journey
           </p>
         </div>
-        <AddClientDialog />
+        <div className="flex items-center gap-2">
+          {isAdmin && <ImportDataDialog />}
+          <AddClientDialog />
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -142,7 +148,14 @@ const CRM = () => {
               ? "Start building your client base by adding your first client."
               : "Try adjusting your search or filter to find what you're looking for."}
           </p>
-          {clients?.length === 0 && <AddClientDialog />}
+          <div className="flex justify-center gap-2">
+            {clients?.length === 0 && (
+              <>
+                {isAdmin && <ImportDataDialog />}
+                <AddClientDialog />
+              </>
+            )}
+          </div>
         </div>
       )}
 
