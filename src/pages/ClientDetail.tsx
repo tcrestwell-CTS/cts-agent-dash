@@ -5,6 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeft,
   Edit2,
@@ -23,10 +33,12 @@ import {
   FileText,
   Copy,
   Trash2,
+  X,
+  Save,
+  Loader2,
 } from "lucide-react";
-import { useClient, useDeleteClient } from "@/hooks/useClients";
-import { EditClientDialog } from "@/components/crm/EditClientDialog";
-import { useState } from "react";
+import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
+import { useState, useEffect } from "react";
 import { format, differenceInYears } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -44,9 +56,113 @@ import {
 const ClientDetail = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
-  const { data: client, isLoading, error } = useClient(clientId!);
+  const { data: client, isLoading, error, refetch } = useClient(clientId!);
   const deleteClient = useDeleteClient();
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const updateClient = useUpdateClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        title: client.title || "",
+        first_name: client.first_name || "",
+        last_name: client.last_name || "",
+        preferred_first_name: client.preferred_first_name || "",
+        birthday: client.birthday || "",
+        anniversary: client.anniversary || "",
+        email: client.email || "",
+        secondary_email: client.secondary_email || "",
+        phone: client.phone || "",
+        secondary_phone: client.secondary_phone || "",
+        address_line_1: client.address_line_1 || "",
+        address_line_2: client.address_line_2 || "",
+        address_city: client.address_city || "",
+        address_state: client.address_state || "",
+        address_zip_code: client.address_zip_code || "",
+        address_country: client.address_country || "",
+        redress_number: client.redress_number || "",
+        known_traveler_number: client.known_traveler_number || "",
+        passport_info: client.passport_info || "",
+        activities_interests: client.activities_interests || "",
+        food_drink_allergies: client.food_drink_allergies || "",
+        flight_seating_preference: client.flight_seating_preference || "no_preference",
+        flight_bulkhead_preference: client.flight_bulkhead_preference || "no_preference",
+        lodging_floor_preference: client.lodging_floor_preference || "no_preference",
+        lodging_elevator_preference: client.lodging_elevator_preference || "no_preference",
+        cruise_cabin_floor_preference: client.cruise_cabin_floor_preference || "no_preference",
+        cruise_cabin_location_preference: client.cruise_cabin_location_preference || "no_preference",
+        loyalty_programs: client.loyalty_programs || "",
+        notes: client.notes || "",
+        tags: client.tags || "",
+        status: client.status || "lead",
+        location: client.location || "",
+      });
+    }
+  }, [client]);
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!client) return;
+    
+    const name = `${formData.first_name || ""} ${formData.last_name || ""}`.trim() || client.name;
+    
+    try {
+      await updateClient.mutateAsync({
+        id: client.id,
+        name,
+        ...formData,
+      });
+      await refetch();
+      setIsEditing(false);
+      toast.success("Client updated successfully");
+    } catch (err) {
+      toast.error("Failed to update client");
+    }
+  };
+
+  const handleCancel = () => {
+    if (client) {
+      setFormData({
+        title: client.title || "",
+        first_name: client.first_name || "",
+        last_name: client.last_name || "",
+        preferred_first_name: client.preferred_first_name || "",
+        birthday: client.birthday || "",
+        anniversary: client.anniversary || "",
+        email: client.email || "",
+        secondary_email: client.secondary_email || "",
+        phone: client.phone || "",
+        secondary_phone: client.secondary_phone || "",
+        address_line_1: client.address_line_1 || "",
+        address_line_2: client.address_line_2 || "",
+        address_city: client.address_city || "",
+        address_state: client.address_state || "",
+        address_zip_code: client.address_zip_code || "",
+        address_country: client.address_country || "",
+        redress_number: client.redress_number || "",
+        known_traveler_number: client.known_traveler_number || "",
+        passport_info: client.passport_info || "",
+        activities_interests: client.activities_interests || "",
+        food_drink_allergies: client.food_drink_allergies || "",
+        flight_seating_preference: client.flight_seating_preference || "no_preference",
+        flight_bulkhead_preference: client.flight_bulkhead_preference || "no_preference",
+        lodging_floor_preference: client.lodging_floor_preference || "no_preference",
+        lodging_elevator_preference: client.lodging_elevator_preference || "no_preference",
+        cruise_cabin_floor_preference: client.cruise_cabin_floor_preference || "no_preference",
+        cruise_cabin_location_preference: client.cruise_cabin_location_preference || "no_preference",
+        loyalty_programs: client.loyalty_programs || "",
+        notes: client.notes || "",
+        tags: client.tags || "",
+        status: client.status || "lead",
+        location: client.location || "",
+      });
+    }
+    setIsEditing(false);
+  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -140,55 +256,108 @@ const ClientDetail = () => {
                 {fullName}
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                <Badge
-                  variant="secondary"
-                  className={
-                    client.status === "active"
-                      ? "bg-success/10 text-success"
-                      : client.status === "lead"
-                      ? "bg-accent/10 text-accent"
-                      : "bg-muted text-muted-foreground"
-                  }
-                >
-                  {client.status}
-                </Badge>
-                {client.tags && (
-                  <span className="text-sm text-muted-foreground">{client.tags}</span>
+                {isEditing ? (
+                  <Select
+                    value={formData.status || "lead"}
+                    onValueChange={(value) => handleChange("status", value)}
+                  >
+                    <SelectTrigger className="h-7 w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lead">Lead</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="traveled">Traveled</SelectItem>
+                      <SelectItem value="traveling">Traveling</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge
+                    variant="secondary"
+                    className={
+                      client.status === "active"
+                        ? "bg-success/10 text-success"
+                        : client.status === "lead"
+                        ? "bg-accent/10 text-accent"
+                        : client.status === "traveling"
+                        ? "bg-info/10 text-info"
+                        : client.status === "traveled"
+                        ? "bg-primary/10 text-primary"
+                        : client.status === "cancelled"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-muted-foreground"
+                    }
+                  >
+                    {client.status}
+                  </Badge>
+                )}
+                {isEditing ? (
+                  <Input
+                    value={formData.tags || ""}
+                    onChange={(e) => handleChange("tags", e.target.value)}
+                    placeholder="Tags"
+                    className="h-7 w-40 text-sm"
+                  />
+                ) : (
+                  client.tags && (
+                    <span className="text-sm text-muted-foreground">{client.tags}</span>
+                  )
                 )}
               </div>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" className="text-destructive hover:text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+          {isEditing ? (
+            <>
+              <Button variant="outline" onClick={handleCancel}>
+                <X className="mr-2 h-4 w-4" />
+                Cancel
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Client</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete {fullName}? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button onClick={() => setEditDialogOpen(true)}>
-            <Edit2 className="mr-2 h-4 w-4" />
-            Edit Client
-          </Button>
+              <Button onClick={handleSave} disabled={updateClient.isPending}>
+                {updateClient.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Changes
+              </Button>
+            </>
+          ) : (
+            <>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="text-destructive hover:text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Client</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {fullName}? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button onClick={() => setIsEditing(true)}>
+                <Edit2 className="mr-2 h-4 w-4" />
+                Edit Client
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -199,23 +368,100 @@ const ClientDetail = () => {
             <CardTitle className="text-lg font-medium">Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoRow
-              label="Legal Name"
-              value={`${client.first_name || ""} ${client.last_name || ""}`.trim() || client.name}
-            />
-            {client.preferred_first_name && (
-              <InfoRow label="Goes By" value={client.preferred_first_name} />
+            {isEditing ? (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">Title</Label>
+                    <Select
+                      value={formData.title || ""}
+                      onValueChange={(value) => handleChange("title", value)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Title" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="Mr.">Mr.</SelectItem>
+                        <SelectItem value="Mrs.">Mrs.</SelectItem>
+                        <SelectItem value="Ms.">Ms.</SelectItem>
+                        <SelectItem value="Dr.">Dr.</SelectItem>
+                        <SelectItem value="Prof.">Prof.</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">First Name</Label>
+                    <Input
+                      value={formData.first_name || ""}
+                      onChange={(e) => handleChange("first_name", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Last Name</Label>
+                    <Input
+                      value={formData.last_name || ""}
+                      onChange={(e) => handleChange("last_name", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Preferred Name</Label>
+                  <Input
+                    value={formData.preferred_first_name || ""}
+                    onChange={(e) => handleChange("preferred_first_name", e.target.value)}
+                    placeholder="Goes by..."
+                    className="h-9"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      <Cake className="h-3 w-3" /> Birthday
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.birthday || ""}
+                      onChange={(e) => handleChange("birthday", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      <Heart className="h-3 w-3" /> Anniversary
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.anniversary || ""}
+                      onChange={(e) => handleChange("anniversary", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <InfoRow
+                  label="Legal Name"
+                  value={`${client.first_name || ""} ${client.last_name || ""}`.trim() || client.name}
+                />
+                {client.preferred_first_name && (
+                  <InfoRow label="Goes By" value={client.preferred_first_name} />
+                )}
+                <InfoRow
+                  label="Birthday"
+                  value={formatBirthdayWithAge(client.birthday)}
+                  icon={<Cake className="h-4 w-4 text-muted-foreground" />}
+                />
+                <InfoRow
+                  label="Anniversary"
+                  value={formatDate(client.anniversary)}
+                  icon={<Heart className="h-4 w-4 text-muted-foreground" />}
+                />
+              </>
             )}
-            <InfoRow
-              label="Birthday"
-              value={formatBirthdayWithAge(client.birthday)}
-              icon={<Cake className="h-4 w-4 text-muted-foreground" />}
-            />
-            <InfoRow
-              label="Anniversary"
-              value={formatDate(client.anniversary)}
-              icon={<Heart className="h-4 w-4 text-muted-foreground" />}
-            />
           </CardContent>
         </Card>
 
@@ -225,40 +471,91 @@ const ClientDetail = () => {
             <CardTitle className="text-lg font-medium">Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {client.email && (
-              <ContactRow
-                label="Primary Email"
-                value={client.email}
-                icon={<Mail className="h-4 w-4 text-muted-foreground" />}
-                onCopy={() => copyToClipboard(client.email!, "Email")}
-              />
-            )}
-            {client.secondary_email && (
-              <ContactRow
-                label="Secondary Email"
-                value={client.secondary_email}
-                icon={<Mail className="h-4 w-4 text-muted-foreground" />}
-                onCopy={() => copyToClipboard(client.secondary_email!, "Email")}
-              />
-            )}
-            {client.phone && (
-              <ContactRow
-                label="Primary Phone"
-                value={client.phone}
-                icon={<Phone className="h-4 w-4 text-muted-foreground" />}
-                onCopy={() => copyToClipboard(client.phone!, "Phone")}
-              />
-            )}
-            {client.secondary_phone && (
-              <ContactRow
-                label="Secondary Phone"
-                value={client.secondary_phone}
-                icon={<Phone className="h-4 w-4 text-muted-foreground" />}
-                onCopy={() => copyToClipboard(client.secondary_phone!, "Phone")}
-              />
-            )}
-            {!client.email && !client.phone && (
-              <p className="text-muted-foreground text-sm italic">No contact info added</p>
+            {isEditing ? (
+              <>
+                <div>
+                  <Label className="text-xs flex items-center gap-1">
+                    <Mail className="h-3 w-3" /> Primary Email
+                  </Label>
+                  <Input
+                    type="email"
+                    value={formData.email || ""}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1">
+                    <Mail className="h-3 w-3" /> Secondary Email
+                  </Label>
+                  <Input
+                    type="email"
+                    value={formData.secondary_email || ""}
+                    onChange={(e) => handleChange("secondary_email", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> Primary Phone
+                  </Label>
+                  <Input
+                    type="tel"
+                    value={formData.phone || ""}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> Secondary Phone
+                  </Label>
+                  <Input
+                    type="tel"
+                    value={formData.secondary_phone || ""}
+                    onChange={(e) => handleChange("secondary_phone", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {client.email && (
+                  <ContactRow
+                    label="Primary Email"
+                    value={client.email}
+                    icon={<Mail className="h-4 w-4 text-muted-foreground" />}
+                    onCopy={() => copyToClipboard(client.email!, "Email")}
+                  />
+                )}
+                {client.secondary_email && (
+                  <ContactRow
+                    label="Secondary Email"
+                    value={client.secondary_email}
+                    icon={<Mail className="h-4 w-4 text-muted-foreground" />}
+                    onCopy={() => copyToClipboard(client.secondary_email!, "Email")}
+                  />
+                )}
+                {client.phone && (
+                  <ContactRow
+                    label="Primary Phone"
+                    value={client.phone}
+                    icon={<Phone className="h-4 w-4 text-muted-foreground" />}
+                    onCopy={() => copyToClipboard(client.phone!, "Phone")}
+                  />
+                )}
+                {client.secondary_phone && (
+                  <ContactRow
+                    label="Secondary Phone"
+                    value={client.secondary_phone}
+                    icon={<Phone className="h-4 w-4 text-muted-foreground" />}
+                    onCopy={() => copyToClipboard(client.secondary_phone!, "Phone")}
+                  />
+                )}
+                {!client.email && !client.phone && (
+                  <p className="text-muted-foreground text-sm italic">No contact info added</p>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -272,7 +569,62 @@ const ClientDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {hasAddress ? (
+            {isEditing ? (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Address Line 1</Label>
+                  <Input
+                    value={formData.address_line_1 || ""}
+                    onChange={(e) => handleChange("address_line_1", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Address Line 2</Label>
+                  <Input
+                    value={formData.address_line_2 || ""}
+                    onChange={(e) => handleChange("address_line_2", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">City</Label>
+                    <Input
+                      value={formData.address_city || ""}
+                      onChange={(e) => handleChange("address_city", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">State</Label>
+                    <Input
+                      value={formData.address_state || ""}
+                      onChange={(e) => handleChange("address_state", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">ZIP Code</Label>
+                    <Input
+                      value={formData.address_zip_code || ""}
+                      onChange={(e) => handleChange("address_zip_code", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Country</Label>
+                    <Input
+                      value={formData.address_country || ""}
+                      onChange={(e) => handleChange("address_country", e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : hasAddress ? (
               <div className="text-sm space-y-1">
                 {client.address_line_1 && <p>{client.address_line_1}</p>}
                 {client.address_line_2 && <p>{client.address_line_2}</p>}
@@ -298,19 +650,52 @@ const ClientDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <InfoRow label="Redress Number" value={client.redress_number} />
-            <InfoRow label="Known Traveler Number" value={client.known_traveler_number} />
-            <Separator />
-            <div>
-              <p className="text-sm font-medium mb-2">Passport(s)</p>
-              {client.passport_info ? (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {client.passport_info}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">None added</p>
-              )}
-            </div>
+            {isEditing ? (
+              <>
+                <div>
+                  <Label className="text-xs">Redress Number</Label>
+                  <Input
+                    value={formData.redress_number || ""}
+                    onChange={(e) => handleChange("redress_number", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Known Traveler Number</Label>
+                  <Input
+                    value={formData.known_traveler_number || ""}
+                    onChange={(e) => handleChange("known_traveler_number", e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <Label className="text-xs">Passport Info</Label>
+                  <Textarea
+                    value={formData.passport_info || ""}
+                    onChange={(e) => handleChange("passport_info", e.target.value)}
+                    rows={3}
+                    placeholder="Passport number, expiry, country..."
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <InfoRow label="Redress Number" value={client.redress_number} />
+                <InfoRow label="Known Traveler Number" value={client.known_traveler_number} />
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium mb-2">Passport(s)</p>
+                  {client.passport_info ? (
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {client.passport_info}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">None added</p>
+                  )}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -323,22 +708,50 @@ const ClientDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium mb-1">Activities & Interests</p>
-              <p className="text-sm text-muted-foreground">
-                {client.activities_interests || "None at the moment."}
-              </p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium mb-1 flex items-center gap-2">
-                <Utensils className="h-4 w-4" />
-                Food, Drink & Allergies
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {client.food_drink_allergies || "None at the moment."}
-              </p>
-            </div>
+            {isEditing ? (
+              <>
+                <div>
+                  <Label className="text-xs">Activities & Interests</Label>
+                  <Textarea
+                    value={formData.activities_interests || ""}
+                    onChange={(e) => handleChange("activities_interests", e.target.value)}
+                    rows={2}
+                    placeholder="Hiking, museums, beaches..."
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <Label className="text-xs flex items-center gap-1">
+                    <Utensils className="h-3 w-3" /> Food, Drink & Allergies
+                  </Label>
+                  <Textarea
+                    value={formData.food_drink_allergies || ""}
+                    onChange={(e) => handleChange("food_drink_allergies", e.target.value)}
+                    rows={2}
+                    placeholder="Vegetarian, nut allergy..."
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm font-medium mb-1">Activities & Interests</p>
+                  <p className="text-sm text-muted-foreground">
+                    {client.activities_interests || "None at the moment."}
+                  </p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium mb-1 flex items-center gap-2">
+                    <Utensils className="h-4 w-4" />
+                    Food, Drink & Allergies
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {client.food_drink_allergies || "None at the moment."}
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -348,56 +761,188 @@ const ClientDetail = () => {
             <CardTitle className="text-lg font-medium">Travel Preferences</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                <Plane className="h-4 w-4" />
-                Flight Preferences
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+            {isEditing ? (
+              <>
                 <div>
-                  <span className="text-muted-foreground">Seating:</span>{" "}
-                  {getPreferenceLabel(client.flight_seating_preference)}
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Plane className="h-4 w-4" />
+                    Flight Preferences
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Seating</Label>
+                      <Select
+                        value={formData.flight_seating_preference || "no_preference"}
+                        onValueChange={(v) => handleChange("flight_seating_preference", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no_preference">No Preference</SelectItem>
+                          <SelectItem value="window">Window</SelectItem>
+                          <SelectItem value="aisle">Aisle</SelectItem>
+                          <SelectItem value="middle">Middle</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Bulkhead</Label>
+                      <Select
+                        value={formData.flight_bulkhead_preference || "no_preference"}
+                        onValueChange={(v) => handleChange("flight_bulkhead_preference", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no_preference">No Preference</SelectItem>
+                          <SelectItem value="yes">Yes</SelectItem>
+                          <SelectItem value="no">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">Bulkhead:</span>{" "}
-                  {getPreferenceLabel(client.flight_bulkhead_preference)}
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Lodging Preferences
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Floor</Label>
+                      <Select
+                        value={formData.lodging_floor_preference || "no_preference"}
+                        onValueChange={(v) => handleChange("lodging_floor_preference", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no_preference">No Preference</SelectItem>
+                          <SelectItem value="low">Low Floor</SelectItem>
+                          <SelectItem value="high">High Floor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Elevator</Label>
+                      <Select
+                        value={formData.lodging_elevator_preference || "no_preference"}
+                        onValueChange={(v) => handleChange("lodging_elevator_preference", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no_preference">No Preference</SelectItem>
+                          <SelectItem value="near">Near Elevator</SelectItem>
+                          <SelectItem value="far">Away from Elevator</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                Lodging Preferences
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">Floor:</span>{" "}
-                  {getPreferenceLabel(client.lodging_floor_preference)}
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Ship className="h-4 w-4" />
+                    Cruise Preferences
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Cabin Floor</Label>
+                      <Select
+                        value={formData.cruise_cabin_floor_preference || "no_preference"}
+                        onValueChange={(v) => handleChange("cruise_cabin_floor_preference", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no_preference">No Preference</SelectItem>
+                          <SelectItem value="low">Low Deck</SelectItem>
+                          <SelectItem value="mid">Mid Deck</SelectItem>
+                          <SelectItem value="high">High Deck</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Location</Label>
+                      <Select
+                        value={formData.cruise_cabin_location_preference || "no_preference"}
+                        onValueChange={(v) => handleChange("cruise_cabin_location_preference", v)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no_preference">No Preference</SelectItem>
+                          <SelectItem value="forward">Forward</SelectItem>
+                          <SelectItem value="midship">Midship</SelectItem>
+                          <SelectItem value="aft">Aft</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
+              </>
+            ) : (
+              <>
                 <div>
-                  <span className="text-muted-foreground">Elevator:</span>{" "}
-                  {getPreferenceLabel(client.lodging_elevator_preference)}
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Plane className="h-4 w-4" />
+                    Flight Preferences
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Seating:</span>{" "}
+                      {getPreferenceLabel(client.flight_seating_preference)}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Bulkhead:</span>{" "}
+                      {getPreferenceLabel(client.flight_bulkhead_preference)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                <Ship className="h-4 w-4" />
-                Cruise Preferences
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">Cabin Floor:</span>{" "}
-                  {getPreferenceLabel(client.cruise_cabin_floor_preference)}
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Lodging Preferences
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Floor:</span>{" "}
+                      {getPreferenceLabel(client.lodging_floor_preference)}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Elevator:</span>{" "}
+                      {getPreferenceLabel(client.lodging_elevator_preference)}
+                    </div>
+                  </div>
                 </div>
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">Location:</span>{" "}
-                  {getPreferenceLabel(client.cruise_cabin_location_preference)}
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Ship className="h-4 w-4" />
+                    Cruise Preferences
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Cabin Floor:</span>{" "}
+                      {getPreferenceLabel(client.cruise_cabin_floor_preference)}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Location:</span>{" "}
+                      {getPreferenceLabel(client.cruise_cabin_location_preference)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -410,7 +955,14 @@ const ClientDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {client.loyalty_programs ? (
+            {isEditing ? (
+              <Textarea
+                value={formData.loyalty_programs || ""}
+                onChange={(e) => handleChange("loyalty_programs", e.target.value)}
+                rows={4}
+                placeholder="Delta SkyMiles: 1234567890&#10;Marriott Bonvoy: ABC123..."
+              />
+            ) : client.loyalty_programs ? (
               <p className="text-sm whitespace-pre-wrap">{client.loyalty_programs}</p>
             ) : (
               <p className="text-muted-foreground text-sm italic">No loyalty programs added</p>
@@ -427,7 +979,14 @@ const ClientDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {client.notes ? (
+            {isEditing ? (
+              <Textarea
+                value={formData.notes || ""}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                rows={4}
+                placeholder="Additional notes about this client..."
+              />
+            ) : client.notes ? (
               <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
             ) : (
               <p className="text-muted-foreground text-sm italic">No notes added</p>
@@ -435,13 +994,6 @@ const ClientDetail = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Edit Dialog */}
-      <EditClientDialog
-        client={client}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-      />
     </DashboardLayout>
   );
 };

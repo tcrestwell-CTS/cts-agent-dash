@@ -35,10 +35,10 @@ export function useClient(clientId: string) {
         .from("clients")
         .select("*")
         .eq("id", clientId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Client;
+      return data as Client | null;
     },
     enabled: !!user && !!clientId,
   });
@@ -127,10 +127,10 @@ export function useUpdateClient() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients-with-bookings"] });
-      toast.success("Client updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["client", data.id] });
     },
     onError: (error) => {
       toast.error("Failed to update client: " + error.message);
