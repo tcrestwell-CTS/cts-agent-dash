@@ -48,6 +48,18 @@ const Bookings = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+
+  // Get unique agents for the filter dropdown (only for admins)
+  const uniqueAgents = useMemo(() => {
+    const agents = new Set<string>();
+    bookings.forEach((booking) => {
+      if (booking.owner_agent) {
+        agents.add(booking.owner_agent);
+      }
+    });
+    return Array.from(agents).sort();
+  }, [bookings]);
 
   // Filter bookings based on search and filters
   const filteredBookings = useMemo(() => {
@@ -59,12 +71,18 @@ const Bookings = () => {
           booking.destination?.toLowerCase().includes(query) ||
           booking.trip_name?.toLowerCase().includes(query) ||
           booking.booking_reference?.toLowerCase().includes(query) ||
-          booking.clients?.name?.toLowerCase().includes(query);
+          booking.clients?.name?.toLowerCase().includes(query) ||
+          booking.owner_agent?.toLowerCase().includes(query);
         if (!matchesSearch) return false;
       }
 
       // Status filter
       if (statusFilter !== "all" && booking.status !== statusFilter) {
+        return false;
+      }
+
+      // Agent filter (admin only)
+      if (agentFilter !== "all" && booking.owner_agent !== agentFilter) {
         return false;
       }
 
@@ -90,16 +108,18 @@ const Bookings = () => {
 
       return true;
     });
-  }, [bookings, searchQuery, statusFilter, dateFilter]);
+  }, [bookings, searchQuery, statusFilter, dateFilter, agentFilter]);
 
   const activeFiltersCount = [
     statusFilter !== "all",
     dateFilter !== "all",
+    agentFilter !== "all",
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setStatusFilter("all");
     setDateFilter("all");
+    setAgentFilter("all");
     setSearchQuery("");
   };
 
@@ -254,6 +274,25 @@ const Bookings = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {isAdmin && uniqueAgents.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Agent</label>
+                      <Select value={agentFilter} onValueChange={setAgentFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All agents" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All agents</SelectItem>
+                          {uniqueAgents.map((agent) => (
+                            <SelectItem key={agent} value={agent}>
+                              {agent}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   
                   {activeFiltersCount > 0 && (
                     <Button
