@@ -13,7 +13,21 @@ const Auth = () => {
   const { user, loading, signOut } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const inviteToken = searchParams.get("invite");
+  const switchAccount = searchParams.get("switch");
+
+  // If switch=true, sign out immediately
+  useEffect(() => {
+    if (switchAccount === "true" && user && !isSigningOut) {
+      setIsSigningOut(true);
+      signOut().then(() => {
+        setIsSigningOut(false);
+        // Remove the switch param from URL
+        window.history.replaceState({}, "", "/auth");
+      });
+    }
+  }, [switchAccount, user, signOut, isSigningOut]);
 
   useEffect(() => {
     if (loading) return;
