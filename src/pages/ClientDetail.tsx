@@ -47,6 +47,7 @@ import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients"
 import { useClientBookings } from "@/hooks/useBookings";
 import { useCompanions, useDeleteCompanion, Companion } from "@/hooks/useCompanions";
 import { CompanionDialog } from "@/components/clients/CompanionDialog";
+import { SendEmailDialog } from "@/components/clients/SendEmailDialog";
 import { useState, useEffect } from "react";
 import { format, differenceInYears, isPast, isFuture, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
@@ -81,6 +82,7 @@ const ClientDetail = () => {
   const [formData, setFormData] = useState<Record<string, string | null>>({});
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
   const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -372,6 +374,15 @@ const ClientDetail = () => {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              {client.email && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setEmailDialogOpen(true)}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send Email
+                </Button>
+              )}
               <Button onClick={() => setIsEditing(true)}>
                 <Edit2 className="mr-2 h-4 w-4" />
                 Edit Client
@@ -1150,6 +1161,16 @@ const ClientDetail = () => {
         clientId={clientId!}
         companion={editingCompanion}
       />
+
+      {/* Send Email Dialog */}
+      {client.email && (
+        <SendEmailDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          clientName={fullName}
+          clientEmail={client.email}
+        />
+      )}
     </DashboardLayout>
   );
 };
