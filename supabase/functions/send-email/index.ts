@@ -11,8 +11,9 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "custom";
   data?: Record<string, string>;
+  customHtml?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -67,10 +68,14 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching branding:", brandingError);
     }
 
-    const { to, subject, template, data: templateData }: EmailRequest = await req.json();
+    const { to, subject, template, data: templateData, customHtml }: EmailRequest = await req.json();
 
     if (!to || !subject || !template) {
       throw new Error("Missing required fields: to, subject, template");
+    }
+
+    if (template === "custom" && !customHtml) {
+      throw new Error("Custom template requires customHtml field");
     }
 
     // Build email HTML based on template and branding
@@ -228,6 +233,25 @@ const handler = async (req: Request): Promise<Response> => {
               <a href="${inviteUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Accept Invitation</a>
             </div>
             <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">This invitation will expire in ${expiresIn}. If you didn't expect this invitation, you can safely ignore this email.</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "custom":
+        // Custom freeform email with user-provided content
+        const messageContent = customHtml || "";
+        // Convert newlines to <br> tags for proper rendering
+        const formattedMessage = messageContent.replace(/\n/g, "<br>");
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <div style="color: #4b5563; line-height: 1.8;">
+              ${formattedMessage}
+            </div>
             ${footerHtml}
           </div>
         `;
