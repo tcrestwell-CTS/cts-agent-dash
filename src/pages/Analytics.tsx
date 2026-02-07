@@ -5,6 +5,8 @@ import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
 import {
   AreaChart,
   Area,
@@ -39,6 +41,7 @@ import {
   PieChart as PieChartIcon,
   BarChart3,
   Calendar,
+  Trophy,
 } from "lucide-react";
 
 const COLORS = [
@@ -303,6 +306,20 @@ const Analytics = () => {
           <p className="text-muted-foreground mt-1">Agency performance metrics and insights</p>
         </div>
 
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="agents" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Agent Performance
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+
         {/* Top KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
@@ -516,6 +533,12 @@ const Analytics = () => {
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
+
+          <TabsContent value="agents">
+            <AgentPerformanceSection />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
