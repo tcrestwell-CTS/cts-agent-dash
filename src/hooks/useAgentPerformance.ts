@@ -3,6 +3,12 @@ import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useTeamProfiles, TeamProfile } from "@/hooks/useTeamProfiles";
+import { parseISO, isWithinInterval } from "date-fns";
+
+export interface DateRange {
+  from: Date;
+  to: Date;
+}
 
 export interface AgentStats {
   userId: string;
@@ -19,7 +25,7 @@ export interface AgentStats {
   conversionRate: number;
 }
 
-export function useAgentPerformance() {
+export function useAgentPerformance(dateRange?: DateRange) {
   const { data: profiles, isLoading: profilesLoading } = useTeamProfiles();
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: clients, isLoading: clientsLoading } = useClients();
@@ -27,15 +33,36 @@ export function useAgentPerformance() {
 
   const loading = profilesLoading || bookingsLoading || clientsLoading || commissionsLoading;
 
+  // Filter bookings and clients by date range if provided
+  const filteredBookings = useMemo(() => {
+    if (!bookings) return [];
+    if (!dateRange) return bookings;
+    
+    return bookings.filter((booking) => {
+      const departDate = parseISO(booking.depart_date);
+      return isWithinInterval(departDate, { start: dateRange.from, end: dateRange.to });
+    });
+  }, [bookings, dateRange]);
+
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    if (!dateRange) return clients;
+    
+    return clients.filter((client) => {
+      const createdDate = parseISO(client.created_at);
+      return isWithinInterval(createdDate, { start: dateRange.from, end: dateRange.to });
+    });
+  }, [clients, dateRange]);
+
   const agentStats = useMemo(() => {
-    if (!profiles || !bookings || !clients || !commissions) {
+    if (!profiles || !filteredBookings || !filteredClients || !commissions) {
       return [];
     }
 
     const stats: AgentStats[] = profiles.map((profile: TeamProfile) => {
       // Filter data by agent
-      const agentBookings = bookings.filter(b => b.user_id === profile.user_id && b.status !== "cancelled");
-      const agentClients = clients.filter(c => c.user_id === profile.user_id);
+      const agentBookings = filteredBookings.filter(b => b.user_id === profile.user_id && b.status !== "cancelled");
+      const agentClients = filteredClients.filter(c => c.user_id === profile.user_id);
       const agentCommissions = commissions.filter(c => c.user_id === profile.user_id);
 
       const totalRevenue = agentBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
@@ -70,7 +97,7 @@ export function useAgentPerformance() {
 
     // Sort by total revenue descending
     return stats.sort((a, b) => b.totalRevenue - a.totalRevenue);
-  }, [profiles, bookings, clients, commissions]);
+  }, [profiles, filteredBookings, filteredClients, commissions]);
 
   // Calculate totals for the agency
   const agencyTotals = useMemo(() => {

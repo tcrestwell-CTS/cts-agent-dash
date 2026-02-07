@@ -723,7 +723,7 @@ const Analytics = () => {
           </TabsContent>
 
           <TabsContent value="agents">
-            <AgentPerformanceSection />
+            <AgentPerformanceSection dateRange={dateRange} />
           </TabsContent>
         </Tabs>
       </div>
