@@ -33,6 +33,15 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
   const [role, setRole] = useState<InviteRole>("user");
   const [commissionTier, setCommissionTier] = useState<CommissionTier>("tier_1");
 
+  // Auto-update commission tier when role changes
+  const handleRoleChange = (newRole: InviteRole) => {
+    setRole(newRole);
+    // Default admins to Tier 3 (95%)
+    if (newRole === "admin") {
+      setCommissionTier("tier_3");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -78,7 +87,7 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(value: InviteRole) => setRole(value)}>
+            <Select value={role} onValueChange={(value: InviteRole) => handleRoleChange(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
