@@ -118,13 +118,13 @@ export function useProfile() {
     }
 
     const fileExt = file.name.split(".").pop();
-    const fileName = `${user.id}/avatar.${fileExt}`;
+    // Path structure: user_id/avatar.ext (user_id must be first folder for RLS)
+    const filePath = `${user.id}/avatar.${fileExt}`;
 
     try {
-      // First, ensure the avatars bucket exists or use logos bucket
       const { error: uploadError } = await supabase.storage
         .from("logos")
-        .upload(`avatars/${fileName}`, file, { upsert: true });
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
         console.error("Error uploading avatar:", uploadError);
@@ -134,7 +134,7 @@ export function useProfile() {
 
       const { data: { publicUrl } } = supabase.storage
         .from("logos")
-        .getPublicUrl(`avatars/${fileName}`);
+        .getPublicUrl(filePath);
 
       const avatarUrl = `${publicUrl}?v=${Date.now()}`;
       
