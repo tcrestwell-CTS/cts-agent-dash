@@ -34,13 +34,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2, Search, X, LayoutGrid, List } from "lucide-react";
+import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2, Search, X, LayoutGrid, List, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { useBookings, Booking } from "@/hooks/useBookings";
 import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { BookingsCalendar } from "@/components/bookings/BookingsCalendar";
 
 const Bookings = () => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ const Bookings = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [agentFilter, setAgentFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [viewMode, setViewMode] = useState<"table" | "cards" | "calendar">("table");
 
   // Get unique agents for the filter dropdown (only for admins)
   const uniqueAgents = useMemo(() => {
@@ -337,7 +338,7 @@ const Bookings = () => {
           <ToggleGroup
             type="single"
             value={viewMode}
-            onValueChange={(value) => value && setViewMode(value as "table" | "cards")}
+            onValueChange={(value) => value && setViewMode(value as "table" | "cards" | "calendar")}
             className="ml-auto"
           >
             <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0">
@@ -345,6 +346,9 @@ const Bookings = () => {
             </ToggleGroupItem>
             <ToggleGroupItem value="cards" aria-label="Card view" className="h-8 w-8 p-0">
               <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="calendar" aria-label="Calendar view" className="h-8 w-8 p-0">
+              <CalendarDays className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -368,6 +372,10 @@ const Bookings = () => {
                 </Button>
               </>
             )}
+          </div>
+        ) : viewMode === "calendar" ? (
+          <div className="p-4">
+            <BookingsCalendar bookings={filteredBookings} isAdmin={isAdmin} />
           </div>
         ) : viewMode === "cards" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
