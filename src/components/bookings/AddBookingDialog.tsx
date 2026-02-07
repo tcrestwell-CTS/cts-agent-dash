@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -19,18 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, Mail } from "lucide-react";
+import { Plus, Loader2, Mail, Users } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
+import { useCompanions } from "@/hooks/useCompanions";
+import { useAddBookingTravelers } from "@/hooks/useBookingTravelers";
 import { CreateBookingData } from "@/hooks/useBookings";
+import { Booking } from "@/hooks/useBookings";
 
 interface AddBookingDialogProps {
-  onSubmit: (data: CreateBookingData) => Promise<unknown>;
+  onSubmit: (data: CreateBookingData) => Promise<Booking | null>;
   creating: boolean;
 }
 
 export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) {
   const [open, setOpen] = useState(false);
   const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const addBookingTravelers = useAddBookingTravelers();
   
   const [formData, setFormData] = useState({
     client_id: "",
@@ -44,9 +49,21 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
     send_confirmation_email: true,
   });
 
+  const [selectedCompanionIds, setSelectedCompanionIds] = useState<string[]>([]);
+
+  // Fetch companions for the selected client
+  const { data: companions = [], isLoading: companionsLoading } = useCompanions(
+    formData.client_id || undefined
+  );
+
   const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
 
   // Update selected client email when client changes
+  // Reset selected companions when client changes
+  useEffect(() => {
+    setSelectedCompanionIds([]);
+  }, [formData.client_id]);
+
   useEffect(() => {
     if (formData.client_id) {
       const client = clients.find(c => c.id === formData.client_id);
@@ -55,6 +72,14 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
       setSelectedClientEmail(null);
     }
   }, [formData.client_id, clients]);
+
+  const toggleCompanion = (companionId: string) => {
+    setSelectedCompanionIds(prev =>
+      prev.includes(companionId)
+        ? prev.filter(id => id !== companionId)
+        : [...prev, companionId]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +90,14 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
 
     const result = await onSubmit(formData);
     if (result) {
+      // Add selected companions as travelers
+      if (selectedCompanionIds.length > 0) {
+        await addBookingTravelers.mutateAsync({
+          bookingId: result.id,
+          companionIds: selectedCompanionIds,
+        });
+      }
+
       setOpen(false);
       setFormData({
         client_id: "",
@@ -77,6 +110,7 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
         notes: "",
         send_confirmation_email: true,
       });
+      setSelectedCompanionIds([]);
     }
   };
 
@@ -183,6 +217,48 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
               />
             </div>
           </div>
+
+          {/* Travel Companions Selection */}
+          {formData.client_id && companions.length > 0 && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Travel Companions
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Select companions who will be traveling on this trip
+              </p>
+              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
+                {companionsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading companions...</p>
+                ) : (
+                  companions.map((companion) => (
+                    <div key={companion.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`companion-${companion.id}`}
+                        checked={selectedCompanionIds.includes(companion.id)}
+                        onCheckedChange={() => toggleCompanion(companion.id)}
+                      />
+                      <label
+                        htmlFor={`companion-${companion.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {companion.first_name} {companion.last_name}
+                        <span className="text-muted-foreground ml-1 text-xs">
+                          ({companion.relationship})
+                        </span>
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              {selectedCompanionIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedCompanionIds.length} companion{selectedCompanionIds.length > 1 ? 's' : ''} selected
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
