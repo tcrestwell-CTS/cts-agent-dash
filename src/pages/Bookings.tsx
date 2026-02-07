@@ -33,22 +33,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2, Search, X } from "lucide-react";
+import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2, Search, X, LayoutGrid, List } from "lucide-react";
 import { format } from "date-fns";
 import { useBookings, Booking } from "@/hooks/useBookings";
 import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
+import { BookingCard } from "@/components/bookings/BookingCard";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const Bookings = () => {
   const { bookings, loading, creating, updating, updatingStatus, isAdmin, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
   
-  // Search and filter state
+  // Search, filter, and view state
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [agentFilter, setAgentFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   // Get unique agents for the filter dropdown (only for admins)
   const uniqueAgents = useMemo(() => {
@@ -328,6 +331,20 @@ const Bookings = () => {
               Showing {filteredBookings.length} of {bookings.length} bookings
             </p>
           )}
+          
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(value) => value && setViewMode(value as "table" | "cards")}
+            className="ml-auto"
+          >
+            <ToggleGroupItem value="table" aria-label="Table view" className="h-8 w-8 p-0">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="cards" aria-label="Card view" className="h-8 w-8 p-0">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {loading ? (
@@ -349,6 +366,20 @@ const Bookings = () => {
                 </Button>
               </>
             )}
+          </div>
+        ) : viewMode === "cards" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+            {filteredBookings.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                isAdmin={isAdmin}
+                updatingStatus={updatingStatus}
+                onStatusChange={updateBookingStatus}
+                onEdit={setEditingBooking}
+                onDelete={setDeletingBooking}
+              />
+            ))}
           </div>
         ) : (
           <Table>
