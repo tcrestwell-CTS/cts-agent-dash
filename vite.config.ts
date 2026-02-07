@@ -17,5 +17,11 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Prevent duplicate React instances
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
+  },
+  // Ensure @tanstack/react-query is properly bundled
+  optimizeDeps: {
+    include: ["@tanstack/react-query"],
   },
 }));
