@@ -6,6 +6,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Security: Maximum records per import to prevent DoS
+const MAX_RECORDS_PER_IMPORT = 1000;
+
+// Security: Maximum field lengths to prevent database overflow
+const MAX_FIELD_LENGTHS = {
+  name: 200,
+  first_name: 100,
+  last_name: 100,
+  email: 255,
+  phone: 50,
+  address: 500,
+  notes: 5000,
+  location: 500,
+  tags: 500,
+  loyalty_programs: 1000,
+  trip_name: 300,
+  destination: 300,
+  booking_reference: 100,
+  owner_agent: 200,
+  url: 2048,
+};
+
 interface ClientRecord {
   // New CSV fields
   "First Name"?: string;
@@ -52,6 +74,157 @@ interface BookingRecord {
   total_amount?: number;
   status?: string;
   notes?: string;
+}
+
+// Security: Validate email format
+function isValidEmail(email: string): boolean {
+  if (!email) return true; // Empty is valid (optional field)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= MAX_FIELD_LENGTHS.email;
+}
+
+// Security: Sanitize text to prevent CSV formula injection
+// Prefixes =, +, -, @, tab, carriage return can trigger formula execution in Excel
+function sanitizeForCSV(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  
+  // Check if value starts with dangerous characters
+  if (/^[=+\-@\t\r]/.test(trimmed)) {
+    // Prefix with single quote to prevent formula execution
+    return "'" + trimmed;
+  }
+  return trimmed;
+}
+
+// Security: Truncate string to max length
+function truncateField(value: string | null | undefined, maxLength: number): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.length > maxLength ? trimmed.substring(0, maxLength) : trimmed;
+}
+
+// Security: Sanitize and truncate text field
+function sanitizeAndTruncate(value: string | null | undefined, maxLength: number): string | null {
+  const sanitized = sanitizeForCSV(value);
+  return truncateField(sanitized, maxLength);
+}
+
+// Security: Validate date format (YYYY-MM-DD or common formats)
+function isValidDate(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return false;
+  const trimmed = dateStr.trim();
+  // Accept ISO format, US format, or common variations
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+    /^\d{2}\/\d{2}\/\d{4}$/, // MM/DD/YYYY
+    /^\d{2}-\d{2}-\d{4}$/, // MM-DD-YYYY
+  ];
+  return datePatterns.some(pattern => pattern.test(trimmed));
+}
+
+// Security: Parse and normalize date to ISO format
+function normalizeDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  
+  // Already ISO format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  
+  // Try to parse other formats
+  const date = new Date(trimmed);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  return null;
+}
+
+// Security: Validate phone number format (basic validation)
+function isValidPhone(phone: string | null | undefined): boolean {
+  if (!phone) return true; // Empty is valid (optional field)
+  const trimmed = phone.trim();
+  // Allow digits, spaces, dashes, parentheses, plus sign
+  const phoneRegex = /^[\d\s\-+().]+$/;
+  return phoneRegex.test(trimmed) && trimmed.length <= MAX_FIELD_LENGTHS.phone;
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+// Validate client record
+function validateClientRecord(record: ClientRecord): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  // Check email format
+  const email = record["Primary Email"]?.trim() || record.email?.trim();
+  if (email && !isValidEmail(email)) {
+    errors.push({ field: "email", message: `Invalid email format or exceeds ${MAX_FIELD_LENGTHS.email} characters` });
+  }
+  
+  // Check phone format
+  const phone = record["Primary Phone Number"]?.trim() || record.phone?.trim();
+  if (phone && !isValidPhone(phone)) {
+    errors.push({ field: "phone", message: "Invalid phone format" });
+  }
+  
+  // Check field lengths
+  const firstName = record["First Name"]?.trim();
+  if (firstName && firstName.length > MAX_FIELD_LENGTHS.first_name) {
+    errors.push({ field: "first_name", message: `First name exceeds ${MAX_FIELD_LENGTHS.first_name} characters` });
+  }
+  
+  const lastName = record["Last Name"]?.trim();
+  if (lastName && lastName.length > MAX_FIELD_LENGTHS.last_name) {
+    errors.push({ field: "last_name", message: `Last name exceeds ${MAX_FIELD_LENGTHS.last_name} characters` });
+  }
+  
+  const notes = record.notes?.trim();
+  if (notes && notes.length > MAX_FIELD_LENGTHS.notes) {
+    errors.push({ field: "notes", message: `Notes exceeds ${MAX_FIELD_LENGTHS.notes} characters` });
+  }
+  
+  return errors;
+}
+
+// Validate booking record
+function validateBookingRecord(record: BookingRecord): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  // Check date formats
+  const startDate = record["Start Date"] || record.depart_date;
+  if (startDate && !isValidDate(startDate)) {
+    errors.push({ field: "start_date", message: "Invalid start date format" });
+  }
+  
+  const endDate = record["End Date"] || record.return_date;
+  if (endDate && !isValidDate(endDate)) {
+    errors.push({ field: "end_date", message: "Invalid end date format" });
+  }
+  
+  // Check field lengths
+  const tripName = record["Trip Name"]?.trim();
+  if (tripName && tripName.length > MAX_FIELD_LENGTHS.trip_name) {
+    errors.push({ field: "trip_name", message: `Trip name exceeds ${MAX_FIELD_LENGTHS.trip_name} characters` });
+  }
+  
+  const destination = record.destination?.trim();
+  if (destination && destination.length > MAX_FIELD_LENGTHS.destination) {
+    errors.push({ field: "destination", message: `Destination exceeds ${MAX_FIELD_LENGTHS.destination} characters` });
+  }
+  
+  const notes = record.notes?.trim();
+  if (notes && notes.length > MAX_FIELD_LENGTHS.notes) {
+    errors.push({ field: "notes", message: `Notes exceeds ${MAX_FIELD_LENGTHS.notes} characters` });
+  }
+  
+  return errors;
 }
 
 Deno.serve(async (req) => {
@@ -135,6 +308,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Security: Enforce batch size limit to prevent DoS
+    if (data.length > MAX_RECORDS_PER_IMPORT) {
+      console.error(`Batch size ${data.length} exceeds limit of ${MAX_RECORDS_PER_IMPORT}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Maximum ${MAX_RECORDS_PER_IMPORT} records per import. Please split your file into smaller batches.` 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log(`Importing ${data.length} ${type} records for user ${targetUserId}`);
 
     // Create import log
@@ -143,7 +327,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: user.id,
         import_type: type,
-        file_name: fileName,
+        file_name: truncateField(fileName, 255),
         status: "processing",
       })
       .select()
@@ -164,14 +348,23 @@ Deno.serve(async (req) => {
       for (let i = 0; i < clientData.length; i++) {
         const record = clientData[i];
 
+        // Security: Validate record before processing
+        const validationErrors = validateClientRecord(record);
+        if (validationErrors.length > 0) {
+          const errorMsg = validationErrors.map(e => `${e.field}: ${e.message}`).join("; ");
+          errors.push({ index: i, error: `Validation failed - ${errorMsg}`, record });
+          recordsFailed++;
+          continue;
+        }
+
         // Support both new CSV format and legacy format
-        const firstName = record["First Name"]?.trim() || "";
-        const lastName = record["Last Name"]?.trim() || "";
-        const legacyName = record.name?.trim() || "";
+        const firstName = sanitizeAndTruncate(record["First Name"], MAX_FIELD_LENGTHS.first_name) || "";
+        const lastName = sanitizeAndTruncate(record["Last Name"], MAX_FIELD_LENGTHS.last_name) || "";
+        const legacyName = sanitizeAndTruncate(record.name, MAX_FIELD_LENGTHS.name) || "";
         
         // Build name from first/last or use legacy name field
         const fullName = firstName || lastName 
-          ? `${firstName} ${lastName}`.trim() 
+          ? truncateField(`${firstName} ${lastName}`.trim(), MAX_FIELD_LENGTHS.name)
           : legacyName;
 
         if (!fullName) {
@@ -182,39 +375,39 @@ Deno.serve(async (req) => {
 
         // Build location from address fields or use legacy location
         const addressParts = [
-          record["Address Line 1"],
-          record["Address Line 2"],
-          record["Address City"],
-          record["Address State"],
-          record["Address Zip Code"],
-          record["Address Country"],
+          sanitizeAndTruncate(record["Address Line 1"], MAX_FIELD_LENGTHS.address),
+          sanitizeAndTruncate(record["Address Line 2"], MAX_FIELD_LENGTHS.address),
+          sanitizeAndTruncate(record["Address City"], 100),
+          sanitizeAndTruncate(record["Address State"], 100),
+          sanitizeAndTruncate(record["Address Zip Code"], 20),
+          sanitizeAndTruncate(record["Address Country"], 100),
         ].filter(Boolean);
         const location = addressParts.length > 0 
-          ? addressParts.join(", ") 
-          : record.location?.trim() || null;
+          ? truncateField(addressParts.join(", "), MAX_FIELD_LENGTHS.location)
+          : sanitizeAndTruncate(record.location, MAX_FIELD_LENGTHS.location);
 
         const clientInsert = {
           user_id: targetUserId,
           name: fullName,
-          first_name: firstName || null,
-          preferred_first_name: record["Preferred First Name"]?.trim() || null,
-          last_name: lastName || null,
-          email: record["Primary Email"]?.trim() || record.email?.trim() || null,
-          phone: record["Primary Phone Number"]?.trim() || record.phone?.trim() || null,
-          birthday: record["Birthday"] || null,
-          address_line_1: record["Address Line 1"]?.trim() || null,
-          address_line_2: record["Address Line 2"]?.trim() || null,
-          address_country: record["Address Country"]?.trim() || null,
-          address_city: record["Address City"]?.trim() || null,
-          address_state: record["Address State"]?.trim() || null,
-          address_zip_code: record["Address Zip Code"]?.trim() || null,
-          loyalty_programs: record["Loyalty Programs"]?.trim() || null,
-          tags: record["Tags"]?.trim() || null,
+          first_name: sanitizeAndTruncate(record["First Name"], MAX_FIELD_LENGTHS.first_name),
+          preferred_first_name: sanitizeAndTruncate(record["Preferred First Name"], MAX_FIELD_LENGTHS.first_name),
+          last_name: sanitizeAndTruncate(record["Last Name"], MAX_FIELD_LENGTHS.last_name),
+          email: truncateField(record["Primary Email"]?.trim() || record.email?.trim(), MAX_FIELD_LENGTHS.email),
+          phone: sanitizeAndTruncate(record["Primary Phone Number"] || record.phone, MAX_FIELD_LENGTHS.phone),
+          birthday: normalizeDate(record["Birthday"]),
+          address_line_1: sanitizeAndTruncate(record["Address Line 1"], MAX_FIELD_LENGTHS.address),
+          address_line_2: sanitizeAndTruncate(record["Address Line 2"], MAX_FIELD_LENGTHS.address),
+          address_country: sanitizeAndTruncate(record["Address Country"], 100),
+          address_city: sanitizeAndTruncate(record["Address City"], 100),
+          address_state: sanitizeAndTruncate(record["Address State"], 100),
+          address_zip_code: sanitizeAndTruncate(record["Address Zip Code"], 20),
+          loyalty_programs: sanitizeAndTruncate(record["Loyalty Programs"], MAX_FIELD_LENGTHS.loyalty_programs),
+          tags: sanitizeAndTruncate(record["Tags"], MAX_FIELD_LENGTHS.tags),
           location: location,
           status: ["active", "lead", "inactive"].includes(record.status || "")
             ? record.status
             : "lead",
-          notes: record.notes?.trim() || null,
+          notes: sanitizeAndTruncate(record.notes, MAX_FIELD_LENGTHS.notes),
         };
 
         const { error: insertError } = await supabase.from("clients").insert(clientInsert);
@@ -255,6 +448,15 @@ Deno.serve(async (req) => {
       for (let i = 0; i < bookingData.length; i++) {
         const record = bookingData[i];
 
+        // Security: Validate record before processing
+        const validationErrors = validateBookingRecord(record);
+        if (validationErrors.length > 0) {
+          const errorMsg = validationErrors.map(e => `${e.field}: ${e.message}`).join("; ");
+          errors.push({ index: i, error: `Validation failed - ${errorMsg}`, record });
+          recordsFailed++;
+          continue;
+        }
+
         // Check if this is the new trips CSV format
         const isTripsFormat = record["Trip Name"] !== undefined;
 
@@ -270,22 +472,24 @@ Deno.serve(async (req) => {
         let destination: string | null = null;
 
         if (isTripsFormat) {
-          tripName = record["Trip Name"]?.trim() || null;
+          tripName = sanitizeAndTruncate(record["Trip Name"], MAX_FIELD_LENGTHS.trip_name);
           
           // Extract URL from Trip Page field (format: {caption}view{/caption}https://...)
           const tripPageRaw = record["Trip Page"] || "";
           const urlMatch = tripPageRaw.match(/https?:\/\/[^\s"]+/);
-          tripPageUrl = urlMatch ? urlMatch[0] : null;
+          tripPageUrl = urlMatch ? truncateField(urlMatch[0], MAX_FIELD_LENGTHS.url) : null;
           
           // Extract trip ID from URL for booking reference
           const tripIdMatch = tripPageUrl?.match(/\/trips\/(\d+)/);
-          bookingReference = tripIdMatch ? `TRIP-${tripIdMatch[1]}` : `TRIP-${Date.now()}-${i}`;
+          bookingReference = tripIdMatch 
+            ? truncateField(`TRIP-${tripIdMatch[1]}`, MAX_FIELD_LENGTHS.booking_reference)
+            : truncateField(`TRIP-${Date.now()}-${i}`, MAX_FIELD_LENGTHS.booking_reference);
           
           // Use trip name as destination
           destination = tripName || "Unknown";
           
-          departDate = record["Start Date"] || null;
-          returnDate = record["End Date"] || null;
+          departDate = normalizeDate(record["Start Date"]);
+          returnDate = normalizeDate(record["End Date"]);
           
           // Parse primary contact - skip records with '--' as contact
           const primaryContact = record["Primary Contact"]?.trim() || "";
@@ -294,13 +498,21 @@ Deno.serve(async (req) => {
             console.log(`Skipping trip "${tripName}" - no primary contact assigned`);
             continue;
           }
-          clientName = primaryContact;
+          clientName = sanitizeAndTruncate(primaryContact, MAX_FIELD_LENGTHS.name);
           
-          ownerAgent = record["Owner Agent"]?.trim() || null;
+          ownerAgent = sanitizeAndTruncate(record["Owner Agent"], MAX_FIELD_LENGTHS.owner_agent);
           
-          // Parse amount
+          // Parse amount - sanitize to prevent injection
           const amountStr = record["Gross Sale Amount (Your Currency)"] || "0";
-          totalAmount = parseFloat(amountStr.replace(/[^0-9.-]/g, "")) || 0;
+          const cleanAmount = amountStr.replace(/[^0-9.-]/g, "");
+          totalAmount = parseFloat(cleanAmount) || 0;
+          // Security: Cap amount to reasonable maximum
+          if (totalAmount > 10000000) {
+            totalAmount = 10000000;
+          }
+          if (totalAmount < 0) {
+            totalAmount = 0;
+          }
           
           // Map status: Booked -> confirmed, Planning -> pending, Inbound -> pending, Archived -> completed
           const tripStatus = record["Status"]?.trim().toLowerCase() || "";
@@ -315,12 +527,12 @@ Deno.serve(async (req) => {
           }
         } else {
           // Legacy format
-          bookingReference = record.booking_reference?.trim() || null;
-          destination = record.destination?.trim() || null;
-          departDate = record.depart_date || null;
-          returnDate = record.return_date || null;
-          clientName = record.client_name || null;
-          totalAmount = record.total_amount || 0;
+          bookingReference = sanitizeAndTruncate(record.booking_reference, MAX_FIELD_LENGTHS.booking_reference);
+          destination = sanitizeAndTruncate(record.destination, MAX_FIELD_LENGTHS.destination);
+          departDate = normalizeDate(record.depart_date);
+          returnDate = normalizeDate(record.return_date);
+          clientName = sanitizeAndTruncate(record.client_name, MAX_FIELD_LENGTHS.name);
+          totalAmount = Math.min(Math.max(record.total_amount || 0, 0), 10000000);
           status = ["confirmed", "pending", "cancelled", "completed"].includes(record.status || "")
             ? record.status!
             : "pending";
@@ -330,7 +542,7 @@ Deno.serve(async (req) => {
         if (!departDate || !returnDate) {
           errors.push({
             index: i,
-            error: "Start date and end date are required",
+            error: "Start date and end date are required and must be valid dates",
             record,
           });
           recordsFailed++;
@@ -384,14 +596,14 @@ Deno.serve(async (req) => {
         const bookingInsert = {
           user_id: targetUserId,
           client_id: clientId,
-          booking_reference: bookingReference || `BK-${Date.now()}-${i}`,
+          booking_reference: bookingReference || truncateField(`BK-${Date.now()}-${i}`, MAX_FIELD_LENGTHS.booking_reference),
           destination: destination || "Unknown",
           depart_date: departDate,
           return_date: returnDate,
-          travelers: record.travelers || 1,
+          travelers: Math.min(Math.max(record.travelers || 1, 1), 100), // Cap travelers 1-100
           total_amount: totalAmount,
           status: status,
-          notes: record.notes?.trim() || null,
+          notes: sanitizeAndTruncate(record.notes, MAX_FIELD_LENGTHS.notes),
           trip_name: tripName,
           trip_page_url: tripPageUrl,
           owner_agent: ownerAgent,
