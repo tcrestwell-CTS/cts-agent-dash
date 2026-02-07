@@ -1,0 +1,227 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+interface EmailRequest {
+  to: string;
+  subject: string;
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote";
+  data?: Record<string, string>;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY is not configured");
+      throw new Error("Email service not configured");
+    }
+
+    const resend = new Resend(RESEND_API_KEY);
+
+    // Authenticate user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Get branding settings
+    const { data: branding, error: brandingError } = await supabase
+      .from("branding_settings")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (brandingError && brandingError.code !== "PGRST116") {
+      console.error("Error fetching branding:", brandingError);
+    }
+
+    const { to, subject, template, data: templateData }: EmailRequest = await req.json();
+
+    if (!to || !subject || !template) {
+      throw new Error("Missing required fields: to, subject, template");
+    }
+
+    // Build email HTML based on template and branding
+    const agencyName = branding?.agency_name || "Your Travel Agency";
+    const tagline = branding?.tagline || "Your Journey, Our Passion";
+    const primaryColor = branding?.primary_color || "#0D7377";
+    const accentColor = branding?.accent_color || "#E8763A";
+    const logoUrl = branding?.logo_url || "";
+    const phone = branding?.phone || "";
+    const website = branding?.website || "";
+    const fromEmail = branding?.from_email || "noreply@yourdomain.com";
+    const fromName = branding?.from_name || agencyName;
+
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
+      : "";
+
+    const footerHtml = `
+      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+        <p style="margin: 0;">${agencyName}</p>
+        ${tagline ? `<p style="margin: 4px 0; font-style: italic;">${tagline}</p>` : ""}
+        ${phone ? `<p style="margin: 4px 0;">📞 ${phone}</p>` : ""}
+        ${website ? `<p style="margin: 4px 0;"><a href="${website}" style="color: ${primaryColor};">${website}</a></p>` : ""}
+      </div>
+    `;
+
+    let emailHtml = "";
+    const clientName = templateData?.clientName || "[Client Name]";
+
+    switch (template) {
+      case "welcome":
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Welcome Aboard! 🌍</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Thank you for choosing ${agencyName} for your upcoming adventure. We're thrilled to help you create unforgettable travel memories.</p>
+            <p style="color: #4b5563; line-height: 1.6;">Your dedicated travel consultant is ready to craft the perfect itinerary for you.</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${website || '#'}" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Get Started</a>
+            </div>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "booking_confirmation":
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Booking Confirmed! ✈️</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Great news! Your booking has been confirmed. Here are your trip details:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${templateData?.destination || "TBD"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Dates:</strong> ${templateData?.dates || "TBD"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Booking Reference:</strong> ${templateData?.reference || "TBD"}</p>
+            </div>
+            <p style="color: #4b5563; line-height: 1.6;">We'll send you your detailed itinerary soon.</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "itinerary":
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Your Travel Itinerary 📋</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Please find your detailed travel itinerary attached. Here's a quick overview:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Trip:</strong> ${templateData?.tripName || "Your Adventure"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Duration:</strong> ${templateData?.duration || "TBD"}</p>
+            </div>
+            <p style="color: #4b5563; line-height: 1.6;">Have questions? Don't hesitate to reach out!</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "quote":
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Your Travel Quote 💼</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Thank you for your interest! Here's a personalized quote for your trip:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${templateData?.destination || "TBD"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Estimated Cost:</strong> ${templateData?.amount || "TBD"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Valid Until:</strong> ${templateData?.validUntil || "14 days"}</p>
+            </div>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${website || '#'}" style="background-color: ${accentColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Accept Quote</a>
+            </div>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      default:
+        throw new Error("Invalid template type");
+    }
+
+    console.log(`Sending ${template} email to ${to}`);
+
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to: [to],
+      subject,
+      html: emailHtml,
+    });
+
+    if (emailError) {
+      console.error("Resend error:", emailError);
+      throw new Error(`Failed to send email: ${emailError.message}`);
+    }
+
+    console.log("Email sent successfully:", emailData);
+
+    return new Response(
+      JSON.stringify({ success: true, id: emailData?.id }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: unknown) {
+    console.error("Error in send-email function:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      JSON.stringify({ success: false, error: errorMessage }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
+serve(handler);

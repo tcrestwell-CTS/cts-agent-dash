@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,9 +6,110 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Palette, FileText, Eye, Upload, Send, Image } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Mail, Palette, FileText, Eye, Upload, Send, Image, Loader2 } from "lucide-react";
+import { useBrandingSettings } from "@/hooks/useBrandingSettings";
+import { useSendEmail } from "@/hooks/useSendEmail";
+import { toast } from "sonner";
+
+type EmailTemplate = "welcome" | "booking_confirmation" | "itinerary" | "quote";
 
 const Branding = () => {
+  const { settings, loading, saving, saveSettings, uploadLogo } = useBrandingSettings();
+  const { sendTestEmail, sending } = useSendEmail();
+  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate>("welcome");
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Local form state
+  const [brandForm, setBrandForm] = useState({
+    agency_name: settings.agency_name,
+    tagline: settings.tagline,
+    primary_color: settings.primary_color,
+    accent_color: settings.accent_color,
+  });
+
+  const [contactForm, setContactForm] = useState({
+    email_address: settings.email_address,
+    phone: settings.phone,
+    address: settings.address,
+    website: settings.website,
+    instagram: settings.instagram,
+    facebook: settings.facebook,
+  });
+
+  // Update form when settings load
+  useState(() => {
+    setBrandForm({
+      agency_name: settings.agency_name,
+      tagline: settings.tagline,
+      primary_color: settings.primary_color,
+      accent_color: settings.accent_color,
+    });
+    setContactForm({
+      email_address: settings.email_address,
+      phone: settings.phone,
+      address: settings.address,
+      website: settings.website,
+      instagram: settings.instagram,
+      facebook: settings.facebook,
+    });
+  });
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be less than 2MB");
+      return;
+    }
+
+    setUploading(true);
+    await uploadLogo(file);
+    setUploading(false);
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress) {
+      toast.error("Please enter an email address");
+      return;
+    }
+
+    const success = await sendTestEmail(testEmailAddress, selectedTemplate);
+    if (success) {
+      setTestDialogOpen(false);
+      setTestEmailAddress("");
+    }
+  };
+
+  const handleSaveBrandSettings = async () => {
+    await saveSettings(brandForm);
+  };
+
+  const handleSaveContactInfo = async () => {
+    await saveSettings(contactForm);
+  };
+
+  const templateInfo: Record<EmailTemplate, { title: string; description: string }> = {
+    welcome: { title: "Welcome Email", description: "New client onboarding" },
+    booking_confirmation: { title: "Booking Confirmation", description: "Sent after booking" },
+    itinerary: { title: "Travel Itinerary", description: "Trip details & schedule" },
+    quote: { title: "Quote Proposal", description: "Price estimates" },
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       {/* Header */}
@@ -42,77 +144,30 @@ const Branding = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Template List */}
             <div className="space-y-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Welcome Email</CardTitle>
-                  <CardDescription>New client onboarding</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 gap-1">
-                      <Eye className="h-3.5 w-3.5" />
-                      Preview
-                    </Button>
-                    <Button size="sm" className="flex-1 gap-1">
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Booking Confirmation</CardTitle>
-                  <CardDescription>Sent after booking</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 gap-1">
-                      <Eye className="h-3.5 w-3.5" />
-                      Preview
-                    </Button>
-                    <Button size="sm" className="flex-1 gap-1">
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Travel Itinerary</CardTitle>
-                  <CardDescription>Trip details & schedule</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 gap-1">
-                      <Eye className="h-3.5 w-3.5" />
-                      Preview
-                    </Button>
-                    <Button size="sm" className="flex-1 gap-1">
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Quote Proposal</CardTitle>
-                  <CardDescription>Price estimates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 gap-1">
-                      <Eye className="h-3.5 w-3.5" />
-                      Preview
-                    </Button>
-                    <Button size="sm" className="flex-1 gap-1">
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              {(Object.keys(templateInfo) as EmailTemplate[]).map((template) => (
+                <Card
+                  key={template}
+                  className={selectedTemplate === template ? "ring-2 ring-primary" : ""}
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">{templateInfo[template].title}</CardTitle>
+                    <CardDescription>{templateInfo[template].description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-1"
+                        onClick={() => setSelectedTemplate(template)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Preview
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
             {/* Email Editor Preview */}
@@ -120,45 +175,160 @@ const Branding = () => {
               <div className="p-4 border-b border-border bg-muted/30">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-card-foreground">
-                    Email Preview
+                    Email Preview - {templateInfo[selectedTemplate].title}
                   </h3>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Send className="h-4 w-4" />
-                      Send Test
-                    </Button>
-                    <Button size="sm">Save Changes</Button>
+                    <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Send className="h-4 w-4" />
+                          Send Test
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Send Test Email</DialogTitle>
+                          <DialogDescription>
+                            Send a test "{templateInfo[selectedTemplate].title}" email to preview how it looks.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="test-email">Email Address</Label>
+                            <Input
+                              id="test-email"
+                              type="email"
+                              placeholder="your@email.com"
+                              value={testEmailAddress}
+                              onChange={(e) => setTestEmailAddress(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={handleSendTestEmail}
+                            disabled={sending}
+                          >
+                            {sending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-2" />
+                                Send Test Email
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               </div>
               <div className="p-8">
                 <div className="max-w-lg mx-auto bg-background rounded-lg border border-border p-8">
                   <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 mb-4">
-                      <span className="text-xl font-semibold text-foreground">
-                        Crestwell Travel Services
-                      </span>
-                    </div>
+                    {settings.logo_url ? (
+                      <img
+                        src={settings.logo_url}
+                        alt={settings.agency_name}
+                        className="max-h-16 mx-auto mb-4"
+                      />
+                    ) : (
+                      <div className="inline-flex items-center gap-2 mb-4">
+                        <span className="text-xl font-semibold text-foreground">
+                          {settings.agency_name}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <h2 className="text-xl font-semibold text-foreground mb-4">
-                    Welcome Aboard! 🌍
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    Dear [Client Name],
-                  </p>
-                  <p className="text-muted-foreground mb-4">
-                    Thank you for choosing Crestwell Travel Services for your upcoming
-                    adventure. We're thrilled to help you create unforgettable
-                    travel memories.
-                  </p>
-                  <p className="text-muted-foreground mb-6">
-                    Your dedicated travel consultant is ready to craft the
-                    perfect itinerary for you.
-                  </p>
-                  <Button className="w-full">View Your Dashboard</Button>
-                  <p className="text-sm text-muted-foreground mt-6 text-center">
-                    Questions? Reply to this email or call us at (555) 123-4567
-                  </p>
+
+                  {selectedTemplate === "welcome" && (
+                    <>
+                      <h2 className="text-xl font-semibold text-foreground mb-4">
+                        Welcome Aboard! 🌍
+                      </h2>
+                      <p className="text-muted-foreground mb-4">Dear [Client Name],</p>
+                      <p className="text-muted-foreground mb-4">
+                        Thank you for choosing {settings.agency_name} for your upcoming
+                        adventure. We're thrilled to help you create unforgettable
+                        travel memories.
+                      </p>
+                      <p className="text-muted-foreground mb-6">
+                        Your dedicated travel consultant is ready to craft the
+                        perfect itinerary for you.
+                      </p>
+                      <Button className="w-full">Get Started</Button>
+                    </>
+                  )}
+
+                  {selectedTemplate === "booking_confirmation" && (
+                    <>
+                      <h2 className="text-xl font-semibold text-foreground mb-4">
+                        Booking Confirmed! ✈️
+                      </h2>
+                      <p className="text-muted-foreground mb-4">Dear [Client Name],</p>
+                      <p className="text-muted-foreground mb-4">
+                        Great news! Your booking has been confirmed. Here are your trip details:
+                      </p>
+                      <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                        <p className="text-sm mb-2"><strong>Destination:</strong> Paris, France</p>
+                        <p className="text-sm mb-2"><strong>Dates:</strong> March 15-22, 2025</p>
+                        <p className="text-sm"><strong>Reference:</strong> CTS-2025-001</p>
+                      </div>
+                      <p className="text-muted-foreground">
+                        We'll send you your detailed itinerary soon.
+                      </p>
+                    </>
+                  )}
+
+                  {selectedTemplate === "itinerary" && (
+                    <>
+                      <h2 className="text-xl font-semibold text-foreground mb-4">
+                        Your Travel Itinerary 📋
+                      </h2>
+                      <p className="text-muted-foreground mb-4">Dear [Client Name],</p>
+                      <p className="text-muted-foreground mb-4">
+                        Please find your detailed travel itinerary below.
+                      </p>
+                      <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                        <p className="text-sm mb-2"><strong>Trip:</strong> European Adventure</p>
+                        <p className="text-sm"><strong>Duration:</strong> 7 nights</p>
+                      </div>
+                      <p className="text-muted-foreground">
+                        Have questions? Don't hesitate to reach out!
+                      </p>
+                    </>
+                  )}
+
+                  {selectedTemplate === "quote" && (
+                    <>
+                      <h2 className="text-xl font-semibold text-foreground mb-4">
+                        Your Travel Quote 💼
+                      </h2>
+                      <p className="text-muted-foreground mb-4">Dear [Client Name],</p>
+                      <p className="text-muted-foreground mb-4">
+                        Thank you for your interest! Here's a personalized quote for your trip:
+                      </p>
+                      <div className="bg-muted/50 p-4 rounded-lg mb-4">
+                        <p className="text-sm mb-2"><strong>Destination:</strong> Paris, France</p>
+                        <p className="text-sm mb-2"><strong>Estimated Cost:</strong> $4,500</p>
+                        <p className="text-sm"><strong>Valid Until:</strong> 14 days</p>
+                      </div>
+                      <Button className="w-full" variant="secondary">Accept Quote</Button>
+                    </>
+                  )}
+
+                  <div className="mt-6 pt-6 border-t border-border text-center">
+                    <p className="text-sm text-muted-foreground">{settings.agency_name}</p>
+                    {settings.tagline && (
+                      <p className="text-xs text-muted-foreground italic">{settings.tagline}</p>
+                    )}
+                    {settings.phone && (
+                      <p className="text-xs text-muted-foreground mt-1">📞 {settings.phone}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -177,36 +347,69 @@ const Branding = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label>Agency Logo</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                        <Image className="h-6 w-6 text-muted-foreground" />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/png,image/jpeg,image/svg+xml"
+                    className="hidden"
+                  />
+                  <div
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Uploading...</p>
                       </div>
-                      <div className="text-sm">
-                        <span className="text-primary font-medium cursor-pointer">
-                          Upload logo
-                        </span>{" "}
-                        <span className="text-muted-foreground">
-                          or drag and drop
-                        </span>
+                    ) : settings.logo_url ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <img
+                          src={settings.logo_url}
+                          alt="Logo"
+                          className="max-h-16 mb-2"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Click to change logo
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        PNG, JPG or SVG up to 2MB
-                      </p>
-                    </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                          <Image className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-primary font-medium">
+                            Upload logo
+                          </span>{" "}
+                          <span className="text-muted-foreground">
+                            or drag and drop
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          PNG, JPG or SVG up to 2MB
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="agency-name">Agency Name</Label>
-                  <Input id="agency-name" defaultValue="Crestwell Travel Services" />
+                  <Input
+                    id="agency-name"
+                    value={brandForm.agency_name}
+                    onChange={(e) => setBrandForm({ ...brandForm, agency_name: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="tagline">Tagline</Label>
                   <Input
                     id="tagline"
-                    defaultValue="Your Journey, Our Passion"
+                    value={brandForm.tagline}
+                    onChange={(e) => setBrandForm({ ...brandForm, tagline: e.target.value })}
                   />
                 </div>
 
@@ -214,20 +417,47 @@ const Branding = () => {
                   <div className="space-y-2">
                     <Label>Primary Color</Label>
                     <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-lg bg-primary" />
-                      <Input defaultValue="#0D7377" className="flex-1" />
+                      <input
+                        type="color"
+                        value={brandForm.primary_color}
+                        onChange={(e) => setBrandForm({ ...brandForm, primary_color: e.target.value })}
+                        className="h-10 w-10 rounded-lg border-0 cursor-pointer"
+                      />
+                      <Input
+                        value={brandForm.primary_color}
+                        onChange={(e) => setBrandForm({ ...brandForm, primary_color: e.target.value })}
+                        className="flex-1"
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Accent Color</Label>
                     <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-lg bg-accent" />
-                      <Input defaultValue="#E8763A" className="flex-1" />
+                      <input
+                        type="color"
+                        value={brandForm.accent_color}
+                        onChange={(e) => setBrandForm({ ...brandForm, accent_color: e.target.value })}
+                        className="h-10 w-10 rounded-lg border-0 cursor-pointer"
+                      />
+                      <Input
+                        value={brandForm.accent_color}
+                        onChange={(e) => setBrandForm({ ...brandForm, accent_color: e.target.value })}
+                        className="flex-1"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <Button className="w-full">Save Brand Settings</Button>
+                <Button className="w-full" onClick={handleSaveBrandSettings} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Brand Settings"
+                  )}
+                </Button>
               </CardContent>
             </Card>
 
@@ -244,41 +474,68 @@ const Branding = () => {
                   <Input
                     id="email"
                     type="email"
-                    defaultValue="hello@tern.travel"
+                    value={contactForm.email_address}
+                    onChange={(e) => setContactForm({ ...contactForm, email_address: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" defaultValue="+1 (555) 123-4567" />
+                  <Input
+                    id="phone"
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="address">Business Address</Label>
                   <Textarea
                     id="address"
-                    defaultValue="123 Travel Way, Suite 100&#10;New York, NY 10001"
+                    value={contactForm.address}
+                    onChange={(e) => setContactForm({ ...contactForm, address: e.target.value })}
                     rows={3}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="website">Website</Label>
-                  <Input id="website" defaultValue="https://tern.travel" />
+                  <Input
+                    id="website"
+                    value={contactForm.website}
+                    onChange={(e) => setContactForm({ ...contactForm, website: e.target.value })}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="instagram">Instagram</Label>
-                    <Input id="instagram" defaultValue="@tern.travel" />
+                    <Input
+                      id="instagram"
+                      value={contactForm.instagram}
+                      onChange={(e) => setContactForm({ ...contactForm, instagram: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="facebook">Facebook</Label>
-                    <Input id="facebook" defaultValue="terntravel" />
+                    <Input
+                      id="facebook"
+                      value={contactForm.facebook}
+                      onChange={(e) => setContactForm({ ...contactForm, facebook: e.target.value })}
+                    />
                   </div>
                 </div>
 
-                <Button className="w-full">Update Contact Info</Button>
+                <Button className="w-full" onClick={handleSaveContactInfo} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Update Contact Info"
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
