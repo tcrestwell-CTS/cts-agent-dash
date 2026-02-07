@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -36,9 +38,14 @@ import {
   Mail,
   Phone,
   Clock,
+  Percent,
+  TrendingUp,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
+import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate } from "@/hooks/useCommissions";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 
 const getStatusBadgeClass = (status: string) => {
@@ -78,9 +85,14 @@ const BookingDetail = () => {
   const navigate = useNavigate();
   const { booking, loading, error } = useBooking(bookingId);
   const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatus } = useBookings();
+  const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
+  const { data: userCommissionRate } = useUserCommissionRate();
+  const createCommission = useCreateCommission();
+  const updateCommission = useUpdateCommission();
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [customRate, setCustomRate] = useState<string>("");
 
   const handleDelete = async () => {
     if (booking) {
@@ -326,6 +338,135 @@ const BookingDetail = () => {
                   <p className="font-medium text-foreground">
                     {formatCurrency(booking.total_amount / booking.travelers)}
                   </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Commission */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                Commission
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {commissionLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              ) : commission ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Commission Amount</p>
+                    <p className="text-2xl font-semibold text-success">
+                      {formatCurrency(commission.amount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Rate</p>
+                      <p className="font-medium text-foreground">{commission.rate}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          commission.status === "paid"
+                            ? "bg-success/10 text-success"
+                            : commission.status === "pending"
+                            ? "bg-accent/10 text-accent"
+                            : "bg-muted text-muted-foreground"
+                        }
+                      >
+                        {commission.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  {commission.status === "pending" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        updateCommission.mutate({
+                          id: commission.id,
+                          status: "paid",
+                          paid_date: new Date().toISOString().split("T")[0],
+                        });
+                      }}
+                      disabled={updateCommission.isPending}
+                    >
+                      {updateCommission.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Mark as Paid
+                    </Button>
+                  )}
+                  {commission.paid_date && (
+                    <p className="text-xs text-muted-foreground">
+                      Paid on {formatDate(commission.paid_date)}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    No commission record yet. Create one based on the booking value.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="commission-rate" className="text-xs">
+                      Commission Rate (%)
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="commission-rate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={customRate || userCommissionRate || "10"}
+                        onChange={(e) => setCustomRate(e.target.value)}
+                        className="h-9"
+                      />
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Estimated Commission</p>
+                    <p className="text-lg font-semibold text-foreground">
+                      {formatCurrency(
+                        booking.total_amount *
+                          (parseFloat(customRate || String(userCommissionRate || 10)) / 100)
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const rate = parseFloat(customRate || String(userCommissionRate || 10));
+                      createCommission.mutate({
+                        booking_id: booking.id,
+                        rate,
+                        amount: booking.total_amount * (rate / 100),
+                        status: "pending",
+                      });
+                    }}
+                    disabled={createCommission.isPending}
+                  >
+                    {createCommission.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                    )}
+                    Create Commission
+                  </Button>
                 </div>
               )}
             </CardContent>
