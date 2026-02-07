@@ -73,9 +73,7 @@ const Auth = () => {
   return <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
-        <div className="bg-white/95 rounded-xl p-4 w-fit">
-          <img alt="Crestwell Travel Services" className="h-16 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
-        </div>
+        
 
         <div className="space-y-6">
           <h1 className="text-4xl font-semibold text-white leading-tight">50+</h1>
@@ -133,23 +131,16 @@ const Auth = () => {
             </Button>
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-lg border border-border bg-muted p-4 text-center">
-              <p className="text-sm font-medium text-muted-foreground">
-                This site is for members of Crestwell Travel Services only. All data contained within is proprietary and confidential. Unauthorized access is subject to legal prosecution.
-              </p>
-            </div>
-            <p className="text-center text-sm text-muted-foreground">
-              By signing in, you agree to our{" "}
-              <a href="#" className="text-primary hover:underline">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="#" className="text-primary hover:underline">
-                Privacy Policy
-              </a>
-            </p>
-          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            By signing in, you agree to our{" "}
+            <a href="#" className="text-primary hover:underline">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="#" className="text-primary hover:underline">
+              Privacy Policy
+            </a>
+          </p>
         </div>
       </div>
     </div>;
