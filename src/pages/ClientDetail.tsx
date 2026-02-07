@@ -36,10 +36,15 @@ import {
   X,
   Save,
   Loader2,
+  Calendar,
+  Users,
+  DollarSign,
+  ExternalLink,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
+import { useClientBookings } from "@/hooks/useBookings";
 import { useState, useEffect } from "react";
-import { format, differenceInYears } from "date-fns";
+import { format, differenceInYears, isPast, isFuture, isWithinInterval } from "date-fns";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -57,6 +62,7 @@ const ClientDetail = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const { data: client, isLoading, error, refetch } = useClient(clientId!);
+  const { bookings: clientBookings, loading: bookingsLoading } = useClientBookings(clientId);
   const deleteClient = useDeleteClient();
   const updateClient = useUpdateClient();
   const [isEditing, setIsEditing] = useState(false);
@@ -993,6 +999,85 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Booking History */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Booking History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {bookingsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : clientBookings.length === 0 ? (
+              <p className="text-muted-foreground text-sm italic">No bookings yet</p>
+            ) : (
+              <div className="space-y-3">
+                {/* Categorize bookings */}
+                {(() => {
+                  const today = new Date();
+                  const upcoming = clientBookings.filter(b => 
+                    isFuture(new Date(b.depart_date)) && b.status !== "cancelled"
+                  );
+                  const current = clientBookings.filter(b => {
+                    const depart = new Date(b.depart_date);
+                    const returnDate = new Date(b.return_date);
+                    return isWithinInterval(today, { start: depart, end: returnDate }) && b.status !== "cancelled";
+                  });
+                  const past = clientBookings.filter(b => 
+                    isPast(new Date(b.return_date)) && b.status !== "cancelled"
+                  );
+                  const cancelled = clientBookings.filter(b => b.status === "cancelled");
+
+                  return (
+                    <>
+                      {current.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-primary flex items-center gap-2">
+                            <Plane className="h-3.5 w-3.5" />
+                            Currently Traveling
+                          </h4>
+                          {current.map(booking => (
+                            <BookingHistoryItem key={booking.id} booking={booking} variant="current" />
+                          ))}
+                        </div>
+                      )}
+                      {upcoming.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Upcoming Trips</h4>
+                          {upcoming.map(booking => (
+                            <BookingHistoryItem key={booking.id} booking={booking} variant="upcoming" />
+                          ))}
+                        </div>
+                      )}
+                      {past.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Past Trips</h4>
+                          {past.map(booking => (
+                            <BookingHistoryItem key={booking.id} booking={booking} variant="past" />
+                          ))}
+                        </div>
+                      )}
+                      {cancelled.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground">Cancelled</h4>
+                          {cancelled.map(booking => (
+                            <BookingHistoryItem key={booking.id} booking={booking} variant="cancelled" />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
@@ -1041,6 +1126,73 @@ function ContactRow({
       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onCopy}>
         <Copy className="h-3 w-3" />
       </Button>
+    </div>
+  );
+}
+
+import type { Booking } from "@/hooks/useBookings";
+
+function BookingHistoryItem({
+  booking,
+  variant,
+}: {
+  booking: Booking;
+  variant: "current" | "upcoming" | "past" | "cancelled";
+}) {
+  const navigate = useNavigate();
+  
+  const getStatusColor = () => {
+    switch (variant) {
+      case "current":
+        return "bg-primary/10 text-primary border-primary/20";
+      case "upcoming":
+        return "bg-accent/10 text-accent border-accent/20";
+      case "past":
+        return "bg-muted text-muted-foreground border-border";
+      case "cancelled":
+        return "bg-destructive/10 text-destructive border-destructive/20 opacity-60";
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
+  return (
+    <div
+      onClick={() => navigate(`/bookings/${booking.id}`)}
+      className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${getStatusColor()}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium truncate">
+              {booking.trip_name || booking.destination}
+            </span>
+            <Badge variant="outline" className="text-xs shrink-0">
+              {booking.booking_reference}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {format(new Date(booking.depart_date), "MMM d")} - {format(new Date(booking.return_date), "MMM d, yyyy")}
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {booking.travelers} {booking.travelers === 1 ? "traveler" : "travelers"}
+            </span>
+            <span className="flex items-center gap-1">
+              <DollarSign className="h-3 w-3" />
+              {formatCurrency(booking.total_amount)}
+            </span>
+          </div>
+        </div>
+        <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 ml-2" />
+      </div>
     </div>
   );
 }

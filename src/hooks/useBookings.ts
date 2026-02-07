@@ -507,3 +507,53 @@ export function useBooking(bookingId: string | undefined) {
 
   return { booking, loading, error };
 }
+
+// Hook to fetch bookings for a specific client
+export function useClientBookings(clientId: string | undefined) {
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClientBookings = async () => {
+      if (!user || !clientId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("bookings")
+          .select(`
+            id,
+            booking_reference,
+            destination,
+            depart_date,
+            return_date,
+            travelers,
+            total_amount,
+            status,
+            trip_name,
+            trip_page_url,
+            owner_agent,
+            user_id,
+            client_id,
+            notes
+          `)
+          .eq("client_id", clientId)
+          .order("depart_date", { ascending: false });
+
+        if (error) throw error;
+        setBookings(data || []);
+      } catch (err) {
+        console.error("Error fetching client bookings:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClientBookings();
+  }, [user, clientId]);
+
+  return { bookings, loading };
+}
