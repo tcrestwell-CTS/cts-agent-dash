@@ -89,3 +89,29 @@ export function useUpdateUserRole() {
     },
   });
 }
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-user-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["team-profiles"] });
+      toast.success("User removed from team");
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Failed to remove user");
+    },
+  });
+}
