@@ -131,7 +131,7 @@ const Auth = () => {
         }
 
         if (!hasValidInvitation) {
-          toast.error("Access denied. You need a valid invitation to join Crestwell Travel Services.");
+          toast.error("Access denied. You must be a registered user. If not, please contact the administrator.");
           await signOut();
           setIsValidating(false);
           return;
@@ -236,13 +236,13 @@ const Auth = () => {
         .maybeSingle();
 
       if (!invitation) {
-        toast.error("No invitation found for this email address. Please contact an administrator.");
+        toast.error("This email is not registered. Please contact the administrator.");
         setIsSigningIn(false);
         return;
       }
 
       if (new Date(invitation.expires_at) <= new Date()) {
-        toast.error("Your invitation has expired. Please contact an administrator for a new one.");
+        toast.error("Your registration has expired. Please contact the administrator.");
         setIsSigningIn(false);
         return;
       }
@@ -479,7 +479,7 @@ const Auth = () => {
                   className="text-sm text-primary hover:underline"
                 >
                   {emailMode === "signin" 
-                    ? "Have an invitation? Create an account" 
+                    ? "New user? Create an account" 
                     : "Already have an account? Sign in"}
                 </button>
                 <button
@@ -503,7 +503,7 @@ const Auth = () => {
             </div>
             <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-center">
               <p className="text-sm font-medium text-primary">
-                🔒 Invite-only access. You must have a valid invitation to sign in.
+                🔒 You must be a registered user. If not, contact the administrator.
               </p>
             </div>
             <p className="text-center text-sm text-muted-foreground">
