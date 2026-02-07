@@ -3,6 +3,8 @@ import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useTeamProfiles, TeamProfile } from "@/hooks/useTeamProfiles";
+import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import { parseISO, isWithinInterval } from "date-fns";
 
 export interface DateRange {
@@ -26,12 +28,18 @@ export interface AgentStats {
 }
 
 export function useAgentPerformance(dateRange?: DateRange) {
+  const { user } = useAuth();
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
+  const { data: isOfficeAdmin, isLoading: officeAdminLoading } = useIsOfficeAdmin();
   const { data: profiles, isLoading: profilesLoading } = useTeamProfiles();
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
 
-  const loading = profilesLoading || bookingsLoading || clientsLoading || commissionsLoading;
+  const loading = profilesLoading || bookingsLoading || clientsLoading || commissionsLoading || adminLoading || officeAdminLoading;
+  
+  // Determine if user can view all agents or just themselves
+  const canViewAllAgents = isAdmin || isOfficeAdmin;
 
   // Filter bookings and clients by date range if provided
   const filteredBookings = useMemo(() => {
@@ -55,11 +63,17 @@ export function useAgentPerformance(dateRange?: DateRange) {
   }, [clients, dateRange]);
 
   const agentStats = useMemo(() => {
-    if (!profiles || !filteredBookings || !filteredClients || !commissions) {
+    if (!profiles || !filteredBookings || !filteredClients || !commissions || !user) {
       return [];
     }
 
-    const stats: AgentStats[] = profiles.map((profile: TeamProfile) => {
+    // For regular agents, only show their own profile
+    // For admins/office admins, show all profiles (RLS already filters appropriately)
+    const relevantProfiles = canViewAllAgents 
+      ? profiles 
+      : profiles.filter(p => p.user_id === user.id);
+
+    const stats: AgentStats[] = relevantProfiles.map((profile: TeamProfile) => {
       // Filter data by agent
       const agentBookings = filteredBookings.filter(b => b.user_id === profile.user_id && b.status !== "cancelled");
       const agentClients = filteredClients.filter(c => c.user_id === profile.user_id);
@@ -97,9 +111,9 @@ export function useAgentPerformance(dateRange?: DateRange) {
 
     // Sort by total revenue descending
     return stats.sort((a, b) => b.totalRevenue - a.totalRevenue);
-  }, [profiles, filteredBookings, filteredClients, commissions]);
+  }, [profiles, filteredBookings, filteredClients, commissions, user, canViewAllAgents]);
 
-  // Calculate totals for the agency
+  // Calculate totals for the agency (only meaningful for admins)
   const agencyTotals = useMemo(() => {
     if (!agentStats.length) return null;
 
@@ -119,5 +133,6 @@ export function useAgentPerformance(dateRange?: DateRange) {
     agentStats,
     agencyTotals,
     loading,
+    canViewAllAgents,
   };
 }
