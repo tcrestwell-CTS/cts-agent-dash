@@ -6,6 +6,7 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { CommissionSummary } from "@/components/dashboard/CommissionSummary";
 import { TrainingProgress } from "@/components/dashboard/TrainingProgress";
 import { UpcomingDepartures } from "@/components/dashboard/UpcomingDepartures";
+import { MonthlyRevenueChart } from "@/components/dashboard/MonthlyRevenueChart";
 import { Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,8 +132,9 @@ const Index = () => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Bookings */}
+        {/* Left Column - Bookings & Charts */}
         <div className="lg:col-span-2 space-y-6">
+          <MonthlyRevenueChart />
           <RecentBookings />
         </div>
 
