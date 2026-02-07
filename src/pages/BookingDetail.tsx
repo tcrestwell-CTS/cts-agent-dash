@@ -42,10 +42,12 @@ import {
   TrendingUp,
   CheckCircle,
   Loader2,
+  UserMinus,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate } from "@/hooks/useCommissions";
+import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 
 const getStatusBadgeClass = (status: string) => {
@@ -87,6 +89,8 @@ const BookingDetail = () => {
   const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatus } = useBookings();
   const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
   const { data: userCommissionRate } = useUserCommissionRate();
+  const { data: travelers = [], isLoading: travelersLoading } = useBookingTravelers(bookingId);
+  const removeBookingTraveler = useRemoveBookingTraveler();
   const createCommission = useCreateCommission();
   const updateCommission = useUpdateCommission();
   
@@ -298,6 +302,71 @@ const BookingDetail = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Travelers (Companions) */}
+          {(travelers.length > 0 || travelersLoading) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  Travelers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {travelersLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : travelers.length > 0 ? (
+                  <div className="space-y-3">
+                    {travelers.map((traveler) => (
+                      <div
+                        key={traveler.id}
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {traveler.companion?.first_name} {traveler.companion?.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {traveler.companion?.relationship}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            if (bookingId) {
+                              removeBookingTraveler.mutate({
+                                id: traveler.id,
+                                bookingId,
+                              });
+                            }
+                          }}
+                          disabled={removeBookingTraveler.isPending}
+                        >
+                          {removeBookingTraveler.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <UserMinus className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No travelers assigned</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Notes */}
           {booking.notes && (

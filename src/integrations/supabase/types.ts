@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_travelers: {
+        Row: {
+          booking_id: string
+          companion_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          companion_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          companion_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_travelers_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_travelers_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "client_companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           booking_reference: string
