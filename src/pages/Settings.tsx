@@ -8,10 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Bell, Shield, CreditCard, Link2, Loader2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
+  const { preferences, loading: notifLoading, updatePreference } = useNotificationPreferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -235,67 +237,96 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-card-foreground">
-                      New Booking Alerts
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified when a new booking is made
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
+              {notifLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
+                      <Skeleton className="h-6 w-11 rounded-full" />
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-card-foreground">
+                        New Booking Alerts
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Get notified when a new booking is made
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.new_booking_alerts}
+                      onCheckedChange={(checked) => updatePreference("new_booking_alerts", checked)}
+                    />
+                  </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-card-foreground">
-                      Commission Updates
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Notifications about commission payments
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-card-foreground">
+                        Commission Updates
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Notifications about commission payments
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.commission_updates}
+                      onCheckedChange={(checked) => updatePreference("commission_updates", checked)}
+                    />
                   </div>
-                  <Switch defaultChecked />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-card-foreground">
-                      Client Messages
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified about new client inquiries
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-card-foreground">
+                        Client Messages
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Get notified about new client inquiries
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.client_messages}
+                      onCheckedChange={(checked) => updatePreference("client_messages", checked)}
+                    />
                   </div>
-                  <Switch defaultChecked />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-card-foreground">
-                      Training Reminders
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Reminders about incomplete courses
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-card-foreground">
+                        Training Reminders
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Reminders about incomplete courses
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.training_reminders}
+                      onCheckedChange={(checked) => updatePreference("training_reminders", checked)}
+                    />
                   </div>
-                  <Switch />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-card-foreground">
-                      Marketing Emails
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      News, tips, and promotional content
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-card-foreground">
+                        Marketing Emails
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        News, tips, and promotional content
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.marketing_emails}
+                      onCheckedChange={(checked) => updatePreference("marketing_emails", checked)}
+                    />
                   </div>
-                  <Switch />
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
