@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CommissionTier } from "@/lib/commissionTiers";
 
 export interface ProfileData {
   id?: string;
@@ -11,6 +12,7 @@ export interface ProfileData {
   agency_name: string;
   avatar_url: string;
   commission_rate: number;
+  commission_tier: CommissionTier | null;
 }
 
 const defaultProfile: ProfileData = {
@@ -20,6 +22,7 @@ const defaultProfile: ProfileData = {
   agency_name: "",
   avatar_url: "",
   commission_rate: 10,
+  commission_tier: null,
 };
 
 export function useProfile() {
@@ -60,6 +63,7 @@ export function useProfile() {
           agency_name: data.agency_name || "",
           avatar_url: data.avatar_url || "",
           commission_rate: data.commission_rate || 10,
+          commission_tier: (data.commission_tier as CommissionTier) || null,
         });
       }
     } catch (error) {

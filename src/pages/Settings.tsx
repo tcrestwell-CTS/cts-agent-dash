@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Shield, CreditCard, Link2, Loader2 } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getTierConfig } from "@/lib/commissionTiers";
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
@@ -205,17 +206,44 @@ const Settings = () => {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="commissionRate">Default Commission Rate (%)</Label>
-                    <Input
-                      id="commissionRate"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={formData.commission_rate}
-                      onChange={(e) => handleInputChange("commission_rate", parseFloat(e.target.value) || 0)}
-                    />
+                  {/* Commission Tier Info - Read Only */}
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      <h3 className="font-medium text-card-foreground">Your Commission Tier</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-background rounded-lg p-3 border">
+                        <p className="text-xs text-muted-foreground mb-1">Tier Level</p>
+                        <p className="text-lg font-semibold text-foreground">
+                          {getTierConfig(profile.commission_tier).label}
+                        </p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 border">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Percent className="h-3 w-3" />
+                          Your Commission
+                        </div>
+                        <p className="text-lg font-semibold text-success">
+                          {getTierConfig(profile.commission_tier).agentSplit}%
+                        </p>
+                      </div>
+                      <div className="bg-background rounded-lg p-3 border">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                          <Building2 className="h-3 w-3" />
+                          Agency Split
+                        </div>
+                        <p className="text-lg font-semibold text-foreground">
+                          {getTierConfig(profile.commission_tier).agencySplit}%
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Your commission tier determines how booking commissions are split between you and the agency.
+                      Contact an administrator if you believe your tier should be changed.
+                    </p>
                   </div>
 
                   <Button onClick={handleSave} disabled={saving}>
