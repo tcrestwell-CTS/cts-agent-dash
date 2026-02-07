@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
@@ -8,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
 import { DateRangeFilter, DateRange } from "@/components/analytics/DateRangeFilter";
+import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
+import { toast } from "sonner";
 import {
   AreaChart,
   Area,
@@ -26,10 +29,7 @@ import {
 import {
   format,
   parseISO,
-  startOfMonth,
   subMonths,
-  startOfYear,
-  endOfYear,
   isWithinInterval,
   eachMonthOfInterval,
 } from "date-fns";
@@ -44,7 +44,14 @@ import {
   BarChart3,
   Calendar,
   Trophy,
+  Download,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -281,6 +288,135 @@ const Analytics = () => {
     };
   }, [bookings, clients, filteredBookings, filteredClients, commissions]);
 
+  // Export functions
+  const handleExportBookings = () => {
+    if (!filteredBookings?.length) {
+      toast.error("No booking data to export");
+      return;
+    }
+    const exportData = filteredBookings.map((b) => ({
+      booking_reference: b.booking_reference,
+      trip_name: b.trip_name || "",
+      destination: b.destination,
+      status: b.status,
+      depart_date: formatDateForExport(b.depart_date),
+      return_date: formatDateForExport(b.return_date),
+      travelers: b.travelers,
+      total_amount: formatCurrencyForExport(b.total_amount || 0),
+    }));
+    exportToCSV(exportData, `bookings_${format(dateRange.from, "yyyy-MM-dd")}_to_${format(dateRange.to, "yyyy-MM-dd")}`, [
+      { key: "booking_reference", header: "Reference" },
+      { key: "trip_name", header: "Trip Name" },
+      { key: "destination", header: "Destination" },
+      { key: "status", header: "Status" },
+      { key: "depart_date", header: "Departure Date" },
+      { key: "return_date", header: "Return Date" },
+      { key: "travelers", header: "Travelers" },
+      { key: "total_amount", header: "Total Amount ($)" },
+    ]);
+    toast.success("Bookings exported successfully");
+  };
+
+  const handleExportRevenue = () => {
+    if (!monthlyRevenueData?.length) {
+      toast.error("No revenue data to export");
+      return;
+    }
+    const exportData = monthlyRevenueData.map((d) => ({
+      month: d.month,
+      revenue: formatCurrencyForExport(d.revenue),
+    }));
+    exportToCSV(exportData, `revenue_${format(dateRange.from, "yyyy-MM-dd")}_to_${format(dateRange.to, "yyyy-MM-dd")}`, [
+      { key: "month", header: "Month" },
+      { key: "revenue", header: "Revenue ($)" },
+    ]);
+    toast.success("Revenue data exported successfully");
+  };
+
+  const handleExportClients = () => {
+    if (!filteredClients?.length) {
+      toast.error("No client data to export");
+      return;
+    }
+    const exportData = filteredClients.map((c) => ({
+      name: c.name,
+      email: c.email || "",
+      phone: c.phone || "",
+      status: c.status,
+      location: c.location || "",
+      created_at: formatDateForExport(c.created_at),
+    }));
+    exportToCSV(exportData, `clients_${format(dateRange.from, "yyyy-MM-dd")}_to_${format(dateRange.to, "yyyy-MM-dd")}`, [
+      { key: "name", header: "Name" },
+      { key: "email", header: "Email" },
+      { key: "phone", header: "Phone" },
+      { key: "status", header: "Status" },
+      { key: "location", header: "Location" },
+      { key: "created_at", header: "Created Date" },
+    ]);
+    toast.success("Clients exported successfully");
+  };
+
+  const handleExportDestinations = () => {
+    if (!topDestinations?.length) {
+      toast.error("No destination data to export");
+      return;
+    }
+    const exportData = topDestinations.map((d) => ({
+      destination: d.name,
+      bookings: d.count,
+      revenue: formatCurrencyForExport(d.revenue),
+    }));
+    exportToCSV(exportData, `destinations_${format(dateRange.from, "yyyy-MM-dd")}_to_${format(dateRange.to, "yyyy-MM-dd")}`, [
+      { key: "destination", header: "Destination" },
+      { key: "bookings", header: "Bookings" },
+      { key: "revenue", header: "Revenue ($)" },
+    ]);
+    toast.success("Destinations exported successfully");
+  };
+
+  const handleExportSummary = () => {
+    if (!kpis) {
+      toast.error("No summary data to export");
+      return;
+    }
+    const exportData = [
+      {
+        metric: "Period Revenue",
+        value: formatCurrencyForExport(kpis.periodRevenue),
+      },
+      {
+        metric: "Period Bookings",
+        value: kpis.periodBookings.toString(),
+      },
+      {
+        metric: "Period Clients",
+        value: kpis.periodClients.toString(),
+      },
+      {
+        metric: "Average Booking Value",
+        value: formatCurrencyForExport(kpis.avgBookingValue),
+      },
+      {
+        metric: "Conversion Rate (%)",
+        value: kpis.conversionRate.toFixed(1),
+      },
+      {
+        metric: "Pending Commissions",
+        value: formatCurrencyForExport(kpis.pendingCommissions),
+      },
+      {
+        metric: "Paid Commissions",
+        value: formatCurrencyForExport(kpis.paidCommissions),
+      },
+    ];
+    exportToCSV(exportData, `summary_${format(dateRange.from, "yyyy-MM-dd")}_to_${format(dateRange.to, "yyyy-MM-dd")}`, [
+      { key: "metric", header: "Metric" },
+      { key: "value", header: "Value" },
+    ]);
+    toast.success("Summary exported successfully");
+  };
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -328,7 +464,33 @@ const Analytics = () => {
             <h1 className="text-3xl font-semibold tracking-tight">Analytics</h1>
             <p className="text-muted-foreground mt-1">Agency performance metrics and insights</p>
           </div>
-          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+          <div className="flex items-center gap-2">
+            <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportSummary}>
+                  Export Summary
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportBookings}>
+                  Export Bookings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportRevenue}>
+                  Export Revenue by Month
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportClients}>
+                  Export Clients
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportDestinations}>
+                  Export Top Destinations
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
