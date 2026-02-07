@@ -8,9 +8,11 @@ import {
   Mail,
   Settings,
   LogOut,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
@@ -24,9 +26,14 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
+const adminNavigation = [
+  { name: "Team Management", href: "/team", icon: UserPlus },
+];
+
 export function Sidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
 
   const userInitials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -78,6 +85,42 @@ export function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Admin-only navigation */}
+          {isAdmin && (
+            <>
+              <div className="pt-4 pb-2 px-3">
+                <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                  Admin
+                </p>
+              </div>
+              {adminNavigation.map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-primary"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "h-5 w-5 transition-colors",
+                        isActive
+                          ? "text-sidebar-primary"
+                          : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
+                      )}
+                    />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* User section */}

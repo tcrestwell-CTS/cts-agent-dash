@@ -1,0 +1,206 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle } from "lucide-react";
+import { format, formatDistanceToNow, isPast } from "date-fns";
+import { useInvitations } from "@/hooks/useInvitations";
+import { useIsAdmin } from "@/hooks/useAdmin";
+import { InviteAgentDialog } from "@/components/admin/InviteAgentDialog";
+import { Navigate } from "react-router-dom";
+
+const TeamManagement = () => {
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
+  const { invitations, loading, sending, sendInvitation, resendInvitation, revokeInvitation } = useInvitations();
+
+  // Redirect non-admins
+  if (!adminLoading && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  const getStatusBadge = (status: string, expiresAt: string) => {
+    const isExpired = isPast(new Date(expiresAt));
+    
+    if (status === "accepted") {
+      return (
+        <Badge variant="secondary" className="bg-success/10 text-success gap-1">
+          <CheckCircle className="h-3 w-3" />
+          Accepted
+        </Badge>
+      );
+    }
+    
+    if (isExpired) {
+      return (
+        <Badge variant="secondary" className="bg-destructive/10 text-destructive gap-1">
+          <XCircle className="h-3 w-3" />
+          Expired
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge variant="secondary" className="bg-accent/10 text-accent gap-1">
+        <Clock className="h-3 w-3" />
+        Pending
+      </Badge>
+    );
+  };
+
+  const formatRole = (role: string) => {
+    return role === "admin" ? "Admin" : "Agent";
+  };
+
+  const pendingCount = invitations.filter(
+    (i) => i.status === "pending" && !isPast(new Date(i.expires_at))
+  ).length;
+
+  const acceptedCount = invitations.filter((i) => i.status === "accepted").length;
+
+  return (
+    <DashboardLayout>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+            Team Management
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Invite and manage travel agents in your organization
+          </p>
+        </div>
+        <InviteAgentDialog onSubmit={sendInvitation} sending={sending} />
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Invitations</p>
+              <p className="text-2xl font-semibold text-card-foreground">{invitations.length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-accent/10 rounded-lg">
+              <Clock className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Pending</p>
+              <p className="text-2xl font-semibold text-accent">{pendingCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-success/10 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Accepted</p>
+              <p className="text-2xl font-semibold text-success">{acceptedCount}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Invitations Table */}
+      <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
+        <div className="p-4 border-b border-border">
+          <h2 className="font-medium text-card-foreground">Invitations</h2>
+        </div>
+
+        {loading || adminLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : invitations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Users className="h-12 w-12 mb-4 opacity-50" />
+            <p>No invitations sent yet</p>
+            <p className="text-sm">Click "Invite Agent" to add team members</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Sent</TableHead>
+                <TableHead>Expires</TableHead>
+                <TableHead className="w-[80px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invitations.map((invitation) => (
+                <TableRow key={invitation.id}>
+                  <TableCell className="font-medium">{invitation.email}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{formatRole(invitation.role)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(invitation.status, invitation.expires_at)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDistanceToNow(new Date(invitation.created_at), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {format(new Date(invitation.expires_at), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {invitation.status === "pending" && (
+                          <DropdownMenuItem
+                            onClick={() => resendInvitation(invitation.id)}
+                            disabled={sending}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Resend Invitation
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => revokeInvitation(invitation.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Revoke
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default TeamManagement;

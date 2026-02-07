@@ -11,7 +11,7 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation";
   data?: Record<string, string>;
 }
 
@@ -205,6 +205,29 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="text-align: center; margin: 32px 0;">
               <a href="${website || '#'}" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Plan Your Next Trip</a>
             </div>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "agent_invitation":
+        const inviteUrl = templateData?.inviteUrl || "#";
+        const inviterName = templateData?.inviterName || "An administrator";
+        const expiresIn = templateData?.expiresIn || "7 days";
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">You're Invited! 🎉</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Hello,</p>
+            <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${agencyName}</strong> as a travel agent.</p>
+            <p style="color: #4b5563; line-height: 1.6;">Click the button below to accept your invitation and set up your account:</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${inviteUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Accept Invitation</a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">This invitation will expire in ${expiresIn}. If you didn't expect this invitation, you can safely ignore this email.</p>
             ${footerHtml}
           </div>
         `;
