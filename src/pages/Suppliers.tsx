@@ -40,7 +40,7 @@ const initialSuppliers: Supplier[] = [
   {
     id: "skybird-travel",
     name: "Skybird Travel",
-    url: "https://crestwelltravelservices.mywingsbooking.com",
+    url: "https://crestwelltravelservices.mywingsbooking.com/agent-login",
     description: "Skybird Travel MyWings portal for flight bookings and consolidator fares.",
     category: "flights",
     isFavorite: false,
