@@ -19,9 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, User, Phone, Briefcase, Percent, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2 } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
-import { useAllUserRoles, useUpdateUserRole } from "@/hooks/useUserRoles";
+import { useAllUserRoles, useUpdateUserRole, useDeleteUser } from "@/hooks/useUserRoles";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
@@ -46,8 +47,15 @@ export function TeamProfiles() {
   const { data: userRoles, isLoading: rolesLoading } = useAllUserRoles();
   const { data: isAdmin } = useIsAdmin();
   const updateRole = useUpdateUserRole();
+  const deleteUser = useDeleteUser();
 
   const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    userId: string;
+    userName: string;
+  } | null>(null);
+
+  const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     userId: string;
     userName: string;
@@ -100,6 +108,13 @@ export function TeamProfiles() {
     }
   };
 
+  const confirmDeleteUser = () => {
+    if (deleteDialog) {
+      deleteUser.mutate(deleteDialog.userId);
+      setDeleteDialog(null);
+    }
+  };
+
   return (
     <>
       <AlertDialog open={confirmDialog?.open} onOpenChange={(open) => !open && setConfirmDialog(null)}>
@@ -116,6 +131,28 @@ export function TeamProfiles() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmAdminRole}>
               Grant Admin Access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Team Member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to permanently remove <strong>{deleteDialog?.userName}</strong> from the team.
+              This will delete their profile, all their data (clients, bookings, commissions), and their account.
+              <span className="block mt-2 font-semibold text-destructive">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove User
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -208,6 +245,21 @@ export function TeamProfiles() {
                   <Badge variant="outline" className="text-xs">
                     Joined {formatDistanceToNow(new Date(profile.created_at), { addSuffix: true })}
                   </Badge>
+                  {isAdmin && !isCurrentUser && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteDialog({ 
+                        open: true, 
+                        userId: profile.user_id, 
+                        userName: profile.full_name || "this user" 
+                      })}
+                      disabled={deleteUser.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
