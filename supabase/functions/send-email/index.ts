@@ -81,7 +81,8 @@ const handler = async (req: Request): Promise<Response> => {
     const logoUrl = branding?.logo_url || "";
     const phone = branding?.phone || "";
     const website = branding?.website || "";
-    const fromEmail = branding?.from_email || "noreply@yourdomain.com";
+    // Use Resend test address temporarily until domain is verified
+    const fromEmail = branding?.from_email || "onboarding@resend.dev";
     const fromName = branding?.from_name || agencyName;
 
     const logoHtml = logoUrl 
