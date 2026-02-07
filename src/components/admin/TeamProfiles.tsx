@@ -23,10 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2, TrendingUp } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { useAllUserRoles, useUpdateUserRole, useDeleteUser } from "@/hooks/useUserRoles";
+import { useUpdateCommissionTier } from "@/hooks/useUpdateCommissionTier";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { getTierConfig } from "@/lib/commissionTiers";
+import { getTierConfig, CommissionTier, COMMISSION_TIERS } from "@/lib/commissionTiers";
 
 type AppRole = "admin" | "office_admin" | "user";
 
@@ -48,6 +49,7 @@ export function TeamProfiles() {
   const { data: userRoles, isLoading: rolesLoading } = useAllUserRoles();
   const { data: isAdmin } = useIsAdmin();
   const updateRole = useUpdateUserRole();
+  const updateTier = useUpdateCommissionTier();
   const deleteUser = useDeleteUser();
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -214,12 +216,36 @@ export function TeamProfiles() {
                     <span>{profile.commission_rate}% commission rate</span>
                   </div>
                 )}
-                {profile.commission_tier && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <TrendingUp className="h-4 w-4 flex-shrink-0" />
-                    <span>{getTierConfig(profile.commission_tier).description}</span>
-                  </div>
-                )}
+                {/* Commission Tier - editable by admin */}
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                  {isAdmin && !isCurrentUser ? (
+                    <Select
+                      value={profile.commission_tier || "tier_1"}
+                      onValueChange={(value: CommissionTier) => 
+                        updateTier.mutate({ userId: profile.user_id, tier: value })
+                      }
+                      disabled={updateTier.isPending}
+                    >
+                      <SelectTrigger className="h-8 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.entries(COMMISSION_TIERS) as [CommissionTier, typeof COMMISSION_TIERS[CommissionTier]][]).map(
+                          ([key, config]) => (
+                            <SelectItem key={key} value={key}>
+                              {config.label} ({config.description})
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {getTierConfig(profile.commission_tier).description}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4 pt-3 border-t border-border space-y-3">
