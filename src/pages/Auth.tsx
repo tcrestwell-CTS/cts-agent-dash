@@ -1,21 +1,45 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const inviteToken = searchParams.get("invite");
 
   useEffect(() => {
-    if (!loading && user) {
+    const acceptInvitation = async () => {
+      if (!user || !inviteToken) return;
+
+      try {
+        const { data, error } = await supabase.rpc("accept_invitation", {
+          invitation_token: inviteToken,
+          accepting_user_id: user.id,
+        });
+
+        if (error) {
+          console.error("Error accepting invitation:", error);
+        } else if (data) {
+          toast.success("Welcome! Your account has been set up.");
+        }
+      } catch (err) {
+        console.error("Failed to accept invitation:", err);
+      }
+
       navigate("/", { replace: true });
+    };
+
+    if (!loading && user) {
+      acceptInvitation();
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, inviteToken]);
 
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
