@@ -122,6 +122,19 @@ const initialSuppliers: Supplier[] = [
     integrationType: "api",
     apiStatus: "coming_soon",
   },
+  // Hotels
+  {
+    id: "stayhvn",
+    name: "StayHVN",
+    url: "https://www.stayhvn.com",
+    description: "StayHVN hotel booking platform for travel agents with curated accommodations worldwide.",
+    category: "hotels",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
   // All-Inclusive Resorts
   {
     id: "sandals",
