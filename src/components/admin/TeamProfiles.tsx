@@ -20,12 +20,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2 } from "lucide-react";
+import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2, TrendingUp } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { useAllUserRoles, useUpdateUserRole, useDeleteUser } from "@/hooks/useUserRoles";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
+import { getTierConfig } from "@/lib/commissionTiers";
 
 type AppRole = "admin" | "office_admin" | "user";
 
@@ -211,6 +212,12 @@ export function TeamProfiles() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Percent className="h-4 w-4 flex-shrink-0" />
                     <span>{profile.commission_rate}% commission rate</span>
+                  </div>
+                )}
+                {profile.commission_tier && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <TrendingUp className="h-4 w-4 flex-shrink-0" />
+                    <span>{getTierConfig(profile.commission_tier).description}</span>
                   </div>
                 )}
               </div>

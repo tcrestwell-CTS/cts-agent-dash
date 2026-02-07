@@ -18,11 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserPlus, Loader2 } from "lucide-react";
+import { CommissionTier, COMMISSION_TIERS } from "@/lib/commissionTiers";
 
 type InviteRole = "user" | "admin" | "office_admin";
 
 interface InviteAgentDialogProps {
-  onSubmit: (email: string, role: InviteRole) => Promise<boolean>;
+  onSubmit: (email: string, role: InviteRole, commissionTier: CommissionTier) => Promise<boolean>;
   sending: boolean;
 }
 
@@ -30,17 +31,19 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<InviteRole>("user");
+  const [commissionTier, setCommissionTier] = useState<CommissionTier>("tier_1");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email) return;
 
-    const success = await onSubmit(email, role);
+    const success = await onSubmit(email, role, commissionTier);
     if (success) {
       setOpen(false);
       setEmail("");
       setRole("user");
+      setCommissionTier("tier_1");
     }
   };
 
@@ -87,6 +90,30 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
             </Select>
             <p className="text-xs text-muted-foreground">
               Agents manage their own data. Office Admins can view all data (read-only). Admins have full access.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="commission-tier">Commission Tier</Label>
+            <Select 
+              value={commissionTier} 
+              onValueChange={(value: CommissionTier) => setCommissionTier(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select commission tier" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(COMMISSION_TIERS) as [CommissionTier, typeof COMMISSION_TIERS[CommissionTier]][]).map(
+                  ([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label} - {config.description}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Determines the commission split between agent and agency.
             </p>
           </div>
 
