@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAgentPerformance, AgentStats } from "@/hooks/useAgentPerformance";
+import { useAgentPerformance, AgentStats, DateRange } from "@/hooks/useAgentPerformance";
 import { Trophy, Users, DollarSign, Briefcase, TrendingUp, Target } from "lucide-react";
 import {
   Table,
@@ -268,8 +268,12 @@ function AgentCommissionsChart({ agentStats }: AgentCommissionsChartProps) {
   );
 }
 
-export function AgentPerformanceSection() {
-  const { agentStats, agencyTotals, loading } = useAgentPerformance();
+interface AgentPerformanceSectionProps {
+  dateRange?: DateRange;
+}
+
+export function AgentPerformanceSection({ dateRange }: AgentPerformanceSectionProps) {
+  const { agentStats, agencyTotals, loading } = useAgentPerformance(dateRange);
 
   if (loading) {
     return (
