@@ -46,6 +46,7 @@ import {
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { useClientBookings } from "@/hooks/useBookings";
 import { useCompanions, useDeleteCompanion, Companion } from "@/hooks/useCompanions";
+import { useEmailLogs } from "@/hooks/useEmailLogs";
 import { CompanionDialog } from "@/components/clients/CompanionDialog";
 import { SendEmailDialog } from "@/components/clients/SendEmailDialog";
 import { useState, useEffect } from "react";
@@ -75,6 +76,7 @@ const ClientDetail = () => {
   const { data: client, isLoading, error, refetch } = useClient(clientId!);
   const { bookings: clientBookings, loading: bookingsLoading } = useClientBookings(clientId);
   const { data: companions = [], isLoading: companionsLoading } = useCompanions(clientId);
+  const { data: emailLogs = [], isLoading: emailLogsLoading, refetch: refetchEmailLogs } = useEmailLogs(clientId);
   const deleteCompanion = useDeleteCompanion();
   const deleteClient = useDeleteClient();
   const updateClient = useUpdateClient();
@@ -1152,6 +1154,32 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Email History */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {emailLogsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : emailLogs.length === 0 ? (
+              <p className="text-muted-foreground text-sm italic">No emails sent to this client yet</p>
+            ) : (
+              <div className="space-y-2">
+                {emailLogs.map((log) => (
+                  <EmailLogItem key={log.id} log={log} />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Companion Dialog */}
@@ -1167,8 +1195,10 @@ const ClientDetail = () => {
         <SendEmailDialog
           open={emailDialogOpen}
           onOpenChange={setEmailDialogOpen}
+          clientId={clientId!}
           clientName={fullName}
           clientEmail={client.email}
+          onEmailSent={() => refetchEmailLogs()}
         />
       )}
     </DashboardLayout>
@@ -1366,6 +1396,46 @@ function CompanionCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+    </div>
+  );
+}
+
+import type { EmailLog } from "@/hooks/useEmailLogs";
+
+function EmailLogItem({ log }: { log: EmailLog }) {
+  const getTemplateLabel = (template: string) => {
+    const labels: Record<string, string> = {
+      custom: "Custom Message",
+      welcome: "Welcome Email",
+      quote: "Quote",
+      itinerary: "Itinerary",
+      booking_confirmation: "Booking Confirmation",
+      trip_completed: "Trip Completed",
+    };
+    return labels[template] || template;
+  };
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium truncate">{log.subject}</span>
+          <Badge variant="outline" className="text-xs shrink-0">
+            {getTemplateLabel(log.template)}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+          <span>To: {log.to_email}</span>
+          <span>•</span>
+          <span>{format(new Date(log.sent_at), "MMM d, yyyy 'at' h:mm a")}</span>
+        </div>
+      </div>
+      <Badge 
+        variant="secondary" 
+        className={log.status === "sent" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}
+      >
+        {log.status}
+      </Badge>
     </div>
   );
 }
