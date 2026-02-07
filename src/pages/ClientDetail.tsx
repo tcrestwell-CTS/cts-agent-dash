@@ -374,14 +374,14 @@ const ClientDetail = () => {
                   <div>
                     <Label className="text-xs">Title</Label>
                     <Select
-                      value={formData.title || ""}
-                      onValueChange={(value) => handleChange("title", value)}
+                      value={formData.title || "none"}
+                      onValueChange={(value) => handleChange("title", value === "none" ? "" : value)}
                     >
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="Title" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         <SelectItem value="Mr.">Mr.</SelectItem>
                         <SelectItem value="Mrs.">Mrs.</SelectItem>
                         <SelectItem value="Ms.">Ms.</SelectItem>
