@@ -6,51 +6,128 @@ import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import crestwellLogo from "@/assets/crestwell-logo.png";
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const {
-    user,
-    loading
-  } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const inviteToken = searchParams.get("invite");
+
   useEffect(() => {
     if (loading) return;
     if (!user) return;
-    const handlePostAuth = async () => {
-      // If there's an invite token, try to accept the invitation
-      if (inviteToken) {
-        try {
-          const {
-            data,
-            error
-          } = await supabase.rpc("accept_invitation", {
-            invitation_token: inviteToken,
-            accepting_user_id: user.id
-          });
-          if (error) {
-            console.error("Error accepting invitation:", error);
-          } else if (data) {
-            toast.success("Welcome! Your account has been set up.");
-          }
-        } catch (err) {
-          console.error("Failed to accept invitation:", err);
-        }
-      }
 
-      // Always navigate to home after auth
-      navigate("/", {
-        replace: true
-      });
+    const handlePostAuth = async () => {
+      setIsValidating(true);
+      const userEmail = user.email?.toLowerCase();
+
+      try {
+        // Check if user is already a team member (has a profile)
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingProfile) {
+          // Existing team member - allow access
+          navigate("/", { replace: true });
+          return;
+        }
+
+        // New user - check for valid invitation
+        let hasValidInvitation = false;
+
+        // First check if there's an invite token in the URL
+        if (inviteToken) {
+          const { data: tokenInvite } = await supabase
+            .from("invitations")
+            .select("id, email, status, expires_at")
+            .eq("token", inviteToken)
+            .eq("status", "pending")
+            .maybeSingle();
+
+          if (tokenInvite && new Date(tokenInvite.expires_at) > new Date()) {
+            // Token is valid - check if email matches
+            if (tokenInvite.email === userEmail) {
+              hasValidInvitation = true;
+              // Accept the invitation
+              const { data, error } = await supabase.rpc("accept_invitation", {
+                invitation_token: inviteToken,
+                accepting_user_id: user.id,
+              });
+
+              if (error) {
+                console.error("Error accepting invitation:", error);
+                toast.error("Failed to accept invitation. Please try again.");
+              } else if (data) {
+                toast.success("Welcome! Your account has been set up.");
+              }
+            } else {
+              // Token exists but email doesn't match
+              toast.error("This invitation was sent to a different email address. Please sign in with the correct Google account.");
+              await signOut();
+              setIsValidating(false);
+              return;
+            }
+          }
+        }
+
+        // If no token or token didn't work, check for pending invitation by email
+        if (!hasValidInvitation && userEmail) {
+          const { data: emailInvite } = await supabase
+            .from("invitations")
+            .select("id, token, status, expires_at")
+            .eq("email", userEmail)
+            .eq("status", "pending")
+            .maybeSingle();
+
+          if (emailInvite && new Date(emailInvite.expires_at) > new Date()) {
+            hasValidInvitation = true;
+            // Accept the invitation using the found token
+            const { data, error } = await supabase.rpc("accept_invitation", {
+              invitation_token: emailInvite.token,
+              accepting_user_id: user.id,
+            });
+
+            if (error) {
+              console.error("Error accepting invitation:", error);
+              toast.error("Failed to accept invitation. Please try again.");
+            } else if (data) {
+              toast.success("Welcome! Your account has been set up.");
+            }
+          }
+        }
+
+        if (!hasValidInvitation) {
+          // No valid invitation found - deny access
+          toast.error("Access denied. You need a valid invitation to join Crestwell Travel Services. Please contact an administrator.");
+          await signOut();
+          setIsValidating(false);
+          return;
+        }
+
+        // Invitation accepted - navigate to home
+        navigate("/", { replace: true });
+      } catch (err) {
+        console.error("Error validating access:", err);
+        toast.error("An error occurred while validating your access.");
+        await signOut();
+      } finally {
+        setIsValidating(false);
+      }
     };
+
     handlePostAuth();
-  }, [user, loading, navigate, inviteToken]);
+  }, [user, loading, navigate, inviteToken, signOut]);
+
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/auth"
+        redirect_uri: window.location.origin + "/auth",
       });
       if (result.error) {
         toast.error(result.error.message || "Failed to sign in with Google");
@@ -62,19 +139,31 @@ const Auth = () => {
       setIsSigningIn(false);
     }
   };
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background">
+
+  if (loading || isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="h-12 w-32 rounded bg-muted" />
           <div className="h-4 w-48 rounded bg-muted" />
+          {isValidating && (
+            <p className="text-sm text-muted-foreground">Validating your access...</p>
+          )}
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen flex bg-background">
+
+  return (
+    <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
         <div className="bg-white/95 rounded-xl p-4 w-fit">
-          <img alt="Crestwell Travel Services" className="h-16 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
+          <img
+            alt="Crestwell Travel Services"
+            className="h-16 w-auto object-contain"
+            src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png"
+          />
         </div>
 
         <div className="space-y-6">
@@ -108,7 +197,11 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-16 w-auto object-contain" />
+            <img
+              src={crestwellLogo}
+              alt="Crestwell Travel Services"
+              className="h-16 w-auto object-contain"
+            />
           </div>
 
           <div className="text-center lg:text-left">
@@ -121,12 +214,30 @@ const Auth = () => {
           </div>
 
           <div className="space-y-4">
-            <Button variant="outline" size="lg" className="w-full gap-3 h-12" onClick={handleGoogleSignIn} disabled={isSigningIn}>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full gap-3 h-12"
+              onClick={handleGoogleSignIn}
+              disabled={isSigningIn}
+            >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
               </svg>
               {isSigningIn ? "Signing in..." : "Continue with Google"}
             </Button>
@@ -135,7 +246,14 @@ const Auth = () => {
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-muted p-4 text-center">
               <p className="text-sm font-medium text-muted-foreground">
-                This site is for members of Crestwell Travel Services only. All data contained within is proprietary and confidential. Unauthorized access is subject to legal prosecution.
+                This site is for members of Crestwell Travel Services only. All
+                data contained within is proprietary and confidential.
+                Unauthorized access is subject to legal prosecution.
+              </p>
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-center">
+              <p className="text-sm font-medium text-primary">
+                🔒 Invite-only access. You must have a valid invitation to sign in.
               </p>
             </div>
             <p className="text-center text-sm text-muted-foreground">
@@ -151,6 +269,8 @@ const Auth = () => {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Auth;
