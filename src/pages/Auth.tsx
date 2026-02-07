@@ -74,7 +74,7 @@ const Auth = () => {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
         <div className="bg-white/95 rounded-xl p-4 w-fit">
-          <img alt="Crestwell Travel Services" className="h-16 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
+          <img alt="Crestwell Travel Services" className="h-20 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
         </div>
 
         <div className="space-y-6">
