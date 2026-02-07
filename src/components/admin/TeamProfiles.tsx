@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, User, Phone, Briefcase, Percent, Shield } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { useAllUserRoles, useUpdateUserRole } from "@/hooks/useUserRoles";
@@ -35,6 +46,12 @@ export function TeamProfiles() {
   const { data: userRoles, isLoading: rolesLoading } = useAllUserRoles();
   const { data: isAdmin } = useIsAdmin();
   const updateRole = useUpdateUserRole();
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    userId: string;
+    userName: string;
+  } | null>(null);
 
   if (isLoading || rolesLoading) {
     return (
@@ -66,16 +83,45 @@ export function TeamProfiles() {
     return role?.role || "user";
   };
 
-  const handleRoleChange = (userId: string, newRole: string) => {
-    if (newRole === "none") {
+  const handleRoleChange = (userId: string, userName: string, newRole: string) => {
+    if (newRole === "admin") {
+      setConfirmDialog({ open: true, userId, userName });
+    } else if (newRole === "none") {
       updateRole.mutate({ userId, role: null });
     } else {
       updateRole.mutate({ userId, role: newRole as AppRole });
     }
   };
 
+  const confirmAdminRole = () => {
+    if (confirmDialog) {
+      updateRole.mutate({ userId: confirmDialog.userId, role: "admin" });
+      setConfirmDialog(null);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <>
+      <AlertDialog open={confirmDialog?.open} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Grant Admin Access?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to grant admin privileges to <strong>{confirmDialog?.userName}</strong>. 
+              Admins have full access to manage team members, view all data, and change system settings.
+              This action can be reversed later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAdminRole}>
+              Grant Admin Access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {profiles.map((profile) => {
         const initials = profile.full_name
           ? profile.full_name
@@ -139,7 +185,7 @@ export function TeamProfiles() {
                   {isAdmin && !isCurrentUser ? (
                     <Select
                       value={currentRole}
-                      onValueChange={(value) => handleRoleChange(profile.user_id, value)}
+                      onValueChange={(value) => handleRoleChange(profile.user_id, profile.full_name || "this user", value)}
                       disabled={updateRole.isPending}
                     >
                       <SelectTrigger className="h-8 w-full">
@@ -168,6 +214,7 @@ export function TeamProfiles() {
           </Card>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
