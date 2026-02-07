@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useBookings } from "@/hooks/useBookings";
@@ -7,6 +7,7 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
+import { DateRangeFilter, DateRange } from "@/components/analytics/DateRangeFilter";
 import {
   AreaChart,
   Area,
@@ -30,6 +31,7 @@ import {
   startOfYear,
   endOfYear,
   isWithinInterval,
+  eachMonthOfInterval,
 } from "date-fns";
 import {
   TrendingUp,
@@ -107,6 +109,12 @@ const Analytics = () => {
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
 
+  // Default to last 12 months
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subMonths(new Date(), 12),
+    to: new Date(),
+  });
+
   const loading = bookingsLoading || clientsLoading || commissionsLoading;
 
   const formatCurrency = (value: number) => {
@@ -117,20 +125,38 @@ const Analytics = () => {
     }).format(value);
   };
 
-  // Monthly revenue data for chart (based on depart_date)
-  const monthlyRevenueData = useMemo(() => {
+  // Filter bookings by date range (based on depart_date)
+  const filteredBookings = useMemo(() => {
     if (!bookings?.length) return [];
+    return bookings.filter((booking) => {
+      const departDate = parseISO(booking.depart_date);
+      return isWithinInterval(departDate, { start: dateRange.from, end: dateRange.to });
+    });
+  }, [bookings, dateRange]);
 
+  // Filter clients by date range (based on created_at)
+  const filteredClients = useMemo(() => {
+    if (!clients?.length) return [];
+    return clients.filter((client) => {
+      const createdDate = parseISO(client.created_at);
+      return isWithinInterval(createdDate, { start: dateRange.from, end: dateRange.to });
+    });
+  }, [clients, dateRange]);
+
+  // Monthly revenue data for chart (based on depart_date within date range)
+  const monthlyRevenueData = useMemo(() => {
+    if (!filteredBookings?.length) return [];
+
+    // Generate months within the date range
+    const monthsInRange = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to });
     const months: { [key: string]: number } = {};
-    const now = new Date();
 
-    for (let i = 11; i >= 0; i--) {
-      const monthDate = startOfMonth(subMonths(now, i));
+    monthsInRange.forEach((monthDate) => {
       const monthKey = format(monthDate, "yyyy-MM");
       months[monthKey] = 0;
-    }
+    });
 
-    bookings.forEach((booking) => {
+    filteredBookings.forEach((booking) => {
       if (booking.status === "cancelled") return;
       const departDate = parseISO(booking.depart_date);
       const monthKey = format(departDate, "yyyy-MM");
@@ -140,17 +166,17 @@ const Analytics = () => {
     });
 
     return Object.entries(months).map(([month, revenue]) => ({
-      month: format(parseISO(`${month}-01`), "MMM"),
+      month: format(parseISO(`${month}-01`), "MMM yy"),
       revenue,
     }));
-  }, [bookings]);
+  }, [filteredBookings, dateRange]);
 
-  // Booking status distribution
+  // Booking status distribution (filtered)
   const bookingStatusData = useMemo(() => {
-    if (!bookings?.length) return [];
+    if (!filteredBookings?.length) return [];
 
     const statusCounts: { [key: string]: number } = {};
-    bookings.forEach((booking) => {
+    filteredBookings.forEach((booking) => {
       const status = booking.status || "unknown";
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
@@ -159,14 +185,14 @@ const Analytics = () => {
       name: name.charAt(0).toUpperCase() + name.slice(1),
       value,
     }));
-  }, [bookings]);
+  }, [filteredBookings]);
 
-  // Top destinations
+  // Top destinations (filtered)
   const topDestinations = useMemo(() => {
-    if (!bookings?.length) return [];
+    if (!filteredBookings?.length) return [];
 
     const destinations: { [key: string]: { count: number; revenue: number } } = {};
-    bookings.forEach((booking) => {
+    filteredBookings.forEach((booking) => {
       if (booking.status === "cancelled") return;
       const dest = booking.destination || "Unknown";
       if (!destinations[dest]) {
@@ -180,22 +206,22 @@ const Analytics = () => {
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [bookings]);
+  }, [filteredBookings]);
 
-  // Client acquisition over time
+  // Client acquisition over time (filtered)
   const clientAcquisitionData = useMemo(() => {
-    if (!clients?.length) return [];
+    if (!filteredClients?.length) return [];
 
+    // Generate months within the date range
+    const monthsInRange = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to });
     const months: { [key: string]: number } = {};
-    const now = new Date();
 
-    for (let i = 11; i >= 0; i--) {
-      const monthDate = startOfMonth(subMonths(now, i));
+    monthsInRange.forEach((monthDate) => {
       const monthKey = format(monthDate, "yyyy-MM");
       months[monthKey] = 0;
-    }
+    });
 
-    clients.forEach((client) => {
+    filteredClients.forEach((client) => {
       const created = parseISO(client.created_at);
       const monthKey = format(created, "yyyy-MM");
       if (months[monthKey] !== undefined) {
@@ -204,40 +230,35 @@ const Analytics = () => {
     });
 
     return Object.entries(months).map(([month, count]) => ({
-      month: format(parseISO(`${month}-01`), "MMM"),
+      month: format(parseISO(`${month}-01`), "MMM yy"),
       clients: count,
     }));
-  }, [clients]);
+  }, [filteredClients, dateRange]);
 
-  // KPI calculations
+  // KPI calculations (using filtered data for period-specific metrics)
   const kpis = useMemo(() => {
-    if (!bookings || !clients || !commissions) return null;
+    if (!filteredBookings || !filteredClients || !commissions) return null;
 
-    const now = new Date();
-    const thisYear = { start: startOfYear(now), end: endOfYear(now) };
+    // Period metrics (using filtered data)
+    const periodBookings = filteredBookings.filter((b) => b.status !== "cancelled");
+    const periodRevenue = periodBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
 
-    // YTD metrics (based on depart_date)
-    const ytdBookings = bookings.filter((b) => {
-      const departDate = parseISO(b.depart_date);
-      return isWithinInterval(departDate, thisYear) && b.status !== "cancelled";
-    });
-
-    const ytdRevenue = ytdBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+    // All-time metrics (using original data for comparison)
     const totalRevenue = bookings
-      .filter((b) => b.status !== "cancelled")
-      .reduce((sum, b) => sum + (b.total_amount || 0), 0);
+      ?.filter((b) => b.status !== "cancelled")
+      .reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
 
-    // Average booking value
+    // Average booking value (within period)
     const avgBookingValue =
-      bookings.length > 0
-        ? bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0) / bookings.length
+      periodBookings.length > 0
+        ? periodBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0) / periodBookings.length
         : 0;
 
-    // Conversion rate
-    const clientsWithBookings = new Set(bookings.map((b) => b.client_id)).size;
-    const conversionRate = clients.length > 0 ? (clientsWithBookings / clients.length) * 100 : 0;
+    // Conversion rate (within period)
+    const clientsWithBookings = new Set(filteredBookings.map((b) => b.client_id)).size;
+    const conversionRate = filteredClients.length > 0 ? (clientsWithBookings / filteredClients.length) * 100 : 0;
 
-    // Commission metrics
+    // Commission metrics (all commissions - not date filtered as they track differently)
     const totalPending = commissions
       .filter((c) => c.status === "pending")
       .reduce((sum, c) => sum + (c.amount || 0), 0);
@@ -248,16 +269,17 @@ const Analytics = () => {
 
     return {
       totalRevenue,
-      ytdRevenue,
-      totalBookings: bookings.length,
-      ytdBookings: ytdBookings.length,
-      totalClients: clients.length,
+      periodRevenue,
+      totalBookings: bookings?.length || 0,
+      periodBookings: periodBookings.length,
+      totalClients: clients?.length || 0,
+      periodClients: filteredClients.length,
       avgBookingValue,
       conversionRate,
       pendingCommissions: totalPending,
       paidCommissions: totalPaid,
     };
-  }, [bookings, clients, commissions]);
+  }, [bookings, clients, filteredBookings, filteredClients, commissions]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -301,9 +323,12 @@ const Analytics = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground mt-1">Agency performance metrics and insights</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Analytics</h1>
+            <p className="text-muted-foreground mt-1">Agency performance metrics and insights</p>
+          </div>
+          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -323,22 +348,22 @@ const Analytics = () => {
         {/* Top KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Revenue"
-            value={formatCurrency(kpis?.totalRevenue || 0)}
-            change={`${formatCurrency(kpis?.ytdRevenue || 0)} YTD`}
+            title="Period Revenue"
+            value={formatCurrency(kpis?.periodRevenue || 0)}
+            change={`${formatCurrency(kpis?.totalRevenue || 0)} all-time`}
             changeType="neutral"
             icon={DollarSign}
           />
           <StatCard
-            title="Total Bookings"
-            value={kpis?.totalBookings?.toString() || "0"}
-            change={`${kpis?.ytdBookings || 0} this year`}
+            title="Period Bookings"
+            value={kpis?.periodBookings?.toString() || "0"}
+            change={`${kpis?.totalBookings || 0} all-time`}
             changeType="neutral"
             icon={Plane}
           />
           <StatCard
-            title="Total Clients"
-            value={kpis?.totalClients?.toString() || "0"}
+            title="Period Clients"
+            value={kpis?.periodClients?.toString() || "0"}
             change={`${kpis?.conversionRate?.toFixed(0) || 0}% conversion rate`}
             changeType="neutral"
             icon={Users}
@@ -346,7 +371,7 @@ const Analytics = () => {
           <StatCard
             title="Avg. Booking Value"
             value={formatCurrency(kpis?.avgBookingValue || 0)}
-            description="Per booking average"
+            description="For selected period"
             icon={Target}
           />
         </div>
