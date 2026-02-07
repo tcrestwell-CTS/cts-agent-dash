@@ -6,28 +6,29 @@ import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import crestwellLogo from "@/assets/crestwell-logo.png";
-
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading } = useAuth();
+  const {
+    user,
+    loading
+  } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const inviteToken = searchParams.get("invite");
-
   useEffect(() => {
     if (loading) return;
-    
     if (!user) return;
-
     const handlePostAuth = async () => {
       // If there's an invite token, try to accept the invitation
       if (inviteToken) {
         try {
-          const { data, error } = await supabase.rpc("accept_invitation", {
+          const {
+            data,
+            error
+          } = await supabase.rpc("accept_invitation", {
             invitation_token: inviteToken,
-            accepting_user_id: user.id,
+            accepting_user_id: user.id
           });
-
           if (error) {
             console.error("Error accepting invitation:", error);
           } else if (data) {
@@ -39,19 +40,18 @@ const Auth = () => {
       }
 
       // Always navigate to home after auth
-      navigate("/", { replace: true });
+      navigate("/", {
+        replace: true
+      });
     };
-
     handlePostAuth();
   }, [user, loading, navigate, inviteToken]);
-
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/auth",
+        redirect_uri: window.location.origin + "/auth"
       });
-
       if (result.error) {
         toast.error(result.error.message || "Failed to sign in with Google");
       }
@@ -62,28 +62,19 @@ const Auth = () => {
       setIsSigningIn(false);
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+    return <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="h-12 w-32 rounded bg-muted" />
           <div className="h-4 w-48 rounded bg-muted" />
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen flex bg-background">
+  return <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
         <div className="bg-white/95 rounded-xl p-4 w-fit">
-          <img 
-            src={crestwellLogo} 
-            alt="Crestwell Travel Services" 
-            className="h-16 w-auto object-contain"
-          />
+          <img alt="Crestwell Travel Services" className="h-16 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
         </div>
 
         <div className="space-y-6">
@@ -120,11 +111,7 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img 
-              src={crestwellLogo} 
-              alt="Crestwell Travel Services" 
-              className="h-16 w-auto object-contain"
-            />
+            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-16 w-auto object-contain" />
           </div>
 
           <div className="text-center lg:text-left">
@@ -137,30 +124,12 @@ const Auth = () => {
           </div>
 
           <div className="space-y-4">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full gap-3 h-12"
-              onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
-            >
+            <Button variant="outline" size="lg" className="w-full gap-3 h-12" onClick={handleGoogleSignIn} disabled={isSigningIn}>
               <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
               {isSigningIn ? "Signing in..." : "Continue with Google"}
             </Button>
@@ -178,8 +147,6 @@ const Auth = () => {
           </p>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
