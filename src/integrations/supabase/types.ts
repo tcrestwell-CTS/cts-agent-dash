@@ -72,38 +72,74 @@ export type Database = {
       }
       clients: {
         Row: {
+          address_city: string | null
+          address_country: string | null
+          address_line_1: string | null
+          address_line_2: string | null
+          address_state: string | null
+          address_zip_code: string | null
+          birthday: string | null
           created_at: string
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           location: string | null
+          loyalty_programs: string | null
           name: string
           notes: string | null
           phone: string | null
+          preferred_first_name: string | null
           status: string
+          tags: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address_city?: string | null
+          address_country?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          address_state?: string | null
+          address_zip_code?: string | null
+          birthday?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           location?: string | null
+          loyalty_programs?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          preferred_first_name?: string | null
           status?: string
+          tags?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address_city?: string | null
+          address_country?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          address_state?: string | null
+          address_zip_code?: string | null
+          birthday?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           location?: string | null
+          loyalty_programs?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          preferred_first_name?: string | null
           status?: string
+          tags?: string | null
           updated_at?: string
           user_id?: string
         }

@@ -7,7 +7,23 @@ const corsHeaders = {
 };
 
 interface ClientRecord {
-  name: string;
+  // New CSV fields
+  "First Name"?: string;
+  "Preferred First Name"?: string;
+  "Last Name"?: string;
+  "Primary Email"?: string;
+  "Primary Phone Number"?: string;
+  "Birthday"?: string;
+  "Address Line 1"?: string;
+  "Address Line 2"?: string;
+  "Address Country"?: string;
+  "Address City"?: string;
+  "Address State"?: string;
+  "Address Zip Code"?: string;
+  "Loyalty Programs"?: string;
+  "Tags"?: string;
+  // Legacy fields for backward compatibility
+  name?: string;
   email?: string;
   phone?: string;
   location?: string;
@@ -138,18 +154,53 @@ Deno.serve(async (req) => {
       for (let i = 0; i < clientData.length; i++) {
         const record = clientData[i];
 
-        if (!record.name || typeof record.name !== "string" || record.name.trim() === "") {
-          errors.push({ index: i, error: "Name is required", record });
+        // Support both new CSV format and legacy format
+        const firstName = record["First Name"]?.trim() || "";
+        const lastName = record["Last Name"]?.trim() || "";
+        const legacyName = record.name?.trim() || "";
+        
+        // Build name from first/last or use legacy name field
+        const fullName = firstName || lastName 
+          ? `${firstName} ${lastName}`.trim() 
+          : legacyName;
+
+        if (!fullName) {
+          errors.push({ index: i, error: "Name is required (First Name + Last Name or name field)", record });
           recordsFailed++;
           continue;
         }
 
+        // Build location from address fields or use legacy location
+        const addressParts = [
+          record["Address Line 1"],
+          record["Address Line 2"],
+          record["Address City"],
+          record["Address State"],
+          record["Address Zip Code"],
+          record["Address Country"],
+        ].filter(Boolean);
+        const location = addressParts.length > 0 
+          ? addressParts.join(", ") 
+          : record.location?.trim() || null;
+
         const clientInsert = {
           user_id: targetUserId,
-          name: record.name.trim(),
-          email: record.email?.trim() || null,
-          phone: record.phone?.trim() || null,
-          location: record.location?.trim() || null,
+          name: fullName,
+          first_name: firstName || null,
+          preferred_first_name: record["Preferred First Name"]?.trim() || null,
+          last_name: lastName || null,
+          email: record["Primary Email"]?.trim() || record.email?.trim() || null,
+          phone: record["Primary Phone Number"]?.trim() || record.phone?.trim() || null,
+          birthday: record["Birthday"] || null,
+          address_line_1: record["Address Line 1"]?.trim() || null,
+          address_line_2: record["Address Line 2"]?.trim() || null,
+          address_country: record["Address Country"]?.trim() || null,
+          address_city: record["Address City"]?.trim() || null,
+          address_state: record["Address State"]?.trim() || null,
+          address_zip_code: record["Address Zip Code"]?.trim() || null,
+          loyalty_programs: record["Loyalty Programs"]?.trim() || null,
+          tags: record["Tags"]?.trim() || null,
+          location: location,
           status: ["active", "lead", "inactive"].includes(record.status || "")
             ? record.status
             : "lead",
