@@ -14,6 +14,7 @@ interface EmailRequest {
   template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
+  clientId?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -68,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching branding:", brandingError);
     }
 
-    const { to, subject, template, data: templateData, customHtml }: EmailRequest = await req.json();
+    const { to, subject, template, data: templateData, customHtml, clientId }: EmailRequest = await req.json();
 
     if (!to || !subject || !template) {
       throw new Error("Missing required fields: to, subject, template");
@@ -276,6 +277,27 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log("Email sent successfully:", emailData);
+
+    // Log the email if clientId is provided
+    if (clientId) {
+      const { error: logError } = await supabase
+        .from("email_logs")
+        .insert({
+          user_id: userId,
+          client_id: clientId,
+          to_email: to,
+          subject,
+          template,
+          status: "sent",
+        });
+
+      if (logError) {
+        console.error("Error logging email:", logError);
+        // Don't fail the request if logging fails
+      } else {
+        console.log("Email logged successfully for client:", clientId);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, id: emailData?.id }),

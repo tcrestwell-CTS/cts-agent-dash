@@ -24,8 +24,10 @@ import { toast } from "sonner";
 interface SendEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  clientId: string;
   clientName: string;
   clientEmail: string;
+  onEmailSent?: () => void;
 }
 
 type EmailTemplate = "custom" | "welcome" | "quote" | "itinerary";
@@ -40,8 +42,10 @@ const templateSubjects: Record<EmailTemplate, string> = {
 export function SendEmailDialog({
   open,
   onOpenChange,
+  clientId,
   clientName,
   clientEmail,
+  onEmailSent,
 }: SendEmailDialogProps) {
   const [sending, setSending] = useState(false);
   const [template, setTemplate] = useState<EmailTemplate>("custom");
@@ -73,6 +77,7 @@ export function SendEmailDialog({
         subject,
         template,
         data: { clientName },
+        clientId,
       };
 
       if (template === "custom") {
@@ -96,6 +101,7 @@ export function SendEmailDialog({
       setSubject("");
       setMessage("");
       setTemplate("custom");
+      onEmailSent?.();
     } catch (error) {
       console.error("Error sending email:", error);
       toast.error(error instanceof Error ? error.message : "Failed to send email");

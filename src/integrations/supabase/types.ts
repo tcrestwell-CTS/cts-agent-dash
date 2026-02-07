@@ -404,6 +404,50 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          sent_at: string
+          status: string
+          subject: string
+          template: string
+          to_email: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          sent_at?: string
+          status?: string
+          subject: string
+          template: string
+          to_email: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          template?: string
+          to_email?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_logs: {
         Row: {
           completed_at: string | null
