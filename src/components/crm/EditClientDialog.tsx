@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,63 +18,99 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
-import { useCreateClient } from "@/hooks/useClients";
+import { useUpdateClient, Client } from "@/hooks/useClients";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export function AddClientDialog() {
-  const [open, setOpen] = useState(false);
+interface EditClientDialogProps {
+  client: Client | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditClientDialog({ client, open, onOpenChange }: EditClientDialogProps) {
   const [formData, setFormData] = useState({
-    // Personal Information
     title: "",
     first_name: "",
     last_name: "",
     preferred_first_name: "",
     birthday: "",
     anniversary: "",
-    // Contact Information
     email: "",
     secondary_email: "",
     phone: "",
     secondary_phone: "",
-    // Address
     address_line_1: "",
     address_line_2: "",
     address_city: "",
     address_state: "",
     address_zip_code: "",
     address_country: "",
-    // Travel IDs
     redress_number: "",
     known_traveler_number: "",
     passport_info: "",
-    // Preferences
     activities_interests: "",
     food_drink_allergies: "",
-    // Travel Preferences
     flight_seating_preference: "",
     flight_bulkhead_preference: "",
     lodging_floor_preference: "",
     lodging_elevator_preference: "",
     cruise_cabin_floor_preference: "",
     cruise_cabin_location_preference: "",
-    // Other
     loyalty_programs: "",
     tags: "",
     status: "lead",
     notes: "",
   });
 
-  const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        title: client.title || "",
+        first_name: client.first_name || "",
+        last_name: client.last_name || "",
+        preferred_first_name: client.preferred_first_name || "",
+        birthday: client.birthday || "",
+        anniversary: client.anniversary || "",
+        email: client.email || "",
+        secondary_email: client.secondary_email || "",
+        phone: client.phone || "",
+        secondary_phone: client.secondary_phone || "",
+        address_line_1: client.address_line_1 || "",
+        address_line_2: client.address_line_2 || "",
+        address_city: client.address_city || "",
+        address_state: client.address_state || "",
+        address_zip_code: client.address_zip_code || "",
+        address_country: client.address_country || "",
+        redress_number: client.redress_number || "",
+        known_traveler_number: client.known_traveler_number || "",
+        passport_info: client.passport_info || "",
+        activities_interests: client.activities_interests || "",
+        food_drink_allergies: client.food_drink_allergies || "",
+        flight_seating_preference: client.flight_seating_preference || "",
+        flight_bulkhead_preference: client.flight_bulkhead_preference || "",
+        lodging_floor_preference: client.lodging_floor_preference || "",
+        lodging_elevator_preference: client.lodging_elevator_preference || "",
+        cruise_cabin_floor_preference: client.cruise_cabin_floor_preference || "",
+        cruise_cabin_location_preference: client.cruise_cabin_location_preference || "",
+        loyalty_programs: client.loyalty_programs || "",
+        tags: client.tags || "",
+        status: client.status || "lead",
+        notes: client.notes || "",
+      });
+    }
+  }, [client]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!client) return;
     
-    const name = `${formData.first_name} ${formData.last_name}`.trim();
-    if (!name) return;
+    const name = `${formData.first_name} ${formData.last_name}`.trim() || client.name;
 
-    await createClient.mutateAsync({
+    await updateClient.mutateAsync({
+      id: client.id,
       name,
       title: formData.title || null,
       first_name: formData.first_name || null,
@@ -113,40 +148,7 @@ export function AddClientDialog() {
         : null,
     });
 
-    setFormData({
-      title: "",
-      first_name: "",
-      last_name: "",
-      preferred_first_name: "",
-      birthday: "",
-      anniversary: "",
-      email: "",
-      secondary_email: "",
-      phone: "",
-      secondary_phone: "",
-      address_line_1: "",
-      address_line_2: "",
-      address_city: "",
-      address_state: "",
-      address_zip_code: "",
-      address_country: "",
-      redress_number: "",
-      known_traveler_number: "",
-      passport_info: "",
-      activities_interests: "",
-      food_drink_allergies: "",
-      flight_seating_preference: "",
-      flight_bulkhead_preference: "",
-      lodging_floor_preference: "",
-      lodging_elevator_preference: "",
-      cruise_cabin_floor_preference: "",
-      cruise_cabin_location_preference: "",
-      loyalty_programs: "",
-      tags: "",
-      status: "lead",
-      notes: "",
-    });
-    setOpen(false);
+    onOpenChange(false);
   };
 
   const updateField = (field: string, value: string) => {
@@ -154,19 +156,13 @@ export function AddClientDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Client
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add New Client</DialogTitle>
+            <DialogTitle>Edit Client</DialogTitle>
             <DialogDescription>
-              Add a new client to your CRM with their travel profile.
+              Update client information and travel preferences.
             </DialogDescription>
           </DialogHeader>
           
@@ -202,23 +198,21 @@ export function AddClientDialog() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="first_name">First Name *</Label>
+                    <Label htmlFor="first_name">First Name</Label>
                     <Input
                       id="first_name"
                       value={formData.first_name}
                       onChange={(e) => updateField("first_name", e.target.value)}
                       placeholder="John"
-                      required
                     />
                   </div>
                   <div className="grid gap-2 col-span-2">
-                    <Label htmlFor="last_name">Last Name *</Label>
+                    <Label htmlFor="last_name">Last Name</Label>
                     <Input
                       id="last_name"
                       value={formData.last_name}
                       onChange={(e) => updateField("last_name", e.target.value)}
                       placeholder="Doe"
-                      required
                     />
                   </div>
                 </div>
@@ -612,12 +606,12 @@ export function AddClientDialog() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createClient.isPending}>
-              {createClient.isPending ? "Adding..." : "Add Client"}
+            <Button type="submit" disabled={updateClient.isPending}>
+              {updateClient.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </form>
