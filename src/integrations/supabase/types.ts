@@ -297,6 +297,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          client_messages: boolean
+          commission_updates: boolean
+          created_at: string
+          id: string
+          marketing_emails: boolean
+          new_booking_alerts: boolean
+          training_reminders: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_messages?: boolean
+          commission_updates?: boolean
+          created_at?: string
+          id?: string
+          marketing_emails?: boolean
+          new_booking_alerts?: boolean
+          training_reminders?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_messages?: boolean
+          commission_updates?: boolean
+          created_at?: string
+          id?: string
+          marketing_emails?: boolean
+          new_booking_alerts?: boolean
+          training_reminders?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           agency_name: string | null
