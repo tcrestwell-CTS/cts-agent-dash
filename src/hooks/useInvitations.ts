@@ -116,7 +116,7 @@ export function useInvitations() {
         .maybeSingle();
 
       // Send invitation email
-      const inviteUrl = `${window.location.origin}/auth?invite=${token}`;
+      const inviteUrl = `https://agents.crestwelltravels.com/auth?invite=${token}`;
       
       const { error: emailError } = await supabase.functions.invoke("send-email", {
         body: {
@@ -177,7 +177,7 @@ export function useInvitations() {
         .maybeSingle();
 
       // Resend email
-      const inviteUrl = `${window.location.origin}/auth?invite=${invitation.token}`;
+      const inviteUrl = `https://agents.crestwelltravels.com/auth?invite=${invitation.token}`;
 
       await supabase.functions.invoke("send-email", {
         body: {
