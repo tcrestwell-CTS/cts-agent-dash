@@ -7,6 +7,7 @@ import { CommissionSummary } from "@/components/dashboard/CommissionSummary";
 import { TrainingProgress } from "@/components/dashboard/TrainingProgress";
 import { UpcomingDepartures } from "@/components/dashboard/UpcomingDepartures";
 import { MonthlyRevenueChart } from "@/components/dashboard/MonthlyRevenueChart";
+import { AgencyKPIs } from "@/components/dashboard/AgencyKPIs";
 import { Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,6 +135,7 @@ const Index = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Bookings & Charts */}
         <div className="lg:col-span-2 space-y-6">
+          <AgencyKPIs />
           <MonthlyRevenueChart />
           <RecentBookings />
         </div>
