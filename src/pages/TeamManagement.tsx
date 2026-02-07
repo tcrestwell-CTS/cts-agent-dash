@@ -23,6 +23,7 @@ import { useCanViewTeam } from "@/hooks/useAdmin";
 import { InviteAgentDialog } from "@/components/admin/InviteAgentDialog";
 import { TeamProfiles } from "@/components/admin/TeamProfiles";
 import { Navigate } from "react-router-dom";
+import { getTierConfig } from "@/lib/commissionTiers";
 
 const TeamManagement = () => {
   const { canView, canManage, isLoading: roleLoading } = useCanViewTeam();
@@ -178,6 +179,7 @@ const TeamManagement = () => {
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Commission Tier</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Sent</TableHead>
                 <TableHead>Expires</TableHead>
@@ -190,6 +192,11 @@ const TeamManagement = () => {
                   <TableCell className="font-medium">{invitation.email}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{formatRole(invitation.role)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">
+                      {getTierConfig(invitation.commission_tier).description}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(invitation.status, invitation.expires_at)}

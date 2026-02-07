@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CommissionTier } from "@/lib/commissionTiers";
 
 export interface Invitation {
   id: string;
   email: string;
   invited_by: string;
   role: string;
+  commission_tier: CommissionTier;
   token: string;
   status: string;
   expires_at: string;
@@ -60,7 +62,11 @@ export function useInvitations() {
     return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
   };
 
-  const sendInvitation = async (email: string, role: "user" | "admin" | "office_admin" = "user") => {
+  const sendInvitation = async (
+    email: string, 
+    role: "user" | "admin" | "office_admin" = "user",
+    commissionTier: CommissionTier = "tier_1"
+  ) => {
     if (!user) {
       toast.error("You must be logged in to send invitations");
       return false;
@@ -91,6 +97,7 @@ export function useInvitations() {
         email: email.toLowerCase(),
         invited_by: user.id,
         role,
+        commission_tier: commissionTier,
         token,
         expires_at: expiresAt.toISOString(),
       });

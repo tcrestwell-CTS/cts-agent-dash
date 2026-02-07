@@ -490,6 +490,7 @@ export type Database = {
       invitations: {
         Row: {
           accepted_at: string | null
+          commission_tier: Database["public"]["Enums"]["commission_tier"]
           created_at: string
           email: string
           expires_at: string
@@ -502,6 +503,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          commission_tier?: Database["public"]["Enums"]["commission_tier"]
           created_at?: string
           email: string
           expires_at: string
@@ -514,6 +516,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          commission_tier?: Database["public"]["Enums"]["commission_tier"]
           created_at?: string
           email?: string
           expires_at?: string
@@ -567,6 +570,7 @@ export type Database = {
           agency_name: string | null
           avatar_url: string | null
           commission_rate: number | null
+          commission_tier: Database["public"]["Enums"]["commission_tier"] | null
           created_at: string
           full_name: string | null
           id: string
@@ -579,6 +583,9 @@ export type Database = {
           agency_name?: string | null
           avatar_url?: string | null
           commission_rate?: number | null
+          commission_tier?:
+            | Database["public"]["Enums"]["commission_tier"]
+            | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -591,6 +598,9 @@ export type Database = {
           agency_name?: string | null
           avatar_url?: string | null
           commission_rate?: number | null
+          commission_tier?:
+            | Database["public"]["Enums"]["commission_tier"]
+            | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -641,6 +651,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "office_admin"
+      commission_tier: "tier_1" | "tier_2" | "tier_3"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -769,6 +780,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "office_admin"],
+      commission_tier: ["tier_1", "tier_2", "tier_3"],
     },
   },
 } as const
