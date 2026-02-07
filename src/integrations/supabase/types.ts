@@ -79,6 +79,66 @@ export type Database = {
           },
         ]
       }
+      branding_settings: {
+        Row: {
+          accent_color: string | null
+          address: string | null
+          agency_name: string | null
+          created_at: string
+          email_address: string | null
+          facebook: string | null
+          from_email: string | null
+          from_name: string | null
+          id: string
+          instagram: string | null
+          logo_url: string | null
+          phone: string | null
+          primary_color: string | null
+          tagline: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          address?: string | null
+          agency_name?: string | null
+          created_at?: string
+          email_address?: string | null
+          facebook?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          address?: string | null
+          agency_name?: string | null
+          created_at?: string
+          email_address?: string | null
+          facebook?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address_city: string | null
