@@ -11,7 +11,7 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed";
   data?: Record<string, string>;
 }
 
@@ -179,6 +179,31 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div style="text-align: center; margin: 32px 0;">
               <a href="${website || '#'}" style="background-color: ${accentColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Accept Quote</a>
+            </div>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "trip_completed":
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Welcome Back! 🎉</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">We hope you had an amazing trip to <strong>${templateData?.destination || "your destination"}</strong>!</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Trip:</strong> ${templateData?.tripName || templateData?.destination || "Your Adventure"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Travel Dates:</strong> ${templateData?.dates || "TBD"}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Reference:</strong> ${templateData?.reference || "TBD"}</p>
+            </div>
+            <p style="color: #4b5563; line-height: 1.6;">We'd love to hear about your experience! Your feedback helps us create even better journeys for you and other travelers.</p>
+            <p style="color: #4b5563; line-height: 1.6;">Thank you for traveling with ${agencyName}. We can't wait to help plan your next adventure!</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${website || '#'}" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Plan Your Next Trip</a>
             </div>
             ${footerHtml}
           </div>

@@ -9,13 +9,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Filter, Download, Eye, Pencil, ExternalLink, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useBookings } from "@/hooks/useBookings";
 import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
 
 const Bookings = () => {
-  const { bookings, loading, creating, createBooking } = useBookings();
+  const { bookings, loading, creating, updatingStatus, createBooking, updateBookingStatus } = useBookings();
 
   const stats = {
     total: bookings.length,
@@ -159,12 +166,44 @@ const Bookings = () => {
                   </TableCell>
                   <TableCell>{booking.travelers}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={getStatusBadgeClass(booking.status)}
+                    <Select
+                      value={booking.status}
+                      onValueChange={(value) => updateBookingStatus(booking.id, value)}
+                      disabled={updatingStatus}
                     >
-                      {booking.status}
-                    </Badge>
+                      <SelectTrigger className="w-[130px] h-8">
+                        <SelectValue>
+                          <Badge
+                            variant="secondary"
+                            className={getStatusBadgeClass(booking.status)}
+                          >
+                            {booking.status}
+                          </Badge>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">
+                          <Badge variant="secondary" className="bg-accent/10 text-accent">
+                            pending
+                          </Badge>
+                        </SelectItem>
+                        <SelectItem value="confirmed">
+                          <Badge variant="secondary" className="bg-success/10 text-success">
+                            confirmed
+                          </Badge>
+                        </SelectItem>
+                        <SelectItem value="completed">
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
+                            completed
+                          </Badge>
+                        </SelectItem>
+                        <SelectItem value="cancelled">
+                          <Badge variant="secondary" className="bg-destructive/10 text-destructive">
+                            cancelled
+                          </Badge>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="font-medium">
                     {formatCurrency(booking.total_amount)}
