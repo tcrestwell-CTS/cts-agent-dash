@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +19,13 @@ import {
 } from "@/components/ui/select";
 import { Filter, Download, Eye, Pencil, ExternalLink, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { useBookings } from "@/hooks/useBookings";
+import { useBookings, Booking } from "@/hooks/useBookings";
 import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
+import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 
 const Bookings = () => {
-  const { bookings, loading, creating, updatingStatus, createBooking, updateBookingStatus } = useBookings();
+  const { bookings, loading, creating, updating, updatingStatus, createBooking, updateBooking, updateBookingStatus } = useBookings();
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
   const stats = {
     total: bookings.length,
@@ -230,7 +233,12 @@ const Bookings = () => {
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setEditingBooking(booking)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -241,6 +249,14 @@ const Bookings = () => {
           </Table>
         )}
       </div>
+
+      <EditBookingDialog
+        booking={editingBooking}
+        open={!!editingBooking}
+        onOpenChange={(open) => !open && setEditingBooking(null)}
+        onSubmit={updateBooking}
+        updating={updating}
+      />
     </DashboardLayout>
   );
 };

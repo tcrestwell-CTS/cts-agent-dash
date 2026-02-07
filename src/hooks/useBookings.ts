@@ -35,11 +35,22 @@ export interface CreateBookingData {
   send_confirmation_email?: boolean;
 }
 
+export interface UpdateBookingData {
+  destination?: string;
+  depart_date?: string;
+  return_date?: string;
+  travelers?: number;
+  total_amount?: number;
+  trip_name?: string;
+  notes?: string;
+}
+
 export function useBookings() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
@@ -311,12 +322,53 @@ export function useBookings() {
     }
   };
 
+  const updateBooking = async (bookingId: string, data: UpdateBookingData) => {
+    if (!user) {
+      toast.error("You must be logged in to update bookings");
+      return false;
+    }
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          destination: data.destination,
+          depart_date: data.depart_date,
+          return_date: data.return_date,
+          travelers: data.travelers,
+          total_amount: data.total_amount,
+          trip_name: data.trip_name || null,
+          notes: data.notes || null,
+        })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error("Error updating booking:", error);
+        toast.error("Failed to update booking");
+        return false;
+      }
+
+      toast.success("Booking updated successfully");
+      await fetchBookings();
+      return true;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      toast.error("Failed to update booking");
+      return false;
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return {
     bookings,
     loading,
     creating,
+    updating,
     updatingStatus,
     createBooking,
+    updateBooking,
     updateBookingStatus,
     refetch: fetchBookings,
   };
