@@ -12,6 +12,7 @@ import Training from "./pages/Training";
 import Commissions from "./pages/Commissions";
 import Branding from "./pages/Branding";
 import Settings from "./pages/Settings";
+import TeamManagement from "./pages/TeamManagement";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -79,6 +80,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <ProtectedRoute>
+                  <TeamManagement />
                 </ProtectedRoute>
               }
             />
