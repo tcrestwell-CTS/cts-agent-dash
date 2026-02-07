@@ -122,6 +122,43 @@ const initialSuppliers: Supplier[] = [
     integrationType: "api",
     apiStatus: "coming_soon",
   },
+  // All-Inclusive Resorts
+  {
+    id: "sandals",
+    name: "Sandals & Beaches",
+    url: "https://www.sandals.com/travel-agents/",
+    description: "Sandals and Beaches Resorts travel agent portal for all-inclusive Caribbean bookings.",
+    category: "all-inclusive",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
+  {
+    id: "amresorts",
+    name: "AMResorts",
+    url: "https://agents.amresorts.com",
+    description: "AMResorts agent portal for Dreams, Secrets, Breathless, and other luxury all-inclusive brands.",
+    category: "all-inclusive",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
+  {
+    id: "palace-resorts",
+    name: "Palace Resorts",
+    url: "https://www.palaceproagent.com",
+    description: "Palace Resorts Pro Agent portal for Moon Palace, Le Blanc, and other luxury properties.",
+    category: "all-inclusive",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
 ];
 
 const categories = [
