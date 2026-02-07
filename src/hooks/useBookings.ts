@@ -122,10 +122,10 @@ export function useBookings() {
   }, [user, fetchBookings]);
 
   const generateBookingReference = () => {
-    const prefix = "CW";
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `${prefix}-${timestamp}-${random}`;
+    const array = new Uint8Array(8);
+    crypto.getRandomValues(array);
+    const random = Array.from(array, b => b.toString(36).padStart(2, '0')).join('').toUpperCase().slice(0, 12);
+    return `CW-${random}`;
   };
 
   const sendBookingConfirmationEmail = async (booking: {
