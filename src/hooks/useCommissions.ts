@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { CommissionTier, getTierConfig } from "@/lib/commissionTiers";
 
 export interface Commission {
   id: string;
@@ -133,12 +134,39 @@ export function useUserCommissionRate() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("commission_rate")
+        .select("commission_rate, commission_tier")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (error) throw error;
+      
+      // Use tier-based rate if available, otherwise fall back to commission_rate
+      const tier = data?.commission_tier as CommissionTier | null;
+      if (tier) {
+        return getTierConfig(tier).agentSplit;
+      }
       return data?.commission_rate ?? 10; // Default to 10% if not set
+    },
+    enabled: !!user,
+  });
+}
+
+export function useUserCommissionTier() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["user-commission-tier", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("commission_tier")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return (data?.commission_tier as CommissionTier | null) || "tier_1";
     },
     enabled: !!user,
   });

@@ -46,9 +46,10 @@ import {
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
-import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate } from "@/hooks/useCommissions";
+import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
+import { getTierConfig } from "@/lib/commissionTiers";
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
@@ -89,6 +90,7 @@ const BookingDetail = () => {
   const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatus } = useBookings();
   const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
   const { data: userCommissionRate } = useUserCommissionRate();
+  const { data: userTier } = useUserCommissionTier();
   const { data: travelers = [], isLoading: travelersLoading } = useBookingTravelers(bookingId);
   const removeBookingTraveler = useRemoveBookingTraveler();
   const createCommission = useCreateCommission();
@@ -485,12 +487,15 @@ const BookingDetail = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    No commission record yet. Create one based on the booking value.
-                  </p>
+                  <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <p className="text-xs text-muted-foreground">Your Commission Tier</p>
+                    <p className="font-medium text-foreground">
+                      {getTierConfig(userTier).label} - {getTierConfig(userTier).description}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="commission-rate" className="text-xs">
-                      Commission Rate (%)
+                      Agent Commission Rate (%)
                     </Label>
                     <div className="flex items-center gap-2">
                       <Input
@@ -499,19 +504,28 @@ const BookingDetail = () => {
                         min="0"
                         max="100"
                         step="0.5"
-                        value={customRate || userCommissionRate || "10"}
+                        value={customRate || userCommissionRate || "70"}
                         onChange={(e) => setCustomRate(e.target.value)}
                         className="h-9"
                       />
                       <Percent className="h-4 w-4 text-muted-foreground" />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Based on your tier. Override if needed.
+                    </p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Estimated Commission</p>
-                    <p className="text-lg font-semibold text-foreground">
+                    <p className="text-xs text-muted-foreground">Your Commission</p>
+                    <p className="text-lg font-semibold text-success">
                       {formatCurrency(
                         booking.total_amount *
-                          (parseFloat(customRate || String(userCommissionRate || 10)) / 100)
+                          (parseFloat(customRate || String(userCommissionRate || 70)) / 100)
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Agency receives: {formatCurrency(
+                        booking.total_amount *
+                          ((100 - parseFloat(customRate || String(userCommissionRate || 70))) / 100)
                       )}
                     </p>
                   </div>
@@ -519,7 +533,7 @@ const BookingDetail = () => {
                     size="sm"
                     className="w-full"
                     onClick={() => {
-                      const rate = parseFloat(customRate || String(userCommissionRate || 10));
+                      const rate = parseFloat(customRate || String(userCommissionRate || 70));
                       createCommission.mutate({
                         booking_id: booking.id,
                         rate,
