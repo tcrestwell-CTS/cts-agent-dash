@@ -24,6 +24,32 @@ export interface Supplier {
 }
 
 const initialSuppliers: Supplier[] = [
+  // Flights
+  {
+    id: "centrav",
+    name: "Centrav",
+    url: "https://www.centrav.com",
+    description: "Centrav consolidator portal for discounted international airfare.",
+    category: "flights",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
+  {
+    id: "skybird-travel",
+    name: "Skybird Travel",
+    url: "https://crestwelltravelservices.mywings.com/agent-login",
+    description: "Skybird Travel MyWings portal for flight bookings and consolidator fares.",
+    category: "flights",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
+  // Cruises
   {
     id: "cruisingpower",
     name: "CruisingPower",
