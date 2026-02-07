@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import CRM from "./pages/CRM";
+import ClientDetail from "./pages/ClientDetail";
 import Bookings from "./pages/Bookings";
 import Training from "./pages/Training";
 import Commissions from "./pages/Commissions";
@@ -40,6 +41,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CRM />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/crm/:clientId"
+              element={
+                <ProtectedRoute>
+                  <ClientDetail />
                 </ProtectedRoute>
               }
             />

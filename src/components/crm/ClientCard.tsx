@@ -1,18 +1,19 @@
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, MapPin, Cake, Edit2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, Phone, MapPin, Cake } from "lucide-react";
 import { Client } from "@/hooks/useClients";
 import { format, differenceInYears } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface ClientCardProps {
   client: Client & {
     totalBookings: number;
     totalSpent: number;
   };
-  onEdit?: (client: Client) => void;
 }
 
-export function ClientCard({ client, onEdit }: ClientCardProps) {
+export function ClientCard({ client }: ClientCardProps) {
+  const navigate = useNavigate();
+  
   const displayName = client.preferred_first_name 
     ? `${client.preferred_first_name} ${client.last_name || ''}`
     : client.name;
@@ -37,7 +38,7 @@ export function ClientCard({ client, onEdit }: ClientCardProps) {
     if (!birthday) return null;
     const date = new Date(birthday);
     const age = differenceInYears(new Date(), date);
-    return `${format(date, "MMMM d, yyyy")} (${age} years old)`;
+    return `${format(date, "MMM d")} (${age}y)`;
   };
 
   const fullName = client.title 
@@ -47,7 +48,7 @@ export function ClientCard({ client, onEdit }: ClientCardProps) {
   return (
     <div 
       className="bg-card rounded-xl p-5 shadow-card border border-border/50 hover:shadow-md transition-shadow cursor-pointer group"
-      onClick={() => onEdit?.(client)}
+      onClick={() => navigate(`/crm/${client.id}`)}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -70,17 +71,6 @@ export function ClientCard({ client, onEdit }: ClientCardProps) {
             </Badge>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit?.(client);
-          }}
-        >
-          <Edit2 className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="space-y-2 text-sm">

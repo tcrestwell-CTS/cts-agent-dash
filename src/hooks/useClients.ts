@@ -25,6 +25,25 @@ export function useClients() {
   });
 }
 
+export function useClient(clientId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["client", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", clientId)
+        .single();
+
+      if (error) throw error;
+      return data as Client;
+    },
+    enabled: !!user && !!clientId,
+  });
+}
+
 export function useClientWithBookings() {
   const { user } = useAuth();
 

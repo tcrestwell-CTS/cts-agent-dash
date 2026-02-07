@@ -3,10 +3,9 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Users } from "lucide-react";
-import { useClientWithBookings, Client } from "@/hooks/useClients";
+import { useClientWithBookings } from "@/hooks/useClients";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { AddClientDialog } from "@/components/crm/AddClientDialog";
-import { EditClientDialog } from "@/components/crm/EditClientDialog";
 import { ClientCard } from "@/components/crm/ClientCard";
 import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +17,6 @@ const CRM = () => {
   const { data: isAdmin } = useIsAdmin();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const filteredClients = useMemo(() => {
     if (!clients) return [];
@@ -52,10 +50,6 @@ const CRM = () => {
       { all: 0, active: 0, lead: 0, inactive: 0 }
     );
   }, [clients]);
-
-  const handleEditClient = (client: Client) => {
-    setEditingClient(client);
-  };
 
   return (
     <DashboardLayout>
@@ -171,21 +165,10 @@ const CRM = () => {
       {!isLoading && !error && filteredClients.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClients.map((client) => (
-            <ClientCard 
-              key={client.id} 
-              client={client}
-              onEdit={handleEditClient}
-            />
+            <ClientCard key={client.id} client={client} />
           ))}
         </div>
       )}
-
-      {/* Edit Dialog */}
-      <EditClientDialog
-        client={editingClient}
-        open={!!editingClient}
-        onOpenChange={(open) => !open && setEditingClient(null)}
-      />
     </DashboardLayout>
   );
 };
