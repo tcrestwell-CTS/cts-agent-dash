@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,8 +62,22 @@ export function BookingCard({
   onEdit,
   onDelete,
 }: BookingCardProps) {
+  const navigate = useNavigate();
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[role="combobox"]') || target.closest('a')) {
+      return;
+    }
+    navigate(`/bookings/${booking.id}`);
+  };
+
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card 
+      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
