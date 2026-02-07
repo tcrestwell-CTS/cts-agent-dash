@@ -15,30 +15,34 @@ const Auth = () => {
   const inviteToken = searchParams.get("invite");
 
   useEffect(() => {
-    const acceptInvitation = async () => {
-      if (!user || !inviteToken) return;
+    if (loading) return;
+    
+    if (!user) return;
 
-      try {
-        const { data, error } = await supabase.rpc("accept_invitation", {
-          invitation_token: inviteToken,
-          accepting_user_id: user.id,
-        });
+    const handlePostAuth = async () => {
+      // If there's an invite token, try to accept the invitation
+      if (inviteToken) {
+        try {
+          const { data, error } = await supabase.rpc("accept_invitation", {
+            invitation_token: inviteToken,
+            accepting_user_id: user.id,
+          });
 
-        if (error) {
-          console.error("Error accepting invitation:", error);
-        } else if (data) {
-          toast.success("Welcome! Your account has been set up.");
+          if (error) {
+            console.error("Error accepting invitation:", error);
+          } else if (data) {
+            toast.success("Welcome! Your account has been set up.");
+          }
+        } catch (err) {
+          console.error("Failed to accept invitation:", err);
         }
-      } catch (err) {
-        console.error("Failed to accept invitation:", err);
       }
 
+      // Always navigate to home after auth
       navigate("/", { replace: true });
     };
 
-    if (!loading && user) {
-      acceptInvitation();
-    }
+    handlePostAuth();
   }, [user, loading, navigate, inviteToken]);
 
   const handleGoogleSignIn = async () => {
