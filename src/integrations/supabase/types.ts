@@ -139,6 +139,68 @@ export type Database = {
         }
         Relationships: []
       }
+      client_companions: {
+        Row: {
+          birthday: string | null
+          client_id: string
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          known_traveler_number: string | null
+          last_name: string | null
+          notes: string | null
+          passport_info: string | null
+          phone: string | null
+          redress_number: string | null
+          relationship: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birthday?: string | null
+          client_id: string
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          known_traveler_number?: string | null
+          last_name?: string | null
+          notes?: string | null
+          passport_info?: string | null
+          phone?: string | null
+          redress_number?: string | null
+          relationship?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birthday?: string | null
+          client_id?: string
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          known_traveler_number?: string | null
+          last_name?: string | null
+          notes?: string | null
+          passport_info?: string | null
+          phone?: string | null
+          redress_number?: string | null
+          relationship?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_companions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activities_interests: string | null
