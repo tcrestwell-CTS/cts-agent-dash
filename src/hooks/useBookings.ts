@@ -361,6 +361,34 @@ export function useBookings() {
     }
   };
 
+  const deleteBooking = async (bookingId: string) => {
+    if (!user) {
+      toast.error("You must be logged in to delete bookings");
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .delete()
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error("Error deleting booking:", error);
+        toast.error("Failed to delete booking");
+        return false;
+      }
+
+      toast.success("Booking deleted successfully");
+      await fetchBookings();
+      return true;
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      toast.error("Failed to delete booking");
+      return false;
+    }
+  };
+
   return {
     bookings,
     loading,
@@ -370,6 +398,7 @@ export function useBookings() {
     createBooking,
     updateBooking,
     updateBookingStatus,
+    deleteBooking,
     refetch: fetchBookings,
   };
 }

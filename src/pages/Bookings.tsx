@@ -17,15 +17,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, Download, Eye, Pencil, ExternalLink, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useBookings, Booking } from "@/hooks/useBookings";
 import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 
 const Bookings = () => {
-  const { bookings, loading, creating, updating, updatingStatus, createBooking, updateBooking, updateBookingStatus } = useBookings();
+  const { bookings, loading, creating, updating, updatingStatus, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
 
   const stats = {
     total: bookings.length,
@@ -241,6 +252,14 @@ const Bookings = () => {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeletingBooking(booking)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -257,6 +276,36 @@ const Bookings = () => {
         onSubmit={updateBooking}
         updating={updating}
       />
+
+      <AlertDialog open={!!deletingBooking} onOpenChange={(open) => !open && setDeletingBooking(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the booking for{" "}
+              <span className="font-medium">{deletingBooking?.trip_name || deletingBooking?.destination}</span>
+              {deletingBooking?.clients?.name && (
+                <> ({deletingBooking.clients.name})</>
+              )}
+              ? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (deletingBooking) {
+                  await deleteBooking(deletingBooking.id);
+                  setDeletingBooking(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
