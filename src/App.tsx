@@ -16,6 +16,7 @@ import Analytics from "./pages/Analytics";
 import Branding from "./pages/Branding";
 import Settings from "./pages/Settings";
 import TeamManagement from "./pages/TeamManagement";
+import Suppliers from "./pages/Suppliers";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -115,6 +116,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TeamManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/suppliers"
+              element={
+                <ProtectedRoute>
+                  <Suppliers />
                 </ProtectedRoute>
               }
             />
