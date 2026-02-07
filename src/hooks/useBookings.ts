@@ -40,6 +40,7 @@ export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -205,11 +206,118 @@ export function useBookings() {
     }
   };
 
+  const sendTripCompletedEmail = async (booking: {
+    clientName: string;
+    clientEmail: string;
+    destination: string;
+    tripName: string | null;
+    departDate: string;
+    returnDate: string;
+    reference: string;
+  }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error("No session for sending email");
+        return false;
+      }
+
+      const response = await supabase.functions.invoke("send-email", {
+        body: {
+          to: booking.clientEmail,
+          subject: `Thanks for traveling with us! - ${booking.destination}`,
+          template: "trip_completed",
+          data: {
+            clientName: booking.clientName,
+            destination: booking.destination,
+            tripName: booking.tripName || booking.destination,
+            dates: `${booking.departDate} - ${booking.returnDate}`,
+            reference: booking.reference,
+          },
+        },
+      });
+
+      if (response.error) {
+        console.error("Error sending trip completed email:", response.error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error sending trip completed email:", error);
+      return false;
+    }
+  };
+
+  const updateBookingStatus = async (
+    bookingId: string,
+    newStatus: string,
+    sendEmail: boolean = true
+  ) => {
+    if (!user) {
+      toast.error("You must be logged in to update bookings");
+      return false;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      // First get the booking with client info
+      const booking = bookings.find(b => b.id === bookingId);
+      if (!booking) {
+        toast.error("Booking not found");
+        return false;
+      }
+
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: newStatus })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error("Error updating booking status:", error);
+        toast.error("Failed to update booking status");
+        return false;
+      }
+
+      // Send trip completed email if status changed to completed
+      if (newStatus === "completed" && sendEmail && booking.clients?.email) {
+        const emailSent = await sendTripCompletedEmail({
+          clientName: booking.clients.name,
+          clientEmail: booking.clients.email,
+          destination: booking.destination,
+          tripName: booking.trip_name,
+          departDate: booking.depart_date,
+          returnDate: booking.return_date,
+          reference: booking.booking_reference,
+        });
+
+        if (emailSent) {
+          toast.success("Booking marked as completed and email sent!");
+        } else {
+          toast.success("Booking marked as completed (email notification failed)");
+        }
+      } else {
+        toast.success(`Booking status updated to ${newStatus}`);
+      }
+
+      await fetchBookings();
+      return true;
+    } catch (error) {
+      console.error("Error updating booking status:", error);
+      toast.error("Failed to update booking status");
+      return false;
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return {
     bookings,
     loading,
     creating,
+    updatingStatus,
     createBooking,
+    updateBookingStatus,
     refetch: fetchBookings,
   };
 }
