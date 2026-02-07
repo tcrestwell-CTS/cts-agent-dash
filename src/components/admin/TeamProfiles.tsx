@@ -210,12 +210,10 @@ export function TeamProfiles() {
                     <span>{profile.phone}</span>
                   </div>
                 )}
-                {profile.commission_rate && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Percent className="h-4 w-4 flex-shrink-0" />
-                    <span>{profile.commission_rate}% commission rate</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Percent className="h-4 w-4 flex-shrink-0" />
+                  <span>{getTierConfig(profile.commission_tier).agentSplit}% agent commission</span>
+                </div>
                 {/* Commission Tier - editable by admin */}
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
