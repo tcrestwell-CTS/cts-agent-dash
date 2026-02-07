@@ -23,6 +23,24 @@ export interface CommissionInsert {
   paid_date?: string | null;
 }
 
+export function useCommissions() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["commissions", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("commissions")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Commission[];
+    },
+    enabled: !!user,
+  });
+}
+
 export function useBookingCommission(bookingId: string | undefined) {
   const { user } = useAuth();
 

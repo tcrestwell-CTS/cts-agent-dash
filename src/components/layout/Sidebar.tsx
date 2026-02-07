@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   UserPlus,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,8 +21,9 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "CRM", href: "/crm", icon: Users },
   { name: "Bookings", href: "/bookings", icon: Calendar },
-  { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Commissions", href: "/commissions", icon: DollarSign },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
