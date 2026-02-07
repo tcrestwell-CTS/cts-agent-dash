@@ -135,11 +135,8 @@ const Branding = () => {
                 <div className="max-w-lg mx-auto bg-background rounded-lg border border-border p-8">
                   <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-2 mb-4">
-                      <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                        <span className="text-xl text-primary-foreground">✈</span>
-                      </div>
                       <span className="text-xl font-semibold text-foreground">
-                        Tern.travel
+                        Crestwell Travel Services
                       </span>
                     </div>
                   </div>
@@ -150,7 +147,7 @@ const Branding = () => {
                     Dear [Client Name],
                   </p>
                   <p className="text-muted-foreground mb-4">
-                    Thank you for choosing Tern.travel for your upcoming
+                    Thank you for choosing Crestwell Travel Services for your upcoming
                     adventure. We're thrilled to help you create unforgettable
                     travel memories.
                   </p>
@@ -202,7 +199,7 @@ const Branding = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="agency-name">Agency Name</Label>
-                  <Input id="agency-name" defaultValue="Tern Travel Agency" />
+                  <Input id="agency-name" defaultValue="Crestwell Travel Services" />
                 </div>
 
                 <div className="space-y-2">
