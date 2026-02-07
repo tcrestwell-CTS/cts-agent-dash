@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCanViewTeam } from "@/hooks/useAdmin";
+import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
@@ -34,6 +34,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { canView: canViewTeam } = useCanViewTeam();
+  const { data: userRole } = useUserRole();
 
   const userInitials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -44,7 +45,18 @@ export function Sidebar() {
     : user?.email?.substring(0, 2).toUpperCase() || "U";
 
   const userName = user?.user_metadata?.full_name || user?.email || "User";
-  const userRole = "Travel Agent";
+  
+  const getRoleLabel = (role: string | null | undefined) => {
+    switch (role) {
+      case "admin":
+        return "Admin";
+      case "office_admin":
+        return "Office Admin";
+      case "user":
+      default:
+        return "Travel Agent";
+    }
+  };
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
@@ -144,7 +156,7 @@ export function Sidebar() {
                 {userName}
               </p>
               <p className="text-xs text-sidebar-foreground/60 truncate">
-                {userRole}
+                {getRoleLabel(userRole)}
               </p>
             </div>
           </div>
