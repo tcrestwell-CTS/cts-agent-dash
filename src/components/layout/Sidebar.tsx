@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { useCanViewTeam } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
@@ -33,7 +33,7 @@ const adminNavigation = [
 export function Sidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { data: isAdmin } = useIsAdmin();
+  const { canView: canViewTeam } = useCanViewTeam();
 
   const userInitials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -86,12 +86,12 @@ export function Sidebar() {
             );
           })}
 
-          {/* Admin-only navigation */}
-          {isAdmin && (
+          {/* Team Management - visible to admins and office admins */}
+          {canViewTeam && (
             <>
               <div className="pt-4 pb-2 px-3">
                 <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                  Admin
+                  Team
                 </p>
               </div>
               {adminNavigation.map((item) => {

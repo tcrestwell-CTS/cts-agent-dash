@@ -18,16 +18,16 @@ import {
 import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { useCanViewTeam } from "@/hooks/useAdmin";
 import { InviteAgentDialog } from "@/components/admin/InviteAgentDialog";
 import { Navigate } from "react-router-dom";
 
 const TeamManagement = () => {
-  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
+  const { canView, canManage, isLoading: roleLoading } = useCanViewTeam();
   const { invitations, loading, sending, sendInvitation, resendInvitation, revokeInvitation } = useInvitations();
 
-  // Redirect non-admins
-  if (!adminLoading && !isAdmin) {
+  // Redirect users without access
+  if (!roleLoading && !canView) {
     return <Navigate to="/" replace />;
   }
 
@@ -61,7 +61,9 @@ const TeamManagement = () => {
   };
 
   const formatRole = (role: string) => {
-    return role === "admin" ? "Admin" : "Agent";
+    if (role === "admin") return "Admin";
+    if (role === "office_admin") return "Office Admin";
+    return "Agent";
   };
 
   const pendingCount = invitations.filter(
@@ -79,10 +81,15 @@ const TeamManagement = () => {
             Team Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Invite and manage travel agents in your organization
+            {canManage 
+              ? "Invite and manage travel agents in your organization"
+              : "View team invitations and members"
+            }
           </p>
         </div>
-        <InviteAgentDialog onSubmit={sendInvitation} sending={sending} />
+        {canManage && (
+          <InviteAgentDialog onSubmit={sendInvitation} sending={sending} />
+        )}
       </div>
 
       {/* Stats */}
@@ -128,7 +135,7 @@ const TeamManagement = () => {
           <h2 className="font-medium text-card-foreground">Invitations</h2>
         </div>
 
-        {loading || adminLoading ? (
+        {loading || roleLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -136,7 +143,7 @@ const TeamManagement = () => {
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Users className="h-12 w-12 mb-4 opacity-50" />
             <p>No invitations sent yet</p>
-            <p className="text-sm">Click "Invite Agent" to add team members</p>
+            {canManage && <p className="text-sm">Click "Invite Agent" to add team members</p>}
           </div>
         ) : (
           <Table>
@@ -147,7 +154,7 @@ const TeamManagement = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Sent</TableHead>
                 <TableHead>Expires</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
+                {canManage && <TableHead className="w-[80px]">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -166,33 +173,35 @@ const TeamManagement = () => {
                   <TableCell className="text-muted-foreground">
                     {format(new Date(invitation.expires_at), "MMM d, yyyy")}
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {invitation.status === "pending" && (
+                  {canManage && (
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {invitation.status === "pending" && (
+                            <DropdownMenuItem
+                              onClick={() => resendInvitation(invitation.id)}
+                              disabled={sending}
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Resend Invitation
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
-                            onClick={() => resendInvitation(invitation.id)}
-                            disabled={sending}
+                            onClick={() => revokeInvitation(invitation.id)}
+                            className="text-destructive focus:text-destructive"
                           >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Resend Invitation
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Revoke
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={() => revokeInvitation(invitation.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Revoke
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
