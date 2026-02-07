@@ -32,12 +32,22 @@ interface ClientRecord {
 }
 
 interface BookingRecord {
+  // New trips CSV format
+  "Trip Name"?: string;
+  "Trip Page"?: string;
+  "Status"?: string;
+  "Start Date"?: string;
+  "End Date"?: string;
+  "Primary Contact"?: string;
+  "Owner Agent"?: string;
+  "Gross Sale Amount (Your Currency)"?: string;
+  // Legacy fields for backward compatibility
   client_name?: string;
   client_id?: string;
-  booking_reference: string;
-  destination: string;
-  depart_date: string;
-  return_date: string;
+  booking_reference?: string;
+  destination?: string;
+  depart_date?: string;
+  return_date?: string;
   travelers?: number;
   total_amount?: number;
   status?: string;
@@ -223,35 +233,141 @@ Deno.serve(async (req) => {
       // First, get all clients for the target user to match by name
       const { data: existingClients } = await supabase
         .from("clients")
-        .select("id, name")
+        .select("id, name, first_name, last_name")
         .eq("user_id", targetUserId);
 
-      const clientMap = new Map(
-        (existingClients || []).map((c) => [c.name.toLowerCase(), c.id])
-      );
+      // Create multiple lookup maps for flexible matching
+      const clientMap = new Map<string, string>();
+      const clientFirstLastMap = new Map<string, string>();
+      
+      for (const c of existingClients || []) {
+        // Normalize name by removing extra spaces and lowercasing
+        const normalizedName = c.name.toLowerCase().replace(/\s+/g, " ").trim();
+        clientMap.set(normalizedName, c.id);
+        
+        // Also create lookup by first_name + last_name
+        if (c.first_name && c.last_name) {
+          const firstLast = `${c.first_name} ${c.last_name}`.toLowerCase().replace(/\s+/g, " ").trim();
+          clientFirstLastMap.set(firstLast, c.id);
+        }
+      }
 
       for (let i = 0; i < bookingData.length; i++) {
         const record = bookingData[i];
 
+        // Check if this is the new trips CSV format
+        const isTripsFormat = record["Trip Name"] !== undefined;
+
+        let tripName: string | null = null;
+        let tripPageUrl: string | null = null;
+        let departDate: string | null = null;
+        let returnDate: string | null = null;
+        let clientName: string | null = null;
+        let ownerAgent: string | null = null;
+        let totalAmount: number = 0;
+        let status: string = "pending";
+        let bookingReference: string | null = null;
+        let destination: string | null = null;
+
+        if (isTripsFormat) {
+          tripName = record["Trip Name"]?.trim() || null;
+          
+          // Extract URL from Trip Page field (format: {caption}view{/caption}https://...)
+          const tripPageRaw = record["Trip Page"] || "";
+          const urlMatch = tripPageRaw.match(/https?:\/\/[^\s"]+/);
+          tripPageUrl = urlMatch ? urlMatch[0] : null;
+          
+          // Extract trip ID from URL for booking reference
+          const tripIdMatch = tripPageUrl?.match(/\/trips\/(\d+)/);
+          bookingReference = tripIdMatch ? `TRIP-${tripIdMatch[1]}` : `TRIP-${Date.now()}-${i}`;
+          
+          // Use trip name as destination
+          destination = tripName || "Unknown";
+          
+          departDate = record["Start Date"] || null;
+          returnDate = record["End Date"] || null;
+          
+          // Parse primary contact - skip records with '--' as contact
+          const primaryContact = record["Primary Contact"]?.trim() || "";
+          if (primaryContact === "'--" || primaryContact === "--" || !primaryContact) {
+            // Skip group/inbound trips without a specific client
+            console.log(`Skipping trip "${tripName}" - no primary contact assigned`);
+            continue;
+          }
+          clientName = primaryContact;
+          
+          ownerAgent = record["Owner Agent"]?.trim() || null;
+          
+          // Parse amount
+          const amountStr = record["Gross Sale Amount (Your Currency)"] || "0";
+          totalAmount = parseFloat(amountStr.replace(/[^0-9.-]/g, "")) || 0;
+          
+          // Map status: Booked -> confirmed, Planning -> pending, Inbound -> pending, Archived -> completed
+          const tripStatus = record["Status"]?.trim().toLowerCase() || "";
+          if (tripStatus === "booked") {
+            status = "confirmed";
+          } else if (tripStatus === "planning" || tripStatus === "inbound") {
+            status = "pending";
+          } else if (tripStatus === "archived") {
+            status = "completed";
+          } else {
+            status = "pending";
+          }
+        } else {
+          // Legacy format
+          bookingReference = record.booking_reference?.trim() || null;
+          destination = record.destination?.trim() || null;
+          departDate = record.depart_date || null;
+          returnDate = record.return_date || null;
+          clientName = record.client_name || null;
+          totalAmount = record.total_amount || 0;
+          status = ["confirmed", "pending", "cancelled", "completed"].includes(record.status || "")
+            ? record.status!
+            : "pending";
+        }
+
         // Validate required fields
-        if (!record.booking_reference || !record.destination || !record.depart_date || !record.return_date) {
+        if (!departDate || !returnDate) {
           errors.push({
             index: i,
-            error: "booking_reference, destination, depart_date, and return_date are required",
+            error: "Start date and end date are required",
             record,
           });
           recordsFailed++;
           continue;
         }
 
-        // Resolve client_id
+        // Resolve client_id with fuzzy name matching
         let clientId = record.client_id;
-        if (!clientId && record.client_name) {
-          clientId = clientMap.get(record.client_name.toLowerCase());
+        if (!clientId && clientName) {
+          // Normalize the client name from CSV
+          const normalizedClientName = clientName.toLowerCase().replace(/\s+/g, " ").trim();
+          
+          // Try exact match first
+          clientId = clientMap.get(normalizedClientName);
+          
+          // Try first_name + last_name lookup
+          if (!clientId) {
+            clientId = clientFirstLastMap.get(normalizedClientName);
+          }
+          
+          // Try partial matching (first name only or last name only)
+          if (!clientId) {
+            const nameParts = normalizedClientName.split(" ");
+            for (const [key, id] of clientMap.entries()) {
+              // Check if all parts of the search name are in the client name
+              const allPartsMatch = nameParts.every(part => key.includes(part));
+              if (allPartsMatch) {
+                clientId = id;
+                break;
+              }
+            }
+          }
+          
           if (!clientId) {
             errors.push({
               index: i,
-              error: `Client "${record.client_name}" not found. Import clients first.`,
+              error: `Client "${clientName}" not found. Import clients first.`,
               record,
             });
             recordsFailed++;
@@ -260,7 +376,7 @@ Deno.serve(async (req) => {
         }
 
         if (!clientId) {
-          errors.push({ index: i, error: "client_id or client_name is required", record });
+          errors.push({ index: i, error: "client_id or Primary Contact is required", record });
           recordsFailed++;
           continue;
         }
@@ -268,16 +384,17 @@ Deno.serve(async (req) => {
         const bookingInsert = {
           user_id: targetUserId,
           client_id: clientId,
-          booking_reference: record.booking_reference.trim(),
-          destination: record.destination.trim(),
-          depart_date: record.depart_date,
-          return_date: record.return_date,
+          booking_reference: bookingReference || `BK-${Date.now()}-${i}`,
+          destination: destination || "Unknown",
+          depart_date: departDate,
+          return_date: returnDate,
           travelers: record.travelers || 1,
-          total_amount: record.total_amount || 0,
-          status: ["confirmed", "pending", "cancelled", "completed"].includes(record.status || "")
-            ? record.status
-            : "pending",
+          total_amount: totalAmount,
+          status: status,
           notes: record.notes?.trim() || null,
+          trip_name: tripName,
+          trip_page_url: tripPageUrl,
+          owner_agent: ownerAgent,
         };
 
         const { error: insertError } = await supabase.from("bookings").insert(bookingInsert);

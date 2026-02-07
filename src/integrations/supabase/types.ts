@@ -23,10 +23,13 @@ export type Database = {
           destination: string
           id: string
           notes: string | null
+          owner_agent: string | null
           return_date: string
           status: string
           total_amount: number
           travelers: number
+          trip_name: string | null
+          trip_page_url: string | null
           updated_at: string
           user_id: string
         }
@@ -38,10 +41,13 @@ export type Database = {
           destination: string
           id?: string
           notes?: string | null
+          owner_agent?: string | null
           return_date: string
           status?: string
           total_amount?: number
           travelers?: number
+          trip_name?: string | null
+          trip_page_url?: string | null
           updated_at?: string
           user_id: string
         }
@@ -53,10 +59,13 @@ export type Database = {
           destination?: string
           id?: string
           notes?: string | null
+          owner_agent?: string | null
           return_date?: string
           status?: string
           total_amount?: number
           travelers?: number
+          trip_name?: string | null
+          trip_page_url?: string | null
           updated_at?: string
           user_id?: string
         }
