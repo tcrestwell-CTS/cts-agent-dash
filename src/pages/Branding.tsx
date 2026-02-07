@@ -38,6 +38,8 @@ const Branding = () => {
     website: settings.website,
     instagram: settings.instagram,
     facebook: settings.facebook,
+    from_email: settings.from_email,
+    from_name: settings.from_name,
   });
 
   // Update form when settings load
@@ -55,6 +57,8 @@ const Branding = () => {
       website: settings.website,
       instagram: settings.instagram,
       facebook: settings.facebook,
+      from_email: settings.from_email,
+      from_name: settings.from_name,
     });
   });
 
@@ -458,6 +462,43 @@ const Branding = () => {
                     "Save Brand Settings"
                   )}
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Email Sender Settings</CardTitle>
+                <CardDescription>
+                  Configure the "From" address for outgoing emails (requires verified domain)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="from-email">From Email Address</Label>
+                  <Input
+                    id="from-email"
+                    type="email"
+                    placeholder="hello@crestwellgetaways.com"
+                    value={contactForm.from_email}
+                    onChange={(e) => setContactForm({ ...contactForm, from_email: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Must use your verified domain (e.g., hello@yourdomain.com)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="from-name">From Name</Label>
+                  <Input
+                    id="from-name"
+                    placeholder="Crestwell Travel Services"
+                    value={contactForm.from_name}
+                    onChange={(e) => setContactForm({ ...contactForm, from_name: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Display name shown to recipients (defaults to agency name)
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
