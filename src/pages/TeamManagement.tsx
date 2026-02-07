@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -15,11 +16,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useCanViewTeam } from "@/hooks/useAdmin";
 import { InviteAgentDialog } from "@/components/admin/InviteAgentDialog";
+import { TeamProfiles } from "@/components/admin/TeamProfiles";
 import { Navigate } from "react-router-dom";
 
 const TeamManagement = () => {
@@ -92,50 +94,75 @@ const TeamManagement = () => {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Invitations</p>
-              <p className="text-2xl font-semibold text-card-foreground">{invitations.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent/10 rounded-lg">
-              <Clock className="h-5 w-5 text-accent" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="text-2xl font-semibold text-accent">{pendingCount}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-success/10 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Accepted</p>
-              <p className="text-2xl font-semibold text-success">{acceptedCount}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Tabs for Profiles and Invitations */}
+      <Tabs defaultValue="profiles" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="profiles" className="gap-2">
+            <UserCircle className="h-4 w-4" />
+            Team Members
+          </TabsTrigger>
+          <TabsTrigger value="invitations" className="gap-2">
+            <Users className="h-4 w-4" />
+            Invitations
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Invitations Table */}
-      <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <h2 className="font-medium text-card-foreground">Invitations</h2>
-        </div>
+        <TabsContent value="profiles">
+          <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
+            <div className="p-4 border-b border-border">
+              <h2 className="font-medium text-card-foreground">Agent Profiles</h2>
+            </div>
+            <div className="p-4">
+              <TeamProfiles />
+            </div>
+          </div>
+        </TabsContent>
 
-        {loading || roleLoading ? (
+        <TabsContent value="invitations">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Invitations</p>
+                  <p className="text-2xl font-semibold text-card-foreground">{invitations.length}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-accent/10 rounded-lg">
+                  <Clock className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                  <p className="text-2xl font-semibold text-accent">{pendingCount}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-success/10 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Accepted</p>
+                  <p className="text-2xl font-semibold text-success">{acceptedCount}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Invitations Table */}
+          <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
+            <div className="p-4 border-b border-border">
+              <h2 className="font-medium text-card-foreground">Invitations</h2>
+            </div>
+
+            {loading || roleLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -207,7 +234,9 @@ const TeamManagement = () => {
             </TableBody>
           </Table>
         )}
-      </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 };
