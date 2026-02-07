@@ -54,6 +54,33 @@ export function useIsOfficeAdmin() {
   });
 }
 
+export function useUserRole() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["user-role", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return null;
+      }
+
+      if (!data) return "user"; // Default to agent if no role assigned
+      
+      return data.role as "admin" | "office_admin" | "user";
+    },
+    enabled: !!user,
+  });
+}
+
 export function useCanViewTeam() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
   const { data: isOfficeAdmin, isLoading: officeAdminLoading } = useIsOfficeAdmin();
