@@ -273,7 +273,7 @@ interface AgentPerformanceSectionProps {
 }
 
 export function AgentPerformanceSection({ dateRange }: AgentPerformanceSectionProps) {
-  const { agentStats, agencyTotals, loading } = useAgentPerformance(dateRange);
+  const { agentStats, agencyTotals, loading, canViewAllAgents } = useAgentPerformance(dateRange);
 
   if (loading) {
     return (
@@ -293,7 +293,7 @@ export function AgentPerformanceSection({ dateRange }: AgentPerformanceSectionPr
       <Card>
         <CardContent className="py-8">
           <p className="text-center text-muted-foreground">
-            No agent performance data available. Add team members to see performance metrics.
+            No performance data available for the selected period.
           </p>
         </CardContent>
       </Card>
@@ -302,6 +302,112 @@ export function AgentPerformanceSection({ dateRange }: AgentPerformanceSectionPr
 
   const maxRevenue = Math.max(...agentStats.map(a => a.totalRevenue));
 
+  // Single agent view (for regular agents viewing their own data)
+  if (!canViewAllAgents && agentStats.length === 1) {
+    const myStats = agentStats[0];
+    return (
+      <div className="space-y-6">
+        {/* Personal Performance Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              My Performance
+            </CardTitle>
+            <CardDescription>
+              Your personal performance metrics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold">{formatCurrency(myStats.totalRevenue)}</p>
+                <p className="text-xs text-muted-foreground">Total Revenue</p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold">{myStats.totalBookings}</p>
+                <p className="text-xs text-muted-foreground">Bookings</p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold">{myStats.totalClients}</p>
+                <p className="text-xs text-muted-foreground">Clients</p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <p className="text-2xl font-bold">{formatCurrency(myStats.avgBookingValue)}</p>
+                <p className="text-xs text-muted-foreground">Avg Booking Value</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Commission Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{formatCurrency(myStats.totalCommissions)}</p>
+                  <p className="text-xs text-muted-foreground">Total Commissions</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-chart-4/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-chart-4" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{formatCurrency(myStats.pendingCommissions)}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-chart-2/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-chart-2" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{formatCurrency(myStats.paidCommissions)}</p>
+                  <p className="text-xs text-muted-foreground">Paid</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Conversion Rate */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Conversion Rate
+            </CardTitle>
+            <CardDescription>
+              Percentage of clients with bookings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Progress value={myStats.conversionRate} className="h-3" />
+              </div>
+              <span className="text-2xl font-bold">{myStats.conversionRate.toFixed(0)}%</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Admin/Office Admin view - show all agents
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
