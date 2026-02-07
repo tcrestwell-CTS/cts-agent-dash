@@ -40,7 +40,7 @@ import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 
 const Bookings = () => {
-  const { bookings, loading, creating, updating, updatingStatus, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
+  const { bookings, loading, creating, updating, updatingStatus, isAdmin, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
   
@@ -304,6 +304,7 @@ const Bookings = () => {
               <TableRow>
                 <TableHead>Trip Name</TableHead>
                 <TableHead>Client</TableHead>
+                {isAdmin && <TableHead>Agent</TableHead>}
                 <TableHead>Dates</TableHead>
                 <TableHead>Travelers</TableHead>
                 <TableHead>Status</TableHead>
@@ -325,6 +326,13 @@ const Bookings = () => {
                     </div>
                   </TableCell>
                   <TableCell>{booking.clients?.name || "—"}</TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {booking.owner_agent || "—"}
+                      </span>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex flex-col text-sm">
                       <span>{formatDate(booking.depart_date)}</span>
