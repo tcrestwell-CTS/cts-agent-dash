@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,85 +9,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Filter, Download, Eye, Pencil, ExternalLink, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { Filter, Download, Eye, Pencil, ExternalLink, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-
-interface Booking {
-  id: string;
-  booking_reference: string;
-  destination: string;
-  depart_date: string;
-  return_date: string;
-  travelers: number;
-  total_amount: number;
-  status: string;
-  trip_name: string | null;
-  trip_page_url: string | null;
-  owner_agent: string | null;
-  clients: {
-    name: string;
-  } | null;
-}
+import { useBookings } from "@/hooks/useBookings";
+import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
 
 const Bookings = () => {
-  const { user } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total: 0,
-    confirmed: 0,
-    pending: 0,
-    completed: 0,
-    totalRevenue: 0,
-  });
+  const { bookings, loading, creating, createBooking } = useBookings();
 
-  useEffect(() => {
-    if (user) {
-      fetchBookings();
-    }
-  }, [user]);
-
-  const fetchBookings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(`
-          id,
-          booking_reference,
-          destination,
-          depart_date,
-          return_date,
-          travelers,
-          total_amount,
-          status,
-          trip_name,
-          trip_page_url,
-          owner_agent,
-          clients (
-            name
-          )
-        `)
-        .order("depart_date", { ascending: false });
-
-      if (error) throw error;
-
-      setBookings(data || []);
-
-      // Calculate stats
-      const total = data?.length || 0;
-      const confirmed = data?.filter((b) => b.status === "confirmed").length || 0;
-      const pending = data?.filter((b) => b.status === "pending").length || 0;
-      const completed = data?.filter((b) => b.status === "completed").length || 0;
-      const totalRevenue = data?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
-
-      setStats({ total, confirmed, pending, completed, totalRevenue });
-    } catch (error) {
-      console.error("Error fetching bookings:", error);
-    } finally {
-      setLoading(false);
-    }
+  const stats = {
+    total: bookings.length,
+    confirmed: bookings.filter((b) => b.status === "confirmed").length,
+    pending: bookings.filter((b) => b.status === "pending").length,
+    completed: bookings.filter((b) => b.status === "completed").length,
+    totalRevenue: bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0),
   };
 
   const formatCurrency = (amount: number) => {
@@ -138,10 +72,7 @@ const Bookings = () => {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Booking
-          </Button>
+          <AddBookingDialog onSubmit={createBooking} creating={creating} />
         </div>
       </div>
 
