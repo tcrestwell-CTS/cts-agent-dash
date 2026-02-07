@@ -10,7 +10,7 @@ import { ClientCard } from "@/components/crm/ClientCard";
 import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type StatusFilter = "all" | "active" | "lead" | "inactive";
+type StatusFilter = "all" | "active" | "lead" | "inactive" | "traveled" | "traveling" | "cancelled";
 
 const CRM = () => {
   const { data: clients, isLoading, error } = useClientWithBookings();
@@ -37,7 +37,7 @@ const CRM = () => {
   }, [clients, searchQuery, statusFilter]);
 
   const statusCounts = useMemo(() => {
-    if (!clients) return { all: 0, active: 0, lead: 0, inactive: 0 };
+    if (!clients) return { all: 0, active: 0, lead: 0, inactive: 0, traveled: 0, traveling: 0, cancelled: 0 };
 
     return clients.reduce(
       (acc, client) => {
@@ -45,9 +45,12 @@ const CRM = () => {
         if (client.status === "active") acc.active += 1;
         else if (client.status === "lead") acc.lead += 1;
         else if (client.status === "inactive") acc.inactive += 1;
+        else if (client.status === "traveled") acc.traveled += 1;
+        else if (client.status === "traveling") acc.traveling += 1;
+        else if (client.status === "cancelled") acc.cancelled += 1;
         return acc;
       },
-      { all: 0, active: 0, lead: 0, inactive: 0 }
+      { all: 0, active: 0, lead: 0, inactive: 0, traveled: 0, traveling: 0, cancelled: 0 }
     );
   }, [clients]);
 
@@ -82,7 +85,7 @@ const CRM = () => {
             />
           </div>
           <div className="flex items-center gap-2">
-            {(["all", "active", "lead", "inactive"] as StatusFilter[]).map(
+            {(["all", "active", "lead", "inactive", "traveled", "traveling", "cancelled"] as StatusFilter[]).map(
               (status) => (
                 <Button
                   key={status}
