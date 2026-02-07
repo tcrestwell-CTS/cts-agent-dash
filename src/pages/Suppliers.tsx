@@ -3,7 +3,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
+import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
 import { Plane, Ship, Hotel, Car, Palmtree, ExternalLink } from "lucide-react";
+
+export type IntegrationType = "api" | "redirect" | "hybrid";
 
 export interface Supplier {
   id: string;
@@ -16,6 +19,8 @@ export interface Supplier {
   notes: string;
   lastVisited?: Date;
   visitCount: number;
+  integrationType: IntegrationType;
+  apiStatus?: "available" | "coming_soon" | "none";
 }
 
 const initialSuppliers: Supplier[] = [
@@ -28,6 +33,8 @@ const initialSuppliers: Supplier[] = [
     isFavorite: false,
     notes: "",
     visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
   },
   {
     id: "celebrity-cruises",
@@ -38,6 +45,8 @@ const initialSuppliers: Supplier[] = [
     isFavorite: false,
     notes: "",
     visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
   },
   {
     id: "carnival",
@@ -48,6 +57,8 @@ const initialSuppliers: Supplier[] = [
     isFavorite: false,
     notes: "",
     visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
   },
   {
     id: "ncl",
@@ -58,6 +69,20 @@ const initialSuppliers: Supplier[] = [
     isFavorite: false,
     notes: "",
     visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
+  {
+    id: "traveltek",
+    name: "Traveltek Cruise API",
+    url: "https://www.traveltek.com/travel-api-provider/cruise-api/",
+    description: "Third-party API aggregator with access to multiple cruise lines. Contact for API access.",
+    category: "cruises",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "api",
+    apiStatus: "coming_soon",
   },
 ];
 
@@ -74,6 +99,7 @@ export default function Suppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [quickBookDialogOpen, setQuickBookDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
   const filteredSuppliers = selectedCategory === "all" 
@@ -109,6 +135,11 @@ export default function Suppliers() {
       prev.map(s => s.id === id ? { ...s, notes } : s)
     );
     setNotesDialogOpen(false);
+  };
+
+  const handleQuickBook = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    setQuickBookDialogOpen(true);
   };
 
   return (
@@ -173,6 +204,7 @@ export default function Suppliers() {
                     onToggleFavorite={handleToggleFavorite}
                     onOpenSite={handleOpenSite}
                     onOpenNotes={handleOpenNotes}
+                    onQuickBook={handleQuickBook}
                   />
                 ))}
               </div>
@@ -187,6 +219,13 @@ export default function Suppliers() {
         onOpenChange={setNotesDialogOpen}
         supplier={selectedSupplier}
         onSave={handleSaveNotes}
+      />
+
+      {/* Quick Booking Dialog */}
+      <QuickBookingDialog
+        open={quickBookDialogOpen}
+        onOpenChange={setQuickBookDialogOpen}
+        supplier={selectedSupplier}
       />
     </DashboardLayout>
   );

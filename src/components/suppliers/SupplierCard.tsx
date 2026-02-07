@@ -1,4 +1,4 @@
-import { Star, ExternalLink, StickyNote, Clock } from "lucide-react";
+import { Star, ExternalLink, StickyNote, Clock, Plus, Zap, Link2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,15 @@ interface SupplierCardProps {
   onToggleFavorite: (id: string) => void;
   onOpenSite: (supplier: Supplier) => void;
   onOpenNotes: (supplier: Supplier) => void;
+  onQuickBook?: (supplier: Supplier) => void;
   compact?: boolean;
 }
+
+const integrationTypeLabels: Record<string, { label: string; color: string; icon: typeof Zap }> = {
+  api: { label: "API", color: "bg-green-500/10 text-green-600 border-green-500/20", icon: Zap },
+  redirect: { label: "Portal", color: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Link2 },
+  hybrid: { label: "Hybrid", color: "bg-blue-500/10 text-blue-600 border-blue-500/20", icon: Zap },
+};
 
 const categoryColors: Record<string, string> = {
   flights: "bg-primary/10 text-primary border-primary/20",
@@ -28,8 +35,10 @@ export function SupplierCard({
   onToggleFavorite, 
   onOpenSite, 
   onOpenNotes,
+  onQuickBook,
   compact = false 
 }: SupplierCardProps) {
+  const integrationType = integrationTypeLabels[supplier.integrationType || "redirect"];
   if (compact) {
     return (
       <Card 
@@ -56,6 +65,8 @@ export function SupplierCard({
     );
   }
 
+  const IntegrationIcon = integrationType.icon;
+
   return (
     <Card className="group hover:shadow-lg transition-all hover:border-primary/50">
       <CardHeader className="pb-3">
@@ -68,12 +79,26 @@ export function SupplierCard({
             </div>
             <div className="min-w-0">
               <CardTitle className="text-lg truncate">{supplier.name}</CardTitle>
-              <Badge 
-                variant="outline" 
-                className={cn("text-xs capitalize mt-1", categoryColors[supplier.category])}
-              >
-                {supplier.category}
-              </Badge>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <Badge 
+                  variant="outline" 
+                  className={cn("text-xs capitalize", categoryColors[supplier.category])}
+                >
+                  {supplier.category}
+                </Badge>
+                <Badge 
+                  variant="outline" 
+                  className={cn("text-xs", integrationType.color)}
+                >
+                  <IntegrationIcon className="h-3 w-3 mr-1" />
+                  {integrationType.label}
+                </Badge>
+                {supplier.apiStatus === "coming_soon" && (
+                  <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">
+                    API Soon
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           <Tooltip>
@@ -137,6 +162,20 @@ export function SupplierCard({
             <ExternalLink className="h-4 w-4 mr-2" />
             Open Portal
           </Button>
+          {onQuickBook && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="secondary" 
+                  size="icon"
+                  onClick={() => onQuickBook(supplier)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Import Booking</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
