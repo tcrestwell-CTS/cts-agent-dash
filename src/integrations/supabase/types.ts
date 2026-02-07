@@ -141,74 +141,119 @@ export type Database = {
       }
       clients: {
         Row: {
+          activities_interests: string | null
           address_city: string | null
           address_country: string | null
           address_line_1: string | null
           address_line_2: string | null
           address_state: string | null
           address_zip_code: string | null
+          anniversary: string | null
           birthday: string | null
           created_at: string
+          cruise_cabin_floor_preference: string | null
+          cruise_cabin_location_preference: string | null
           email: string | null
           first_name: string | null
+          flight_bulkhead_preference: string | null
+          flight_seating_preference: string | null
+          food_drink_allergies: string | null
           id: string
+          known_traveler_number: string | null
           last_name: string | null
           location: string | null
+          lodging_elevator_preference: string | null
+          lodging_floor_preference: string | null
           loyalty_programs: string | null
           name: string
           notes: string | null
+          passport_info: string | null
           phone: string | null
           preferred_first_name: string | null
+          redress_number: string | null
+          secondary_email: string | null
+          secondary_phone: string | null
           status: string
           tags: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          activities_interests?: string | null
           address_city?: string | null
           address_country?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           address_state?: string | null
           address_zip_code?: string | null
+          anniversary?: string | null
           birthday?: string | null
           created_at?: string
+          cruise_cabin_floor_preference?: string | null
+          cruise_cabin_location_preference?: string | null
           email?: string | null
           first_name?: string | null
+          flight_bulkhead_preference?: string | null
+          flight_seating_preference?: string | null
+          food_drink_allergies?: string | null
           id?: string
+          known_traveler_number?: string | null
           last_name?: string | null
           location?: string | null
+          lodging_elevator_preference?: string | null
+          lodging_floor_preference?: string | null
           loyalty_programs?: string | null
           name: string
           notes?: string | null
+          passport_info?: string | null
           phone?: string | null
           preferred_first_name?: string | null
+          redress_number?: string | null
+          secondary_email?: string | null
+          secondary_phone?: string | null
           status?: string
           tags?: string | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          activities_interests?: string | null
           address_city?: string | null
           address_country?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           address_state?: string | null
           address_zip_code?: string | null
+          anniversary?: string | null
           birthday?: string | null
           created_at?: string
+          cruise_cabin_floor_preference?: string | null
+          cruise_cabin_location_preference?: string | null
           email?: string | null
           first_name?: string | null
+          flight_bulkhead_preference?: string | null
+          flight_seating_preference?: string | null
+          food_drink_allergies?: string | null
           id?: string
+          known_traveler_number?: string | null
           last_name?: string | null
           location?: string | null
+          lodging_elevator_preference?: string | null
+          lodging_floor_preference?: string | null
           loyalty_programs?: string | null
           name?: string
           notes?: string | null
+          passport_info?: string | null
           phone?: string | null
           preferred_first_name?: string | null
+          redress_number?: string | null
+          secondary_email?: string | null
+          secondary_phone?: string | null
           status?: string
           tags?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
