@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -27,7 +28,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Filter, Download, Eye, Pencil, Trash2, ExternalLink, Loader2, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { useBookings, Booking } from "@/hooks/useBookings";
 import { AddBookingDialog } from "@/components/bookings/AddBookingDialog";
@@ -37,6 +43,65 @@ const Bookings = () => {
   const { bookings, loading, creating, updating, updatingStatus, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+
+  // Filter bookings based on search and filters
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((booking) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch =
+          booking.destination?.toLowerCase().includes(query) ||
+          booking.trip_name?.toLowerCase().includes(query) ||
+          booking.booking_reference?.toLowerCase().includes(query) ||
+          booking.clients?.name?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Status filter
+      if (statusFilter !== "all" && booking.status !== statusFilter) {
+        return false;
+      }
+
+      // Date filter
+      if (dateFilter !== "all") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const departDate = new Date(booking.depart_date);
+        const returnDate = new Date(booking.return_date);
+
+        switch (dateFilter) {
+          case "upcoming":
+            if (departDate < today) return false;
+            break;
+          case "ongoing":
+            if (departDate > today || returnDate < today) return false;
+            break;
+          case "past":
+            if (returnDate >= today) return false;
+            break;
+        }
+      }
+
+      return true;
+    });
+  }, [bookings, searchQuery, statusFilter, dateFilter]);
+
+  const activeFiltersCount = [
+    statusFilter !== "all",
+    dateFilter !== "all",
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setDateFilter("all");
+    setSearchQuery("");
+  };
 
   const stats = {
     total: bookings.length,
@@ -125,23 +190,113 @@ const Bookings = () => {
 
       {/* Table */}
       <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filters
-            </Button>
+        <div className="p-4 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search bookings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72" align="start">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Date Range</label>
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All dates" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All dates</SelectItem>
+                        <SelectItem value="upcoming">Upcoming trips</SelectItem>
+                        <SelectItem value="ongoing">Ongoing trips</SelectItem>
+                        <SelectItem value="past">Past trips</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={clearFilters}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
+          
+          {filteredBookings.length !== bookings.length && (
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredBookings.length} of {bookings.length} bookings
+            </p>
+          )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : bookings.length === 0 ? (
+        ) : filteredBookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <p>No bookings found</p>
-            <p className="text-sm">Import trips or create a new booking to get started</p>
+            {bookings.length === 0 ? (
+              <>
+                <p>No bookings found</p>
+                <p className="text-sm">Import trips or create a new booking to get started</p>
+              </>
+            ) : (
+              <>
+                <p>No bookings match your filters</p>
+                <Button variant="link" onClick={clearFilters} className="mt-2">
+                  Clear filters
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           <Table>
@@ -157,7 +312,7 @@ const Bookings = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bookings.map((booking) => (
+              {filteredBookings.map((booking) => (
                 <TableRow key={booking.id}>
                   <TableCell>
                     <div className="flex flex-col">
