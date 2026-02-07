@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ import { BookingCard } from "@/components/bookings/BookingCard";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const Bookings = () => {
+  const navigate = useNavigate();
   const { bookings, loading, creating, updating, updatingStatus, isAdmin, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
@@ -397,7 +399,17 @@ const Bookings = () => {
             </TableHeader>
             <TableBody>
               {filteredBookings.map((booking) => (
-                <TableRow key={booking.id}>
+                <TableRow 
+                  key={booking.id} 
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button') || target.closest('[role="combobox"]') || target.closest('a')) {
+                      return;
+                    }
+                    navigate(`/bookings/${booking.id}`);
+                  }}
+                >
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">

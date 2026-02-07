@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import CRM from "./pages/CRM";
 import ClientDetail from "./pages/ClientDetail";
 import Bookings from "./pages/Bookings";
+import BookingDetail from "./pages/BookingDetail";
 import Training from "./pages/Training";
 import Commissions from "./pages/Commissions";
 import Branding from "./pages/Branding";
@@ -57,6 +58,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Bookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookings/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <BookingDetail />
                 </ProtectedRoute>
               }
             />

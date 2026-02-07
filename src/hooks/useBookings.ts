@@ -428,3 +428,82 @@ export function useBookings() {
     refetch: fetchBookings,
   };
 }
+
+// Extended booking type with full client data for detail page
+export interface BookingWithClient extends Booking {
+  created_at?: string;
+  updated_at?: string;
+  clients: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    location: string | null;
+    status: string;
+  } | null;
+}
+
+export function useBooking(bookingId: string | undefined) {
+  const { user } = useAuth();
+  const [booking, setBooking] = useState<BookingWithClient | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchBooking = async () => {
+      if (!user || !bookingId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("bookings")
+          .select(`
+            id,
+            booking_reference,
+            destination,
+            depart_date,
+            return_date,
+            travelers,
+            total_amount,
+            status,
+            trip_name,
+            trip_page_url,
+            owner_agent,
+            user_id,
+            client_id,
+            notes,
+            created_at,
+            updated_at,
+            clients (
+              id,
+              name,
+              email,
+              phone,
+              first_name,
+              last_name,
+              location,
+              status
+            )
+          `)
+          .eq("id", bookingId)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+        setBooking(data);
+      } catch (err) {
+        console.error("Error fetching booking:", err);
+        setError(err instanceof Error ? err : new Error("Failed to fetch booking"));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBooking();
+  }, [user, bookingId]);
+
+  return { booking, loading, error };
+}
