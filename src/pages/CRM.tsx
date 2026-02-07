@@ -1,63 +1,51 @@
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Mail, Phone, MapPin } from "lucide-react";
+import { Search, Users } from "lucide-react";
+import { useClientWithBookings } from "@/hooks/useClients";
+import { AddClientDialog } from "@/components/crm/AddClientDialog";
+import { ClientCard } from "@/components/crm/ClientCard";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const contacts = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    email: "sarah.j@email.com",
-    phone: "+1 (555) 123-4567",
-    location: "New York, NY",
-    status: "active",
-    totalBookings: 8,
-    totalSpent: "$45,200",
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    email: "m.chen@email.com",
-    phone: "+1 (555) 234-5678",
-    location: "San Francisco, CA",
-    status: "lead",
-    totalBookings: 0,
-    totalSpent: "$0",
-  },
-  {
-    id: 3,
-    name: "Emma Williams",
-    email: "emma.w@email.com",
-    phone: "+1 (555) 345-6789",
-    location: "Chicago, IL",
-    status: "active",
-    totalBookings: 12,
-    totalSpent: "$78,400",
-  },
-  {
-    id: 4,
-    name: "David Brown",
-    email: "david.b@email.com",
-    phone: "+1 (555) 456-7890",
-    location: "Miami, FL",
-    status: "inactive",
-    totalBookings: 3,
-    totalSpent: "$12,600",
-  },
-  {
-    id: 5,
-    name: "Lisa Anderson",
-    email: "lisa.a@email.com",
-    phone: "+1 (555) 567-8901",
-    location: "Seattle, WA",
-    status: "active",
-    totalBookings: 5,
-    totalSpent: "$28,900",
-  },
-];
+type StatusFilter = "all" | "active" | "lead" | "inactive";
 
 const CRM = () => {
+  const { data: clients, isLoading, error } = useClientWithBookings();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+
+    return clients.filter((client) => {
+      const matchesSearch =
+        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.location?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" || client.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [clients, searchQuery, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    if (!clients) return { all: 0, active: 0, lead: 0, inactive: 0 };
+
+    return clients.reduce(
+      (acc, client) => {
+        acc.all += 1;
+        if (client.status === "active") acc.active += 1;
+        else if (client.status === "lead") acc.lead += 1;
+        else if (client.status === "inactive") acc.inactive += 1;
+        return acc;
+      },
+      { all: 0, active: 0, lead: 0, inactive: 0 }
+    );
+  }, [clients]);
+
   return (
     <DashboardLayout>
       {/* Header */}
@@ -70,10 +58,7 @@ const CRM = () => {
             Manage your clients and track their journey
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Client
-        </Button>
+        <AddClientDialog />
       </div>
 
       {/* Search and Filters */}
@@ -84,91 +69,91 @@ const CRM = () => {
             <Input
               placeholder="Search clients..."
               className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              All
-            </Button>
-            <Button variant="ghost" size="sm">
-              Active
-            </Button>
-            <Button variant="ghost" size="sm">
-              Leads
-            </Button>
-            <Button variant="ghost" size="sm">
-              Inactive
-            </Button>
+            {(["all", "active", "lead", "inactive"] as StatusFilter[]).map(
+              (status) => (
+                <Button
+                  key={status}
+                  variant={statusFilter === status ? "outline" : "ghost"}
+                  size="sm"
+                  onClick={() => setStatusFilter(status)}
+                  className="capitalize"
+                >
+                  {status} ({statusCounts[status]})
+                </Button>
+              )
+            )}
           </div>
         </div>
       </div>
 
-      {/* Contacts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {contacts.map((contact) => (
-          <div
-            key={contact.id}
-            className="bg-card rounded-xl p-5 shadow-card border border-border/50 hover:shadow-md transition-shadow cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg font-semibold text-primary">
-                    {contact.name.split(" ").map((n) => n[0]).join("")}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-semibold text-card-foreground">
-                    {contact.name}
-                  </p>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      contact.status === "active"
-                        ? "bg-success/10 text-success"
-                        : contact.status === "lead"
-                        ? "bg-accent/10 text-accent"
-                        : "bg-muted text-muted-foreground"
-                    }
-                  >
-                    {contact.status}
-                  </Badge>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-card rounded-xl p-5 shadow-card border border-border/50"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-16" />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
             </div>
+          ))}
+        </div>
+      )}
 
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                <span>{contact.email}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-4 w-4" />
-                <span>{contact.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>{contact.location}</span>
-              </div>
-            </div>
+      {/* Error State */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6 text-center">
+          <p className="text-destructive font-medium">Failed to load clients</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {error.message}
+          </p>
+        </div>
+      )}
 
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-              <div>
-                <p className="text-xs text-muted-foreground">Bookings</p>
-                <p className="font-semibold text-card-foreground">
-                  {contact.totalBookings}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Total Spent</p>
-                <p className="font-semibold text-card-foreground">
-                  {contact.totalSpent}
-                </p>
-              </div>
-            </div>
+      {/* Empty State */}
+      {!isLoading && !error && filteredClients.length === 0 && (
+        <div className="bg-card rounded-xl p-12 shadow-card border border-border/50 text-center">
+          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Users className="h-8 w-8 text-muted-foreground" />
           </div>
-        ))}
-      </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            {clients?.length === 0
+              ? "No clients yet"
+              : "No matching clients"}
+          </h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {clients?.length === 0
+              ? "Start building your client base by adding your first client."
+              : "Try adjusting your search or filter to find what you're looking for."}
+          </p>
+          {clients?.length === 0 && <AddClientDialog />}
+        </div>
+      )}
+
+      {/* Clients Grid */}
+      {!isLoading && !error && filteredClients.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredClients.map((client) => (
+            <ClientCard key={client.id} client={client} />
+          ))}
+        </div>
+      )}
     </DashboardLayout>
   );
 };
