@@ -19,15 +19,17 @@ import {
 } from "@/components/ui/select";
 import { UserPlus, Loader2 } from "lucide-react";
 
+type InviteRole = "user" | "admin" | "office_admin";
+
 interface InviteAgentDialogProps {
-  onSubmit: (email: string, role: "user" | "admin") => Promise<boolean>;
+  onSubmit: (email: string, role: InviteRole) => Promise<boolean>;
   sending: boolean;
 }
 
 export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"user" | "admin">("user");
+  const [role, setRole] = useState<InviteRole>("user");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,17 +75,18 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(value: "user" | "admin") => setRole(value)}>
+            <Select value={role} onValueChange={(value: InviteRole) => setRole(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="user">Agent</SelectItem>
+                <SelectItem value="office_admin">Office Admin</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Agents can manage their own clients and bookings. Admins can see all data and manage team members.
+              Agents manage their own data. Office Admins can view all data (read-only). Admins have full access.
             </p>
           </div>
 

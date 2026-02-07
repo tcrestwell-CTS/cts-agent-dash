@@ -60,7 +60,7 @@ export function useInvitations() {
     return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
   };
 
-  const sendInvitation = async (email: string, role: "user" | "admin" = "user") => {
+  const sendInvitation = async (email: string, role: "user" | "admin" | "office_admin" = "user") => {
     if (!user) {
       toast.error("You must be logged in to send invitations");
       return false;
