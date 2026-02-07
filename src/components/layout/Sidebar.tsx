@@ -7,12 +7,12 @@ import {
   DollarSign,
   Mail,
   Settings,
-  Bird,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import crestwellLogo from "@/assets/crestwell-logo.jpg";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -43,18 +43,12 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-sidebar-primary">
-            <Bird className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-lg font-semibold text-sidebar-foreground tracking-tight">
-              Tern
-            </span>
-            <span className="text-[10px] text-sidebar-foreground/60 uppercase tracking-widest -mt-1">
-              .travel
-            </span>
-          </div>
+        <div className="flex h-20 items-center px-4 border-b border-sidebar-border">
+          <img 
+            src={crestwellLogo} 
+            alt="Crestwell Travel Services" 
+            className="h-14 w-auto object-contain"
+          />
         </div>
 
         {/* Navigation */}

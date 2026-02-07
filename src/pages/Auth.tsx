@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bird } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
+import crestwellLogo from "@/assets/crestwell-logo.jpg";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -39,8 +39,8 @@ const Auth = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/20" />
-          <div className="h-4 w-32 rounded bg-muted" />
+          <div className="h-12 w-32 rounded bg-muted" />
+          <div className="h-4 w-48 rounded bg-muted" />
         </div>
       </div>
     );
@@ -50,18 +50,12 @@ const Auth = () => {
     <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/10 backdrop-blur">
-            <Bird className="h-7 w-7 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xl font-semibold text-white tracking-tight">
-              Tern
-            </span>
-            <span className="text-xs text-white/70 uppercase tracking-widest -mt-0.5">
-              .travel
-            </span>
-          </div>
+        <div className="bg-white/95 rounded-xl p-4 w-fit">
+          <img 
+            src={crestwellLogo} 
+            alt="Crestwell Travel Services" 
+            className="h-16 w-auto object-contain"
+          />
         </div>
 
         <div className="space-y-6">
@@ -89,7 +83,7 @@ const Auth = () => {
         </div>
 
         <p className="text-sm text-white/60">
-          © 2026 Tern.travel. All rights reserved.
+          © 2026 Crestwell Travel Services. All rights reserved.
         </p>
       </div>
 
@@ -97,18 +91,12 @@ const Auth = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary">
-              <Bird className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-semibold text-foreground tracking-tight">
-                Tern
-              </span>
-              <span className="text-xs text-muted-foreground uppercase tracking-widest -mt-0.5">
-                .travel
-              </span>
-            </div>
+          <div className="lg:hidden flex justify-center mb-8">
+            <img 
+              src={crestwellLogo} 
+              alt="Crestwell Travel Services" 
+              className="h-16 w-auto object-contain"
+            />
           </div>
 
           <div className="text-center lg:text-left">
