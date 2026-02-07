@@ -1,14 +1,42 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, User, Phone, Briefcase, Percent } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, User, Phone, Briefcase, Percent, Shield } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
+import { useAllUserRoles, useUpdateUserRole } from "@/hooks/useUserRoles";
+import { useIsAdmin } from "@/hooks/useAdmin";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 
-export function TeamProfiles() {
-  const { data: profiles, isLoading, error } = useTeamProfiles();
+type AppRole = "admin" | "office_admin" | "user";
 
-  if (isLoading) {
+const roleLabels: Record<AppRole, string> = {
+  admin: "Admin",
+  office_admin: "Office Admin",
+  user: "Agent",
+};
+
+const roleBadgeStyles: Record<AppRole, string> = {
+  admin: "bg-primary/10 text-primary",
+  office_admin: "bg-accent/10 text-accent",
+  user: "bg-muted text-muted-foreground",
+};
+
+export function TeamProfiles() {
+  const { user: currentUser } = useAuth();
+  const { data: profiles, isLoading, error } = useTeamProfiles();
+  const { data: userRoles, isLoading: rolesLoading } = useAllUserRoles();
+  const { data: isAdmin } = useIsAdmin();
+  const updateRole = useUpdateUserRole();
+
+  if (isLoading || rolesLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -33,6 +61,19 @@ export function TeamProfiles() {
     );
   }
 
+  const getUserRole = (userId: string): AppRole => {
+    const role = userRoles?.find((r) => r.user_id === userId);
+    return role?.role || "user";
+  };
+
+  const handleRoleChange = (userId: string, newRole: string) => {
+    if (newRole === "none") {
+      updateRole.mutate({ userId, role: null });
+    } else {
+      updateRole.mutate({ userId, role: newRole as AppRole });
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {profiles.map((profile) => {
@@ -43,6 +84,9 @@ export function TeamProfiles() {
               .join("")
               .toUpperCase()
           : "U";
+
+        const currentRole = getUserRole(profile.user_id);
+        const isCurrentUser = currentUser?.id === profile.user_id;
 
         return (
           <Card key={profile.id} className="overflow-hidden">
@@ -57,6 +101,9 @@ export function TeamProfiles() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-card-foreground truncate">
                     {profile.full_name || "Unnamed Agent"}
+                    {isCurrentUser && (
+                      <span className="text-xs text-muted-foreground ml-2">(You)</span>
+                    )}
                   </h3>
                   <p className="text-sm text-muted-foreground truncate">
                     {profile.job_title || "Travel Agent"}
@@ -85,10 +132,37 @@ export function TeamProfiles() {
                 )}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                <Badge variant="outline" className="text-xs">
-                  Joined {formatDistanceToNow(new Date(profile.created_at), { addSuffix: true })}
-                </Badge>
+              <div className="mt-4 pt-3 border-t border-border space-y-3">
+                {/* Role display/edit */}
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  {isAdmin && !isCurrentUser ? (
+                    <Select
+                      value={currentRole}
+                      onValueChange={(value) => handleRoleChange(profile.user_id, value)}
+                      disabled={updateRole.isPending}
+                    >
+                      <SelectTrigger className="h-8 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">Agent</SelectItem>
+                        <SelectItem value="office_admin">Office Admin</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge className={roleBadgeStyles[currentRole]}>
+                      {roleLabels[currentRole]}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs">
+                    Joined {formatDistanceToNow(new Date(profile.created_at), { addSuffix: true })}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
