@@ -74,13 +74,11 @@ const Auth = () => {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
         <div className="bg-white/95 rounded-xl p-4 w-fit">
-          <img alt="Crestwell Travel Services" className="h-24 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
+          <img alt="Crestwell Travel Services" className="h-16 w-auto object-contain" src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png" />
         </div>
 
         <div className="space-y-6">
-          <h1 className="text-4xl font-semibold text-white leading-tight">
-            Your complete travel agency management platform
-          </h1>
+          <h1 className="text-4xl font-semibold text-white leading-tight">50+</h1>
           <p className="text-lg text-white/80">
             Manage clients, bookings, commissions, and training all in one place.
             Built for modern travel professionals.
@@ -111,7 +109,7 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-24 w-auto object-contain" />
+            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-16 w-auto object-contain" />
           </div>
 
           <div className="text-center lg:text-left">
