@@ -111,7 +111,7 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-16 w-auto object-contain" />
+            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-20 w-auto object-contain" />
           </div>
 
           <div className="text-center lg:text-left">
