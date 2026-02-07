@@ -142,6 +142,9 @@ const Auth = () => {
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin + "/auth",
+        extraParams: {
+          prompt: "select_account", // Always show account picker, don't auto-login
+        },
       });
       if (result.error) {
         toast.error(result.error.message || "Failed to sign in with Google");
