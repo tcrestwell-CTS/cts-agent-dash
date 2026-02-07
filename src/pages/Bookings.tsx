@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,78 +10,117 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Filter, Download, Eye, Pencil } from "lucide-react";
+import { Plus, Filter, Download, Eye, Pencil, ExternalLink, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
-const bookings = [
-  {
-    id: "BK-2026-001",
-    client: "Sarah Johnson",
-    destination: "Maldives - Soneva Fushi",
-    departDate: "Mar 15, 2026",
-    returnDate: "Mar 22, 2026",
-    travelers: 2,
-    status: "confirmed",
-    total: "$12,450",
-    commission: "$1,245",
-  },
-  {
-    id: "BK-2026-002",
-    client: "Michael Chen",
-    destination: "Swiss Alps - Zermatt",
-    departDate: "Apr 2, 2026",
-    returnDate: "Apr 10, 2026",
-    travelers: 4,
-    status: "pending",
-    total: "$8,200",
-    commission: "$820",
-  },
-  {
-    id: "BK-2026-003",
-    client: "Emma Williams",
-    destination: "Tokyo, Japan",
-    departDate: "Mar 28, 2026",
-    returnDate: "Apr 5, 2026",
-    travelers: 2,
-    status: "confirmed",
-    total: "$6,800",
-    commission: "$680",
-  },
-  {
-    id: "BK-2026-004",
-    client: "David Brown",
-    destination: "Santorini, Greece",
-    departDate: "May 1, 2026",
-    returnDate: "May 8, 2026",
-    travelers: 2,
-    status: "pending",
-    total: "$9,100",
-    commission: "$910",
-  },
-  {
-    id: "BK-2026-005",
-    client: "Lisa Anderson",
-    destination: "Bali, Indonesia",
-    departDate: "May 15, 2026",
-    returnDate: "May 25, 2026",
-    travelers: 3,
-    status: "confirmed",
-    total: "$7,500",
-    commission: "$750",
-  },
-  {
-    id: "BK-2026-006",
-    client: "Robert Taylor",
-    destination: "Iceland Aurora Tour",
-    departDate: "Jun 1, 2026",
-    returnDate: "Jun 8, 2026",
-    travelers: 2,
-    status: "draft",
-    total: "$5,400",
-    commission: "$540",
-  },
-];
+interface Booking {
+  id: string;
+  booking_reference: string;
+  destination: string;
+  depart_date: string;
+  return_date: string;
+  travelers: number;
+  total_amount: number;
+  status: string;
+  trip_name: string | null;
+  trip_page_url: string | null;
+  owner_agent: string | null;
+  clients: {
+    name: string;
+  } | null;
+}
 
 const Bookings = () => {
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    confirmed: 0,
+    pending: 0,
+    completed: 0,
+    totalRevenue: 0,
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
+
+  const fetchBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          id,
+          booking_reference,
+          destination,
+          depart_date,
+          return_date,
+          travelers,
+          total_amount,
+          status,
+          trip_name,
+          trip_page_url,
+          owner_agent,
+          clients (
+            name
+          )
+        `)
+        .order("depart_date", { ascending: false });
+
+      if (error) throw error;
+
+      setBookings(data || []);
+
+      // Calculate stats
+      const total = data?.length || 0;
+      const confirmed = data?.filter((b) => b.status === "confirmed").length || 0;
+      const pending = data?.filter((b) => b.status === "pending").length || 0;
+      const completed = data?.filter((b) => b.status === "completed").length || 0;
+      const totalRevenue = data?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
+
+      setStats({ total, confirmed, pending, completed, totalRevenue });
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "MMM d, yyyy");
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "confirmed":
+        return "bg-success/10 text-success";
+      case "pending":
+        return "bg-accent/10 text-accent";
+      case "completed":
+        return "bg-primary/10 text-primary";
+      case "cancelled":
+        return "bg-destructive/10 text-destructive";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
   return (
     <DashboardLayout>
       {/* Header */}
@@ -106,22 +146,28 @@ const Bookings = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
           <p className="text-sm text-muted-foreground">Total Bookings</p>
-          <p className="text-2xl font-semibold text-card-foreground">156</p>
+          <p className="text-2xl font-semibold text-card-foreground">{stats.total}</p>
         </div>
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
           <p className="text-sm text-muted-foreground">Confirmed</p>
-          <p className="text-2xl font-semibold text-success">124</p>
+          <p className="text-2xl font-semibold text-success">{stats.confirmed}</p>
         </div>
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
           <p className="text-sm text-muted-foreground">Pending</p>
-          <p className="text-2xl font-semibold text-accent">28</p>
+          <p className="text-2xl font-semibold text-accent">{stats.pending}</p>
+        </div>
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <p className="text-sm text-muted-foreground">Completed</p>
+          <p className="text-2xl font-semibold text-primary">{stats.completed}</p>
         </div>
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
           <p className="text-sm text-muted-foreground">Total Revenue</p>
-          <p className="text-2xl font-semibold text-card-foreground">$245,600</p>
+          <p className="text-2xl font-semibold text-card-foreground">
+            {formatCurrency(stats.totalRevenue)}
+          </p>
         </div>
       </div>
 
@@ -135,62 +181,95 @@ const Bookings = () => {
             </Button>
           </div>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Booking ID</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Destination</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead>Travelers</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Commission</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bookings.map((booking) => (
-              <TableRow key={booking.id}>
-                <TableCell className="font-medium">{booking.id}</TableCell>
-                <TableCell>{booking.client}</TableCell>
-                <TableCell>{booking.destination}</TableCell>
-                <TableCell>
-                  {booking.departDate} - {booking.returnDate}
-                </TableCell>
-                <TableCell>{booking.travelers}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      booking.status === "confirmed"
-                        ? "bg-success/10 text-success"
-                        : booking.status === "pending"
-                        ? "bg-accent/10 text-accent"
-                        : "bg-muted text-muted-foreground"
-                    }
-                  >
-                    {booking.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-medium">{booking.total}</TableCell>
-                <TableCell className="text-success font-medium">
-                  {booking.commission}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : bookings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <p>No bookings found</p>
+            <p className="text-sm">Import trips or create a new booking to get started</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Trip Name</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead>Travelers</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {bookings.map((booking) => (
+                <TableRow key={booking.id}>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        {booking.trip_name || booking.destination}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {booking.booking_reference}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{booking.clients?.name || "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col text-sm">
+                      <span>{formatDate(booking.depart_date)}</span>
+                      <span className="text-muted-foreground">
+                        to {formatDate(booking.return_date)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{booking.travelers}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={getStatusBadgeClass(booking.status)}
+                    >
+                      {booking.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {formatCurrency(booking.total_amount)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {booking.trip_page_url && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          asChild
+                        >
+                          <a
+                            href={booking.trip_page_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View in Tern Travel"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </DashboardLayout>
   );
