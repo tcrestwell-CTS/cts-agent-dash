@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 export interface Booking {
   id: string;
@@ -15,6 +16,7 @@ export interface Booking {
   trip_name: string | null;
   trip_page_url: string | null;
   owner_agent: string | null;
+  user_id: string;
   client_id: string;
   notes: string | null;
   clients?: {
@@ -47,21 +49,34 @@ export interface UpdateBookingData {
 
 export function useBookings() {
   const { user } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [agentName, setAgentName] = useState<string | null>(null);
 
+  // Fetch agent's profile name for booking creation
   useEffect(() => {
-    if (user) {
-      fetchBookings();
-    } else {
-      setLoading(false);
-    }
+    const fetchAgentName = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (data?.full_name) {
+        setAgentName(data.full_name);
+      }
+    };
+    
+    fetchAgentName();
   }, [user]);
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -79,6 +94,7 @@ export function useBookings() {
           trip_name,
           trip_page_url,
           owner_agent,
+          user_id,
           client_id,
           notes,
           clients (
@@ -95,7 +111,15 @@ export function useBookings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchBookings();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchBookings]);
 
   const generateBookingReference = () => {
     const prefix = "CW";
@@ -169,6 +193,7 @@ export function useBookings() {
           trip_name: data.trip_name || null,
           notes: data.notes || null,
           status: "confirmed",
+          owner_agent: agentName,
         })
         .select(`
           *,
@@ -395,6 +420,7 @@ export function useBookings() {
     creating,
     updating,
     updatingStatus,
+    isAdmin: !!isAdmin,
     createBooking,
     updateBooking,
     updateBookingStatus,
