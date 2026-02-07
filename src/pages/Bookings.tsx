@@ -127,7 +127,9 @@ const Bookings = () => {
     total: bookings.length,
     confirmed: bookings.filter((b) => b.status === "confirmed").length,
     pending: bookings.filter((b) => b.status === "pending").length,
-    completed: bookings.filter((b) => b.status === "completed").length,
+    traveling: bookings.filter((b) => b.status === "traveling").length,
+    traveled: bookings.filter((b) => b.status === "traveled").length,
+    cancelled: bookings.filter((b) => b.status === "cancelled").length,
     totalRevenue: bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0),
   };
 
@@ -152,7 +154,9 @@ const Bookings = () => {
         return "bg-success/10 text-success";
       case "pending":
         return "bg-accent/10 text-accent";
-      case "completed":
+      case "traveling":
+        return "bg-info/10 text-info";
+      case "traveled":
         return "bg-primary/10 text-primary";
       case "cancelled":
         return "bg-destructive/10 text-destructive";
@@ -183,25 +187,33 @@ const Bookings = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <p className="text-sm text-muted-foreground">Total Bookings</p>
+          <p className="text-sm text-muted-foreground">Total</p>
           <p className="text-2xl font-semibold text-card-foreground">{stats.total}</p>
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <p className="text-sm text-muted-foreground">Confirmed</p>
-          <p className="text-2xl font-semibold text-success">{stats.confirmed}</p>
         </div>
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
           <p className="text-sm text-muted-foreground">Pending</p>
           <p className="text-2xl font-semibold text-accent">{stats.pending}</p>
         </div>
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <p className="text-sm text-muted-foreground">Completed</p>
-          <p className="text-2xl font-semibold text-primary">{stats.completed}</p>
+          <p className="text-sm text-muted-foreground">Confirmed</p>
+          <p className="text-2xl font-semibold text-success">{stats.confirmed}</p>
         </div>
         <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
-          <p className="text-sm text-muted-foreground">Total Revenue</p>
+          <p className="text-sm text-muted-foreground">Traveling</p>
+          <p className="text-2xl font-semibold text-info">{stats.traveling}</p>
+        </div>
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <p className="text-sm text-muted-foreground">Traveled</p>
+          <p className="text-2xl font-semibold text-primary">{stats.traveled}</p>
+        </div>
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <p className="text-sm text-muted-foreground">Cancelled</p>
+          <p className="text-2xl font-semibold text-destructive">{stats.cancelled}</p>
+        </div>
+        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50">
+          <p className="text-sm text-muted-foreground">Revenue</p>
           <p className="text-2xl font-semibold text-card-foreground">
             {formatCurrency(stats.totalRevenue)}
           </p>
@@ -254,7 +266,8 @@ const Bookings = () => {
                         <SelectItem value="all">All statuses</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="confirmed">Confirmed</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="traveling">Traveling</SelectItem>
+                        <SelectItem value="traveled">Traveled</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
@@ -408,9 +421,14 @@ const Bookings = () => {
                             confirmed
                           </Badge>
                         </SelectItem>
-                        <SelectItem value="completed">
+                        <SelectItem value="traveling">
+                          <Badge variant="secondary" className="bg-info/10 text-info">
+                            traveling
+                          </Badge>
+                        </SelectItem>
+                        <SelectItem value="traveled">
                           <Badge variant="secondary" className="bg-primary/10 text-primary">
-                            completed
+                            traveled
                           </Badge>
                         </SelectItem>
                         <SelectItem value="cancelled">
