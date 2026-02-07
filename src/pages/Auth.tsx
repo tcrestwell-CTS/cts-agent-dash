@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import crestwellLogo from "@/assets/crestwell-logo.jpg";
+import crestwellLogo from "@/assets/crestwell-logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
