@@ -133,16 +133,23 @@ const Auth = () => {
             </Button>
           </div>
 
-          <p className="text-center text-sm text-muted-foreground">
-            By signing in, you agree to our{" "}
-            <a href="#" className="text-primary hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-primary hover:underline">
-              Privacy Policy
-            </a>
-          </p>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-muted p-4 text-center">
+              <p className="text-sm font-medium text-muted-foreground">
+                This site is for members of Crestwell Travel Services only. All data contained within is proprietary and confidential.
+              </p>
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
+              By signing in, you agree to our{" "}
+              <a href="#" className="text-primary hover:underline">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="#" className="text-primary hover:underline">
+                Privacy Policy
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>;
