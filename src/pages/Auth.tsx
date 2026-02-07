@@ -136,7 +136,7 @@ const Auth = () => {
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-muted p-4 text-center">
               <p className="text-sm font-medium text-muted-foreground">
-                This site is for members of Crestwell Travel Services only. All data contained within is proprietary and confidential.
+                This site is for members of Crestwell Travel Services only. All data contained within is proprietary and confidential. Unauthorized access is subject to legal prosecution.
               </p>
             </div>
             <p className="text-center text-sm text-muted-foreground">
