@@ -78,7 +78,6 @@ const Auth = () => {
         </div>
 
         <div className="space-y-6">
-          <h1 className="text-4xl font-semibold text-white leading-tight">50+</h1>
           <p className="text-lg text-white/80">
             Manage clients, bookings, commissions, and training all in one place.
             Built for modern travel professionals.
