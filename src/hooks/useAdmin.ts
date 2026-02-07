@@ -27,3 +27,40 @@ export function useIsAdmin() {
     enabled: !!user,
   });
 }
+
+export function useIsOfficeAdmin() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["is-office-admin", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "office_admin")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking office admin status:", error);
+        return false;
+      }
+
+      return !!data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCanViewTeam() {
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
+  const { data: isOfficeAdmin, isLoading: officeAdminLoading } = useIsOfficeAdmin();
+
+  return {
+    canView: isAdmin || isOfficeAdmin,
+    canManage: isAdmin,
+    isLoading: adminLoading || officeAdminLoading,
+  };
+}
