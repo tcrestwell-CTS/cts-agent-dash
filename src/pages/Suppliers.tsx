@@ -159,6 +159,18 @@ const initialSuppliers: Supplier[] = [
     integrationType: "redirect",
     apiStatus: "none",
   },
+  {
+    id: "all-in-agents",
+    name: "All In Agents",
+    url: "https://www.allinagents.com",
+    description: "All In Agents portal powered by AIA for booking multiple all-inclusive resort brands.",
+    category: "all-inclusive",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
 ];
 
 const categories = [
