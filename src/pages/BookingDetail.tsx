@@ -452,10 +452,12 @@ const BookingDetail = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between border-t pt-3">
-                  <span className="text-sm">Supplier Payout</span>
-                  <span className="font-semibold">
-                    {formatCurrency(tripFinancials?.supplierPayout || booking.total_amount * 0.915)}
+                <div className="flex items-center justify-between border-t pt-3 bg-primary/10 p-2 rounded">
+                  <span className="text-sm font-medium text-primary">
+                    Agent Commission ({userTier ? getTierConfig(userTier).agentSplit : 70}%)
+                  </span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency((tripFinancials?.commissionRevenue || booking.commission_revenue) * (userTier ? getTierConfig(userTier).agentSplit / 100 : 0.7))}
                   </span>
                 </div>
               </div>
