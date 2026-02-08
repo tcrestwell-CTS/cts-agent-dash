@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { TrendingUp, DollarSign, Loader2, Users, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CommissionTier, getTierConfig, calculateAgentCommission, calculateAgencyCommission } from "@/lib/commissionTiers";
+import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 
 interface CommissionData {
   totalCommission: number;
@@ -12,6 +13,10 @@ interface CommissionData {
 }
 
 export function CommissionSummary() {
+  const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const showAgencySplit = isAdmin || isOfficeAdmin;
+  
   const [data, setData] = useState<CommissionData>({
     totalCommission: 0,
     agentShare: 0,
@@ -142,8 +147,8 @@ export function CommissionSummary() {
         </span>
       </div>
 
-      {/* Agent vs Agency Split Visual */}
-      {data.totalCommission > 0 && (
+      {/* Agent vs Agency Split Visual - Only show for admins */}
+      {showAgencySplit && data.totalCommission > 0 && (
         <div className="mb-6">
           <div className="flex justify-between text-xs text-muted-foreground mb-2">
             <span>Agent Share</span>
@@ -163,35 +168,37 @@ export function CommissionSummary() {
       )}
 
       {/* Split Details */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className={showAgencySplit ? "grid grid-cols-2 gap-4 mb-4" : "mb-4"}>
         <div className="p-3 bg-success/10 rounded-lg border border-success/20">
           <div className="flex items-center gap-2 mb-1">
             <Users className="h-4 w-4 text-success" />
-            <span className="text-xs text-muted-foreground">Agent Split</span>
+            <span className="text-xs text-muted-foreground">Your Earnings</span>
           </div>
           <p className="text-lg font-semibold text-success">
             {formatCurrency(data.agentShare)}
           </p>
-          {data.totalCommission > 0 && (
+          {showAgencySplit && data.totalCommission > 0 && (
             <p className="text-xs text-muted-foreground mt-1">
               ~{agentPercentage}% of total
             </p>
           )}
         </div>
-        <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-          <div className="flex items-center gap-2 mb-1">
-            <Building2 className="h-4 w-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Agency Split</span>
-          </div>
-          <p className="text-lg font-semibold text-primary">
-            {formatCurrency(data.agencyShare)}
-          </p>
-          {data.totalCommission > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              ~{agencyPercentage}% of total
+        {showAgencySplit && (
+          <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-2 mb-1">
+              <Building2 className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Agency Split</span>
+            </div>
+            <p className="text-lg font-semibold text-primary">
+              {formatCurrency(data.agencyShare)}
             </p>
-          )}
-        </div>
+            {data.totalCommission > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ~{agencyPercentage}% of total
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Status Breakdown */}
