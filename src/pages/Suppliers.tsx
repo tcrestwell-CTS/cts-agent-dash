@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
@@ -304,6 +304,53 @@ const categories = [
   { id: "all-inclusive", label: "All-Inclusive", icon: Palmtree },
 ];
 
+// CTS Bookings Widget Component
+function CTSBookingsWidget() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    // Clear any existing content
+    containerRef.current.innerHTML = '';
+    
+    // Create the container div for the widget
+    const widgetContainer = document.createElement('div');
+    widgetContainer.id = 'ptw-container';
+    widgetContainer.className = 'ptw-horizontal-search bookerContainer';
+    containerRef.current.appendChild(widgetContainer);
+
+    // Load the external script
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://widgets.priceres.com/travel-agencyweb/jsonpBooker/startWidget?container=ptw-container&UseConfigs=false&IsHorizontal=true&WhiteLabelId=CTSBookings';
+    script.async = true;
+    containerRef.current.appendChild(script);
+
+    return () => {
+      // Cleanup on unmount
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, []);
+
+  return (
+    <div className="mb-8">
+      <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Hotel className="h-5 w-5 text-primary" />
+          CTS Hotel Booking Widget
+        </h3>
+        <div 
+          ref={containerRef}
+          className="onlyBooker_section w-full min-h-[80px]"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -399,6 +446,11 @@ export default function Suppliers() {
           </TabsList>
 
           <TabsContent value={selectedCategory} className="mt-6">
+            {/* CTS Bookings Widget - Show on Hotels tab or All tab */}
+            {(selectedCategory === "hotels" || selectedCategory === "all") && (
+              <CTSBookingsWidget />
+            )}
+
             {filteredSuppliers.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>No suppliers in this category yet.</p>
