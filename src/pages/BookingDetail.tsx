@@ -617,13 +617,13 @@ const BookingDetail = () => {
                     <p className="text-xs text-muted-foreground">Your Commission</p>
                     <p className="text-lg font-semibold text-success">
                       {formatCurrency(
-                        booking.total_amount *
+                        (tripFinancials?.commissionRevenue || 0) *
                           (parseFloat(customRate || String(userCommissionRate || 70)) / 100)
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Agency receives: {formatCurrency(
-                        booking.total_amount *
+                        (tripFinancials?.commissionRevenue || 0) *
                           ((100 - parseFloat(customRate || String(userCommissionRate || 70))) / 100)
                       )}
                     </p>
