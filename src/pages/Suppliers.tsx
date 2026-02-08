@@ -171,6 +171,18 @@ const initialSuppliers: Supplier[] = [
     integrationType: "redirect",
     apiStatus: "none",
   },
+  {
+    id: "loews-agent",
+    name: "Loews Hotels Agents",
+    url: "https://www.loewshotels.com/agents",
+    description: "Loews Hotels travel agent portal for booking luxury accommodations at Loews properties.",
+    category: "hotels",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
   // All-Inclusive Resorts
   {
     id: "sandals",
