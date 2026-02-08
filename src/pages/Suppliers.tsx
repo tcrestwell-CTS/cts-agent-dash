@@ -198,10 +198,10 @@ const initialSuppliers: Supplier[] = [
     apiStatus: "none",
   },
   {
-    id: "carmel",
-    name: "Carmel",
+    id: "carmellimo",
+    name: "CarmelLimo",
     url: "https://www.carmellimo.com",
-    description: "Carmel limousine and car service for airport transfers and ground transportation.",
+    description: "NY Limousine Service - New York City & Airport limousine services.",
     category: "transportation",
     isFavorite: false,
     notes: "",
