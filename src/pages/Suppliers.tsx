@@ -310,12 +310,14 @@ const categories = [
 function CTSBookingsWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [widgetError, setWidgetError] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !isOpen) return;
     
     // Clear any existing content
     containerRef.current.innerHTML = '';
+    setWidgetError(false);
     
     // Create the container div for the widget
     const widgetContainer = document.createElement('div');
@@ -328,15 +330,27 @@ function CTSBookingsWidget() {
     script.type = 'text/javascript';
     script.src = 'https://widgets.priceres.com/travel-agencyweb/jsonpBooker/startWidget?container=ptw-container&UseConfigs=false&IsHorizontal=true&WhiteLabelId=CTSBookings';
     script.async = true;
+    script.onerror = () => setWidgetError(true);
     containerRef.current.appendChild(script);
 
+    // Check if widget loaded after a delay
+    const timeout = setTimeout(() => {
+      if (containerRef.current && containerRef.current.querySelector('#ptw-container')?.children.length === 0) {
+        setWidgetError(true);
+      }
+    }, 3000);
+
     return () => {
-      // Cleanup on unmount
+      clearTimeout(timeout);
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
     };
   }, [isOpen]);
+
+  const handleOpenPortal = () => {
+    window.open('https://travel-agencyweb.com/CTSBookings', '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="mb-8">
@@ -356,10 +370,23 @@ function CTSBookingsWidget() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="p-4 pt-0">
-              <div 
-                ref={containerRef}
-                className="onlyBooker_section w-full min-h-[80px]"
-              />
+              {widgetError ? (
+                <div className="bg-muted/50 rounded-lg p-6 text-center space-y-4">
+                  <div className="text-muted-foreground">
+                    <p className="font-medium">Widget cannot load in this environment</p>
+                    <p className="text-sm mt-1">The booking widget requires domain authorization from the provider.</p>
+                  </div>
+                  <Button onClick={handleOpenPortal} className="gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Open CTS Booking Portal
+                  </Button>
+                </div>
+              ) : (
+                <div 
+                  ref={containerRef}
+                  className="onlyBooker_section w-full min-h-[80px]"
+                />
+              )}
             </div>
           </CollapsibleContent>
         </div>
