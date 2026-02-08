@@ -333,18 +333,27 @@ function CTSBookingsWidget() {
     script.onerror = () => setWidgetError(true);
     containerRef.current.appendChild(script);
 
-    // Function to handle form submission in a popup window
-    const handleFormSubmit = (form: HTMLFormElement) => {
+    // Function to configure form for popup window
+    const configureFormForPopup = (form: HTMLFormElement) => {
       const popupName = 'CTSBookingPopup';
-      const popupFeatures = 'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
+      const popupFeatures = 'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no,left=' + ((window.screen.width - 1200) / 2) + ',top=' + ((window.screen.height - 800) / 2);
       
       // Set target to the popup name
       form.setAttribute('target', popupName);
       
-      // Add submit listener to open popup before form submits
+      // Find submit button and add click handler to open popup BEFORE form submits
+      const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', (e) => {
+          // Open the popup window first (must happen synchronously on user click)
+          window.open('about:blank', popupName, popupFeatures);
+        }, { capture: true });
+      }
+      
+      // Also handle direct form submit just in case
       form.addEventListener('submit', () => {
-        window.open('', popupName, popupFeatures);
-      }, { once: false });
+        window.open('about:blank', popupName, popupFeatures);
+      }, { capture: true });
     };
 
     // MutationObserver to watch for dynamically created forms and configure popup
@@ -352,13 +361,13 @@ function CTSBookingsWidget() {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node instanceof HTMLFormElement) {
-            handleFormSubmit(node);
+            configureFormForPopup(node);
           }
           // Also check for forms inside added elements
           if (node instanceof HTMLElement) {
             const forms = node.querySelectorAll('form');
             forms.forEach((form) => {
-              handleFormSubmit(form);
+              configureFormForPopup(form);
             });
           }
         });
