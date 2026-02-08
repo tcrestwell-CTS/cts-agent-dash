@@ -715,6 +715,72 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_payments: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          details: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          payment_type: string
+          status: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          details?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_type?: string
+          status?: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          details?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_type?: string
+          status?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_payments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           client_id: string
