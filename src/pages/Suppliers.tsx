@@ -147,6 +147,18 @@ const initialSuppliers: Supplier[] = [
     integrationType: "redirect",
     apiStatus: "none",
   },
+  {
+    id: "ihg-agent",
+    name: "IHG Agent Portal",
+    url: "https://www.ihg.com/agentconnect",
+    description: "IHG travel agent portal for booking Holiday Inn, Crowne Plaza, InterContinental, and more.",
+    category: "hotels",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
   // All-Inclusive Resorts
   {
     id: "sandals",
