@@ -238,48 +238,75 @@ async function handleAutomateStatus(
   supabaseUrl: string,
   supabaseAnonKey: string
 ): Promise<Response> {
-  // Verify authentication
+  // Check for authentication - if present, validate; if not, run as system automation
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: "Authorization required" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  let userId: string | null = null;
+  let isAdmin = false;
+  let mode = "system"; // "system" (all bookings) or "user" (single user's bookings)
+
+  if (authHeader && !authHeader.includes(supabaseAnonKey)) {
+    // User-initiated request - validate and check role
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    userId = user.id;
+
+    // Check if user is admin
+    const { data: roleData } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "office_admin"])
+      .limit(1);
+
+    isAdmin = roleData && roleData.length > 0;
+    mode = isAdmin ? "system" : "user";
+    
+    console.log(`Running status automation - mode: ${mode}, user: ${user.id}, isAdmin: ${isAdmin}`);
+  } else {
+    // System/cron job request - process all bookings
+    console.log("Running status automation - mode: system (cron job)");
   }
-
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
-  if (authError || !user) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  console.log("Running status automation for user:", user.id);
 
   const today = new Date().toISOString().split("T")[0];
-  const result: AutomationResult = {
+  const result: AutomationResult & { mode: string; agents_processed?: number } = {
     bookings_updated: 0,
     bookings_notified: 0,
     errors: [],
+    mode,
   };
 
-  // 1. Move confirmed bookings to traveling when departure date is today or past
-  const { data: departingBookings, error: departError } = await adminClient
+  // Build base query for departing bookings
+  let departQuery = adminClient
     .from("bookings")
-    .select("id, booking_reference, destination, client_id")
-    .eq("user_id", user.id)
+    .select("id, booking_reference, destination, client_id, user_id")
     .eq("status", "confirmed")
     .lte("depart_date", today);
+
+  // If user mode, filter by user_id
+  if (mode === "user" && userId) {
+    departQuery = departQuery.eq("user_id", userId);
+  }
+
+  // 1. Move confirmed bookings to traveling when departure date is today or past
+  const { data: departingBookings, error: departError } = await departQuery;
+
+  const agentsProcessed = new Set<string>();
 
   if (departError) {
     result.errors.push(`Error fetching departing bookings: ${departError.message}`);
   } else if (departingBookings && departingBookings.length > 0) {
     for (const booking of departingBookings) {
+      agentsProcessed.add(booking.user_id);
       const { error: updateError } = await adminClient
         .from("bookings")
         .update({ 
@@ -298,26 +325,34 @@ async function handleAutomateStatus(
   }
 
   // 2. Move traveling bookings to completed when return date is past
-  const { data: returningBookings, error: returnError } = await adminClient
+  let returnQuery = adminClient
     .from("bookings")
     .select(`
       id, 
       booking_reference, 
       destination, 
       client_id,
+      user_id,
       trip_name,
       depart_date,
       return_date,
       clients (name, email)
     `)
-    .eq("user_id", user.id)
     .eq("status", "traveling")
     .lt("return_date", today);
+
+  // If user mode, filter by user_id
+  if (mode === "user" && userId) {
+    returnQuery = returnQuery.eq("user_id", userId);
+  }
+
+  const { data: returningBookings, error: returnError } = await returnQuery;
 
   if (returnError) {
     result.errors.push(`Error fetching returning bookings: ${returnError.message}`);
   } else if (returningBookings && returningBookings.length > 0) {
     for (const booking of returningBookings) {
+      agentsProcessed.add(booking.user_id);
       const { error: updateError } = await adminClient
         .from("bookings")
         .update({ 
@@ -367,6 +402,8 @@ async function handleAutomateStatus(
       }
     }
   }
+
+  result.agents_processed = agentsProcessed.size;
 
   console.log("Automation complete:", result);
   return new Response(
