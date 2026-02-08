@@ -22,6 +22,8 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useProfile } from "@/hooks/useProfile";
+import { useIsAdmin } from "@/hooks/useAdmin";
+import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
 import { useMemo } from "react";
 import { format, parseISO, startOfMonth, subMonths, startOfYear, isWithinInterval } from "date-fns";
 import { calculateAgentCommission, getTierConfig } from "@/lib/commissionTiers";
@@ -33,6 +35,7 @@ const Commissions = () => {
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { profile, loading: profileLoading } = useProfile();
+  const { data: isAdmin } = useIsAdmin();
 
   const loading = commissionsLoading || bookingsLoading || clientsLoading || profileLoading;
 
@@ -200,6 +203,9 @@ const Commissions = () => {
           Export Report
         </Button>
       </div>
+
+      {/* Admin: Pending Override Approvals */}
+      {isAdmin && <div className="mb-6"><PendingOverridesCard /></div>}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
