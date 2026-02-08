@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RecentBookings } from "@/components/dashboard/RecentBookings";
@@ -13,70 +12,14 @@ import { CommissionRevenueCard } from "@/components/dashboard/CommissionRevenueC
 import { UpcomingCommissions } from "@/components/dashboard/UpcomingCommissions";
 import { Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-
-interface DashboardStats {
-  activeBookings: number;
-  totalClients: number;
-  totalRevenue: number;
-  pendingBookings: number;
-  confirmedBookings: number;
-  completedBookings: number;
-}
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { user } = useAuth();
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
-  const [stats, setStats] = useState<DashboardStats>({
-    activeBookings: 0,
-    totalClients: 0,
-    totalRevenue: 0,
-    pendingBookings: 0,
-    confirmedBookings: 0,
-    completedBookings: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      fetchDashboardStats();
-    }
-  }, [user]);
-
-  const fetchDashboardStats = async () => {
-    try {
-      // Fetch bookings stats
-      const { data: bookings } = await supabase
-        .from("bookings")
-        .select("status, total_amount");
-
-      const activeBookings = bookings?.filter(
-        (b) => b.status === "confirmed" || b.status === "pending"
-      ).length || 0;
-      const pendingBookings = bookings?.filter((b) => b.status === "pending").length || 0;
-      const confirmedBookings = bookings?.filter((b) => b.status === "confirmed").length || 0;
-      const completedBookings = bookings?.filter((b) => b.status === "completed").length || 0;
-      const totalRevenue = bookings?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
-
-      // Fetch clients count
-      const { count: clientsCount } = await supabase
-        .from("clients")
-        .select("*", { count: "exact", head: true });
-
-      setStats({
-        activeBookings,
-        totalClients: clientsCount || 0,
-        totalRevenue,
-        pendingBookings,
-        confirmedBookings,
-        completedBookings,
-      });
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { sections, stats, loading, isAgencyView } = useDashboardData();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -85,6 +28,13 @@ const Index = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  // Determine which sections should be full-width based on urgency/data count
+  const departuresFullWidth = sections.upcomingDepartures.urgentCount >= 3 || sections.upcomingDepartures.dataCount >= 4;
+  const commissionsFullWidth = sections.upcomingCommissions.urgentCount >= 3 || sections.upcomingCommissions.dataCount >= 4;
+  
+  // Sections with urgent items appear in a highlighted priority row
+  const hasUrgentItems = sections.upcomingDepartures.urgentCount > 0 || sections.upcomingCommissions.urgentCount > 0;
 
   return (
     <DashboardLayout>
@@ -98,7 +48,7 @@ const Index = () => {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Always visible with minimal loading states */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Active Bookings"
@@ -134,23 +84,98 @@ const Index = () => {
         />
       </div>
 
-      {/* Main Content Grid */}
+      {/* Priority Urgent Row - Only shown when there are urgent items */}
+      {hasUrgentItems && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-destructive uppercase tracking-wide mb-3 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+            Needs Attention
+          </h2>
+          <div className={cn(
+            "grid gap-6",
+            sections.upcomingDepartures.urgentCount > 0 && sections.upcomingCommissions.urgentCount > 0
+              ? "grid-cols-1 lg:grid-cols-2"
+              : "grid-cols-1"
+          )}>
+            {sections.upcomingDepartures.urgentCount > 0 && (
+              <div className="ring-2 ring-destructive/30 rounded-xl">
+                <UpcomingDepartures />
+              </div>
+            )}
+            {sections.upcomingCommissions.urgentCount > 0 && (
+              <div className="ring-2 ring-destructive/30 rounded-xl">
+                <UpcomingCommissions />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Grid - Reactive layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Bookings & Charts */}
+        {/* Left Column - Primary Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* KPIs - Always prominent */}
           <AgencyKPIs />
-          <MonthlyRevenueChart />
-          <RecentBookings />
+          
+          {/* Monthly Chart - Resize based on data */}
+          {sections.kpis.hasData && <MonthlyRevenueChart />}
+          
+          {/* Recent Bookings - Conditional sizing */}
+          {sections.recentBookings.hasData ? (
+            <RecentBookings />
+          ) : (
+            <div className="bg-card rounded-xl p-6 shadow-card border border-border/50 opacity-60">
+              <h3 className="text-sm font-medium text-muted-foreground">Upcoming Trips</h3>
+              <p className="text-xs text-muted-foreground mt-1">No upcoming bookings</p>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Widgets */}
         <div className="space-y-6">
           <QuickActions />
+          
+          {/* Commission Revenue - Always show */}
           <CommissionRevenueCard />
-          <UpcomingCommissions />
-          <AgentLeaderboard />
-          <UpcomingDepartures />
-          <CommissionSummary />
+          
+          {/* Upcoming Commissions - Skip if shown in urgent row */}
+          {!hasUrgentItems || sections.upcomingCommissions.urgentCount === 0 ? (
+            sections.upcomingCommissions.hasData ? (
+              <UpcomingCommissions />
+            ) : (
+              <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 opacity-60">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Upcoming Commissions
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">No commissions expected soon</p>
+              </div>
+            )
+          ) : null}
+          
+          {/* Agent Leaderboard - Only for admins with data */}
+          {isAgencyView && sections.leaderboard.hasData && <AgentLeaderboard />}
+          
+          {/* Upcoming Departures - Skip if shown in urgent row */}
+          {!hasUrgentItems || sections.upcomingDepartures.urgentCount === 0 ? (
+            sections.upcomingDepartures.hasData ? (
+              <UpcomingDepartures />
+            ) : (
+              <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 opacity-60">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Upcoming Departures
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">No departures in the next 30 days</p>
+              </div>
+            )
+          ) : null}
+          
+          {/* Commission Summary - Conditional visibility */}
+          {sections.commissionSummary.hasData && <CommissionSummary />}
+          
+          {/* Training - Static for now, could be data-driven later */}
           <TrainingProgress />
         </div>
       </div>

@@ -1,0 +1,189 @@
+import { useMemo } from "react";
+import { useBookings } from "@/hooks/useBookings";
+import { useClients } from "@/hooks/useClients";
+import { useCommissions } from "@/hooks/useCommissions";
+import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
+import { 
+  addDays, 
+  isWithinInterval, 
+  isFuture, 
+  subDays, 
+  startOfMonth, 
+  endOfMonth 
+} from "date-fns";
+
+export interface DashboardSection {
+  id: string;
+  priority: number; // Lower = higher priority
+  hasData: boolean;
+  urgentCount: number; // Number of urgent items (affects sizing)
+  dataCount: number; // Total items
+}
+
+export function useDashboardData() {
+  const { bookings, loading: bookingsLoading } = useBookings();
+  const { data: clients, isLoading: clientsLoading } = useClients();
+  const { data: commissions, isLoading: commissionsLoading } = useCommissions();
+  const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+
+  const loading = bookingsLoading || clientsLoading || commissionsLoading;
+  const isAgencyView = isAdmin || isOfficeAdmin;
+
+  const sections = useMemo(() => {
+    if (!bookings || !clients || !commissions) {
+      return {
+        upcomingDepartures: { id: "upcomingDepartures", priority: 1, hasData: false, urgentCount: 0, dataCount: 0 },
+        upcomingCommissions: { id: "upcomingCommissions", priority: 2, hasData: false, urgentCount: 0, dataCount: 0 },
+        recentBookings: { id: "recentBookings", priority: 3, hasData: false, urgentCount: 0, dataCount: 0 },
+        kpis: { id: "kpis", priority: 4, hasData: false, urgentCount: 0, dataCount: 0 },
+        leaderboard: { id: "leaderboard", priority: 5, hasData: false, urgentCount: 0, dataCount: 0 },
+        commissionSummary: { id: "commissionSummary", priority: 6, hasData: false, urgentCount: 0, dataCount: 0 },
+      };
+    }
+
+    const today = new Date();
+    const thirtyDaysFromNow = addDays(today, 30);
+    const thisMonth = { start: startOfMonth(today), end: endOfMonth(today) };
+
+    // Calculate upcoming departures
+    const upcomingDeps = bookings.filter((booking) => {
+      const departDate = new Date(booking.depart_date);
+      return (
+        booking.status !== "cancelled" &&
+        isFuture(departDate) &&
+        isWithinInterval(departDate, { start: today, end: thirtyDaysFromNow })
+      );
+    });
+    const urgentDepartures = upcomingDeps.filter((b) => {
+      const days = Math.ceil((new Date(b.depart_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return days <= 7;
+    });
+
+    // Calculate upcoming commissions
+    const upcomingComms = bookings.filter((booking) => {
+      if (booking.status === "cancelled" || booking.status === "completed") return false;
+      const expectedDate = subDays(new Date(booking.depart_date), 30);
+      return isWithinInterval(expectedDate, { start: today, end: thirtyDaysFromNow });
+    });
+    const urgentCommissions = upcomingComms.filter((b) => {
+      const expectedDate = subDays(new Date(b.depart_date), 30);
+      const days = Math.ceil((expectedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return days <= 7;
+    });
+
+    // Recent/active bookings
+    const activeBookings = bookings.filter(b => 
+      b.status === "confirmed" || b.status === "pending" || b.status === "traveling"
+    );
+
+    // This month activity for KPIs
+    const thisMonthBookings = bookings.filter((b) => {
+      const departDate = new Date(b.depart_date);
+      return isWithinInterval(departDate, thisMonth) && b.status !== "cancelled";
+    });
+
+    // Commission data
+    const pendingCommissions = commissions.filter(c => c.status === "pending");
+    const hasCommissionData = commissions.length > 0;
+
+    // Determine priorities based on urgency
+    let departurePriority = 3;
+    let commissionPriority = 4;
+    
+    if (urgentDepartures.length > 0) departurePriority = 1;
+    else if (upcomingDeps.length > 0) departurePriority = 2;
+    
+    if (urgentCommissions.length > 0) commissionPriority = 1;
+    else if (upcomingComms.length > 0) commissionPriority = 2;
+
+    return {
+      upcomingDepartures: {
+        id: "upcomingDepartures",
+        priority: departurePriority,
+        hasData: upcomingDeps.length > 0,
+        urgentCount: urgentDepartures.length,
+        dataCount: upcomingDeps.length,
+      },
+      upcomingCommissions: {
+        id: "upcomingCommissions",
+        priority: commissionPriority,
+        hasData: upcomingComms.length > 0,
+        urgentCount: urgentCommissions.length,
+        dataCount: upcomingComms.length,
+      },
+      recentBookings: {
+        id: "recentBookings",
+        priority: 3,
+        hasData: activeBookings.length > 0,
+        urgentCount: 0,
+        dataCount: activeBookings.length,
+      },
+      kpis: {
+        id: "kpis",
+        priority: 5,
+        hasData: thisMonthBookings.length > 0 || clients.length > 0,
+        urgentCount: 0,
+        dataCount: thisMonthBookings.length,
+      },
+      leaderboard: {
+        id: "leaderboard",
+        priority: isAgencyView ? 4 : 10, // Only relevant for admins
+        hasData: isAgencyView,
+        urgentCount: 0,
+        dataCount: 0,
+      },
+      commissionSummary: {
+        id: "commissionSummary",
+        priority: pendingCommissions.length > 0 ? 3 : 6,
+        hasData: hasCommissionData,
+        urgentCount: pendingCommissions.length,
+        dataCount: commissions.length,
+      },
+    };
+  }, [bookings, clients, commissions, isAgencyView]);
+
+  // Sort sections by priority
+  const sortedSections = useMemo(() => {
+    return Object.values(sections).sort((a, b) => a.priority - b.priority);
+  }, [sections]);
+
+  // Calculate stats for the header
+  const stats = useMemo(() => {
+    if (!bookings || !clients) {
+      return {
+        activeBookings: 0,
+        totalClients: 0,
+        totalRevenue: 0,
+        pendingBookings: 0,
+        confirmedBookings: 0,
+        completedBookings: 0,
+      };
+    }
+
+    const activeBookings = bookings.filter(
+      (b) => b.status === "confirmed" || b.status === "pending"
+    ).length;
+    const pendingBookings = bookings.filter((b) => b.status === "pending").length;
+    const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length;
+    const completedBookings = bookings.filter((b) => b.status === "completed").length;
+    const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+
+    return {
+      activeBookings,
+      totalClients: clients.length,
+      totalRevenue,
+      pendingBookings,
+      confirmedBookings,
+      completedBookings,
+    };
+  }, [bookings, clients]);
+
+  return {
+    sections,
+    sortedSections,
+    stats,
+    loading,
+    isAgencyView,
+  };
+}
