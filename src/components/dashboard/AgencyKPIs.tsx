@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
+import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   TrendingUp, 
@@ -69,6 +70,10 @@ function KPICard({ title, value, change, changeType = "neutral", icon: Icon, onC
 
 export function AgencyKPIs() {
   const navigate = useNavigate();
+  const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const isAgencyView = isAdmin || isOfficeAdmin;
+  
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
@@ -177,7 +182,7 @@ export function AgencyKPIs() {
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Agency KPIs
+            {isAgencyView ? "Agency KPIs" : "Your KPIs"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -199,7 +204,7 @@ export function AgencyKPIs() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Agency KPIs
+            {isAgencyView ? "Agency KPIs" : "Your KPIs"}
           </CardTitle>
           <button
             onClick={() => navigate("/analytics")}
