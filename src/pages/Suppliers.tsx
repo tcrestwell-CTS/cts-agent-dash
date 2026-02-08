@@ -183,6 +183,18 @@ const initialSuppliers: Supplier[] = [
     integrationType: "redirect",
     apiStatus: "none",
   },
+  {
+    id: "hyatt-inclusive",
+    name: "Hyatt Inclusive Collection",
+    url: "https://www.hyattinclusivecollection.com/en/travel-advisors/",
+    description: "Hyatt all-inclusive travel advisor portal for Dreams, Secrets, Breathless, and Zoëtry resorts.",
+    category: "hotels",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
   // All-Inclusive Resorts
   {
     id: "sandals",
