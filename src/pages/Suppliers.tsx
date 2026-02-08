@@ -333,18 +333,32 @@ function CTSBookingsWidget() {
     script.onerror = () => setWidgetError(true);
     containerRef.current.appendChild(script);
 
-    // MutationObserver to watch for dynamically created forms and set target="_blank"
+    // Function to handle form submission in a popup window
+    const handleFormSubmit = (form: HTMLFormElement) => {
+      const popupName = 'CTSBookingPopup';
+      const popupFeatures = 'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
+      
+      // Set target to the popup name
+      form.setAttribute('target', popupName);
+      
+      // Add submit listener to open popup before form submits
+      form.addEventListener('submit', () => {
+        window.open('', popupName, popupFeatures);
+      }, { once: false });
+    };
+
+    // MutationObserver to watch for dynamically created forms and configure popup
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node instanceof HTMLFormElement) {
-            node.setAttribute('target', '_blank');
+            handleFormSubmit(node);
           }
           // Also check for forms inside added elements
           if (node instanceof HTMLElement) {
             const forms = node.querySelectorAll('form');
             forms.forEach((form) => {
-              form.setAttribute('target', '_blank');
+              handleFormSubmit(form);
             });
           }
         });
