@@ -238,7 +238,7 @@ export function AgencyKPIs() {
             change={`${kpis.totalClients} total clients`}
             changeType="neutral"
             icon={Users}
-            onClick={() => navigate("/crm")}
+            onClick={() => navigate("/contacts")}
           />
           <KPICard
             title="Conversion Rate"

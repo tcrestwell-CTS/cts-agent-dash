@@ -42,7 +42,7 @@ const App = () => (
               }
             />
             <Route
-              path="/crm"
+              path="/contacts"
               element={
                 <ProtectedRoute>
                   <CRM />
@@ -50,7 +50,7 @@ const App = () => (
               }
             />
             <Route
-              path="/crm/:clientId"
+              path="/contacts/:clientId"
               element={
                 <ProtectedRoute>
                   <ClientDetail />

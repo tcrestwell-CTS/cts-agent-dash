@@ -166,7 +166,7 @@ export function AddClientDialog() {
           <DialogHeader>
             <DialogTitle>Add New Client</DialogTitle>
             <DialogDescription>
-              Add a new client to your CRM with their travel profile.
+              Add a new client to your contacts with their travel profile.
             </DialogDescription>
           </DialogHeader>
           

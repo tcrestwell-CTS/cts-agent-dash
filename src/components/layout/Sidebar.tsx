@@ -21,7 +21,7 @@ import crestwellLogo from "@/assets/crestwell-logo.png";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "CRM", href: "/crm", icon: Users },
+  { name: "Contacts", href: "/contacts", icon: Users },
   { name: "Bookings", href: "/bookings", icon: Calendar },
   { name: "Suppliers", href: "/suppliers", icon: Building2 },
   { name: "Commissions", href: "/commissions", icon: DollarSign },
