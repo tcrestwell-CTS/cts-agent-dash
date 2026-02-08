@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import TeamManagement from "./pages/TeamManagement";
 import Suppliers from "./pages/Suppliers";
 import SupplierDocs from "./pages/SupplierDocs";
+import Trips from "./pages/Trips";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -134,6 +135,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Suppliers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/trips"
+              element={
+                <ProtectedRoute>
+                  <Trips />
                 </ProtectedRoute>
               }
             />

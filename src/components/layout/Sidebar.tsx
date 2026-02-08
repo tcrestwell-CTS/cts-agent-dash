@@ -12,6 +12,7 @@ import {
   BarChart3,
   Building2,
   FileSpreadsheet,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Contacts", href: "/contacts", icon: Users },
   { name: "Bookings", href: "/bookings", icon: Calendar },
+  { name: "Trips", href: "/trips", icon: Compass },
   { name: "Suppliers", href: "/suppliers", icon: Building2 },
   { name: "Commissions", href: "/commissions", icon: DollarSign },
   { name: "Commission Report", href: "/commission-report", icon: FileSpreadsheet },
