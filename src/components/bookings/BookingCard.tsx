@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Users, MapPin, ExternalLink, Pencil, Trash2, DollarSign } from "lucide-react";
+import { Calendar, Users, MapPin, ExternalLink, Pencil, Trash2, DollarSign, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { Booking } from "@/hooks/useBookings";
 
@@ -165,6 +165,16 @@ export function BookingCard({
           <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
           <span>{formatCurrency(booking.total_amount)}</span>
         </div>
+
+        {/* Commission Override Pending Badge */}
+        {booking.override_pending_approval && (
+          <div className="flex items-center gap-2 p-2 bg-warning/10 border border-warning/20 rounded-lg">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+            <span className="text-xs text-warning font-medium">
+              Commission override pending approval
+            </span>
+          </div>
+        )}
 
         {/* Agent (admin only) */}
         {isAdmin && booking.owner_agent && (
