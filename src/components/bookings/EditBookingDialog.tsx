@@ -71,6 +71,11 @@ export function EditBookingDialog({
       return;
     }
 
+    // Validate that return date is after departure date
+    if (formData.return_date < formData.depart_date) {
+      return;
+    }
+
     const success = await onSubmit(booking.id, {
       ...formData,
       supplier_id: formData.supplier_id || null,
@@ -134,7 +139,7 @@ export function EditBookingDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit_depart_date">Departure Date *</Label>
+              <Label htmlFor="edit_depart_date">Trip Start Date *</Label>
               <Input
                 id="edit_depart_date"
                 type="date"
@@ -144,14 +149,18 @@ export function EditBookingDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit_return_date">Return Date *</Label>
+              <Label htmlFor="edit_return_date">Trip End Date *</Label>
               <Input
                 id="edit_return_date"
                 type="date"
                 value={formData.return_date}
                 onChange={(e) => setFormData((prev) => ({ ...prev, return_date: e.target.value }))}
                 required
+                min={formData.depart_date || undefined}
               />
+              {formData.depart_date && formData.return_date && formData.return_date < formData.depart_date && (
+                <p className="text-xs text-destructive">Trip end date must be after start date</p>
+              )}
             </div>
           </div>
 
