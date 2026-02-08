@@ -666,7 +666,7 @@ const BookingDetail = () => {
               <CardContent className="space-y-3">
                 <div>
                   <Link
-                    to={`/crm/${booking.client_id}`}
+                    to={`/contacts/${booking.client_id}`}
                     className="font-medium text-foreground hover:text-primary transition-colors"
                   >
                     {booking.clients.name}
@@ -707,7 +707,7 @@ const BookingDetail = () => {
                   </div>
                 )}
                 <Button variant="outline" size="sm" className="w-full mt-2" asChild>
-                  <Link to={`/crm/${booking.client_id}`}>View Full Profile</Link>
+                  <Link to={`/contacts/${booking.client_id}`}>View Full Profile</Link>
                 </Button>
               </CardContent>
             </Card>

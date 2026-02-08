@@ -213,7 +213,7 @@ const ClientDetail = () => {
   const handleDelete = async () => {
     if (!client) return;
     await deleteClient.mutateAsync(client.id);
-    navigate("/crm");
+    navigate("/contacts");
   };
 
   if (isLoading) {
@@ -236,7 +236,7 @@ const ClientDetail = () => {
       <DashboardLayout>
         <div className="text-center py-12">
           <p className="text-destructive font-medium">Client not found</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/crm")}>
+          <Button variant="outline" className="mt-4" onClick={() => navigate("/contacts")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Clients
           </Button>
@@ -268,7 +268,7 @@ const ClientDetail = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/crm")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-4">

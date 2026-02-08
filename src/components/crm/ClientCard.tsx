@@ -48,7 +48,7 @@ export function ClientCard({ client }: ClientCardProps) {
   return (
     <div 
       className="bg-card rounded-xl p-5 shadow-card border border-border/50 hover:shadow-md transition-shadow cursor-pointer group"
-      onClick={() => navigate(`/crm/${client.id}`)}
+      onClick={() => navigate(`/contacts/${client.id}`)}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
