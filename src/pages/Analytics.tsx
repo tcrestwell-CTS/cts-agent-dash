@@ -8,6 +8,8 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
+import { AgencySalesTab } from "@/components/analytics/AgencySalesTab";
+import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { DateRangeFilter, DateRange } from "@/components/analytics/DateRangeFilter";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
@@ -513,6 +515,10 @@ const Analytics = () => {
               <BarChart3 className="h-4 w-4" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="agency-sales" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Agency Sales
+            </TabsTrigger>
             <TabsTrigger value="agents" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               Agent Performance
@@ -760,6 +766,10 @@ const Analytics = () => {
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
+
+          <TabsContent value="agency-sales">
+            <AgencySalesTab dateRange={dateRange} />
           </TabsContent>
 
           <TabsContent value="agents">
