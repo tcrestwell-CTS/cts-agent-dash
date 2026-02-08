@@ -43,11 +43,11 @@ const Auth = () => {
     }
   }, [switchAccount, user, signOut, isSigningOut]);
 
-  // If there's an invite token, default to signup mode
+  // If there's an invite token, default to signup mode but keep showing both auth options
   useEffect(() => {
     if (inviteToken) {
-      setAuthMode("email");
       setEmailMode("signup");
+      // Keep authMode as "google" to show both options
     }
   }, [inviteToken]);
 
@@ -341,12 +341,16 @@ const Auth = () => {
 
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-semibold text-foreground tracking-tight">
-              {emailMode === "signup" ? "Create your account" : "Welcome back"}
+              {inviteToken 
+                ? "Accept Your Invitation" 
+                : (emailMode === "signup" ? "Create your account" : "Welcome back")}
             </h2>
             <p className="text-muted-foreground mt-2">
-              {emailMode === "signup" 
-                ? "Set up your account using your invited email" 
-                : "Sign in to access your travel agency dashboard"}
+              {inviteToken 
+                ? "Choose how you'd like to create your account" 
+                : (emailMode === "signup" 
+                    ? "Set up your account using your invited email" 
+                    : "Sign in to access your travel agency dashboard")}
             </p>
           </div>
 
@@ -377,7 +381,7 @@ const Auth = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                {isSigningIn ? "Signing in..." : "Continue with Google"}
+                {isSigningIn ? "Signing in..." : (inviteToken ? "Sign up with Google" : "Continue with Google")}
               </Button>
 
               <div className="relative">
@@ -386,7 +390,7 @@ const Auth = () => {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with email
+                    {inviteToken ? "Or create account with email" : "Or continue with email"}
                   </span>
                 </div>
               </div>
@@ -398,8 +402,24 @@ const Auth = () => {
                 onClick={() => setAuthMode("email")}
               >
                 <Mail className="h-5 w-5" />
-                Use Email & Password
+                {inviteToken ? "Sign up with Email & Password" : "Use Email & Password"}
               </Button>
+
+              {!inviteToken && (
+                <p className="text-center text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("email");
+                      setEmailMode("signin");
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    Sign in
+                  </button>
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -473,15 +493,17 @@ const Auth = () => {
               </Button>
 
               <div className="flex flex-col gap-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => setEmailMode(emailMode === "signin" ? "signup" : "signin")}
-                  className="text-sm text-primary hover:underline"
-                >
-                  {emailMode === "signin" 
-                    ? "New user? Create an account" 
-                    : "Already have an account? Sign in"}
-                </button>
+                {!inviteToken && (
+                  <button
+                    type="button"
+                    onClick={() => setEmailMode(emailMode === "signin" ? "signup" : "signin")}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {emailMode === "signin" 
+                      ? "New user? Create an account" 
+                      : "Already have an account? Sign in"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setAuthMode("google")}
