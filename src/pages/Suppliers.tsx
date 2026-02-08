@@ -186,10 +186,10 @@ const initialSuppliers: Supplier[] = [
   },
   // Transportation
   {
-    id: "carey",
-    name: "Carey International",
-    url: "https://www.carey.com",
-    description: "Carey International luxury chauffeured transportation and ground services worldwide.",
+    id: "carey-connect",
+    name: "Carey Connect",
+    url: "https://connect.carey.com",
+    description: "Carey corporate portal for luxury chauffeured transportation and ground services worldwide.",
     category: "transportation",
     isFavorite: false,
     notes: "",
