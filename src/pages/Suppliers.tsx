@@ -333,6 +333,27 @@ function CTSBookingsWidget() {
     script.onerror = () => setWidgetError(true);
     containerRef.current.appendChild(script);
 
+    // MutationObserver to watch for dynamically created forms and set target="_blank"
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLFormElement) {
+            node.setAttribute('target', '_blank');
+          }
+          // Also check for forms inside added elements
+          if (node instanceof HTMLElement) {
+            const forms = node.querySelectorAll('form');
+            forms.forEach((form) => {
+              form.setAttribute('target', '_blank');
+            });
+          }
+        });
+      });
+    });
+
+    // Observe the entire document body for form additions (widget may append forms elsewhere)
+    observer.observe(document.body, { childList: true, subtree: true });
+
     // Check if widget loaded after a delay
     const timeout = setTimeout(() => {
       if (containerRef.current && containerRef.current.querySelector('#ptw-container')?.children.length === 0) {
@@ -341,6 +362,7 @@ function CTSBookingsWidget() {
     }, 3000);
 
     return () => {
+      observer.disconnect();
       clearTimeout(timeout);
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
