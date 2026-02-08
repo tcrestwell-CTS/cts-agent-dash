@@ -2,27 +2,28 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plane, Calendar, Users, MapPin } from "lucide-react";
-import { useBookings } from "@/hooks/useBookings";
+import { Plane, Calendar, Users, MapPin, DollarSign } from "lucide-react";
+import { useTrips } from "@/hooks/useTrips";
 import { format, addDays, isWithinInterval, isFuture } from "date-fns";
 
 export function UpcomingDepartures() {
   const navigate = useNavigate();
-  const { bookings, loading } = useBookings();
+  const { trips, loading } = useTrips();
 
   const today = new Date();
   const thirtyDaysFromNow = addDays(today, 30);
 
-  const upcomingDepartures = bookings
-    .filter((booking) => {
-      const departDate = new Date(booking.depart_date);
+  const upcomingDepartures = trips
+    .filter((trip) => {
+      if (!trip.depart_date) return false;
+      const departDate = new Date(trip.depart_date);
       return (
-        booking.status !== "cancelled" &&
+        trip.status !== "cancelled" &&
         isFuture(departDate) &&
         isWithinInterval(departDate, { start: today, end: thirtyDaysFromNow })
       );
     })
-    .sort((a, b) => new Date(a.depart_date).getTime() - new Date(b.depart_date).getTime())
+    .sort((a, b) => new Date(a.depart_date!).getTime() - new Date(b.depart_date!).getTime())
     .slice(0, 5);
 
   const getDaysUntilDeparture = (departDate: string) => {
@@ -41,6 +42,15 @@ export function UpcomingDepartures() {
     if (days <= 3) return "bg-destructive/10 text-destructive border-destructive/20";
     if (days <= 7) return "bg-accent/10 text-accent border-accent/20";
     return "bg-primary/10 text-primary border-primary/20";
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   return (
@@ -66,42 +76,47 @@ export function UpcomingDepartures() {
           </div>
         ) : (
           <div className="space-y-3">
-            {upcomingDepartures.map((booking) => (
+            {upcomingDepartures.map((trip) => (
               <div
-                key={booking.id}
-                onClick={() => navigate(`/bookings/${booking.id}`)}
-                className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${getUrgencyColor(booking.depart_date)}`}
+                key={trip.id}
+                onClick={() => navigate(`/trips/${trip.id}`)}
+                className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${getUrgencyColor(trip.depart_date!)}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium truncate">
-                        {booking.trip_name || booking.destination}
+                        {trip.trip_name}
                       </span>
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {booking.booking_reference}
-                      </Badge>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {booking.destination}
-                      </span>
+                      {trip.destination && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {trip.destination}
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(booking.depart_date), "MMM d")}
+                        {format(new Date(trip.depart_date!), "MMM d")}
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {booking.travelers}
+                        {trip.clients?.name || "Unknown"}
                       </span>
+                      {trip.total_gross_sales > 0 && (
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          {formatCurrency(trip.total_gross_sales)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Badge 
                     variant="secondary" 
                     className="shrink-0 font-semibold"
                   >
-                    {getDaysUntilDeparture(booking.depart_date)}
+                    {getDaysUntilDeparture(trip.depart_date!)}
                   </Badge>
                 </div>
               </div>

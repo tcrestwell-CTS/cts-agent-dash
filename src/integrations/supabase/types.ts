@@ -80,6 +80,7 @@ export type Database = {
           supplier_payout: number
           total_amount: number
           travelers: number
+          trip_id: string | null
           trip_name: string | null
           trip_page_url: string | null
           updated_at: string
@@ -111,6 +112,7 @@ export type Database = {
           supplier_payout?: number
           total_amount?: number
           travelers?: number
+          trip_id?: string | null
           trip_name?: string | null
           trip_page_url?: string | null
           updated_at?: string
@@ -142,6 +144,7 @@ export type Database = {
           supplier_payout?: number
           total_amount?: number
           travelers?: number
+          trip_id?: string | null
           trip_name?: string | null
           trip_page_url?: string | null
           updated_at?: string
@@ -160,6 +163,13 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -704,6 +714,77 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      trips: {
+        Row: {
+          client_id: string
+          created_at: string
+          depart_date: string | null
+          destination: string | null
+          id: string
+          notes: string | null
+          return_date: string | null
+          status: string
+          total_commission_revenue: number
+          total_commissionable_amount: number
+          total_gross_sales: number
+          total_net_sales: number
+          total_supplier_payout: number
+          trip_name: string
+          trip_page_url: string | null
+          trip_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          depart_date?: string | null
+          destination?: string | null
+          id?: string
+          notes?: string | null
+          return_date?: string | null
+          status?: string
+          total_commission_revenue?: number
+          total_commissionable_amount?: number
+          total_gross_sales?: number
+          total_net_sales?: number
+          total_supplier_payout?: number
+          trip_name: string
+          trip_page_url?: string | null
+          trip_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          depart_date?: string | null
+          destination?: string | null
+          id?: string
+          notes?: string | null
+          return_date?: string | null
+          status?: string
+          total_commission_revenue?: number
+          total_commissionable_amount?: number
+          total_gross_sales?: number
+          total_net_sales?: number
+          total_supplier_payout?: number
+          trip_name?: string
+          trip_page_url?: string | null
+          trip_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

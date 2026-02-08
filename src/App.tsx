@@ -20,6 +20,7 @@ import TeamManagement from "./pages/TeamManagement";
 import Suppliers from "./pages/Suppliers";
 import SupplierDocs from "./pages/SupplierDocs";
 import Trips from "./pages/Trips";
+import TripDetail from "./pages/TripDetail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -143,6 +144,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Trips />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/trips/:tripId"
+              element={
+                <ProtectedRoute>
+                  <TripDetail />
                 </ProtectedRoute>
               }
             />
