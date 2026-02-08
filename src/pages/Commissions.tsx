@@ -25,7 +25,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
 import { useMemo } from "react";
-import { format, parseISO, startOfMonth, subMonths, startOfYear, isWithinInterval } from "date-fns";
+import { format, parseISO, startOfMonth, subMonths, subDays, startOfYear, isWithinInterval, isPast, differenceInDays } from "date-fns";
 import { calculateAgentCommission, getTierConfig } from "@/lib/commissionTiers";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
@@ -49,12 +49,18 @@ const Commissions = () => {
     return commissions.map((commission) => {
       const booking = bookings.find((b) => b.id === commission.booking_id);
       const client = booking ? clients.find((c) => c.id === booking.client_id) : null;
+      
+      // Calculate expected commission date (30 days before departure)
+      const expectedCommissionDate = booking 
+        ? subDays(new Date(booking.depart_date), 30)
+        : null;
 
       return {
         ...commission,
         booking,
         client,
         agentShare: calculateAgentCommission(commission.amount, profile?.commission_tier),
+        expectedCommissionDate,
       };
     }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [commissions, bookings, clients, profile?.commission_tier]);
@@ -143,6 +149,7 @@ const Commissions = () => {
       commission_rate: `${c.rate}%`,
       total_commission: formatCurrencyForExport(c.amount),
       your_share: formatCurrencyForExport(c.agentShare),
+      expected_date: c.expectedCommissionDate ? formatDateForExport(format(c.expectedCommissionDate, "yyyy-MM-dd")) : "",
       status: c.status,
       paid_date: c.paid_date ? formatDateForExport(c.paid_date) : "",
     }));
@@ -155,6 +162,7 @@ const Commissions = () => {
       { key: "commission_rate", header: "Rate" },
       { key: "total_commission", header: "Total Commission ($)" },
       { key: "your_share", header: "Your Share ($)" },
+      { key: "expected_date", header: "Expected Date" },
       { key: "status", header: "Status" },
       { key: "paid_date", header: "Paid Date" },
     ]);
@@ -326,6 +334,7 @@ const Commissions = () => {
                   <TableHead className="text-right">Booking Amt</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
                   <TableHead className="text-right">Your Share</TableHead>
+                  <TableHead>Expected Date</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -349,6 +358,20 @@ const Commissions = () => {
                     <TableCell className="text-right">{item.rate}%</TableCell>
                     <TableCell className="text-right font-semibold text-success">
                       {formatCurrency(item.agentShare)}
+                    </TableCell>
+                    <TableCell>
+                      {item.expectedCommissionDate && (
+                        <div>
+                          <p className={`text-sm font-medium ${isPast(item.expectedCommissionDate) ? "text-success" : "text-foreground"}`}>
+                            {format(item.expectedCommissionDate, "MMM d, yyyy")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isPast(item.expectedCommissionDate)
+                              ? "Available"
+                              : `${differenceInDays(item.expectedCommissionDate, new Date())} days`}
+                          </p>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
