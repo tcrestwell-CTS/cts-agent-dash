@@ -212,6 +212,91 @@ export function useBookings() {
     }
   };
 
+  const sendOverrideApprovalNotification = async (overrideData: {
+    agentName: string;
+    bookingReference: string;
+    clientName: string;
+    destination: string;
+    calculatedCommission: number;
+    overrideAmount: number;
+    overrideReason: string;
+  }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error("No session for sending override notification");
+        return false;
+      }
+
+      // Get admin users to notify
+      const { data: adminRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (rolesError || !adminRoles?.length) {
+        console.error("No admins found or error fetching admins:", rolesError);
+        return false;
+      }
+
+      // Get admin profiles with emails
+      const adminUserIds = adminRoles.map(r => r.user_id);
+      
+      // Since we can't directly get emails from auth.users, we'll use a service role approach
+      // For now, we'll send to all admins we can find through the profiles table
+      // In production, you might want to store admin notification emails in branding_settings
+      
+      const { data: branding } = await supabase
+        .from("branding_settings")
+        .select("email_address")
+        .single();
+
+      const adminEmail = branding?.email_address;
+      
+      if (!adminEmail) {
+        console.log("No admin notification email configured in branding settings");
+        return false;
+      }
+
+      const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+        }).format(value);
+      };
+
+      const response = await supabase.functions.invoke("send-email", {
+        body: {
+          to: adminEmail,
+          subject: `⚠️ Commission Override Requires Approval - ${overrideData.bookingReference}`,
+          template: "commission_override_approval",
+          data: {
+            agentName: overrideData.agentName,
+            bookingReference: overrideData.bookingReference,
+            clientName: overrideData.clientName,
+            destination: overrideData.destination,
+            calculatedCommission: formatCurrency(overrideData.calculatedCommission),
+            overrideAmount: formatCurrency(overrideData.overrideAmount),
+            overrideReason: overrideData.overrideReason || "No reason provided",
+            approvalUrl: `${window.location.origin}/commissions`,
+          },
+        },
+      });
+
+      if (response.error) {
+        console.error("Error sending override notification:", response.error);
+        return false;
+      }
+
+      console.log("Override approval notification sent to admin");
+      return true;
+    } catch (error) {
+      console.error("Error sending override notification:", error);
+      return false;
+    }
+  };
+
   const createBooking = async (data: CreateBookingData) => {
     if (!user) {
       toast.error("You must be logged in to create a booking");
@@ -296,6 +381,20 @@ export function useBookings() {
         }
       } else {
         toast.success("Booking created successfully");
+      }
+
+      // Send admin notification if override requires approval
+      if (needsApproval) {
+        await sendOverrideApprovalNotification({
+          agentName: agentName || "Unknown Agent",
+          bookingReference,
+          clientName: newBooking.clients?.name || "Unknown Client",
+          destination: data.destination,
+          calculatedCommission: commissionRevenue,
+          overrideAmount: overrideAmount!,
+          overrideReason: data.override_notes || "",
+        });
+        toast.info("Commission override submitted for admin approval");
       }
 
       // Refresh bookings list

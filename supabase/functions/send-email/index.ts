@@ -11,7 +11,7 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "custom";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
   clientId?: string;
@@ -238,6 +238,42 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         `;
         break;
+
+      case "commission_override_approval":
+        const agentNameOverride = templateData?.agentName || "An agent";
+        const bookingRef = templateData?.bookingReference || "N/A";
+        const clientNameOverride = templateData?.clientName || "Unknown Client";
+        const destinationOverride = templateData?.destination || "N/A";
+        const calculatedCommission = templateData?.calculatedCommission || "$0.00";
+        const overrideAmount = templateData?.overrideAmount || "$0.00";
+        const overrideReason = templateData?.overrideReason || "No reason provided";
+        const approvalUrl = templateData?.approvalUrl || "#";
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">⚠️ Commission Override Requires Approval</h2>
+            <p style="color: #4b5563; line-height: 1.6;">A commission override has been submitted that requires your approval:</p>
+            <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Agent:</strong> ${agentNameOverride}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Booking:</strong> ${bookingRef}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Client:</strong> ${clientNameOverride}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${destinationOverride}</p>
+              <div style="margin: 16px 0; padding-top: 12px; border-top: 1px solid #f59e0b;">
+                <p style="margin: 8px 0; color: #374151;"><strong>Calculated Commission:</strong> <span style="text-decoration: line-through;">${calculatedCommission}</span></p>
+                <p style="margin: 8px 0; color: #b45309; font-size: 18px;"><strong>Requested Override:</strong> ${overrideAmount}</p>
+              </div>
+              <p style="margin: 12px 0 0 0; color: #374151;"><strong>Reason:</strong> <em>"${overrideReason}"</em></p>
+            </div>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${approvalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Review & Approve</a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">Log in to the dashboard to approve or reject this commission override request.</p>
+            ${footerHtml}
+          </div>
+        `;
 
       case "custom":
         // Custom freeform email with user-provided content
