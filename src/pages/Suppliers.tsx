@@ -309,7 +309,7 @@ const categories = [
 // CTS Bookings Widget Component
 function CTSBookingsWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !isOpen) return;
