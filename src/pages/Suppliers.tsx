@@ -159,6 +159,18 @@ const initialSuppliers: Supplier[] = [
     integrationType: "redirect",
     apiStatus: "none",
   },
+  {
+    id: "hilton-agent",
+    name: "Hilton Travel Agents",
+    url: "https://travelagents.hilton.com",
+    description: "Hilton travel agent portal for booking Hilton, DoubleTree, Hampton Inn, and more.",
+    category: "hotels",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
   // All-Inclusive Resorts
   {
     id: "sandals",
