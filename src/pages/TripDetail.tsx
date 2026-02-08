@@ -20,6 +20,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
+import { TripBookings } from "@/components/trips/TripBookings";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import {
@@ -310,112 +311,12 @@ const TripDetail = () => {
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Bookings</CardTitle>
-                <Button size="sm" onClick={() => navigate("/bookings")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Booking
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {bookings.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Building2 className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p>No bookings in this trip yet</p>
-                    <p className="text-sm mt-1">
-                      Add bookings to track hotels, flights, and more
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b text-left">
-                          <th className="pb-3 font-medium text-sm text-muted-foreground">
-                            Item
-                          </th>
-                          <th className="pb-3 font-medium text-sm text-muted-foreground">
-                            Price
-                          </th>
-                          <th className="pb-3 font-medium text-sm text-muted-foreground">
-                            Supplier
-                          </th>
-                          <th className="pb-3 font-medium text-sm text-muted-foreground">
-                            Conf #
-                          </th>
-                          <th className="pb-3 font-medium text-sm text-muted-foreground">
-                            Status
-                          </th>
-                          <th className="pb-3 font-medium text-sm text-muted-foreground">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {bookings.map((booking) => (
-                          <tr
-                            key={booking.id}
-                            className="hover:bg-muted/50 cursor-pointer"
-                            onClick={() => navigate(`/bookings/${booking.id}`)}
-                          >
-                            <td className="py-3">
-                              <div>
-                                <p className="font-medium">
-                                  {booking.trip_name || booking.destination}
-                                </p>
-                                {booking.depart_date && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {format(
-                                      new Date(booking.depart_date),
-                                      "MMM d, yyyy"
-                                    )}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-3">
-                              {formatCurrency(booking.gross_sales)}
-                            </td>
-                            <td className="py-3">
-                              {booking.suppliers?.name || "-"}
-                            </td>
-                            <td className="py-3 font-mono text-sm">
-                              {booking.booking_reference}
-                            </td>
-                            <td className="py-3">
-                              <Badge
-                                variant="secondary"
-                                className={
-                                  bookingStatusColors[booking.status] ||
-                                  bookingStatusColors.pending
-                                }
-                              >
-                                {booking.status.charAt(0).toUpperCase() +
-                                  booking.status.slice(1)}
-                              </Badge>
-                            </td>
-                            <td className="py-3">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeBookingFromTrip(booking.id);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <TripBookings
+              tripId={tripId!}
+              bookings={bookings}
+              tripTotal={trip.total_gross_sales}
+              totalCommission={trip.total_commission_revenue}
+            />
           </TabsContent>
 
           <TabsContent value="payments" className="mt-6">
