@@ -4,7 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
 import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
-import { Plane, Ship, Hotel, Car, Palmtree, ExternalLink } from "lucide-react";
+import { Plane, Ship, Hotel, Car, Palmtree, ExternalLink, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 
 export type IntegrationType = "api" | "redirect" | "hybrid";
 
@@ -307,9 +309,10 @@ const categories = [
 // CTS Bookings Widget Component
 function CTSBookingsWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !isOpen) return;
     
     // Clear any existing content
     containerRef.current.innerHTML = '';
@@ -333,20 +336,34 @@ function CTSBookingsWidget() {
         containerRef.current.innerHTML = '';
       }
     };
-  }, []);
+  }, [isOpen]);
 
   return (
     <div className="mb-8">
-      <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Hotel className="h-5 w-5 text-primary" />
-          CTS Hotel Booking Widget
-        </h3>
-        <div 
-          ref={containerRef}
-          className="onlyBooker_section w-full min-h-[80px]"
-        />
-      </div>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 rounded-none"
+            >
+              <span className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Hotel className="h-5 w-5 text-primary" />
+                CTS Hotel Booking Widget
+              </span>
+              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="p-4 pt-0">
+              <div 
+                ref={containerRef}
+                className="onlyBooker_section w-full min-h-[80px]"
+              />
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
     </div>
   );
 }
