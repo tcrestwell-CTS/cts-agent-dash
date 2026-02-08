@@ -17,6 +17,7 @@ import Branding from "./pages/Branding";
 import Settings from "./pages/Settings";
 import TeamManagement from "./pages/TeamManagement";
 import Suppliers from "./pages/Suppliers";
+import SupplierDocs from "./pages/SupplierDocs";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -127,6 +128,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/supplier-docs" element={<SupplierDocs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
