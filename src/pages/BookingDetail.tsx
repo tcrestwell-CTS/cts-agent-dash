@@ -43,6 +43,7 @@ import {
   CheckCircle,
   Loader2,
   UserMinus,
+  AlertTriangle,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
@@ -214,6 +215,14 @@ const BookingDetail = () => {
             <p className="text-muted-foreground mt-1">
               Booking Reference: {booking.booking_reference}
             </p>
+            {booking.override_pending_approval && (
+              <div className="flex items-center gap-2 mt-2 p-2 bg-warning/10 border border-warning/20 rounded-lg w-fit">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <span className="text-sm text-warning font-medium">
+                  Commission override pending approval
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
