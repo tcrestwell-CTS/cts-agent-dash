@@ -139,7 +139,7 @@ const initialSuppliers: Supplier[] = [
   {
     id: "sandals",
     name: "Sandals & Beaches",
-    url: "https://taportal.sandals.com",
+    url: "https://taportal.sandals.com/dashboard",
     description: "Sandals and Beaches Resorts travel agent portal for all-inclusive Caribbean bookings.",
     category: "all-inclusive",
     isFavorite: false,
