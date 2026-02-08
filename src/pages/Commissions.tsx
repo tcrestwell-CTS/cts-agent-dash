@@ -23,12 +23,14 @@ import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
 import { useMemo } from "react";
 import { format, parseISO, startOfMonth, subMonths, subDays, startOfYear, isWithinInterval, isPast, differenceInDays } from "date-fns";
-import { calculateAgentCommission, getTierConfig } from "@/lib/commissionTiers";
+import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
+import { Users } from "lucide-react";
 
 const Commissions = () => {
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
@@ -36,8 +38,9 @@ const Commissions = () => {
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { profile, loading: profileLoading } = useProfile();
   const { data: isAdmin } = useIsAdmin();
+  const { data: teamProfiles, isLoading: teamProfilesLoading } = useTeamProfiles();
 
-  const loading = commissionsLoading || bookingsLoading || clientsLoading || profileLoading;
+  const loading = commissionsLoading || bookingsLoading || clientsLoading || profileLoading || (isAdmin && teamProfilesLoading);
 
   // Get commission tier config for the current user
   const tierConfig = getTierConfig(profile?.commission_tier);
@@ -126,6 +129,50 @@ const Commissions = () => {
   }, [enrichedCommissions]);
 
   const maxEarned = Math.max(...monthlyData.map((d) => d.earned), 1);
+
+  // Admin-only: Agent breakdown with earnings per agent
+  const agentBreakdown = useMemo(() => {
+    if (!isAdmin || !commissions || !teamProfiles) return [];
+
+    // Group commissions by user_id
+    const commissionsByAgent = commissions.reduce((acc, commission) => {
+      const userId = commission.user_id;
+      if (!acc[userId]) {
+        acc[userId] = [];
+      }
+      acc[userId].push(commission);
+      return acc;
+    }, {} as Record<string, typeof commissions>);
+
+    // Map to agent breakdown data
+    return teamProfiles.map((agent) => {
+      const agentCommissions = commissionsByAgent[agent.user_id] || [];
+      const tier = agent.commission_tier as CommissionTier | null;
+      const tierConfig = getTierConfig(tier);
+      
+      const totalCommission = agentCommissions.reduce((sum, c) => sum + c.amount, 0);
+      const agentEarnings = agentCommissions.reduce(
+        (sum, c) => sum + calculateAgentCommission(c.amount, tier),
+        0
+      );
+      const pendingCount = agentCommissions.filter((c) => c.status === "pending").length;
+      const paidCount = agentCommissions.filter((c) => c.status === "paid").length;
+
+      return {
+        userId: agent.user_id,
+        name: agent.full_name || "Unknown Agent",
+        tier: tier || "tier_1",
+        tierLabel: tierConfig.label,
+        agentSplit: tierConfig.agentSplit,
+        totalCommission,
+        agentEarnings,
+        bookingCount: agentCommissions.length,
+        pendingCount,
+        paidCount,
+      };
+    }).filter((agent) => agent.bookingCount > 0)
+      .sort((a, b) => b.agentEarnings - a.agentEarnings);
+  }, [isAdmin, commissions, teamProfiles]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -284,6 +331,65 @@ const Commissions = () => {
           </p>
         </div>
       </div>
+
+      {/* Admin: Agent Breakdown */}
+      {isAdmin && agentBreakdown.length > 0 && (
+        <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden mb-6">
+          <div className="p-4 border-b border-border flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-card-foreground">
+              Agent Commission Breakdown
+            </h3>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Agent</TableHead>
+                <TableHead>Commission Tier</TableHead>
+                <TableHead className="text-right">Agent Rate</TableHead>
+                <TableHead className="text-right">Total Commission</TableHead>
+                <TableHead className="text-right">Agent Earnings</TableHead>
+                <TableHead className="text-right">Bookings</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {agentBreakdown.map((agent) => (
+                <TableRow key={agent.userId}>
+                  <TableCell className="font-medium">{agent.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-medium">
+                      {agent.tierLabel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">{agent.agentSplit}%</TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(agent.totalCommission)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-success">
+                    {formatCurrency(agent.agentEarnings)}
+                  </TableCell>
+                  <TableCell className="text-right">{agent.bookingCount}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {agent.paidCount > 0 && (
+                        <Badge variant="secondary" className="bg-success/10 text-success">
+                          {agent.paidCount} paid
+                        </Badge>
+                      )}
+                      {agent.pendingCount > 0 && (
+                        <Badge variant="secondary" className="bg-warning/10 text-warning">
+                          {agent.pendingCount} pending
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Chart and Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
