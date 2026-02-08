@@ -20,12 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, Mail, Users } from "lucide-react";
+import { Plus, Loader2, Mail, Users, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useCompanions } from "@/hooks/useCompanions";
 import { useAddBookingTravelers } from "@/hooks/useBookingTravelers";
+import { useSuppliers } from "@/hooks/useSuppliers";
 import { CreateBookingData } from "@/hooks/useBookings";
 import { Booking } from "@/hooks/useBookings";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface AddBookingDialogProps {
   onSubmit: (data: CreateBookingData) => Promise<Booking | null>;
@@ -35,7 +37,9 @@ interface AddBookingDialogProps {
 export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) {
   const [open, setOpen] = useState(false);
   const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const { activeSuppliers, isLoading: suppliersLoading } = useSuppliers();
   const addBookingTravelers = useAddBookingTravelers();
+  const [showFinancials, setShowFinancials] = useState(false);
   
   const [formData, setFormData] = useState({
     client_id: "",
@@ -44,6 +48,10 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
     return_date: "",
     travelers: 1,
     total_amount: 0,
+    gross_sales: 0,
+    commissionable_percentage: 85,
+    commission_rate: 10,
+    supplier_id: "",
     trip_name: "",
     notes: "",
     send_confirmation_email: true,
@@ -106,12 +114,50 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
         return_date: "",
         travelers: 1,
         total_amount: 0,
+        gross_sales: 0,
+        commissionable_percentage: 85,
+        commission_rate: 10,
+        supplier_id: "",
         trip_name: "",
         notes: "",
         send_confirmation_email: true,
       });
       setSelectedCompanionIds([]);
+      setShowFinancials(false);
     }
+  };
+
+  // Calculate financials when gross sales or rates change
+  const calculatedFinancials = (() => {
+    const gross = formData.gross_sales || formData.total_amount;
+    const commissionableAmount = gross * (formData.commissionable_percentage / 100);
+    const commissionRevenue = commissionableAmount * (formData.commission_rate / 100);
+    const netSales = gross - commissionRevenue;
+    return { commissionableAmount, commissionRevenue, netSales };
+  })();
+
+  const handleSupplierChange = (supplierId: string) => {
+    if (supplierId === "none") {
+      setFormData(prev => ({ ...prev, supplier_id: "", commissionable_percentage: 85, commission_rate: 10 }));
+    } else {
+      const supplier = activeSuppliers.find(s => s.id === supplierId);
+      if (supplier) {
+        setFormData(prev => ({
+          ...prev,
+          supplier_id: supplierId,
+          commissionable_percentage: supplier.commissionable_percentage,
+          commission_rate: supplier.commission_rate,
+        }));
+      }
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(value);
   };
 
   return (
@@ -206,17 +252,105 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="total_amount">Total Amount ($)</Label>
+              <Label htmlFor="gross_sales">Gross Booking Sales ($) *</Label>
               <Input
-                id="total_amount"
+                id="gross_sales"
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.total_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, total_amount: parseFloat(e.target.value) || 0 }))}
+                value={formData.gross_sales || formData.total_amount}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ ...prev, gross_sales: value, total_amount: value }));
+                }}
               />
             </div>
           </div>
+
+          {/* Financial Details Collapsible */}
+          <Collapsible open={showFinancials} onOpenChange={setShowFinancials}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-3 h-auto bg-muted/50 hover:bg-muted">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  <span className="text-sm font-medium">Commission Details</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-success font-medium">
+                    {formatCurrency(calculatedFinancials.commissionRevenue)}
+                  </span>
+                  {showFinancials ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </div>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4 space-y-4">
+              {/* Supplier Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="supplier">Supplier</Label>
+                <Select
+                  value={formData.supplier_id || "none"}
+                  onValueChange={handleSupplierChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={suppliersLoading ? "Loading..." : "Select supplier (optional)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No supplier (manual rates)</SelectItem>
+                    {activeSuppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name} ({supplier.commissionable_percentage}% @ {supplier.commission_rate}%)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Manual Rates (if no supplier) */}
+              {!formData.supplier_id && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="commissionable_pct">Commissionable %</Label>
+                    <Input
+                      id="commissionable_pct"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.commissionable_percentage}
+                      onChange={(e) => setFormData(prev => ({ ...prev, commissionable_percentage: parseFloat(e.target.value) || 85 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="commission_rate">Commission Rate %</Label>
+                    <Input
+                      id="commission_rate"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={formData.commission_rate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, commission_rate: parseFloat(e.target.value) || 10 }))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Calculated Values */}
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Commissionable Amount</span>
+                  <span>{formatCurrency(calculatedFinancials.commissionableAmount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-success">Commission Revenue</span>
+                  <span className="font-semibold text-success">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
+                </div>
+                <div className="flex justify-between text-sm border-t pt-2">
+                  <span className="text-muted-foreground">Net Booking Sales</span>
+                  <span className="font-medium">{formatCurrency(calculatedFinancials.netSales)}</span>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Travel Companions Selection */}
           {formData.client_id && companions.length > 0 && (

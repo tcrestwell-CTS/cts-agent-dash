@@ -9,6 +9,7 @@ import { UpcomingDepartures } from "@/components/dashboard/UpcomingDepartures";
 import { MonthlyRevenueChart } from "@/components/dashboard/MonthlyRevenueChart";
 import { AgencyKPIs } from "@/components/dashboard/AgencyKPIs";
 import { AgentLeaderboard } from "@/components/dashboard/AgentLeaderboard";
+import { CommissionRevenueCard } from "@/components/dashboard/CommissionRevenueCard";
 import { Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,6 +145,7 @@ const Index = () => {
         {/* Right Column - Widgets */}
         <div className="space-y-6">
           <QuickActions />
+          <CommissionRevenueCard />
           <AgentLeaderboard />
           <UpcomingDepartures />
           <CommissionSummary />
