@@ -57,14 +57,20 @@ export type Database = {
         Row: {
           booking_reference: string
           client_id: string
+          commission_revenue: number
+          commissionable_amount: number
           created_at: string
           depart_date: string
           destination: string
+          gross_sales: number
           id: string
+          net_sales: number
           notes: string | null
           owner_agent: string | null
           return_date: string
           status: string
+          supplier_id: string | null
+          supplier_payout: number
           total_amount: number
           travelers: number
           trip_name: string | null
@@ -75,14 +81,20 @@ export type Database = {
         Insert: {
           booking_reference: string
           client_id: string
+          commission_revenue?: number
+          commissionable_amount?: number
           created_at?: string
           depart_date: string
           destination: string
+          gross_sales?: number
           id?: string
+          net_sales?: number
           notes?: string | null
           owner_agent?: string | null
           return_date: string
           status?: string
+          supplier_id?: string | null
+          supplier_payout?: number
           total_amount?: number
           travelers?: number
           trip_name?: string | null
@@ -93,14 +105,20 @@ export type Database = {
         Update: {
           booking_reference?: string
           client_id?: string
+          commission_revenue?: number
+          commissionable_amount?: number
           created_at?: string
           depart_date?: string
           destination?: string
+          gross_sales?: number
           id?: string
+          net_sales?: number
           notes?: string | null
           owner_agent?: string | null
           return_date?: string
           status?: string
+          supplier_id?: string | null
+          supplier_payout?: number
           total_amount?: number
           travelers?: number
           trip_name?: string | null
@@ -114,6 +132,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -608,6 +633,54 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          commission_rate: number
+          commissionable_percentage: number
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          supplier_type: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          commission_rate?: number
+          commissionable_percentage?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          supplier_type?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          commission_rate?: number
+          commissionable_percentage?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          supplier_type?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }

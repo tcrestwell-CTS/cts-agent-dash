@@ -250,10 +250,19 @@ const Analytics = () => {
     const periodBookings = filteredBookings.filter((b) => b.status !== "cancelled");
     const periodRevenue = periodBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
 
+    // Commission revenue metrics from booking data
+    const periodGrossSales = periodBookings.reduce((sum, b) => sum + (b.gross_sales || b.total_amount || 0), 0);
+    const periodCommissionRevenue = periodBookings.reduce((sum, b) => sum + (b.commission_revenue || (b.total_amount * 0.085)), 0);
+    const periodNetSales = periodBookings.reduce((sum, b) => sum + (b.net_sales || (b.total_amount * 0.915)), 0);
+
     // All-time metrics (using original data for comparison)
     const totalRevenue = bookings
       ?.filter((b) => b.status !== "cancelled")
       .reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
+
+    const totalCommissionRevenue = bookings
+      ?.filter((b) => b.status !== "cancelled")
+      .reduce((sum, b) => sum + (b.commission_revenue || (b.total_amount * 0.085)), 0) || 0;
 
     // Average booking value (within period)
     const avgBookingValue =
@@ -285,6 +294,11 @@ const Analytics = () => {
       conversionRate,
       pendingCommissions: totalPending,
       paidCommissions: totalPaid,
+      // New commission structure metrics
+      periodGrossSales,
+      periodCommissionRevenue,
+      periodNetSales,
+      totalCommissionRevenue,
     };
   }, [bookings, clients, filteredBookings, filteredClients, commissions]);
 
@@ -538,16 +552,17 @@ const Analytics = () => {
           />
         </div>
 
-        {/* Commission Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-l-4 border-l-yellow-500">
+        {/* Commission Revenue Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="border-l-4 border-l-primary">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending Commissions</p>
-                  <p className="text-2xl font-bold">{formatCurrency(kpis?.pendingCommissions || 0)}</p>
+                  <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
+                  <p className="text-2xl font-bold">{formatCurrency(kpis?.periodGrossSales || 0)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Total guest payments</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-yellow-500" />
+                <DollarSign className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
@@ -555,10 +570,35 @@ const Analytics = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Paid Commissions</p>
-                  <p className="text-2xl font-bold">{formatCurrency(kpis?.paidCommissions || 0)}</p>
+                  <p className="text-sm text-muted-foreground">Commission Revenue</p>
+                  <p className="text-2xl font-bold text-success">{formatCurrency(kpis?.periodCommissionRevenue || 0)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatCurrency(kpis?.totalCommissionRevenue || 0)} all-time</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-500" />
+                <TrendingUp className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-muted-foreground">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Net Booking Sales</p>
+                  <p className="text-2xl font-bold">{formatCurrency(kpis?.periodNetSales || 0)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">After commission</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-yellow-500">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending Commissions</p>
+                  <p className="text-2xl font-bold">{formatCurrency(kpis?.pendingCommissions || 0)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatCurrency(kpis?.paidCommissions || 0)} paid</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>

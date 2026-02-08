@@ -19,6 +19,13 @@ export interface Booking {
   user_id: string;
   client_id: string;
   notes: string | null;
+  // New financial fields
+  supplier_id: string | null;
+  gross_sales: number;
+  commissionable_amount: number;
+  commission_revenue: number;
+  net_sales: number;
+  supplier_payout: number;
   clients?: {
     name: string;
     email: string | null;
@@ -35,6 +42,11 @@ export interface CreateBookingData {
   trip_name?: string;
   notes?: string;
   send_confirmation_email?: boolean;
+  // New financial fields
+  supplier_id?: string;
+  gross_sales?: number;
+  commissionable_percentage?: number;
+  commission_rate?: number;
 }
 
 export interface UpdateBookingData {
@@ -45,6 +57,13 @@ export interface UpdateBookingData {
   total_amount?: number;
   trip_name?: string;
   notes?: string;
+  // New financial fields
+  supplier_id?: string | null;
+  gross_sales?: number;
+  commissionable_amount?: number;
+  commission_revenue?: number;
+  net_sales?: number;
+  supplier_payout?: number;
 }
 
 export function useBookings() {
@@ -97,6 +116,12 @@ export function useBookings() {
           user_id,
           client_id,
           notes,
+          supplier_id,
+          gross_sales,
+          commissionable_amount,
+          commission_revenue,
+          net_sales,
+          supplier_payout,
           clients (
             name,
             email
@@ -178,6 +203,15 @@ export function useBookings() {
     setCreating(true);
     try {
       const bookingReference = generateBookingReference();
+      
+      // Calculate financial fields
+      const grossSales = data.gross_sales ?? data.total_amount;
+      const commissionablePercentage = data.commissionable_percentage ?? 85;
+      const commissionRate = data.commission_rate ?? 10;
+      const commissionableAmount = grossSales * (commissionablePercentage / 100);
+      const commissionRevenue = commissionableAmount * (commissionRate / 100);
+      const netSales = grossSales - commissionRevenue;
+      const supplierPayout = netSales;
 
       const { data: newBooking, error } = await supabase
         .from("bookings")
@@ -189,11 +223,17 @@ export function useBookings() {
           depart_date: data.depart_date,
           return_date: data.return_date,
           travelers: data.travelers,
-          total_amount: data.total_amount,
+          total_amount: grossSales,
           trip_name: data.trip_name || null,
           notes: data.notes || null,
           status: "confirmed",
           owner_agent: agentName,
+          supplier_id: data.supplier_id || null,
+          gross_sales: grossSales,
+          commissionable_amount: commissionableAmount,
+          commission_revenue: commissionRevenue,
+          net_sales: netSales,
+          supplier_payout: supplierPayout,
         })
         .select(`
           *,
@@ -443,6 +483,12 @@ export interface BookingWithClient extends Booking {
     location: string | null;
     status: string;
   } | null;
+  suppliers?: {
+    id: string;
+    name: string;
+    commissionable_percentage: number;
+    commission_rate: number;
+  } | null;
 }
 
 export function useBooking(bookingId: string | undefined) {
@@ -478,6 +524,12 @@ export function useBooking(bookingId: string | undefined) {
             notes,
             created_at,
             updated_at,
+            supplier_id,
+            gross_sales,
+            commissionable_amount,
+            commission_revenue,
+            net_sales,
+            supplier_payout,
             clients (
               id,
               name,
@@ -487,6 +539,12 @@ export function useBooking(bookingId: string | undefined) {
               last_name,
               location,
               status
+            ),
+            suppliers (
+              id,
+              name,
+              commissionable_percentage,
+              commission_rate
             )
           `)
           .eq("id", bookingId)
@@ -538,7 +596,13 @@ export function useClientBookings(clientId: string | undefined) {
             owner_agent,
             user_id,
             client_id,
-            notes
+            notes,
+            supplier_id,
+            gross_sales,
+            commissionable_amount,
+            commission_revenue,
+            net_sales,
+            supplier_payout
           `)
           .eq("client_id", clientId)
           .order("depart_date", { ascending: false });

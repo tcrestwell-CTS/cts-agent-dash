@@ -388,28 +388,69 @@ const BookingDetail = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Financial Summary */}
+          {/* Financial Summary - Enhanced with Commission Structure */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-muted-foreground" />
-                Financial Summary
+                Financial Breakdown
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Total Amount</p>
+                <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
                 <p className="text-2xl font-semibold text-foreground">
-                  {formatCurrency(booking.total_amount)}
+                  {formatCurrency(booking.gross_sales || booking.total_amount)}
                 </p>
               </div>
+
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Commissionable Amount
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(booking.commissionable_amount || booking.total_amount * 0.85)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between bg-success/10 p-2 rounded">
+                  <span className="text-sm text-success font-medium">
+                    Commission Revenue
+                  </span>
+                  <span className="font-semibold text-success">
+                    {formatCurrency(booking.commission_revenue || booking.total_amount * 0.085)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Net Booking Sales</span>
+                  <span className="font-medium">
+                    {formatCurrency(booking.net_sales || booking.total_amount * 0.915)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-sm">Supplier Payout</span>
+                  <span className="font-semibold">
+                    {formatCurrency(booking.supplier_payout || booking.net_sales || booking.total_amount * 0.915)}
+                  </span>
+                </div>
+              </div>
+
               {booking.travelers > 1 && (
-                <div>
+                <div className="border-t pt-3">
                   <p className="text-sm text-muted-foreground">Per Traveler</p>
                   <p className="font-medium text-foreground">
-                    {formatCurrency(booking.total_amount / booking.travelers)}
+                    {formatCurrency((booking.gross_sales || booking.total_amount) / booking.travelers)}
                   </p>
                 </div>
+              )}
+
+              {(booking as any).suppliers?.name && (
+                <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                  Supplier: <strong>{(booking as any).suppliers.name}</strong>
+                </p>
               )}
             </CardContent>
           </Card>
