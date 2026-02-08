@@ -45,7 +45,7 @@ import {
   UserMinus,
   AlertTriangle,
 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
@@ -473,6 +473,34 @@ const BookingDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Expected Commission Date - 30 days before departure */}
+              {(() => {
+                const expectedCommissionDate = subDays(new Date(booking.depart_date), 30);
+                const isDatePassed = isPast(expectedCommissionDate);
+                const daysUntilCommission = differenceInDays(expectedCommissionDate, new Date());
+                
+                return (
+                  <div className={`mb-4 p-3 rounded-lg border ${
+                    isDatePassed 
+                      ? "bg-success/10 border-success/20" 
+                      : "bg-primary/10 border-primary/20"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Expected Commission Date</span>
+                    </div>
+                    <p className={`font-semibold ${isDatePassed ? "text-success" : "text-primary"}`}>
+                      {format(expectedCommissionDate, "MMMM d, yyyy")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {isDatePassed 
+                        ? "Commission should be available" 
+                        : `${daysUntilCommission} days until expected`}
+                    </p>
+                  </div>
+                );
+              })()}
+
               {commissionLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-8 w-full" />
