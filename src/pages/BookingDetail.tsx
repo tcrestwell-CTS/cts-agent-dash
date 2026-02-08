@@ -457,7 +457,7 @@ const BookingDetail = () => {
                     Agent Commission ({userTier ? getTierConfig(userTier).agentSplit : 70}%)
                   </span>
                   <span className="font-semibold text-primary">
-                    {formatCurrency(booking.commission_revenue * (userTier ? getTierConfig(userTier).agentSplit / 100 : 0.7))}
+                    {formatCurrency(booking.total_amount * (userTier ? getTierConfig(userTier).agentSplit / 100 : 0.7))}
                   </span>
                 </div>
               </div>
