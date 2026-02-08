@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { format, parseISO } from "date-fns";
+import { DateRange } from "react-day-picker";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,7 @@ import { useSuppliers } from "@/hooks/useSuppliers";
 import { CreateBookingData } from "@/hooks/useBookings";
 import { Booking } from "@/hooks/useBookings";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface AddBookingDialogProps {
   onSubmit: (data: CreateBookingData) => Promise<Booking | null>;
@@ -235,31 +238,24 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="depart_date">Trip Start Date *</Label>
-              <Input
-                id="depart_date"
-                type="date"
-                value={formData.depart_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, depart_date: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="return_date">Trip End Date *</Label>
-              <Input
-                id="return_date"
-                type="date"
-                value={formData.return_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, return_date: e.target.value }))}
-                required
-                min={formData.depart_date || undefined}
-              />
-              {formData.depart_date && formData.return_date && formData.return_date < formData.depart_date && (
-                <p className="text-xs text-destructive">Trip end date must be after start date</p>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label>Trip Dates *</Label>
+            <DateRangePicker
+              dateRange={
+                formData.depart_date && formData.return_date
+                  ? { from: parseISO(formData.depart_date), to: parseISO(formData.return_date) }
+                  : formData.depart_date
+                  ? { from: parseISO(formData.depart_date), to: undefined }
+                  : undefined
+              }
+              onDateRangeChange={(range) => {
+                setFormData(prev => ({
+                  ...prev,
+                  depart_date: range?.from ? format(range.from, "yyyy-MM-dd") : "",
+                  return_date: range?.to ? format(range.to, "yyyy-MM-dd") : "",
+                }));
+              }}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
