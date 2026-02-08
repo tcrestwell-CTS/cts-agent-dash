@@ -10,8 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { Booking, UpdateBookingData } from "@/hooks/useBookings";
+import { useSuppliers } from "@/hooks/useSuppliers";
 
 interface EditBookingDialogProps {
   booking: Booking | null;
@@ -28,6 +36,7 @@ export function EditBookingDialog({
   onSubmit,
   updating,
 }: EditBookingDialogProps) {
+  const { activeSuppliers } = useSuppliers();
   const [formData, setFormData] = useState({
     destination: "",
     depart_date: "",
@@ -36,6 +45,7 @@ export function EditBookingDialog({
     total_amount: 0,
     trip_name: "",
     notes: "",
+    supplier_id: "",
   });
 
   // Populate form when booking changes
@@ -49,6 +59,7 @@ export function EditBookingDialog({
         total_amount: booking.total_amount || 0,
         trip_name: booking.trip_name || "",
         notes: booking.notes || "",
+        supplier_id: booking.supplier_id || "",
       });
     }
   }, [booking]);
@@ -60,7 +71,10 @@ export function EditBookingDialog({
       return;
     }
 
-    const success = await onSubmit(booking.id, formData);
+    const success = await onSubmit(booking.id, {
+      ...formData,
+      supplier_id: formData.supplier_id || null,
+    });
     if (success) {
       onOpenChange(false);
     }
@@ -85,6 +99,26 @@ export function EditBookingDialog({
               onChange={(e) => setFormData((prev) => ({ ...prev, trip_name: e.target.value }))}
               placeholder="e.g., European Adventure"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_supplier">Supplier</Label>
+            <Select
+              value={formData.supplier_id}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, supplier_id: value === "none" ? "" : value }))}
+            >
+              <SelectTrigger id="edit_supplier">
+                <SelectValue placeholder="Select a supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Supplier</SelectItem>
+                {activeSuppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
