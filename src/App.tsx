@@ -12,6 +12,7 @@ import Bookings from "./pages/Bookings";
 import BookingDetail from "./pages/BookingDetail";
 import Training from "./pages/Training";
 import Commissions from "./pages/Commissions";
+import CommissionReport from "./pages/CommissionReport";
 import Analytics from "./pages/Analytics";
 import Branding from "./pages/Branding";
 import Settings from "./pages/Settings";
@@ -85,6 +86,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Commissions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/commission-report"
+              element={
+                <ProtectedRoute>
+                  <CommissionReport />
                 </ProtectedRoute>
               }
             />
