@@ -11,6 +11,7 @@ import {
   UserPlus,
   BarChart3,
   Building2,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Bookings", href: "/bookings", icon: Calendar },
   { name: "Suppliers", href: "/suppliers", icon: Building2 },
   { name: "Commissions", href: "/commissions", icon: DollarSign },
+  { name: "Commission Report", href: "/commission-report", icon: FileSpreadsheet },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
