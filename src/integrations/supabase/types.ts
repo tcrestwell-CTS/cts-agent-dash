@@ -56,7 +56,9 @@ export type Database = {
       bookings: {
         Row: {
           booking_reference: string
+          calculated_commission: number | null
           client_id: string
+          commission_override_amount: number | null
           commission_revenue: number
           commissionable_amount: number
           created_at: string
@@ -66,6 +68,11 @@ export type Database = {
           id: string
           net_sales: number
           notes: string | null
+          override_approved: boolean | null
+          override_approved_at: string | null
+          override_approved_by: string | null
+          override_notes: string | null
+          override_pending_approval: boolean | null
           owner_agent: string | null
           return_date: string
           status: string
@@ -80,7 +87,9 @@ export type Database = {
         }
         Insert: {
           booking_reference: string
+          calculated_commission?: number | null
           client_id: string
+          commission_override_amount?: number | null
           commission_revenue?: number
           commissionable_amount?: number
           created_at?: string
@@ -90,6 +99,11 @@ export type Database = {
           id?: string
           net_sales?: number
           notes?: string | null
+          override_approved?: boolean | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_notes?: string | null
+          override_pending_approval?: boolean | null
           owner_agent?: string | null
           return_date: string
           status?: string
@@ -104,7 +118,9 @@ export type Database = {
         }
         Update: {
           booking_reference?: string
+          calculated_commission?: number | null
           client_id?: string
+          commission_override_amount?: number | null
           commission_revenue?: number
           commissionable_amount?: number
           created_at?: string
@@ -114,6 +130,11 @@ export type Database = {
           id?: string
           net_sales?: number
           notes?: string | null
+          override_approved?: boolean | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_notes?: string | null
+          override_pending_approval?: boolean | null
           owner_agent?: string | null
           return_date?: string
           status?: string

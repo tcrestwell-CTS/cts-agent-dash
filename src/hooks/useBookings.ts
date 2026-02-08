@@ -19,13 +19,21 @@ export interface Booking {
   user_id: string;
   client_id: string;
   notes: string | null;
-  // New financial fields
+  // Financial fields
   supplier_id: string | null;
   gross_sales: number;
   commissionable_amount: number;
   commission_revenue: number;
   net_sales: number;
   supplier_payout: number;
+  // Commission override fields
+  calculated_commission: number;
+  commission_override_amount: number | null;
+  override_pending_approval: boolean;
+  override_approved: boolean;
+  override_approved_by: string | null;
+  override_approved_at: string | null;
+  override_notes: string | null;
   clients?: {
     name: string;
     email: string | null;
@@ -42,11 +50,14 @@ export interface CreateBookingData {
   trip_name?: string;
   notes?: string;
   send_confirmation_email?: boolean;
-  // New financial fields
+  // Financial fields
   supplier_id?: string;
   gross_sales?: number;
   commissionable_percentage?: number;
   commission_rate?: number;
+  // Commission override fields
+  commission_override_amount?: number;
+  override_notes?: string;
 }
 
 export interface UpdateBookingData {
@@ -122,6 +133,13 @@ export function useBookings() {
           commission_revenue,
           net_sales,
           supplier_payout,
+          calculated_commission,
+          commission_override_amount,
+          override_pending_approval,
+          override_approved,
+          override_approved_by,
+          override_approved_at,
+          override_notes,
           clients (
             name,
             email
@@ -213,6 +231,11 @@ export function useBookings() {
       const netSales = grossSales - commissionRevenue;
       const supplierPayout = netSales;
 
+      // Determine if override requires approval (only if override is higher than calculated)
+      const hasOverride = data.commission_override_amount !== undefined && data.commission_override_amount !== null;
+      const overrideAmount = hasOverride ? data.commission_override_amount : null;
+      const needsApproval = hasOverride && overrideAmount! > commissionRevenue;
+
       const { data: newBooking, error } = await supabase
         .from("bookings")
         .insert({
@@ -231,9 +254,14 @@ export function useBookings() {
           supplier_id: data.supplier_id || null,
           gross_sales: grossSales,
           commissionable_amount: commissionableAmount,
-          commission_revenue: commissionRevenue,
+          commission_revenue: hasOverride && !needsApproval ? overrideAmount : commissionRevenue,
           net_sales: netSales,
           supplier_payout: supplierPayout,
+          calculated_commission: commissionRevenue,
+          commission_override_amount: overrideAmount,
+          override_pending_approval: needsApproval,
+          override_approved: hasOverride && !needsApproval,
+          override_notes: data.override_notes || null,
         })
         .select(`
           *,
@@ -530,6 +558,13 @@ export function useBooking(bookingId: string | undefined) {
             commission_revenue,
             net_sales,
             supplier_payout,
+            calculated_commission,
+            commission_override_amount,
+            override_pending_approval,
+            override_approved,
+            override_approved_by,
+            override_approved_at,
+            override_notes,
             clients (
               id,
               name,
@@ -602,7 +637,14 @@ export function useClientBookings(clientId: string | undefined) {
             commissionable_amount,
             commission_revenue,
             net_sales,
-            supplier_payout
+            supplier_payout,
+            calculated_commission,
+            commission_override_amount,
+            override_pending_approval,
+            override_approved,
+            override_approved_by,
+            override_approved_at,
+            override_notes
           `)
           .eq("client_id", clientId)
           .order("depart_date", { ascending: false });

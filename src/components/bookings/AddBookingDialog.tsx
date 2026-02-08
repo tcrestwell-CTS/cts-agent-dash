@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, Mail, Users, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Loader2, Mail, Users, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useCompanions } from "@/hooks/useCompanions";
 import { useAddBookingTravelers } from "@/hooks/useBookingTravelers";
@@ -55,6 +55,8 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
     trip_name: "",
     notes: "",
     send_confirmation_email: true,
+    commission_override_amount: undefined as number | undefined,
+    override_notes: "",
   });
 
   const [selectedCompanionIds, setSelectedCompanionIds] = useState<string[]>([]);
@@ -121,6 +123,8 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
         trip_name: "",
         notes: "",
         send_confirmation_email: true,
+        commission_override_amount: undefined,
+        override_notes: "",
       });
       setSelectedCompanionIds([]);
       setShowFinancials(false);
@@ -135,6 +139,15 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
     const netSales = gross - commissionRevenue;
     return { commissionableAmount, commissionRevenue, netSales };
   })();
+
+  // Check if override requires approval
+  const overrideRequiresApproval = formData.commission_override_amount !== undefined && 
+    formData.commission_override_amount > calculatedFinancials.commissionRevenue;
+
+  // Get effective commission (override or calculated)
+  const effectiveCommission = formData.commission_override_amount !== undefined 
+    ? formData.commission_override_amount 
+    : calculatedFinancials.commissionRevenue;
 
   const handleSupplierChange = (supplierId: string) => {
     if (supplierId === "none") {
@@ -341,14 +354,68 @@ export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) 
                   <span>{formatCurrency(calculatedFinancials.commissionableAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-success">Commission Revenue</span>
-                  <span className="font-semibold text-success">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
+                  <span className="text-muted-foreground">Calculated Commission</span>
+                  <span className="font-medium">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
                 </div>
                 <div className="flex justify-between text-sm border-t pt-2">
                   <span className="text-muted-foreground">Net Booking Sales</span>
                   <span className="font-medium">{formatCurrency(calculatedFinancials.netSales)}</span>
                 </div>
               </div>
+
+              {/* Commission Override */}
+              <div className="space-y-2">
+                <Label htmlFor="commission_override" className="flex items-center gap-2">
+                  Commission Override
+                  <span className="text-xs text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="commission_override"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder={`Auto: ${formatCurrency(calculatedFinancials.commissionRevenue)}`}
+                  value={formData.commission_override_amount ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                    setFormData(prev => ({ ...prev, commission_override_amount: value }));
+                  }}
+                />
+                {overrideRequiresApproval && (
+                  <div className="flex items-center gap-2 p-2 bg-warning/10 border border-warning/20 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <span className="text-xs text-warning">
+                      Higher than calculated - requires admin approval
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {overrideRequiresApproval && (
+                <div className="space-y-2">
+                  <Label htmlFor="override_notes">Override Reason</Label>
+                  <Input
+                    id="override_notes"
+                    placeholder="Explain why override is needed..."
+                    value={formData.override_notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, override_notes: e.target.value }))}
+                  />
+                </div>
+              )}
+
+              {/* Effective Commission Display */}
+              {formData.commission_override_amount !== undefined && (
+                <div className="bg-primary/10 rounded-lg p-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-primary font-medium">
+                      {overrideRequiresApproval ? "Pending Commission" : "Final Commission"}
+                    </span>
+                    <span className="font-semibold text-primary">
+                      {formatCurrency(effectiveCommission)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </CollapsibleContent>
           </Collapsible>
 
