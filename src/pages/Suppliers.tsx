@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
 import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
-import { Plane, Ship, Hotel, Car, Palmtree, ExternalLink, ChevronDown } from "lucide-react";
+import { SupplierManagement } from "@/components/suppliers/SupplierManagement";
+import { Plane, Ship, Hotel, Car, Palmtree, ExternalLink, ChevronDown, Building2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 
@@ -297,8 +298,8 @@ const initialSuppliers: Supplier[] = [
   },
 ];
 
-const categories = [
-  { id: "all", label: "All Suppliers", icon: ExternalLink },
+const portalCategories = [
+  { id: "all", label: "All Portals", icon: ExternalLink },
   { id: "flights", label: "Flights", icon: Plane },
   { id: "cruises", label: "Cruises", icon: Ship },
   { id: "hotels", label: "Hotels", icon: Hotel },
@@ -417,26 +418,27 @@ function CTSBookingsWidget() {
 }
 
 export default function Suppliers() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
+  const [portalSuppliers, setPortalSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [activeTab, setActiveTab] = useState<"portals" | "management">("management");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [quickBookDialogOpen, setQuickBookDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
   const filteredSuppliers = selectedCategory === "all" 
-    ? suppliers 
-    : suppliers.filter(s => s.category === selectedCategory);
+    ? portalSuppliers 
+    : portalSuppliers.filter(s => s.category === selectedCategory);
 
-  const favoriteSuppliers = suppliers.filter(s => s.isFavorite);
+  const favoriteSuppliers = portalSuppliers.filter(s => s.isFavorite);
 
   const handleToggleFavorite = (id: string) => {
-    setSuppliers(prev => 
+    setPortalSuppliers(prev => 
       prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s)
     );
   };
 
   const handleOpenSite = (supplier: Supplier) => {
-    setSuppliers(prev =>
+    setPortalSuppliers(prev =>
       prev.map(s => 
         s.id === supplier.id 
           ? { ...s, lastVisited: new Date(), visitCount: s.visitCount + 1 }
@@ -452,7 +454,7 @@ export default function Suppliers() {
   };
 
   const handleSaveNotes = (id: string, notes: string) => {
-    setSuppliers(prev =>
+    setPortalSuppliers(prev =>
       prev.map(s => s.id === id ? { ...s, notes } : s)
     );
     setNotesDialogOpen(false);
@@ -468,11 +470,30 @@ export default function Suppliers() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Supplier Directory</h1>
+          <h1 className="text-3xl font-bold text-foreground">Suppliers</h1>
           <p className="text-muted-foreground mt-1">
-            Quick access to booking portals with notes and usage tracking
+            Manage supplier commission rules and access booking portals
           </p>
         </div>
+
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "portals" | "management")}>
+          <TabsList>
+            <TabsTrigger value="management" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              My Suppliers
+            </TabsTrigger>
+            <TabsTrigger value="portals" className="gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Booking Portals
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="management" className="mt-6">
+            <SupplierManagement />
+          </TabsContent>
+
+          <TabsContent value="portals" className="mt-6 space-y-6">
 
         {/* Favorites Section */}
         {favoriteSuppliers.length > 0 && (
@@ -495,10 +516,10 @@ export default function Suppliers() {
           </div>
         )}
 
-        {/* Category Tabs */}
+        {/* Portal Category Tabs */}
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
-            {categories.map(category => (
+            {portalCategories.map(category => (
               <TabsTrigger
                 key={category.id}
                 value={category.id}
@@ -535,6 +556,8 @@ export default function Suppliers() {
                 ))}
               </div>
             )}
+          </TabsContent>
+        </Tabs>
           </TabsContent>
         </Tabs>
       </div>
