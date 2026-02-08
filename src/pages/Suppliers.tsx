@@ -135,6 +135,18 @@ const initialSuppliers: Supplier[] = [
     integrationType: "redirect",
     apiStatus: "none",
   },
+  {
+    id: "choice-hotels",
+    name: "Choice Hotels Travel Professionals",
+    url: "https://www.choicehotels.com/travel-professionals",
+    description: "Choice Hotels travel professional portal for booking Quality Inn, Comfort Inn, and more.",
+    category: "hotels",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
   // All-Inclusive Resorts
   {
     id: "sandals",
