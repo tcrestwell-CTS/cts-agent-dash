@@ -200,10 +200,12 @@ const Commissions = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-            My Commissions
+            {isAdmin ? "Team Commissions" : "My Commissions"}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Track your earnings and payment history • {tierConfig.description}
+            {isAdmin 
+              ? "View and manage all agent commission earnings" 
+              : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}
           </p>
         </div>
         <Button variant="outline" className="gap-2" onClick={handleExport}>
@@ -227,9 +229,11 @@ const Commissions = () => {
           <p className="text-3xl font-semibold text-card-foreground">
             {formatCurrency(totals.totalEarned)}
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {tierConfig.agentSplit}% of total commissions
-          </p>
+          {!isAdmin && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Based on your {tierConfig.agentSplit}% rate
+            </p>
+          )}
         </div>
 
         <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
