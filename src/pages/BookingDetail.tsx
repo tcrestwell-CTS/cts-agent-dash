@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
+import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
 
@@ -96,6 +97,18 @@ const BookingDetail = () => {
   const removeBookingTraveler = useRemoveBookingTraveler();
   const createCommission = useCreateCommission();
   const updateCommission = useUpdateCommission();
+  const { suppliers } = useSuppliers();
+  
+  // Get the supplier for this booking and calculate financials dynamically
+  const selectedSupplier = useMemo(() => {
+    if (!booking?.supplier_id) return null;
+    return suppliers.find((s) => s.id === booking.supplier_id) || null;
+  }, [booking?.supplier_id, suppliers]);
+
+  const tripFinancials = useMemo(() => {
+    if (!booking) return null;
+    return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier);
+  }, [booking, selectedSupplier]);
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -409,40 +422,40 @@ const BookingDetail = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
                 <p className="text-2xl font-semibold text-foreground">
-                  {formatCurrency(booking.gross_sales || booking.total_amount)}
+                  {formatCurrency(tripFinancials?.grossSales || booking.total_amount)}
                 </p>
               </div>
 
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Commissionable Amount
+                    Commissionable Amount ({tripFinancials?.commissionablePercentage || 85}%)
                   </span>
                   <span className="font-medium">
-                    {formatCurrency(booking.commissionable_amount || booking.total_amount * 0.85)}
+                    {formatCurrency(tripFinancials?.commissionableAmount || booking.total_amount * 0.85)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between bg-success/10 p-2 rounded">
                   <span className="text-sm text-success font-medium">
-                    Commission Revenue
+                    Commission Revenue ({tripFinancials?.commissionRate || 10}%)
                   </span>
                   <span className="font-semibold text-success">
-                    {formatCurrency(booking.commission_revenue || booking.total_amount * 0.085)}
+                    {formatCurrency(tripFinancials?.commissionRevenue || booking.total_amount * 0.085)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Net Booking Sales</span>
                   <span className="font-medium">
-                    {formatCurrency(booking.net_sales || booking.total_amount * 0.915)}
+                    {formatCurrency(tripFinancials?.netSales || booking.total_amount * 0.915)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between border-t pt-3">
                   <span className="text-sm">Supplier Payout</span>
                   <span className="font-semibold">
-                    {formatCurrency(booking.supplier_payout || booking.net_sales || booking.total_amount * 0.915)}
+                    {formatCurrency(tripFinancials?.supplierPayout || booking.total_amount * 0.915)}
                   </span>
                 </div>
               </div>
@@ -451,14 +464,14 @@ const BookingDetail = () => {
                 <div className="border-t pt-3">
                   <p className="text-sm text-muted-foreground">Per Traveler</p>
                   <p className="font-medium text-foreground">
-                    {formatCurrency((booking.gross_sales || booking.total_amount) / booking.travelers)}
+                    {formatCurrency((tripFinancials?.grossSales || booking.total_amount) / booking.travelers)}
                   </p>
                 </div>
               )}
 
-              {(booking as any).suppliers?.name && (
+              {selectedSupplier && (
                 <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                  Supplier: <strong>{(booking as any).suppliers.name}</strong>
+                  Supplier: <strong>{selectedSupplier.name}</strong>
                 </p>
               )}
             </CardContent>
