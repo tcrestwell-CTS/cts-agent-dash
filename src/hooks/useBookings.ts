@@ -532,6 +532,7 @@ export function useBookings() {
           total_amount: data.total_amount,
           trip_name: data.trip_name || null,
           notes: data.notes || null,
+          supplier_id: data.supplier_id,
         })
         .eq("id", bookingId);
 
@@ -623,6 +624,11 @@ export function useBooking(bookingId: string | undefined) {
   const [booking, setBooking] = useState<BookingWithClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  const refetch = useCallback(() => {
+    setRefetchTrigger(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -632,6 +638,7 @@ export function useBooking(bookingId: string | undefined) {
       }
 
       try {
+        setLoading(true);
         const { data, error: fetchError } = await supabase
           .from("bookings")
           .select(`
@@ -695,9 +702,9 @@ export function useBooking(bookingId: string | undefined) {
     };
 
     fetchBooking();
-  }, [user, bookingId]);
+  }, [user, bookingId, refetchTrigger]);
 
-  return { booking, loading, error };
+  return { booking, loading, error, refetch };
 }
 
 // Hook to fetch bookings for a specific client

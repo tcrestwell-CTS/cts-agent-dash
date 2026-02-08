@@ -87,7 +87,7 @@ const formatCurrency = (amount: number) => {
 const BookingDetail = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
-  const { booking, loading, error } = useBooking(bookingId);
+  const { booking, loading, error, refetch } = useBooking(bookingId);
   const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatus } = useBookings();
   const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
   const { data: userCommissionRate } = useUserCommissionRate();
@@ -723,7 +723,13 @@ const BookingDetail = () => {
         booking={booking}
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
-        onSubmit={updateBooking}
+        onSubmit={async (id, data) => {
+          const success = await updateBooking(id, data);
+          if (success) {
+            refetch();
+          }
+          return success;
+        }}
         updating={updating}
       />
 
