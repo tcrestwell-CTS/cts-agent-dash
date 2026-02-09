@@ -585,6 +585,99 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_sequences: {
+        Row: {
+          created_at: string
+          current_number: number
+          id: string
+          prefix: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_number?: number
+          id?: string
+          prefix?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_number?: number
+          id?: string
+          prefix?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount_paid: number
+          amount_remaining: number
+          client_id: string | null
+          client_name: string | null
+          created_at: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          status: string
+          total_amount: number
+          trip_id: string | null
+          trip_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          amount_remaining?: number
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          status?: string
+          total_amount?: number
+          trip_id?: string | null
+          trip_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          amount_remaining?: number
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          status?: string
+          total_amount?: number
+          trip_id?: string | null
+          trip_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           client_messages: boolean
@@ -882,6 +975,7 @@ export type Database = {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
       }
+      get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
+import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -27,6 +28,7 @@ import {
 
 interface TripPaymentsProps {
   tripId: string;
+  clientId?: string;
   bookings: TripBooking[];
   tripTotal: number;
   tripName?: string;
@@ -47,7 +49,8 @@ const statusColors: Record<string, string> = {
 };
 
 export function TripPayments({ 
-  tripId, 
+  tripId,
+  clientId,
   bookings, 
   tripTotal,
   tripName,
@@ -69,8 +72,10 @@ export function TripPayments({
     totalRemaining,
   } = useTripPayments(tripId);
   const { settings: brandingSettings } = useBrandingSettings();
+  const { createInvoice, getNextInvoiceNumber } = useInvoices();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
 
   const handleMarkAsPaid = async (paymentId: string) => {
     await updatePayment(paymentId, {
@@ -82,7 +87,8 @@ export function TripPayments({
   // Get supplier name from the first booking if available
   const primarySupplier = bookings.find(b => b.suppliers?.name)?.suppliers?.name;
 
-  const getInvoiceData = (): InvoiceData => ({
+  const getInvoiceData = (invoiceNumber?: string): InvoiceData => ({
+    invoiceNumber,
     tripName: tripName || "Trip",
     clientName: clientName || "Client",
     clientEmail,
@@ -104,7 +110,35 @@ export function TripPayments({
   });
 
   const handleGenerateInvoice = async () => {
-    await generateInvoicePDF(getInvoiceData());
+    setGeneratingInvoice(true);
+    try {
+      // Get sequential invoice number and create invoice record
+      const invoiceNumber = await getNextInvoiceNumber();
+      if (!invoiceNumber) {
+        toast.error("Failed to generate invoice number");
+        return;
+      }
+
+      // Create invoice record in database
+      await createInvoice({
+        trip_id: tripId,
+        client_id: clientId,
+        trip_name: tripName,
+        client_name: clientName,
+        total_amount: tripTotal,
+        amount_paid: totalPaid,
+        amount_remaining: totalRemaining,
+      });
+
+      // Generate and download PDF
+      await generateInvoicePDF(getInvoiceData(invoiceNumber));
+      toast.success(`Invoice ${invoiceNumber} generated`);
+    } catch (error) {
+      console.error("Error generating invoice:", error);
+      toast.error("Failed to generate invoice");
+    } finally {
+      setGeneratingInvoice(false);
+    }
   };
 
   const handleEmailInvoice = async () => {
@@ -115,8 +149,26 @@ export function TripPayments({
 
     setSendingEmail(true);
     try {
+      // Get sequential invoice number and create invoice record
+      const invoiceNumber = await getNextInvoiceNumber();
+      if (!invoiceNumber) {
+        toast.error("Failed to generate invoice number");
+        return;
+      }
+
+      // Create invoice record in database
+      await createInvoice({
+        trip_id: tripId,
+        client_id: clientId,
+        trip_name: tripName,
+        client_name: clientName,
+        total_amount: tripTotal,
+        amount_paid: totalPaid,
+        amount_remaining: totalRemaining,
+      });
+
       // Generate PDF as base64
-      const pdfBase64 = await generateInvoicePDF(getInvoiceData(), { returnBase64: true });
+      const pdfBase64 = await generateInvoicePDF(getInvoiceData(invoiceNumber), { returnBase64: true });
       
       if (!pdfBase64) {
         throw new Error("Failed to generate PDF");
@@ -131,7 +183,7 @@ export function TripPayments({
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
           to: clientEmail,
-          subject: `Invoice for ${tripName || "Your Trip"}`,
+          subject: `Invoice ${invoiceNumber} for ${tripName || "Your Trip"}`,
           template: "invoice",
           data: {
             clientName: clientName || "Valued Client",
@@ -141,10 +193,11 @@ export function TripPayments({
             tripTotal: formatCurrency(tripTotal),
             totalPaid: formatCurrency(totalPaid),
             totalRemaining: formatCurrency(totalRemaining),
+            invoiceNumber,
           },
           attachments: [
             {
-              filename: `Invoice_${(tripName || "Trip").replace(/[^a-zA-Z0-9]/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`,
+              filename: `${invoiceNumber.replace(/-/g, "_")}_${(tripName || "Trip").replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
               content: pdfBase64,
             },
           ],
@@ -153,7 +206,7 @@ export function TripPayments({
 
       if (error) throw error;
 
-      toast.success(`Invoice sent to ${clientEmail}`);
+      toast.success(`Invoice ${invoiceNumber} sent to ${clientEmail}`);
     } catch (error) {
       console.error("Error sending invoice:", error);
       toast.error("Failed to send invoice email");
@@ -216,8 +269,12 @@ export function TripPayments({
                 )}
                 Email Invoice
               </Button>
-              <Button variant="outline" size="sm" onClick={handleGenerateInvoice}>
-                <FileText className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleGenerateInvoice} disabled={generatingInvoice}>
+                {generatingInvoice ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
                 Download Invoice
               </Button>
               <Button size="sm" onClick={() => setAddDialogOpen(true)}>
