@@ -11,11 +11,13 @@ const actions = [
     label: "New Booking",
     icon: Plus,
     variant: "default" as const,
+    href: "/bookings?action=new",
   },
   {
     label: "Send Quote",
     icon: Send,
     variant: "outline" as const,
+    href: "/contacts",
   },
   {
     label: "Booking Portals",
@@ -27,11 +29,13 @@ const actions = [
     label: "Training",
     icon: BookOpen,
     variant: "outline" as const,
+    href: "/training",
   },
   {
     label: "Reports",
     icon: FileText,
     variant: "outline" as const,
+    href: "/commission-report",
   },
 ];
 
