@@ -32,6 +32,7 @@ interface TripPaymentsProps {
   tripName?: string;
   clientName?: string;
   clientEmail?: string;
+  clientPhone?: string;
   destination?: string;
   departDate?: string;
   returnDate?: string;
@@ -52,6 +53,7 @@ export function TripPayments({
   tripName,
   clientName,
   clientEmail,
+  clientPhone,
   destination,
   departDate,
   returnDate,
@@ -77,10 +79,14 @@ export function TripPayments({
     });
   };
 
+  // Get supplier name from the first booking if available
+  const primarySupplier = bookings.find(b => b.suppliers?.name)?.suppliers?.name;
+
   const getInvoiceData = (): InvoiceData => ({
     tripName: tripName || "Trip",
     clientName: clientName || "Client",
     clientEmail,
+    clientPhone,
     destination,
     departDate,
     returnDate,
@@ -92,6 +98,8 @@ export function TripPayments({
     agencyPhone: brandingSettings?.phone || undefined,
     agencyEmail: brandingSettings?.email_address || undefined,
     agencyAddress: brandingSettings?.address || undefined,
+    agencyWebsite: brandingSettings?.website || undefined,
+    supplierName: primarySupplier,
   });
 
   const handleGenerateInvoice = () => {

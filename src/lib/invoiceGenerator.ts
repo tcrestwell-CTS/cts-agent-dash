@@ -6,6 +6,8 @@ export interface InvoiceData {
   tripName: string;
   clientName: string;
   clientEmail?: string;
+  clientPhone?: string;
+  clientAddress?: string;
   destination?: string;
   departDate?: string;
   returnDate?: string;
@@ -17,170 +19,307 @@ export interface InvoiceData {
   agencyPhone?: string;
   agencyEmail?: string;
   agencyAddress?: string;
+  agencyWebsite?: string;
+  supplierName?: string;
 }
 
 interface GenerateOptions {
   returnBase64?: boolean;
 }
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(value);
+};
+
 export function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions): string | void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  let yPos = 20;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  let yPos = 25;
 
-  // Colors
-  const primaryColor: [number, number, number] = [13, 115, 119]; // #0D7377
+  // Colors matching the template
+  const primaryColor: [number, number, number] = [0, 150, 167]; // Teal #0096A7
   const textColor: [number, number, number] = [51, 51, 51];
-  const mutedColor: [number, number, number] = [128, 128, 128];
+  const mutedColor: [number, number, number] = [102, 102, 102];
+  const lightGray: [number, number, number] = [200, 200, 200];
 
-  // Helper function to add text
-  const addText = (
-    text: string,
-    x: number,
-    y: number,
-    options?: { fontSize?: number; color?: [number, number, number]; fontStyle?: string; align?: "left" | "center" | "right" }
-  ) => {
-    const { fontSize = 10, color = textColor, fontStyle = "normal", align = "left" } = options || {};
-    doc.setFontSize(fontSize);
-    doc.setTextColor(...color);
-    doc.setFont("helvetica", fontStyle);
-    doc.text(text, x, y, { align });
-  };
+  // Generate invoice number
+  const invoiceNumber = `INV-${Date.now().toString().slice(-10).toUpperCase()}`;
 
-  // Header - Agency Info
-  addText(data.agencyName || "Crestwell Travel Services", 20, yPos, { fontSize: 18, fontStyle: "bold", color: primaryColor });
-  yPos += 8;
+  // ===== PAGE 1 =====
   
-  if (data.agencyPhone || data.agencyEmail) {
-    const contactInfo = [data.agencyPhone, data.agencyEmail].filter(Boolean).join(" | ");
-    addText(contactInfo, 20, yPos, { fontSize: 9, color: mutedColor });
-    yPos += 5;
-  }
-  
-  if (data.agencyAddress) {
-    addText(data.agencyAddress, 20, yPos, { fontSize: 9, color: mutedColor });
-    yPos += 5;
-  }
+  // Header - "Invoice" title
+  doc.setFontSize(28);
+  doc.setTextColor(...primaryColor);
+  doc.setFont("helvetica", "bold");
+  doc.text("Invoice", margin, yPos);
 
-  // Invoice Title
-  yPos += 10;
-  addText("INVOICE", pageWidth - 20, yPos, { fontSize: 24, fontStyle: "bold", color: primaryColor, align: "right" });
+  // Logo placeholder text (top right) - simulating "Crestwell Travel Services" badge
+  doc.setFontSize(10);
+  doc.setTextColor(...primaryColor);
+  doc.setFont("helvetica", "bold");
+  const logoX = pageWidth - margin - 30;
+  doc.text("Crestwell", logoX + 15, yPos - 8, { align: "center" });
+  doc.setFontSize(9);
+  doc.text("Travel", logoX + 15, yPos - 3, { align: "center" });
+  doc.setFontSize(8);
+  doc.text("Services", logoX + 15, yPos + 2, { align: "center" });
   
-  // Invoice Number & Date
-  yPos += 8;
-  const invoiceNumber = `INV-${Date.now().toString().slice(-8)}`;
-  addText(`Invoice #: ${invoiceNumber}`, pageWidth - 20, yPos, { fontSize: 10, align: "right" });
-  yPos += 5;
-  addText(`Date: ${format(new Date(), "MMMM d, yyyy")}`, pageWidth - 20, yPos, { fontSize: 10, align: "right" });
-
-  // Divider
-  yPos += 10;
+  // Draw a subtle rounded rectangle around the logo text
   doc.setDrawColor(...primaryColor);
   doc.setLineWidth(0.5);
-  doc.line(20, yPos, pageWidth - 20, yPos);
+  doc.roundedRect(logoX, yPos - 15, 30, 22, 3, 3, "S");
 
-  // Bill To Section
-  yPos += 10;
-  addText("BILL TO:", 20, yPos, { fontSize: 10, fontStyle: "bold", color: mutedColor });
-  yPos += 6;
-  addText(data.clientName, 20, yPos, { fontSize: 12, fontStyle: "bold" });
-  if (data.clientEmail) {
-    yPos += 5;
-    addText(data.clientEmail, 20, yPos, { fontSize: 10, color: mutedColor });
-  }
-
-  // Trip Details Section
+  // Invoice Number and Issue Date
   yPos += 15;
-  addText("TRIP DETAILS:", 20, yPos, { fontSize: 10, fontStyle: "bold", color: mutedColor });
-  yPos += 6;
-  addText(data.tripName, 20, yPos, { fontSize: 12, fontStyle: "bold" });
+  doc.setFontSize(10);
+  doc.setTextColor(...mutedColor);
+  doc.setFont("helvetica", "normal");
+  doc.text("Invoice Number", margin, yPos);
+  doc.text("Issue Date", margin, yPos + 6);
   
-  if (data.destination) {
-    yPos += 5;
-    addText(`Destination: ${data.destination}`, 20, yPos, { fontSize: 10 });
+  doc.setTextColor(...textColor);
+  doc.text(invoiceNumber, margin + 35, yPos);
+  doc.text(format(new Date(), "MMM d, yyyy"), margin + 35, yPos + 6);
+
+  // ===== Three Column Header Section =====
+  yPos += 20;
+  const colWidth = (pageWidth - margin * 2) / 3;
+  
+  // Column 1: Agency Info
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...textColor);
+  doc.text(data.agencyName || "Crestwell Travel Services", margin, yPos);
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...mutedColor);
+  let agencyY = yPos + 5;
+  
+  if (data.agencyEmail) {
+    doc.text(data.agencyEmail, margin, agencyY);
+    agencyY += 4;
   }
+  if (data.agencyPhone) {
+    doc.text(data.agencyPhone, margin, agencyY);
+    agencyY += 4;
+  }
+  if (data.agencyAddress) {
+    const addressLines = doc.splitTextToSize(data.agencyAddress, colWidth - 5);
+    doc.text(addressLines, margin, agencyY);
+    agencyY += addressLines.length * 4;
+  }
+  
+  // Column 2: Primary Traveler
+  const col2X = margin + colWidth;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...mutedColor);
+  doc.text("Primary Traveler", col2X, yPos);
+  
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...textColor);
+  doc.text(data.clientName, col2X, yPos + 5);
+  
+  let travelerY = yPos + 10;
+  doc.setFontSize(8);
+  doc.setTextColor(...mutedColor);
+  if (data.clientEmail) {
+    doc.text(data.clientEmail, col2X, travelerY);
+    travelerY += 4;
+  }
+  if (data.clientPhone) {
+    doc.text(data.clientPhone, col2X, travelerY);
+    travelerY += 4;
+  }
+  
+  // Column 3: Trip Details
+  const col3X = margin + colWidth * 2;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...mutedColor);
+  doc.text("Trip Details", col3X, yPos);
+  
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...textColor);
+  doc.text(data.tripName, col3X, yPos + 5);
   
   if (data.departDate) {
-    yPos += 5;
     const dateRange = data.returnDate 
-      ? `${format(new Date(data.departDate), "MMM d, yyyy")} - ${format(new Date(data.returnDate), "MMM d, yyyy")}`
+      ? `${format(new Date(data.departDate), "MMM d")} - ${format(new Date(data.returnDate), "MMM d, yyyy")}`
       : format(new Date(data.departDate), "MMM d, yyyy");
-    addText(`Travel Dates: ${dateRange}`, 20, yPos, { fontSize: 10 });
+    doc.setFontSize(8);
+    doc.setTextColor(...mutedColor);
+    doc.text(dateRange, col3X, yPos + 10);
   }
 
-  // Payments Table
+  // ===== Remaining Due Section =====
+  yPos += 40;
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...textColor);
+  doc.text(`Remaining due: ${formatCurrency(data.totalRemaining)}`, margin, yPos);
+
+  // ===== Payment Table =====
   yPos += 15;
   
   // Table Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(20, yPos, pageWidth - 40, 8, "F");
-  yPos += 5.5;
+  doc.setFillColor(245, 245, 245);
+  doc.rect(margin, yPos - 4, pageWidth - margin * 2, 8, "F");
+  doc.setDrawColor(...lightGray);
+  doc.line(margin, yPos + 4, pageWidth - margin, yPos + 4);
   
-  addText("Description", 25, yPos, { fontSize: 9, fontStyle: "bold", color: [255, 255, 255] });
-  addText("Due Date", 100, yPos, { fontSize: 9, fontStyle: "bold", color: [255, 255, 255] });
-  addText("Status", 135, yPos, { fontSize: 9, fontStyle: "bold", color: [255, 255, 255] });
-  addText("Amount", pageWidth - 25, yPos, { fontSize: 9, fontStyle: "bold", color: [255, 255, 255], align: "right" });
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...mutedColor);
+  doc.text("Description", margin + 2, yPos + 1);
+  doc.text("Status", margin + 95, yPos + 1);
+  doc.text("Amount", pageWidth - margin - 2, yPos + 1, { align: "right" });
   
-  yPos += 5;
+  yPos += 10;
 
-  // Table Rows
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(value);
-  };
+  // Trip name as header row
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...primaryColor);
+  doc.text(data.tripName, margin + 2, yPos);
+  doc.text(formatCurrency(data.tripTotal), pageWidth - margin - 2, yPos, { align: "right" });
+  
+  yPos += 7;
 
-  data.payments.forEach((payment, index) => {
-    yPos += 7;
-    
-    // Alternate row background
-    if (index % 2 === 0) {
-      doc.setFillColor(245, 245, 245);
-      doc.rect(20, yPos - 4.5, pageWidth - 40, 7, "F");
+  // Payment rows
+  doc.setFont("helvetica", "normal");
+  data.payments.forEach((payment) => {
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = 25;
     }
 
-    const description = payment.bookings 
-      ? payment.bookings.trip_name || payment.bookings.destination || "Trip Payment"
-      : payment.payment_type === "final_balance" 
-        ? "Final Balance" 
-        : payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1);
+    // Description
+    let description = payment.payment_type === "final_balance" 
+      ? "Final balance" 
+      : payment.payment_type === "deposit"
+        ? "Deposit"
+        : payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1).replace(/_/g, " ");
     
-    addText(description.substring(0, 40), 25, yPos, { fontSize: 9 });
-    addText(payment.due_date ? format(new Date(payment.due_date), "MMM d, yyyy") : "-", 100, yPos, { fontSize: 9 });
-    addText(payment.status.charAt(0).toUpperCase() + payment.status.slice(1), 135, yPos, { fontSize: 9 });
-    addText(formatCurrency(payment.amount), pageWidth - 25, yPos, { fontSize: 9, align: "right" });
+    // If it's an installment, try to make a better name
+    if (payment.payment_type === "installment") {
+      description = "Installment";
+    }
+    
+    doc.setFontSize(9);
+    doc.setTextColor(...textColor);
+    doc.text(description, margin + 2, yPos);
+    
+    // Status
+    const dueDate = payment.due_date ? format(new Date(payment.due_date), "MMM d, yyyy") : "";
+    const statusText = payment.status === "paid" 
+      ? `${dueDate} · Paid`
+      : payment.status === "pending" && dueDate
+        ? `Due ${dueDate} · Unpaid`
+        : payment.status.charAt(0).toUpperCase() + payment.status.slice(1);
+    
+    doc.setTextColor(...mutedColor);
+    doc.text(statusText, margin + 95, yPos);
+    
+    // Amount
+    doc.setTextColor(...textColor);
+    doc.text(formatCurrency(payment.amount), pageWidth - margin - 2, yPos, { align: "right" });
+    
+    yPos += 6;
   });
 
-  // Totals Section
-  yPos += 15;
-  doc.setDrawColor(200, 200, 200);
-  doc.line(pageWidth - 80, yPos, pageWidth - 20, yPos);
+  // Supplier and refund info
+  yPos += 5;
+  doc.setFontSize(8);
+  doc.setTextColor(...mutedColor);
+  if (data.supplierName) {
+    doc.text(`Booking via ${data.supplierName}`, margin + 2, yPos);
+    yPos += 4;
+  }
+
+  // Divider line
+  yPos += 5;
+  doc.setDrawColor(...lightGray);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+
+  // ===== Summary Totals =====
+  yPos += 10;
+  const summaryX = pageWidth - margin - 60;
   
-  yPos += 8;
-  addText("Trip Total:", pageWidth - 80, yPos, { fontSize: 10 });
-  addText(formatCurrency(data.tripTotal), pageWidth - 25, yPos, { fontSize: 10, fontStyle: "bold", align: "right" });
+  doc.setFontSize(9);
+  doc.setTextColor(...mutedColor);
+  doc.text("Estimated Total", summaryX, yPos);
+  doc.setTextColor(...textColor);
+  doc.text(formatCurrency(data.tripTotal), pageWidth - margin - 2, yPos, { align: "right" });
   
   yPos += 6;
-  addText("Amount Paid:", pageWidth - 80, yPos, { fontSize: 10, color: mutedColor });
-  addText(formatCurrency(data.totalPaid), pageWidth - 25, yPos, { fontSize: 10, align: "right" });
+  doc.setTextColor(...mutedColor);
+  doc.text("Paid", summaryX, yPos);
+  doc.setTextColor(...textColor);
+  doc.text(formatCurrency(data.totalPaid), pageWidth - margin - 2, yPos, { align: "right" });
+  
+  yPos += 6;
+  doc.setTextColor(...mutedColor);
+  doc.text("Remaining", summaryX, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...textColor);
+  doc.text(formatCurrency(data.totalRemaining), pageWidth - margin - 2, yPos, { align: "right" });
+
+  // ===== Additional Details Section =====
+  yPos += 20;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...textColor);
+  doc.text("Additional Details", margin, yPos);
   
   yPos += 8;
-  doc.setFillColor(...primaryColor);
-  doc.rect(pageWidth - 85, yPos - 5, 65, 10, "F");
-  addText("Balance Due:", pageWidth - 80, yPos + 1, { fontSize: 10, fontStyle: "bold", color: [255, 255, 255] });
-  addText(formatCurrency(data.totalRemaining), pageWidth - 25, yPos + 1, { fontSize: 10, fontStyle: "bold", color: [255, 255, 255], align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Thank you for choosing ${data.agencyName || "Crestwell Travel Services"}`, margin, yPos);
+  
+  yPos += 8;
+  doc.setTextColor(...mutedColor);
+  const thankYouText = "We appreciate the opportunity to serve you and are committed to delivering exceptional quality and care. This invoice reflects the services rendered as agreed. If you have any questions regarding the charges or need further documentation, please don't hesitate to reach out.";
+  const thankYouLines = doc.splitTextToSize(thankYouText, pageWidth - margin * 2);
+  doc.text(thankYouLines, margin, yPos);
 
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 20;
-  doc.setDrawColor(...primaryColor);
-  doc.line(20, footerY - 5, pageWidth - 20, footerY - 5);
-  addText("Thank you for choosing " + (data.agencyName || "Crestwell Travel Services") + "!", pageWidth / 2, footerY, { 
-    fontSize: 10, 
-    color: mutedColor, 
-    align: "center" 
-  });
+  // ===== PAGE 2 - Terms and Footer =====
+  doc.addPage();
+  yPos = 25;
+
+  doc.setFontSize(9);
+  doc.setTextColor(...textColor);
+  doc.text("Payment is due upon receipt unless otherwise specified.", margin, yPos);
+  
+  yPos += 10;
+  doc.text("For your convenience, we accept ACH, credit card. Late payments may be subject to a service fee as outlined in your agreement.", margin, yPos, { maxWidth: pageWidth - margin * 2 });
+  
+  yPos += 15;
+  doc.text("We value your business and look forward to continuing to support your travel plans.", margin, yPos);
+  
+  yPos += 15;
+  doc.text("Warm regards,", margin, yPos);
+  
+  yPos += 8;
+  doc.setFont("helvetica", "bold");
+  doc.text(`The ${data.agencyName || "Crestwell Travel Services"} Team`, margin, yPos);
+
+  // Contact footer
+  yPos += 15;
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...mutedColor);
+  const contactParts = [
+    data.agencyPhone || "888.508.6893",
+    data.agencyEmail || "info@crestwellgetaways.com",
+    data.agencyWebsite || "https://www.crestwellgetaways.com"
+  ].filter(Boolean);
+  doc.text(contactParts.join(" | "), margin, yPos);
 
   // Return base64 or save the PDF
   if (options?.returnBase64) {
