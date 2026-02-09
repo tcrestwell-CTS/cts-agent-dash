@@ -122,7 +122,34 @@ export function useTrips() {
       return null;
     }
 
+    // Create optimistic trip for immediate UI update
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticTrip: Trip = {
+      id: optimisticId,
+      user_id: user.id,
+      client_id: data.client_id,
+      trip_name: data.trip_name,
+      destination: data.destination || null,
+      depart_date: data.depart_date || null,
+      return_date: data.return_date || null,
+      trip_type: data.trip_type || "regular",
+      notes: data.notes || null,
+      trip_page_url: data.trip_page_url || null,
+      status: "planning",
+      total_gross_sales: 0,
+      total_commissionable_amount: 0,
+      total_commission_revenue: 0,
+      total_net_sales: 0,
+      total_supplier_payout: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      clients: null, // Will be populated after server response
+    };
+
+    // Add optimistic trip to state immediately
+    setTrips((prev) => [optimisticTrip, ...prev]);
     setCreating(true);
+
     try {
       const { data: newTrip, error } = await supabase
         .from("trips")
@@ -151,15 +178,22 @@ export function useTrips() {
 
       if (error) {
         console.error("Error creating trip:", error);
+        // Remove optimistic trip on error
+        setTrips((prev) => prev.filter((t) => t.id !== optimisticId));
         toast.error("Failed to create trip");
         return null;
       }
 
+      // Replace optimistic trip with real trip
+      setTrips((prev) =>
+        prev.map((t) => (t.id === optimisticId ? newTrip : t))
+      );
       toast.success("Trip created successfully");
-      await fetchTrips();
       return newTrip;
     } catch (error) {
       console.error("Error creating trip:", error);
+      // Remove optimistic trip on error
+      setTrips((prev) => prev.filter((t) => t.id !== optimisticId));
       toast.error("Failed to create trip");
       return null;
     } finally {
@@ -204,6 +238,12 @@ export function useTrips() {
       return false;
     }
 
+    // Store the trip for potential rollback
+    const tripToDelete = trips.find((t) => t.id === tripId);
+    
+    // Optimistically remove the trip immediately
+    setTrips((prev) => prev.filter((t) => t.id !== tripId));
+
     try {
       const { error } = await supabase
         .from("trips")
@@ -212,15 +252,22 @@ export function useTrips() {
 
       if (error) {
         console.error("Error deleting trip:", error);
+        // Rollback: restore the trip on error
+        if (tripToDelete) {
+          setTrips((prev) => [tripToDelete, ...prev]);
+        }
         toast.error("Failed to delete trip");
         return false;
       }
 
       toast.success("Trip deleted successfully");
-      await fetchTrips();
       return true;
     } catch (error) {
       console.error("Error deleting trip:", error);
+      // Rollback: restore the trip on error
+      if (tripToDelete) {
+        setTrips((prev) => [tripToDelete, ...prev]);
+      }
       toast.error("Failed to delete trip");
       return false;
     }
