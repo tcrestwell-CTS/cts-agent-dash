@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -428,10 +428,15 @@ function CTSBookingsWidget() {
 
 const Trips = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { trips, loading } = useTrips();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"trips" | "portals">("trips");
+  
+  // Initialize tab from URL param
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "portals" ? "portals" : "trips";
+  const [activeTab, setActiveTab] = useState<"trips" | "portals">(initialTab);
   
   // Portal state
   const [portalSuppliers, setPortalSuppliers] = useState<Supplier[]>(initialPortalSuppliers);
