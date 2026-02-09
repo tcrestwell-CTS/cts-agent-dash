@@ -22,6 +22,8 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useTrips } from "@/hooks/useTrips";
 import { useClients } from "@/hooks/useClients";
 import { DateRange } from "react-day-picker";
+import { Plus } from "lucide-react";
+import { QuickAddClientForm } from "./QuickAddClientForm";
 
 interface AddTripDialogProps {
   open: boolean;
@@ -41,6 +43,12 @@ export function AddTripDialog({ open, onOpenChange }: AddTripDialogProps) {
     trip_page_url: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [showAddClient, setShowAddClient] = useState(false);
+
+  const handleClientCreated = (clientId: string) => {
+    setFormData({ ...formData, client_id: clientId });
+    setShowAddClient(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,26 +87,43 @@ export function AddTripDialog({ open, onOpenChange }: AddTripDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
+        {showAddClient ? (
+          <QuickAddClientForm
+            onClientCreated={handleClientCreated}
+            onCancel={() => setShowAddClient(false)}
+          />
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="client">Client *</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={(value) =>
-                setFormData({ ...formData, client_id: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={formData.client_id}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, client_id: value })
+                }
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowAddClient(true)}
+                title="Add new client"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -199,6 +224,7 @@ export function AddTripDialog({ open, onOpenChange }: AddTripDialogProps) {
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
