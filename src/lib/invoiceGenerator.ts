@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import { TripPayment } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
 
-interface InvoiceData {
+export interface InvoiceData {
   tripName: string;
   clientName: string;
   clientEmail?: string;
@@ -19,7 +19,11 @@ interface InvoiceData {
   agencyAddress?: string;
 }
 
-export function generateInvoicePDF(data: InvoiceData): void {
+interface GenerateOptions {
+  returnBase64?: boolean;
+}
+
+export function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions): string | void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   let yPos = 20;
@@ -178,7 +182,11 @@ export function generateInvoicePDF(data: InvoiceData): void {
     align: "center" 
   });
 
-  // Save the PDF
+  // Return base64 or save the PDF
+  if (options?.returnBase64) {
+    return doc.output("datauristring").split(",")[1];
+  }
+  
   const fileName = `Invoice_${data.tripName.replace(/[^a-zA-Z0-9]/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
   doc.save(fileName);
 }

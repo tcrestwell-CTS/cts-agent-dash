@@ -8,13 +8,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface Attachment {
+  filename: string;
+  content: string; // base64 encoded
+}
+
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "custom";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
   clientId?: string;
+  attachments?: Attachment[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -69,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching branding:", brandingError);
     }
 
-    const { to, subject, template, data: templateData, customHtml, clientId }: EmailRequest = await req.json();
+    const { to, subject, template, data: templateData, customHtml, clientId, attachments }: EmailRequest = await req.json();
 
     if (!to || !subject || !template) {
       throw new Error("Missing required fields: to, subject, template");
@@ -275,6 +281,40 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         `;
 
+        break;
+
+      case "invoice":
+        const invoiceTripName = templateData?.tripName || "Your Trip";
+        const invoiceDestination = templateData?.destination || "";
+        const invoiceDates = templateData?.dates || "";
+        const invoiceTotal = templateData?.tripTotal || "$0.00";
+        const invoicePaid = templateData?.totalPaid || "$0.00";
+        const invoiceRemaining = templateData?.totalRemaining || "$0.00";
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Your Invoice 📄</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Please find your invoice attached for the following trip:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Trip:</strong> ${invoiceTripName}</p>
+              ${invoiceDestination ? `<p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${invoiceDestination}</p>` : ""}
+              ${invoiceDates ? `<p style="margin: 8px 0; color: #374151;"><strong>Travel Dates:</strong> ${invoiceDates}</p>` : ""}
+              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 8px 0; color: #374151;"><strong>Trip Total:</strong> ${invoiceTotal}</p>
+                <p style="margin: 8px 0; color: #22c55e;"><strong>Amount Paid:</strong> ${invoicePaid}</p>
+                <p style="margin: 8px 0; color: ${primaryColor}; font-size: 18px;"><strong>Balance Due:</strong> ${invoiceRemaining}</p>
+              </div>
+            </div>
+            <p style="color: #4b5563; line-height: 1.6;">If you have any questions about this invoice, please don't hesitate to reach out.</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
       case "custom":
         // Custom freeform email with user-provided content
         const messageContent = customHtml || "";
@@ -300,12 +340,30 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending ${template} email to ${to}`);
 
-    const { data: emailData, error: emailError } = await resend.emails.send({
+    // Build email options
+    const emailOptions: {
+      from: string;
+      to: string[];
+      subject: string;
+      html: string;
+      attachments?: Array<{ filename: string; content: Buffer }>;
+    } = {
       from: `${fromName} <${fromEmail}>`,
       to: [to],
       subject,
       html: emailHtml,
-    });
+    };
+
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      emailOptions.attachments = attachments.map((att) => ({
+        filename: att.filename,
+        content: Buffer.from(att.content, "base64"),
+      }));
+      console.log(`Adding ${attachments.length} attachment(s) to email`);
+    }
+
+    const { data: emailData, error: emailError } = await resend.emails.send(emailOptions);
 
     if (emailError) {
       console.error("Resend error:", emailError);
