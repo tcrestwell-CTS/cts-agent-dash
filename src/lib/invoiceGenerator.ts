@@ -3,6 +3,7 @@ import { TripPayment } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
 
 export interface InvoiceData {
+  invoiceNumber?: string;
   tripName: string;
   clientName: string;
   clientEmail?: string;
@@ -75,8 +76,8 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   const mutedColor: [number, number, number] = [102, 102, 102];
   const lightGray: [number, number, number] = [200, 200, 200];
 
-  // Generate invoice number
-  const invoiceNumber = `INV-${Date.now().toString().slice(-10).toUpperCase()}`;
+  // Use provided invoice number or generate fallback
+  const invoiceNumber = data.invoiceNumber || `INV-${Date.now().toString().slice(-10).toUpperCase()}`;
 
   // ===== PAGE 1 =====
   

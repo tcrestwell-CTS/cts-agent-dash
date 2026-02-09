@@ -331,6 +331,7 @@ const TripDetail = () => {
           <TabsContent value="payments" className="mt-6">
             <TripPayments
               tripId={tripId!}
+              clientId={trip.client_id}
               bookings={bookings}
               tripTotal={trip.total_gross_sales}
               tripName={trip.trip_name}
