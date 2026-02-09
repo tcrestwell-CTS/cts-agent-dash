@@ -336,6 +336,7 @@ const TripDetail = () => {
               tripName={trip.trip_name}
               clientName={trip.clients?.name}
               clientEmail={trip.clients?.email || undefined}
+              clientPhone={trip.clients?.phone || undefined}
               destination={trip.destination || undefined}
               departDate={trip.depart_date || undefined}
               returnDate={trip.return_date || undefined}

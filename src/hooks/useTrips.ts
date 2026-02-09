@@ -27,6 +27,7 @@ export interface Trip {
     id: string;
     name: string;
     email: string | null;
+    phone: string | null;
   } | null;
   bookings?: TripBooking[];
 }
@@ -92,7 +93,8 @@ export function useTrips() {
           clients (
             id,
             name,
-            email
+            email,
+            phone
           )
         `)
         .order("created_at", { ascending: false });
@@ -141,7 +143,8 @@ export function useTrips() {
           clients (
             id,
             name,
-            email
+            email,
+            phone
           )
         `)
         .single();
@@ -257,7 +260,8 @@ export function useTrip(tripId: string | undefined) {
           clients (
             id,
             name,
-            email
+            email,
+            phone
           )
         `)
         .eq("id", tripId)
