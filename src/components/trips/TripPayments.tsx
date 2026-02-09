@@ -99,11 +99,12 @@ export function TripPayments({
     agencyEmail: brandingSettings?.email_address || undefined,
     agencyAddress: brandingSettings?.address || undefined,
     agencyWebsite: brandingSettings?.website || undefined,
+    agencyLogoUrl: brandingSettings?.logo_url || undefined,
     supplierName: primarySupplier,
   });
 
-  const handleGenerateInvoice = () => {
-    generateInvoicePDF(getInvoiceData());
+  const handleGenerateInvoice = async () => {
+    await generateInvoicePDF(getInvoiceData());
   };
 
   const handleEmailInvoice = async () => {
@@ -115,7 +116,7 @@ export function TripPayments({
     setSendingEmail(true);
     try {
       // Generate PDF as base64
-      const pdfBase64 = generateInvoicePDF(getInvoiceData(), { returnBase64: true });
+      const pdfBase64 = await generateInvoicePDF(getInvoiceData(), { returnBase64: true });
       
       if (!pdfBase64) {
         throw new Error("Failed to generate PDF");
