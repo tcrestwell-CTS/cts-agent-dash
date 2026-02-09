@@ -10,7 +10,8 @@ import { AgencyKPIs } from "@/components/dashboard/AgencyKPIs";
 import { AgentLeaderboard } from "@/components/dashboard/AgentLeaderboard";
 import { CommissionRevenueCard } from "@/components/dashboard/CommissionRevenueCard";
 import { UpcomingCommissions } from "@/components/dashboard/UpcomingCommissions";
-import { Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
+import { UpcomingPayments } from "@/components/dashboard/UpcomingPayments";
+import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,9 +33,10 @@ const Index = () => {
   // Determine which sections should be full-width based on urgency/data count
   const departuresFullWidth = sections.upcomingDepartures.urgentCount >= 3 || sections.upcomingDepartures.dataCount >= 4;
   const commissionsFullWidth = sections.upcomingCommissions.urgentCount >= 3 || sections.upcomingCommissions.dataCount >= 4;
+  const paymentsUrgent = (sections.upcomingPayments as any).overdueCount > 0 || sections.upcomingPayments.urgentCount > 0;
   
   // Sections with urgent items appear in a highlighted priority row
-  const hasUrgentItems = sections.upcomingDepartures.urgentCount > 0 || sections.upcomingCommissions.urgentCount > 0;
+  const hasUrgentItems = sections.upcomingDepartures.urgentCount > 0 || sections.upcomingCommissions.urgentCount > 0 || paymentsUrgent;
 
   return (
     <DashboardLayout>
@@ -93,10 +95,15 @@ const Index = () => {
           </h2>
           <div className={cn(
             "grid gap-6",
-            sections.upcomingDepartures.urgentCount > 0 && sections.upcomingCommissions.urgentCount > 0
+            [sections.upcomingDepartures.urgentCount > 0, sections.upcomingCommissions.urgentCount > 0, paymentsUrgent].filter(Boolean).length >= 2
               ? "grid-cols-1 lg:grid-cols-2"
               : "grid-cols-1"
           )}>
+            {paymentsUrgent && (
+              <div className="ring-2 ring-destructive/30 rounded-xl">
+                <UpcomingPayments />
+              </div>
+            )}
             {sections.upcomingDepartures.urgentCount > 0 && (
               <div className="ring-2 ring-destructive/30 rounded-xl">
                 <UpcomingDepartures />
@@ -138,6 +145,21 @@ const Index = () => {
           
           {/* Commission Revenue - Always show */}
           <CommissionRevenueCard />
+
+          {/* Upcoming Payments - Skip if shown in urgent row */}
+          {!hasUrgentItems || !paymentsUrgent ? (
+            sections.upcomingPayments.hasData ? (
+              <UpcomingPayments />
+            ) : (
+              <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 opacity-60">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Upcoming Payments
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">No payments due soon</p>
+              </div>
+            )
+          ) : null}
           
           {/* Upcoming Commissions - Skip if shown in urgent row */}
           {!hasUrgentItems || sections.upcomingCommissions.urgentCount === 0 ? (

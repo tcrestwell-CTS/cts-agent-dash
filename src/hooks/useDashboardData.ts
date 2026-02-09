@@ -3,13 +3,19 @@ import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   addDays, 
   isWithinInterval, 
   isFuture, 
   subDays, 
   startOfMonth, 
-  endOfMonth 
+  endOfMonth,
+  isPast,
+  parseISO,
+  differenceInDays,
 } from "date-fns";
 
 export interface DashboardSection {
@@ -21,13 +27,30 @@ export interface DashboardSection {
 }
 
 export function useDashboardData() {
+  const { user } = useAuth();
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
 
-  const loading = bookingsLoading || clientsLoading || commissionsLoading;
+  // Fetch upcoming payments
+  const { data: pendingPayments, isLoading: paymentsLoading } = useQuery({
+    queryKey: ["dashboard-pending-payments", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trip_payments")
+        .select("id, due_date, status")
+        .eq("status", "pending")
+        .not("due_date", "is", null);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const loading = bookingsLoading || clientsLoading || commissionsLoading || paymentsLoading;
   const isAgencyView = isAdmin || isOfficeAdmin;
 
   const sections = useMemo(() => {
@@ -35,6 +58,7 @@ export function useDashboardData() {
       return {
         upcomingDepartures: { id: "upcomingDepartures", priority: 1, hasData: false, urgentCount: 0, dataCount: 0 },
         upcomingCommissions: { id: "upcomingCommissions", priority: 2, hasData: false, urgentCount: 0, dataCount: 0 },
+        upcomingPayments: { id: "upcomingPayments", priority: 2, hasData: false, urgentCount: 0, dataCount: 0 },
         recentBookings: { id: "recentBookings", priority: 3, hasData: false, urgentCount: 0, dataCount: 0 },
         kpis: { id: "kpis", priority: 4, hasData: false, urgentCount: 0, dataCount: 0 },
         leaderboard: { id: "leaderboard", priority: 5, hasData: false, urgentCount: 0, dataCount: 0 },
@@ -43,6 +67,7 @@ export function useDashboardData() {
     }
 
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const thirtyDaysFromNow = addDays(today, 30);
     const thisMonth = { start: startOfMonth(today), end: endOfMonth(today) };
 
@@ -72,6 +97,22 @@ export function useDashboardData() {
       return days <= 7;
     });
 
+    // Calculate upcoming payments
+    const upcomingPmts = (pendingPayments || []).filter((p) => {
+      if (!p.due_date) return false;
+      const dueDate = parseISO(p.due_date);
+      return isPast(dueDate) || isWithinInterval(dueDate, { start: today, end: thirtyDaysFromNow });
+    });
+    const urgentPayments = upcomingPmts.filter((p) => {
+      const dueDate = parseISO(p.due_date!);
+      const daysUntil = differenceInDays(dueDate, today);
+      return daysUntil <= 7 || isPast(dueDate);
+    });
+    const overduePayments = upcomingPmts.filter((p) => {
+      const dueDate = parseISO(p.due_date!);
+      return isPast(dueDate);
+    });
+
     // Recent/active bookings
     const activeBookings = bookings.filter(b => 
       b.status === "confirmed" || b.status === "pending" || b.status === "traveling"
@@ -84,18 +125,24 @@ export function useDashboardData() {
     });
 
     // Commission data
-    const pendingCommissions = commissions.filter(c => c.status === "pending");
+    const pendingCommissionsData = commissions.filter(c => c.status === "pending");
     const hasCommissionData = commissions.length > 0;
 
     // Determine priorities based on urgency
     let departurePriority = 3;
     let commissionPriority = 4;
+    let paymentPriority = 4;
     
     if (urgentDepartures.length > 0) departurePriority = 1;
     else if (upcomingDeps.length > 0) departurePriority = 2;
     
     if (urgentCommissions.length > 0) commissionPriority = 1;
     else if (upcomingComms.length > 0) commissionPriority = 2;
+
+    // Payments with overdue get highest priority
+    if (overduePayments.length > 0) paymentPriority = 0;
+    else if (urgentPayments.length > 0) paymentPriority = 1;
+    else if (upcomingPmts.length > 0) paymentPriority = 2;
 
     return {
       upcomingDepartures: {
@@ -111,6 +158,14 @@ export function useDashboardData() {
         hasData: upcomingComms.length > 0,
         urgentCount: urgentCommissions.length,
         dataCount: upcomingComms.length,
+      },
+      upcomingPayments: {
+        id: "upcomingPayments",
+        priority: paymentPriority,
+        hasData: upcomingPmts.length > 0,
+        urgentCount: urgentPayments.length,
+        overdueCount: overduePayments.length,
+        dataCount: upcomingPmts.length,
       },
       recentBookings: {
         id: "recentBookings",
@@ -135,13 +190,13 @@ export function useDashboardData() {
       },
       commissionSummary: {
         id: "commissionSummary",
-        priority: pendingCommissions.length > 0 ? 3 : 6,
+        priority: pendingCommissionsData.length > 0 ? 3 : 6,
         hasData: hasCommissionData,
-        urgentCount: pendingCommissions.length,
+        urgentCount: pendingCommissionsData.length,
         dataCount: commissions.length,
       },
     };
-  }, [bookings, clients, commissions, isAgencyView]);
+  }, [bookings, clients, commissions, pendingPayments, isAgencyView]);
 
   // Sort sections by priority
   const sortedSections = useMemo(() => {
