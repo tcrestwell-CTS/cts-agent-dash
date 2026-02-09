@@ -429,9 +429,14 @@ function CTSBookingsWidget() {
 const Trips = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { trips, loading } = useTrips();
+  const { trips, loading, fetchTrips } = useTrips();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const handleTripCreated = () => {
+    setIsAddDialogOpen(false);
+    fetchTrips();
+  };
   
   // Initialize tab from URL param
   const tabParam = searchParams.get("tab");
@@ -741,6 +746,7 @@ const Trips = () => {
       <AddTripDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
+        onTripCreated={fetchTrips}
       />
 
       {/* Notes Dialog */}
