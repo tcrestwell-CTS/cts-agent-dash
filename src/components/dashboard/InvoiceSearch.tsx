@@ -24,7 +24,7 @@ export function InvoiceSearch() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [result, setResult] = useState<InvoiceResult | null>(null);
+  const [results, setResults] = useState<InvoiceResult[]>([]);
   const [searched, setSearched] = useState(false);
 
   const handleSearch = async () => {
@@ -32,26 +32,29 @@ export function InvoiceSearch() {
 
     setSearching(true);
     setSearched(true);
-    setResult(null);
+    setResults([]);
 
     try {
+      const searchTerm = `%${query.trim()}%`;
+      
+      // Search by invoice number, client name, or trip name using OR conditions
       const { data, error } = await supabase
         .from("invoices")
         .select("id, invoice_number, trip_id, client_id, client_name, trip_name, total_amount, status")
         .eq("user_id", user.id)
-        .ilike("invoice_number", `%${query.trim()}%`)
-        .limit(1)
-        .maybeSingle();
+        .or(`invoice_number.ilike.${searchTerm},client_name.ilike.${searchTerm},trip_name.ilike.${searchTerm}`)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
       if (error) throw error;
-      setResult(data);
+      setResults(data || []);
 
-      if (!data) {
-        toast.info("No invoice found matching that number");
+      if (!data || data.length === 0) {
+        toast.info("No invoices found matching your search");
       }
     } catch (error) {
-      console.error("Error searching invoice:", error);
-      toast.error("Failed to search for invoice");
+      console.error("Error searching invoices:", error);
+      toast.error("Failed to search for invoices");
     } finally {
       setSearching(false);
     }
@@ -63,9 +66,7 @@ export function InvoiceSearch() {
     }
   };
 
-  const handleNavigate = () => {
-    if (!result) return;
-    
+  const handleNavigate = (result: InvoiceResult) => {
     if (result.trip_id) {
       navigate(`/trips/${result.trip_id}`);
     } else if (result.client_id) {
@@ -93,7 +94,7 @@ export function InvoiceSearch() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search invoice number..."
+              placeholder="Search by invoice #, client, or trip..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -110,29 +111,37 @@ export function InvoiceSearch() {
           </Button>
         </div>
 
-        {searched && result && (
-          <div 
-            className="mt-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-            onClick={handleNavigate}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">{result.invoice_number}</p>
-                <p className="text-xs text-muted-foreground">
-                  {result.trip_name || result.client_name || "Unknown"}
-                </p>
+        {searched && results.length > 0 && (
+          <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+            {results.map((result) => (
+              <div 
+                key={result.id}
+                className="p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => handleNavigate(result)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm">{result.invoice_number}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {result.client_name && <span>{result.client_name}</span>}
+                      {result.client_name && result.trip_name && <span> • </span>}
+                      {result.trip_name && <span>{result.trip_name}</span>}
+                      {!result.client_name && !result.trip_name && "Unknown"}
+                    </p>
+                  </div>
+                  <div className="text-right ml-3">
+                    <p className="font-semibold text-sm">{formatCurrency(result.total_amount)}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{result.status}</p>
+                  </div>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-sm">{formatCurrency(result.total_amount)}</p>
-                <p className="text-xs text-muted-foreground capitalize">{result.status}</p>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {searched && !result && !searching && (
+        {searched && results.length === 0 && !searching && (
           <p className="mt-3 text-xs text-muted-foreground text-center py-2">
-            No invoice found
+            No invoices found
           </p>
         )}
       </CardContent>
