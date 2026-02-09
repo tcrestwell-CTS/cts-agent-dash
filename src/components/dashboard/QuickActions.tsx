@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, BookOpen, FileText, RefreshCw } from "lucide-react";
+import { Plus, Send, BookOpen, FileText, RefreshCw, Globe } from "lucide-react";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +18,12 @@ const actions = [
     variant: "outline" as const,
   },
   {
+    label: "Booking Portals",
+    icon: Globe,
+    variant: "outline" as const,
+    href: "/trips?tab=portals",
+  },
+  {
     label: "Training",
     icon: BookOpen,
     variant: "outline" as const,
@@ -29,8 +36,15 @@ const actions = [
 ];
 
 export function QuickActions() {
+  const navigate = useNavigate();
   const isAdmin = useIsAdmin();
   const [isRunningAutomation, setIsRunningAutomation] = useState(false);
+
+  const handleActionClick = (action: typeof actions[0]) => {
+    if (action.href) {
+      navigate(action.href);
+    }
+  };
 
   const handleRunAutomation = async () => {
     setIsRunningAutomation(true);
@@ -81,6 +95,7 @@ export function QuickActions() {
             key={action.label}
             variant={action.variant}
             className="h-auto py-4 flex-col gap-2"
+            onClick={() => handleActionClick(action)}
           >
             <action.icon className="h-5 w-5" />
             <span className="text-sm">{action.label}</span>
