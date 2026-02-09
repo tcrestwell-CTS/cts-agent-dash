@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +45,11 @@ import { BookingsCalendar } from "@/components/bookings/BookingsCalendar";
 
 const Bookings = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { bookings, loading, creating, updating, updatingStatus, isAdmin, createBooking, updateBooking, updateBookingStatus, deleteBooking } = useBookings();
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   // Search, filter, and view state
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +57,16 @@ const Bookings = () => {
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [agentFilter, setAgentFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "cards" | "calendar">("table");
+
+  // Handle URL action parameter to open Add Booking dialog
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setIsAddDialogOpen(true);
+      // Clear the action param from URL
+      searchParams.delete("action");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Get unique agents for the filter dropdown (only for admins)
   const uniqueAgents = useMemo(() => {
@@ -188,7 +200,12 @@ const Bookings = () => {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <AddBookingDialog onSubmit={createBooking} creating={creating} />
+          <AddBookingDialog 
+            onSubmit={createBooking} 
+            creating={creating} 
+            open={isAddDialogOpen}
+            onOpenChange={setIsAddDialogOpen}
+          />
         </div>
       </div>
 

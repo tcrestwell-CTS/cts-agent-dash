@@ -35,10 +35,14 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 interface AddBookingDialogProps {
   onSubmit: (data: CreateBookingData) => Promise<Booking | null>;
   creating: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddBookingDialog({ onSubmit, creating }: AddBookingDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onOpenChange }: AddBookingDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { activeSuppliers, isLoading: suppliersLoading } = useSuppliers();
   const addBookingTravelers = useAddBookingTravelers();
