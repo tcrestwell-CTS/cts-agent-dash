@@ -34,10 +34,21 @@ export interface Booking {
   override_approved_by: string | null;
   override_approved_at: string | null;
   override_notes: string | null;
+  // Trip reference
+  trip_id: string | null;
   clients?: {
     name: string;
     email: string | null;
   } | null;
+  trips?: {
+    id: string;
+    status: string;
+  } | null;
+}
+
+// Helper to check if a booking should be excluded from reporting
+export function isBookingArchived(booking: Booking): boolean {
+  return booking.trips?.status === "archived";
 }
 
 export interface CreateBookingData {
@@ -140,9 +151,14 @@ export function useBookings() {
           override_approved_by,
           override_approved_at,
           override_notes,
+          trip_id,
           clients (
             name,
             email
+          ),
+          trips (
+            id,
+            status
           )
         `)
         .order("created_at", { ascending: false });
@@ -671,6 +687,7 @@ export function useBooking(bookingId: string | undefined) {
             override_approved_by,
             override_approved_at,
             override_notes,
+            trip_id,
             clients (
               id,
               name,
@@ -686,6 +703,10 @@ export function useBooking(bookingId: string | undefined) {
               name,
               commissionable_percentage,
               commission_rate
+            ),
+            trips (
+              id,
+              status
             )
           `)
           .eq("id", bookingId)
@@ -750,7 +771,12 @@ export function useClientBookings(clientId: string | undefined) {
             override_approved,
             override_approved_by,
             override_approved_at,
-            override_notes
+            override_notes,
+            trip_id,
+            trips (
+              id,
+              status
+            )
           `)
           .eq("client_id", clientId)
           .order("depart_date", { ascending: false });

@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, ChevronRight, Loader2, Plane, Calendar, MapPin, CheckCircle2 } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface TripStatusWorkflowProps {
   currentStatus: string;
@@ -23,6 +34,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
 
   const currentIndex = WORKFLOW_STATUSES.findIndex((s) => s.key === currentStatus);
   const isCancelled = currentStatus === "cancelled";
+  const isArchived = currentStatus === "archived";
 
   const handleStatusChange = async (newStatus: string) => {
     if (disabled || updating) return;
@@ -38,19 +50,22 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
   };
 
   const getNextStatus = () => {
-    if (isCancelled) return null;
+    if (isCancelled || isArchived) return null;
     const nextIndex = currentIndex + 1;
     return nextIndex < WORKFLOW_STATUSES.length ? WORKFLOW_STATUSES[nextIndex] : null;
   };
 
   const getPreviousStatus = () => {
-    if (isCancelled) return WORKFLOW_STATUSES[0]; // Allow returning to planning from cancelled
+    if (isCancelled || isArchived) return WORKFLOW_STATUSES[0]; // Allow returning to planning
     const prevIndex = currentIndex - 1;
     return prevIndex >= 0 ? WORKFLOW_STATUSES[prevIndex] : null;
   };
 
   const nextStatus = getNextStatus();
   const previousStatus = getPreviousStatus();
+
+  // Show archive option for completed or cancelled trips
+  const canArchive = currentStatus === "completed" || currentStatus === "cancelled";
 
   return (
     <Card>
@@ -60,8 +75,8 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
           <div className="flex items-center justify-between">
             {WORKFLOW_STATUSES.map((status, index) => {
               const Icon = status.icon;
-              const isCompleted = !isCancelled && index < currentIndex;
-              const isCurrent = !isCancelled && status.key === currentStatus;
+              const isCompleted = !isCancelled && !isArchived && index < currentIndex;
+              const isCurrent = !isCancelled && !isArchived && status.key === currentStatus;
               const isPending = pendingStatus === status.key;
 
               return (
@@ -98,7 +113,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
                     <div
                       className={cn(
                         "flex-1 h-0.5 mx-2",
-                        !isCancelled && index < currentIndex ? "bg-primary" : "bg-muted-foreground/30"
+                        !isCancelled && !isArchived && index < currentIndex ? "bg-primary" : "bg-muted-foreground/30"
                       )}
                     />
                   )}
@@ -108,27 +123,80 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
           </div>
         </div>
 
+        {/* Archived State */}
+        {isArchived && (
+          <div className="bg-muted border border-muted-foreground/20 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 justify-center text-muted-foreground">
+              <Archive className="h-5 w-5" />
+              <p className="font-medium">This trip has been archived</p>
+            </div>
+            <p className="text-sm text-center text-muted-foreground mt-1">
+              Archived trips are excluded from agency reporting
+            </p>
+            <div className="flex justify-center mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange("planning")}
+                disabled={updating}
+              >
+                {updating && pendingStatus === "planning" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                Restore Trip
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Cancelled State */}
         {isCancelled && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4 text-center">
-            <p className="text-destructive font-medium">This trip has been cancelled</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => handleStatusChange("planning")}
-              disabled={updating}
-            >
-              {updating && pendingStatus === "planning" ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              Reactivate Trip
-            </Button>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 justify-center text-destructive">
+              <XCircle className="h-5 w-5" />
+              <p className="font-medium">This trip has been cancelled</p>
+            </div>
+            <div className="flex justify-center gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange("planning")}
+                disabled={updating}
+              >
+                {updating && pendingStatus === "planning" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                Reactivate Trip
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Archive className="h-4 w-4" />
+                    Archive
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Archive this trip?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Archived trips will be excluded from agency revenue reporting and analytics.
+                      You can restore it later if needed.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleStatusChange("archived")}>
+                      Archive Trip
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         )}
 
         {/* Action Buttons */}
-        {!isCancelled && (
+        {!isCancelled && !isArchived && (
           <div className="flex items-center justify-between gap-4">
             <div>
               {previousStatus && (
@@ -147,6 +215,33 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Archive button for completed trips */}
+              {canArchive && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Archive className="h-4 w-4" />
+                      Archive
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this trip?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Archived trips will be excluded from agency revenue reporting and analytics.
+                        You can restore it later if needed.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleStatusChange("archived")}>
+                        Archive Trip
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
               {nextStatus ? (
                 <Button
                   onClick={() => handleStatusChange(nextStatus.key)}

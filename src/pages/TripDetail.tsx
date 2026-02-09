@@ -42,6 +42,7 @@ const statusColors: Record<string, string> = {
   traveling: "bg-purple-100 text-purple-700 border-purple-200",
   completed: "bg-gray-100 text-gray-700 border-gray-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
+  archived: "bg-slate-100 text-slate-500 border-slate-200",
 };
 
 const bookingStatusColors: Record<string, string> = {

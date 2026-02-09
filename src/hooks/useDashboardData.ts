@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { useBookings } from "@/hooks/useBookings";
+import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
+import {
   addDays, 
   isWithinInterval, 
   isFuture, 
@@ -71,8 +71,11 @@ export function useDashboardData() {
     const thirtyDaysFromNow = addDays(today, 30);
     const thisMonth = { start: startOfMonth(today), end: endOfMonth(today) };
 
-    // Calculate upcoming departures
-    const upcomingDeps = bookings.filter((booking) => {
+    // Filter out archived trips from reporting
+    const activeBookings = bookings.filter(b => !isBookingArchived(b));
+
+    // Calculate upcoming departures (exclude archived)
+    const upcomingDeps = activeBookings.filter((booking) => {
       const departDate = new Date(booking.depart_date);
       return (
         booking.status !== "cancelled" &&
@@ -85,8 +88,8 @@ export function useDashboardData() {
       return days <= 7;
     });
 
-    // Calculate upcoming commissions
-    const upcomingComms = bookings.filter((booking) => {
+    // Calculate upcoming commissions (exclude archived)
+    const upcomingComms = activeBookings.filter((booking) => {
       if (booking.status === "cancelled" || booking.status === "completed") return false;
       const expectedDate = subDays(new Date(booking.depart_date), 30);
       return isWithinInterval(expectedDate, { start: today, end: thirtyDaysFromNow });
@@ -113,13 +116,13 @@ export function useDashboardData() {
       return isPast(dueDate);
     });
 
-    // Recent/active bookings
-    const activeBookings = bookings.filter(b => 
+    // Recent/active bookings (exclude archived)
+    const recentActiveBookings = activeBookings.filter(b => 
       b.status === "confirmed" || b.status === "pending" || b.status === "traveling"
     );
 
-    // This month activity for KPIs
-    const thisMonthBookings = bookings.filter((b) => {
+    // This month activity for KPIs (exclude archived)
+    const thisMonthBookings = activeBookings.filter((b) => {
       const departDate = new Date(b.depart_date);
       return isWithinInterval(departDate, thisMonth) && b.status !== "cancelled";
     });
@@ -170,9 +173,9 @@ export function useDashboardData() {
       recentBookings: {
         id: "recentBookings",
         priority: 3,
-        hasData: activeBookings.length > 0,
+        hasData: recentActiveBookings.length > 0,
         urgentCount: 0,
-        dataCount: activeBookings.length,
+        dataCount: recentActiveBookings.length,
       },
       kpis: {
         id: "kpis",
@@ -203,7 +206,7 @@ export function useDashboardData() {
     return Object.values(sections).sort((a, b) => a.priority - b.priority);
   }, [sections]);
 
-  // Calculate stats for the header
+  // Calculate stats for the header (exclude archived trips from revenue)
   const stats = useMemo(() => {
     if (!bookings || !clients) {
       return {
@@ -216,16 +219,19 @@ export function useDashboardData() {
       };
     }
 
-    const activeBookings = bookings.filter(
+    // Filter out archived trips for revenue reporting
+    const nonArchivedBookings = bookings.filter(b => !isBookingArchived(b));
+
+    const activeBookingsCount = nonArchivedBookings.filter(
       (b) => b.status === "confirmed" || b.status === "pending"
     ).length;
-    const pendingBookings = bookings.filter((b) => b.status === "pending").length;
-    const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length;
-    const completedBookings = bookings.filter((b) => b.status === "completed").length;
-    const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+    const pendingBookings = nonArchivedBookings.filter((b) => b.status === "pending").length;
+    const confirmedBookings = nonArchivedBookings.filter((b) => b.status === "confirmed").length;
+    const completedBookings = nonArchivedBookings.filter((b) => b.status === "completed").length;
+    const totalRevenue = nonArchivedBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
 
     return {
-      activeBookings,
+      activeBookings: activeBookingsCount,
       totalClients: clients.length,
       totalRevenue,
       pendingBookings,

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useBookings } from "@/hooks/useBookings";
+import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useTeamProfiles, TeamProfile } from "@/hooks/useTeamProfiles";
@@ -41,15 +41,22 @@ export function useAgentPerformance(dateRange?: DateRange) {
   // Determine if user can view all agents or just themselves
   const canViewAllAgents = isAdmin || isOfficeAdmin;
 
-  // Filter bookings and clients by date range if provided
+  // Filter bookings and clients by date range if provided, and exclude archived
   const filteredBookings = useMemo(() => {
     if (!bookings) return [];
-    if (!dateRange) return bookings;
     
-    return bookings.filter((booking) => {
-      const departDate = parseISO(booking.depart_date);
-      return isWithinInterval(departDate, { start: dateRange.from, end: dateRange.to });
-    });
+    // First filter out archived trips
+    let filtered = bookings.filter(b => !isBookingArchived(b));
+    
+    // Then apply date range filter if provided
+    if (dateRange) {
+      filtered = filtered.filter((booking) => {
+        const departDate = parseISO(booking.depart_date);
+        return isWithinInterval(departDate, { start: dateRange.from, end: dateRange.to });
+      });
+    }
+    
+    return filtered;
   }, [bookings, dateRange]);
 
   const filteredClients = useMemo(() => {

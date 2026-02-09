@@ -21,6 +21,7 @@ export interface CommissionReportItem {
     commission_revenue: number;
     depart_date: string;
     supplier_id: string | null;
+    trip_id: string | null;
     client: {
       id: string;
       name: string;
@@ -28,6 +29,10 @@ export interface CommissionReportItem {
     supplier: {
       id: string;
       name: string;
+    } | null;
+    trip: {
+      id: string;
+      status: string;
     } | null;
   } | null;
   agent: {
@@ -47,7 +52,7 @@ export function useCommissionReport() {
   return useQuery({
     queryKey: ["commission-report", user?.id, canViewAll],
     queryFn: async () => {
-      // Fetch commissions with booking, client, supplier, and agent info
+      // Fetch commissions with booking, client, supplier, trip and agent info
       const { data: commissions, error: commError } = await supabase
         .from("commissions")
         .select(`
@@ -61,8 +66,10 @@ export function useCommissionReport() {
             commission_revenue,
             depart_date,
             supplier_id,
+            trip_id,
             client:clients(id, name),
-            supplier:suppliers(id, name)
+            supplier:suppliers(id, name),
+            trip:trips(id, status)
           )
         `)
         .order("created_at", { ascending: false });
@@ -76,19 +83,25 @@ export function useCommissionReport() {
 
       if (profileError) throw profileError;
 
-      // Map profiles to commissions
-      const result: CommissionReportItem[] = (commissions || []).map((comm) => {
-        const agent = profiles?.find((p) => p.user_id === comm.user_id) || null;
-        return {
-          ...comm,
-          booking: comm.booking as CommissionReportItem["booking"],
-          agent: agent ? {
-            user_id: agent.user_id,
-            full_name: agent.full_name,
-            commission_tier: agent.commission_tier,
-          } : null,
-        };
-      });
+      // Map profiles to commissions and filter out archived trips
+      const result: CommissionReportItem[] = (commissions || [])
+        .filter((comm) => {
+          // Exclude bookings from archived trips
+          if (comm.booking?.trip?.status === "archived") return false;
+          return true;
+        })
+        .map((comm) => {
+          const agent = profiles?.find((p) => p.user_id === comm.user_id) || null;
+          return {
+            ...comm,
+            booking: comm.booking as CommissionReportItem["booking"],
+            agent: agent ? {
+              user_id: agent.user_id,
+              full_name: agent.full_name,
+              commission_tier: agent.commission_tier,
+            } : null,
+          };
+        });
 
       return result;
     },
