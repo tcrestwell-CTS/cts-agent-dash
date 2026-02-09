@@ -23,6 +23,7 @@ import {
   Car,
   Palmtree,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
@@ -589,14 +590,21 @@ const Trips = () => {
                 {filteredTrips.map((trip) => (
                   <Card
                     key={trip.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(`/trips/${trip.id}`)}
+                    className={`cursor-pointer hover:shadow-md transition-all ${
+                      trip.isOptimistic 
+                        ? "opacity-70 animate-pulse border-dashed pointer-events-none" 
+                        : ""
+                    }`}
+                    onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
                   >
                     <CardContent className="p-5">
                       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                         {/* Main Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-3 mb-2">
+                            {trip.isOptimistic && (
+                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
+                            )}
                             <h3 className="text-lg font-semibold truncate">
                               {trip.trip_name}
                             </h3>
@@ -604,7 +612,7 @@ const Trips = () => {
                               variant="outline"
                               className={statusColors[trip.status] || statusColors.planning}
                             >
-                              {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+                              {trip.isOptimistic ? "Saving..." : trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
                             </Badge>
                             {trip.trip_type && trip.trip_type !== "regular" && (
                               <Badge variant="secondary" className="text-xs">

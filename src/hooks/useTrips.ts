@@ -30,6 +30,7 @@ export interface Trip {
     phone: string | null;
   } | null;
   bookings?: TripBooking[];
+  isOptimistic?: boolean;
 }
 
 export interface TripBooking {
@@ -143,7 +144,8 @@ export function useTrips() {
       total_supplier_payout: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      clients: null, // Will be populated after server response
+      clients: null,
+      isOptimistic: true,
     };
 
     // Add optimistic trip to state immediately
