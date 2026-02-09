@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2 } from "lucide-react";
 import { TripBooking } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
-import { format } from "date-fns";
+import { format, differenceInDays, subDays, parseISO } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +17,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Commission {
+  id: string;
+  booking_id: string;
+  status: string;
+  paid_date: string | null;
+  amount: number;
+}
 
 interface TripBookingsProps {
   tripId: string;
@@ -43,9 +52,33 @@ const supplierTypeConfig: Record<string, { icon: typeof Building2; color: string
 export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: TripBookingsProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { payments, totalPaid, totalAuthorized } = useTripPayments(tripId);
 
   const unpaid = tripTotal - totalPaid - totalAuthorized;
+
+  // Fetch commissions for all bookings in this trip
+  const bookingIds = bookings.map((b) => b.id);
+  const { data: commissions = [] } = useQuery({
+    queryKey: ["trip-commissions", tripId, bookingIds],
+    queryFn: async () => {
+      if (bookingIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("commissions")
+        .select("id, booking_id, status, paid_date, amount")
+        .in("booking_id", bookingIds);
+
+      if (error) throw error;
+      return data as Commission[];
+    },
+    enabled: !!user && bookingIds.length > 0,
+  });
+
+  // Get commission record for a booking
+  const getBookingCommission = (bookingId: string) => {
+    return commissions.find((c) => c.booking_id === bookingId);
+  };
 
   // Calculate payment totals per booking
   const getBookingPaymentInfo = (bookingId: string) => {
@@ -134,11 +167,49 @@ export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: T
   };
 
   const getCommissionStatus = (booking: TripBooking) => {
-    // Commission is "Upcoming" until the trip is completed
-    if (booking.status === "completed") {
-      return <span className="text-primary font-medium">Paid</span>;
+    const commission = getBookingCommission(booking.id);
+    const today = new Date();
+    
+    // If we have a commission record, use its status
+    if (commission) {
+      if (commission.status === "paid") {
+        return <span className="text-primary font-medium">Paid</span>;
+      }
+      if (commission.status === "pending") {
+        // Check if it's available (30 days before depart_date)
+        const expectedDate = subDays(parseISO(booking.depart_date), 30);
+        if (today >= expectedDate) {
+          return <span className="text-primary font-medium">Available</span>;
+        }
+        const daysUntil = differenceInDays(expectedDate, today);
+        return (
+          <span className="text-muted-foreground">
+            {daysUntil}d until available
+          </span>
+        );
+      }
     }
-    return <span className="text-muted-foreground">Upcoming</span>;
+    
+    // No commission record - calculate expected date
+    const expectedDate = subDays(parseISO(booking.depart_date), 30);
+    
+    // If booking is completed
+    if (booking.status === "completed") {
+      return <span className="text-primary font-medium">Available</span>;
+    }
+    
+    // If expected date has passed
+    if (today >= expectedDate) {
+      return <span className="text-primary font-medium">Available</span>;
+    }
+    
+    // Calculate days until expected
+    const daysUntil = differenceInDays(expectedDate, today);
+    return (
+      <span className="text-muted-foreground">
+        {daysUntil}d until available
+      </span>
+    );
   };
 
   return (
