@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { AddTripBookingDialog } from "./AddTripBookingDialog";
 
 interface Commission {
   id: string;
@@ -31,9 +33,13 @@ interface Commission {
 
 interface TripBookingsProps {
   tripId: string;
+  clientId: string;
   bookings: TripBooking[];
   tripTotal: number;
   totalCommission: number;
+  destination?: string;
+  departDate?: string;
+  returnDate?: string;
 }
 
 // Map supplier types to icons and colors
@@ -49,11 +55,21 @@ const supplierTypeConfig: Record<string, { icon: typeof Building2; color: string
   insurance: { icon: Umbrella, color: "bg-green-500" },
 };
 
-export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: TripBookingsProps) {
+export function TripBookings({ 
+  tripId, 
+  clientId,
+  bookings, 
+  tripTotal, 
+  totalCommission,
+  destination,
+  departDate,
+  returnDate,
+}: TripBookingsProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { payments, totalPaid, totalAuthorized } = useTripPayments(tripId);
+  const [addBookingOpen, setAddBookingOpen] = useState(false);
 
   const unpaid = tripTotal - totalPaid - totalAuthorized;
 
@@ -243,11 +259,22 @@ export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: T
         </div>
       </div>
 
+      {/* Add Booking Dialog */}
+      <AddTripBookingDialog
+        tripId={tripId}
+        clientId={clientId}
+        destination={destination}
+        departDate={departDate}
+        returnDate={returnDate}
+        open={addBookingOpen}
+        onOpenChange={setAddBookingOpen}
+      />
+
       {/* Bookings Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Bookings</CardTitle>
-          <Button size="sm" onClick={() => navigate("/bookings")}>
+          <Button size="sm" onClick={() => setAddBookingOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Item
           </Button>
