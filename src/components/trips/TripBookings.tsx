@@ -43,9 +43,25 @@ const supplierTypeConfig: Record<string, { icon: typeof Building2; color: string
 export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: TripBookingsProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { totalPaid, totalAuthorized } = useTripPayments(tripId);
+  const { payments, totalPaid, totalAuthorized } = useTripPayments(tripId);
 
   const unpaid = tripTotal - totalPaid - totalAuthorized;
+
+  // Calculate payment totals per booking
+  const getBookingPaymentInfo = (bookingId: string) => {
+    const bookingPayments = payments.filter((p) => p.booking_id === bookingId);
+    const paidAmount = bookingPayments
+      .filter((p) => p.status === "paid")
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+    const authorizedAmount = bookingPayments
+      .filter((p) => p.status === "authorized")
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+    const pendingAmount = bookingPayments
+      .filter((p) => p.status === "pending")
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+    
+    return { paidAmount, authorizedAmount, pendingAmount, hasPayments: bookingPayments.length > 0 };
+  };
 
   const handleRemoveBooking = async (bookingId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -86,11 +102,34 @@ export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: T
   };
 
   const getPaymentStatus = (booking: TripBooking) => {
-    // For now, we'll show "Paid" or "Pending" based on booking status
-    // This could be enhanced to check actual payments against bookings
-    if (booking.status === "completed" || booking.status === "confirmed") {
+    const { paidAmount, authorizedAmount, pendingAmount, hasPayments } = getBookingPaymentInfo(booking.id);
+    const bookingCost = Number(booking.gross_sales);
+    
+    // If booking is fully paid
+    if (paidAmount >= bookingCost && bookingCost > 0) {
       return <span className="text-primary font-medium">Paid</span>;
     }
+    
+    // If there are some payments (partial)
+    if (paidAmount > 0 && paidAmount < bookingCost) {
+      return (
+        <span className="text-amber-600 font-medium">
+          Partial ({formatCurrency(paidAmount)})
+        </span>
+      );
+    }
+    
+    // If there are authorized payments
+    if (authorizedAmount > 0) {
+      return <span className="text-blue-600 font-medium">Authorized</span>;
+    }
+    
+    // If there are pending payments scheduled
+    if (pendingAmount > 0) {
+      return <span className="text-muted-foreground">Scheduled</span>;
+    }
+    
+    // No payments linked to this booking
     return <span className="text-muted-foreground">Pending</span>;
   };
 
