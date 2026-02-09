@@ -1,10 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella } from "lucide-react";
+import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2 } from "lucide-react";
 import { TripBooking } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface TripBookingsProps {
   tripId: string;
@@ -28,9 +42,29 @@ const supplierTypeConfig: Record<string, { icon: typeof Building2; color: string
 
 export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: TripBookingsProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { totalPaid, totalAuthorized } = useTripPayments(tripId);
 
   const unpaid = tripTotal - totalPaid - totalAuthorized;
+
+  const handleRemoveBooking = async (bookingId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .delete()
+        .eq("id", bookingId);
+
+      if (error) throw error;
+
+      toast.success("Booking removed from trip");
+      queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    } catch (error: any) {
+      toast.error("Failed to remove booking: " + error.message);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -126,6 +160,7 @@ export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: T
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Confirmation #</th>
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Payment</th>
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Commission</th>
+                    <th className="pb-3 font-medium text-sm text-muted-foreground w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -154,6 +189,38 @@ export function TripBookings({ tripId, bookings, tripTotal, totalCommission }: T
                       </td>
                       <td className="py-3">{getPaymentStatus(booking)}</td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>
+                      <td className="py-3">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove Booking</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove "{booking.trip_name || booking.destination}" from this trip? 
+                                This will permanently delete the booking and update the trip totals.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={(e) => handleRemoveBooking(booking.id, e)}
+                              >
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
