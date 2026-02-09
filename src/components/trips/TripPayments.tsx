@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2 } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { AddPaymentDialog } from "./AddPaymentDialog";
-import { generateInvoicePDF } from "@/lib/invoiceGenerator";
+import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,6 +68,7 @@ export function TripPayments({
   } = useTripPayments(tripId);
   const { settings: brandingSettings } = useBrandingSettings();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const handleMarkAsPaid = async (paymentId: string) => {
     await updatePayment(paymentId, {
@@ -74,23 +77,80 @@ export function TripPayments({
     });
   };
 
+  const getInvoiceData = (): InvoiceData => ({
+    tripName: tripName || "Trip",
+    clientName: clientName || "Client",
+    clientEmail,
+    destination,
+    departDate,
+    returnDate,
+    payments,
+    tripTotal,
+    totalPaid,
+    totalRemaining,
+    agencyName: brandingSettings?.agency_name || "Crestwell Travel Services",
+    agencyPhone: brandingSettings?.phone || undefined,
+    agencyEmail: brandingSettings?.email_address || undefined,
+    agencyAddress: brandingSettings?.address || undefined,
+  });
+
   const handleGenerateInvoice = () => {
-    generateInvoicePDF({
-      tripName: tripName || "Trip",
-      clientName: clientName || "Client",
-      clientEmail,
-      destination,
-      departDate,
-      returnDate,
-      payments,
-      tripTotal,
-      totalPaid,
-      totalRemaining,
-      agencyName: brandingSettings?.agency_name || "Crestwell Travel Services",
-      agencyPhone: brandingSettings?.phone || undefined,
-      agencyEmail: brandingSettings?.email_address || undefined,
-      agencyAddress: brandingSettings?.address || undefined,
-    });
+    generateInvoicePDF(getInvoiceData());
+  };
+
+  const handleEmailInvoice = async () => {
+    if (!clientEmail) {
+      toast.error("Client email address is required to send invoice");
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Generate PDF as base64
+      const pdfBase64 = generateInvoicePDF(getInvoiceData(), { returnBase64: true });
+      
+      if (!pdfBase64) {
+        throw new Error("Failed to generate PDF");
+      }
+
+      const dateRange = departDate && returnDate
+        ? `${format(new Date(departDate), "MMM d, yyyy")} - ${format(new Date(returnDate), "MMM d, yyyy")}`
+        : departDate
+        ? format(new Date(departDate), "MMM d, yyyy")
+        : "";
+
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: clientEmail,
+          subject: `Invoice for ${tripName || "Your Trip"}`,
+          template: "invoice",
+          data: {
+            clientName: clientName || "Valued Client",
+            tripName: tripName || "Your Trip",
+            destination: destination || "",
+            dates: dateRange,
+            tripTotal: formatCurrency(tripTotal),
+            totalPaid: formatCurrency(totalPaid),
+            totalRemaining: formatCurrency(totalRemaining),
+          },
+          attachments: [
+            {
+              filename: `Invoice_${(tripName || "Trip").replace(/[^a-zA-Z0-9]/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`,
+              content: pdfBase64,
+            },
+          ],
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Invoice sent to ${clientEmail}`);
+    } catch (error) {
+      console.error("Error sending invoice:", error);
+      toast.error("Failed to send invoice email");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -133,9 +193,23 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleEmailInvoice}
+                disabled={sendingEmail || !clientEmail}
+                title={!clientEmail ? "Client email required" : "Email invoice to client"}
+              >
+                {sendingEmail ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Email Invoice
+              </Button>
               <Button variant="outline" size="sm" onClick={handleGenerateInvoice}>
                 <FileText className="h-4 w-4 mr-2" />
-                Generate Invoice
+                Download Invoice
               </Button>
               <Button size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
