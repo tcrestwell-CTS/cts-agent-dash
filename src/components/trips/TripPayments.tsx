@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Edit, Receipt } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
@@ -39,12 +39,21 @@ export function TripPayments({ tripId, bookings, tripTotal }: TripPaymentsProps)
   const {
     payments,
     loading,
+    updatePayment,
+    updating,
     deletePayment,
     totalPaid,
     totalAuthorized,
     totalRemaining,
   } = useTripPayments(tripId);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  const handleMarkAsPaid = async (paymentId: string) => {
+    await updatePayment(paymentId, {
+      status: "paid",
+      payment_date: new Date().toISOString().split("T")[0],
+    });
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -133,6 +142,16 @@ export function TripPayments({ tripId, bookings, tripTotal }: TripPaymentsProps)
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => handleMarkAsPaid(payment.id)}
+                              disabled={updating}
+                              title="Mark as Paid"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
