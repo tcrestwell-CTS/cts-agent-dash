@@ -20,12 +20,39 @@ export interface InvoiceData {
   agencyEmail?: string;
   agencyAddress?: string;
   agencyWebsite?: string;
+  agencyLogoUrl?: string;
   supplierName?: string;
 }
 
 interface GenerateOptions {
   returnBase64?: boolean;
 }
+
+// Helper to load image as base64
+const loadImageAsBase64 = (url: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("en-US", {
@@ -35,7 +62,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions): string | void {
+export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions): Promise<string | void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -59,21 +86,41 @@ export function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions)
   doc.setFont("helvetica", "bold");
   doc.text("Invoice", margin, yPos);
 
-  // Logo placeholder text (top right) - simulating "Crestwell Travel Services" badge
-  doc.setFontSize(10);
-  doc.setTextColor(...primaryColor);
-  doc.setFont("helvetica", "bold");
-  const logoX = pageWidth - margin - 30;
-  doc.text("Crestwell", logoX + 15, yPos - 8, { align: "center" });
-  doc.setFontSize(9);
-  doc.text("Travel", logoX + 15, yPos - 3, { align: "center" });
-  doc.setFontSize(8);
-  doc.text("Services", logoX + 15, yPos + 2, { align: "center" });
-  
-  // Draw a subtle rounded rectangle around the logo text
-  doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(logoX, yPos - 15, 30, 22, 3, 3, "S");
+  // Try to load and add agency logo (top right)
+  const logoX = pageWidth - margin - 35;
+  const logoY = yPos - 18;
+  let logoAdded = false;
+
+  if (data.agencyLogoUrl) {
+    try {
+      const logoBase64 = await loadImageAsBase64(data.agencyLogoUrl);
+      if (logoBase64) {
+        // Add logo image - constrain to max 35x25 while maintaining aspect ratio
+        doc.addImage(logoBase64, "PNG", logoX, logoY, 35, 25, undefined, "FAST");
+        logoAdded = true;
+      }
+    } catch (e) {
+      console.warn("Failed to load logo for invoice:", e);
+    }
+  }
+
+  // Fallback: Draw text badge if no logo
+  if (!logoAdded) {
+    doc.setFontSize(10);
+    doc.setTextColor(...primaryColor);
+    doc.setFont("helvetica", "bold");
+    const badgeX = pageWidth - margin - 30;
+    doc.text("Crestwell", badgeX + 15, yPos - 8, { align: "center" });
+    doc.setFontSize(9);
+    doc.text("Travel", badgeX + 15, yPos - 3, { align: "center" });
+    doc.setFontSize(8);
+    doc.text("Services", badgeX + 15, yPos + 2, { align: "center" });
+    
+    // Draw a subtle rounded rectangle around the logo text
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(badgeX, yPos - 15, 30, 22, 3, 3, "S");
+  }
 
   // Invoice Number and Issue Date
   yPos += 15;
