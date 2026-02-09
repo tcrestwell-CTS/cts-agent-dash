@@ -322,9 +322,13 @@ const TripDetail = () => {
           <TabsContent value="bookings" className="mt-6">
             <TripBookings
               tripId={tripId!}
+              clientId={trip.client_id}
               bookings={bookings}
               tripTotal={trip.total_gross_sales}
               totalCommission={trip.total_commission_revenue}
+              destination={trip.destination || undefined}
+              departDate={trip.depart_date || undefined}
+              returnDate={trip.return_date || undefined}
             />
           </TabsContent>
 
