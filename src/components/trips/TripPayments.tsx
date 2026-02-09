@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { AddPaymentDialog } from "./AddPaymentDialog";
+import { generateInvoicePDF } from "@/lib/invoiceGenerator";
+import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +27,12 @@ interface TripPaymentsProps {
   tripId: string;
   bookings: TripBooking[];
   tripTotal: number;
+  tripName?: string;
+  clientName?: string;
+  clientEmail?: string;
+  destination?: string;
+  departDate?: string;
+  returnDate?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -35,7 +43,17 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700 border-red-200",
 };
 
-export function TripPayments({ tripId, bookings, tripTotal }: TripPaymentsProps) {
+export function TripPayments({ 
+  tripId, 
+  bookings, 
+  tripTotal,
+  tripName,
+  clientName,
+  clientEmail,
+  destination,
+  departDate,
+  returnDate,
+}: TripPaymentsProps) {
   const {
     payments,
     loading,
@@ -46,12 +64,32 @@ export function TripPayments({ tripId, bookings, tripTotal }: TripPaymentsProps)
     totalAuthorized,
     totalRemaining,
   } = useTripPayments(tripId);
+  const { settings: brandingSettings } = useBrandingSettings();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const handleMarkAsPaid = async (paymentId: string) => {
     await updatePayment(paymentId, {
       status: "paid",
       payment_date: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  const handleGenerateInvoice = () => {
+    generateInvoicePDF({
+      tripName: tripName || "Trip",
+      clientName: clientName || "Client",
+      clientEmail,
+      destination,
+      departDate,
+      returnDate,
+      payments,
+      tripTotal,
+      totalPaid,
+      totalRemaining,
+      agencyName: brandingSettings?.agency_name || "Crestwell Travel Services",
+      agencyPhone: brandingSettings?.phone || undefined,
+      agencyEmail: brandingSettings?.email_address || undefined,
+      agencyAddress: brandingSettings?.address || undefined,
     });
   };
 
@@ -94,10 +132,16 @@ export function TripPayments({ tripId, bookings, tripTotal }: TripPaymentsProps)
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
-            <Button size="sm" onClick={() => setAddDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Item
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleGenerateInvoice}>
+                <FileText className="h-4 w-4 mr-2" />
+                Generate Invoice
+              </Button>
+              <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Item
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {expectedPayments.length === 0 ? (

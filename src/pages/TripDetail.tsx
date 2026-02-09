@@ -324,6 +324,12 @@ const TripDetail = () => {
               tripId={tripId!}
               bookings={bookings}
               tripTotal={trip.total_gross_sales}
+              tripName={trip.trip_name}
+              clientName={trip.clients?.name}
+              clientEmail={trip.clients?.email || undefined}
+              destination={trip.destination || undefined}
+              departDate={trip.depart_date || undefined}
+              returnDate={trip.return_date || undefined}
             />
           </TabsContent>
         </Tabs>
