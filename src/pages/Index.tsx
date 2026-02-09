@@ -11,6 +11,7 @@ import { AgentLeaderboard } from "@/components/dashboard/AgentLeaderboard";
 import { CommissionRevenueCard } from "@/components/dashboard/CommissionRevenueCard";
 import { UpcomingCommissions } from "@/components/dashboard/UpcomingCommissions";
 import { UpcomingPayments } from "@/components/dashboard/UpcomingPayments";
+import { InvoiceSearch } from "@/components/dashboard/InvoiceSearch";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -142,6 +143,9 @@ const Index = () => {
         {/* Right Column - Widgets */}
         <div className="space-y-6">
           <QuickActions />
+          
+          {/* Invoice Search */}
+          <InvoiceSearch />
           
           {/* Commission Revenue - Always show */}
           <CommissionRevenueCard />
