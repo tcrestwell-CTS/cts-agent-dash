@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
+import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import {
@@ -54,7 +55,7 @@ const bookingStatusColors: Record<string, string> = {
 const TripDetail = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
-  const { trip, bookings, loading, removeBookingFromTrip } = useTrip(tripId);
+  const { trip, bookings, loading, removeBookingFromTrip, updateTripStatus, updatingStatus } = useTrip(tripId);
   const { deleteTrip } = useTrips();
 
   const formatCurrency = (value: number) => {
@@ -175,6 +176,13 @@ const TripDetail = () => {
             </AlertDialog>
           </div>
         </div>
+
+        {/* Status Workflow */}
+        <TripStatusWorkflow
+          currentStatus={trip.status}
+          onStatusChange={updateTripStatus}
+          disabled={updatingStatus}
+        />
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Trip Details */}

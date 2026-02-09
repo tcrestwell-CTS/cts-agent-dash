@@ -240,6 +240,7 @@ export function useTrip(tripId: string | undefined) {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [bookings, setBookings] = useState<TripBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchTrip = useCallback(async () => {
     if (!user || !tripId) {
@@ -346,12 +347,42 @@ export function useTrip(tripId: string | undefined) {
     }
   };
 
+  const updateTripStatus = async (newStatus: string) => {
+    if (!tripId || !user) {
+      toast.error("Unable to update trip status");
+      return false;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from("trips")
+        .update({ status: newStatus })
+        .eq("id", tripId);
+
+      if (error) throw error;
+
+      // Update local state immediately for better UX
+      setTrip((prev) => (prev ? { ...prev, status: newStatus } : null));
+      toast.success(`Trip status updated to ${newStatus}`);
+      return true;
+    } catch (error) {
+      console.error("Error updating trip status:", error);
+      toast.error("Failed to update trip status");
+      return false;
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return {
     trip,
     bookings,
     loading,
+    updatingStatus,
     fetchTrip,
     addBookingToTrip,
     removeBookingFromTrip,
+    updateTripStatus,
   };
 }
