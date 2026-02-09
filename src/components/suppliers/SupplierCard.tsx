@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Supplier } from "@/pages/Suppliers";
+import type { Supplier } from "@/types/supplier";
 import { formatDistanceToNow } from "date-fns";
 
 interface SupplierCardProps {
