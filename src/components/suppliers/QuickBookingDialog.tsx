@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useBookings } from "@/hooks/useBookings";
 import { toast } from "sonner";
-import type { Supplier } from "@/pages/Suppliers";
+import type { Supplier } from "@/types/supplier";
 
 interface QuickBookingDialogProps {
   open: boolean;

@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import type { Supplier } from "@/pages/Suppliers";
+import type { Supplier } from "@/types/supplier";
 
 interface SupplierNotesDialogProps {
   open: boolean;
