@@ -28,9 +28,10 @@ import { QuickAddClientForm } from "./QuickAddClientForm";
 interface AddTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onTripCreated?: () => void;
 }
 
-export function AddTripDialog({ open, onOpenChange }: AddTripDialogProps) {
+export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDialogProps) {
   const { createTrip, creating } = useTrips();
   const { data: clients = [] } = useClients();
 
@@ -74,6 +75,7 @@ export function AddTripDialog({ open, onOpenChange }: AddTripDialogProps) {
       });
       setDateRange(undefined);
       onOpenChange(false);
+      onTripCreated?.();
     }
   };
 
