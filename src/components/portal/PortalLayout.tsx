@@ -23,7 +23,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-6">
-              <Link to="/dashboard" className="flex items-center gap-2">
+              <Link to={portalRoutes.dashboard} className="flex items-center gap-2">
                 <img
                   src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png"
                   alt="Crestwell Travel Services"
