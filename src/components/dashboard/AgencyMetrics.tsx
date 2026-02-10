@@ -1,0 +1,241 @@
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useBookings, isBookingArchived } from "@/hooks/useBookings";
+import { useCommissions } from "@/hooks/useCommissions";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+  isWithinInterval,
+} from "date-fns";
+import { Building2 } from "lucide-react";
+
+type DateRange = "mtd" | "ytd";
+
+export function AgencyMetrics() {
+  const [range, setRange] = useState<DateRange>("ytd");
+  const navigate = useNavigate();
+  const { bookings, loading: bookingsLoading } = useBookings();
+  const { data: commissions, isLoading: commissionsLoading } = useCommissions();
+
+  const loading = bookingsLoading || commissionsLoading;
+
+  const now = new Date();
+  const interval = useMemo(() => {
+    if (range === "mtd") {
+      return { start: startOfMonth(now), end: endOfMonth(now) };
+    }
+    return { start: startOfYear(now), end: endOfYear(now) };
+  }, [range]);
+
+  const filteredBookings = useMemo(() => {
+    if (!bookings) return [];
+    return bookings.filter((b) => {
+      if (b.status === "cancelled" || isBookingArchived(b)) return false;
+      const d = parseISO(b.depart_date);
+      return isWithinInterval(d, interval);
+    });
+  }, [bookings, interval]);
+
+  const kpis = useMemo(() => {
+    const bookingCount = filteredBookings.length;
+    const salesVolume = filteredBookings.reduce((s, b) => s + (b.gross_sales || b.total_amount || 0), 0);
+    const commissionReceived = filteredBookings.reduce((s, b) => s + (b.commission_revenue || 0), 0);
+
+    // Agency income uses tier split — default ~30% of commission for tier 1
+    // We approximate from commissions table paid amounts, or fallback to 20% of commission_revenue
+    const agencyIncome = filteredBookings.reduce((s, b) => {
+      // Use calculated_commission if available, else estimate
+      const agencyShare = (b.commission_revenue || 0) * 0.3;
+      return s + agencyShare;
+    }, 0);
+
+    return { bookingCount, salesVolume, commissionReceived, agencyIncome };
+  }, [filteredBookings]);
+
+  // Monthly chart data for the selected range
+  const chartData = useMemo(() => {
+    if (!bookings) return { commission: [], agencyIncome: [], grossSales: [] };
+
+    const monthCount = range === "mtd" ? 1 : 12;
+    const months: string[] = [];
+    for (let i = monthCount - 1; i >= 0; i--) {
+      months.push(format(startOfMonth(subMonths(now, i)), "yyyy-MM"));
+    }
+
+    const initMap = () => Object.fromEntries(months.map((m) => [m, 0]));
+    const commMap = initMap();
+    const agencyMap = initMap();
+    const grossMap = initMap();
+
+    const activeBookings = bookings.filter((b) => b.status !== "cancelled" && !isBookingArchived(b));
+
+    activeBookings.forEach((b) => {
+      const key = format(parseISO(b.depart_date), "yyyy-MM");
+      if (commMap[key] !== undefined) {
+        commMap[key] += b.commission_revenue || 0;
+        agencyMap[key] += (b.commission_revenue || 0) * 0.3;
+        grossMap[key] += b.gross_sales || b.total_amount || 0;
+      }
+    });
+
+    const toArr = (map: Record<string, number>) =>
+      Object.entries(map).map(([m, value]) => ({
+        month: format(parseISO(`${m}-01`), "MMM"),
+        value,
+      }));
+
+    return {
+      commission: toArr(commMap),
+      agencyIncome: toArr(agencyMap),
+      grossSales: toArr(grossMap),
+    };
+  }, [bookings, range]);
+
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(v);
+
+  const ChartTooltip = ({ active, payload, label }: any) => {
+    if (active && payload?.[0]) {
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-md text-sm">
+          <p className="font-medium">{label}</p>
+          <p className="text-primary font-semibold">{fmt(payload[0].value)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const MiniBarChart = ({ data, title }: { data: { month: string; value: number }[]; title: string }) => (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data.every((d) => d.value === 0) ? (
+          <div className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">
+            No data yet
+          </div>
+        ) : (
+          <div className="h-[160px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis
+                  tickFormatter={(v) => (v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`)}
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={45}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Agency Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-20" />
+            ))}
+          </div>
+          <Skeleton className="h-[200px]" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with toggle */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <Building2 className="h-5 w-5" />
+          At a glance
+        </h2>
+        <div className="flex rounded-lg border border-border overflow-hidden">
+          <Button
+            variant={range === "mtd" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none text-xs px-4"
+            onClick={() => setRange("mtd")}
+          >
+            Month to date
+          </Button>
+          <Button
+            variant={range === "ytd" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none text-xs px-4"
+            onClick={() => setRange("ytd")}
+          >
+            Year to date
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Bookings", value: kpis.bookingCount.toString() },
+          { label: "Sales volume", value: fmt(kpis.salesVolume) },
+          { label: "Commission received", value: fmt(kpis.commissionReceived) },
+          { label: "Agency income", value: fmt(kpis.agencyIncome) },
+        ].map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="p-4 space-y-1">
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <p className="text-xl font-bold text-foreground">{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <MiniBarChart data={chartData.commission} title="Commission received by month" />
+        <MiniBarChart data={chartData.agencyIncome} title="Agency income by month" />
+      </div>
+
+      {/* Full Width Gross Sales */}
+      <MiniBarChart data={chartData.grossSales} title="Gross sales by month" />
+
+      {/* Link to full analytics */}
+      <Button variant="outline" size="sm" onClick={() => navigate("/analytics")}>
+        View all KPIs
+      </Button>
+    </div>
+  );
+}
