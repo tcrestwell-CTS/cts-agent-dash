@@ -127,6 +127,23 @@ const BookingDetail = () => {
   }, [booking, selectedSupplier]);
 
   const { data: client } = useClient(booking?.client_id || "");
+
+  // Check if payments are logged against this booking
+  const { data: bookingPayments = [] } = useQuery({
+    queryKey: ["booking-payments-check", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return [];
+      const { data, error } = await supabase
+        .from("trip_payments")
+        .select("id")
+        .eq("booking_id", bookingId)
+        .limit(1);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!bookingId,
+  });
+  const hasPayments = bookingPayments.length > 0;
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
