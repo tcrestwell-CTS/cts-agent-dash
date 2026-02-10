@@ -45,38 +45,40 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              {/* Agent dashboard routes */}
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/contacts" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
-              <Route path="/contacts/:clientId" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
-              <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-              <Route path="/bookings/:bookingId" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
-              <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
-              <Route path="/commissions" element={<ProtectedRoute><Commissions /></ProtectedRoute>} />
-              <Route path="/commission-report" element={<ProtectedRoute><CommissionReport /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-              <Route path="/branding" element={<ProtectedRoute><Branding /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
-              <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
-              <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
-              <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
-              <Route path="/supplier-docs" element={<SupplierDocs />} />
+            <PortalSubdomainRedirect>
+              <Routes>
+                {/* Agent dashboard routes */}
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/contacts" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
+                <Route path="/contacts/:clientId" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
+                <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+                <Route path="/bookings/:bookingId" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
+                <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
+                <Route path="/commissions" element={<ProtectedRoute><Commissions /></ProtectedRoute>} />
+                <Route path="/commission-report" element={<ProtectedRoute><CommissionReport /></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+                <Route path="/branding" element={<ProtectedRoute><Branding /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
+                <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+                <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
+                <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
+                <Route path="/supplier-docs" element={<SupplierDocs />} />
 
-              {/* Client portal routes */}
-              <Route path="/portal/login" element={<PortalLogin />} />
-              <Route path="/portal/verify" element={<PortalVerify />} />
-              <Route path="/portal" element={<PortalProtectedRoute><PortalDashboard /></PortalProtectedRoute>} />
-              <Route path="/portal/trips" element={<PortalProtectedRoute><PortalTrips /></PortalProtectedRoute>} />
-              <Route path="/portal/trips/:tripId" element={<PortalProtectedRoute><PortalTripDetail /></PortalProtectedRoute>} />
-              <Route path="/portal/invoices" element={<PortalProtectedRoute><PortalInvoices /></PortalProtectedRoute>} />
-              <Route path="/portal/messages" element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>} />
+                {/* Client portal routes */}
+                <Route path="/portal/login" element={<PortalLogin />} />
+                <Route path="/portal/verify" element={<PortalVerify />} />
+                <Route path="/portal" element={<PortalProtectedRoute><PortalDashboard /></PortalProtectedRoute>} />
+                <Route path="/portal/trips" element={<PortalProtectedRoute><PortalTrips /></PortalProtectedRoute>} />
+                <Route path="/portal/trips/:tripId" element={<PortalProtectedRoute><PortalTripDetail /></PortalProtectedRoute>} />
+                <Route path="/portal/invoices" element={<PortalProtectedRoute><PortalInvoices /></PortalProtectedRoute>} />
+                <Route path="/portal/messages" element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>} />
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </PortalSubdomainRedirect>
           </BrowserRouter>
         </PortalProvider>
       </AuthProvider>
