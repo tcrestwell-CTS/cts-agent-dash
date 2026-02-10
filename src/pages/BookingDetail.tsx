@@ -63,6 +63,8 @@ import { generateInvoicePDF } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useClient } from "@/hooks/useClients";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const getStatusBadgeClass = (status: string) => {
