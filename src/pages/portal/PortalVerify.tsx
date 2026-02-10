@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePortal } from "@/contexts/PortalContext";
+import { portalRoutes } from "@/lib/portalRoutes";
 import { toast } from "sonner";
 
 export default function PortalVerify() {
