@@ -40,7 +40,7 @@ export default function PortalVerify() {
 
         login(data.token, data.client_id, data.client_name);
         toast.success(`Welcome back, ${data.client_name}!`);
-        navigate("/dashboard", { replace: true });
+        navigate(portalRoutes.dashboard, { replace: true });
       } catch {
         setError("Something went wrong. Please try again.");
       }
