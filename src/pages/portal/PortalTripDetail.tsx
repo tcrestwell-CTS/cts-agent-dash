@@ -28,7 +28,7 @@ export default function PortalTripDetail() {
       <PortalLayout>
         <div className="text-center py-12">
           <p className="text-muted-foreground">Trip not found</p>
-          <Link to="/trips" className="text-primary hover:underline text-sm mt-2 inline-block">
+          <Link to={portalRoutes.trips} className="text-primary hover:underline text-sm mt-2 inline-block">
             ← Back to trips
           </Link>
         </div>
