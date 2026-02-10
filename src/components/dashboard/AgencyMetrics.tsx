@@ -25,7 +25,9 @@ import {
   subMonths,
   isWithinInterval,
 } from "date-fns";
-import { Building2 } from "lucide-react";
+import { Building2, CheckCircle2 } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
+import { Badge } from "@/components/ui/badge";
 
 type DateRange = "mtd" | "ytd";
 
