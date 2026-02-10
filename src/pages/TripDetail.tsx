@@ -65,7 +65,8 @@ const TripDetail = () => {
   const navigate = useNavigate();
   const { trip, bookings, loading, removeBookingFromTrip, updateTripStatus, updatingStatus } = useTrip(tripId);
   const { deleteTrip } = useTrips();
-
+  const { payments } = useTripPayments(tripId);
+  const hasPayments = payments.length > 0;
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
