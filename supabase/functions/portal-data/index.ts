@@ -49,9 +49,9 @@ const handler = async (req: Request): Promise<Response> => {
     const resource = url.searchParams.get("resource");
 
     if (resource === "dashboard") {
-      // Get client info + trips + recent payments
+      // Get client info + trips + recent payments + agent profile
       const [clientRes, tripsRes, paymentsRes, messagesRes] = await Promise.all([
-        supabase.from("clients").select("id, name, first_name, last_name, email").eq("id", clientId).single(),
+        supabase.from("clients").select("id, name, first_name, last_name, email, user_id").eq("id", clientId).single(),
         supabase.from("trips").select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales").eq("client_id", clientId).neq("status", "archived").order("depart_date", { ascending: false }),
         supabase.from("trip_payments").select("id, amount, payment_date, status, payment_type, trip_id, due_date").eq("status", "pending").order("due_date", { ascending: true }).limit(5),
         supabase.from("portal_messages").select("id, message, sender_type, created_at, read_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5),
@@ -61,8 +61,20 @@ const handler = async (req: Request): Promise<Response> => {
       const tripIds = (tripsRes.data || []).map((t: any) => t.id);
       const clientPayments = (paymentsRes.data || []).filter((p: any) => tripIds.includes(p.trip_id));
 
+      // Fetch agent profile for the client's assigned agent
+      let agent = null;
+      if (clientRes.data?.user_id) {
+        const { data: agentProfile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url, phone, job_title")
+          .eq("user_id", clientRes.data.user_id)
+          .single();
+        agent = agentProfile;
+      }
+
       return new Response(JSON.stringify({
         client: clientRes.data,
+        agent,
         trips: tripsRes.data || [],
         upcoming_payments: clientPayments,
         recent_messages: messagesRes.data || [],
