@@ -71,6 +71,7 @@ export function TripBookings({
   destination,
   departDate,
   returnDate,
+  onDataChange,
 }: TripBookingsProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
