@@ -3,12 +3,13 @@ import { Compass, FileText, MessageCircle, LayoutDashboard, LogOut } from "lucid
 import { cn } from "@/lib/utils";
 import { usePortal } from "@/contexts/PortalContext";
 import { Button } from "@/components/ui/button";
+import { portalRoutes } from "@/lib/portalRoutes";
 
 const portalNav = [
-  { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
-  { name: "My Trips", href: "/portal/trips", icon: Compass },
-  { name: "Invoices", href: "/portal/invoices", icon: FileText },
-  { name: "Messages", href: "/portal/messages", icon: MessageCircle },
+  { name: "Dashboard", href: portalRoutes.dashboard, icon: LayoutDashboard },
+  { name: "My Trips", href: portalRoutes.trips, icon: Compass },
+  { name: "Invoices", href: portalRoutes.invoices, icon: FileText },
+  { name: "Messages", href: portalRoutes.messages, icon: MessageCircle },
 ];
 
 export function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-6">
-              <Link to="/portal" className="flex items-center gap-2">
+              <Link to={portalRoutes.dashboard} className="flex items-center gap-2">
                 <img
                   src="/lovable-uploads/ca8734b5-c59b-4dd9-9431-498d1e25746a.png"
                   alt="Crestwell Travel Services"
@@ -32,7 +33,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
               <nav className="hidden md:flex items-center gap-1">
                 {portalNav.map((item) => {
                   const isActive = location.pathname === item.href ||
-                    (item.href !== "/portal" && location.pathname.startsWith(item.href));
+                    (item.href !== portalRoutes.dashboard && location.pathname.startsWith(item.href));
                   return (
                     <Link
                       key={item.name}
@@ -71,7 +72,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
         <div className="md:hidden border-t border-sidebar-border px-4 py-2 flex gap-1 overflow-x-auto">
           {portalNav.map((item) => {
             const isActive = location.pathname === item.href ||
-              (item.href !== "/portal" && location.pathname.startsWith(item.href));
+              (item.href !== portalRoutes.dashboard && location.pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}

@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { usePortalTripDetail } from "@/hooks/usePortalData";
+import { portalRoutes } from "@/lib/portalRoutes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, MapPin, DollarSign } from "lucide-react";
@@ -27,7 +28,7 @@ export default function PortalTripDetail() {
       <PortalLayout>
         <div className="text-center py-12">
           <p className="text-muted-foreground">Trip not found</p>
-          <Link to="/portal/trips" className="text-primary hover:underline text-sm mt-2 inline-block">
+          <Link to={portalRoutes.trips} className="text-primary hover:underline text-sm mt-2 inline-block">
             ← Back to trips
           </Link>
         </div>
@@ -42,7 +43,7 @@ export default function PortalTripDetail() {
   return (
     <PortalLayout>
       <div className="space-y-6">
-        <Link to="/portal/trips" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to={portalRoutes.trips} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Back to trips
         </Link>

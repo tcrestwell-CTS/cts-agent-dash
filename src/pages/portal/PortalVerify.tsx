@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePortal } from "@/contexts/PortalContext";
+import { portalRoutes } from "@/lib/portalRoutes";
 import { toast } from "sonner";
 
 export default function PortalVerify() {
@@ -39,7 +40,7 @@ export default function PortalVerify() {
 
         login(data.token, data.client_id, data.client_name);
         toast.success(`Welcome back, ${data.client_name}!`);
-        navigate("/portal", { replace: true });
+        navigate(portalRoutes.dashboard, { replace: true });
       } catch {
         setError("Something went wrong. Please try again.");
       }
@@ -54,7 +55,7 @@ export default function PortalVerify() {
         <div className="text-center space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">Access Error</h2>
           <p className="text-muted-foreground">{error}</p>
-          <a href="/portal/login" className="text-primary hover:underline text-sm">
+          <a href={portalRoutes.login} className="text-primary hover:underline text-sm">
             Request a new access link
           </a>
         </div>

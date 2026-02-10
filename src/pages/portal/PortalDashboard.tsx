@@ -1,6 +1,7 @@
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { usePortalDashboard } from "@/hooks/usePortalData";
 import { usePortal } from "@/contexts/PortalContext";
+import { portalRoutes } from "@/lib/portalRoutes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Compass, DollarSign, MessageCircle, Calendar } from "lucide-react";
@@ -73,7 +74,7 @@ export default function PortalDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Link to="/portal/messages">
+          <Link to={portalRoutes.messages}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="flex items-center gap-4 p-6">
                 <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -106,7 +107,7 @@ export default function PortalDashboard() {
                 {trips.slice(0, 5).map((trip: any) => (
                   <Link
                     key={trip.id}
-                    to={`/portal/trips/${trip.id}`}
+                    to={portalRoutes.tripDetail(trip.id)}
                     className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                   >
                     <div>
@@ -129,7 +130,7 @@ export default function PortalDashboard() {
                   </Link>
                 ))}
                 {trips.length > 5 && (
-                  <Link to="/portal/trips" className="text-primary text-sm hover:underline block text-center pt-2">
+                  <Link to={portalRoutes.trips} className="text-primary text-sm hover:underline block text-center pt-2">
                     View all {trips.length} trips →
                   </Link>
                 )}
