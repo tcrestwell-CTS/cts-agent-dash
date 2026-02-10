@@ -17,6 +17,7 @@ import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useCanViewTeam } from "@/hooks/useAdmin";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
