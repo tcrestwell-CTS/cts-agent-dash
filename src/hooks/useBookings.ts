@@ -576,6 +576,26 @@ export function useBookings() {
       return false;
     }
 
+    // Check if any payments are logged against this booking
+    try {
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("trip_payments")
+        .select("id")
+        .eq("booking_id", bookingId)
+        .limit(1);
+
+      if (paymentsError) throw paymentsError;
+
+      if (paymentsData && paymentsData.length > 0) {
+        toast.error("Cannot delete booking — payments are logged against it. Remove all payments first.");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error checking booking payments:", error);
+      toast.error("Failed to verify booking payments");
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("bookings")
