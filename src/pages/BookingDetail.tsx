@@ -311,6 +311,18 @@ const BookingDetail = () => {
               </a>
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={handleGenerateInvoice}
+            disabled={generatingInvoice}
+          >
+            {generatingInvoice ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Receipt className="h-4 w-4 mr-2" />
+            )}
+            {generatingInvoice ? "Generating..." : "Generate Invoice"}
+          </Button>
           <Button variant="outline" onClick={() => setShowEditDialog(true)}>
             <Pencil className="h-4 w-4 mr-2" />
             Edit
