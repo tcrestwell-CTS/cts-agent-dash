@@ -5,10 +5,10 @@ import { usePortal } from "@/contexts/PortalContext";
 import { Button } from "@/components/ui/button";
 
 const portalNav = [
-  { name: "Dashboard", href: "/portal", icon: LayoutDashboard },
-  { name: "My Trips", href: "/portal/trips", icon: Compass },
-  { name: "Invoices", href: "/portal/invoices", icon: FileText },
-  { name: "Messages", href: "/portal/messages", icon: MessageCircle },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "My Trips", href: "/trips", icon: Compass },
+  { name: "Invoices", href: "/invoices", icon: FileText },
+  { name: "Messages", href: "/messages", icon: MessageCircle },
 ];
 
 export function PortalLayout({ children }: { children: React.ReactNode }) {
