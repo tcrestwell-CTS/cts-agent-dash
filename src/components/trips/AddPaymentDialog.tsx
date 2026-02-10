@@ -25,6 +25,7 @@ interface AddPaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   tripId: string;
   bookings: TripBooking[];
+  onPaymentCreated?: () => void;
 }
 
 export function AddPaymentDialog({
@@ -32,6 +33,7 @@ export function AddPaymentDialog({
   onOpenChange,
   tripId,
   bookings,
+  onPaymentCreated,
 }: AddPaymentDialogProps) {
   const { createPayment, creating } = useTripPayments(tripId);
   const [formData, setFormData] = useState({
@@ -79,6 +81,7 @@ export function AddPaymentDialog({
         notes: "",
       });
       onOpenChange(false);
+      onPaymentCreated?.();
     }
   };
 

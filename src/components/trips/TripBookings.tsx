@@ -46,6 +46,7 @@ interface TripBookingsProps {
   destination?: string;
   departDate?: string;
   returnDate?: string;
+  onDataChange?: () => void;
 }
 
 // Map supplier types to icons and colors
@@ -70,6 +71,7 @@ export function TripBookings({
   destination,
   departDate,
   returnDate,
+  onDataChange,
 }: TripBookingsProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -132,6 +134,7 @@ export function TripBookings({
       toast.success("Booking removed from trip");
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      onDataChange?.();
     } catch (error: any) {
       toast.error("Failed to remove booking: " + error.message);
     }
@@ -274,6 +277,7 @@ export function TripBookings({
         returnDate={returnDate}
         open={addBookingOpen}
         onOpenChange={setAddBookingOpen}
+        onBookingCreated={onDataChange}
       />
 
       {/* Bookings Table */}

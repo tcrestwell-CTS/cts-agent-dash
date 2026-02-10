@@ -63,7 +63,7 @@ const bookingStatusColors: Record<string, string> = {
 const TripDetail = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
-  const { trip, bookings, loading, removeBookingFromTrip, updateTripStatus, updatingStatus } = useTrip(tripId);
+  const { trip, bookings, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
   const { deleteTrip } = useTrips();
   const { payments } = useTripPayments(tripId);
   const hasPayments = payments.length > 0;
@@ -354,6 +354,7 @@ const TripDetail = () => {
               destination={trip.destination || undefined}
               departDate={trip.depart_date || undefined}
               returnDate={trip.return_date || undefined}
+              onDataChange={fetchTrip}
             />
           </TabsContent>
 
@@ -370,6 +371,7 @@ const TripDetail = () => {
               destination={trip.destination || undefined}
               departDate={trip.depart_date || undefined}
               returnDate={trip.return_date || undefined}
+              onDataChange={fetchTrip}
             />
           </TabsContent>
         </Tabs>
