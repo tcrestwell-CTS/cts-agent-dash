@@ -54,7 +54,7 @@ export default function PortalVerify() {
         <div className="text-center space-y-4">
           <h2 className="text-2xl font-semibold text-foreground">Access Error</h2>
           <p className="text-muted-foreground">{error}</p>
-          <a href="/portal/login" className="text-primary hover:underline text-sm">
+          <a href="/login" className="text-primary hover:underline text-sm">
             Request a new access link
           </a>
         </div>

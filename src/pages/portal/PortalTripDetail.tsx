@@ -42,7 +42,7 @@ export default function PortalTripDetail() {
   return (
     <PortalLayout>
       <div className="space-y-6">
-        <Link to="/portal/trips" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/trips" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Back to trips
         </Link>

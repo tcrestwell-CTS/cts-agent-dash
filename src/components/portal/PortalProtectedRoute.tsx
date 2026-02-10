@@ -16,7 +16,7 @@ export function PortalProtectedRoute({ children }: { children: React.ReactNode }
   }
 
   if (!session) {
-    return <Navigate to="/portal/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

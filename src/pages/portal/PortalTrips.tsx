@@ -51,7 +51,7 @@ export default function PortalTrips() {
         ) : (
           <div className="grid gap-4">
             {trips.map((trip: any) => (
-              <Link key={trip.id} to={`/portal/trips/${trip.id}`}>
+              <Link key={trip.id} to={`/trips/${trip.id}`}>
                 <Card className="hover:shadow-md transition-shadow">
                   <CardContent className="flex items-center justify-between p-6">
                     <div className="space-y-1">

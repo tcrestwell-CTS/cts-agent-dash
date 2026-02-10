@@ -71,7 +71,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
         <div className="md:hidden border-t border-sidebar-border px-4 py-2 flex gap-1 overflow-x-auto">
           {portalNav.map((item) => {
             const isActive = location.pathname === item.href ||
-              (item.href !== "/portal" && location.pathname.startsWith(item.href));
+              (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}

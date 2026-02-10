@@ -11,8 +11,8 @@ export function PortalSubdomainRedirect({ children }: { children: React.ReactNod
   const isPortal = useIsPortalSubdomain();
 
   // On the portal subdomain, block all non-portal routes (including /auth)
-  if (isPortal && !location.pathname.startsWith("/portal")) {
-    return <Navigate to="/portal/login" replace />;
+  if (isPortal && !location.pathname.startsWith("/portal") && !["/login", "/verify", "/dashboard", "/trips", "/invoices", "/messages"].some(p => location.pathname === p || location.pathname.startsWith(p + "/"))) {
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
