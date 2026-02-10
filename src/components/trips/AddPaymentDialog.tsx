@@ -81,6 +81,7 @@ export function AddPaymentDialog({
         notes: "",
       });
       onOpenChange(false);
+      onPaymentCreated?.();
     }
   };
 
