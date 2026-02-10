@@ -355,7 +355,7 @@ export function TripPayments({
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => deletePayment(payment.id)}
+                                    onClick={async () => { await deletePayment(payment.id); onDataChange?.(); }}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
                                     Delete
