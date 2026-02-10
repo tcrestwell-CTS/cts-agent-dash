@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RecentBookings } from "@/components/dashboard/RecentBookings";
@@ -12,6 +13,7 @@ import { CommissionRevenueCard } from "@/components/dashboard/CommissionRevenueC
 import { UpcomingCommissions } from "@/components/dashboard/UpcomingCommissions";
 import { UpcomingPayments } from "@/components/dashboard/UpcomingPayments";
 import { InvoiceSearch } from "@/components/dashboard/InvoiceSearch";
+import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
