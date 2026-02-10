@@ -38,6 +38,7 @@ interface TripPaymentsProps {
   destination?: string;
   departDate?: string;
   returnDate?: string;
+  onDataChange?: () => void;
 }
 
 const statusColors: Record<string, string> = {
