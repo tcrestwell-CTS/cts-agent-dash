@@ -107,7 +107,7 @@ export function AgencyMetrics() {
       const key = format(parseISO(b.depart_date), "yyyy-MM");
       if (commMap[key] !== undefined) {
         commMap[key] += b.commission_revenue || 0;
-        agencyMap[key] += (b.commission_revenue || 0) * 0.3;
+        agencyMap[key] += getAgencyShare(b.commission_revenue || 0, b.user_id);
         grossMap[key] += b.gross_sales || b.total_amount || 0;
       }
     });
