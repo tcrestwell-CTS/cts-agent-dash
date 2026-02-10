@@ -279,7 +279,7 @@ export function TripPayments({
               </Button>
               <Button size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Item
+                Log Payment
               </Button>
             </div>
           </CardHeader>
