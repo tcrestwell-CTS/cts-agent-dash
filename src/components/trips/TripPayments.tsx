@@ -474,6 +474,7 @@ export function TripPayments({
         onOpenChange={setAddDialogOpen}
         tripId={tripId}
         bookings={bookings}
+        onPaymentCreated={onDataChange}
       />
     </div>
   );
