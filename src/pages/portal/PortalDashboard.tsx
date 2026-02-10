@@ -73,7 +73,7 @@ export default function PortalDashboard() {
               </div>
             </CardContent>
           </Card>
-          <Link to="/portal/messages">
+          <Link to="/messages">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="flex items-center gap-4 p-6">
                 <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center">
