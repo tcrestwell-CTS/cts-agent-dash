@@ -53,6 +53,11 @@ import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookin
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
+import { generateInvoicePDF } from "@/lib/invoiceGenerator";
+import { useBrandingSettings } from "@/hooks/useBrandingSettings";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useClients } from "@/hooks/useClients";
+import { toast } from "sonner";
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
