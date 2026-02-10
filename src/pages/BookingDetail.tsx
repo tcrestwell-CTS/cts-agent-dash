@@ -352,14 +352,32 @@ const BookingDetail = () => {
             <Pencil className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button
-            variant="outline"
-            className="text-destructive hover:bg-destructive/10"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
+          {hasPayments ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button variant="outline" className="text-muted-foreground" disabled>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove all payments before deleting this booking</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button
+              variant="outline"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
         </div>
       </div>
 
