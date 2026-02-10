@@ -61,6 +61,7 @@ export function TripPayments({
   destination,
   departDate,
   returnDate,
+  onDataChange,
 }: TripPaymentsProps) {
   const {
     payments,
