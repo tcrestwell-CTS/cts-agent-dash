@@ -130,7 +130,7 @@ export default function PortalDashboard() {
                   </Link>
                 ))}
                 {trips.length > 5 && (
-                  <Link to="/trips" className="text-primary text-sm hover:underline block text-center pt-2">
+                  <Link to={portalRoutes.trips} className="text-primary text-sm hover:underline block text-center pt-2">
                     View all {trips.length} trips →
                   </Link>
                 )}
