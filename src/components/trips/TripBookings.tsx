@@ -134,6 +134,7 @@ export function TripBookings({
       toast.success("Booking removed from trip");
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      onDataChange?.();
     } catch (error: any) {
       toast.error("Failed to remove booking: " + error.message);
     }
