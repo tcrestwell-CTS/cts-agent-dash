@@ -406,13 +406,27 @@ const ClientDetail = () => {
                 </AlertDialogContent>
               </AlertDialog>
               {client.email && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setEmailDialogOpen(true)}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Email
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleSendPortalLink}
+                    disabled={isSendingPortalLink}
+                  >
+                    {isSendingPortalLink ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link2 className="mr-2 h-4 w-4" />
+                    )}
+                    Send Portal Link
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEmailDialogOpen(true)}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Email
+                  </Button>
+                </>
               )}
               <Button onClick={() => setIsEditing(true)}>
                 <Edit2 className="mr-2 h-4 w-4" />
