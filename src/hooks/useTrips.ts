@@ -240,6 +240,26 @@ export function useTrips() {
       return false;
     }
 
+    // Check if any payments/authorizations exist for bookings tied to this trip
+    try {
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("trip_payments")
+        .select("id")
+        .eq("trip_id", tripId)
+        .limit(1);
+
+      if (paymentsError) throw paymentsError;
+
+      if (paymentsData && paymentsData.length > 0) {
+        toast.error("Cannot delete trip — payments or authorizations are logged. Remove all payments first.");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error checking trip payments:", error);
+      toast.error("Failed to verify trip payments");
+      return false;
+    }
+
     // Store the trip for potential rollback
     const tripToDelete = trips.find((t) => t.id === tripId);
     
