@@ -46,6 +46,7 @@ interface TripBookingsProps {
   destination?: string;
   departDate?: string;
   returnDate?: string;
+  onDataChange?: () => void;
 }
 
 // Map supplier types to icons and colors
