@@ -78,16 +78,13 @@ export function AgencyMetrics() {
     const salesVolume = filteredBookings.reduce((s, b) => s + (b.gross_sales || b.total_amount || 0), 0);
     const commissionReceived = filteredBookings.reduce((s, b) => s + (b.commission_revenue || 0), 0);
 
-    // Agency income uses tier split — default ~30% of commission for tier 1
-    // We approximate from commissions table paid amounts, or fallback to 20% of commission_revenue
+    // Agency income uses actual tier split from agent profile
     const agencyIncome = filteredBookings.reduce((s, b) => {
-      // Use calculated_commission if available, else estimate
-      const agencyShare = (b.commission_revenue || 0) * 0.3;
-      return s + agencyShare;
+      return s + getAgencyShare(b.commission_revenue || 0, b.user_id);
     }, 0);
 
     return { bookingCount, salesVolume, commissionReceived, agencyIncome };
-  }, [filteredBookings]);
+  }, [filteredBookings, agentTierMap]);
 
   // Monthly chart data for the selected range
   const chartData = useMemo(() => {
