@@ -84,6 +84,7 @@ export function TripPayments({
       status: "paid",
       payment_date: new Date().toISOString().split("T")[0],
     });
+    onDataChange?.();
   };
 
   // Get supplier name from the first booking if available
