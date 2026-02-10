@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PortalProvider } from "@/contexts/PortalContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PortalSubdomainRedirect } from "@/components/PortalSubdomainRedirect";
 import { PortalProtectedRoute } from "@/components/portal/PortalProtectedRoute";
 import Index from "./pages/Index";
 import CRM from "./pages/CRM";
