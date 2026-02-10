@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { TripBooking } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { format, differenceInDays, subDays, parseISO } from "date-fns";
