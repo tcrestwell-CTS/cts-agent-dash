@@ -48,6 +48,12 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
@@ -57,6 +63,8 @@ import { generateInvoicePDF } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useClient } from "@/hooks/useClients";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const getStatusBadgeClass = (status: string) => {
@@ -119,6 +127,23 @@ const BookingDetail = () => {
   }, [booking, selectedSupplier]);
 
   const { data: client } = useClient(booking?.client_id || "");
+
+  // Check if payments are logged against this booking
+  const { data: bookingPayments = [] } = useQuery({
+    queryKey: ["booking-payments-check", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return [];
+      const { data, error } = await supabase
+        .from("trip_payments")
+        .select("id")
+        .eq("booking_id", bookingId)
+        .limit(1);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!bookingId,
+  });
+  const hasPayments = bookingPayments.length > 0;
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -327,14 +352,32 @@ const BookingDetail = () => {
             <Pencil className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button
-            variant="outline"
-            className="text-destructive hover:bg-destructive/10"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
+          {hasPayments ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button variant="outline" className="text-muted-foreground" disabled>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove all payments before deleting this booking</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button
+              variant="outline"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
         </div>
       </div>
 
