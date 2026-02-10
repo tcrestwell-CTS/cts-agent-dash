@@ -135,6 +135,59 @@ const BookingDetail = () => {
     setShowDeleteDialog(false);
   };
 
+  const handleGenerateInvoice = async () => {
+    if (!booking) return;
+    setGeneratingInvoice(true);
+    try {
+      const grossSales = tripFinancials?.grossSales || booking.total_amount;
+      
+      const invoiceData = {
+        tripName: booking.trip_name || booking.destination,
+        clientName: client?.name || "Client",
+        clientEmail: client?.email || undefined,
+        clientPhone: client?.phone || undefined,
+        clientAddress: [client?.address_line_1, client?.address_city, client?.address_state, client?.address_zip_code]
+          .filter(Boolean).join(", ") || undefined,
+        destination: booking.destination,
+        departDate: booking.depart_date,
+        returnDate: booking.return_date,
+        payments: [],
+        tripTotal: grossSales,
+        totalPaid: 0,
+        totalRemaining: grossSales,
+        agencyName: branding?.agency_name || "Crestwell Travel Services",
+        agencyPhone: branding?.phone || undefined,
+        agencyEmail: branding?.email_address || undefined,
+        agencyAddress: branding?.address || undefined,
+        agencyWebsite: branding?.website || undefined,
+        agencyLogoUrl: branding?.logo_url || undefined,
+        supplierName: selectedSupplier?.name || undefined,
+      };
+
+      const invoice = await createInvoice({
+        trip_id: booking.trip_id || undefined,
+        client_id: booking.client_id,
+        trip_name: booking.trip_name || booking.destination,
+        client_name: client?.name || "Client",
+        total_amount: grossSales,
+        amount_paid: 0,
+        amount_remaining: grossSales,
+      });
+
+      if (invoice) {
+        invoiceData.invoiceNumber = invoice.invoice_number;
+      }
+
+      await generateInvoicePDF(invoiceData as any);
+      toast.success("Invoice generated and downloaded");
+    } catch (err) {
+      console.error("Error generating invoice:", err);
+      toast.error("Failed to generate invoice");
+    } finally {
+      setGeneratingInvoice(false);
+    }
+  };
+
   const tripDuration = booking
     ? differenceInDays(new Date(booking.return_date), new Date(booking.depart_date)) + 1
     : 0;
