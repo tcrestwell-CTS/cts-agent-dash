@@ -85,6 +85,34 @@ const ClientDetail = () => {
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
   const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+
+  const handleSendPortalLink = async () => {
+    if (!client?.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+    setIsSendingPortalLink(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-auth`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: "send-magic-link", email: client.email }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to send");
+      toast.success(`Portal access link sent to ${client.email}`);
+    } catch {
+      toast.error("Failed to send portal link");
+    } finally {
+      setIsSendingPortalLink(false);
+    }
+  };
 
   useEffect(() => {
     if (client) {
