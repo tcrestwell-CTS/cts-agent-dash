@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useCommissions } from "@/hooks/useCommissions";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTeamProfiles } from "@/hooks/useTeamProfiles";
+import { calculateAgencyCommission, CommissionTier } from "@/lib/commissionTiers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import {
@@ -37,8 +38,23 @@ export function AgencyMetrics() {
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
   const { data: clients } = useClients();
+  const { data: teamProfiles } = useTeamProfiles();
 
   const loading = bookingsLoading || commissionsLoading;
+
+  // Build a map of user_id -> commission_tier for agency split calculation
+  const agentTierMap = useMemo(() => {
+    const map = new Map<string, CommissionTier | null>();
+    if (teamProfiles) {
+      teamProfiles.forEach((p) => map.set(p.user_id, p.commission_tier));
+    }
+    return map;
+  }, [teamProfiles]);
+
+  const getAgencyShare = (commissionRevenue: number, userId: string) => {
+    const tier = agentTierMap.get(userId);
+    return calculateAgencyCommission(commissionRevenue, tier);
+  };
 
   const now = new Date();
   const interval = useMemo(() => {
@@ -62,16 +78,13 @@ export function AgencyMetrics() {
     const salesVolume = filteredBookings.reduce((s, b) => s + (b.gross_sales || b.total_amount || 0), 0);
     const commissionReceived = filteredBookings.reduce((s, b) => s + (b.commission_revenue || 0), 0);
 
-    // Agency income uses tier split — default ~30% of commission for tier 1
-    // We approximate from commissions table paid amounts, or fallback to 20% of commission_revenue
+    // Agency income uses actual tier split from agent profile
     const agencyIncome = filteredBookings.reduce((s, b) => {
-      // Use calculated_commission if available, else estimate
-      const agencyShare = (b.commission_revenue || 0) * 0.3;
-      return s + agencyShare;
+      return s + getAgencyShare(b.commission_revenue || 0, b.user_id);
     }, 0);
 
     return { bookingCount, salesVolume, commissionReceived, agencyIncome };
-  }, [filteredBookings]);
+  }, [filteredBookings, agentTierMap]);
 
   // Monthly chart data for the selected range
   const chartData = useMemo(() => {
@@ -94,7 +107,7 @@ export function AgencyMetrics() {
       const key = format(parseISO(b.depart_date), "yyyy-MM");
       if (commMap[key] !== undefined) {
         commMap[key] += b.commission_revenue || 0;
-        agencyMap[key] += (b.commission_revenue || 0) * 0.3;
+        agencyMap[key] += getAgencyShare(b.commission_revenue || 0, b.user_id);
         grossMap[key] += b.gross_sales || b.total_amount || 0;
       }
     });
