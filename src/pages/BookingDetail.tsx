@@ -44,6 +44,7 @@ import {
   Loader2,
   UserMinus,
   AlertTriangle,
+  Receipt,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
@@ -52,6 +53,11 @@ import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookin
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
+import { generateInvoicePDF } from "@/lib/invoiceGenerator";
+import { useBrandingSettings } from "@/hooks/useBrandingSettings";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useClient } from "@/hooks/useClients";
+import { toast } from "sonner";
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
@@ -98,6 +104,8 @@ const BookingDetail = () => {
   const createCommission = useCreateCommission();
   const updateCommission = useUpdateCommission();
   const { suppliers } = useSuppliers();
+  const { settings: branding } = useBrandingSettings();
+  const { createInvoice, creating: creatingInvoice } = useInvoices();
   
   // Get the supplier for this booking and calculate financials dynamically
   const selectedSupplier = useMemo(() => {
@@ -109,9 +117,12 @@ const BookingDetail = () => {
     if (!booking) return null;
     return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier);
   }, [booking, selectedSupplier]);
+
+  const { data: client } = useClient(booking?.client_id || "");
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [customRate, setCustomRate] = useState<string>("");
 
   const handleDelete = async () => {
@@ -122,6 +133,59 @@ const BookingDetail = () => {
       }
     }
     setShowDeleteDialog(false);
+  };
+
+  const handleGenerateInvoice = async () => {
+    if (!booking) return;
+    setGeneratingInvoice(true);
+    try {
+      const grossSales = tripFinancials?.grossSales || booking.total_amount;
+      
+      const invoiceData: Record<string, any> = {
+        tripName: booking.trip_name || booking.destination,
+        clientName: client?.name || "Client",
+        clientEmail: client?.email || undefined,
+        clientPhone: client?.phone || undefined,
+        clientAddress: [client?.address_line_1, client?.address_city, client?.address_state, client?.address_zip_code]
+          .filter(Boolean).join(", ") || undefined,
+        destination: booking.destination,
+        departDate: booking.depart_date,
+        returnDate: booking.return_date,
+        payments: [],
+        tripTotal: grossSales,
+        totalPaid: 0,
+        totalRemaining: grossSales,
+        agencyName: branding?.agency_name || "Crestwell Travel Services",
+        agencyPhone: branding?.phone || undefined,
+        agencyEmail: branding?.email_address || undefined,
+        agencyAddress: branding?.address || undefined,
+        agencyWebsite: branding?.website || undefined,
+        agencyLogoUrl: branding?.logo_url || undefined,
+        supplierName: selectedSupplier?.name || undefined,
+      };
+
+      const invoice = await createInvoice({
+        trip_id: booking.trip_id || undefined,
+        client_id: booking.client_id,
+        trip_name: booking.trip_name || booking.destination,
+        client_name: client?.name || "Client",
+        total_amount: grossSales,
+        amount_paid: 0,
+        amount_remaining: grossSales,
+      });
+
+      if (invoice) {
+        invoiceData.invoiceNumber = invoice.invoice_number;
+      }
+
+      await generateInvoicePDF(invoiceData as any);
+      toast.success("Invoice generated and downloaded");
+    } catch (err) {
+      console.error("Error generating invoice:", err);
+      toast.error("Failed to generate invoice");
+    } finally {
+      setGeneratingInvoice(false);
+    }
   };
 
   const tripDuration = booking
@@ -247,6 +311,18 @@ const BookingDetail = () => {
               </a>
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={handleGenerateInvoice}
+            disabled={generatingInvoice}
+          >
+            {generatingInvoice ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Receipt className="h-4 w-4 mr-2" />
+            )}
+            {generatingInvoice ? "Generating..." : "Generate Invoice"}
+          </Button>
           <Button variant="outline" onClick={() => setShowEditDialog(true)}>
             <Pencil className="h-4 w-4 mr-2" />
             Edit
