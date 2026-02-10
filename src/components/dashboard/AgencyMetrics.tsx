@@ -36,6 +36,7 @@ export function AgencyMetrics() {
   const navigate = useNavigate();
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
+  const { data: clients } = useClients();
 
   const loading = bookingsLoading || commissionsLoading;
 
