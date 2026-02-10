@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState<"my" | "agency">("my");
   const { user } = useAuth();
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
   const { sections, stats, loading, isAgencyView } = useDashboardData();
@@ -44,7 +45,7 @@ const Index = () => {
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-semibold text-foreground tracking-tight">
           Welcome back, {firstName}
         </h1>
@@ -52,6 +53,39 @@ const Index = () => {
           Here's what's happening with your travel business today.
         </p>
       </div>
+
+      {/* Dashboard Tabs */}
+      <div className="mb-8 border-b border-border">
+        <div className="flex gap-6">
+          <button
+            onClick={() => setActiveTab("my")}
+            className={cn(
+              "pb-3 text-sm font-medium border-b-2 transition-colors",
+              activeTab === "my"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            My Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab("agency")}
+            className={cn(
+              "pb-3 text-sm font-medium border-b-2 transition-colors",
+              activeTab === "agency"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Agency Metrics
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "agency" ? (
+        <AgencyMetrics />
+      ) : (
+        <>
 
       {/* Stats Grid - Always visible with minimal loading states */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
