@@ -1199,6 +1199,9 @@ const ClientDetail = () => {
           </CardContent>
         </Card>
 
+        {/* Portal Messages */}
+        <ClientMessagesPanel clientId={clientId!} />
+
         {/* Email History */}
         <Card className="lg:col-span-3">
           <CardHeader className="pb-2">
