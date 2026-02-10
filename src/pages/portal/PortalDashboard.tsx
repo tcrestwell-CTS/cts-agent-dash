@@ -106,7 +106,7 @@ export default function PortalDashboard() {
                 {trips.slice(0, 5).map((trip: any) => (
                   <Link
                     key={trip.id}
-                    to={`/portal/trips/${trip.id}`}
+                    to={`/trips/${trip.id}`}
                     className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                   >
                     <div>
