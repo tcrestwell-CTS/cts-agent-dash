@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useCommissions } from "@/hooks/useCommissions";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTeamProfiles } from "@/hooks/useTeamProfiles";
+import { calculateAgencyCommission, CommissionTier } from "@/lib/commissionTiers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import {
