@@ -49,6 +49,7 @@ import { useClientBookings } from "@/hooks/useBookings";
 import { useCompanions, useDeleteCompanion, Companion } from "@/hooks/useCompanions";
 import { useEmailLogs } from "@/hooks/useEmailLogs";
 import { CompanionDialog } from "@/components/clients/CompanionDialog";
+import { ClientMessagesPanel } from "@/components/clients/ClientMessagesPanel";
 import { SendEmailDialog } from "@/components/clients/SendEmailDialog";
 import { useState, useEffect } from "react";
 import { format, differenceInYears, isPast, isFuture, isWithinInterval } from "date-fns";
@@ -1197,6 +1198,9 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Portal Messages */}
+        <ClientMessagesPanel clientId={clientId!} />
 
         {/* Email History */}
         <Card className="lg:col-span-3">
