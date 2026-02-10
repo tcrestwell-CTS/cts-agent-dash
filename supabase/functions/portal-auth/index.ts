@@ -79,10 +79,8 @@ const handler = async (req: Request): Promise<Response> => {
       const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
       const fromName = branding?.from_name || agencyName;
 
-      // Determine portal URL - use referer or fallback
-      const referer = req.headers.get("referer") || req.headers.get("origin") || "";
-      const baseUrl = referer ? new URL(referer).origin : Deno.env.get("SUPABASE_URL")!.replace(".supabase.co", ".lovable.app");
-      const portalUrl = `${baseUrl}/portal/verify?token=${portalToken}`;
+      // Always point to the client portal domain
+      const portalUrl = `https://portal.crestwelltravels.com/portal/verify?token=${portalToken}`;
 
       const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
