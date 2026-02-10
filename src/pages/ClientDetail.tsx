@@ -42,6 +42,7 @@ import {
   ExternalLink,
   UserPlus,
   MoreHorizontal,
+  Link2,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { useClientBookings } from "@/hooks/useBookings";
