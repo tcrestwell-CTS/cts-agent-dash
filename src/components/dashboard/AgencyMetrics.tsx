@@ -235,10 +235,87 @@ export function AgencyMetrics() {
       {/* Full Width Gross Sales */}
       <MiniBarChart data={chartData.grossSales} title="Gross sales by month" />
 
+      {/* Active Authorizations */}
+      <ActiveAuthorizations bookings={bookings || []} clients={clients || []} navigate={navigate} />
+
       {/* Link to full analytics */}
       <Button variant="outline" size="sm" onClick={() => navigate("/analytics")}>
         View all KPIs
       </Button>
     </div>
+  );
+}
+
+function ActiveAuthorizations({
+  bookings,
+  clients,
+  navigate,
+}: {
+  bookings: any[];
+  clients: any[];
+  navigate: (path: string) => void;
+}) {
+  const upcoming = useMemo(() => {
+    const now = new Date();
+    const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
+
+    return bookings
+      .filter((b) => {
+        if (b.status === "cancelled" || isBookingArchived(b)) return false;
+        const depart = parseISO(b.depart_date);
+        return depart >= now && (b.status === "confirmed" || b.status === "booked");
+      })
+      .sort((a, b) => parseISO(a.depart_date).getTime() - parseISO(b.depart_date).getTime())
+      .slice(0, 8)
+      .map((b) => ({
+        id: b.id,
+        tripId: b.trip_id,
+        client: clientMap.get(b.client_id) || "Unknown Client",
+        destination: b.destination,
+        departDate: b.depart_date,
+        amount: b.total_amount || 0,
+        status: b.status,
+      }));
+  }, [bookings, clients]);
+
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            Active Authorizations
+          </CardTitle>
+          <Badge variant="secondary" className="text-xs">{upcoming.length} upcoming</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">No upcoming confirmed bookings</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {upcoming.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between py-3 cursor-pointer hover:bg-muted/50 -mx-4 px-4 rounded transition-colors"
+                onClick={() => item.tripId ? navigate(`/trips/${item.tripId}`) : navigate("/bookings")}
+              >
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-foreground">{item.client}</p>
+                  <p className="text-xs text-muted-foreground">{item.destination}</p>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <p className="text-sm font-semibold text-foreground">{fmt(item.amount)}</p>
+                  <p className="text-xs text-muted-foreground">{format(parseISO(item.departDate), "MMM d, yyyy")}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
