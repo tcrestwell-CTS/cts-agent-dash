@@ -1,6 +1,7 @@
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { usePortalDashboard } from "@/hooks/usePortalData";
 import { usePortal } from "@/contexts/PortalContext";
+import { portalRoutes } from "@/lib/portalRoutes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Compass, DollarSign, MessageCircle, Calendar } from "lucide-react";
