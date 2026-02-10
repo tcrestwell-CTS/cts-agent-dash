@@ -3,12 +3,13 @@ import { Compass, FileText, MessageCircle, LayoutDashboard, LogOut } from "lucid
 import { cn } from "@/lib/utils";
 import { usePortal } from "@/contexts/PortalContext";
 import { Button } from "@/components/ui/button";
+import { portalRoutes } from "@/lib/portalRoutes";
 
 const portalNav = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "My Trips", href: "/trips", icon: Compass },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Messages", href: "/messages", icon: MessageCircle },
+  { name: "Dashboard", href: portalRoutes.dashboard, icon: LayoutDashboard },
+  { name: "My Trips", href: portalRoutes.trips, icon: Compass },
+  { name: "Invoices", href: portalRoutes.invoices, icon: FileText },
+  { name: "Messages", href: portalRoutes.messages, icon: MessageCircle },
 ];
 
 export function PortalLayout({ children }: { children: React.ReactNode }) {
