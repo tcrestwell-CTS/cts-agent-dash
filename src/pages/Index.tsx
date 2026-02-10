@@ -241,6 +241,8 @@ const Index = () => {
           <TrainingProgress />
         </div>
       </div>
+      </>
+      )}
     </DashboardLayout>
   );
 };
