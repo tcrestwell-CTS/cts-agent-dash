@@ -296,6 +296,44 @@ export type Database = {
           },
         ]
       }
+      client_portal_sessions: {
+        Row: {
+          client_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          verified_at: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          verified_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activities_interests: string | null
@@ -713,6 +751,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      portal_messages: {
+        Row: {
+          agent_user_id: string
+          client_id: string
+          created_at: string
+          id: string
+          message: string
+          read_at: string | null
+          sender_type: string
+        }
+        Insert: {
+          agent_user_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          message: string
+          read_at?: string | null
+          sender_type: string
+        }
+        Update: {
+          agent_user_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
