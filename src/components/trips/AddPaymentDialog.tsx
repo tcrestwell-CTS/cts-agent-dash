@@ -33,6 +33,7 @@ export function AddPaymentDialog({
   onOpenChange,
   tripId,
   bookings,
+  onPaymentCreated,
 }: AddPaymentDialogProps) {
   const { createPayment, creating } = useTripPayments(tripId);
   const [formData, setFormData] = useState({
