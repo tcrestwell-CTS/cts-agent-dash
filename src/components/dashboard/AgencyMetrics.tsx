@@ -38,8 +38,23 @@ export function AgencyMetrics() {
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
   const { data: clients } = useClients();
+  const { data: teamProfiles } = useTeamProfiles();
 
   const loading = bookingsLoading || commissionsLoading;
+
+  // Build a map of user_id -> commission_tier for agency split calculation
+  const agentTierMap = useMemo(() => {
+    const map = new Map<string, CommissionTier | null>();
+    if (teamProfiles) {
+      teamProfiles.forEach((p) => map.set(p.user_id, p.commission_tier));
+    }
+    return map;
+  }, [teamProfiles]);
+
+  const getAgencyShare = (commissionRevenue: number, userId: string) => {
+    const tier = agentTierMap.get(userId);
+    return calculateAgencyCommission(commissionRevenue, tier);
+  };
 
   const now = new Date();
   const interval = useMemo(() => {
