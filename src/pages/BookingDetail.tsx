@@ -141,7 +141,7 @@ const BookingDetail = () => {
     try {
       const grossSales = tripFinancials?.grossSales || booking.total_amount;
       
-      const invoiceData = {
+      const invoiceData: Record<string, any> = {
         tripName: booking.trip_name || booking.destination,
         clientName: client?.name || "Client",
         clientEmail: client?.email || undefined,
