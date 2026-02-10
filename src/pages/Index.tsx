@@ -70,17 +70,19 @@ const Index = () => {
           >
             My Dashboard
           </button>
-          <button
-            onClick={() => setActiveTab("agency")}
-            className={cn(
-              "pb-3 text-sm font-medium border-b-2 transition-colors",
-              activeTab === "agency"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Agency Metrics
-          </button>
+          {canViewAgencyMetrics && (
+            <button
+              onClick={() => setActiveTab("agency")}
+              className={cn(
+                "pb-3 text-sm font-medium border-b-2 transition-colors",
+                activeTab === "agency"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Agency Metrics
+            </button>
+          )}
         </div>
       </div>
 
