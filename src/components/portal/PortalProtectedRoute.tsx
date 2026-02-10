@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { usePortal } from "@/contexts/PortalContext";
+import { portalRoutes } from "@/lib/portalRoutes";
 
 export function PortalProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = usePortal();
