@@ -104,9 +104,8 @@ const BookingDetail = () => {
   const createCommission = useCreateCommission();
   const updateCommission = useUpdateCommission();
   const { suppliers } = useSuppliers();
-  const { branding } = useBrandingSettings();
+  const { settings: branding } = useBrandingSettings();
   const { createInvoice, creating: creatingInvoice } = useInvoices();
-  const { clients } = useClients();
   
   // Get the supplier for this booking and calculate financials dynamically
   const selectedSupplier = useMemo(() => {
@@ -119,10 +118,7 @@ const BookingDetail = () => {
     return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier);
   }, [booking, selectedSupplier]);
 
-  const client = useMemo(() => {
-    if (!booking?.client_id) return null;
-    return clients.find((c) => c.id === booking.client_id) || null;
-  }, [booking?.client_id, clients]);
+  const { data: client } = useClient(booking?.client_id || "");
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
