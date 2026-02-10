@@ -33,7 +33,7 @@ export function PortalLayout({ children }: { children: React.ReactNode }) {
               <nav className="hidden md:flex items-center gap-1">
                 {portalNav.map((item) => {
                   const isActive = location.pathname === item.href ||
-                    (item.href !== "/dashboard" && location.pathname.startsWith(item.href));
+                    (item.href !== portalRoutes.dashboard && location.pathname.startsWith(item.href));
                   return (
                     <Link
                       key={item.name}
