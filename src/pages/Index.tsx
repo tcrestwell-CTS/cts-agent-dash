@@ -26,6 +26,7 @@ const Index = () => {
   const { user } = useAuth();
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
   const { sections, stats, loading, isAgencyView } = useDashboardData();
+  const { canView: canViewAgencyMetrics } = useCanViewTeam();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
