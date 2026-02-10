@@ -276,6 +276,7 @@ export function TripBookings({
         returnDate={returnDate}
         open={addBookingOpen}
         onOpenChange={setAddBookingOpen}
+        onBookingCreated={onDataChange}
       />
 
       {/* Bookings Table */}
