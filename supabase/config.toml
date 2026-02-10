@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.booking-orchestrator]
 verify_jwt = false
+
+[functions.portal-auth]
+verify_jwt = false
+
+[functions.portal-data]
+verify_jwt = false
