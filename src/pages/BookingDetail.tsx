@@ -44,6 +44,7 @@ import {
   Loader2,
   UserMinus,
   AlertTriangle,
+  Receipt,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
