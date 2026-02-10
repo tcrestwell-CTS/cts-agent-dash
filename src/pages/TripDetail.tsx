@@ -23,7 +23,14 @@ import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { useTrip, useTrips } from "@/hooks/useTrips";
+import { useTripPayments } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,

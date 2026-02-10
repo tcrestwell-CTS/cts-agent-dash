@@ -48,6 +48,12 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
