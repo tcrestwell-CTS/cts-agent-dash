@@ -17,6 +17,7 @@ import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useCanViewTeam } from "@/hooks/useAdmin";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ const Index = () => {
   const { user } = useAuth();
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
   const { sections, stats, loading, isAgencyView } = useDashboardData();
+  const { canView: canViewAgencyMetrics } = useCanViewTeam();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -68,17 +70,19 @@ const Index = () => {
           >
             My Dashboard
           </button>
-          <button
-            onClick={() => setActiveTab("agency")}
-            className={cn(
-              "pb-3 text-sm font-medium border-b-2 transition-colors",
-              activeTab === "agency"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Agency Metrics
-          </button>
+          {canViewAgencyMetrics && (
+            <button
+              onClick={() => setActiveTab("agency")}
+              className={cn(
+                "pb-3 text-sm font-medium border-b-2 transition-colors",
+                activeTab === "agency"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Agency Metrics
+            </button>
+          )}
         </div>
       </div>
 
