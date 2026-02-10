@@ -67,14 +67,13 @@ const App = () => (
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
 
                 {/* Client portal routes */}
-                <Route path="/login" element={<PortalLogin />} />
-                <Route path="/verify" element={<PortalVerify />} />
-                <Route path="/dashboard" element={<PortalProtectedRoute><PortalDashboard /></PortalProtectedRoute>} />
-                <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
+                <Route path="/portal/login" element={<PortalLogin />} />
+                <Route path="/portal/verify" element={<PortalVerify />} />
+                <Route path="/portal" element={<PortalProtectedRoute><PortalDashboard /></PortalProtectedRoute>} />
                 <Route path="/portal/trips" element={<PortalProtectedRoute><PortalTrips /></PortalProtectedRoute>} />
                 <Route path="/portal/trips/:tripId" element={<PortalProtectedRoute><PortalTripDetail /></PortalProtectedRoute>} />
-                <Route path="/invoices" element={<PortalProtectedRoute><PortalInvoices /></PortalProtectedRoute>} />
-                <Route path="/messages" element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>} />
+                <Route path="/portal/invoices" element={<PortalProtectedRoute><PortalInvoices /></PortalProtectedRoute>} />
+                <Route path="/portal/messages" element={<PortalProtectedRoute><PortalMessages /></PortalProtectedRoute>} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
