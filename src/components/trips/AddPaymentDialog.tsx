@@ -25,6 +25,7 @@ interface AddPaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   tripId: string;
   bookings: TripBooking[];
+  onPaymentCreated?: () => void;
 }
 
 export function AddPaymentDialog({
