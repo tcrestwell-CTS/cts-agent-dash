@@ -238,13 +238,18 @@ export default function PortalLogin() {
       </div>
 
       {/* Right sign-in panel */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-sm">
+      <div className="w-full lg:w-[40%] flex flex-col items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-sm flex-1 flex flex-col justify-center">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
             <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-14 w-auto" />
           </div>
           {rightPanel()}
+        </div>
+        <div className="text-center text-sm text-muted-foreground flex items-center gap-3 pt-6">
+          <a href="https://crestwellgetaways.com/term-and-conditions" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">Terms and Conditions</a>
+          <span>·</span>
+          <a href="https://crestwellgetaways.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline">Privacy Policy</a>
         </div>
       </div>
     </div>
