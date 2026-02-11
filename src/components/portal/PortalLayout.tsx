@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
+import { usePortalBranding } from "@/hooks/usePortalBranding";
 import { Home, Map, MessageSquare, FileText, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -14,6 +15,7 @@ const navItems = [
 
 export function PortalLayout() {
   const { session, logout } = usePortalAuth();
+  const { branding } = usePortalBranding();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -22,8 +24,17 @@ export function PortalLayout() {
     navigate("/portal/login");
   };
 
+  // Generate CSS custom properties from branding colors
+  const brandStyles = useMemo(() => {
+    if (!branding.primary_color) return {};
+    return {
+      "--portal-primary": branding.primary_color,
+      "--portal-accent": branding.accent_color,
+    } as React.CSSProperties;
+  }, [branding.primary_color, branding.accent_color]);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={brandStyles}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
@@ -36,7 +47,20 @@ export function PortalLayout() {
             >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <h1 className="text-lg font-bold text-foreground">Travel Portal</h1>
+            {branding.logo_url ? (
+              <img
+                src={branding.logo_url}
+                alt={branding.agency_name}
+                className="h-8 w-auto object-contain"
+              />
+            ) : (
+              <h1 className="text-lg font-bold text-foreground">{branding.agency_name}</h1>
+            )}
+            {branding.logo_url && (
+              <span className="hidden sm:inline text-sm font-semibold text-foreground">
+                {branding.agency_name}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -62,9 +86,14 @@ export function PortalLayout() {
                   cn(
                     "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
                     isActive
-                      ? "border-primary text-primary"
+                      ? "text-primary border-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                   )
+                }
+                style={({ isActive }) =>
+                  isActive && branding.primary_color
+                    ? { color: branding.primary_color, borderColor: branding.primary_color }
+                    : undefined
                 }
               >
                 <item.icon className="h-4 w-4" />
@@ -89,6 +118,11 @@ export function PortalLayout() {
                   "flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg transition-colors",
                   isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
                 )
+              }
+              style={({ isActive }) =>
+                isActive && branding.primary_color
+                  ? { color: branding.primary_color }
+                  : undefined
               }
             >
               <item.icon className="h-4 w-4" />

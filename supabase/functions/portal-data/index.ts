@@ -61,20 +61,30 @@ const handler = async (req: Request): Promise<Response> => {
       const tripIds = (tripsRes.data || []).map((t: any) => t.id);
       const clientPayments = (paymentsRes.data || []).filter((p: any) => tripIds.includes(p.trip_id));
 
-      // Fetch agent profile for the client's assigned agent
+      // Fetch agent profile + branding for the client's assigned agent
       let agent = null;
+      let branding = null;
       if (clientRes.data?.user_id) {
-        const { data: agentProfile } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url, phone, job_title")
-          .eq("user_id", clientRes.data.user_id)
-          .single();
-        agent = agentProfile;
+        const [agentRes, brandingRes] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("full_name, avatar_url, phone, job_title")
+            .eq("user_id", clientRes.data.user_id)
+            .single(),
+          supabase
+            .from("branding_settings")
+            .select("agency_name, primary_color, accent_color, logo_url, tagline")
+            .eq("user_id", clientRes.data.user_id)
+            .maybeSingle(),
+        ]);
+        agent = agentRes.data;
+        branding = brandingRes.data;
       }
 
       return new Response(JSON.stringify({
         client: clientRes.data,
         agent,
+        branding,
         trips: tripsRes.data || [],
         upcoming_payments: clientPayments,
         recent_messages: messagesRes.data || [],
