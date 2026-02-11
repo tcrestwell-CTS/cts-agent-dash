@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { usePortalDashboard } from "@/hooks/usePortalData";
 
 export interface PortalBranding {
   agency_name: string;
@@ -17,23 +16,18 @@ const DEFAULT_BRANDING: PortalBranding = {
   tagline: "Your Journey, Our Passion",
 };
 
-export function usePortalBranding() {
-  return useQuery({
-    queryKey: ["portal", "branding"],
-    queryFn: async (): Promise<PortalBranding> => {
-      // Try to get branding from the client's agent
-      const stored = localStorage.getItem("portal_session");
-      if (!stored) return DEFAULT_BRANDING;
+export function usePortalBranding(): { branding: PortalBranding; isLoading: boolean } {
+  const { data, isLoading } = usePortalDashboard();
 
-      try {
-        const { clientId } = JSON.parse(stored);
-        // We can get branding from the dashboard data which includes agent info
-        // For now, return defaults - branding will come from dashboard API
-        return DEFAULT_BRANDING;
-      } catch {
-        return DEFAULT_BRANDING;
+  const branding: PortalBranding = data?.branding
+    ? {
+        agency_name: data.branding.agency_name || DEFAULT_BRANDING.agency_name,
+        primary_color: data.branding.primary_color || DEFAULT_BRANDING.primary_color,
+        accent_color: data.branding.accent_color || DEFAULT_BRANDING.accent_color,
+        logo_url: data.branding.logo_url || DEFAULT_BRANDING.logo_url,
+        tagline: data.branding.tagline || DEFAULT_BRANDING.tagline,
       }
-    },
-    staleTime: 5 * 60_000,
-  });
+    : DEFAULT_BRANDING;
+
+  return { branding, isLoading };
 }
