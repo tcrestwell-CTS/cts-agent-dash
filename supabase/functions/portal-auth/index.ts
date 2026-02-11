@@ -79,8 +79,9 @@ const handler = async (req: Request): Promise<Response> => {
       const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
       const fromName = branding?.from_name || agencyName;
 
-      // Always point to the client portal domain
-      const portalUrl = `https://portal.crestwelltravels.com/portal/verify?token=${portalToken}`;
+      // Use PORTAL_BASE_URL if set, otherwise fall back to published URL
+      const portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+      const portalUrl = `${portalBaseUrl}/portal/verify?token=${portalToken}`;
 
       const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
