@@ -48,17 +48,78 @@ const handler = async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
     const resource = url.searchParams.get("resource");
 
+    // Helper: find trips where this client is a travel companion (via email match)
+    async function getCompanionTripIds(): Promise<string[]> {
+      // Get the client's email
+      const { data: client } = await supabase
+        .from("clients")
+        .select("email")
+        .eq("id", clientId)
+        .single();
+
+      if (!client?.email) return [];
+
+      // Find companion records matching this client's email
+      const { data: companions } = await supabase
+        .from("client_companions")
+        .select("id")
+        .eq("email", client.email);
+
+      if (!companions?.length) return [];
+
+      const companionIds = companions.map((c: any) => c.id);
+
+      // Find bookings these companions are travelers on
+      const { data: travelerLinks } = await supabase
+        .from("booking_travelers")
+        .select("booking_id")
+        .in("companion_id", companionIds);
+
+      if (!travelerLinks?.length) return [];
+
+      const bookingIds = travelerLinks.map((t: any) => t.booking_id);
+
+      // Get trip IDs from those bookings
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("trip_id")
+        .in("id", bookingIds)
+        .not("trip_id", "is", null);
+
+      if (!bookings?.length) return [];
+
+      return [...new Set(bookings.map((b: any) => b.trip_id))];
+    }
+
     if (resource === "dashboard") {
-      // Get client info + trips + recent payments + agent profile
-      const [clientRes, tripsRes, paymentsRes, messagesRes] = await Promise.all([
+      // Get client info + own trips + recent payments + agent profile
+      const [clientRes, tripsRes, companionTripIds, paymentsRes, messagesRes] = await Promise.all([
         supabase.from("clients").select("id, name, first_name, last_name, email, user_id").eq("id", clientId).single(),
         supabase.from("trips").select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales").eq("client_id", clientId).neq("status", "archived").order("depart_date", { ascending: false }),
+        getCompanionTripIds(),
         supabase.from("trip_payments").select("id, amount, payment_date, status, payment_type, trip_id, due_date").eq("status", "pending").order("due_date", { ascending: true }).limit(5),
         supabase.from("portal_messages").select("id, message, sender_type, created_at, read_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5),
       ]);
 
+      // Fetch companion trips that aren't already in the own-trips list
+      const ownTripIds = new Set((tripsRes.data || []).map((t: any) => t.id));
+      const extraTripIds = companionTripIds.filter((id: string) => !ownTripIds.has(id));
+      let companionTrips: any[] = [];
+      if (extraTripIds.length > 0) {
+        const { data } = await supabase
+          .from("trips")
+          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales")
+          .in("id", extraTripIds)
+          .neq("status", "archived");
+        companionTrips = data || [];
+      }
+
+      const allTrips = [...(tripsRes.data || []), ...companionTrips].sort(
+        (a: any, b: any) => new Date(b.depart_date || 0).getTime() - new Date(a.depart_date || 0).getTime()
+      );
+
       // Filter payments to only those for this client's trips
-      const tripIds = (tripsRes.data || []).map((t: any) => t.id);
+      const tripIds = allTrips.map((t: any) => t.id);
       const clientPayments = (paymentsRes.data || []).filter((p: any) => tripIds.includes(p.trip_id));
 
       // Fetch agent profile + branding for the client's assigned agent
@@ -85,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
         client: clientRes.data,
         agent,
         branding,
-        trips: tripsRes.data || [],
+        trips: allTrips,
         upcoming_payments: clientPayments,
         recent_messages: messagesRes.data || [],
         unread_messages: (messagesRes.data || []).filter((m: any) => m.sender_type === "agent" && !m.read_at).length,
@@ -94,14 +155,33 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     } else if (resource === "trips") {
-      const { data: trips } = await supabase
-        .from("trips")
-        .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
-        .eq("client_id", clientId)
-        .neq("status", "archived")
-        .order("depart_date", { ascending: false });
+      const [ownTripsRes, companionTripIds2] = await Promise.all([
+        supabase
+          .from("trips")
+          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
+          .eq("client_id", clientId)
+          .neq("status", "archived")
+          .order("depart_date", { ascending: false }),
+        getCompanionTripIds(),
+      ]);
 
-      return new Response(JSON.stringify({ trips: trips || [] }), {
+      const ownIds = new Set((ownTripsRes.data || []).map((t: any) => t.id));
+      const extraIds = companionTripIds2.filter((id: string) => !ownIds.has(id));
+      let extraTrips: any[] = [];
+      if (extraIds.length > 0) {
+        const { data } = await supabase
+          .from("trips")
+          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
+          .in("id", extraIds)
+          .neq("status", "archived");
+        extraTrips = data || [];
+      }
+
+      const allTrips2 = [...(ownTripsRes.data || []), ...extraTrips].sort(
+        (a: any, b: any) => new Date(b.depart_date || 0).getTime() - new Date(a.depart_date || 0).getTime()
+      );
+
+      return new Response(JSON.stringify({ trips: allTrips2 }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
@@ -113,13 +193,20 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
+      // Check if client owns the trip OR is a companion on it
+      const companionTripIds3 = await getCompanionTripIds();
+      const isOwner = true; // we'll check below
+      const isCompanion = companionTripIds3.includes(tripId);
+
       const [tripRes, bookingsRes, paymentsRes] = await Promise.all([
-        supabase.from("trips").select("*").eq("id", tripId).eq("client_id", clientId).single(),
-        supabase.from("bookings").select("id, booking_reference, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id").eq("trip_id", tripId).eq("client_id", clientId),
+        // Try as owner first
+        supabase.from("trips").select("*").eq("id", tripId).single(),
+        supabase.from("bookings").select("id, booking_reference, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id").eq("trip_id", tripId),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes").eq("trip_id", tripId),
       ]);
 
-      if (!tripRes.data) {
+      // Verify the client has access (either owner or companion)
+      if (!tripRes.data || (tripRes.data.client_id !== clientId && !isCompanion)) {
         return new Response(JSON.stringify({ error: "Trip not found" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
