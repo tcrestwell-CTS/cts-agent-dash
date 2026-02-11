@@ -76,31 +76,6 @@ export default function PortalDashboard() {
         </Link>
       </div>
 
-      {/* Agent Card */}
-      {agent && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <User className="h-4 w-4" /> Your Travel Agent
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center gap-4">
-            {agent.avatar_url ? (
-              <img src={agent.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
-            ) : (
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-6 w-6 text-primary" />
-              </div>
-            )}
-            <div>
-              <p className="font-semibold">{agent.full_name}</p>
-              {agent.job_title && <p className="text-sm text-muted-foreground">{agent.job_title}</p>}
-              {agent.phone && <p className="text-sm text-muted-foreground">{agent.phone}</p>}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Upcoming Trips */}
       <Card>
         <CardHeader>
@@ -133,6 +108,31 @@ export default function PortalDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Agent Card */}
+      {agent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" /> Your Travel Agent
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            {agent.avatar_url ? (
+              <img src={agent.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-6 w-6 text-primary" />
+              </div>
+            )}
+            <div>
+              <p className="font-semibold">{agent.full_name}</p>
+              {agent.job_title && <p className="text-sm text-muted-foreground">{agent.job_title}</p>}
+              {agent.phone && <p className="text-sm text-muted-foreground">{agent.phone}</p>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upcoming Payments */}
       {payments.length > 0 && (
