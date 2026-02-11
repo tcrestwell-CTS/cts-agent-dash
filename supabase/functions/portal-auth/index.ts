@@ -81,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Use PORTAL_BASE_URL if set, otherwise fall back to published URL
       const portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
-      const portalUrl = `${portalBaseUrl}/portal/verify?token=${portalToken}`;
+      const portalUrl = `${portalBaseUrl}/portal/login?token=${portalToken}`;
 
       const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
