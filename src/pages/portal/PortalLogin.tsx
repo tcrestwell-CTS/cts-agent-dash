@@ -101,7 +101,7 @@ export default function PortalLogin() {
     setSending(true);
     try {
       const { error } = await supabase.functions.invoke("portal-auth", {
-        body: { action: "send-magic-link", email: email.trim() },
+        body: { action: "send-magic-link", email: email.trim(), origin: window.location.origin },
       });
       if (error) throw error;
       setSent(true);
