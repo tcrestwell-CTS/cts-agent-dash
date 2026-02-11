@@ -168,6 +168,59 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (action === "google-login") {
+      // Google OAuth flow: match authenticated user's email to a client
+      if (!email) {
+        return new Response(JSON.stringify({ error: "Email is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const emailLower = email.toLowerCase().trim();
+
+      // Find client by email
+      const { data: client } = await supabase
+        .from("clients")
+        .select("id, name, first_name, email, user_id")
+        .eq("email", emailLower)
+        .limit(1)
+        .maybeSingle();
+
+      if (!client) {
+        return new Response(JSON.stringify({ success: false, error: "No client account found for this email. Please contact your travel agent." }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create a portal session token
+      const portalToken = crypto.randomUUID() + "-" + crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const { error: sessionError } = await supabase
+        .from("client_portal_sessions")
+        .insert({
+          client_id: client.id,
+          token: portalToken,
+          email: emailLower,
+          expires_at: expiresAt.toISOString(),
+          verified_at: new Date().toISOString(),
+        });
+
+      if (sessionError) {
+        console.error("Session creation error:", sessionError);
+        throw new Error("Failed to create session");
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        client_id: client.id,
+        client_name: client.first_name || client.name || "Client",
+        token: portalToken,
+      }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
