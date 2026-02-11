@@ -19,7 +19,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { action, email, token } = await req.json();
+    const { action, email, token, origin } = await req.json();
 
     if (action === "send-magic-link") {
       if (!email) {
@@ -79,8 +79,9 @@ const handler = async (req: Request): Promise<Response> => {
       const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
       const fromName = branding?.from_name || agencyName;
 
-      // Use PORTAL_BASE_URL if set, otherwise fall back to published URL
-      const portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+      // Use the origin from the request (so the link opens in the same browser context),
+      // fall back to PORTAL_BASE_URL or published URL
+      const portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
       const portalUrl = `${portalBaseUrl}/portal/login?token=${portalToken}`;
 
       const logoHtml = logoUrl
