@@ -136,6 +136,18 @@ export function PortalLayout() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         <Outlet />
       </main>
+
+      {/* Footer */}
+      <footer className="border-t py-4 text-center text-sm text-muted-foreground">
+        <a
+          href="https://crestwellgetaways.com/term-and-conditions"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors underline"
+        >
+          Terms and Conditions
+        </a>
+      </footer>
     </div>
   );
 }
