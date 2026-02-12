@@ -198,11 +198,11 @@ const handler = async (req: Request): Promise<Response> => {
       const isOwner = true; // we'll check below
       const isCompanion = companionTripIds3.includes(tripId);
 
-      const [tripRes, bookingsRes, paymentsRes] = await Promise.all([
-        // Try as owner first
+      const [tripRes, bookingsRes, paymentsRes, itineraryRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
         supabase.from("bookings").select("id, booking_reference, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id").eq("trip_id", tripId),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes").eq("trip_id", tripId),
+        supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
       ]);
 
       // Verify the client has access (either owner or companion)
@@ -216,6 +216,7 @@ const handler = async (req: Request): Promise<Response> => {
         trip: tripRes.data,
         bookings: bookingsRes.data || [],
         payments: paymentsRes.data || [],
+        itinerary: itineraryRes.data || [],
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
