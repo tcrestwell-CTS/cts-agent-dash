@@ -82,9 +82,11 @@ const handler = async (req: Request): Promise<Response> => {
       // Use the origin from the request (so the link opens in the same browser context),
       // fall back to PORTAL_BASE_URL or published URL
       const portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
-      // If the base URL already includes /portal (e.g. portal.crestwelltravels.com/portal), don't duplicate it
-      const portalPath = portalBaseUrl.includes("/portal") ? "/login" : "/portal/login";
-      const portalUrl = `${portalBaseUrl}${portalPath}?token=${portalToken}`;
+      // Check if the URL path already includes /portal (not just the subdomain)
+      const baseUrlObj = new URL(portalBaseUrl);
+      const pathHasPortal = baseUrlObj.pathname.includes("/portal");
+      const portalPath = pathHasPortal ? "/login" : "/portal/login";
+      const portalUrl = `${portalBaseUrl.replace(/\/+$/, '')}${portalPath}?token=${portalToken}`;
 
       const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
