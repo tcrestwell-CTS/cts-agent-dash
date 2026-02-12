@@ -3,12 +3,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
 const emailSchema = z.string().email("Please enter a valid email address");
@@ -23,12 +24,15 @@ const Auth = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [authMode, setAuthMode] = useState<"google" | "email">("google");
   const [emailMode, setEmailMode] = useState<"signin" | "signup">("signin");
+  const [signupStep, setSignupStep] = useState<"email" | "otp" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const inviteToken = searchParams.get("invite");
   const switchAccount = searchParams.get("switch");
 
@@ -282,14 +286,93 @@ const Auth = () => {
     }
   };
 
+  const handleSendOtp = async () => {
+    setEmailError("");
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      setEmailError(emailResult.error.errors[0].message);
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const emailLower = email.toLowerCase().trim();
+
+      const response = await supabase.functions.invoke("send-signup-otp", {
+        body: { email: emailLower },
+      });
+
+      if (response.error) {
+        const errorMsg = response.error.message || "Failed to send verification code";
+        toast.error(errorMsg);
+        return;
+      }
+
+      const data = response.data;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success("Verification code sent to your email!");
+      setSignupStep("otp");
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+      console.error("Send OTP error:", error);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.length !== 6) {
+      toast.error("Please enter the full 6-digit code");
+      return;
+    }
+
+    setIsSigningIn(true);
+    try {
+      const emailLower = email.toLowerCase().trim();
+
+      const { data: codeRecord, error: codeError } = await supabase
+        .from("signup_verification_codes")
+        .select("id, expires_at, verified")
+        .eq("email", emailLower)
+        .eq("code", otpCode)
+        .maybeSingle();
+
+      if (codeError || !codeRecord) {
+        toast.error("Invalid verification code. Please try again.");
+        setIsSigningIn(false);
+        return;
+      }
+
+      if (new Date(codeRecord.expires_at) <= new Date()) {
+        toast.error("Verification code has expired. Please request a new one.");
+        setSignupStep("email");
+        setOtpCode("");
+        setIsSigningIn(false);
+        return;
+      }
+
+      toast.success("Email verified! Now set your password.");
+      setSignupStep("password");
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+      console.error("Verify OTP error:", error);
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
   const handleEmailSignUp = async () => {
     if (!validateForm()) return;
 
     setIsSigningIn(true);
     try {
-      // First verify there's a valid invitation for this email
       const emailLower = email.toLowerCase().trim();
-      
+
+      // Look up the invitation token for this email
       const { data: invitation } = await supabase
         .from("invitations")
         .select("id, token, status, expires_at")
@@ -309,7 +392,7 @@ const Auth = () => {
         return;
       }
 
-      // Create the account
+      // Create the account - auto-confirm is enabled so no email verification needed
       const redirectUrl = `${window.location.origin}/auth?invite=${invitation.token}`;
       const { error } = await supabase.auth.signUp({
         email: emailLower,
@@ -323,11 +406,12 @@ const Auth = () => {
         if (error.message.includes("already registered")) {
           toast.error("This email is already registered. Please sign in instead.");
           setEmailMode("signin");
+          setSignupStep("email");
         } else {
           toast.error(error.message);
         }
       } else {
-        toast.success("Account created! Please check your email to verify your account.");
+        toast.success("Account created successfully!");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -418,12 +502,20 @@ const Auth = () => {
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-semibold text-foreground tracking-tight">
               {inviteToken 
-                ? "Accept Your Invitation" 
+                ? (authMode === "email" && emailMode === "signup" && signupStep === "otp" 
+                    ? "Verify Your Email"
+                    : authMode === "email" && emailMode === "signup" && signupStep === "password"
+                    ? "Set Your Password"
+                    : "Accept Your Invitation")
                 : (emailMode === "signup" ? "Create your account" : "Welcome back")}
             </h2>
             <p className="text-muted-foreground mt-2">
               {inviteToken 
-                ? "Choose how you'd like to create your account" 
+                ? (authMode === "email" && emailMode === "signup" && signupStep === "otp"
+                    ? "Enter the 6-digit code sent to your email"
+                    : authMode === "email" && emailMode === "signup" && signupStep === "password"
+                    ? "Choose a secure password for your account"
+                    : "Choose how you'd like to create your account")
                 : (emailMode === "signup" 
                     ? "Set up your account using your invited email" 
                     : "Sign in to access your travel agency dashboard")}
@@ -499,90 +591,217 @@ const Auth = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setEmailError("");
-                  }}
-                  className={emailError ? "border-destructive" : ""}
-                />
-                {emailError && (
-                  <p className="text-sm text-destructive">{emailError}</p>
-                )}
-              </div>
+              {/* Sign-in mode OR signup step: email */}
+              {(emailMode === "signin" || (emailMode === "signup" && signupStep === "email")) && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setEmailError("");
+                      }}
+                      className={emailError ? "border-destructive" : ""}
+                    />
+                    {emailError && (
+                      <p className="text-sm text-destructive">{emailError}</p>
+                    )}
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setPasswordError("");
-                    }}
-                    className={passwordError ? "border-destructive pr-10" : "pr-10"}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {passwordError && (
-                  <p className="text-sm text-destructive">{passwordError}</p>
-                )}
-              </div>
+                  {emailMode === "signin" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => {
+                              setPassword(e.target.value);
+                              setPasswordError("");
+                            }}
+                            className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                        {passwordError && (
+                          <p className="text-sm text-destructive">{passwordError}</p>
+                        )}
+                      </div>
 
-              {emailMode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
+                      <Button
+                        size="lg"
+                        className="w-full h-12"
+                        onClick={handleEmailSignIn}
+                        disabled={isSigningIn}
+                      >
+                        {isSigningIn ? "Signing in..." : "Sign In"}
+                      </Button>
+                    </>
+                  )}
+
+                  {emailMode === "signup" && (
+                    <Button
+                      size="lg"
+                      className="w-full h-12"
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp}
+                    >
+                      {isSendingOtp ? "Sending verification code..." : "Send Verification Code"}
+                    </Button>
+                  )}
+                </>
               )}
 
-              <Button
-                size="lg"
-                className="w-full h-12"
-                onClick={emailMode === "signup" ? handleEmailSignUp : handleEmailSignIn}
-                disabled={isSigningIn}
-              >
-                {isSigningIn 
-                  ? (emailMode === "signup" ? "Creating account..." : "Signing in...") 
-                  : (emailMode === "signup" ? "Create Account" : "Sign In")}
-              </Button>
+              {/* Signup step: OTP verification */}
+              {emailMode === "signup" && signupStep === "otp" && (
+                <>
+                  <div className="text-center space-y-2">
+                    <ShieldCheck className="h-10 w-10 text-primary mx-auto" />
+                    <p className="text-sm text-muted-foreground">
+                      We sent a 6-digit code to <strong>{email}</strong>
+                    </p>
+                  </div>
 
-              <div className="flex flex-col gap-2 text-center">
-                {!inviteToken && (
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={setOtpCode}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+
+                  <Button
+                    size="lg"
+                    className="w-full h-12"
+                    onClick={handleVerifyOtp}
+                    disabled={isSigningIn || otpCode.length !== 6}
+                  >
+                    {isSigningIn ? "Verifying..." : "Verify Code"}
+                  </Button>
+
                   <button
                     type="button"
-                    onClick={() => setEmailMode(emailMode === "signin" ? "signup" : "signin")}
+                    onClick={() => {
+                      setSignupStep("email");
+                      setOtpCode("");
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
+                  >
+                    ← Back to email
+                  </button>
+                </>
+              )}
+
+              {/* Signup step: Set password */}
+              {emailMode === "signup" && signupStep === "password" && (
+                <>
+                  <div className="text-center space-y-2">
+                    <ShieldCheck className="h-10 w-10 text-primary mx-auto" />
+                    <p className="text-sm text-muted-foreground">
+                      Email verified! Set your password for <strong>{email}</strong>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setPasswordError("");
+                        }}
+                        className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {passwordError && (
+                      <p className="text-sm text-destructive">{passwordError}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <Button
+                    size="lg"
+                    className="w-full h-12"
+                    onClick={handleEmailSignUp}
+                    disabled={isSigningIn}
+                  >
+                    {isSigningIn ? "Creating account..." : "Create Account"}
+                  </Button>
+                </>
+              )}
+
+              <div className="flex flex-col gap-2 text-center">
+                {!inviteToken && emailMode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailMode("signup");
+                      setSignupStep("email");
+                    }}
                     className="text-sm text-primary hover:underline"
                   >
-                    {emailMode === "signin" 
-                      ? "New user? Create an account" 
-                      : "Already have an account? Sign in"}
+                    New user? Create an account
+                  </button>
+                )}
+                {!inviteToken && emailMode === "signup" && signupStep === "email" && (
+                  <button
+                    type="button"
+                    onClick={() => setEmailMode("signin")}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Already have an account? Sign in
                   </button>
                 )}
                 <button
                   type="button"
-                  onClick={() => setAuthMode("google")}
+                  onClick={() => {
+                    setAuthMode("google");
+                    setSignupStep("email");
+                    setOtpCode("");
+                  }}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   ← Back to Google sign-in

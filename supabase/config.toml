@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.widgety-cruise]
 verify_jwt = false
+
+[functions.send-signup-otp]
+verify_jwt = false
