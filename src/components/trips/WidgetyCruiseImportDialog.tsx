@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ship, Search, ChevronRight, Loader2, Anchor, MapPin, Calendar } from "lucide-react";
+import { Ship, Search, ChevronRight, Loader2, Anchor, MapPin, Calendar, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -28,6 +28,16 @@ interface WidgetyDate {
   ends_at?: { name: string; country: string };
   itinerary_code: string;
   availability_string?: string;
+  headline_prices?: {
+    cruise?: {
+      double?: {
+        from_inside?: string;
+        from_outside?: string;
+        from_balcony?: string;
+        from_suite?: string;
+      };
+    };
+  };
 }
 
 interface WidgetyItineraryItem {
@@ -380,39 +390,74 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                 </div>
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-3">
-                    {dates.map((d) => (
-                      <button
-                        key={d.date_ref}
-                        onClick={() => handleSelectDate(d)}
-                        className="w-full text-left p-3 rounded-lg border hover:bg-accent/50 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="font-medium text-sm">
-                                {formatDate(d.date_from)} — {formatDate(d.date_to)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                              {d.ship_title && <span>🚢 {d.ship_title}</span>}
-                              {d.starts_at && (
-                                <span className="flex items-center gap-0.5">
-                                  <MapPin className="h-3 w-3" />
-                                  {d.starts_at.name} → {d.ends_at?.name || ""}
+                    {dates.map((d) => {
+                      const prices = d.headline_prices?.cruise?.double;
+                      const lowestPrice = prices
+                        ? Math.min(
+                            ...[prices.from_inside, prices.from_outside, prices.from_balcony, prices.from_suite]
+                              .map(p => parseFloat(p || "0"))
+                              .filter(p => p > 0)
+                          )
+                        : null;
+
+                      return (
+                        <button
+                          key={d.date_ref}
+                          onClick={() => handleSelectDate(d)}
+                          className="w-full text-left p-3 rounded-lg border hover:bg-accent/50 transition-colors group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="font-medium text-sm">
+                                  {formatDate(d.date_from)} — {formatDate(d.date_to)}
                                 </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                {d.ship_title && <span>🚢 {d.ship_title}</span>}
+                                {d.starts_at && (
+                                  <span className="flex items-center gap-0.5">
+                                    <MapPin className="h-3 w-3" />
+                                    {d.starts_at.name} → {d.ends_at?.name || ""}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Pricing row */}
+                              {lowestPrice && lowestPrice < Infinity && (
+                                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                                    <DollarSign className="h-3 w-3" />
+                                    From ${lowestPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} pp
+                                  </span>
+                                  {prices?.from_inside && parseFloat(prices.from_inside) > 0 && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                      Inside ${parseFloat(prices.from_inside).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </Badge>
+                                  )}
+                                  {prices?.from_balcony && parseFloat(prices.from_balcony) > 0 && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                      Balcony ${parseFloat(prices.from_balcony).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </Badge>
+                                  )}
+                                  {prices?.from_suite && parseFloat(prices.from_suite) > 0 && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                      Suite ${parseFloat(prices.from_suite).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              {d.availability_string && d.availability_string !== "available" && (
+                                <Badge variant="secondary" className="mt-1 text-[10px]">
+                                  {d.availability_string}
+                                </Badge>
                               )}
                             </div>
-                            {d.availability_string && d.availability_string !== "available" && (
-                              <Badge variant="secondary" className="mt-1 text-[10px]">
-                                {d.availability_string}
-                              </Badge>
-                            )}
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                     {dates.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-8">No departures found</p>
                     )}
