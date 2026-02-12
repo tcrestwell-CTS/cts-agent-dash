@@ -26,6 +26,7 @@ import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { ScrollToTop } from "./components/ScrollToTop";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalTrips from "./pages/portal/PortalTrips";
@@ -43,6 +44,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               {/* Agent Dashboard Routes */}
               <Route path="/auth" element={<Auth />} />

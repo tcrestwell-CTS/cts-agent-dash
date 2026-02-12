@@ -11,7 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTierConfig } from "@/lib/commissionTiers";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
@@ -69,10 +69,10 @@ const Settings = () => {
 
   return (
     <DashboardLayout>
-      <PageBanner
-        title="Settings"
-        subtitle="Manage your account and preferences"
-      />
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Settings</h1>
+        <p className="text-muted-foreground text-sm mt-1">Manage your account and preferences</p>
+      </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="bg-muted/50">

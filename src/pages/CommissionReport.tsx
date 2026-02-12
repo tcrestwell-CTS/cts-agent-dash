@@ -13,7 +13,7 @@ import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/c
 import { toast } from "sonner";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 
 export default function CommissionReport() {
   const { data: reportData, isLoading: reportLoading } = useCommissionReport();
@@ -180,17 +180,20 @@ export default function CommissionReport() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageBanner
-          title="Commission Report"
-          subtitle={canViewAll
-            ? "Organization-wide commission analysis and export"
-            : "Your commission history and analysis"}
-        >
-          <Button onClick={handleExport} className="gap-2 bg-white/20 text-white hover:bg-white/30 border-white/30">
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-        </PageBanner>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Commission Report</h1>
+            <p className="text-muted-foreground text-sm mt-1">{canViewAll
+              ? "Organization-wide commission analysis and export"
+              : "Your commission history and analysis"}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleExport} className="gap-2">
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
+        </div>
 
         {/* Filters */}
         <CommissionReportFilters

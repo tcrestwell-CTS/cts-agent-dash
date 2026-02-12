@@ -45,6 +45,7 @@ import {
   Link2,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
+import { PageBanner } from "@/components/layout/PageBanner";
 import { useClientBookings } from "@/hooks/useBookings";
 import { useCompanions, useDeleteCompanion, Companion } from "@/hooks/useCompanions";
 import { useEmailLogs } from "@/hooks/useEmailLogs";
@@ -313,82 +314,58 @@ const ClientDetail = () => {
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+      <PageBanner
+        title={
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-2xl font-semibold text-primary">{initials}</span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-                {fullName}
-              </h1>
-              <div className="flex items-center gap-2 mt-1">
-                {isEditing ? (
-                  <Select
-                    value={formData.status || "lead"}
-                    onValueChange={(value) => handleChange("status", value)}
-                  >
-                    <SelectTrigger className="h-7 w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="traveled">Traveled</SelectItem>
-                      <SelectItem value="traveling">Traveling</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Badge
-                    variant="secondary"
-                    className={
-                      client.status === "active"
-                        ? "bg-success/10 text-success"
-                        : client.status === "lead"
-                        ? "bg-accent/10 text-accent"
-                        : client.status === "traveling"
-                        ? "bg-info/10 text-info"
-                        : client.status === "traveled"
-                        ? "bg-primary/10 text-primary"
-                        : client.status === "cancelled"
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-muted text-muted-foreground"
-                    }
-                  >
-                    {client.status}
-                  </Badge>
-                )}
-                {isEditing ? (
-                  <Input
-                    value={formData.tags || ""}
-                    onChange={(e) => handleChange("tags", e.target.value)}
-                    placeholder="Tags"
-                    className="h-7 w-40 text-sm"
-                  />
-                ) : (
-                  client.tags && (
-                    <span className="text-sm text-muted-foreground">{client.tags}</span>
-                  )
-                )}
+            <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")} className="text-white hover:bg-white/10">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
+                <span className="text-2xl font-semibold text-white">{initials}</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-semibold text-white tracking-tight">
+                  {fullName}
+                </h1>
+                <div className="flex items-center gap-2 mt-1">
+                  {!isEditing && (
+                    <Badge
+                      variant="secondary"
+                      className={
+                        client.status === "active"
+                          ? "bg-white/20 text-white"
+                          : client.status === "lead"
+                          ? "bg-white/15 text-white/90"
+                          : client.status === "traveling"
+                          ? "bg-white/20 text-white"
+                          : client.status === "traveled"
+                          ? "bg-white/15 text-white/90"
+                          : client.status === "cancelled"
+                          ? "bg-white/10 text-white/70"
+                          : "bg-white/10 text-white/70"
+                      }
+                    >
+                      {client.status}
+                    </Badge>
+                  )}
+                  {!isEditing && client.tags && (
+                    <span className="text-sm text-white/70">{client.tags}</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        }
+      >
         <div className="flex items-center gap-2">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} className="text-white border-white/30 hover:bg-white/10 hover:text-white">
                 <X className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={updateClient.isPending}>
+              <Button onClick={handleSave} disabled={updateClient.isPending} className="bg-white/20 text-white hover:bg-white/30 border-white/30">
                 {updateClient.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -401,7 +378,7 @@ const ClientDetail = () => {
             <>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="text-destructive hover:text-destructive">
+                  <Button variant="outline" className="text-white/80 border-white/30 hover:bg-white/10 hover:text-white">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </Button>
@@ -430,6 +407,7 @@ const ClientDetail = () => {
                     variant="outline"
                     onClick={handleSendPortalLink}
                     disabled={isSendingPortalLink}
+                    className="text-white border-white/30 hover:bg-white/10 hover:text-white"
                   >
                     {isSendingPortalLink ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -441,20 +419,21 @@ const ClientDetail = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => setEmailDialogOpen(true)}
+                    className="text-white border-white/30 hover:bg-white/10 hover:text-white"
                   >
                     <Mail className="mr-2 h-4 w-4" />
                     Send Email
                   </Button>
                 </>
               )}
-              <Button onClick={() => setIsEditing(true)}>
+              <Button onClick={() => setIsEditing(true)} className="bg-white/20 text-white hover:bg-white/30 border-white/30">
                 <Edit2 className="mr-2 h-4 w-4" />
                 Edit Client
               </Button>
             </>
           )}
         </div>
-      </div>
+      </PageBanner>
 
       <div className="space-y-6">
         {/* Row 1: Personal Info + Contact + Address */}

@@ -11,7 +11,7 @@ import { Mail, Palette, FileText, Eye, Upload, Send, Image, Loader2 } from "luci
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useSendEmail } from "@/hooks/useSendEmail";
 import { toast } from "sonner";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 
 type EmailTemplate = "welcome" | "booking_confirmation" | "itinerary" | "quote";
 
@@ -117,10 +117,10 @@ const Branding = () => {
 
   return (
     <DashboardLayout>
-      <PageBanner
-        title="Email & Branding"
-        subtitle="Customize your communications and brand identity"
-      />
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Email & Branding</h1>
+        <p className="text-muted-foreground text-sm mt-1">Customize your communications and brand identity</p>
+      </div>
 
       <Tabs defaultValue="templates" className="space-y-6">
         <TabsList className="bg-muted/50">
