@@ -543,30 +543,59 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                           <div key={roomType} className="mb-3">
                             <p className="text-xs font-medium text-foreground mb-1">{roomType}</p>
                             <div className="space-y-1">
-                              {grouped[roomType].map((cabin, ci) => {
-                                const dblPrice = parseFloat(cabin.double_price_pp);
-                                const fees = parseFloat(cabin.non_comm_charges || "0");
+                              {(() => {
+                                const cabins = grouped[roomType];
+                                const hasSingle = cabins.some(c => c.single_price_pp && parseFloat(c.single_price_pp) > 0);
+                                const hasTriple = cabins.some(c => c.triple_price_pp && parseFloat(c.triple_price_pp) > 0);
                                 return (
-                                  <div key={ci} className="flex items-center justify-between py-1 px-2 rounded border text-xs">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="font-mono text-muted-foreground">{cabin.grade_code}</span>
-                                      <span className="truncate">{cabin.grade_name}</span>
-                                      {cabin.availability && cabin.availability !== "available" && (
-                                        <Badge variant="secondary" className="text-[9px] px-1 py-0">{cabin.availability}</Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <span className="font-semibold text-primary">
-                                        ${dblPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                      </span>
-                                      <span className="text-muted-foreground">pp</span>
-                                      {fees > 0 && (
-                                        <span className="text-muted-foreground text-[10px]">+${fees.toLocaleString(undefined, { maximumFractionDigits: 0 })} fees</span>
-                                      )}
-                                    </div>
-                                  </div>
+                                  <>
+                                    {(hasSingle || hasTriple) && (
+                                      <div className="flex items-center justify-end gap-0 mb-0.5 text-[10px] text-muted-foreground px-2">
+                                        {hasSingle && <span className="w-16 text-right">Single</span>}
+                                        <span className="w-16 text-right">Double</span>
+                                        {hasTriple && <span className="w-16 text-right">Triple</span>}
+                                        <span className="w-12" />
+                                      </div>
+                                    )}
+                                    {cabins.map((cabin, ci) => {
+                                      const dblPrice = parseFloat(cabin.double_price_pp);
+                                      const sglPrice = cabin.single_price_pp ? parseFloat(cabin.single_price_pp) : 0;
+                                      const trpPrice = cabin.triple_price_pp ? parseFloat(cabin.triple_price_pp) : 0;
+                                      const fees = parseFloat(cabin.non_comm_charges || "0");
+                                      const fmt = (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+                                      return (
+                                        <div key={ci} className="flex items-center justify-between py-1 px-2 rounded border text-xs">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className="font-mono text-muted-foreground">{cabin.grade_code}</span>
+                                            <span className="truncate">{cabin.grade_name}</span>
+                                            {cabin.availability && cabin.availability !== "available" && (
+                                              <Badge variant="secondary" className="text-[9px] px-1 py-0">{cabin.availability}</Badge>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-0 shrink-0">
+                                            {hasSingle && (
+                                              <span className="w-16 text-right text-muted-foreground">
+                                                {sglPrice > 0 ? fmt(sglPrice) : "—"}
+                                              </span>
+                                            )}
+                                            <span className="w-16 text-right font-semibold text-primary">
+                                              {fmt(dblPrice)}
+                                            </span>
+                                            {hasTriple && (
+                                              <span className="w-16 text-right text-muted-foreground">
+                                                {trpPrice > 0 ? fmt(trpPrice) : "—"}
+                                              </span>
+                                            )}
+                                            <span className="w-12 text-right text-muted-foreground text-[10px]">
+                                              {fees > 0 ? `+${fmt(fees)}` : ""}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </>
                                 );
-                              })}
+                              })()}
                             </div>
                           </div>
                         ))}
