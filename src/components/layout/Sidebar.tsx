@@ -21,8 +21,8 @@ import { Button } from "@/components/ui/button";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
 const navigation = [
-  { name: "Trips", href: "/trips", icon: Compass },
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Trips", href: "/trips", icon: Compass },
   { name: "Contacts", href: "/contacts", icon: Users },
   { name: "Bookings", href: "/bookings", icon: Calendar },
   { name: "Suppliers", href: "/suppliers", icon: Building2 },
