@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,8 @@ const bookingStatusColors: Record<string, string> = {
 const TripDetail = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") || "bookings";
   const { trip, bookings, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
   const { deleteTrip } = useTrips();
   const { payments } = useTripPayments(tripId);
@@ -335,7 +337,7 @@ const TripDetail = () => {
         </Card>
 
         {/* Tabs for Bookings and Payments */}
-        <Tabs defaultValue="bookings" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList>
             <TabsTrigger value="bookings" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
