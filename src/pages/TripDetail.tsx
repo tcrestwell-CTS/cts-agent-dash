@@ -123,6 +123,7 @@ const TripDetail = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
+        <h1 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Trip Details</h1>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
@@ -134,7 +135,7 @@ const TripDetail = () => {
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
+                <h2 className="text-2xl font-bold">{trip.trip_name}</h2>
                 <Badge
                   variant="outline"
                   className={statusColors[trip.status] || statusColors.planning}
