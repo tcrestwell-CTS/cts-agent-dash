@@ -12,7 +12,7 @@ import {
   Video,
   FileText,
 } from "lucide-react";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 
 const courses = [
   {
@@ -97,15 +97,16 @@ const courses = [
 const Training = () => {
   return (
     <DashboardLayout>
-      <PageBanner
-        title="Training Library"
-        subtitle="Expand your expertise and earn certifications"
-      >
-        <div className="flex items-center gap-2 text-white/90">
-          <Award className="h-5 w-5" />
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Training Library</h1>
+          <p className="text-muted-foreground text-sm mt-1">Expand your expertise and earn certifications</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Award className="h-5 w-5 text-primary" />
           <span className="font-semibold">3 Badges Earned</span>
         </div>
-      </PageBanner>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

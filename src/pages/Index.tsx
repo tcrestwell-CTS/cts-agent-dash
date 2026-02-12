@@ -16,7 +16,7 @@ import { InvoiceSearch } from "@/components/dashboard/InvoiceSearch";
 import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useCanViewTeam } from "@/hooks/useAdmin";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,10 +47,10 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <PageBanner
-        title={`Welcome back, ${firstName}`}
-        subtitle="Here's what's happening with your travel business today."
-      />
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Welcome back, {firstName}</h1>
+        <p className="text-muted-foreground text-sm mt-1">Here's what's happening with your travel business today.</p>
+      </div>
 
       {/* Dashboard Tabs */}
       <div className="mb-8 border-b border-border">

@@ -32,7 +32,7 @@ import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog"
 import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
 import { format } from "date-fns";
 import type { Supplier } from "@/types/supplier";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 
 const initialPortalSuppliers: Supplier[] = [
   // Flights
@@ -513,17 +513,20 @@ const Trips = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageBanner
-          title="Trips"
-          subtitle="Manage client trips and access booking portals"
-        >
-          {activeTab === "trips" && (
-            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2 bg-white/20 text-white hover:bg-white/30 border-white/30">
-              <Plus className="h-4 w-4" />
-              New Trip
-            </Button>
-          )}
-        </PageBanner>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Trips</h1>
+            <p className="text-muted-foreground text-sm mt-1">Manage client trips and access booking portals</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeTab === "trips" && (
+              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Trip
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "trips" | "portals")}>

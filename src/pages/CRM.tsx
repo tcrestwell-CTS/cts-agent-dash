@@ -9,7 +9,7 @@ import { AddClientDialog } from "@/components/crm/AddClientDialog";
 import { ClientCard } from "@/components/crm/ClientCard";
 import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageBanner } from "@/components/layout/PageBanner";
+
 
 type StatusFilter = "all" | "active" | "lead" | "inactive" | "traveled" | "traveling" | "cancelled";
 
@@ -57,13 +57,16 @@ const CRM = () => {
 
   return (
     <DashboardLayout>
-      <PageBanner
-        title="Client Management"
-        subtitle="Manage your clients and track their journey"
-      >
-        {isAdmin && <ImportDataDialog />}
-        <AddClientDialog />
-      </PageBanner>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Client Management</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage your clients and track their journey</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isAdmin && <ImportDataDialog />}
+          <AddClientDialog />
+        </div>
+      </div>
 
       {/* Search and Filters */}
       <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 mb-6">
