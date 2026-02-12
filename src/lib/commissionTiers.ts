@@ -1,4 +1,4 @@
-export type CommissionTier = "tier_1" | "tier_2" | "tier_3";
+export type CommissionTier = "none" | "tier_1" | "tier_2" | "tier_3";
 
 export interface TierConfig {
   label: string;
@@ -8,6 +8,12 @@ export interface TierConfig {
 }
 
 export const COMMISSION_TIERS: Record<CommissionTier, TierConfig> = {
+  none: {
+    label: "None",
+    agentSplit: 0,
+    agencySplit: 100,
+    description: "No commission (Office Admin)",
+  },
   tier_1: {
     label: "Tier 1",
     agentSplit: 70,

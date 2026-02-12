@@ -36,9 +36,12 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
   // Auto-update commission tier when role changes
   const handleRoleChange = (newRole: InviteRole) => {
     setRole(newRole);
-    // Default admins to Tier 3 (95%)
-    if (newRole === "admin") {
+    if (newRole === "office_admin") {
+      setCommissionTier("none");
+    } else if (newRole === "admin") {
       setCommissionTier("tier_3");
+    } else {
+      setCommissionTier("tier_1");
     }
   };
 
