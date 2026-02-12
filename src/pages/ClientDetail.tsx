@@ -164,11 +164,29 @@ const ClientDetail = () => {
     
     const name = `${formData.first_name || ""} ${formData.last_name || ""}`.trim() || client.name;
     
+    // Convert empty strings to null and handle sentinel values
+    const cleanData: Record<string, string | null> = {};
+    for (const [key, value] of Object.entries(formData)) {
+      if (key === "status") {
+        cleanData[key] = value || "lead";
+      } else if (typeof value === "string" && (value === "" || value === "no_preference")) {
+        cleanData[key] = null;
+      } else {
+        cleanData[key] = value;
+      }
+    }
+
+    // Build location from city/state
+    const location = cleanData.address_city && cleanData.address_state
+      ? `${cleanData.address_city}, ${cleanData.address_state}`
+      : null;
+    
     try {
       await updateClient.mutateAsync({
         id: client.id,
         name,
-        ...formData,
+        ...cleanData,
+        location,
       });
       await refetch();
       setIsEditing(false);
