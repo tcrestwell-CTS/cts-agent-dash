@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -75,6 +75,15 @@ const TripDetail = () => {
   const { payments } = useTripPayments(tripId);
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+
+  // Refresh trip data when page gains focus (e.g. returning from client/booking edit)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchTrip();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchTrip]);
 
   const handleSendPortalLink = async () => {
     if (!trip?.clients?.email) {
