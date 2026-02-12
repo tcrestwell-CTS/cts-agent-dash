@@ -48,7 +48,7 @@ serve(async (req: Request) => {
     // Check that there's a valid invitation for this email
     const { data: invitation } = await supabase
       .from("invitations")
-      .select("id, status, expires_at")
+      .select("id, token, status, expires_at")
       .eq("email", emailLower)
       .eq("status", "pending")
       .maybeSingle();
@@ -119,7 +119,7 @@ serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Verification code sent" }),
+      JSON.stringify({ success: true, message: "Verification code sent", invitation_token: invitation.token }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

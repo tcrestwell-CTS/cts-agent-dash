@@ -33,6 +33,7 @@ const Auth = () => {
   const [passwordError, setPasswordError] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [storedInvitationToken, setStoredInvitationToken] = useState<string | null>(null);
   const inviteToken = searchParams.get("invite");
   const switchAccount = searchParams.get("switch");
 
@@ -314,6 +315,11 @@ const Auth = () => {
         return;
       }
 
+      // Store the invitation token returned by the edge function
+      if (data?.invitation_token) {
+        setStoredInvitationToken(data.invitation_token);
+      }
+
       toast.success("Verification code sent to your email!");
       setSignupStep("otp");
     } catch (error) {
@@ -372,28 +378,16 @@ const Auth = () => {
     try {
       const emailLower = email.toLowerCase().trim();
 
-      // Look up the invitation token for this email
-      const { data: invitation } = await supabase
-        .from("invitations")
-        .select("id, token, status, expires_at")
-        .eq("email", emailLower)
-        .eq("status", "pending")
-        .maybeSingle();
-
-      if (!invitation) {
-        toast.error("This email is not registered. Please contact the administrator.");
-        setIsSigningIn(false);
-        return;
-      }
-
-      if (new Date(invitation.expires_at) <= new Date()) {
-        toast.error("Your registration has expired. Please contact the administrator.");
+      // Use the invitation token stored from the OTP step (validated server-side)
+      if (!storedInvitationToken) {
+        toast.error("Invitation token not found. Please start over.");
+        setSignupStep("email");
         setIsSigningIn(false);
         return;
       }
 
       // Create the account - auto-confirm is enabled so no email verification needed
-      const redirectUrl = `${window.location.origin}/auth?invite=${invitation.token}`;
+      const redirectUrl = `${window.location.origin}/auth?invite=${storedInvitationToken}`;
       const { error } = await supabase.auth.signUp({
         email: emailLower,
         password,
