@@ -340,12 +340,26 @@ const Auth = () => {
   if (loading || isValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-12 w-32 rounded bg-muted" />
-          <div className="h-4 w-48 rounded bg-muted" />
-          {isValidating && (
-            <p className="text-sm text-muted-foreground">Validating your access...</p>
-          )}
+        <div className="flex flex-col items-center gap-6">
+          <img
+            src={crestwellLogo}
+            alt="Crestwell Travel Services"
+            className="h-14 w-auto object-contain"
+          />
+          <div className="flex items-center gap-3">
+            <svg
+              className="animate-spin h-5 w-5 text-primary"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <p className="text-sm text-muted-foreground">
+              {isValidating ? "Setting up your account..." : "Loading..."}
+            </p>
+          </div>
         </div>
       </div>
     );
