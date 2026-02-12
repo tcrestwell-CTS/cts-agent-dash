@@ -340,29 +340,33 @@ const Auth = () => {
     try {
       const emailLower = email.toLowerCase().trim();
 
-      const { data: codeRecord, error: codeError } = await supabase
-        .from("signup_verification_codes")
-        .select("id, expires_at, verified")
-        .eq("email", emailLower)
-        .eq("code", otpCode)
-        .maybeSingle();
+      const response = await supabase.functions.invoke("send-signup-otp", {
+        body: { email: emailLower, action: "verify", code: otpCode },
+      });
 
-      if (codeError || !codeRecord) {
+      if (response.error) {
         toast.error("Invalid verification code. Please try again.");
         setIsSigningIn(false);
         return;
       }
 
-      if (new Date(codeRecord.expires_at) <= new Date()) {
-        toast.error("Verification code has expired. Please request a new one.");
-        setSignupStep("email");
-        setOtpCode("");
+      const data = response.data;
+      if (data?.error) {
+        if (data.error.includes("expired")) {
+          toast.error("Verification code has expired. Please request a new one.");
+          setSignupStep("email");
+          setOtpCode("");
+        } else {
+          toast.error(data.error);
+        }
         setIsSigningIn(false);
         return;
       }
 
-      toast.success("Email verified! Now set your password.");
-      setSignupStep("password");
+      if (data?.verified) {
+        toast.success("Email verified! Now set your password.");
+        setSignupStep("password");
+      }
     } catch (error) {
       toast.error("An unexpected error occurred");
       console.error("Verify OTP error:", error);

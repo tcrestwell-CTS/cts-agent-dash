@@ -24,7 +24,7 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email, action } = await req.json();
+    const { email, action, code } = await req.json();
 
     if (!email) {
       return new Response(JSON.stringify({ error: "Email is required" }), {
@@ -36,11 +36,42 @@ serve(async (req: Request) => {
     const emailLower = email.toLowerCase().trim();
 
     if (action === "verify") {
-      // Verify a code
-      const { code } = await req.json();
-      // This path is not used - verification is done client-side via select
-      return new Response(JSON.stringify({ error: "Use client-side verification" }), {
-        status: 400,
+      if (!code || code.length !== 6) {
+        return new Response(JSON.stringify({ error: "Valid 6-digit code is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: codeRecord } = await supabase
+        .from("signup_verification_codes")
+        .select("id, expires_at, verified")
+        .eq("email", emailLower)
+        .eq("code", code)
+        .maybeSingle();
+
+      if (!codeRecord) {
+        return new Response(JSON.stringify({ error: "Invalid verification code" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (new Date(codeRecord.expires_at) <= new Date()) {
+        return new Response(JSON.stringify({ error: "Verification code has expired" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Mark as verified
+      await supabase
+        .from("signup_verification_codes")
+        .update({ verified: true })
+        .eq("id", codeRecord.id);
+
+      return new Response(JSON.stringify({ success: true, verified: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
