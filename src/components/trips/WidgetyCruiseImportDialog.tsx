@@ -19,6 +19,26 @@ interface WidgetySailing {
   holiday: string;
 }
 
+interface WidgetyCabinPrice {
+  availability: string;
+  double_price_pp: string;
+  single_price_pp: string | null;
+  triple_price_pp: string | null;
+  quad_price_pp: string | null;
+  grade_code: string;
+  grade_name: string;
+  room_type: string;
+  non_comm_charges: string | null;
+  onboard_credit: string | null;
+  child_price: string | null;
+}
+
+interface WidgetyPricingDeal {
+  name: string;
+  description: string | null;
+  prices: WidgetyCabinPrice[];
+}
+
 interface WidgetyDate {
   date_ref: string;
   date_from: string;
@@ -38,6 +58,7 @@ interface WidgetyDate {
       };
     };
   };
+  pricing?: WidgetyPricingDeal[];
 }
 
 interface WidgetyItineraryItem {
@@ -67,7 +88,7 @@ interface Props {
   onImport: (items: WidgetyItineraryItem[]) => Promise<boolean>;
 }
 
-type Step = "search" | "sailings" | "dates" | "preview" | "importing";
+type Step = "search" | "sailings" | "dates" | "pricing" | "preview" | "importing";
 
 const AVAILABLE_OPERATORS = [
   { slug: "msc-cruises", label: "MSC Cruises" },
@@ -210,14 +231,19 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     }
   };
 
-  const handleSelectDate = async (dateInfo: WidgetyDate) => {
+  const handleSelectDate = (dateInfo: WidgetyDate) => {
     setSelectedDate(dateInfo);
+    setStep("pricing");
+  };
+
+  const handleContinueToItinerary = async () => {
+    if (!selectedDate) return;
     setLoading(true);
     setStep("preview");
     try {
       const data = await callWidgety({
         action: "itinerary",
-        date_ref: dateInfo.date_ref,
+        date_ref: selectedDate.date_ref,
         market: "us",
       });
 
@@ -234,7 +260,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     } catch (err) {
       console.error("Itinerary fetch error:", err);
       toast.error("Failed to load itinerary");
-      setStep("dates");
+      setStep("pricing");
     } finally {
       setLoading(false);
     }
@@ -283,6 +309,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
             {step === "search" && "Cruise Library"}
             {step === "sailings" && "Select a Cruise"}
             {step === "dates" && `Sailing Dates — ${selectedHoliday?.name || ""}`}
+            {step === "pricing" && "Cabin Pricing"}
             {step === "preview" && "Preview Itinerary"}
             {step === "importing" && "Importing..."}
           </DialogTitle>
@@ -468,6 +495,98 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
           </div>
         )}
 
+        {/* Pricing Breakdown */}
+        {step === "pricing" && selectedDate && (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep("dates")}>
+                ← Back to Dates
+              </Button>
+            </div>
+            <div className="mb-3 p-2 bg-accent/30 rounded-md">
+              <p className="text-sm font-medium">
+                {formatDate(selectedDate.date_from)} — {formatDate(selectedDate.date_to)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {selectedDate.ship_title && `🚢 ${selectedDate.ship_title}`}
+                {selectedDate.starts_at && ` • ${selectedDate.starts_at.name} → ${selectedDate.ends_at?.name || ""}`}
+              </p>
+            </div>
+            <ScrollArea className="flex-1 h-[320px]">
+              {selectedDate.pricing && selectedDate.pricing.length > 0 ? (
+                <div className="space-y-4 pr-3">
+                  {selectedDate.pricing.map((deal, di) => {
+                    // Group prices by room_type
+                    const grouped: Record<string, WidgetyCabinPrice[]> = {};
+                    for (const p of deal.prices) {
+                      const pp = parseFloat(p.double_price_pp || "0");
+                      if (pp <= 0) continue;
+                      const type = p.room_type || "Other";
+                      if (!grouped[type]) grouped[type] = [];
+                      grouped[type].push(p);
+                    }
+                    // Sort each group by price
+                    for (const type of Object.keys(grouped)) {
+                      grouped[type].sort((a, b) => parseFloat(a.double_price_pp) - parseFloat(b.double_price_pp));
+                    }
+                    const roomOrder = ["Inside", "Outside", "Balcony", "Suite", "Other"];
+                    const sortedTypes = Object.keys(grouped).sort(
+                      (a, b) => (roomOrder.indexOf(a) === -1 ? 99 : roomOrder.indexOf(a)) - (roomOrder.indexOf(b) === -1 ? 99 : roomOrder.indexOf(b))
+                    );
+
+                    return (
+                      <div key={di}>
+                        {deal.name && (
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{deal.name}</p>
+                        )}
+                        {sortedTypes.map((roomType) => (
+                          <div key={roomType} className="mb-3">
+                            <p className="text-xs font-medium text-foreground mb-1">{roomType}</p>
+                            <div className="space-y-1">
+                              {grouped[roomType].map((cabin, ci) => {
+                                const dblPrice = parseFloat(cabin.double_price_pp);
+                                const fees = parseFloat(cabin.non_comm_charges || "0");
+                                return (
+                                  <div key={ci} className="flex items-center justify-between py-1 px-2 rounded border text-xs">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="font-mono text-muted-foreground">{cabin.grade_code}</span>
+                                      <span className="truncate">{cabin.grade_name}</span>
+                                      {cabin.availability && cabin.availability !== "available" && (
+                                        <Badge variant="secondary" className="text-[9px] px-1 py-0">{cabin.availability}</Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="font-semibold text-primary">
+                                        ${dblPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                      </span>
+                                      <span className="text-muted-foreground">pp</span>
+                                      {fees > 0 && (
+                                        <span className="text-muted-foreground text-[10px]">+${fees.toLocaleString(undefined, { maximumFractionDigits: 0 })} fees</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">No detailed cabin pricing available for this sailing</p>
+              )}
+            </ScrollArea>
+            <Separator className="my-3" />
+            <div className="flex justify-end">
+              <Button onClick={handleContinueToItinerary}>
+                <Ship className="h-4 w-4 mr-2" /> Continue to Itinerary
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Preview */}
         {step === "preview" && (
           <div className="flex-1 min-h-0 flex flex-col">
@@ -478,8 +597,8 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
             ) : (
               <>
                 <div className="flex items-center justify-between mb-2">
-                  <Button variant="ghost" size="sm" onClick={() => setStep("dates")}>
-                    ← Back to Dates
+                  <Button variant="ghost" size="sm" onClick={() => setStep("pricing")}>
+                    ← Back to Pricing
                   </Button>
                 </div>
                 {meta.operator_title && (
