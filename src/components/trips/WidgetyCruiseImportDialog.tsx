@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Ship, Search, ChevronRight, Loader2, Anchor, MapPin, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,6 +58,11 @@ interface Props {
 }
 
 type Step = "search" | "sailings" | "dates" | "preview" | "importing";
+
+const AVAILABLE_OPERATORS = [
+  { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
+  { slug: "virgin-voyages", label: "Virgin Voyages" },
+];
 
 export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, destination, cruiseBookings, onImport }: Props) {
   const [open, setOpen] = useState(false);
@@ -140,7 +146,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         market: "us",
         limit: 25,
       };
-      if (searchQuery) params.operators = searchQuery.toLowerCase().replace(/\s+/g, "-");
+      if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
 
@@ -275,16 +281,21 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         {step === "search" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Search for cruise itineraries from Widgety's database of 60+ cruise lines.
+              Search for cruise itineraries from Norwegian Cruise Line and Virgin Voyages.
             </p>
             <div>
-              <Label>Cruise Line / Operator</Label>
-              <Input
-                placeholder="e.g., royal-caribbean, celebrity-cruises"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Use the operator slug (hyphenated name)</p>
+              <Label>Cruise Line</Label>
+              <Select value={searchQuery} onValueChange={setSearchQuery}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All available cruise lines" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cruise Lines</SelectItem>
+                  {AVAILABLE_OPERATORS.map((op) => (
+                    <SelectItem key={op.slug} value={op.slug}>{op.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

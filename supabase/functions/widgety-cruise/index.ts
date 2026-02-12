@@ -59,11 +59,10 @@ serve(async (req: Request) => {
       if (params.date_to) searchParams.set("date_to", params.date_to);
       if (params.locations) searchParams.set("locations", params.locations);
       if (params.regions) searchParams.set("regions", params.regions);
-      // Only cruises
-      searchParams.append("exact_holiday_types[]", "cruise");
       if (params.page) searchParams.set("page", String(params.page));
       searchParams.set("limit", String(params.limit || 25));
 
+      // Try V3 Holidays API first (without cruise type filter since some operators aren't tagged)
       const url = `${WIDGETY_BASE}/holidays.json?${searchParams.toString()}`;
       console.log("Widgety search URL:", url.replace(WIDGETY_TOKEN, "***"));
 
@@ -71,6 +70,84 @@ serve(async (req: Request) => {
       if (!resp.ok) {
         const text = await resp.text();
         console.error("Widgety search error:", resp.status, text);
+        throw new Error(`Widgety API error: ${resp.status} - ${text}`);
+      }
+      const data = await resp.json();
+
+      // If V3 returned results, use them
+      if (data.total > 0) {
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fallback: try V2 Cruises API (/cruises.json)
+      const v2Params = new URLSearchParams({
+        app_id: WIDGETY_APP_ID,
+        token: WIDGETY_TOKEN,
+      });
+      if (params.operators) v2Params.set("operators", params.operators);
+      if (params.date_from) v2Params.set("date_from", params.date_from);
+      if (params.date_to) v2Params.set("date_to", params.date_to);
+      if (params.page) v2Params.set("page", String(params.page));
+      v2Params.set("limit", String(params.limit || 25));
+
+      const v2Url = `${WIDGETY_BASE}/cruises.json?${v2Params.toString()}`;
+      console.log("Widgety V2 cruises URL:", v2Url.replace(WIDGETY_TOKEN, "***"));
+
+      const v2Resp = await fetch(v2Url);
+      if (v2Resp.ok) {
+        const v2Data = await v2Resp.json();
+        // Normalize V2 response to V3-like format if needed
+        return new Response(JSON.stringify(v2Data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // V2 also failed, return the original empty V3 result
+      console.log("V2 cruises also returned:", v2Resp.status);
+      const v2Text = await v2Resp.text();
+      console.log("V2 response:", v2Text);
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "operators") {
+      // List available operators
+      const searchParams = new URLSearchParams({
+        app_id: WIDGETY_APP_ID,
+        token: WIDGETY_TOKEN,
+      });
+      const url = `${WIDGETY_BASE}/operators.json?${searchParams.toString()}`;
+      console.log("Widgety operators URL:", url.replace(WIDGETY_TOKEN, "***"));
+
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        const text = await resp.text();
+        console.error("Widgety operators error:", resp.status, text);
+        throw new Error(`Widgety API error: ${resp.status}`);
+      }
+      const data = await resp.json();
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "ships") {
+      // List available ships
+      const searchParams = new URLSearchParams({
+        app_id: WIDGETY_APP_ID,
+        token: WIDGETY_TOKEN,
+      });
+      if (params.operators) searchParams.set("operators", params.operators);
+      const url = `${WIDGETY_BASE}/ships.json?${searchParams.toString()}`;
+      console.log("Widgety ships URL:", url.replace(WIDGETY_TOKEN, "***"));
+
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        const text = await resp.text();
+        console.error("Widgety ships error:", resp.status, text);
         throw new Error(`Widgety API error: ${resp.status}`);
       }
       const data = await resp.json();
