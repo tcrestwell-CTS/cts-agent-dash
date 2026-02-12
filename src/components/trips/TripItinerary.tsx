@@ -205,7 +205,7 @@ export function TripItinerary({ tripId, destination, departDate, returnDate, tri
           </Button>
         )}
 
-        {/* Widgety Cruise Import — show when there are cruise bookings or cruise-related trip/destination */}
+        {/* Cruise Library Import — show when there are cruise bookings or cruise-related trip/destination */}
         {(cruiseBookings.length > 0 || destination?.toLowerCase().includes("cruise") || tripName?.toLowerCase().includes("cruise")) && (
           <WidgetyCruiseImportDialog
             tripId={tripId}
