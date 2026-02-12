@@ -209,6 +209,7 @@ export function AddPaymentDialog({
                   <SelectItem value="check">Check</SelectItem>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="flexpay">Flexpay (Pay Monthly)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
