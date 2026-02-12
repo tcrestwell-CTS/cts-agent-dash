@@ -378,7 +378,7 @@ const ClientDetail = () => {
             <>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="text-white/80 border-white/30 hover:bg-white/10 hover:text-white">
+                  <Button variant="outline" className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
                   </Button>
@@ -407,7 +407,7 @@ const ClientDetail = () => {
                     variant="outline"
                     onClick={handleSendPortalLink}
                     disabled={isSendingPortalLink}
-                    className="text-white border-white/30 hover:bg-white/10 hover:text-white"
+                    className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
                   >
                     {isSendingPortalLink ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -419,7 +419,7 @@ const ClientDetail = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => setEmailDialogOpen(true)}
-                    className="text-white border-white/30 hover:bg-white/10 hover:text-white"
+                    className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
                   >
                     <Mail className="mr-2 h-4 w-4" />
                     Send Email
