@@ -45,6 +45,7 @@ import {
   UserMinus,
   AlertTriangle,
   Receipt,
+  Map,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
@@ -387,10 +388,20 @@ const BookingDetail = () => {
           {/* Trip Details */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                Trip Details
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                  Trip Details
+                </CardTitle>
+                {booking.trip_id && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/trips/${booking.trip_id}?tab=itinerary`}>
+                      <Map className="h-4 w-4 mr-2" />
+                      Build Itinerary
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-6">
               <div>
