@@ -16,6 +16,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useItinerary, type ItineraryItem } from "@/hooks/useItinerary";
 import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
+import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import jsPDF from "jspdf";
@@ -49,9 +50,39 @@ interface Props {
 }
 
 export function TripItinerary({ tripId, destination, departDate, returnDate, tripName, bookings }: Props) {
-  const { items, loading, generating, addItem, deleteItem, generateWithAI, clearAll, importFromBookings } = useItinerary(tripId);
+  const { items, loading, generating, addItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
+
+  // Detect cruise bookings for Widgety integration
+  const cruiseBookings = bookings.filter(
+    (b) => b.suppliers?.supplier_type?.toLowerCase() === "cruise"
+  );
+
+  const handleWidgetyImport = async (widgetyItems: any[]) => {
+    if (!widgetyItems.length) return false;
+    try {
+      // Use batch addItem — the hook handles user_id
+      for (const item of widgetyItems) {
+        const success = await addItem({
+          trip_id: tripId,
+          day_number: item.day_number || 1,
+          title: item.title,
+          description: item.description || undefined,
+          category: item.category || "cruise",
+          location: item.location || undefined,
+          start_time: item.start_time || undefined,
+          end_time: item.end_time || undefined,
+          notes: item.notes || undefined,
+          sort_order: widgetyItems.indexOf(item),
+        });
+        if (!success) return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const totalDays = departDate && returnDate
     ? differenceInDays(parseISO(returnDate), parseISO(departDate)) + 1
@@ -172,6 +203,18 @@ export function TripItinerary({ tripId, destination, departDate, returnDate, tri
           <Button variant="outline" size="sm" onClick={() => importFromBookings(unimportedBookings)}>
             <Import className="h-4 w-4 mr-2" /> Import Bookings ({unimportedBookings.length})
           </Button>
+        )}
+
+        {/* Widgety Cruise Import — show when there are cruise bookings or cruise-related trip */}
+        {(cruiseBookings.length > 0 || destination?.toLowerCase().includes("cruise")) && (
+          <WidgetyCruiseImportDialog
+            tripId={tripId}
+            departDate={departDate}
+            returnDate={returnDate}
+            destination={destination}
+            cruiseBookings={cruiseBookings}
+            onImport={handleWidgetyImport}
+          />
         )}
 
         {items.length > 0 && (
