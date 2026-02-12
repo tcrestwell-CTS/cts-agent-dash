@@ -1207,34 +1207,36 @@ const ClientDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Portal Messages */}
-        <ClientMessagesPanel clientId={clientId!} />
+        {/* Portal Messages & Email History - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ClientMessagesPanel clientId={clientId!} />
 
-        {/* Email History */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {emailLogsLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : emailLogs.length === 0 ? (
-              <p className="text-muted-foreground text-sm italic">No emails sent to this client yet</p>
-            ) : (
-              <div className="space-y-2">
-                {emailLogs.map((log) => (
-                  <EmailLogItem key={log.id} log={log} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Email History */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {emailLogsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : emailLogs.length === 0 ? (
+                <p className="text-muted-foreground text-sm italic">No emails sent to this client yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {emailLogs.map((log) => (
+                    <EmailLogItem key={log.id} log={log} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Companion Dialog */}
