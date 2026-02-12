@@ -13,12 +13,16 @@ import {
   Building2,
   FileSpreadsheet,
   Compass,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import crestwellLogo from "@/assets/crestwell-logo.png";
+import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -43,6 +47,13 @@ export function Sidebar() {
   const { user, signOut } = useAuth();
   const { canView: canViewTeam } = useCanViewTeam();
   const { data: userRole } = useUserRole();
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) setOpen(false);
+  }, [location.pathname, isMobile]);
 
   const userInitials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -66,119 +77,154 @@ export function Sidebar() {
     }
   };
 
-  return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
-      <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex h-20 items-center px-4 border-b border-sidebar-border">
-          <img 
-            src={crestwellLogo} 
-            alt="Crestwell Travel Services" 
-            className="h-14 w-auto object-contain"
-          />
-        </div>
+  const sidebarContent = (
+    <div className="flex h-full flex-col">
+      {/* Logo */}
+      <div className="flex h-20 items-center px-4 border-b border-sidebar-border justify-between">
+        <img 
+          src={crestwellLogo} 
+          alt="Crestwell Travel Services" 
+          className="h-14 w-auto object-contain"
+        />
+        {isMobile && (
+          <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-sidebar-foreground">
+            <X className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-primary"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              )}
+            >
+              <item.icon
                 className={cn(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "h-5 w-5 transition-colors",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    ? "text-sidebar-primary"
+                    : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
                 )}
-              >
-                <item.icon
-                  className={cn(
-                    "h-5 w-5 transition-colors",
-                    isActive
-                      ? "text-sidebar-primary"
-                      : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
-                  )}
-                />
-                {item.name}
-              </Link>
-            );
-          })}
-
-          {/* Team Management - visible to admins and office admins */}
-          {canViewTeam && (
-            <>
-              <div className="pt-4 pb-2 px-3">
-                <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                  Team
-                </p>
-              </div>
-              {adminNavigation.map((item) => {
-                const isActive = location.pathname === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "h-5 w-5 transition-colors",
-                        isActive
-                          ? "text-sidebar-primary"
-                          : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
-                      )}
-                    />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </>
-          )}
-        </nav>
-
-        {/* User section */}
-        <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center gap-3 mb-3">
-            {user?.user_metadata?.avatar_url ? (
-              <img
-                src={user.user_metadata.avatar_url}
-                alt="Avatar"
-                className="h-9 w-9 rounded-full object-cover"
               />
-            ) : (
-              <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center">
-                <span className="text-sm font-medium text-sidebar-foreground">
-                  {userInitials}
-                </span>
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {userName}
-              </p>
-              <p className="text-xs text-sidebar-foreground/60 truncate">
-                {getRoleLabel(userRole)}
+              {item.name}
+            </Link>
+          );
+        })}
+
+        {/* Team Management - visible to admins and office admins */}
+        {canViewTeam && (
+          <>
+            <div className="pt-4 pb-2 px-3">
+              <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                Team
               </p>
             </div>
+            {adminNavigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-primary"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 transition-colors",
+                      isActive
+                        ? "text-sidebar-primary"
+                        : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
+                    )}
+                  />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </>
+        )}
+      </nav>
+
+      {/* User section */}
+      <div className="border-t border-sidebar-border p-4">
+        <div className="flex items-center gap-3 mb-3">
+          {user?.user_metadata?.avatar_url ? (
+            <img
+              src={user.user_metadata.avatar_url}
+              alt="Avatar"
+              className="h-9 w-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center">
+              <span className="text-sm font-medium text-sidebar-foreground">
+                {userInitials}
+              </span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">
+              {userName}
+            </p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">
+              {getRoleLabel(userRole)}
+            </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={signOut}
-            className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={signOut}
+          className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger header */}
+      {isMobile && (
+        <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-3 border-b border-border bg-background px-4">
+          <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
+            <Menu className="h-5 w-5" />
+          </Button>
+          <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-8 w-auto object-contain" />
+        </header>
+      )}
+
+      {/* Overlay */}
+      {isMobile && open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300",
+          isMobile && !open && "-translate-x-full"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
