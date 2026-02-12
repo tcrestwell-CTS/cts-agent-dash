@@ -701,16 +701,29 @@ const Auth = () => {
                     {isSigningIn ? "Verifying..." : "Verify Code"}
                   </Button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSignupStep("email");
-                      setOtpCode("");
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
-                  >
-                    ← Back to email
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSignupStep("email");
+                        setOtpCode("");
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      ← Back to email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOtpCode("");
+                        handleSendOtp();
+                      }}
+                      disabled={isSendingOtp}
+                      className="text-sm text-primary hover:text-primary/80 disabled:opacity-50"
+                    >
+                      {isSendingOtp ? "Sending..." : "Resend Code"}
+                    </button>
+                  </div>
                 </>
               )}
 
