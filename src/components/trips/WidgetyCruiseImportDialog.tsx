@@ -60,6 +60,7 @@ interface Props {
 type Step = "search" | "sailings" | "dates" | "preview" | "importing";
 
 const AVAILABLE_OPERATORS = [
+  { slug: "msc-cruises", label: "MSC Cruises" },
   { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
   { slug: "virgin-voyages", label: "Virgin Voyages" },
 ];
@@ -281,7 +282,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         {step === "search" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Search for cruise itineraries from Norwegian Cruise Line and Virgin Voyages.
+              Search for cruise itineraries from MSC Cruises, Norwegian Cruise Line, and Virgin Voyages.
             </p>
             <div>
               <Label>Cruise Line</Label>
