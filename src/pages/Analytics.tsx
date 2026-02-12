@@ -54,6 +54,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageBanner } from "@/components/layout/PageBanner";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -474,40 +475,36 @@ const Analytics = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Analytics</h1>
-            <p className="text-muted-foreground mt-1">Agency performance metrics and insights</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportSummary}>
-                  Export Summary
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportBookings}>
-                  Export Bookings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportRevenue}>
-                  Export Revenue by Month
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportClients}>
-                  Export Clients
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportDestinations}>
-                  Export Top Destinations
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+        <PageBanner
+          title="Analytics"
+          subtitle="Agency performance metrics and insights"
+        >
+          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="text-white border-white/30 hover:bg-white/10 hover:text-white">
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportSummary}>
+                Export Summary
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportBookings}>
+                Export Bookings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportRevenue}>
+                Export Revenue by Month
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportClients}>
+                Export Clients
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportDestinations}>
+                Export Top Destinations
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </PageBanner>
 
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
