@@ -18,9 +18,11 @@ import {
   Edit,
   Building2,
   CreditCard,
+  Map,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
+import { TripItinerary } from "@/components/trips/TripItinerary";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
@@ -342,6 +344,10 @@ const TripDetail = () => {
               <CreditCard className="h-4 w-4" />
               Payments
             </TabsTrigger>
+            <TabsTrigger value="itinerary" className="flex items-center gap-2">
+              <Map className="h-4 w-4" />
+              Itinerary
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
@@ -372,6 +378,17 @@ const TripDetail = () => {
               departDate={trip.depart_date || undefined}
               returnDate={trip.return_date || undefined}
               onDataChange={fetchTrip}
+            />
+          </TabsContent>
+
+          <TabsContent value="itinerary" className="mt-6">
+            <TripItinerary
+              tripId={tripId!}
+              destination={trip.destination}
+              departDate={trip.depart_date}
+              returnDate={trip.return_date}
+              tripName={trip.trip_name}
+              bookings={bookings}
             />
           </TabsContent>
         </Tabs>
