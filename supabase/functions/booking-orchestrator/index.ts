@@ -114,12 +114,19 @@ async function handleSupplierWebhook(
 ): Promise<Response> {
   console.log("Processing supplier webhook");
 
-  // Validate webhook secret (suppliers need to configure this)
+  // Validate webhook secret - mandatory for security
   const webhookSecret = req.headers.get("x-webhook-secret");
   const expectedSecret = Deno.env.get("WEBHOOK_SECRET");
   
-  // If WEBHOOK_SECRET is configured, validate it
-  if (expectedSecret && webhookSecret !== expectedSecret) {
+  if (!expectedSecret) {
+    console.error("WEBHOOK_SECRET not configured");
+    return new Response(
+      JSON.stringify({ error: "Webhook endpoint not configured" }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  if (webhookSecret !== expectedSecret) {
     console.error("Invalid webhook secret");
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
