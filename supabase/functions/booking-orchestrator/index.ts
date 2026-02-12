@@ -250,14 +250,26 @@ async function handleAutomateStatus(
   supabaseUrl: string,
   supabaseAnonKey: string
 ): Promise<Response> {
-  // Check for authentication - if present, validate; if not, run as system automation
+  // Require authentication for all requests
   const authHeader = req.headers.get("Authorization");
   let userId: string | null = null;
   let isAdmin = false;
-  let mode = "system"; // "system" (all bookings) or "user" (single user's bookings)
+  let mode = "user"; // "system" (all bookings) or "user" (single user's bookings)
 
-  if (authHeader && !authHeader.includes(supabaseAnonKey)) {
-    // User-initiated request - validate and check role
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: "Authorization required" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Check for automation secret key (for cron jobs)
+  const automationKey = Deno.env.get("AUTOMATION_SECRET_KEY");
+  if (automationKey && authHeader === `Bearer ${automationKey}`) {
+    mode = "system";
+    console.log("Running status automation - mode: system (authorized cron job)");
+  } else {
+    // User-initiated request - validate JWT
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -284,9 +296,6 @@ async function handleAutomateStatus(
     mode = isAdmin ? "system" : "user";
     
     console.log(`Running status automation - mode: ${mode}, user: ${user.id}, isAdmin: ${isAdmin}`);
-  } else {
-    // System/cron job request - process all bookings
-    console.log("Running status automation - mode: system (cron job)");
   }
 
   const today = new Date().toISOString().split("T")[0];
