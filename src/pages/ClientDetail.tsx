@@ -456,7 +456,9 @@ const ClientDetail = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
+        {/* Row 1: Personal Info + Contact + Address */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Personal Information */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -735,7 +737,10 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+        </div>
 
+        {/* Row 2: Secure Travel IDs + Interests & Preferences */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Secure Travel IDs */}
         <Card>
           <CardHeader className="pb-2">
@@ -849,6 +854,10 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+        </div>
+
+        {/* Row 3: Travel Preferences + Loyalty Programs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* Travel Preferences */}
         <Card>
@@ -1065,8 +1074,10 @@ const ClientDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Notes */}
-        <Card className="lg:col-span-2">
+        </div>
+
+        {/* Notes - Full Width */}
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -1090,7 +1101,7 @@ const ClientDetail = () => {
         </Card>
 
         {/* Booking History */}
-        <Card className="lg:col-span-3">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -1169,7 +1180,7 @@ const ClientDetail = () => {
         </Card>
 
         {/* Travel Companions */}
-        <Card className="lg:col-span-3">
+        <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -1221,7 +1232,7 @@ const ClientDetail = () => {
         <ClientMessagesPanel clientId={clientId!} />
 
         {/* Email History */}
-        <Card className="lg:col-span-3">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium flex items-center gap-2">
               <Mail className="h-4 w-4" />
