@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,8 @@ import {
   Building2,
   CreditCard,
   Map,
+  Link2,
+  Loader2,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -71,6 +74,34 @@ const TripDetail = () => {
   const { deleteTrip } = useTrips();
   const { payments } = useTripPayments(tripId);
   const hasPayments = payments.length > 0;
+  const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+
+  const handleSendPortalLink = async () => {
+    if (!trip?.clients?.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+    setIsSendingPortalLink(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-auth`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: "send-magic-link", email: trip.clients.email }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to send");
+      toast.success(`Portal access link sent to ${trip.clients.email}`);
+    } catch {
+      toast.error("Failed to send portal link");
+    } finally {
+      setIsSendingPortalLink(false);
+    }
+  };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -316,6 +347,21 @@ const TripDetail = () => {
             <Button variant="outline" size="sm" asChild>
               <Link to={`/contacts/${trip.client_id}`}>View Client Profile</Link>
             </Button>
+            {trip.clients?.email && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSendPortalLink}
+                disabled={isSendingPortalLink}
+              >
+                {isSendingPortalLink ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Link2 className="mr-2 h-4 w-4" />
+                )}
+                Send Portal Link
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
