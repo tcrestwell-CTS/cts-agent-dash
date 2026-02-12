@@ -245,7 +245,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     setStep("importing");
     const success = await onImport(previewItems);
     if (success) {
-      toast.success(`Imported ${previewItems.length} cruise itinerary days from Widgety`);
+      toast.success(`Imported ${previewItems.length} cruise itinerary days from Cruise Library`);
       setOpen(false);
       resetState();
     } else {
@@ -280,7 +280,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ship className="h-5 w-5" />
-            {step === "search" && "Search Widgety Cruises"}
+            {step === "search" && "Cruise Library"}
             {step === "sailings" && "Select a Cruise"}
             {step === "dates" && `Sailing Dates — ${selectedHoliday?.name || ""}`}
             {step === "preview" && "Preview Itinerary"}
