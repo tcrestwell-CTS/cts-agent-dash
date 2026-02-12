@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import crestwellLogo from "@/assets/crestwell-logo.png";
+import { devLog, devError } from "@/lib/logger";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(8, "Password must be at least 8 characters");
@@ -64,7 +65,7 @@ const Auth = () => {
       setIsValidating(true);
       const userEmail = user.email?.toLowerCase();
 
-      console.log("[Auth] Starting post-auth validation", {
+      devLog("[Auth] Starting post-auth validation", {
         userId: user.id,
         userEmail,
         hasInviteToken: !!inviteToken,
@@ -79,14 +80,14 @@ const Auth = () => {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        console.log("[Auth] Profile check result", {
+        devLog("[Auth] Profile check result", {
           hasProfile: !!existingProfile,
           profileId: existingProfile?.id,
           error: profileError?.message,
         });
 
         if (existingProfile) {
-          console.log("[Auth] User has existing profile, redirecting to home");
+          devLog("[Auth] User has existing profile, redirecting to home");
           navigate("/", { replace: true });
           return;
         }
@@ -96,7 +97,7 @@ const Auth = () => {
 
         // First try: Check by invite token in URL
         if (inviteToken) {
-          console.log("[Auth] Checking invitation by token");
+          devLog("[Auth] Checking invitation by token");
           const { data: tokenInvite, error: tokenError } = await supabase
             .from("invitations")
             .select("id, email, status, expires_at")
@@ -104,7 +105,7 @@ const Auth = () => {
             .eq("status", "pending")
             .maybeSingle();
 
-          console.log("[Auth] Token invitation lookup result", {
+          devLog("[Auth] Token invitation lookup result", {
             found: !!tokenInvite,
             inviteEmail: tokenInvite?.email,
             status: tokenInvite?.status,
@@ -117,13 +118,13 @@ const Auth = () => {
           if (tokenInvite && new Date(tokenInvite.expires_at) > new Date()) {
             if (tokenInvite.email === userEmail) {
               hasValidInvitation = true;
-              console.log("[Auth] Token matches, accepting invitation via RPC");
+              devLog("[Auth] Token matches, accepting invitation via RPC");
               const { data, error } = await supabase.rpc("accept_invitation", {
                 invitation_token: inviteToken,
                 accepting_user_id: user.id,
               });
 
-              console.log("[Auth] accept_invitation RPC result (token)", {
+              devLog("[Auth] accept_invitation RPC result (token)", {
                 success: data,
                 error: error?.message,
                 errorCode: error?.code,
@@ -131,26 +132,26 @@ const Auth = () => {
               });
 
               if (error) {
-                console.error("[Auth] Error accepting invitation via token:", error);
+                devError("[Auth] Error accepting invitation via token:", error);
                 toast.error("Failed to accept invitation. Please try again.");
               } else if (data) {
                 toast.success("Welcome! Your account has been set up.");
               }
             } else {
-              console.log("[Auth] Email mismatch - invitation email does not match user email");
+              devLog("[Auth] Email mismatch - invitation email does not match user email");
               toast.error("This invitation was sent to a different email address.");
               await signOut();
               setIsValidating(false);
               return;
             }
           } else {
-            console.log("[Auth] Token invitation invalid or expired");
+            devLog("[Auth] Token invitation invalid or expired");
           }
         }
 
         // Second try: Fallback to email-based lookup
         if (!hasValidInvitation && userEmail) {
-          console.log("[Auth] Falling back to email-based invitation lookup", { userEmail });
+          devLog("[Auth] Falling back to email-based invitation lookup", { userEmail });
           const { data: emailInvite, error: emailError } = await supabase
             .from("invitations")
             .select("id, token, status, expires_at")
@@ -158,7 +159,7 @@ const Auth = () => {
             .eq("status", "pending")
             .maybeSingle();
 
-          console.log("[Auth] Email invitation lookup result", {
+          devLog("[Auth] Email invitation lookup result", {
             found: !!emailInvite,
             inviteId: emailInvite?.id,
             status: emailInvite?.status,
@@ -169,13 +170,13 @@ const Auth = () => {
 
           if (emailInvite && new Date(emailInvite.expires_at) > new Date()) {
             hasValidInvitation = true;
-            console.log("[Auth] Email invitation valid, accepting via RPC");
+            devLog("[Auth] Email invitation valid, accepting via RPC");
             const { data, error } = await supabase.rpc("accept_invitation", {
               invitation_token: emailInvite.token,
               accepting_user_id: user.id,
             });
 
-            console.log("[Auth] accept_invitation RPC result (email)", {
+            devLog("[Auth] accept_invitation RPC result (email)", {
               success: data,
               error: error?.message,
               errorCode: error?.code,
@@ -183,30 +184,30 @@ const Auth = () => {
             });
 
             if (error) {
-              console.error("[Auth] Error accepting invitation via email:", error);
+              devError("[Auth] Error accepting invitation via email:", error);
               toast.error("Failed to accept invitation. Please try again.");
             } else if (data) {
               toast.success("Welcome! Your account has been set up.");
             }
           } else {
-            console.log("[Auth] No valid email-based invitation found");
+            devLog("[Auth] No valid email-based invitation found");
           }
         }
 
-        console.log("[Auth] Final invitation status", { hasValidInvitation });
+        devLog("[Auth] Final invitation status", { hasValidInvitation });
 
         if (!hasValidInvitation) {
-          console.log("[Auth] Access denied - no valid invitation found, signing out");
+          devLog("[Auth] Access denied - no valid invitation found, signing out");
           toast.error("Access denied. You must be a registered user. If not, please contact the administrator.");
           await signOut();
           setIsValidating(false);
           return;
         }
 
-        console.log("[Auth] Invitation accepted successfully, redirecting to home");
+        devLog("[Auth] Invitation accepted successfully, redirecting to home");
         navigate("/", { replace: true });
       } catch (err) {
-        console.error("[Auth] Unexpected error during validation:", err);
+        devError("[Auth] Unexpected error during validation:", err);
         toast.error("An error occurred while validating your access.");
         await signOut();
       } finally {
