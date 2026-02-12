@@ -1,15 +1,22 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usePortalTripDetail } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
+
+const categoryIcons: Record<string, string> = {
+  flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
+  activity: "🎯", dining: "🍽️", meeting: "📋", other: "📌",
+};
 
 export default function PortalTripDetail() {
   const { tripId } = useParams();
   const { data, isLoading } = usePortalTripDetail(tripId);
+  const [showItinerary, setShowItinerary] = useState(false);
 
   if (isLoading) {
     return (
@@ -32,7 +39,7 @@ export default function PortalTripDetail() {
     );
   }
 
-  const { trip, bookings = [], payments = [] } = data;
+  const { trip, bookings = [], payments = [], itinerary = [] } = data;
 
   return (
     <div className="space-y-6">
@@ -127,6 +134,74 @@ export default function PortalTripDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Itinerary */}
+      {itinerary.length > 0 && (
+        <Card>
+          <CardHeader
+            className="cursor-pointer select-none"
+            onClick={() => setShowItinerary(!showItinerary)}
+          >
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" /> View Full Itinerary ({itinerary.length} items)
+              {showItinerary ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
+            </CardTitle>
+          </CardHeader>
+          {showItinerary && (
+            <CardContent>
+              {Object.entries(
+                itinerary.reduce((acc: Record<number, any[]>, item: any) => {
+                  (acc[item.day_number] = acc[item.day_number] || []).push(item);
+                  return acc;
+                }, {})
+              ).map(([day, items]: [string, any[]]) => (
+                <div key={day} className="mb-5 last:mb-0">
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Day {day}
+                    {items[0]?.item_date && (
+                      <span className="text-muted-foreground font-normal">
+                        — {format(new Date(items[0].item_date), "EEEE, MMM d, yyyy")}
+                      </span>
+                    )}
+                  </h4>
+                  <div className="space-y-2 ml-5 border-l-2 border-muted pl-4">
+                    {items.map((item: any) => (
+                      <div key={item.id} className="p-3 rounded-lg border bg-card">
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg">{categoryIcons[item.category] || "📌"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{item.title}</p>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
+                              {(item.start_time || item.end_time) && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {item.start_time}{item.end_time && ` – ${item.end_time}`}
+                                </span>
+                              )}
+                              {item.location && (
+                                <span className="flex items-center gap-1">
+                                  <MapPinned className="h-3 w-3" /> {item.location}
+                                </span>
+                              )}
+                            </div>
+                            {item.notes && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Notes */}
       {trip.notes && (
