@@ -31,6 +31,7 @@ import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/c
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { Users } from "lucide-react";
+import { PageBanner } from "@/components/layout/PageBanner";
 
 const Commissions = () => {
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
@@ -243,23 +244,17 @@ const Commissions = () => {
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-            {isAdmin ? "Team Commissions" : "My Commissions"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {isAdmin 
-              ? "View and manage all agent commission earnings" 
-              : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}
-          </p>
-        </div>
-        <Button variant="outline" className="gap-2" onClick={handleExport}>
+      <PageBanner
+        title={isAdmin ? "Team Commissions" : "My Commissions"}
+        subtitle={isAdmin 
+          ? "View and manage all agent commission earnings" 
+          : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}
+      >
+        <Button variant="outline" className="gap-2 text-white border-white/30 hover:bg-white/10 hover:text-white" onClick={handleExport}>
           <Download className="h-4 w-4" />
           Export Report
         </Button>
-      </div>
+      </PageBanner>
 
       {/* Admin: Pending Override Approvals */}
       {isAdmin && <div className="mb-6"><PendingOverridesCard /></div>}

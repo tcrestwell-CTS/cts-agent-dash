@@ -42,6 +42,7 @@ import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BookingsCalendar } from "@/components/bookings/BookingsCalendar";
+import { PageBanner } from "@/components/layout/PageBanner";
 
 const Bookings = () => {
   const navigate = useNavigate();
@@ -185,29 +186,21 @@ const Bookings = () => {
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-            Booking Portal
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage all your travel bookings in one place
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <AddBookingDialog 
-            onSubmit={createBooking} 
-            creating={creating} 
-            open={isAddDialogOpen}
-            onOpenChange={setIsAddDialogOpen}
-          />
-        </div>
-      </div>
+      <PageBanner
+        title="Booking Portal"
+        subtitle="Manage all your travel bookings in one place"
+      >
+        <Button variant="outline" className="gap-2 text-white border-white/30 hover:bg-white/10 hover:text-white">
+          <Download className="h-4 w-4" />
+          Export
+        </Button>
+        <AddBookingDialog 
+          onSubmit={createBooking} 
+          creating={creating} 
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+        />
+      </PageBanner>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">

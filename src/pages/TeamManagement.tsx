@@ -24,6 +24,7 @@ import { InviteAgentDialog } from "@/components/admin/InviteAgentDialog";
 import { TeamProfiles } from "@/components/admin/TeamProfiles";
 import { Navigate } from "react-router-dom";
 import { getTierConfig } from "@/lib/commissionTiers";
+import { PageBanner } from "@/components/layout/PageBanner";
 
 const TeamManagement = () => {
   const { canView, canManage, isLoading: roleLoading } = useCanViewTeam();
@@ -77,23 +78,17 @@ const TeamManagement = () => {
 
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-            Team Management
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {canManage 
-              ? "Invite and manage travel agents in your organization"
-              : "View team invitations and members"
-            }
-          </p>
-        </div>
+      <PageBanner
+        title="Team Management"
+        subtitle={canManage 
+          ? "Invite and manage travel agents in your organization"
+          : "View team invitations and members"
+        }
+      >
         {canManage && (
           <InviteAgentDialog onSubmit={sendInvitation} sending={sending} />
         )}
-      </div>
+      </PageBanner>
 
       {/* Tabs for Profiles and Invitations */}
       <Tabs defaultValue="profiles" className="space-y-6">
