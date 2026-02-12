@@ -1,5 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Escape ILIKE special characters to prevent pattern injection
+function escapeIlike(input: string): string {
+  return input.replace(/[%_\\]/g, '\\$&');
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -137,7 +142,7 @@ async function handleSupplierWebhook(
   const { data: bookings, error: findError } = await adminClient
     .from("bookings")
     .select("id, status, notes, user_id, client_id")
-    .or(`notes.ilike.%${payload.confirmation_number}%,booking_reference.eq.${payload.confirmation_number}`)
+    .or(`notes.ilike.%${escapeIlike(payload.confirmation_number)}%,booking_reference.eq.${payload.confirmation_number}`)
     .limit(1);
 
   if (findError) {
@@ -477,7 +482,7 @@ async function handleSyncBooking(
     .from("bookings")
     .select("id")
     .eq("user_id", user.id)
-    .ilike("notes", `%${confirmation_number}%`)
+    .ilike("notes", `%${escapeIlike(confirmation_number)}%`)
     .limit(1);
 
   if (existing && existing.length > 0) {
