@@ -48,8 +48,6 @@ export function CreateItinerarySheet({
   const isEditing = !!editingItinerary;
 
   const [name, setName] = useState("");
-  const [departDate, setDepartDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
   const [overview, setOverview] = useState("");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -60,15 +58,11 @@ export function CreateItinerarySheet({
   useEffect(() => {
     if (open && editingItinerary) {
       setName(editingItinerary.name);
-      setDepartDate(editingItinerary.depart_date || "");
-      setReturnDate(editingItinerary.return_date || "");
       setOverview(editingItinerary.overview || "");
       setCoverPreview(editingItinerary.cover_image_url || null);
       setCoverFile(null);
     } else if (open && !editingItinerary) {
       setName("");
-      setDepartDate(tripDepartDate || "");
-      setReturnDate(tripReturnDate || "");
       setOverview("");
       setCoverPreview(null);
       setCoverFile(null);
@@ -126,16 +120,16 @@ export function CreateItinerarySheet({
       if (isEditing && onUpdate) {
         await onUpdate(editingItinerary.id, {
           name: name.trim(),
-          depart_date: departDate || null,
-          return_date: returnDate || null,
+          depart_date: tripDepartDate || null,
+          return_date: tripReturnDate || null,
           cover_image_url: cover_image_url === undefined ? editingItinerary.cover_image_url : cover_image_url,
           overview: overview.trim() || null,
         });
       } else {
         await onCreate({
           name: name.trim(),
-          depart_date: departDate || undefined,
-          return_date: returnDate || undefined,
+          depart_date: tripDepartDate || undefined,
+          return_date: tripReturnDate || undefined,
           cover_image_url: cover_image_url || undefined,
           overview: overview.trim() || undefined,
         });
@@ -170,22 +164,25 @@ export function CreateItinerarySheet({
             />
           </div>
 
-          {/* Travel Dates */}
+          {/* Travel Dates (read-only, inherited from trip) */}
           <div className="space-y-2">
             <Label>Travel Dates</Label>
+            <p className="text-xs text-muted-foreground">
+              Dates are inherited from the trip. Edit them in Trip Details.
+            </p>
             <div className="flex items-center gap-2">
               <Input
                 type="date"
-                value={departDate}
-                onChange={(e) => setDepartDate(e.target.value)}
-                className="flex-1"
+                value={tripDepartDate || ""}
+                disabled
+                className="flex-1 opacity-70"
               />
               <span className="text-sm text-muted-foreground">to</span>
               <Input
                 type="date"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
-                className="flex-1"
+                value={tripReturnDate || ""}
+                disabled
+                className="flex-1 opacity-70"
               />
             </div>
           </div>
