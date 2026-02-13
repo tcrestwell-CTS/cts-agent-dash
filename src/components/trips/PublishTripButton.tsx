@@ -33,7 +33,7 @@ export function PublishTripButton({
     ? `https://app.crestwelltravels.com/shared/${shareToken}`
     : null;
   const previewUrl = shareToken
-    ? `${window.location.origin}/shared/${shareToken}?preview=true`
+    ? `https://portal.crestwelltravels.com/trips/${shareToken}`
     : null;
 
   const handlePublish = async () => {
