@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,11 @@ const ItineraryBuilder = () => {
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
+
+  const activeItinerary = useMemo(
+    () => itineraries.find((i) => i.id === activeId),
+    [itineraries, activeId]
+  );
 
   const handleSidebarReady = useCallback((callbacks: ItinerarySidebarCallbacks) => {
     setSidebarCallbacks(callbacks);
@@ -212,6 +217,24 @@ const ItineraryBuilder = () => {
             <Plus className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Cover photo banner */}
+        {activeItinerary?.cover_image_url && (
+          <div className="relative rounded-lg overflow-hidden border">
+            <img
+              src={activeItinerary.cover_image_url}
+              alt={`${activeItinerary.name} cover`}
+              className="w-full h-48 object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            <div className="absolute bottom-4 left-6">
+              <h2 className="text-white text-lg font-semibold drop-shadow-md">{activeItinerary.name}</h2>
+              {activeItinerary.overview && (
+                <p className="text-white/80 text-sm mt-1 max-w-2xl line-clamp-2 drop-shadow-md">{activeItinerary.overview}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Content with sidebar */}
         <div className="flex gap-0 rounded-lg border bg-background overflow-hidden" style={{ minHeight: "calc(100vh - 280px)" }}>
