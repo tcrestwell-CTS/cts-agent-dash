@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2 } from "lucide-react";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
+import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
 import { CreateItinerarySheet } from "@/components/trips/CreateItinerarySheet";
 import { useTrip } from "@/hooks/useTrips";
@@ -30,7 +31,7 @@ import {
 const ItineraryBuilder = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
-  const { trip, bookings, loading } = useTrip(tripId);
+  const { trip, bookings, loading, fetchTrip } = useTrip(tripId);
   const { itineraries, activeId, setActiveId, createItinerary, updateItinerary, renameItinerary, deleteItinerary } = useItineraries(tripId);
   const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -114,6 +115,13 @@ const ItineraryBuilder = () => {
 
           <TooltipProvider>
             <div className="flex items-center gap-2">
+              <PublishTripButton
+                tripId={tripId!}
+                shareToken={trip.share_token}
+                publishedAt={trip.published_at}
+                updatedAt={trip.updated_at}
+                onPublished={fetchTrip}
+              />
               <div className="flex items-center rounded-lg border bg-muted p-1 gap-0.5">
                 <Tooltip>
                   <TooltipTrigger asChild>
