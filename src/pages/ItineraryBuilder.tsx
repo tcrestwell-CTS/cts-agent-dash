@@ -1,10 +1,11 @@
 import { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2 } from "lucide-react";
+import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2 } from "lucide-react";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
@@ -194,6 +195,9 @@ const ItineraryBuilder = () => {
                   }`}
                 >
                   {itin.name}
+                  {trip.approved_itinerary_id === itin.id && (
+                    <CheckCircle2 className="inline h-3.5 w-3.5 ml-1 text-primary" />
+                  )}
                 </button>
               )}
               {/* Tab menu */}
@@ -229,6 +233,21 @@ const ItineraryBuilder = () => {
             <Plus className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Client approval banner */}
+        {trip.approved_itinerary_id && (
+          <div className="flex items-center gap-2 text-sm rounded-lg border px-4 py-2.5 bg-primary/10 text-primary">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span className="font-medium">
+              Client approved: {itineraries.find(i => i.id === trip.approved_itinerary_id)?.name || "an itinerary"}
+            </span>
+            {trip.itinerary_approved_at && (
+              <span className="text-xs text-muted-foreground ml-auto">
+                {format(new Date(trip.itinerary_approved_at), "MMM d, yyyy 'at' h:mm a")}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Cover photo banner */}
         {activeItinerary?.cover_image_url && (

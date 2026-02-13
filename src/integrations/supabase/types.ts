@@ -1111,12 +1111,15 @@ export type Database = {
       }
       trips: {
         Row: {
+          approved_itinerary_id: string | null
           client_id: string
           cover_image_url: string | null
           created_at: string
           depart_date: string | null
           destination: string | null
           id: string
+          itinerary_approved_at: string | null
+          itinerary_approved_by_client_id: string | null
           notes: string | null
           published_at: string | null
           return_date: string | null
@@ -1134,12 +1137,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approved_itinerary_id?: string | null
           client_id: string
           cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
           destination?: string | null
           id?: string
+          itinerary_approved_at?: string | null
+          itinerary_approved_by_client_id?: string | null
           notes?: string | null
           published_at?: string | null
           return_date?: string | null
@@ -1157,12 +1163,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approved_itinerary_id?: string | null
           client_id?: string
           cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
           destination?: string | null
           id?: string
+          itinerary_approved_at?: string | null
+          itinerary_approved_by_client_id?: string | null
           notes?: string | null
           published_at?: string | null
           return_date?: string | null
@@ -1181,8 +1190,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "trips_approved_itinerary_id_fkey"
+            columns: ["approved_itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "itineraries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "trips_client_id_fkey"
             columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_itinerary_approved_by_client_id_fkey"
+            columns: ["itinerary_approved_by_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]

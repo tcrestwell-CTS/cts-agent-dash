@@ -105,3 +105,15 @@ export function useSendPortalMessage() {
     },
   });
 }
+
+export function useApproveItinerary() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tripId, itineraryId }: { tripId: string; itineraryId: string }) =>
+      portalPost("approve-itinerary", { tripId, itineraryId }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["portal", "trip-detail", variables.tripId] });
+      queryClient.invalidateQueries({ queryKey: ["portal", "dashboard"] });
+    },
+  });
+}
