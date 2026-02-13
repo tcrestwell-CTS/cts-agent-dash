@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
-import { TripItinerary } from "@/components/trips/TripItinerary";
+
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { useTrip, useTrips } from "@/hooks/useTrips";
@@ -410,10 +410,6 @@ const TripDetail = () => {
               <CreditCard className="h-4 w-4" />
               Payments
             </TabsTrigger>
-            <TabsTrigger value="itinerary" className="flex items-center gap-2">
-              <Map className="h-4 w-4" />
-              Itinerary
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
@@ -446,18 +442,25 @@ const TripDetail = () => {
               onDataChange={fetchTrip}
             />
           </TabsContent>
-
-          <TabsContent value="itinerary" className="mt-6">
-            <TripItinerary
-              tripId={tripId!}
-              destination={trip.destination}
-              departDate={trip.depart_date}
-              returnDate={trip.return_date}
-              tripName={trip.trip_name}
-              bookings={bookings}
-            />
-          </TabsContent>
         </Tabs>
+
+        {/* Itinerary Builder Link */}
+        <Card>
+          <CardContent className="flex items-center justify-between py-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Map className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Itinerary Builder</h3>
+                <p className="text-sm text-muted-foreground">Build a detailed day-by-day itinerary for this trip</p>
+              </div>
+            </div>
+            <Button onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
+              Open Itinerary Builder
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

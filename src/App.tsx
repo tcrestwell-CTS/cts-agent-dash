@@ -24,6 +24,7 @@ import Suppliers from "./pages/Suppliers";
 import SupplierDocs from "./pages/SupplierDocs";
 import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
+import ItineraryBuilder from "./pages/ItineraryBuilder";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedTrip from "./pages/SharedTrip";
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
               <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
               <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
+              <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
               <Route path="/supplier-docs" element={<SupplierDocs />} />
               <Route path="/shared/:token" element={<SharedTrip />} />
 

@@ -395,7 +395,7 @@ const BookingDetail = () => {
                 </CardTitle>
                 {booking.trip_id && (
                   <Button variant="outline" size="sm" asChild>
-                    <Link to={`/trips/${booking.trip_id}?tab=itinerary`}>
+                    <Link to={`/trips/${booking.trip_id}/itinerary`}>
                       <Map className="h-4 w-4 mr-2" />
                       Build Itinerary
                     </Link>
