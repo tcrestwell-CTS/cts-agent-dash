@@ -718,27 +718,39 @@ export type Database = {
       }
       itineraries: {
         Row: {
+          cover_image_url: string | null
           created_at: string
+          depart_date: string | null
           id: string
           name: string
+          overview: string | null
+          return_date: string | null
           sort_order: number
           trip_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          cover_image_url?: string | null
           created_at?: string
+          depart_date?: string | null
           id?: string
           name?: string
+          overview?: string | null
+          return_date?: string | null
           sort_order?: number
           trip_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          cover_image_url?: string | null
           created_at?: string
+          depart_date?: string | null
           id?: string
           name?: string
+          overview?: string | null
+          return_date?: string | null
           sort_order?: number
           trip_id?: string
           updated_at?: string
