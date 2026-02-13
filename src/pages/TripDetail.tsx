@@ -27,6 +27,7 @@ import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
 import { TripItinerary } from "@/components/trips/TripItinerary";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
+import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
@@ -191,6 +192,13 @@ const TripDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <PublishTripButton
+              tripId={trip.id}
+              shareToken={(trip as any).share_token}
+              publishedAt={(trip as any).published_at}
+              updatedAt={trip.updated_at}
+              onPublished={fetchTrip}
+            />
             {trip.trip_page_url && (
               <Button variant="outline" size="sm" asChild>
                 <a

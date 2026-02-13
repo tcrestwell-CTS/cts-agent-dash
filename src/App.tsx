@@ -26,6 +26,7 @@ import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import SharedTrip from "./pages/SharedTrip";
 import { ScrollToTop } from "./components/ScrollToTop";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
               <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
               <Route path="/supplier-docs" element={<SupplierDocs />} />
+              <Route path="/shared/:token" element={<SharedTrip />} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<PortalLogin />} />
