@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Find trip by share token, only if published
     const { data: trip, error: tripError } = await supabase
       .from("trips")
-      .select("id, trip_name, destination, depart_date, return_date, status, trip_type, notes, published_at")
+      .select("id, trip_name, destination, depart_date, return_date, status, trip_type, notes, published_at, user_id")
       .eq("share_token", token)
       .not("published_at", "is", null)
       .single();
@@ -56,21 +56,36 @@ const handler = async (req: Request): Promise<Response> => {
       .select("id, destination, depart_date, return_date, status, trip_name")
       .eq("trip_id", trip.id);
 
-    // Fetch agent branding
-    const { data: tripFull } = await supabase
-      .from("trips")
-      .select("user_id")
-      .eq("id", trip.id)
-      .single();
-
+    // Fetch agent branding and profile in parallel
     let branding = null;
-    if (tripFull?.user_id) {
-      const { data } = await supabase
-        .from("branding_settings")
-        .select("agency_name, primary_color, accent_color, logo_url, tagline")
-        .eq("user_id", tripFull.user_id)
-        .maybeSingle();
-      branding = data;
+    let advisor = null;
+
+    if (trip.user_id) {
+      const [brandingRes, profileRes] = await Promise.all([
+        supabase
+          .from("branding_settings")
+          .select("agency_name, primary_color, accent_color, logo_url, tagline, email_address, phone, website")
+          .eq("user_id", trip.user_id)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("full_name, avatar_url, agency_name, job_title, phone")
+          .eq("user_id", trip.user_id)
+          .maybeSingle(),
+      ]);
+
+      branding = brandingRes.data;
+      if (profileRes.data) {
+        advisor = {
+          name: profileRes.data.full_name,
+          avatar_url: profileRes.data.avatar_url,
+          agency_name: profileRes.data.agency_name || branding?.agency_name,
+          job_title: profileRes.data.job_title,
+          phone: profileRes.data.phone || branding?.phone,
+          email: branding?.email_address,
+          website: branding?.website,
+        };
+      }
     }
 
     return new Response(JSON.stringify({
@@ -92,6 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
         trip_name: b.trip_name,
       })),
       branding,
+      advisor,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
