@@ -92,14 +92,10 @@ export default function PortalTripDetail() {
         <div className="ml-auto flex items-center gap-2">
           {trip.published_at && trip.share_token && (
             <Button variant="outline" size="sm" asChild>
-              <a
-                href={`https://portal.crestwelltravels.com/trips/${trip.share_token}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link to={`/shared/${trip.share_token}`}>
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                 View Itinerary
-              </a>
+              </Link>
             </Button>
           )}
           <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
