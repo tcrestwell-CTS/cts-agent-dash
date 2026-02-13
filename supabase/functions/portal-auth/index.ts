@@ -81,7 +81,11 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Use the origin from the request (so the link opens in the same browser context),
       // fall back to PORTAL_BASE_URL or published URL
-      const portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+      let portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+      // Ensure the URL has a protocol prefix
+      if (!/^https?:\/\//i.test(portalBaseUrl)) {
+        portalBaseUrl = `https://${portalBaseUrl}`;
+      }
       // Check if the URL path already includes /portal (not just the subdomain)
       const baseUrlObj = new URL(portalBaseUrl);
       const pathHasPortal = baseUrlObj.pathname.includes("/portal");
