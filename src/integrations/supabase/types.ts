@@ -925,7 +925,10 @@ export type Database = {
       profiles: {
         Row: {
           agency_name: string | null
+          asta_number: string | null
           avatar_url: string | null
+          ccra_number: string | null
+          clia_number: string | null
           commission_rate: number | null
           commission_tier: Database["public"]["Enums"]["commission_tier"] | null
           created_at: string
@@ -938,7 +941,10 @@ export type Database = {
         }
         Insert: {
           agency_name?: string | null
+          asta_number?: string | null
           avatar_url?: string | null
+          ccra_number?: string | null
+          clia_number?: string | null
           commission_rate?: number | null
           commission_tier?:
             | Database["public"]["Enums"]["commission_tier"]
@@ -953,7 +959,10 @@ export type Database = {
         }
         Update: {
           agency_name?: string | null
+          asta_number?: string | null
           avatar_url?: string | null
+          ccra_number?: string | null
+          clia_number?: string | null
           commission_rate?: number | null
           commission_tier?:
             | Database["public"]["Enums"]["commission_tier"]

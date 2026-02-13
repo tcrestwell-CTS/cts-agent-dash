@@ -15,11 +15,20 @@ interface SharedTripHeroProps {
     phone: string | null;
     email: string | null;
     website: string | null;
+    clia_number: string | null;
+    ccra_number: string | null;
+    asta_number: string | null;
   } | null;
   primaryColor: string;
 }
 
 export default function SharedTripHero({ branding, advisor, primaryColor }: SharedTripHeroProps) {
+  const certifications = [
+    { label: "CLIA", value: advisor?.clia_number },
+    { label: "CCRA", value: advisor?.ccra_number },
+    { label: "ASTA", value: advisor?.asta_number },
+  ].filter(c => c.value);
+
   return (
     <div className="relative w-full" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }}>
       <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col md:flex-row items-start md:items-center gap-6">
@@ -63,7 +72,19 @@ export default function SharedTripHero({ branding, advisor, primaryColor }: Shar
                 )}
               </div>
             </div>
-            <div className="space-y-1.5 text-sm">
+
+            {/* Certification numbers */}
+            {certifications.length > 0 && (
+              <div className="mb-3 space-y-0.5 text-sm text-gray-700">
+                {certifications.map(c => (
+                  <p key={c.label}>
+                    <span className="font-medium">{c.label}:</span> {c.value}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-3 space-y-1.5 text-sm">
               {advisor.email && (
                 <a href={`mailto:${advisor.email}`} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
                   <Mail className="h-3.5 w-3.5" /> {advisor.email}

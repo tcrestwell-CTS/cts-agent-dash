@@ -24,6 +24,9 @@ const Settings = () => {
     job_title: "",
     agency_name: "",
     commission_rate: 10,
+    clia_number: "",
+    ccra_number: "",
+    asta_number: "",
   });
 
   // Update form when profile loads
@@ -35,6 +38,9 @@ const Settings = () => {
         job_title: profile.job_title,
         agency_name: profile.agency_name,
         commission_rate: profile.commission_rate,
+        clia_number: profile.clia_number,
+        ccra_number: profile.ccra_number,
+        asta_number: profile.asta_number,
       });
     }
   }, [profile]);
@@ -190,6 +196,43 @@ const Settings = () => {
                       onChange={(e) => handleInputChange("agency_name", e.target.value)}
                       placeholder="Your agency name"
                     />
+                  </div>
+
+                  {/* Certification Numbers */}
+                  <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-4">
+                    <h3 className="font-medium text-card-foreground">Certification Numbers</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="clia">CLIA #</Label>
+                        <Input
+                          id="clia"
+                          value={formData.clia_number}
+                          onChange={(e) => handleInputChange("clia_number", e.target.value)}
+                          placeholder="e.g. 00048158"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="ccra">CCRA #</Label>
+                        <Input
+                          id="ccra"
+                          value={formData.ccra_number}
+                          onChange={(e) => handleInputChange("ccra_number", e.target.value)}
+                          placeholder="e.g. 99933757"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="asta">ASTA #</Label>
+                        <Input
+                          id="asta"
+                          value={formData.asta_number}
+                          onChange={(e) => handleInputChange("asta_number", e.target.value)}
+                          placeholder="e.g. 900391006"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      These will be displayed on shared trip pages alongside your advisor card.
+                    </p>
                   </div>
 
                   <div className="space-y-2">
