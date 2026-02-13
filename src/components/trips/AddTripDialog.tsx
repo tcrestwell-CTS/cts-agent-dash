@@ -41,7 +41,6 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
     destination: "",
     trip_type: "regular",
     notes: "",
-    trip_page_url: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showAddClient, setShowAddClient] = useState(false);
@@ -71,7 +70,6 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
         destination: "",
         trip_type: "regular",
         notes: "",
-        trip_page_url: "",
       });
       setDateRange(undefined);
       onOpenChange(false);
@@ -184,18 +182,6 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="trip_page_url">Trip Page URL (Optional)</Label>
-            <Input
-              id="trip_page_url"
-              type="url"
-              value={formData.trip_page_url}
-              onChange={(e) =>
-                setFormData({ ...formData, trip_page_url: e.target.value })
-              }
-              placeholder="https://..."
-            />
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
