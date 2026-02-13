@@ -23,6 +23,9 @@ export interface Trip {
   total_supplier_payout: number;
   created_at: string;
   updated_at: string;
+  share_token: string;
+  published_at: string | null;
+  cover_image_url: string | null;
   clients?: {
     id: string;
     name: string;
@@ -144,6 +147,9 @@ export function useTrips() {
       total_supplier_payout: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      share_token: "",
+      published_at: null,
+      cover_image_url: null,
       clients: null,
       isOptimistic: true,
     };
