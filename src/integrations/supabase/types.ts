@@ -1057,7 +1057,9 @@ export type Database = {
           destination: string | null
           id: string
           notes: string | null
+          published_at: string | null
           return_date: string | null
+          share_token: string
           status: string
           total_commission_revenue: number
           total_commissionable_amount: number
@@ -1077,7 +1079,9 @@ export type Database = {
           destination?: string | null
           id?: string
           notes?: string | null
+          published_at?: string | null
           return_date?: string | null
+          share_token?: string
           status?: string
           total_commission_revenue?: number
           total_commissionable_amount?: number
@@ -1097,7 +1101,9 @@ export type Database = {
           destination?: string | null
           id?: string
           notes?: string | null
+          published_at?: string | null
           return_date?: string | null
+          share_token?: string
           status?: string
           total_commission_revenue?: number
           total_commissionable_amount?: number

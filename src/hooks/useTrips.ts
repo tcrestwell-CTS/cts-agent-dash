@@ -166,7 +166,7 @@ export function useTrips() {
           notes: data.notes || null,
           trip_page_url: data.trip_page_url || null,
           status: "planning",
-        })
+        } as any)
         .select(`
           *,
           clients (
@@ -184,6 +184,17 @@ export function useTrips() {
         setTrips((prev) => prev.filter((t) => t.id !== optimisticId));
         toast.error("Failed to create trip");
         return null;
+      }
+
+      // Auto-assign trip_page_url using the share_token
+      const shareToken = (newTrip as any).share_token;
+      if (shareToken && !newTrip.trip_page_url) {
+        const tripPageUrl = `https://crestwelltravels.com/trips/${shareToken}`;
+        await supabase
+          .from("trips")
+          .update({ trip_page_url: tripPageUrl })
+          .eq("id", newTrip.id);
+        newTrip.trip_page_url = tripPageUrl;
       }
 
       // Replace optimistic trip with real trip
