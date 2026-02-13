@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { usePortalTripDetail } from "@/hooks/usePortalData";
+import { usePortalTripDetail, useApproveItinerary } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -16,7 +21,9 @@ const categoryIcons: Record<string, string> = {
 export default function PortalTripDetail() {
   const { tripId } = useParams();
   const { data, isLoading } = usePortalTripDetail(tripId);
+  const approveItinerary = useApproveItinerary();
   const [showItinerary, setShowItinerary] = useState(false);
+  const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
 
   if (isLoading) {
     return (
@@ -39,7 +46,27 @@ export default function PortalTripDetail() {
     );
   }
 
-  const { trip, bookings = [], payments = [], itinerary = [] } = data;
+  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [] } = data;
+  const approvedId = trip.approved_itinerary_id;
+
+  const handleApprove = async () => {
+    if (!confirmApproval || !tripId) return;
+    try {
+      await approveItinerary.mutateAsync({ tripId, itineraryId: confirmApproval.id });
+      toast.success(`You've approved "${confirmApproval.name}" as your preferred itinerary!`);
+    } catch {
+      toast.error("Failed to approve itinerary");
+    } finally {
+      setConfirmApproval(null);
+    }
+  };
+
+  // Group itinerary items by itinerary_id
+  const itemsByItinerary = itinerary.reduce((acc: Record<string, any[]>, item: any) => {
+    const key = item.itinerary_id || "default";
+    (acc[key] = acc[key] || []).push(item);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -66,6 +93,104 @@ export default function PortalTripDetail() {
           {trip.status}
         </Badge>
       </div>
+
+      {/* Itinerary Options */}
+      {itineraries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" /> Itinerary Options ({itineraries.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {approvedId && (
+              <div className="flex items-center gap-2 text-sm text-primary bg-primary/10 rounded-lg px-3 py-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="font-medium">
+                  You've approved: {itineraries.find((i: any) => i.id === approvedId)?.name || "an itinerary"}
+                </span>
+              </div>
+            )}
+
+            {itineraries.map((itin: any) => {
+              const isApproved = approvedId === itin.id;
+              const items = itemsByItinerary[itin.id] || [];
+
+              return (
+                <div
+                  key={itin.id}
+                  className={`rounded-lg border overflow-hidden transition-all ${
+                    isApproved ? "border-primary ring-1 ring-primary/30" : ""
+                  }`}
+                >
+                  {/* Cover image */}
+                  {itin.cover_image_url && (
+                    <img
+                      src={itin.cover_image_url}
+                      alt={itin.name}
+                      className="w-full h-36 object-cover"
+                    />
+                  )}
+
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold flex items-center gap-2">
+                          {itin.name}
+                          {isApproved && (
+                            <Badge variant="default" className="text-[10px] gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Approved
+                            </Badge>
+                          )}
+                        </h3>
+                        {itin.overview && (
+                          <p className="text-sm text-muted-foreground mt-1">{itin.overview}</p>
+                        )}
+                      </div>
+                      {!isApproved && (
+                        <Button
+                          size="sm"
+                          variant={approvedId ? "outline" : "default"}
+                          className="shrink-0 gap-1.5"
+                          onClick={() => setConfirmApproval({ id: itin.id, name: itin.name })}
+                        >
+                          <ThumbsUp className="h-3.5 w-3.5" />
+                          {approvedId ? "Switch" : "Approve"}
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Itinerary items */}
+                    {items.length > 0 && (
+                      <ItineraryItemsList items={items} />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Legacy itinerary (items without itinerary_id) */}
+      {(itemsByItinerary["default"]?.length > 0 && itineraries.length === 0) && (
+        <Card>
+          <CardHeader
+            className="cursor-pointer select-none"
+            onClick={() => setShowItinerary(!showItinerary)}
+          >
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" /> View Full Itinerary ({itinerary.length} items)
+              {showItinerary ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
+            </CardTitle>
+          </CardHeader>
+          {showItinerary && (
+            <CardContent>
+              <ItineraryItemsList items={itinerary} />
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Bookings */}
       <Card>
@@ -135,74 +260,6 @@ export default function PortalTripDetail() {
         </CardContent>
       </Card>
 
-      {/* Itinerary */}
-      {itinerary.length > 0 && (
-        <Card>
-          <CardHeader
-            className="cursor-pointer select-none"
-            onClick={() => setShowItinerary(!showItinerary)}
-          >
-            <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" /> View Full Itinerary ({itinerary.length} items)
-              {showItinerary ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
-            </CardTitle>
-          </CardHeader>
-          {showItinerary && (
-            <CardContent>
-              {Object.entries(
-                itinerary.reduce((acc: Record<number, any[]>, item: any) => {
-                  (acc[item.day_number] = acc[item.day_number] || []).push(item);
-                  return acc;
-                }, {})
-              ).map(([day, items]: [string, any[]]) => (
-                <div key={day} className="mb-5 last:mb-0">
-                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5" />
-                    Day {day}
-                    {items[0]?.item_date && (
-                      <span className="text-muted-foreground font-normal">
-                        — {format(new Date(items[0].item_date), "EEEE, MMM d, yyyy")}
-                      </span>
-                    )}
-                  </h4>
-                  <div className="space-y-2 ml-5 border-l-2 border-muted pl-4">
-                    {items.map((item: any) => (
-                      <div key={item.id} className="p-3 rounded-lg border bg-card">
-                        <div className="flex items-start gap-2">
-                          <span className="text-lg">{categoryIcons[item.category] || "📌"}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">{item.title}</p>
-                            {item.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                            )}
-                            <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
-                              {(item.start_time || item.end_time) && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {item.start_time}{item.end_time && ` – ${item.end_time}`}
-                                </span>
-                              )}
-                              {item.location && (
-                                <span className="flex items-center gap-1">
-                                  <MapPinned className="h-3 w-3" /> {item.location}
-                                </span>
-                              )}
-                            </div>
-                            {item.notes && (
-                              <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          )}
-        </Card>
-      )}
-
       {/* Notes */}
       {trip.notes && (
         <Card>
@@ -214,6 +271,81 @@ export default function PortalTripDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Approval confirmation */}
+      <AlertDialog open={!!confirmApproval} onOpenChange={(open) => !open && setConfirmApproval(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve Itinerary?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You're selecting <strong>"{confirmApproval?.name}"</strong> as your preferred itinerary. Your travel advisor will be notified of your choice.
+              {approvedId && " This will replace your previous selection."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApprove} disabled={approveItinerary.isPending}>
+              {approveItinerary.isPending ? "Approving..." : "Approve"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function ItineraryItemsList({ items }: { items: any[] }) {
+  const grouped = items.reduce((acc: Record<number, any[]>, item: any) => {
+    (acc[item.day_number] = acc[item.day_number] || []).push(item);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-4">
+      {Object.entries(grouped).map(([day, dayItems]: [string, any[]]) => (
+        <div key={day}>
+          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+            <Calendar className="h-3.5 w-3.5" />
+            Day {day}
+            {dayItems[0]?.item_date && (
+              <span className="text-muted-foreground font-normal">
+                — {format(new Date(dayItems[0].item_date), "EEEE, MMM d, yyyy")}
+              </span>
+            )}
+          </h4>
+          <div className="space-y-2 ml-5 border-l-2 border-muted pl-4">
+            {dayItems.map((item: any) => (
+              <div key={item.id} className="p-3 rounded-lg border bg-card">
+                <div className="flex items-start gap-2">
+                  <span className="text-lg">{categoryIcons[item.category] || "📌"}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{item.title}</p>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
+                      {(item.start_time || item.end_time) && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {item.start_time}{item.end_time && ` – ${item.end_time}`}
+                        </span>
+                      )}
+                      {item.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPinned className="h-3 w-3" /> {item.location}
+                        </span>
+                      )}
+                    </div>
+                    {item.notes && (
+                      <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

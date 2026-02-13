@@ -26,6 +26,8 @@ export interface Trip {
   share_token: string;
   published_at: string | null;
   cover_image_url: string | null;
+  approved_itinerary_id: string | null;
+  itinerary_approved_at: string | null;
   clients?: {
     id: string;
     name: string;
@@ -94,7 +96,7 @@ export function useTrips() {
         .from("trips")
         .select(`
           *,
-          clients (
+          clients!trips_client_id_fkey (
             id,
             name,
             email,
@@ -150,6 +152,8 @@ export function useTrips() {
       share_token: "",
       published_at: null,
       cover_image_url: null,
+      approved_itinerary_id: null,
+      itinerary_approved_at: null,
       clients: null,
       isOptimistic: true,
     };
@@ -175,7 +179,7 @@ export function useTrips() {
         } as any)
         .select(`
           *,
-          clients (
+          clients!trips_client_id_fkey (
             id,
             name,
             email,
@@ -343,7 +347,7 @@ export function useTrip(tripId: string | undefined) {
         .from("trips")
         .select(`
           *,
-          clients (
+          clients!trips_client_id_fkey (
             id,
             name,
             email,

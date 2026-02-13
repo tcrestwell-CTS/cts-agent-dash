@@ -195,14 +195,14 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Check if client owns the trip OR is a companion on it
       const companionTripIds3 = await getCompanionTripIds();
-      const isOwner = true; // we'll check below
       const isCompanion = companionTripIds3.includes(tripId);
 
-      const [tripRes, bookingsRes, paymentsRes, itineraryRes] = await Promise.all([
+      const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
         supabase.from("bookings").select("id, booking_reference, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id").eq("trip_id", tripId),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes").eq("trip_id", tripId),
-        supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
+        supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
+        supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
       ]);
 
       // Verify the client has access (either owner or companion)
@@ -217,7 +217,71 @@ const handler = async (req: Request): Promise<Response> => {
         bookings: bookingsRes.data || [],
         payments: paymentsRes.data || [],
         itinerary: itineraryRes.data || [],
+        itineraries: itinerariesRes.data || [],
       }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "approve-itinerary") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { tripId, itineraryId } = await req.json();
+      if (!tripId || !itineraryId) {
+        return new Response(JSON.stringify({ error: "tripId and itineraryId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify client owns the trip
+      const { data: tripCheck } = await supabase
+        .from("trips")
+        .select("id, client_id, user_id")
+        .eq("id", tripId)
+        .single();
+
+      if (!tripCheck || tripCheck.client_id !== clientId) {
+        return new Response(JSON.stringify({ error: "Trip not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update trip with approved itinerary
+      const { error: updateError } = await supabase
+        .from("trips")
+        .update({
+          approved_itinerary_id: itineraryId,
+          itinerary_approved_at: new Date().toISOString(),
+          itinerary_approved_by_client_id: clientId,
+        })
+        .eq("id", tripId);
+
+      if (updateError) throw updateError;
+
+      // Send notification message to agent
+      const { data: itinData } = await supabase
+        .from("itineraries")
+        .select("name")
+        .eq("id", itineraryId)
+        .single();
+
+      const { data: clientData } = await supabase
+        .from("clients")
+        .select("name")
+        .eq("id", clientId)
+        .single();
+
+      await supabase.from("portal_messages").insert({
+        client_id: clientId,
+        agent_user_id: tripCheck.user_id,
+        sender_type: "client",
+        message: `✅ ${clientData?.name || "Client"} has approved itinerary "${itinData?.name || "Unknown"}" for this trip.`,
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
