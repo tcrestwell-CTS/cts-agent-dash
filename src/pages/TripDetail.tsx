@@ -191,69 +191,103 @@ const TripDetail = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <PublishTripButton
-              tripId={trip.id}
-              shareToken={(trip as any).share_token}
-              publishedAt={(trip as any).published_at}
-              updatedAt={trip.updated_at}
-              onPublished={fetchTrip}
-            />
-            {trip.trip_page_url && (
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={trip.trip_page_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Trip Page
-                </a>
-              </Button>
-            )}
-            {hasPayments ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button variant="outline" size="sm" className="text-muted-foreground" disabled>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Remove all payments before deleting this trip</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Trip?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete this trip. Bookings will be
-                      unlinked but not deleted. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
+        </div>
+
+        {/* Unified Action Bar */}
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/contacts/${trip.client_id}`}>
+              <Users className="h-4 w-4 mr-2" />
+              Client Profile
+            </Link>
+          </Button>
+
+          {trip.clients?.email && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendPortalLink}
+              disabled={isSendingPortalLink}
+            >
+              {isSendingPortalLink ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Link2 className="mr-2 h-4 w-4" />
+              )}
+              Send Portal Link
+            </Button>
+          )}
+
+          <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
+            <Map className="h-4 w-4 mr-2" />
+            Itinerary Builder
+          </Button>
+
+          {trip.trip_page_url && (
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href={trip.trip_page_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Trip Page
+              </a>
+            </Button>
+          )}
+
+          <PublishTripButton
+            tripId={trip.id}
+            shareToken={(trip as any).share_token}
+            publishedAt={(trip as any).published_at}
+            updatedAt={trip.updated_at}
+            onPublished={fetchTrip}
+          />
+
+          <div className="flex-1" />
+
+          {hasPayments ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button variant="outline" size="sm" className="text-muted-foreground" disabled>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove all payments before deleting this trip</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Trip?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this trip. Bookings will be
+                    unlinked but not deleted. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {/* Status Workflow */}
@@ -356,29 +390,11 @@ const TripDetail = () => {
 
         {/* Traveler Info */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5" />
               Travelers
             </CardTitle>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/contacts/${trip.client_id}`}>View Client Profile</Link>
-            </Button>
-            {trip.clients?.email && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSendPortalLink}
-                disabled={isSendingPortalLink}
-              >
-                {isSendingPortalLink ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Link2 className="mr-2 h-4 w-4" />
-                )}
-                Send Portal Link
-              </Button>
-            )}
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
@@ -443,24 +459,6 @@ const TripDetail = () => {
             />
           </TabsContent>
         </Tabs>
-
-        {/* Itinerary Builder Link */}
-        <Card>
-          <CardContent className="flex items-center justify-between py-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Map className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Itinerary Builder</h3>
-                <p className="text-sm text-muted-foreground">Build a detailed day-by-day itinerary for this trip</p>
-              </div>
-            </div>
-            <Button onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
-              Open Itinerary Builder
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
