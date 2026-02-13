@@ -24,6 +24,7 @@ export interface ItineraryItem {
 
 export interface CreateItineraryItemData {
   trip_id: string;
+  itinerary_id?: string;
   day_number: number;
   title: string;
   description?: string;
@@ -37,7 +38,7 @@ export interface CreateItineraryItemData {
   sort_order?: number;
 }
 
-export function useItinerary(tripId: string | undefined) {
+export function useItinerary(tripId: string | undefined, itineraryId?: string | null) {
   const { user } = useAuth();
   const [items, setItems] = useState<ItineraryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,12 +47,16 @@ export function useItinerary(tripId: string | undefined) {
   const fetchItems = useCallback(async () => {
     if (!user || !tripId) { setLoading(false); return; }
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("itinerary_items")
         .select("*")
         .eq("trip_id", tripId)
         .order("day_number", { ascending: true })
         .order("sort_order", { ascending: true });
+      if (itineraryId) {
+        query = query.eq("itinerary_id", itineraryId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       setItems((data as ItineraryItem[]) || []);
     } catch (error) {
@@ -59,16 +64,17 @@ export function useItinerary(tripId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [user, tripId]);
+  }, [user, tripId, itineraryId]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const addItem = async (data: CreateItineraryItemData) => {
     if (!user) return false;
     try {
+      const insertData = { ...data, user_id: user.id, itinerary_id: data.itinerary_id || itineraryId || null };
       const { error } = await supabase
         .from("itinerary_items")
-        .insert({ ...data, user_id: user.id } as any);
+        .insert(insertData as any);
       if (error) throw error;
       toast.success("Item added");
       await fetchItems();
@@ -142,6 +148,7 @@ export function useItinerary(tripId: string | undefined) {
       const inserts = aiItems.map((item: any, idx: number) => ({
         trip_id: tripId,
         user_id: user.id,
+        itinerary_id: itineraryId || null,
         day_number: item.day_number || 1,
         title: item.title,
         description: item.description || null,
@@ -172,10 +179,14 @@ export function useItinerary(tripId: string | undefined) {
   const clearAll = async () => {
     if (!user || !tripId) return false;
     try {
-      const { error } = await supabase
+      let query = supabase
         .from("itinerary_items")
         .delete()
         .eq("trip_id", tripId);
+      if (itineraryId) {
+        query = query.eq("itinerary_id", itineraryId);
+      }
+      const { error } = await query;
       if (error) throw error;
       toast.success("Itinerary cleared");
       setItems([]);
@@ -193,6 +204,7 @@ export function useItinerary(tripId: string | undefined) {
       const inserts = bookings.map((b: any, idx: number) => ({
         trip_id: tripId,
         user_id: user.id,
+        itinerary_id: itineraryId || null,
         booking_id: b.id,
         day_number: 1,
         title: b.trip_name || b.destination || "Booking",
