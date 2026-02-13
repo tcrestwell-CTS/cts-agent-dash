@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
-
+import { TripCoverImage } from "@/components/trips/TripCoverImage";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { useTrip, useTrips } from "@/hooks/useTrips";
@@ -298,6 +298,14 @@ const TripDetail = () => {
         />
 
         <div className="grid gap-6 lg:grid-cols-3">
+          {/* Cover Image */}
+          <div className="lg:col-span-3">
+            <TripCoverImage
+              tripId={trip.id}
+              coverImageUrl={(trip as any).cover_image_url}
+              onUpdated={fetchTrip}
+            />
+          </div>
           {/* Trip Details */}
           <Card className="lg:col-span-2">
             <CardHeader>

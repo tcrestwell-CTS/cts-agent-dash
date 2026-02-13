@@ -17,6 +17,7 @@ export interface SharedTripData {
     trip_type: string | null;
     notes: string | null;
     total_cost: number | null;
+    cover_image_url: string | null;
   };
   itinerary: any[];
   bookings: any[];
@@ -98,6 +99,16 @@ export default function SharedTrip() {
 
   return (
     <div className="min-h-screen bg-white">
+      {data.trip.cover_image_url && (
+        <div className="relative w-full h-[320px] md:h-[420px] overflow-hidden">
+          <img
+            src={data.trip.cover_image_url}
+            alt={data.trip.trip_name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        </div>
+      )}
       <SharedTripHero branding={data.branding} advisor={data.advisor} primaryColor={primaryColor} />
 
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
