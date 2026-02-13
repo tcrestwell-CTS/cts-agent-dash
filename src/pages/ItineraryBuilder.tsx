@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2 } from "lucide-react";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
 import { CreateItinerarySheet } from "@/components/trips/CreateItinerarySheet";
@@ -31,7 +31,7 @@ const ItineraryBuilder = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { trip, bookings, loading } = useTrip(tripId);
-  const { itineraries, activeId, setActiveId, createItinerary, renameItinerary, deleteItinerary } = useItineraries(tripId);
+  const { itineraries, activeId, setActiveId, createItinerary, updateItinerary, renameItinerary, deleteItinerary } = useItineraries(tripId);
   const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarCallbacks, setSidebarCallbacks] = useState<ItinerarySidebarCallbacks | null>(null);
@@ -39,6 +39,7 @@ const ItineraryBuilder = () => {
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  const [editingItinerary, setEditingItinerary] = useState<import("@/hooks/useItineraries").Itinerary | null>(null);
 
   const activeItinerary = useMemo(
     () => itineraries.find((i) => i.id === activeId),
@@ -194,7 +195,10 @@ const ItineraryBuilder = () => {
                     <MoreVertical className="h-3.5 w-3.5" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-36">
+                <DropdownMenuContent align="start" className="w-40">
+                  <DropdownMenuItem onClick={() => { setEditingItinerary(itin); setCreateSheetOpen(true); }}>
+                    <Settings2 className="h-3.5 w-3.5 mr-2" /> Edit Details
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleRenameStart(itin.id, itin.name)}>
                     <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
                   </DropdownMenuItem>
@@ -211,7 +215,7 @@ const ItineraryBuilder = () => {
             </div>
           ))}
           <button
-            onClick={() => setCreateSheetOpen(true)}
+            onClick={() => { setEditingItinerary(null); setCreateSheetOpen(true); }}
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -296,13 +300,18 @@ const ItineraryBuilder = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Create Itinerary Sheet */}
+        {/* Create / Edit Itinerary Sheet */}
         <CreateItinerarySheet
           open={createSheetOpen}
-          onOpenChange={setCreateSheetOpen}
+          onOpenChange={(open) => {
+            setCreateSheetOpen(open);
+            if (!open) setEditingItinerary(null);
+          }}
           tripDepartDate={trip.depart_date}
           tripReturnDate={trip.return_date}
           onCreate={createItinerary}
+          editingItinerary={editingItinerary}
+          onUpdate={updateItinerary}
         />
       </div>
     </DashboardLayout>
