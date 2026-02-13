@@ -116,18 +116,30 @@ export function CoverPhotoPicker({
       </p>
 
       {coverPreview ? (
-        <div className="relative rounded-lg overflow-hidden border">
-          <img
-            src={coverPreview}
-            alt="Cover preview"
-            className="w-full h-48 object-cover"
-          />
-          <button
-            onClick={onRemove}
-            className="absolute top-2 right-2 bg-background/80 hover:bg-background rounded-full p-1"
+        <div className="space-y-2">
+          <div className="relative rounded-lg overflow-hidden border">
+            <img
+              src={coverPreview}
+              alt="Cover preview"
+              className="w-full h-48 object-cover"
+            />
+            <button
+              onClick={onRemove}
+              className="absolute top-2 right-2 bg-background/80 hover:bg-background rounded-full p-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div
+            onPaste={handlePaste}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            tabIndex={0}
+            className="border border-dashed rounded-md p-3 text-center text-xs text-muted-foreground cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+            onClick={() => fileInputRef.current?.click()}
           >
-            <X className="h-4 w-4" />
-          </button>
+            <p>Paste or drop a new image here to replace</p>
+          </div>
         </div>
       ) : (
         <div
