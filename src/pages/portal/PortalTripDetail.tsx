@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -89,9 +89,23 @@ export default function PortalTripDetail() {
             )}
           </div>
         </div>
-        <Badge className="ml-auto" variant={trip.status === "confirmed" ? "default" : "secondary"}>
-          {trip.status}
-        </Badge>
+        <div className="ml-auto flex items-center gap-2">
+          {trip.published_at && trip.share_token && (
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href={`https://portal.crestwelltravels.com/trips/${trip.share_token}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                View Itinerary
+              </a>
+            </Button>
+          )}
+          <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
+            {trip.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Itinerary Options */}
