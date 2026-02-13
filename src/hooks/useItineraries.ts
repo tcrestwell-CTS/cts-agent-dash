@@ -9,6 +9,10 @@ export interface Itinerary {
   user_id: string;
   name: string;
   sort_order: number;
+  cover_image_url: string | null;
+  overview: string | null;
+  depart_date: string | null;
+  return_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,13 +47,22 @@ export function useItineraries(tripId: string | undefined) {
 
   useEffect(() => { fetchItineraries(); }, [fetchItineraries]);
 
-  const createItinerary = async (name?: string) => {
+  const createItinerary = async (opts?: { name?: string; depart_date?: string; return_date?: string; cover_image_url?: string; overview?: string }) => {
     if (!user || !tripId) return null;
-    const newName = name || `Itinerary ${itineraries.length + 1}`;
+    const newName = opts?.name || `Itinerary ${itineraries.length + 1}`;
     try {
       const { data, error } = await supabase
         .from("itineraries")
-        .insert({ trip_id: tripId, user_id: user.id, name: newName, sort_order: itineraries.length } as any)
+        .insert({
+          trip_id: tripId,
+          user_id: user.id,
+          name: newName,
+          sort_order: itineraries.length,
+          depart_date: opts?.depart_date || null,
+          return_date: opts?.return_date || null,
+          cover_image_url: opts?.cover_image_url || null,
+          overview: opts?.overview || null,
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -101,7 +114,7 @@ export function useItineraries(tripId: string | undefined) {
   // Auto-create a default itinerary if none exist once loading is done
   const ensureDefault = useCallback(async () => {
     if (!loading && itineraries.length === 0 && user && tripId) {
-      await createItinerary("Itinerary 1");
+      await createItinerary({ name: "Itinerary 1" });
     }
   }, [loading, itineraries.length, user, tripId]);
 

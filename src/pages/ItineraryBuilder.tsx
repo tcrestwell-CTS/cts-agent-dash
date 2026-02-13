@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
+import { CreateItinerarySheet } from "@/components/trips/CreateItinerarySheet";
 import { useTrip } from "@/hooks/useTrips";
 import { useItineraries } from "@/hooks/useItineraries";
 import {
@@ -37,6 +38,7 @@ const ItineraryBuilder = () => {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
 
   const handleSidebarReady = useCallback((callbacks: ItinerarySidebarCallbacks) => {
     setSidebarCallbacks(callbacks);
@@ -204,7 +206,7 @@ const ItineraryBuilder = () => {
             </div>
           ))}
           <button
-            onClick={() => createItinerary()}
+            onClick={() => setCreateSheetOpen(true)}
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -270,6 +272,15 @@ const ItineraryBuilder = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Create Itinerary Sheet */}
+        <CreateItinerarySheet
+          open={createSheetOpen}
+          onOpenChange={setCreateSheetOpen}
+          tripDepartDate={trip.depart_date}
+          tripReturnDate={trip.return_date}
+          onCreate={createItinerary}
+        />
       </div>
     </DashboardLayout>
   );
