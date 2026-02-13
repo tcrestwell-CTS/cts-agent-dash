@@ -13,6 +13,9 @@ export interface ProfileData {
   avatar_url: string;
   commission_rate: number;
   commission_tier: CommissionTier | null;
+  clia_number: string;
+  ccra_number: string;
+  asta_number: string;
 }
 
 const defaultProfile: ProfileData = {
@@ -23,6 +26,9 @@ const defaultProfile: ProfileData = {
   avatar_url: "",
   commission_rate: 10,
   commission_tier: null,
+  clia_number: "",
+  ccra_number: "",
+  asta_number: "",
 };
 
 export function useProfile() {
@@ -64,6 +70,9 @@ export function useProfile() {
           avatar_url: data.avatar_url || "",
           commission_rate: data.commission_rate || 10,
           commission_tier: (data.commission_tier as CommissionTier) || null,
+          clia_number: (data as any).clia_number || "",
+          ccra_number: (data as any).ccra_number || "",
+          asta_number: (data as any).asta_number || "",
         });
       }
     } catch (error) {
@@ -93,7 +102,10 @@ export function useProfile() {
           agency_name: updatedProfile.agency_name,
           avatar_url: updatedProfile.avatar_url,
           commission_rate: updatedProfile.commission_rate,
-        }, {
+          clia_number: updatedProfile.clia_number || null,
+          ccra_number: updatedProfile.ccra_number || null,
+          asta_number: updatedProfile.asta_number || null,
+        } as any, {
           onConflict: "user_id",
         });
 

@@ -39,6 +39,9 @@ export interface SharedTripData {
     phone: string | null;
     email: string | null;
     website: string | null;
+    clia_number: string | null;
+    ccra_number: string | null;
+    asta_number: string | null;
   } | null;
 }
 
