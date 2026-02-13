@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,18 +8,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { CoverPhotoPicker } from "./CoverPhotoPicker";
+import type { Itinerary } from "@/hooks/useItineraries";
+
+interface ItineraryFormData {
+  name: string;
+  depart_date?: string;
+  return_date?: string;
+  cover_image_url?: string;
+  overview?: string;
+}
 
 interface CreateItinerarySheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tripDepartDate?: string | null;
   tripReturnDate?: string | null;
-  onCreate: (data: {
-    name: string;
-    depart_date?: string;
-    return_date?: string;
-    cover_image_url?: string;
-    overview?: string;
+  onCreate: (data: ItineraryFormData) => Promise<any>;
+  /** When provided, the sheet operates in edit mode */
+  editingItinerary?: Itinerary | null;
+  onUpdate?: (id: string, data: {
+    name?: string;
+    depart_date?: string | null;
+    return_date?: string | null;
+    cover_image_url?: string | null;
+    overview?: string | null;
   }) => Promise<any>;
 }
 
@@ -29,16 +41,39 @@ export function CreateItinerarySheet({
   tripDepartDate,
   tripReturnDate,
   onCreate,
+  editingItinerary,
+  onUpdate,
 }: CreateItinerarySheetProps) {
   const { user } = useAuth();
+  const isEditing = !!editingItinerary;
+
   const [name, setName] = useState("");
-  const [departDate, setDepartDate] = useState(tripDepartDate || "");
-  const [returnDate, setReturnDate] = useState(tripReturnDate || "");
+  const [departDate, setDepartDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
   const [overview, setOverview] = useState("");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Populate form when editing or reset when creating
+  useEffect(() => {
+    if (open && editingItinerary) {
+      setName(editingItinerary.name);
+      setDepartDate(editingItinerary.depart_date || "");
+      setReturnDate(editingItinerary.return_date || "");
+      setOverview(editingItinerary.overview || "");
+      setCoverPreview(editingItinerary.cover_image_url || null);
+      setCoverFile(null);
+    } else if (open && !editingItinerary) {
+      setName("");
+      setDepartDate(tripDepartDate || "");
+      setReturnDate(tripReturnDate || "");
+      setOverview("");
+      setCoverPreview(null);
+      setCoverFile(null);
+    }
+  }, [open, editingItinerary, tripDepartDate, tripReturnDate]);
 
   const handleFileSelected = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -60,6 +95,25 @@ export function CreateItinerarySheet({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const uploadCoverIfNeeded = async (): Promise<string | null | undefined> => {
+    if (coverFile && user) {
+      const ext = coverFile.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("itinerary-covers")
+        .upload(path, coverFile);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage
+        .from("itinerary-covers")
+        .getPublicUrl(path);
+      return urlData.publicUrl;
+    }
+    if (coverPreview && !coverFile) return coverPreview;
+    // Cover was removed
+    if (!coverPreview) return null;
+    return undefined;
+  };
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       toast.error("Please enter a name");
@@ -67,43 +121,30 @@ export function CreateItinerarySheet({
     }
     setSubmitting(true);
     try {
-      let cover_image_url: string | undefined;
+      const cover_image_url = await uploadCoverIfNeeded();
 
-      // Upload cover file if selected, or use URL directly
-      if (coverFile && user) {
-        const ext = coverFile.name.split(".").pop() || "jpg";
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("itinerary-covers")
-          .upload(path, coverFile);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage
-          .from("itinerary-covers")
-          .getPublicUrl(path);
-        cover_image_url = urlData.publicUrl;
-      } else if (coverPreview && !coverFile) {
-        // URL was pasted or selected from library
-        cover_image_url = coverPreview;
+      if (isEditing && onUpdate) {
+        await onUpdate(editingItinerary.id, {
+          name: name.trim(),
+          depart_date: departDate || null,
+          return_date: returnDate || null,
+          cover_image_url: cover_image_url === undefined ? editingItinerary.cover_image_url : cover_image_url,
+          overview: overview.trim() || null,
+        });
+      } else {
+        await onCreate({
+          name: name.trim(),
+          depart_date: departDate || undefined,
+          return_date: returnDate || undefined,
+          cover_image_url: cover_image_url || undefined,
+          overview: overview.trim() || undefined,
+        });
       }
 
-      await onCreate({
-        name: name.trim(),
-        depart_date: departDate || undefined,
-        return_date: returnDate || undefined,
-        cover_image_url,
-        overview: overview.trim() || undefined,
-      });
-
-      // Reset form
-      setName("");
-      setDepartDate(tripDepartDate || "");
-      setReturnDate(tripReturnDate || "");
-      setOverview("");
-      removeCover();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error creating itinerary:", error);
-      toast.error("Failed to create itinerary");
+      console.error(`Error ${isEditing ? "updating" : "creating"} itinerary:`, error);
+      toast.error(`Failed to ${isEditing ? "update" : "create"} itinerary`);
     } finally {
       setSubmitting(false);
     }
@@ -113,7 +154,7 @@ export function CreateItinerarySheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Create Itinerary</SheetTitle>
+          <SheetTitle>{isEditing ? "Edit Itinerary" : "Create Itinerary"}</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 py-6">
@@ -174,10 +215,12 @@ export function CreateItinerarySheet({
 
         <SheetFooter className="flex flex-row justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Discard
+            Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating..." : "Create Itinerary"}
+            {submitting
+              ? isEditing ? "Saving..." : "Creating..."
+              : isEditing ? "Save Changes" : "Create Itinerary"}
           </Button>
         </SheetFooter>
       </SheetContent>

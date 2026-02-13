@@ -94,6 +94,23 @@ export function useItineraries(tripId: string | undefined) {
     }
   };
 
+  const updateItinerary = async (id: string, updates: { name?: string; depart_date?: string | null; return_date?: string | null; cover_image_url?: string | null; overview?: string | null }) => {
+    try {
+      const { error } = await supabase
+        .from("itineraries")
+        .update(updates as any)
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Itinerary updated");
+      await fetchItineraries();
+      return true;
+    } catch (error) {
+      console.error("Error updating itinerary:", error);
+      toast.error("Failed to update");
+      return false;
+    }
+  };
+
   const deleteItinerary = async (id: string) => {
     try {
       const { error } = await supabase
@@ -126,6 +143,7 @@ export function useItineraries(tripId: string | undefined) {
     setActiveId,
     loading,
     createItinerary,
+    updateItinerary,
     renameItinerary,
     deleteItinerary,
   };
