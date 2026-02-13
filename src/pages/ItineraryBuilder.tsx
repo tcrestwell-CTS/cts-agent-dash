@@ -233,10 +233,14 @@ const ItineraryBuilder = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-4 left-6">
               <h2 className="text-white text-lg font-semibold drop-shadow-md">{activeItinerary.name}</h2>
-              {activeItinerary.overview && (
-                <p className="text-white/80 text-sm mt-1 max-w-2xl line-clamp-2 drop-shadow-md">{activeItinerary.overview}</p>
-              )}
             </div>
+          </div>
+        )}
+
+        {/* Overview statement */}
+        {activeItinerary?.overview && (
+          <div className="rounded-lg border bg-muted/30 px-5 py-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">{activeItinerary.overview}</p>
           </div>
         )}
 
