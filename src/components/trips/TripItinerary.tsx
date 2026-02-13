@@ -42,6 +42,7 @@ const categoryColors: Record<string, string> = {
 
 interface Props {
   tripId: string;
+  itineraryId?: string | null;
   destination: string | null;
   departDate: string | null;
   returnDate: string | null;
@@ -64,8 +65,8 @@ export interface ItinerarySidebarCallbacks {
   onWidgetyImport: (items: any[]) => Promise<boolean>;
 }
 
-export function TripItinerary({ tripId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
-  const { items, loading, generating, addItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId);
+export function TripItinerary({ tripId, itineraryId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
+  const { items, loading, generating, addItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId, itineraryId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
   const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string } | null>(null);
