@@ -33,7 +33,7 @@ const ItineraryBuilder = () => {
   const navigate = useNavigate();
   const { trip, bookings, loading, fetchTrip } = useTrip(tripId);
   const { itineraries, activeId, setActiveId, createItinerary, updateItinerary, renameItinerary, deleteItinerary } = useItineraries(tripId);
-  const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
+  const [layout, setLayout] = useState<"vertical" | "horizontal">("horizontal");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarCallbacks, setSidebarCallbacks] = useState<ItinerarySidebarCallbacks | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
