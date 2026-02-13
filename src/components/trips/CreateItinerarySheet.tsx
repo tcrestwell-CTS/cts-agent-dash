@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import { ImagePlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { CoverPhotoPicker } from "./CoverPhotoPicker";
 
 interface CreateItinerarySheetProps {
   open: boolean;
@@ -40,9 +40,7 @@ export function CreateItinerarySheet({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileSelected = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -51,12 +49,9 @@ export function CreateItinerarySheet({
     setCoverPreview(URL.createObjectURL(file));
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
+  const handleUrlSelected = (url: string) => {
+    setCoverFile(null);
+    setCoverPreview(url);
   };
 
   const removeCover = () => {
@@ -74,9 +69,9 @@ export function CreateItinerarySheet({
     try {
       let cover_image_url: string | undefined;
 
-      // Upload cover if selected
+      // Upload cover file if selected, or use URL directly
       if (coverFile && user) {
-        const ext = coverFile.name.split(".").pop();
+        const ext = coverFile.name.split(".").pop() || "jpg";
         const path = `${user.id}/${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("itinerary-covers")
@@ -86,6 +81,9 @@ export function CreateItinerarySheet({
           .from("itinerary-covers")
           .getPublicUrl(path);
         cover_image_url = urlData.publicUrl;
+      } else if (coverPreview && !coverFile) {
+        // URL was pasted or selected from library
+        cover_image_url = coverPreview;
       }
 
       await onCreate({
@@ -152,56 +150,12 @@ export function CreateItinerarySheet({
           </div>
 
           {/* Cover Photo */}
-          <div className="space-y-2">
-            <Label>Cover Photo</Label>
-            <p className="text-xs text-muted-foreground">Add an image to bring this trip to life.</p>
-
-            {coverPreview ? (
-              <div className="relative rounded-lg overflow-hidden border">
-                <img
-                  src={coverPreview}
-                  alt="Cover preview"
-                  className="w-full h-48 object-cover"
-                />
-                <button
-                  onClick={removeCover}
-                  className="absolute top-2 right-2 bg-background/80 hover:bg-background rounded-full p-1"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
-              >
-                <ImagePlus className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm font-medium">Add photo</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Drag and drop or paste from clipboard
-                </p>
-                <button
-                  type="button"
-                  className="text-sm font-medium mt-2 hover:underline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    fileInputRef.current?.click();
-                  }}
-                >
-                  Choose file
-                </button>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
+          <CoverPhotoPicker
+            coverPreview={coverPreview}
+            onFileSelected={handleFileSelected}
+            onUrlSelected={handleUrlSelected}
+            onRemove={removeCover}
+          />
 
           {/* Overview Statement */}
           <div className="space-y-2">
