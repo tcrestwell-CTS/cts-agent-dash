@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Rows3, Columns3 } from "lucide-react";
-import { TripItinerary } from "@/components/trips/TripItinerary";
+import { ArrowLeft, Rows3, Columns3, PanelLeft } from "lucide-react";
+import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
+import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
 import { useTrip } from "@/hooks/useTrips";
 import {
   Tooltip,
@@ -18,6 +19,12 @@ const ItineraryBuilder = () => {
   const navigate = useNavigate();
   const { trip, bookings, loading } = useTrip(tripId);
   const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCallbacks, setSidebarCallbacks] = useState<ItinerarySidebarCallbacks | null>(null);
+
+  const handleSidebarReady = useCallback((callbacks: ItinerarySidebarCallbacks) => {
+    setSidebarCallbacks(callbacks);
+  }, []);
 
   if (loading) {
     return (
@@ -45,7 +52,7 @@ const ItineraryBuilder = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -62,46 +69,90 @@ const ItineraryBuilder = () => {
           </div>
 
           <TooltipProvider>
-            <div className="flex items-center rounded-lg border bg-muted p-1 gap-0.5">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center rounded-lg border bg-muted p-1 gap-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={layout === "vertical" ? "secondary" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setLayout("vertical")}
+                    >
+                      <Rows3 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Vertical layout</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={layout === "horizontal" ? "secondary" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setLayout("horizontal")}
+                    >
+                      <Columns3 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Horizontal layout</TooltipContent>
+                </Tooltip>
+              </div>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant={layout === "vertical" ? "secondary" : "ghost"}
+                    variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => setLayout("vertical")}
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
                   >
-                    <Rows3 className="h-4 w-4" />
+                    <PanelLeft className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Vertical layout</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={layout === "horizontal" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setLayout("horizontal")}
-                  >
-                    <Columns3 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Horizontal layout</TooltipContent>
+                <TooltipContent>{sidebarOpen ? "Hide sidebar" : "Show sidebar"}</TooltipContent>
               </Tooltip>
             </div>
           </TooltipProvider>
         </div>
 
-        <TripItinerary
-          tripId={tripId!}
-          destination={trip.destination}
-          departDate={trip.depart_date}
-          returnDate={trip.return_date}
-          tripName={trip.trip_name}
-          bookings={bookings}
-          layout={layout}
-        />
+        {/* Content with sidebar */}
+        <div className="flex gap-0 rounded-lg border bg-background overflow-hidden" style={{ minHeight: "calc(100vh - 220px)" }}>
+          {/* Sidebar */}
+          {sidebarOpen && sidebarCallbacks && (
+            <ItinerarySidebar
+              tripId={tripId!}
+              destination={trip.destination}
+              departDate={trip.depart_date}
+              returnDate={trip.return_date}
+              tripName={trip.trip_name}
+              bookings={bookings}
+              generating={sidebarCallbacks.generating}
+              hasItems={sidebarCallbacks.hasItems}
+              unimportedBookings={sidebarCallbacks.unimportedBookings}
+              onAIGenerate={sidebarCallbacks.onAIGenerate}
+              onImportBookings={sidebarCallbacks.onImportBookings}
+              onExportPDF={sidebarCallbacks.onExportPDF}
+              onClearAll={sidebarCallbacks.onClearAll}
+              onAddCategory={sidebarCallbacks.onAddCategory}
+              onWidgetyImport={sidebarCallbacks.onWidgetyImport}
+            />
+          )}
+
+          {/* Main content */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            <TripItinerary
+              tripId={tripId!}
+              destination={trip.destination}
+              departDate={trip.depart_date}
+              returnDate={trip.return_date}
+              tripName={trip.trip_name}
+              bookings={bookings}
+              layout={layout}
+              hideToolbar={sidebarOpen}
+              onSidebarReady={handleSidebarReady}
+            />
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

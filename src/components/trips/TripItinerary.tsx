@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,12 +48,27 @@ interface Props {
   tripName: string;
   bookings: TripBooking[];
   layout?: "vertical" | "horizontal";
+  hideToolbar?: boolean;
+  onSidebarReady?: (callbacks: ItinerarySidebarCallbacks) => void;
 }
 
-export function TripItinerary({ tripId, destination, departDate, returnDate, tripName, bookings, layout = "vertical" }: Props) {
+export interface ItinerarySidebarCallbacks {
+  generating: boolean;
+  hasItems: boolean;
+  unimportedBookings: TripBooking[];
+  onAIGenerate: (preferences: string) => void;
+  onImportBookings: (bookings: TripBooking[]) => void;
+  onExportPDF: () => void;
+  onClearAll: () => void;
+  onAddCategory: (category: string) => void;
+  onWidgetyImport: (items: any[]) => Promise<boolean>;
+}
+
+export function TripItinerary({ tripId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
   const { items, loading, generating, addItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
+  const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string } | null>(null);
 
   // Detect cruise bookings for Widgety integration
   const cruiseBookings = bookings.filter(
@@ -155,14 +170,36 @@ export function TripItinerary({ tripId, destination, departDate, returnDate, tri
   const importedBookingIds = new Set(items.filter(i => i.booking_id).map(i => i.booking_id));
   const unimportedBookings = bookings.filter(b => !importedBookingIds.has(b.id));
 
+  // Expose callbacks for sidebar
+  useEffect(() => {
+    if (onSidebarReady) {
+      onSidebarReady({
+        generating,
+        hasItems: items.length > 0,
+        unimportedBookings,
+        onAIGenerate: async (prefs: string) => {
+          await generateWithAI(destination, departDate, returnDate, tripName, bookings, prefs);
+        },
+        onImportBookings: importFromBookings,
+        onExportPDF: handleExportPDF,
+        onClearAll: clearAll,
+        onAddCategory: (category: string) => {
+          // Add item for day 1 with specified category — opens the add dialog conceptually
+          setAddCategoryDay({ day: 1, category });
+        },
+        onWidgetyImport: handleWidgetyImport,
+      });
+    }
+  }, [onSidebarReady, generating, items.length, unimportedBookings.length]);
+
   if (loading) {
     return <div className="space-y-4">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-24" />)}</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Toolbar — hidden when sidebar controls are used */}
+      {!hideToolbar && <div className="flex flex-wrap items-center gap-2">
         <Dialog open={aiPromptOpen} onOpenChange={setAiPromptOpen}>
           <DialogTrigger asChild>
             <Button variant="default" size="sm" disabled={generating}>
@@ -246,7 +283,7 @@ export function TripItinerary({ tripId, destination, departDate, returnDate, tri
             </AlertDialog>
           </>
         )}
-      </div>
+      </div>}
 
       {/* Empty State */}
       {items.length === 0 && !generating && (
