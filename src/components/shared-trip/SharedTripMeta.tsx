@@ -1,4 +1,4 @@
-import { MapPin, Calendar, Users } from "lucide-react";
+import { MapPin, Calendar, DollarSign } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface SharedTripMetaProps {
@@ -8,6 +8,7 @@ interface SharedTripMetaProps {
     depart_date: string | null;
     return_date: string | null;
     trip_type: string | null;
+    total_cost: number | null;
   };
   primaryColor: string;
 }
@@ -28,6 +29,12 @@ export default function SharedTripMeta({ trip, primaryColor }: SharedTripMetaPro
             <Calendar className="h-4 w-4" style={{ color: primaryColor }} />
             {format(parseISO(trip.depart_date), "MMM d, yyyy")}
             {trip.return_date && ` – ${format(parseISO(trip.return_date), "MMM d, yyyy")}`}
+          </span>
+        )}
+        {trip.total_cost != null && trip.total_cost > 0 && (
+          <span className="flex items-center gap-1.5">
+            <DollarSign className="h-4 w-4" style={{ color: primaryColor }} />
+            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(trip.total_cost)}
           </span>
         )}
         {trip.trip_type && (

@@ -16,6 +16,7 @@ export interface SharedTripData {
     status: string;
     trip_type: string | null;
     notes: string | null;
+    total_cost: number | null;
   };
   itinerary: any[];
   bookings: any[];

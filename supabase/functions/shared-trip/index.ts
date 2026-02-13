@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Find trip by share token, only if published
     const { data: trip, error: tripError } = await supabase
       .from("trips")
-      .select("id, trip_name, destination, depart_date, return_date, status, trip_type, notes, published_at, user_id")
+      .select("id, trip_name, destination, depart_date, return_date, status, trip_type, notes, published_at, user_id, total_gross_sales")
       .eq("share_token", token)
       .not("published_at", "is", null)
       .single();
@@ -97,6 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
         status: trip.status,
         trip_type: trip.trip_type,
         notes: trip.notes,
+        total_cost: trip.total_gross_sales,
       },
       itinerary: itinerary || [],
       bookings: (bookings || []).map((b: any) => ({
