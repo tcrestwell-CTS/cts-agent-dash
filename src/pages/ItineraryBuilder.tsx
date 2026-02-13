@@ -117,7 +117,22 @@ const ItineraryBuilder = () => {
 
         {/* Content with sidebar */}
         <div className="flex gap-0 rounded-lg border bg-background overflow-hidden" style={{ minHeight: "calc(100vh - 220px)" }}>
-          {/* Sidebar */}
+          {/* Main content */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            <TripItinerary
+              tripId={tripId!}
+              destination={trip.destination}
+              departDate={trip.depart_date}
+              returnDate={trip.return_date}
+              tripName={trip.trip_name}
+              bookings={bookings}
+              layout={layout}
+              hideToolbar={sidebarOpen}
+              onSidebarReady={handleSidebarReady}
+            />
+          </div>
+
+          {/* Sidebar — right side */}
           {sidebarOpen && sidebarCallbacks && (
             <ItinerarySidebar
               tripId={tripId!}
@@ -137,21 +152,6 @@ const ItineraryBuilder = () => {
               onWidgetyImport={sidebarCallbacks.onWidgetyImport}
             />
           )}
-
-          {/* Main content */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            <TripItinerary
-              tripId={tripId!}
-              destination={trip.destination}
-              departDate={trip.depart_date}
-              returnDate={trip.return_date}
-              tripName={trip.trip_name}
-              bookings={bookings}
-              layout={layout}
-              hideToolbar={sidebarOpen}
-              onSidebarReady={handleSidebarReady}
-            />
-          </div>
         </div>
       </div>
     </DashboardLayout>

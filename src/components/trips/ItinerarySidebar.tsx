@@ -79,7 +79,7 @@ export function ItinerarySidebar({
   };
 
   return (
-    <div className="w-[240px] flex-shrink-0 border-r bg-card overflow-y-auto h-full">
+    <div className="w-[240px] flex-shrink-0 border-l bg-card overflow-y-auto h-full">
       <div className="p-4 space-y-5">
         {/* Title */}
         <h3 className="font-semibold text-sm">Build your trip</h3>
