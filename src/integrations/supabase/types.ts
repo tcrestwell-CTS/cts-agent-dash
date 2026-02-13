@@ -1052,6 +1052,7 @@ export type Database = {
       trips: {
         Row: {
           client_id: string
+          cover_image_url: string | null
           created_at: string
           depart_date: string | null
           destination: string | null
@@ -1074,6 +1075,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
           destination?: string | null
@@ -1096,6 +1098,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
           destination?: string | null
