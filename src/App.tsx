@@ -28,6 +28,7 @@ import ItineraryBuilder from "./pages/ItineraryBuilder";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedTrip from "./pages/SharedTrip";
+import CCAuthorize from "./pages/CCAuthorize";
 import { ScrollToTop } from "./components/ScrollToTop";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
               <Route path="/supplier-docs" element={<SupplierDocs />} />
               <Route path="/shared/:token" element={<SharedTrip />} />
+              <Route path="/authorize/:token" element={<CCAuthorize />} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<PortalLogin />} />

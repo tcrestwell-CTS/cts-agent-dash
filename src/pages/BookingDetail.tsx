@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   Receipt,
   Map,
+  CreditCard,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
@@ -59,6 +60,7 @@ import { useBookingCommission, useCreateCommission, useUpdateCommission, useUser
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
+import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
@@ -148,6 +150,7 @@ const BookingDetail = () => {
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCCAuthDialog, setShowCCAuthDialog] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [customRate, setCustomRate] = useState<string>("");
 
@@ -336,7 +339,14 @@ const BookingDetail = () => {
                 View in Tern
               </a>
             </Button>
-          )}
+           )}
+          <Button
+            variant="outline"
+            onClick={() => setShowCCAuthDialog(true)}
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            CC Auth
+          </Button>
           <Button
             variant="outline"
             onClick={handleGenerateInvoice}
@@ -906,6 +916,16 @@ const BookingDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CCAuthorizationDialog
+        open={showCCAuthDialog}
+        onOpenChange={setShowCCAuthDialog}
+        bookingId={booking.id}
+        clientId={booking.client_id}
+        clientName={booking.clients?.name || "Client"}
+        bookingAmount={booking.gross_sales || booking.total_amount}
+        bookingReference={booking.booking_reference}
+      />
     </DashboardLayout>
   );
 };
