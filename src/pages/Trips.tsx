@@ -24,9 +24,12 @@ import {
   Palmtree,
   ChevronDown,
   Loader2,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
+import { TripsKanban } from "@/components/trips/TripsKanban";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
 import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
@@ -316,6 +319,7 @@ const portalCategories = [
 ];
 
 const statusColors: Record<string, string> = {
+  inbound: "bg-amber-100 text-amber-700 border-amber-200",
   planning: "bg-blue-100 text-blue-700 border-blue-200",
   booked: "bg-green-100 text-green-700 border-green-200",
   traveling: "bg-purple-100 text-purple-700 border-purple-200",
@@ -431,9 +435,10 @@ function CTSBookingsWidget() {
 const Trips = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { trips, loading, fetchTrips } = useTrips();
+  const { trips, loading, fetchTrips, updateTrip } = useTrips();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   const handleTripCreated = () => {
     setIsAddDialogOpen(false);
@@ -541,25 +546,51 @@ const Trips = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="trips" className="mt-6 space-y-6">
-            {/* Search */}
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search trips..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          <TabsContent value="trips" className="mt-6 space-y-4">
+            {/* Search + View Toggle */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search trips..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === "kanban" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("kanban")}
+                  className="rounded-none"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="rounded-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            {/* Trips List */}
             {loading ? (
               <div className="grid gap-4">
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-32 w-full" />
                 ))}
               </div>
+            ) : viewMode === "kanban" ? (
+              <TripsKanban
+                trips={filteredTrips}
+                onStatusChange={async (tripId, newStatus) => {
+                  return await updateTrip(tripId, { status: newStatus });
+                }}
+              />
             ) : filteredTrips.length === 0 ? (
               <Card>
                 <CardContent className="py-12">
@@ -599,7 +630,6 @@ const Trips = () => {
                   >
                     <CardContent className="p-5">
                       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                        {/* Main Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-3 mb-2">
                             {trip.isOptimistic && (
@@ -614,13 +644,7 @@ const Trips = () => {
                             >
                               {trip.isOptimistic ? "Saving..." : trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
                             </Badge>
-                            {trip.trip_type && trip.trip_type !== "regular" && (
-                              <Badge variant="secondary" className="text-xs">
-                                {trip.trip_type}
-                              </Badge>
-                            )}
                           </div>
-
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1.5">
                               <Users className="h-4 w-4" />
@@ -641,38 +665,16 @@ const Trips = () => {
                                 )}
                               </span>
                             )}
-                            {trip.trip_page_url && (
-                              <a
-                                href={trip.trip_page_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 text-primary hover:underline"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                Trip Page
-                              </a>
-                            )}
                           </div>
                         </div>
-
-                        {/* Financial Summary */}
                         <div className="flex items-center gap-6 lg:gap-8">
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Total Sales
-                            </p>
-                            <p className="text-lg font-semibold">
-                              {formatCurrency(trip.total_gross_sales)}
-                            </p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Sales</p>
+                            <p className="text-lg font-semibold">{formatCurrency(trip.total_gross_sales)}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Commission
-                            </p>
-                            <p className="text-lg font-semibold text-primary">
-                              {formatCurrency(trip.total_commission_revenue)}
-                            </p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Commission</p>
+                            <p className="text-lg font-semibold text-primary">{formatCurrency(trip.total_commission_revenue)}</p>
                           </div>
                         </div>
                       </div>
