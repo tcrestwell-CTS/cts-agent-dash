@@ -47,6 +47,7 @@ export default function CCAuthorize() {
   const [cardholderName, setCardholderName] = useState("");
   const [billingZip, setBillingZip] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
+  const [tosAccepted, setTosAccepted] = useState(false);
 
   // Signature
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -137,6 +138,7 @@ export default function CCAuthorize() {
     if (cvv.length < 3) { toast.error("Please enter a valid CVV"); return; }
     if (!cardholderName.trim()) { toast.error("Please enter the cardholder name"); return; }
     if (!acknowledged) { toast.error("Please acknowledge the authorization"); return; }
+    if (!tosAccepted) { toast.error("Please accept the Terms of Service"); return; }
     if (!hasSigned) { toast.error("Please provide your electronic signature"); return; }
 
     setSubmitting(true);
@@ -364,6 +366,28 @@ export default function CCAuthorize() {
           </CardContent>
         </Card>
 
+        {/* Terms of Service */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="tos"
+                checked={tosAccepted}
+                onCheckedChange={(checked) => setTosAccepted(!!checked)}
+                className="mt-0.5"
+              />
+              <label htmlFor="tos" className="text-sm leading-relaxed cursor-pointer">
+                I have read and agree to the{" "}
+                <strong>Terms of Service</strong> and{" "}
+                <strong>Cancellation Policy</strong>. I understand that charges are subject to the terms outlined by{" "}
+                <strong>{authInfo.agency_name}</strong>, including any applicable cancellation fees, change fees, or
+                non-refundable deposits. I acknowledge that my card may be charged in partial or full amounts as
+                services are rendered.
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Signature */}
         <Card>
           <CardHeader className="pb-3">
@@ -402,7 +426,7 @@ export default function CCAuthorize() {
         <Button
           className="w-full h-12 text-base gap-2"
           onClick={handleSubmit}
-          disabled={submitting || !acknowledged || !hasSigned || !cardNumber || !cvv || !expiry || !cardholderName}
+          disabled={submitting || !acknowledged || !tosAccepted || !hasSigned || !cardNumber || !cvv || !expiry || !cardholderName}
         >
           {submitting ? (
             <Loader2 className="h-5 w-5 animate-spin" />
