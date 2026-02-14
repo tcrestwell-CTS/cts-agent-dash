@@ -309,7 +309,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: invoice } = await supabase
         .from("invoices")
-        .select("id, invoice_number, invoice_date, total_amount, amount_paid, amount_remaining, status, trip_name, client_name, trip_id, created_at")
+        .select("id, invoice_number, invoice_date, total_amount, amount_paid, amount_remaining, status, trip_name, client_name, trip_id, created_at, user_id")
         .eq("id", invoiceId)
         .eq("client_id", clientId)
         .single();
@@ -320,32 +320,45 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // If invoice has a trip, fetch trip bookings for line items
-      let bookings: any[] = [];
-      if (invoice.trip_id) {
-        const { data: tripBookings } = await supabase
-          .from("bookings")
-          .select("id, booking_reference, destination, total_amount, depart_date, return_date, travelers, supplier_id")
-          .eq("trip_id", invoice.trip_id)
-          .eq("client_id", clientId)
-          .neq("status", "cancelled")
-          .neq("status", "archived");
-        bookings = tripBookings || [];
-      }
+      // Fetch client info
+      const { data: clientData } = await supabase
+        .from("clients")
+        .select("name, email, phone")
+        .eq("id", clientId)
+        .single();
 
-      // Fetch payments for this trip
+      // Fetch branding from the agent who owns the invoice
+      const { data: branding } = await supabase
+        .from("branding_settings")
+        .select("agency_name, phone, email_address, address, website, logo_url")
+        .eq("user_id", invoice.user_id)
+        .maybeSingle();
+
+      // Fetch trip dates/destination if linked
+      let tripInfo: any = null;
       let payments: any[] = [];
       if (invoice.trip_id) {
-        const { data: tripPayments } = await supabase
-          .from("trip_payments")
-          .select("id, amount, payment_date, status, payment_type, details")
-          .eq("trip_id", invoice.trip_id)
-          .eq("status", "completed")
-          .order("payment_date", { ascending: true });
-        payments = tripPayments || [];
+        const [tripRes, paymentsRes] = await Promise.all([
+          supabase.from("trips").select("destination, depart_date, return_date").eq("id", invoice.trip_id).single(),
+          supabase.from("trip_payments")
+            .select("id, amount, payment_date, due_date, status, payment_type, details, notes")
+            .eq("trip_id", invoice.trip_id)
+            .order("payment_date", { ascending: true }),
+        ]);
+        tripInfo = tripRes.data;
+        payments = paymentsRes.data || [];
       }
 
-      return new Response(JSON.stringify({ invoice, bookings, payments }), {
+      return new Response(JSON.stringify({
+        invoice,
+        payments,
+        client_email: clientData?.email,
+        client_phone: clientData?.phone,
+        destination: tripInfo?.destination,
+        depart_date: tripInfo?.depart_date,
+        return_date: tripInfo?.return_date,
+        branding: branding || null,
+      }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
