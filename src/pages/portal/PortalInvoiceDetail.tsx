@@ -1,24 +1,99 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { usePortalInvoiceDetail } from "@/hooks/usePortalData";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { format } from "date-fns";
-import { ArrowLeft, FileText, MapPin, Calendar, Users } from "lucide-react";
+import { ArrowLeft, FileText, Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 
 export default function PortalInvoiceDetail() {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
   const { data, isLoading } = usePortalInvoiceDetail(invoiceId);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!data?.invoice) return;
+
+    const buildPdf = async () => {
+      setGenerating(true);
+      try {
+        const { invoice, payments = [], branding } = data;
+
+        const invoiceData: InvoiceData = {
+          invoiceNumber: invoice.invoice_number,
+          tripName: invoice.trip_name || "Services",
+          clientName: invoice.client_name || "Client",
+          clientEmail: data.client_email || undefined,
+          clientPhone: data.client_phone || undefined,
+          destination: data.destination || undefined,
+          departDate: data.depart_date || undefined,
+          returnDate: data.return_date || undefined,
+          payments: payments.map((p: any) => ({
+            id: p.id,
+            trip_id: "",
+            user_id: "",
+            amount: p.amount,
+            payment_date: p.payment_date,
+            due_date: p.due_date,
+            status: p.status,
+            payment_type: p.payment_type,
+            details: p.details,
+            notes: p.notes || null,
+            payment_method: null,
+            booking_id: null,
+            created_at: "",
+            updated_at: "",
+          })),
+          tripTotal: invoice.total_amount,
+          totalPaid: invoice.amount_paid,
+          totalRemaining: invoice.amount_remaining,
+          agencyName: branding?.agency_name || undefined,
+          agencyPhone: branding?.phone || undefined,
+          agencyEmail: branding?.email_address || undefined,
+          agencyAddress: branding?.address || undefined,
+          agencyWebsite: branding?.website || undefined,
+          agencyLogoUrl: branding?.logo_url || undefined,
+        };
+
+        // Generate PDF as base64, then create blob URL
+        const jsPDF = (await import("jspdf")).default;
+        const { generateInvoicePDF: gen } = await import("@/lib/invoiceGenerator");
+
+        // We need to get the raw jsPDF doc to create a blob
+        // Use a trick: generate with returnBase64 then convert
+        const base64 = await gen(invoiceData, { returnBase64: true });
+        if (base64 && typeof base64 === "string") {
+          const byteCharacters = atob(base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          setPdfUrl(url);
+        }
+      } catch (e) {
+        console.error("Failed to generate PDF:", e);
+      } finally {
+        setGenerating(false);
+      }
+    };
+
+    buildPdf();
+
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
+  }, [data]);
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40" />
-        <Skeleton className="h-60" />
+        <Skeleton className="h-[600px]" />
       </div>
     );
   }
@@ -35,103 +110,47 @@ export default function PortalInvoiceDetail() {
     );
   }
 
-  const { invoice, bookings = [], payments = [] } = data;
-
-  const statusVariant = invoice.status === "paid" ? "default" : invoice.status === "partial" ? "secondary" : "outline";
+  const handleDownload = () => {
+    if (pdfUrl) {
+      const a = document.createElement("a");
+      a.href = pdfUrl;
+      a.download = `${data.invoice.invoice_number}.pdf`;
+      a.click();
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => navigate("/portal/invoices")} className="gap-1">
-        <ArrowLeft className="h-4 w-4" /> Back to Invoices
-      </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/portal/invoices")} className="gap-1">
+          <ArrowLeft className="h-4 w-4" /> Back to Invoices
+        </Button>
+        {pdfUrl && (
+          <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1">
+            <Download className="h-4 w-4" /> Download PDF
+          </Button>
+        )}
+      </div>
 
-      {/* Invoice Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-xl">{invoice.invoice_number}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Issued {format(new Date(invoice.invoice_date), "MMMM d, yyyy")}
-                {invoice.trip_name && ` · ${invoice.trip_name}`}
-              </p>
-            </div>
-            <Badge variant={statusVariant} className="text-sm">{invoice.status}</Badge>
+      {generating ? (
+        <div className="flex items-center justify-center h-[600px] bg-muted/30 rounded-lg">
+          <div className="text-center space-y-2">
+            <Skeleton className="h-8 w-8 mx-auto rounded-full" />
+            <p className="text-sm text-muted-foreground">Generating invoice…</p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-lg font-bold">${invoice.total_amount.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Paid</p>
-              <p className="text-lg font-bold text-green-600">${invoice.amount_paid.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Remaining</p>
-              <p className="text-lg font-bold text-orange-600">${invoice.amount_remaining.toLocaleString()}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bookings / Line Items */}
-      {bookings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Bookings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {bookings.map((b: any) => (
-              <div key={b.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="space-y-0.5">
-                  <p className="font-medium text-sm">{b.booking_reference}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" /> {b.destination}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> {format(new Date(b.depart_date), "MMM d")} – {format(new Date(b.return_date), "MMM d, yyyy")}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {b.travelers}
-                    </span>
-                  </div>
-                </div>
-                <p className="font-semibold text-sm">${b.total_amount.toLocaleString()}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Payments */}
-      {payments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Payments Received</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {payments.map((p: any) => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{p.details || p.payment_type}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(p.payment_date), "MMM d, yyyy")}
-                  </p>
-                </div>
-                <p className="font-semibold text-sm text-green-600">+${p.amount.toLocaleString()}</p>
-              </div>
-            ))}
-            <Separator className="my-2" />
-            <div className="flex justify-between font-semibold text-sm">
-              <span>Total Paid</span>
-              <span className="text-green-600">${invoice.amount_paid.toLocaleString()}</span>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
+      ) : pdfUrl ? (
+        <div className="rounded-lg overflow-hidden border bg-background" style={{ height: "calc(100vh - 200px)" }}>
+          <iframe
+            src={pdfUrl}
+            className="w-full h-full"
+            title={`Invoice ${data.invoice.invoice_number}`}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-center h-[600px] bg-muted/30 rounded-lg">
+          <p className="text-sm text-muted-foreground">Failed to load invoice PDF.</p>
+        </div>
       )}
     </div>
   );
