@@ -88,24 +88,24 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   doc.text("Invoice", margin, yPos);
 
   // Try to load and add agency logo (top right)
-  const logoX = pageWidth - margin - 35;
+  const logoSize = 30;
+  const logoX = pageWidth - margin - logoSize;
   const logoY = yPos - 18;
   let logoAdded = false;
 
-  if (data.agencyLogoUrl) {
-    try {
-      const logoBase64 = await loadImageAsBase64(data.agencyLogoUrl);
-      if (logoBase64) {
-        // Add logo image - constrain to max 35x25 while maintaining aspect ratio
-        doc.addImage(logoBase64, "PNG", logoX, logoY, 35, 25, undefined, "FAST");
-        logoAdded = true;
-      }
-    } catch (e) {
-      console.warn("Failed to load logo for invoice:", e);
+  // Try agency logo URL first, then fall back to default local logo
+  const logoUrlToTry = data.agencyLogoUrl || "/images/logo_simplified.png";
+  try {
+    const logoBase64 = await loadImageAsBase64(logoUrlToTry);
+    if (logoBase64) {
+      doc.addImage(logoBase64, "PNG", logoX, logoY, logoSize, logoSize, undefined, "FAST");
+      logoAdded = true;
     }
+  } catch (e) {
+    console.warn("Failed to load logo for invoice:", e);
   }
 
-  // Fallback: Draw text badge if no logo
+  // Fallback: Draw text badge if no logo loaded at all
   if (!logoAdded) {
     doc.setFontSize(10);
     doc.setTextColor(...primaryColor);
@@ -116,8 +116,6 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
     doc.text("Travel", badgeX + 15, yPos - 3, { align: "center" });
     doc.setFontSize(8);
     doc.text("Services", badgeX + 15, yPos + 2, { align: "center" });
-    
-    // Draw a subtle rounded rectangle around the logo text
     doc.setDrawColor(...primaryColor);
     doc.setLineWidth(0.5);
     doc.roundedRect(badgeX, yPos - 15, 30, 22, 3, 3, "S");
