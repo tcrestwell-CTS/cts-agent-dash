@@ -30,13 +30,6 @@ export function useCCAuthorizations(bookingId: string | undefined) {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke("cc-authorization", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-        body: null,
-        method: "GET",
-      });
-
-      // Use fetch directly for GET with query params
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cc-authorization?action=list&booking_id=${bookingId}`,
         {
