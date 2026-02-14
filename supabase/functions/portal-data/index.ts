@@ -299,6 +299,56 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "invoice-detail") {
+      const invoiceId = url.searchParams.get("invoiceId");
+      if (!invoiceId) {
+        return new Response(JSON.stringify({ error: "invoiceId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: invoice } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, invoice_date, total_amount, amount_paid, amount_remaining, status, trip_name, client_name, trip_id, created_at")
+        .eq("id", invoiceId)
+        .eq("client_id", clientId)
+        .single();
+
+      if (!invoice) {
+        return new Response(JSON.stringify({ error: "Invoice not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // If invoice has a trip, fetch trip bookings for line items
+      let bookings: any[] = [];
+      if (invoice.trip_id) {
+        const { data: tripBookings } = await supabase
+          .from("bookings")
+          .select("id, booking_reference, destination, total_amount, depart_date, return_date, travelers, supplier_id")
+          .eq("trip_id", invoice.trip_id)
+          .eq("client_id", clientId)
+          .neq("status", "cancelled")
+          .neq("status", "archived");
+        bookings = tripBookings || [];
+      }
+
+      // Fetch payments for this trip
+      let payments: any[] = [];
+      if (invoice.trip_id) {
+        const { data: tripPayments } = await supabase
+          .from("trip_payments")
+          .select("id, amount, payment_date, status, payment_type, details")
+          .eq("trip_id", invoice.trip_id)
+          .eq("status", "completed")
+          .order("payment_date", { ascending: true });
+        payments = tripPayments || [];
+      }
+
+      return new Response(JSON.stringify({ invoice, bookings, payments }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else if (resource === "messages") {
       if (req.method === "POST") {
         const { message } = await req.json();

@@ -3,11 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { FileText } from "lucide-react";
+import { FileText, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function PortalInvoices() {
   const { data, isLoading } = usePortalInvoices();
   const invoices = data?.invoices || [];
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -32,7 +34,11 @@ export default function PortalInvoices() {
       ) : (
         <div className="space-y-3">
           {invoices.map((inv: any) => (
-            <Card key={inv.id}>
+            <Card
+              key={inv.id}
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate(`/portal/invoices/${inv.id}`)}
+            >
               <CardContent className="py-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -42,16 +48,19 @@ export default function PortalInvoices() {
                       {inv.trip_name && ` · ${inv.trip_name}`}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant={inv.status === "paid" ? "default" : inv.status === "partial" ? "secondary" : "outline"}>
-                      {inv.status}
-                    </Badge>
-                    <p className="font-semibold mt-1">${inv.total_amount.toLocaleString()}</p>
-                    {inv.amount_remaining > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        ${inv.amount_remaining.toLocaleString()} remaining
-                      </p>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <Badge variant={inv.status === "paid" ? "default" : inv.status === "partial" ? "secondary" : "outline"}>
+                        {inv.status}
+                      </Badge>
+                      <p className="font-semibold mt-1">${inv.total_amount.toLocaleString()}</p>
+                      {inv.amount_remaining > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          ${inv.amount_remaining.toLocaleString()} remaining
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
                 </div>
               </CardContent>
