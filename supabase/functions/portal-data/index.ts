@@ -358,6 +358,59 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "cc-authorizations") {
+      // Get CC authorizations for this client
+      const tripId = url.searchParams.get("tripId");
+
+      let query = supabaseAdmin
+        .from("cc_authorizations")
+        .select(`
+          id, booking_id, authorization_amount, authorization_description,
+          status, authorized_at, expires_at, access_token, created_at, last_four
+        `)
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+
+      if (tripId) {
+        // Filter by bookings belonging to this trip
+        const { data: tripBookings } = await supabaseAdmin
+          .from("bookings")
+          .select("id")
+          .eq("trip_id", tripId);
+        const bookingIds = (tripBookings || []).map((b: any) => b.id);
+        if (bookingIds.length > 0) {
+          query = query.in("booking_id", bookingIds);
+        } else {
+          return new Response(JSON.stringify({ authorizations: [] }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { data } = await query;
+
+      // Enrich with booking info
+      const bookingIds = [...new Set((data || []).map((a: any) => a.booking_id))];
+      let bookingsMap: Record<string, any> = {};
+      if (bookingIds.length > 0) {
+        const { data: bookings } = await supabaseAdmin
+          .from("bookings")
+          .select("id, booking_reference, destination, trip_name")
+          .in("id", bookingIds);
+        for (const b of bookings || []) {
+          bookingsMap[b.id] = b;
+        }
+      }
+
+      const enriched = (data || []).map((a: any) => ({
+        ...a,
+        booking: bookingsMap[a.booking_id] || null,
+      }));
+
+      return new Response(JSON.stringify({ authorizations: enriched }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

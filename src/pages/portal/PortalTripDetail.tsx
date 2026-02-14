@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { usePortalTripDetail, useApproveItinerary } from "@/hooks/usePortalData";
+import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +21,7 @@ const categoryIcons: Record<string, string> = {
 export default function PortalTripDetail() {
   const { tripId } = useParams();
   const { data, isLoading } = usePortalTripDetail(tripId);
+  const { data: ccData } = usePortalCCAuthorizations(tripId);
   const approveItinerary = useApproveItinerary();
   const [showItinerary, setShowItinerary] = useState(false);
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
@@ -237,6 +238,54 @@ export default function PortalTripDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* CC Authorizations */}
+      {(ccData?.authorizations?.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard className="h-4 w-4" /> Payment Authorizations ({ccData.authorizations.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {ccData.authorizations.map((auth: any) => (
+                <div key={auth.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <p className="font-medium">${Number(auth.authorization_amount).toLocaleString()}</p>
+                    {auth.authorization_description && (
+                      <p className="text-sm text-muted-foreground">{auth.authorization_description}</p>
+                    )}
+                    {auth.booking && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {auth.booking.trip_name || auth.booking.destination}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right space-y-1">
+                    <Badge variant={auth.status === "authorized" ? "default" : auth.status === "pending" ? "secondary" : "outline"}>
+                      {auth.status === "authorized" ? "✓ Authorized" : auth.status === "pending" ? "Awaiting" : auth.status}
+                    </Badge>
+                    {auth.status === "pending" && (
+                      <div>
+                        <a
+                          href={`/authorize/${auth.access_token}`}
+                          className="text-xs text-primary hover:underline font-medium"
+                        >
+                          Complete Authorization →
+                        </a>
+                      </div>
+                    )}
+                    {auth.status === "authorized" && auth.last_four && (
+                      <p className="text-xs text-muted-foreground">•••• {auth.last_four}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Payments */}
       <Card>
