@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Get client info + own trips + recent payments + agent profile
       const [clientRes, tripsRes, companionTripIds, paymentsRes, messagesRes] = await Promise.all([
         supabase.from("clients").select("id, name, first_name, last_name, email, user_id").eq("id", clientId).single(),
-        supabase.from("trips").select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales").eq("client_id", clientId).neq("status", "archived").order("depart_date", { ascending: false }),
+        supabase.from("trips").select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales").eq("client_id", clientId).neq("status", "archived").neq("status", "cancelled").order("depart_date", { ascending: false }),
         getCompanionTripIds(),
         supabase.from("trip_payments").select("id, amount, payment_date, status, payment_type, trip_id, due_date").eq("status", "pending").order("due_date", { ascending: true }).limit(5),
         supabase.from("portal_messages").select("id, message, sender_type, created_at, read_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5),
@@ -110,7 +110,8 @@ const handler = async (req: Request): Promise<Response> => {
           .from("trips")
           .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales")
           .in("id", extraTripIds)
-          .neq("status", "archived");
+          .neq("status", "archived")
+          .neq("status", "cancelled");
         companionTrips = data || [];
       }
 
@@ -161,6 +162,7 @@ const handler = async (req: Request): Promise<Response> => {
           .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
           .eq("client_id", clientId)
           .neq("status", "archived")
+          .neq("status", "cancelled")
           .order("depart_date", { ascending: false }),
         getCompanionTripIds(),
       ]);
@@ -173,7 +175,8 @@ const handler = async (req: Request): Promise<Response> => {
           .from("trips")
           .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
           .in("id", extraIds)
-          .neq("status", "archived");
+          .neq("status", "archived")
+          .neq("status", "cancelled");
         extraTrips = data || [];
       }
 
