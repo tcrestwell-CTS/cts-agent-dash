@@ -117,3 +117,12 @@ export function useApproveItinerary() {
     },
   });
 }
+
+export function usePortalCCAuthorizations(tripId: string | undefined) {
+  return useQuery({
+    queryKey: ["portal", "cc-authorizations", tripId],
+    queryFn: () => portalFetch("cc-authorizations", { tripId: tripId! }),
+    enabled: !!tripId,
+    staleTime: 30_000,
+  });
+}
