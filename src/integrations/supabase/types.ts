@@ -234,6 +234,90 @@ export type Database = {
         }
         Relationships: []
       }
+      cc_authorizations: {
+        Row: {
+          access_token: string
+          authorization_amount: number
+          authorization_description: string | null
+          authorized_at: string | null
+          auto_delete_at: string | null
+          billing_zip: string | null
+          booking_id: string
+          cardholder_name: string | null
+          client_id: string
+          created_at: string
+          encrypted_card_number: string | null
+          encrypted_cvv: string | null
+          encrypted_expiry: string | null
+          expires_at: string | null
+          id: string
+          last_four: string | null
+          signature_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string
+          authorization_amount?: number
+          authorization_description?: string | null
+          authorized_at?: string | null
+          auto_delete_at?: string | null
+          billing_zip?: string | null
+          booking_id: string
+          cardholder_name?: string | null
+          client_id: string
+          created_at?: string
+          encrypted_card_number?: string | null
+          encrypted_cvv?: string | null
+          encrypted_expiry?: string | null
+          expires_at?: string | null
+          id?: string
+          last_four?: string | null
+          signature_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          authorization_amount?: number
+          authorization_description?: string | null
+          authorized_at?: string | null
+          auto_delete_at?: string | null
+          billing_zip?: string | null
+          booking_id?: string
+          cardholder_name?: string | null
+          client_id?: string
+          created_at?: string
+          encrypted_card_number?: string | null
+          encrypted_cvv?: string | null
+          encrypted_expiry?: string | null
+          expires_at?: string | null
+          id?: string
+          last_four?: string | null
+          signature_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cc_authorizations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cc_authorizations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_companions: {
         Row: {
           birthday: string | null
