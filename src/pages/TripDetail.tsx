@@ -237,18 +237,6 @@ const TripDetail = () => {
             Itinerary Builder
           </Button>
 
-          {trip.trip_page_url && (
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={trip.trip_page_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Trip Page
-              </a>
-            </Button>
-          )}
 
           <PublishTripButton
             tripId={trip.id}
