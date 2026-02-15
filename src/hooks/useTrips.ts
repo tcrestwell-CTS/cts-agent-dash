@@ -28,6 +28,12 @@ export interface Trip {
   cover_image_url: string | null;
   approved_itinerary_id: string | null;
   itinerary_approved_at: string | null;
+  parent_trip_id: string | null;
+  currency: string;
+  pricing_visibility: string;
+  tags: string[];
+  allow_pdf_downloads: boolean;
+  itinerary_style: string;
   clients?: {
     id: string;
     name: string;
@@ -67,6 +73,7 @@ export interface CreateTripData {
   trip_type?: string;
   notes?: string;
   trip_page_url?: string;
+  parent_trip_id?: string;
 }
 
 export interface UpdateTripData {
@@ -154,6 +161,12 @@ export function useTrips() {
       cover_image_url: null,
       approved_itinerary_id: null,
       itinerary_approved_at: null,
+      parent_trip_id: data.parent_trip_id || null,
+      currency: "USD",
+      pricing_visibility: "show_all",
+      tags: [],
+      allow_pdf_downloads: false,
+      itinerary_style: "vertical_list",
       clients: null,
       isOptimistic: true,
     };
@@ -176,6 +189,7 @@ export function useTrips() {
           notes: data.notes || null,
           trip_page_url: data.trip_page_url || null,
           status: "planning",
+          parent_trip_id: data.parent_trip_id || null,
         } as any)
         .select(`
           *,
@@ -332,6 +346,7 @@ export function useTrip(tripId: string | undefined) {
   const { user } = useAuth();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [bookings, setBookings] = useState<TripBooking[]>([]);
+  const [subTrips, setSubTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
@@ -386,12 +401,31 @@ export function useTrip(tripId: string | undefined) {
 
       if (bookingsError) throw bookingsError;
 
+      // Fetch sub-trips
+      const { data: subTripsData, error: subTripsError } = await (supabase
+        .from("trips")
+        .select(`
+          *,
+          clients!trips_client_id_fkey (
+            id,
+            name,
+            email,
+            phone
+          )
+        `) as any)
+        .eq("parent_trip_id", tripId)
+        .order("created_at", { ascending: false });
+
+      if (subTripsError) throw subTripsError;
+
       setTrip(tripData);
       setBookings(bookingsData || []);
+      setSubTrips((subTripsData as Trip[]) || []);
     } catch (error) {
       console.error("Error fetching trip:", error);
       setTrip(null);
       setBookings([]);
+      setSubTrips([]);
     } finally {
       setLoading(false);
     }
@@ -472,6 +506,7 @@ export function useTrip(tripId: string | undefined) {
   return {
     trip,
     bookings,
+    subTrips,
     loading,
     updatingStatus,
     fetchTrip,
