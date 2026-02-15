@@ -33,8 +33,23 @@ export function QBOIntegrationCard() {
 
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<{
+    current_origin: string;
+    allowed_origins: string[];
+  } | null>(null);
   const redirectUri = `${window.location.origin}/settings?tab=integrations`;
+
+  // Known domains that should be registered
+  const knownDomains = [
+    "https://agents.crestwelltravels.com",
+    "https://id-preview--8ab51332-288c-4764-b4d9-392cc428e2fb.lovable.app",
+    "https://8ab51332-288c-4764-b4d9-392cc428e2fb.lovableproject.com",
+  ];
+  const allRequiredUris = [...new Set([
+    ...knownDomains.map(d => `${d}/settings?tab=integrations`),
+    redirectUri,
+  ])];
 
   // Handle OAuth callback
   useEffect(() => {
@@ -82,11 +97,22 @@ export function QBOIntegrationCard() {
     );
   }
 
-  const copyRedirectUri = () => {
-    navigator.clipboard.writeText(redirectUri);
-    setCopied(true);
-    toast.success("Redirect URI copied to clipboard");
-    setTimeout(() => setCopied(false), 2000);
+  const copyUri = (uri: string) => {
+    navigator.clipboard.writeText(uri);
+    setCopied(uri);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleConnect = async () => {
+    setConnectError(null);
+    const result = await connect();
+    if (result && result.error === "redirect_uri_mismatch") {
+      setConnectError({
+        current_origin: result.current_origin || window.location.origin,
+        allowed_origins: result.allowed_origins || [],
+      });
+    }
   };
 
   if (!status.connected) {
@@ -102,25 +128,51 @@ export function QBOIntegrationCard() {
               <p className="text-sm text-muted-foreground">Not connected</p>
             </div>
           </div>
-          <Button size="sm" onClick={connect}>Connect</Button>
+          <Button size="sm" onClick={handleConnect}>Connect</Button>
         </div>
+
+        {/* Redirect URI mismatch error */}
+        {connectError && (
+          <div className="px-4 pb-3">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-destructive">Redirect URI mismatch</p>
+                  <p className="text-xs text-destructive/80">
+                    The origin <code className="bg-destructive/10 px-1 rounded">{connectError.current_origin}</code> is not in the allowed origins list. Update the <strong>QBO_ALLOWED_ORIGINS</strong> backend secret and add the redirect URI to your Intuit Developer app.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* All required redirect URIs */}
         <div className="px-4 pb-4">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-800">Redirect URI must match</p>
+                <p className="text-xs font-medium text-amber-800">Required Redirect URIs</p>
                 <p className="text-xs text-amber-700">
-                  Before connecting, ensure this URI is listed in your Intuit Developer app's <strong>Redirect URIs</strong>:
+                  Ensure <strong>all</strong> of these URIs are listed in your Intuit Developer app's <strong>Redirect URIs</strong> and their origins are in <strong>QBO_ALLOWED_ORIGINS</strong>:
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5">
-              <code className="text-xs text-foreground flex-1 truncate">{redirectUri}</code>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={copyRedirectUri}>
-                {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-              </Button>
+            <div className="space-y-1.5">
+              {allRequiredUris.map((uri) => (
+                <div key={uri} className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5">
+                  <code className="text-xs text-foreground flex-1 truncate">{uri}</code>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(uri)}>
+                    {copied === uri ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                  </Button>
+                </div>
+              ))}
             </div>
+            <p className="text-xs text-amber-600 mt-1">
+              Current origin: <code className="bg-amber-100 px-1 rounded">{window.location.origin}</code>
+            </p>
           </div>
         </div>
       </div>
