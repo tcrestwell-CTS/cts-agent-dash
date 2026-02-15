@@ -159,6 +159,8 @@ const TripDetail = () => {
     );
   }
 
+  const isGroupTrip = trip.trip_type === "group";
+
   const tripSettings = {
     currency: (trip as any).currency || "USD",
     pricing_visibility: (trip as any).pricing_visibility || "show_all",
@@ -309,9 +311,9 @@ const TripDetail = () => {
           disabled={updatingStatus}
         />
 
-        {/* Main content with settings sidebar */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-          {/* Left content */}
+        {/* Main content */}
+        <div className={isGroupTrip ? "grid gap-6 lg:grid-cols-[1fr_280px]" : "space-y-6"}>
+          {/* Left / main content */}
           <div className="space-y-6">
             {/* Cover Image */}
             <TripCoverImage
@@ -321,13 +323,13 @@ const TripDetail = () => {
             />
 
             {/* Trip Details & Financials */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
+            <div className={isGroupTrip ? "grid gap-6 md:grid-cols-2" : "grid gap-6 lg:grid-cols-3"}>
+              <Card className={isGroupTrip ? "" : "lg:col-span-2"}>
                 <CardHeader>
                   <CardTitle className="text-lg">Trip Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {trip.destination && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -395,12 +397,14 @@ const TripDetail = () => {
               </Card>
             </div>
 
-            {/* Sub-Trips */}
-            <SubTrips
-              parentTripId={trip.id}
-              subTrips={subTrips}
-              onDataChange={fetchTrip}
-            />
+            {/* Sub-Trips — GROUP TRIPS: primary section, prominent placement */}
+            {isGroupTrip && (
+              <SubTrips
+                parentTripId={trip.id}
+                subTrips={subTrips}
+                onDataChange={fetchTrip}
+              />
+            )}
 
             {/* Travelers */}
             {trip.clients && (
@@ -477,17 +481,19 @@ const TripDetail = () => {
             </Tabs>
           </div>
 
-          {/* Right settings sidebar */}
-          <div className="hidden lg:block">
-            <div className="sticky top-6">
-              <TripSettingsSidebar
-                tripId={trip.id}
-                settings={tripSettings}
-                agencyName={profile?.agency_name || undefined}
-                onSettingsChange={fetchTrip}
-              />
+          {/* Right settings sidebar — GROUP TRIPS ONLY */}
+          {isGroupTrip && (
+            <div className="hidden lg:block">
+              <div className="sticky top-6">
+                <TripSettingsSidebar
+                  tripId={trip.id}
+                  settings={tripSettings}
+                  agencyName={profile?.agency_name || undefined}
+                  onSettingsChange={fetchTrip}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
