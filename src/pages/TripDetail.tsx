@@ -321,12 +321,6 @@ const TripDetail = () => {
               coverImageUrl={(trip as any).cover_image_url}
               onUpdated={fetchTrip}
             />
-            {/* Cover Image */}
-            <TripCoverImage
-              tripId={trip.id}
-              coverImageUrl={(trip as any).cover_image_url}
-              onUpdated={fetchTrip}
-            />
 
             {/* Trip Details & Financials */}
 
