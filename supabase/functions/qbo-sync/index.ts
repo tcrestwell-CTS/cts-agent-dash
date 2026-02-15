@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const QBO_SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com/v3/company";
+const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -95,7 +95,7 @@ serve(async (req) => {
     }).eq("id", connection.id);
   }
 
-  const qboBase = `${QBO_SANDBOX_BASE}/${connection.realm_id}`;
+  const qboBase = `${QBO_BASE}/${connection.realm_id}`;
   const qboHeaders = {
     Authorization: `Bearer ${connection.access_token}`,
     Accept: "application/json",

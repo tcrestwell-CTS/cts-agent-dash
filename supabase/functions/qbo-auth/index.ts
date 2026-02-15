@@ -143,7 +143,7 @@ serve(async (req) => {
       }
 
       // Get company info
-      const baseUrl = "https://sandbox-quickbooks.api.intuit.com";
+      const baseUrl = "https://quickbooks.api.intuit.com";
       const companyResp = await fetch(
         `${baseUrl}/v3/company/${realm_id}/companyinfo/${realm_id}`,
         {
