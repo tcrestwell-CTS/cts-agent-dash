@@ -97,6 +97,15 @@ const handler = async (req: Request): Promise<Response> => {
     const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
     const fromName = branding?.from_name || agencyName;
 
+    // Build the client portal URL
+    let portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+    if (!/^https?:\/\//i.test(portalBaseUrl)) {
+      portalBaseUrl = `https://${portalBaseUrl}`;
+    }
+    const portalUrlBase = portalBaseUrl.replace(/\/+$/, '');
+    const hasClientPath = new URL(portalUrlBase).pathname.includes("/client");
+    const clientPortalUrl = hasClientPath ? portalUrlBase : `${portalUrlBase}/client`;
+
     const logoHtml = logoUrl 
       ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
       : "";
@@ -107,11 +116,21 @@ const handler = async (req: Request): Promise<Response> => {
         ${tagline ? `<p style="margin: 4px 0; font-style: italic;">${tagline}</p>` : ""}
         ${phone ? `<p style="margin: 4px 0;">📞 ${phone}</p>` : ""}
         ${website ? `<p style="margin: 4px 0;"><a href="${website}" style="color: ${primaryColor};">${website}</a></p>` : ""}
+        <p style="margin: 8px 0;"><a href="${clientPortalUrl}" style="color: ${primaryColor}; text-decoration: underline;">Access Your Client Portal</a></p>
       </div>
     `;
 
     let emailHtml = "";
     const clientName = templateData?.clientName || "[Client Name]";
+
+    // Replace {{portal_url}} placeholder in any templateData values
+    if (templateData) {
+      for (const key of Object.keys(templateData)) {
+        if (typeof templateData[key] === "string") {
+          templateData[key] = templateData[key].replace(/\{\{portal_url\}\}/g, clientPortalUrl);
+        }
+      }
+    }
 
     switch (template) {
       case "welcome":
@@ -126,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="color: #4b5563; line-height: 1.6;">Thank you for choosing ${agencyName} for your upcoming adventure. We're thrilled to help you create unforgettable travel memories.</p>
             <p style="color: #4b5563; line-height: 1.6;">Your dedicated travel consultant is ready to craft the perfect itinerary for you.</p>
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${website || '#'}" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Get Started</a>
+              <a href="${clientPortalUrl}" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block;">Access Your Portal</a>
             </div>
             ${footerHtml}
           </div>
