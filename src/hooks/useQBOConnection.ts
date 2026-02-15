@@ -50,15 +50,9 @@ export function useQBOConnection() {
   const connect = async () => {
     try {
       const redirectUri = `${window.location.origin}/settings?tab=integrations`;
-      const { data, error } = await supabase.functions.invoke("qbo-auth/authorize", {
-        body: null,
-        headers: { "Content-Type": "application/json" },
-      });
-
-      // Use GET with query params via fetch
       const session = await supabase.auth.getSession();
       const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=authorize&redirect_uri=${encodeURIComponent(redirectUri)}`,
         {
           headers: {
             Authorization: `Bearer ${session.data.session?.access_token}`,
