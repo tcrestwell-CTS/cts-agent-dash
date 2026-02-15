@@ -312,7 +312,7 @@ const TripDetail = () => {
         />
 
         {/* Main content */}
-        <div className={isGroupTrip ? "grid gap-6 lg:grid-cols-[1fr_280px]" : "space-y-6"}>
+        <div className={isGroupTrip ? "grid gap-6 lg:grid-cols-[1fr_280px] items-start" : "space-y-6"}>
           {/* Left / main content */}
           <div className="space-y-6">
             {/* Cover Image */}
