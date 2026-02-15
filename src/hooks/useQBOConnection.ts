@@ -23,8 +23,18 @@ export function useQBOConnection() {
   const fetchStatus = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase.functions.invoke("qbo-auth/status");
-      if (error) throw error;
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=status`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (!resp.ok) throw new Error("Failed to fetch QBO status");
+      const data = await resp.json();
       setStatus(data);
     } catch (err) {
       console.error("Failed to fetch QBO status:", err);
@@ -81,11 +91,22 @@ export function useQBOConnection() {
 
     try {
       const redirectUri = `${window.location.origin}/settings?tab=integrations`;
-      const { data, error } = await supabase.functions.invoke("qbo-auth/callback", {
-        body: { code, redirect_uri: redirectUri, realm_id: realmId },
-      });
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=callback`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ code, redirect_uri: redirectUri, realm_id: realmId }),
+        }
+      );
 
-      if (error) throw error;
+      if (!resp.ok) throw new Error("Callback failed");
+      const data = await resp.json();
       toast.success(`Connected to QuickBooks: ${data.company_name || "Success"}`);
       await fetchStatus();
       return true;
@@ -98,10 +119,19 @@ export function useQBOConnection() {
 
   const disconnect = async () => {
     try {
-      const { error } = await supabase.functions.invoke("qbo-auth/disconnect", {
-        body: {},
-      });
-      if (error) throw error;
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=disconnect`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!resp.ok) throw new Error("Disconnect failed");
       setStatus({ connected: false, connection: null });
       toast.success("Disconnected from QuickBooks");
     } catch (err) {
@@ -113,10 +143,21 @@ export function useQBOConnection() {
   const syncClients = async (clientIds?: string[]) => {
     setSyncing("clients");
     try {
-      const { data, error } = await supabase.functions.invoke("qbo-sync/sync-clients", {
-        body: { client_ids: clientIds },
-      });
-      if (error) throw error;
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-clients`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ client_ids: clientIds }),
+        }
+      );
+      if (!resp.ok) throw new Error("Sync clients failed");
+      const data = await resp.json();
       toast.success(`Synced clients: ${data.created} created, ${data.updated} updated`);
       return data;
     } catch (err) {
@@ -130,10 +171,21 @@ export function useQBOConnection() {
   const syncInvoice = async (invoiceId: string) => {
     setSyncing("invoice");
     try {
-      const { data, error } = await supabase.functions.invoke("qbo-sync/sync-invoice", {
-        body: { invoice_id: invoiceId },
-      });
-      if (error) throw error;
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-invoice`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ invoice_id: invoiceId }),
+        }
+      );
+      if (!resp.ok) throw new Error("Sync invoice failed");
+      const data = await resp.json();
       toast.success("Invoice synced to QuickBooks");
       return data;
     } catch (err) {
@@ -147,10 +199,20 @@ export function useQBOConnection() {
   const syncPayments = async () => {
     setSyncing("payments");
     try {
-      const { data, error } = await supabase.functions.invoke("qbo-sync/sync-payments", {
-        body: {},
-      });
-      if (error) throw error;
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-payments`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!resp.ok) throw new Error("Sync payments failed");
+      const data = await resp.json();
       toast.success(`Payment sync: ${data.matched} matched of ${data.total_payments} QBO payments`);
       return data;
     } catch (err) {
@@ -165,7 +227,7 @@ export function useQBOConnection() {
     try {
       const session = await supabase.auth.getSession();
       const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync/financial-summary`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=financial-summary`,
         {
           headers: {
             Authorization: `Bearer ${session.data.session?.access_token}`,
