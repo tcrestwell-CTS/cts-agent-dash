@@ -304,23 +304,31 @@ const TripDetail = () => {
           )}
         </div>
 
-        {/* Status Workflow */}
-        <TripStatusWorkflow
-          currentStatus={trip.status}
-          onStatusChange={updateTripStatus}
-          disabled={updatingStatus}
-        />
-
         {/* Main content */}
         <div className={isGroupTrip ? "grid gap-6 lg:grid-cols-[1fr_280px] items-start" : "space-y-6"}>
           {/* Left / main content */}
           <div className="space-y-6">
+            {/* Status Workflow */}
+            <TripStatusWorkflow
+              currentStatus={trip.status}
+              onStatusChange={updateTripStatus}
+              disabled={updatingStatus}
+            />
+
             {/* Cover Image */}
             <TripCoverImage
               tripId={trip.id}
               coverImageUrl={(trip as any).cover_image_url}
               onUpdated={fetchTrip}
             />
+            {/* Cover Image */}
+            <TripCoverImage
+              tripId={trip.id}
+              coverImageUrl={(trip as any).cover_image_url}
+              onUpdated={fetchTrip}
+            />
+
+            {/* Trip Details & Financials */}
 
             {/* Trip Details & Financials */}
             <div className={isGroupTrip ? "grid gap-6 md:grid-cols-2" : "grid gap-6 lg:grid-cols-3"}>
