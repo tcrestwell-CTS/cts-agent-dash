@@ -59,7 +59,7 @@ export interface TripBooking {
 }
 
 export interface CreateTripData {
-  client_id: string;
+  client_id?: string;
   trip_name: string;
   destination?: string;
   depart_date?: string;
@@ -133,7 +133,7 @@ export function useTrips() {
     const optimisticTrip: Trip = {
       id: optimisticId,
       user_id: user.id,
-      client_id: data.client_id,
+      client_id: data.client_id || null,
       trip_name: data.trip_name,
       destination: data.destination || null,
       depart_date: data.depart_date || null,
@@ -167,7 +167,7 @@ export function useTrips() {
         .from("trips")
         .insert({
           user_id: user.id,
-          client_id: data.client_id,
+          client_id: data.client_id || null,
           trip_name: data.trip_name,
           destination: data.destination || null,
           depart_date: data.depart_date || null,
