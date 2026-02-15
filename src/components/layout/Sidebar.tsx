@@ -15,6 +15,7 @@ import {
   Compass,
   Menu,
   X,
+  HeartPulse,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +37,7 @@ const navigation = [
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
   { name: "Settings", href: "/settings", icon: Settings },
+  { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
 ];
 
 const adminNavigation = [

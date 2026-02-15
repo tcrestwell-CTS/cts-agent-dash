@@ -29,6 +29,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedTrip from "./pages/SharedTrip";
 import CCAuthorize from "./pages/CCAuthorize";
+import QBOHealth from "./pages/QBOHealth";
 import { ScrollToTop } from "./components/ScrollToTop";
 import PortalLogin from "./pages/client/PortalLogin";
 import PortalDashboard from "./pages/client/PortalDashboard";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
               <Route path="/branding" element={<ProtectedRoute><Branding /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
               <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
               <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
               <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
