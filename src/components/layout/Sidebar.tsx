@@ -37,11 +37,11 @@ const navigation = [
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
   { name: "Settings", href: "/settings", icon: Settings },
-  { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
 ];
 
 const adminNavigation = [
   { name: "Team Management", href: "/team", icon: UserPlus },
+  { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
 ];
 
 export function Sidebar() {

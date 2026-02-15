@@ -1,21 +1,38 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { useQBOSyncLogs } from "@/hooks/useQBOSyncLogs";
+import { useIsAdmin } from "@/hooks/useAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 
 type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
   const { status, loading: connLoading, refreshStatus } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
+
+  if (adminLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Skeleton className="h-8 w-48" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
 
   const filteredLogs = logs?.filter((log) => {
     if (filter === "all") return true;
