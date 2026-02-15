@@ -3,7 +3,7 @@ import { usePortalAuth } from "@/contexts/PortalAuthContext";
 import { usePortalBranding } from "@/hooks/usePortalBranding";
 import { Home, Map, MessageSquare, FileText, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -18,6 +18,11 @@ export function PortalLayout() {
   const { branding } = usePortalBranding();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = "Crestwell Travel Services - Client";
+    return () => { document.title = "Crestwell Travel Services - Agent"; };
+  }, []);
 
   const handleLogout = () => {
     logout();
