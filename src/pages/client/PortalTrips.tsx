@@ -32,7 +32,7 @@ export default function PortalTrips() {
       ) : (
         <div className="space-y-3">
           {trips.map((trip: any) => (
-            <Link key={trip.id} to={`/portal/trips/${trip.id}`}>
+            <Link key={trip.id} to={`/client/trips/${trip.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="py-4">
                   <div className="flex items-start justify-between">

@@ -40,7 +40,7 @@ export default function PortalTripDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Trip not found.</p>
-        <Link to="/portal/trips">
+        <Link to="/client/trips">
           <Button variant="outline" className="mt-4">Back to Trips</Button>
         </Link>
       </div>
@@ -72,7 +72,7 @@ export default function PortalTripDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link to="/portal/trips">
+        <Link to="/client/trips">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <div>

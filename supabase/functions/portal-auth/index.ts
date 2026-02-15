@@ -86,10 +86,9 @@ const handler = async (req: Request): Promise<Response> => {
       if (!/^https?:\/\//i.test(portalBaseUrl)) {
         portalBaseUrl = `https://${portalBaseUrl}`;
       }
-      // Check if the URL path already includes /portal (not just the subdomain)
       const baseUrlObj = new URL(portalBaseUrl);
-      const pathHasPortal = baseUrlObj.pathname.includes("/portal");
-      const portalPath = pathHasPortal ? "/login" : "/portal/login";
+      const pathHasClient = baseUrlObj.pathname.includes("/client");
+      const portalPath = pathHasClient ? "/login" : "/client/login";
       const portalUrl = `${portalBaseUrl.replace(/\/+$/, '')}${portalPath}?token=${portalToken}`;
 
       const logoHtml = logoUrl

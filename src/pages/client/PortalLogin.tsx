@@ -26,7 +26,7 @@ export default function PortalLogin() {
     if (token) {
       login(token).then((result) => {
         if (result.success) {
-          navigate("/portal", { replace: true });
+          navigate("/client", { replace: true });
         } else {
           toast.error(result.error || "Invalid or expired link");
         }
@@ -35,7 +35,7 @@ export default function PortalLogin() {
   }, [searchParams, login, navigate]);
 
   useEffect(() => {
-    if (session) navigate("/portal", { replace: true });
+    if (session) navigate("/client", { replace: true });
   }, [session, navigate]);
 
   // Handle Google OAuth callback - check if user just signed in via Supabase Auth
@@ -63,7 +63,7 @@ export default function PortalLogin() {
             token: data.token,
           };
           localStorage.setItem("portal_session", JSON.stringify(portalSession));
-          window.location.href = "/portal";
+          window.location.href = "/client";
         } catch {
           toast.error("Failed to sign in with Google.");
           setGoogleLoading(false);
@@ -86,7 +86,7 @@ export default function PortalLogin() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/portal/login",
+      redirect_uri: window.location.origin + "/client/login",
     });
     if (error) {
       toast.error("Failed to start Google sign in.");

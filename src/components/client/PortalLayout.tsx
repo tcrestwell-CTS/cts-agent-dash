@@ -7,10 +7,10 @@ import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/portal", label: "Dashboard", icon: Home, end: true },
-  { to: "/portal/trips", label: "My Trips", icon: Map },
-  { to: "/portal/messages", label: "Messages", icon: MessageSquare },
-  { to: "/portal/invoices", label: "Invoices", icon: FileText },
+  { to: "/client", label: "Dashboard", icon: Home, end: true },
+  { to: "/client/trips", label: "My Trips", icon: Map },
+  { to: "/client/messages", label: "Messages", icon: MessageSquare },
+  { to: "/client/invoices", label: "Invoices", icon: FileText },
 ];
 
 export function PortalLayout() {
@@ -21,7 +21,7 @@ export function PortalLayout() {
 
   const handleLogout = () => {
     logout();
-    navigate("/portal/login");
+    navigate("/client/login");
   };
 
   // Generate CSS custom properties from branding colors

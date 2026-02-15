@@ -103,7 +103,7 @@ export default function PortalInvoiceDetail() {
       <div className="text-center py-12 text-muted-foreground">
         <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
         <p>Invoice not found.</p>
-        <Button variant="link" onClick={() => navigate("/portal/invoices")}>
+        <Button variant="link" onClick={() => navigate("/client/invoices")}>
           Back to Invoices
         </Button>
       </div>
@@ -122,7 +122,7 @@ export default function PortalInvoiceDetail() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/portal/invoices")} className="gap-1">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/client/invoices")} className="gap-1">
           <ArrowLeft className="h-4 w-4" /> Back to Invoices
         </Button>
         {pdfUrl && (
