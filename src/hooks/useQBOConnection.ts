@@ -1,0 +1,198 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
+interface QBOConnectionStatus {
+  connected: boolean;
+  connection: {
+    realm_id: string;
+    company_name: string | null;
+    is_active: boolean;
+    token_expires_at: string;
+    created_at: string;
+  } | null;
+}
+
+export function useQBOConnection() {
+  const { user } = useAuth();
+  const [status, setStatus] = useState<QBOConnectionStatus>({ connected: false, connection: null });
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState<string | null>(null);
+
+  const fetchStatus = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-auth/status");
+      if (error) throw error;
+      setStatus(data);
+    } catch (err) {
+      console.error("Failed to fetch QBO status:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+
+  const connect = async () => {
+    try {
+      const redirectUri = `${window.location.origin}/settings?tab=integrations`;
+      const { data, error } = await supabase.functions.invoke("qbo-auth/authorize", {
+        body: null,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Use GET with query params via fetch
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+
+      if (!resp.ok) throw new Error("Failed to get authorization URL");
+      const result = await resp.json();
+      
+      // Store state for validation
+      sessionStorage.setItem("qbo_oauth_state", result.state);
+      
+      // Redirect to QBO
+      window.location.href = result.auth_url;
+    } catch (err) {
+      console.error("QBO connect error:", err);
+      toast.error("Failed to start QuickBooks connection");
+    }
+  };
+
+  const handleCallback = async (code: string, realmId: string, state: string) => {
+    const savedState = sessionStorage.getItem("qbo_oauth_state");
+    if (savedState && savedState !== state) {
+      toast.error("Invalid OAuth state. Please try again.");
+      return false;
+    }
+    sessionStorage.removeItem("qbo_oauth_state");
+
+    try {
+      const redirectUri = `${window.location.origin}/settings?tab=integrations`;
+      const { data, error } = await supabase.functions.invoke("qbo-auth/callback", {
+        body: { code, redirect_uri: redirectUri, realm_id: realmId },
+      });
+
+      if (error) throw error;
+      toast.success(`Connected to QuickBooks: ${data.company_name || "Success"}`);
+      await fetchStatus();
+      return true;
+    } catch (err) {
+      console.error("QBO callback error:", err);
+      toast.error("Failed to complete QuickBooks connection");
+      return false;
+    }
+  };
+
+  const disconnect = async () => {
+    try {
+      const { error } = await supabase.functions.invoke("qbo-auth/disconnect", {
+        body: {},
+      });
+      if (error) throw error;
+      setStatus({ connected: false, connection: null });
+      toast.success("Disconnected from QuickBooks");
+    } catch (err) {
+      console.error("QBO disconnect error:", err);
+      toast.error("Failed to disconnect from QuickBooks");
+    }
+  };
+
+  const syncClients = async (clientIds?: string[]) => {
+    setSyncing("clients");
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-sync/sync-clients", {
+        body: { client_ids: clientIds },
+      });
+      if (error) throw error;
+      toast.success(`Synced clients: ${data.created} created, ${data.updated} updated`);
+      return data;
+    } catch (err) {
+      console.error("Client sync error:", err);
+      toast.error("Failed to sync clients to QuickBooks");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const syncInvoice = async (invoiceId: string) => {
+    setSyncing("invoice");
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-sync/sync-invoice", {
+        body: { invoice_id: invoiceId },
+      });
+      if (error) throw error;
+      toast.success("Invoice synced to QuickBooks");
+      return data;
+    } catch (err) {
+      console.error("Invoice sync error:", err);
+      toast.error("Failed to sync invoice to QuickBooks");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const syncPayments = async () => {
+    setSyncing("payments");
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-sync/sync-payments", {
+        body: {},
+      });
+      if (error) throw error;
+      toast.success(`Payment sync: ${data.matched} matched of ${data.total_payments} QBO payments`);
+      return data;
+    } catch (err) {
+      console.error("Payment sync error:", err);
+      toast.error("Failed to sync payments from QuickBooks");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const getFinancialSummary = async () => {
+    try {
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync/financial-summary`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (!resp.ok) throw new Error("Failed to fetch financial summary");
+      return await resp.json();
+    } catch (err) {
+      console.error("Financial summary error:", err);
+      toast.error("Failed to fetch QuickBooks financial summary");
+      return null;
+    }
+  };
+
+  return {
+    status,
+    loading,
+    syncing,
+    connect,
+    handleCallback,
+    disconnect,
+    syncClients,
+    syncInvoice,
+    syncPayments,
+    getFinancialSummary,
+    refreshStatus: fetchStatus,
+  };
+}

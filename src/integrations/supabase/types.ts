@@ -1061,6 +1061,151 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_client_mappings: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          last_synced_at: string
+          qbo_customer_id: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          qbo_customer_id: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          qbo_customer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_client_mappings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qbo_connections: {
+        Row: {
+          access_token: string
+          company_name: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          realm_id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          realm_id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          realm_id?: string
+          refresh_token?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      qbo_invoice_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          last_synced_at: string
+          qbo_invoice_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          last_synced_at?: string
+          qbo_invoice_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          last_synced_at?: string
+          qbo_invoice_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_invoice_mappings_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qbo_sync_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          direction: string
+          error_message: string | null
+          id: string
+          records_processed: number
+          status: string
+          sync_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          records_processed?: number
+          status?: string
+          sync_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          records_processed?: number
+          status?: string
+          sync_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       signup_verification_codes: {
         Row: {
           code: string

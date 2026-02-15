@@ -11,6 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTierConfig } from "@/lib/commissionTiers";
+import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
 
 
 const Settings = () => {
@@ -533,22 +534,7 @@ const Settings = () => {
                 <Button size="sm">Connect</Button>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <span className="text-purple-600 font-bold">Q</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-card-foreground">
-                      QuickBooks
-                    </p>
-                    <p className="text-sm text-muted-foreground">Connected</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm">
-                  Disconnect
-                </Button>
-              </div>
+              <QBOIntegrationCard />
             </CardContent>
           </Card>
         </TabsContent>
