@@ -61,8 +61,18 @@ export function useQBOConnection() {
         }
       );
 
-      if (!resp.ok) throw new Error("Failed to get authorization URL");
       const result = await resp.json();
+
+      if (!resp.ok) {
+        if (result.error === "redirect_uri_mismatch") {
+          toast.error(
+            `This domain isn't registered with QuickBooks. Please add "${result.current_origin}" to your Intuit app's Redirect URIs, or connect from your production domain.`,
+            { duration: 10000 }
+          );
+          return;
+        }
+        throw new Error(result.error || "Failed to get authorization URL");
+      }
       
       // Store state for validation
       sessionStorage.setItem("qbo_oauth_state", result.state);

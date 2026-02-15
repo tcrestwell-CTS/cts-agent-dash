@@ -81,6 +81,40 @@ serve(async (req) => {
         });
       }
 
+      // Validate redirect_uri against allowed origins
+      const QBO_ALLOWED_ORIGINS = Deno.env.get("QBO_ALLOWED_ORIGINS") || "";
+      const allowedOrigins = QBO_ALLOWED_ORIGINS
+        .split(",")
+        .map((o) => o.trim())
+        .filter(Boolean);
+
+      if (allowedOrigins.length > 0) {
+        let redirectOrigin: string;
+        try {
+          redirectOrigin = new URL(redirectUri).origin;
+        } catch {
+          return new Response(
+            JSON.stringify({ error: "Invalid redirect_uri format" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!allowedOrigins.some((o) => redirectOrigin === o)) {
+          console.error(
+            `QBO redirect_uri mismatch: "${redirectOrigin}" not in allowed origins [${allowedOrigins.join(", ")}]`
+          );
+          return new Response(
+            JSON.stringify({
+              error: "redirect_uri_mismatch",
+              message: `The current origin "${redirectOrigin}" is not registered as an allowed QuickBooks redirect URI. Please add it to your Intuit Developer app's Redirect URIs, or connect from your production domain.`,
+              current_origin: redirectOrigin,
+              allowed_origins: allowedOrigins,
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       const state = crypto.randomUUID();
       const params = new URLSearchParams({
         client_id: QBO_CLIENT_ID,
