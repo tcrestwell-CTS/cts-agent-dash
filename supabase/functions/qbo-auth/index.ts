@@ -51,7 +51,9 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const path = url.pathname.split("/").pop();
+  // Support both path-based routing and query param routing
+  const pathSegments = url.pathname.split("/").filter(Boolean);
+  const path = url.searchParams.get("action") || pathSegments[pathSegments.length - 1];
 
   try {
     // GET /authorize - Generate OAuth URL

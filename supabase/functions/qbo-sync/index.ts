@@ -98,7 +98,8 @@ serve(async (req) => {
     "Content-Type": "application/json",
   };
 
-  const urlPath = new URL(req.url).pathname.split("/").pop();
+  const syncUrl = new URL(req.url);
+  const urlPath = syncUrl.searchParams.get("action") || syncUrl.pathname.split("/").filter(Boolean).pop();
 
   try {
     // POST /sync-clients - Push CRM clients to QBO
