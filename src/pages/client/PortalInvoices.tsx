@@ -37,7 +37,7 @@ export default function PortalInvoices() {
             <Card
               key={inv.id}
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate(`/portal/invoices/${inv.id}`)}
+              onClick={() => navigate(`/client/invoices/${inv.id}`)}
             >
               <CardContent className="py-4">
                 <div className="flex items-center justify-between">

@@ -73,9 +73,9 @@ const App = () => (
               <Route path="/authorize/:token" element={<CCAuthorize />} />
 
               {/* Client Portal Routes */}
-              <Route path="/portal/login" element={<PortalLogin />} />
-              <Route path="/portal/verify" element={<PortalLogin />} />
-              <Route path="/portal" element={<PortalProtectedRoute><PortalLayout /></PortalProtectedRoute>}>
+              <Route path="/client/login" element={<PortalLogin />} />
+              <Route path="/client/verify" element={<PortalLogin />} />
+              <Route path="/client" element={<PortalProtectedRoute><PortalLayout /></PortalProtectedRoute>}>
                 <Route index element={<PortalDashboard />} />
                 <Route path="trips" element={<PortalTrips />} />
                 <Route path="trips/:tripId" element={<PortalTripDetail />} />

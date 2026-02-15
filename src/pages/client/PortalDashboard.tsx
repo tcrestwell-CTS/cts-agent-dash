@@ -61,7 +61,7 @@ export default function PortalDashboard() {
           </CardContent>
         </Card>
 
-        <Link to="/portal/messages">
+        <Link to="/client/messages">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="pt-6 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
@@ -89,7 +89,7 @@ export default function PortalDashboard() {
               {trips.slice(0, 5).map((trip: any) => (
                 <Link
                   key={trip.id}
-                  to={`/portal/trips/${trip.id}`}
+                  to={`/client/trips/${trip.id}`}
                   className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
                   <div>
