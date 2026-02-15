@@ -26,9 +26,10 @@ interface AddTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTripCreated?: () => void;
+  parentTripId?: string;
 }
 
-export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDialogProps) {
+export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId }: AddTripDialogProps) {
   const { createTrip, creating } = useTrips();
 
   const [formData, setFormData] = useState({
@@ -50,7 +51,8 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
       ...formData,
       depart_date: dateRange?.from?.toISOString().split("T")[0],
       return_date: dateRange?.to?.toISOString().split("T")[0],
-    });
+      ...(parentTripId ? { parent_trip_id: parentTripId } : {}),
+    } as any);
 
     if (result) {
       setFormData({

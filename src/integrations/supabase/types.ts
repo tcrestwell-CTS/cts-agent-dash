@@ -1204,20 +1204,26 @@ export type Database = {
       }
       trips: {
         Row: {
+          allow_pdf_downloads: boolean
           approved_itinerary_id: string | null
           client_id: string | null
           cover_image_url: string | null
           created_at: string
+          currency: string
           depart_date: string | null
           destination: string | null
           id: string
           itinerary_approved_at: string | null
           itinerary_approved_by_client_id: string | null
+          itinerary_style: string
           notes: string | null
+          parent_trip_id: string | null
+          pricing_visibility: string
           published_at: string | null
           return_date: string | null
           share_token: string
           status: string
+          tags: string[] | null
           total_commission_revenue: number
           total_commissionable_amount: number
           total_gross_sales: number
@@ -1230,20 +1236,26 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
           client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
+          currency?: string
           depart_date?: string | null
           destination?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
+          itinerary_style?: string
           notes?: string | null
+          parent_trip_id?: string | null
+          pricing_visibility?: string
           published_at?: string | null
           return_date?: string | null
           share_token?: string
           status?: string
+          tags?: string[] | null
           total_commission_revenue?: number
           total_commissionable_amount?: number
           total_gross_sales?: number
@@ -1256,20 +1268,26 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
           client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
+          currency?: string
           depart_date?: string | null
           destination?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
+          itinerary_style?: string
           notes?: string | null
+          parent_trip_id?: string | null
+          pricing_visibility?: string
           published_at?: string | null
           return_date?: string | null
           share_token?: string
           status?: string
+          tags?: string[] | null
           total_commission_revenue?: number
           total_commissionable_amount?: number
           total_gross_sales?: number
@@ -1301,6 +1319,13 @@ export type Database = {
             columns: ["itinerary_approved_by_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_parent_trip_id_fkey"
+            columns: ["parent_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]

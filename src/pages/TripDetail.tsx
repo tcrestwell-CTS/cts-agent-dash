@@ -28,8 +28,11 @@ import { TripBookings } from "@/components/trips/TripBookings";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
+import { SubTrips } from "@/components/trips/SubTrips";
+import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
+import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
 import {
   Tooltip,
@@ -58,26 +61,19 @@ const statusColors: Record<string, string> = {
   archived: "bg-slate-100 text-slate-500 border-slate-200",
 };
 
-const bookingStatusColors: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  confirmed: "bg-green-100 text-green-700",
-  traveling: "bg-purple-100 text-purple-700",
-  completed: "bg-gray-100 text-gray-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
 const TripDetail = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "bookings";
-  const { trip, bookings, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
+  const { trip, bookings, subTrips, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
   const { deleteTrip } = useTrips();
   const { payments } = useTripPayments(tripId);
+  const { profile } = useProfile();
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
 
-  // Refresh trip data when page gains focus (e.g. returning from client/booking edit)
+  // Refresh trip data when page gains focus
   useEffect(() => {
     const handleFocus = () => {
       fetchTrip();
@@ -112,6 +108,7 @@ const TripDetail = () => {
       setIsSendingPortalLink(false);
     }
   };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -162,6 +159,14 @@ const TripDetail = () => {
     );
   }
 
+  const tripSettings = {
+    currency: (trip as any).currency || "USD",
+    pricing_visibility: (trip as any).pricing_visibility || "show_all",
+    tags: (trip as any).tags || [],
+    allow_pdf_downloads: (trip as any).allow_pdf_downloads || false,
+    itinerary_style: (trip as any).itinerary_style || "vertical_list",
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -172,7 +177,7 @@ const TripDetail = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/trips")}
+              onClick={() => navigate(trip.parent_trip_id ? `/trips/${trip.parent_trip_id}` : "/trips")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -185,9 +190,14 @@ const TripDetail = () => {
                 >
                   {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
                 </Badge>
+                {trip.trip_type && (
+                  <Badge variant="secondary">
+                    {trip.trip_type === "group" ? "Group Trip" : "Regular"}
+                  </Badge>
+                )}
               </div>
               <p className="text-muted-foreground mt-1">
-                {trip.clients?.name || "Unknown Client"}
+                {trip.clients?.name || "No client assigned"}
               </p>
             </div>
           </div>
@@ -195,12 +205,14 @@ const TripDetail = () => {
 
         {/* Unified Action Bar */}
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/contacts/${trip.client_id}`}>
-              <Users className="h-4 w-4 mr-2" />
-              Client Profile
-            </Link>
-          </Button>
+          {trip.client_id && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/contacts/${trip.client_id}`}>
+                <Users className="h-4 w-4 mr-2" />
+                Client Profile
+              </Link>
+            </Button>
+          )}
 
           {trip.clients?.email && (
             <Button
@@ -297,176 +309,186 @@ const TripDetail = () => {
           disabled={updatingStatus}
         />
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Cover Image */}
-          <div className="lg:col-span-3">
+        {/* Main content with settings sidebar */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+          {/* Left content */}
+          <div className="space-y-6">
+            {/* Cover Image */}
             <TripCoverImage
               tripId={trip.id}
               coverImageUrl={(trip as any).cover_image_url}
               onUpdated={fetchTrip}
             />
-          </div>
-          {/* Trip Details */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg">Trip Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                {trip.destination && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <span className="text-muted-foreground">Destination:</span>{" "}
-                      {trip.destination}
-                    </span>
-                  </div>
-                )}
-                {trip.depart_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      <span className="text-muted-foreground">Dates:</span>{" "}
-                      {format(new Date(trip.depart_date), "MMM d, yyyy")}
-                      {trip.return_date && (
-                        <> - {format(new Date(trip.return_date), "MMM d, yyyy")}</>
-                      )}
-                    </span>
-                  </div>
-                )}
-                {trip.trip_type && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      <span className="text-muted-foreground">Type:</span>{" "}
-                      {trip.trip_type.charAt(0).toUpperCase() +
-                        trip.trip_type.slice(1).replace("_", " ")}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {trip.notes && (
-                <div className="pt-2 border-t">
-                  <p className="text-sm text-muted-foreground mb-1">Notes</p>
-                  <p className="text-sm">{trip.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Financial Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Trip Financials
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-muted-foreground">Gross Sales</span>
-                <span className="font-semibold">
-                  {formatCurrency(trip.total_gross_sales)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-muted-foreground">
-                  Commissionable
-                </span>
-                <span className="font-medium">
-                  {formatCurrency(trip.total_commissionable_amount)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-muted-foreground">
-                  Commission Revenue
-                </span>
-                <span className="font-semibold text-primary">
-                  {formatCurrency(trip.total_commission_revenue)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-muted-foreground">
-                  Supplier Payout
-                </span>
-                <span className="font-medium">
-                  {formatCurrency(trip.total_supplier_payout)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Trip Details & Financials */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Trip Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4">
+                    {trip.destination && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">Destination:</span>{" "}
+                          {trip.destination}
+                        </span>
+                      </div>
+                    )}
+                    {trip.depart_date && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">Dates:</span>{" "}
+                          {format(new Date(trip.depart_date), "MMM d, yyyy")}
+                          {trip.return_date && (
+                            <> - {format(new Date(trip.return_date), "MMM d, yyyy")}</>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {trip.notes && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground mb-1">Notes</p>
+                      <p className="text-sm">{trip.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-        {/* Traveler Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Travelers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="font-semibold text-primary">
-                  {trip.clients?.name?.charAt(0).toUpperCase() || "?"}
-                </span>
-              </div>
-              <div>
-                <p className="font-medium">{trip.clients?.name || "Unknown"}</p>
-                {trip.clients?.email && (
-                  <p className="text-sm text-muted-foreground">
-                    {trip.clients.email}
-                  </p>
-                )}
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Trip Financials
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Gross Sales</span>
+                    <span className="font-semibold">
+                      {formatCurrency(trip.total_gross_sales)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Commissionable</span>
+                    <span className="font-medium">
+                      {formatCurrency(trip.total_commissionable_amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Commission Revenue</span>
+                    <span className="font-semibold text-primary">
+                      {formatCurrency(trip.total_commission_revenue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-muted-foreground">Supplier Payout</span>
+                    <span className="font-medium">
+                      {formatCurrency(trip.total_supplier_payout)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Tabs for Bookings and Payments */}
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="bookings" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              Bookings
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Payments
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="bookings" className="mt-6">
-            <TripBookings
-              tripId={tripId!}
-              clientId={trip.client_id}
-              bookings={bookings}
-              tripTotal={trip.total_gross_sales}
-              totalCommission={trip.total_commission_revenue}
-              destination={trip.destination || undefined}
-              departDate={trip.depart_date || undefined}
-              returnDate={trip.return_date || undefined}
+            {/* Sub-Trips */}
+            <SubTrips
+              parentTripId={trip.id}
+              subTrips={subTrips}
               onDataChange={fetchTrip}
             />
-          </TabsContent>
 
-          <TabsContent value="payments" className="mt-6">
-            <TripPayments
-              tripId={tripId!}
-              clientId={trip.client_id}
-              bookings={bookings}
-              tripTotal={trip.total_gross_sales}
-              tripName={trip.trip_name}
-              clientName={trip.clients?.name}
-              clientEmail={trip.clients?.email || undefined}
-              clientPhone={trip.clients?.phone || undefined}
-              destination={trip.destination || undefined}
-              departDate={trip.depart_date || undefined}
-              returnDate={trip.return_date || undefined}
-              onDataChange={fetchTrip}
-            />
-          </TabsContent>
-        </Tabs>
+            {/* Travelers */}
+            {trip.clients && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Travelers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="font-semibold text-primary">
+                        {trip.clients.name?.charAt(0).toUpperCase() || "?"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{trip.clients.name || "Unknown"}</p>
+                      {trip.clients.email && (
+                        <p className="text-sm text-muted-foreground">
+                          {trip.clients.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tabs for Bookings and Payments */}
+            <Tabs defaultValue={defaultTab} className="w-full">
+              <TabsList>
+                <TabsTrigger value="bookings" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Bookings
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payments
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="bookings" className="mt-6">
+                <TripBookings
+                  tripId={tripId!}
+                  clientId={trip.client_id}
+                  bookings={bookings}
+                  tripTotal={trip.total_gross_sales}
+                  totalCommission={trip.total_commission_revenue}
+                  destination={trip.destination || undefined}
+                  departDate={trip.depart_date || undefined}
+                  returnDate={trip.return_date || undefined}
+                  onDataChange={fetchTrip}
+                />
+              </TabsContent>
+
+              <TabsContent value="payments" className="mt-6">
+                <TripPayments
+                  tripId={tripId!}
+                  clientId={trip.client_id}
+                  bookings={bookings}
+                  tripTotal={trip.total_gross_sales}
+                  tripName={trip.trip_name}
+                  clientName={trip.clients?.name}
+                  clientEmail={trip.clients?.email || undefined}
+                  clientPhone={trip.clients?.phone || undefined}
+                  destination={trip.destination || undefined}
+                  departDate={trip.depart_date || undefined}
+                  returnDate={trip.return_date || undefined}
+                  onDataChange={fetchTrip}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Right settings sidebar */}
+          <div className="hidden lg:block">
+            <div className="sticky top-6">
+              <TripSettingsSidebar
+                tripId={trip.id}
+                settings={tripSettings}
+                agencyName={profile?.agency_name || undefined}
+                onSettingsChange={fetchTrip}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
