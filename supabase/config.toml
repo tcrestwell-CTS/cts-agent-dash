@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.send-signup-otp]
 verify_jwt = false
+
+[functions.qbo-auth]
+verify_jwt = false
+
+[functions.qbo-sync]
+verify_jwt = false
