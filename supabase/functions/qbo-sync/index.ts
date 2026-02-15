@@ -18,9 +18,9 @@ serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Auth
+  // ── Authenticate caller via getClaims ──────────────────────────────
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
+  if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -30,19 +30,23 @@ serve(async (req) => {
   const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-  if (userError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: "Unauthorized – invalid token" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // Get QBO connection
+  const userId = claimsData.claims.sub as string;
+
+  // ── Get QBO connection ─────────────────────────────────────────────
   const { data: connection, error: connError } = await supabaseAdmin
     .from("qbo_connections")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("is_active", true)
     .single();
 
@@ -53,13 +57,13 @@ serve(async (req) => {
     );
   }
 
-  // Auto-refresh token if expired
+  // ── Auto-refresh token if expired ──────────────────────────────────
   const tokenExpiry = new Date(connection.token_expires_at);
   if (tokenExpiry <= new Date(Date.now() + 60000)) {
     const QBO_CLIENT_ID = Deno.env.get("QBO_CLIENT_ID")!;
     const QBO_CLIENT_SECRET = Deno.env.get("QBO_CLIENT_SECRET")!;
     const basicAuth = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
-    
+
     const tokenResp = await fetch("https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", {
       method: "POST",
       headers: {
@@ -102,23 +106,21 @@ serve(async (req) => {
   const urlPath = syncUrl.searchParams.get("action") || syncUrl.pathname.split("/").filter(Boolean).pop();
 
   try {
-    // POST /sync-clients - Push CRM clients to QBO
+    // ── POST ?action=sync-clients ────────────────────────────────────
     if (urlPath === "sync-clients" && req.method === "POST") {
       const { client_ids } = await req.json();
 
-      // Get clients
-      let query = supabaseAdmin.from("clients").select("*").eq("user_id", user.id);
+      let query = supabaseAdmin.from("clients").select("*").eq("user_id", userId);
       if (client_ids?.length) {
         query = query.in("id", client_ids);
       }
       const { data: clients, error: clientsError } = await query;
       if (clientsError) throw clientsError;
 
-      // Get existing mappings
       const { data: mappings } = await supabaseAdmin
         .from("qbo_client_mappings")
         .select("client_id, qbo_customer_id")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
       const mappingMap = new Map((mappings || []).map((m: any) => [m.client_id, m.qbo_customer_id]));
 
       let created = 0, updated = 0, errors = 0;
@@ -137,7 +139,6 @@ serve(async (req) => {
           const existingQboId = mappingMap.get(client.id);
 
           if (existingQboId) {
-            // Update existing
             const getResp = await fetch(`${qboBase}/customer/${existingQboId}`, { headers: qboHeaders });
             if (getResp.ok) {
               const existing = await getResp.json();
@@ -152,7 +153,6 @@ serve(async (req) => {
               else errors++;
             }
           } else {
-            // Create new
             const createResp = await fetch(`${qboBase}/customer`, {
               method: "POST",
               headers: qboHeaders,
@@ -161,7 +161,7 @@ serve(async (req) => {
             if (createResp.ok) {
               const result = await createResp.json();
               await supabaseAdmin.from("qbo_client_mappings").insert({
-                user_id: user.id,
+                user_id: userId,
                 client_id: client.id,
                 qbo_customer_id: result.Customer.Id,
               });
@@ -178,9 +178,8 @@ serve(async (req) => {
         }
       }
 
-      // Log sync
       await supabaseAdmin.from("qbo_sync_logs").insert({
-        user_id: user.id,
+        user_id: userId,
         sync_type: "clients",
         direction: "push",
         status: errors > 0 ? "partial" : "success",
@@ -194,7 +193,7 @@ serve(async (req) => {
       );
     }
 
-    // POST /sync-invoice - Push a single invoice to QBO
+    // ── POST ?action=sync-invoice ────────────────────────────────────
     if (urlPath === "sync-invoice" && req.method === "POST") {
       const { invoice_id } = await req.json();
       if (!invoice_id) {
@@ -208,7 +207,7 @@ serve(async (req) => {
         .from("invoices")
         .select("*")
         .eq("id", invoice_id)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
       if (invError || !invoice) {
         return new Response(JSON.stringify({ error: "Invoice not found" }), {
@@ -217,20 +216,18 @@ serve(async (req) => {
         });
       }
 
-      // Find QBO customer mapping
       let qboCustomerId: string | null = null;
       if (invoice.client_id) {
         const { data: mapping } = await supabaseAdmin
           .from("qbo_client_mappings")
           .select("qbo_customer_id")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("client_id", invoice.client_id)
           .single();
         qboCustomerId = mapping?.qbo_customer_id || null;
       }
 
       if (!qboCustomerId && invoice.client_id) {
-        // Auto-sync client first
         const { data: client } = await supabaseAdmin
           .from("clients")
           .select("*")
@@ -253,7 +250,7 @@ serve(async (req) => {
             const result = await createResp.json();
             qboCustomerId = result.Customer.Id;
             await supabaseAdmin.from("qbo_client_mappings").insert({
-              user_id: user.id,
+              user_id: userId,
               client_id: invoice.client_id,
               qbo_customer_id: qboCustomerId!,
             });
@@ -261,7 +258,6 @@ serve(async (req) => {
         }
       }
 
-      // Create QBO Invoice
       const qboInvoice: any = {
         DocNumber: invoice.invoice_number?.substring(0, 21),
         TxnDate: invoice.invoice_date,
@@ -291,7 +287,7 @@ serve(async (req) => {
         const errText = await createResp.text();
         console.error("QBO invoice creation failed:", errText);
         await supabaseAdmin.from("qbo_sync_logs").insert({
-          user_id: user.id,
+          user_id: userId,
           sync_type: "invoice",
           direction: "push",
           status: "error",
@@ -305,13 +301,13 @@ serve(async (req) => {
 
       const result = await createResp.json();
       await supabaseAdmin.from("qbo_invoice_mappings").insert({
-        user_id: user.id,
+        user_id: userId,
         invoice_id: invoice.id,
         qbo_invoice_id: result.Invoice.Id,
       });
 
       await supabaseAdmin.from("qbo_sync_logs").insert({
-        user_id: user.id,
+        user_id: userId,
         sync_type: "invoice",
         direction: "push",
         status: "success",
@@ -324,15 +320,13 @@ serve(async (req) => {
       );
     }
 
-    // GET /financial-summary - Get QBO P&L / balances
+    // ── GET ?action=financial-summary ─────────────────────────────────
     if (urlPath === "financial-summary" && req.method === "GET") {
-      // Get Profit & Loss
       const plResp = await fetch(
         `${qboBase}/reports/ProfitAndLoss?date_macro=This Month`,
         { headers: qboHeaders }
       );
 
-      // Get Balance Sheet
       const bsResp = await fetch(
         `${qboBase}/reports/BalanceSheet`,
         { headers: qboHeaders }
@@ -369,9 +363,8 @@ serve(async (req) => {
       });
     }
 
-    // POST /sync-payments - Pull payment updates from QBO
+    // ── POST ?action=sync-payments ───────────────────────────────────
     if (urlPath === "sync-payments" && req.method === "POST") {
-      // Query recent QBO payments
       const queryResp = await fetch(
         `${qboBase}/query?query=${encodeURIComponent("SELECT * FROM Payment WHERE MetaData.LastUpdatedTime > '2020-01-01' MAXRESULTS 100")}`,
         { headers: qboHeaders }
@@ -387,11 +380,10 @@ serve(async (req) => {
       const queryData = await queryResp.json();
       const payments = queryData.QueryResponse?.Payment || [];
 
-      // Get invoice mappings to match payments to our invoices
       const { data: invoiceMappings } = await supabaseAdmin
         .from("qbo_invoice_mappings")
         .select("invoice_id, qbo_invoice_id")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       const qboToLocalMap = new Map(
         (invoiceMappings || []).map((m: any) => [m.qbo_invoice_id, m.invoice_id])
@@ -406,7 +398,6 @@ serve(async (req) => {
             if (txn.TxnType === "Invoice") {
               const localInvoiceId = qboToLocalMap.get(txn.TxnId);
               if (localInvoiceId) {
-                // Update local invoice payment status
                 const paidAmount = parseFloat(payment.TotalAmt || "0");
                 await supabaseAdmin
                   .from("invoices")
@@ -416,7 +407,7 @@ serve(async (req) => {
                     status: "paid",
                   })
                   .eq("id", localInvoiceId)
-                  .eq("user_id", user.id);
+                  .eq("user_id", userId);
                 matchedPayments++;
               }
             }
@@ -425,7 +416,7 @@ serve(async (req) => {
       }
 
       await supabaseAdmin.from("qbo_sync_logs").insert({
-        user_id: user.id,
+        user_id: userId,
         sync_type: "payments",
         direction: "pull",
         status: "success",
