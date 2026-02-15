@@ -94,15 +94,22 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   let logoAdded = false;
 
   // Try agency logo URL first, then fall back to default local logo
-  const logoUrlToTry = data.agencyLogoUrl || "/images/logo_simplified.png";
-  try {
-    const logoBase64 = await loadImageAsBase64(logoUrlToTry);
-    if (logoBase64) {
-      doc.addImage(logoBase64, "PNG", logoX, logoY, logoSize, logoSize, undefined, "FAST");
-      logoAdded = true;
+  const logoSources = [
+    data.agencyLogoUrl,
+    "/images/logo_simplified.png",
+  ].filter(Boolean) as string[];
+
+  for (const logoSrc of logoSources) {
+    try {
+      const logoBase64 = await loadImageAsBase64(logoSrc);
+      if (logoBase64) {
+        doc.addImage(logoBase64, "PNG", logoX, logoY, logoSize, logoSize, undefined, "FAST");
+        logoAdded = true;
+        break;
+      }
+    } catch (e) {
+      console.warn("Failed to load logo from", logoSrc, e);
     }
-  } catch (e) {
-    console.warn("Failed to load logo for invoice:", e);
   }
 
   // Fallback: Draw text badge if no logo loaded at all
