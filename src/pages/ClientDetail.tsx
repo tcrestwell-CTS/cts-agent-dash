@@ -47,6 +47,8 @@ import {
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { PageBanner } from "@/components/layout/PageBanner";
 import { useClientBookings } from "@/hooks/useBookings";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCompanions, useDeleteCompanion, Companion } from "@/hooks/useCompanions";
 import { useEmailLogs } from "@/hooks/useEmailLogs";
 import { CompanionDialog } from "@/components/clients/CompanionDialog";
@@ -89,6 +91,20 @@ const ClientDetail = () => {
   const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+
+  const { data: hasPortalAccount } = useQuery({
+    queryKey: ["portal-session-status", clientId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_portal_sessions")
+        .select("id")
+        .eq("client_id", clientId!)
+        .gt("expires_at", new Date().toISOString())
+        .limit(1);
+      return (data && data.length > 0) || false;
+    },
+    enabled: !!clientId,
+  });
 
   const handleSendPortalLink = async () => {
     if (!client?.email) {
@@ -347,6 +363,18 @@ const ClientDetail = () => {
                       }
                     >
                       {client.status}
+                    </Badge>
+                   )}
+                  {!isEditing && (
+                    <Badge
+                      variant="secondary"
+                      className={
+                        hasPortalAccount
+                          ? "bg-emerald-500/30 text-white border border-emerald-400/40"
+                          : "bg-white/10 text-white/60 border border-white/20"
+                      }
+                    >
+                      {hasPortalAccount ? "Portal Active" : "No Portal"}
                     </Badge>
                   )}
                   {!isEditing && client.tags && (
