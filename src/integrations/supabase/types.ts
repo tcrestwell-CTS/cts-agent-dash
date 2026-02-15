@@ -1205,7 +1205,7 @@ export type Database = {
       trips: {
         Row: {
           approved_itinerary_id: string | null
-          client_id: string
+          client_id: string | null
           cover_image_url: string | null
           created_at: string
           depart_date: string | null
@@ -1231,7 +1231,7 @@ export type Database = {
         }
         Insert: {
           approved_itinerary_id?: string | null
-          client_id: string
+          client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
@@ -1257,7 +1257,7 @@ export type Database = {
         }
         Update: {
           approved_itinerary_id?: string | null
-          client_id?: string
+          client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null

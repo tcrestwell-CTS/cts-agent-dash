@@ -20,10 +20,7 @@ import {
 } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useTrips } from "@/hooks/useTrips";
-import { useClients } from "@/hooks/useClients";
 import { DateRange } from "react-day-picker";
-import { Plus } from "lucide-react";
-import { QuickAddClientForm } from "./QuickAddClientForm";
 
 interface AddTripDialogProps {
   open: boolean;
@@ -33,27 +30,19 @@ interface AddTripDialogProps {
 
 export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDialogProps) {
   const { createTrip, creating } = useTrips();
-  const { data: clients = [] } = useClients();
 
   const [formData, setFormData] = useState({
-    client_id: "",
+    trip_type: "regular",
     trip_name: "",
     destination: "",
-    trip_type: "regular",
     notes: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [showAddClient, setShowAddClient] = useState(false);
-
-  const handleClientCreated = (clientId: string) => {
-    setFormData({ ...formData, client_id: clientId });
-    setShowAddClient(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.client_id || !formData.trip_name) {
+    if (!formData.trip_name) {
       return;
     }
 
@@ -65,10 +54,9 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
 
     if (result) {
       setFormData({
-        client_id: "",
+        trip_type: "regular",
         trip_name: "",
         destination: "",
-        trip_type: "regular",
         notes: "",
       });
       setDateRange(undefined);
@@ -87,43 +75,23 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
           </DialogDescription>
         </DialogHeader>
 
-        {showAddClient ? (
-          <QuickAddClientForm
-            onClientCreated={handleClientCreated}
-            onCancel={() => setShowAddClient(false)}
-          />
-        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="client">Client *</Label>
-            <div className="flex gap-2">
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, client_id: value })
-                }
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setShowAddClient(true)}
-                title="Add new client"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            <Label htmlFor="trip_type">Trip Type *</Label>
+            <Select
+              value={formData.trip_type}
+              onValueChange={(value) =>
+                setFormData({ ...formData, trip_type: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select trip type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="regular">Regular Trip</SelectItem>
+                <SelectItem value="group">Group Trip</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -159,31 +127,6 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="trip_type">Trip Type</Label>
-            <Select
-              value={formData.trip_type}
-              onValueChange={(value) =>
-                setFormData({ ...formData, trip_type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select trip type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="regular">Regular Trip</SelectItem>
-                <SelectItem value="group">Group Trip</SelectItem>
-                <SelectItem value="honeymoon">Honeymoon</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="cruise">Cruise</SelectItem>
-                <SelectItem value="destination_wedding">
-                  Destination Wedding
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-
-          <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
@@ -206,13 +149,12 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated }: AddTripDial
             </Button>
             <Button
               type="submit"
-              disabled={creating || !formData.client_id || !formData.trip_name}
+              disabled={creating || !formData.trip_name}
             >
               {creating ? "Creating..." : "Create Trip"}
             </Button>
           </DialogFooter>
         </form>
-        )}
       </DialogContent>
     </Dialog>
   );
