@@ -68,7 +68,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
   const canArchive = currentStatus === "completed" || currentStatus === "cancelled";
 
   return (
-    <Card>
+    <Card className="max-w-2xl">
       <CardContent className="pt-6">
         {/* Status Progress Bar */}
         <div className="mb-6">
