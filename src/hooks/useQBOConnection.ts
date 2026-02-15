@@ -47,7 +47,7 @@ export function useQBOConnection() {
     fetchStatus();
   }, [fetchStatus]);
 
-  const connect = async () => {
+  const connect = async (): Promise<{ error?: string; current_origin?: string; allowed_origins?: string[] } | void> => {
     try {
       const redirectUri = `${window.location.origin}/settings?tab=integrations`;
       const session = await supabase.auth.getSession();
@@ -69,7 +69,7 @@ export function useQBOConnection() {
             `This domain isn't registered with QuickBooks. Please add "${result.current_origin}" to your Intuit app's Redirect URIs, or connect from your production domain.`,
             { duration: 10000 }
           );
-          return;
+          return { error: "redirect_uri_mismatch", current_origin: result.current_origin, allowed_origins: result.allowed_origins };
         }
         throw new Error(result.error || "Failed to get authorization URL");
       }
