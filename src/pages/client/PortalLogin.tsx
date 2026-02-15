@@ -22,6 +22,11 @@ export default function PortalLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    document.title = "Crestwell Travel Services - Client";
+    return () => { document.title = "Crestwell Travel Services - Agent"; };
+  }, []);
+
+  useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
       login(token).then((result) => {
