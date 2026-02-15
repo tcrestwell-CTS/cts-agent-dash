@@ -374,7 +374,7 @@ const ClientDetail = () => {
                           : "bg-white/10 text-white/60 border border-white/20"
                       }
                     >
-                      {hasPortalAccount ? "Portal Active" : "No Portal"}
+                      {hasPortalAccount ? "CTS Client Portal: Active" : "CTS Client Portal: None"}
                     </Badge>
                   )}
                   {!isEditing && client.tags && (
