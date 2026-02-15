@@ -11,6 +11,18 @@ const QBO_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 const QBO_REVOKE_URL = "https://developer.api.intuit.com/v2/oauth2/tokens/revoke";
 
+/** Decode a JWT payload without verification (for logging QBO id_token claims). */
+function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
+  try {
+    const parts = jwt.split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload));
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,8 +30,8 @@ serve(async (req) => {
 
   const QBO_CLIENT_ID = Deno.env.get("QBO_CLIENT_ID");
   const QBO_CLIENT_SECRET = Deno.env.get("QBO_CLIENT_SECRET");
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   if (!QBO_CLIENT_ID || !QBO_CLIENT_SECRET) {
     return new Response(
@@ -28,35 +40,38 @@ serve(async (req) => {
     );
   }
 
-  const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Get authenticated user
+  // ── Authenticate caller via getClaims ──────────────────────────────
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
+  if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const supabaseUser = createClient(SUPABASE_URL!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-  if (userError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: "Unauthorized – invalid token" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
+  const userId = claimsData.claims.sub as string;
+
   const url = new URL(req.url);
-  // Support both path-based routing and query param routing
   const pathSegments = url.pathname.split("/").filter(Boolean);
   const path = url.searchParams.get("action") || pathSegments[pathSegments.length - 1];
 
   try {
-    // GET /authorize - Generate OAuth URL
+    // ── GET ?action=authorize ────────────────────────────────────────
     if (path === "authorize" && req.method === "GET") {
       const redirectUri = url.searchParams.get("redirect_uri");
       if (!redirectUri) {
@@ -81,7 +96,7 @@ serve(async (req) => {
       );
     }
 
-    // POST /callback - Exchange code for tokens
+    // ── POST ?action=callback ────────────────────────────────────────
     if (path === "callback" && req.method === "POST") {
       const { code, redirect_uri, realm_id } = await req.json();
       if (!code || !redirect_uri || !realm_id) {
@@ -118,6 +133,15 @@ serve(async (req) => {
       const tokens = await tokenResp.json();
       const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
+      // Decode & log id_token claims (OpenID Connect)
+      let idTokenClaims: Record<string, unknown> | null = null;
+      if (tokens.id_token) {
+        idTokenClaims = decodeJwtPayload(tokens.id_token);
+        console.log("QBO id_token claims:", JSON.stringify(idTokenClaims));
+      } else {
+        console.warn("No id_token returned from QBO – OpenID scope may not be enabled in the Intuit app");
+      }
+
       // Get company info
       const baseUrl = "https://sandbox-quickbooks.api.intuit.com";
       const companyResp = await fetch(
@@ -140,7 +164,7 @@ serve(async (req) => {
         .from("qbo_connections")
         .upsert(
           {
-            user_id: user.id,
+            user_id: userId,
             realm_id,
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
@@ -160,17 +184,21 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, company_name: companyName }),
+        JSON.stringify({
+          success: true,
+          company_name: companyName,
+          id_token_claims: idTokenClaims,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // POST /refresh - Refresh access token
+    // ── POST ?action=refresh ─────────────────────────────────────────
     if (path === "refresh" && req.method === "POST") {
       const { data: connection, error: connError } = await supabaseAdmin
         .from("qbo_connections")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("is_active", true)
         .single();
 
@@ -198,7 +226,6 @@ serve(async (req) => {
       if (!tokenResp.ok) {
         const errText = await tokenResp.text();
         console.error("QBO token refresh failed:", tokenResp.status, errText);
-        // Mark connection as inactive if refresh fails
         await supabaseAdmin
           .from("qbo_connections")
           .update({ is_active: false })
@@ -211,14 +238,14 @@ serve(async (req) => {
       }
 
       const tokens = await tokenResp.json();
-      const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+      const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
       await supabaseAdmin
         .from("qbo_connections")
         .update({
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
-          token_expires_at: expiresAt,
+          token_expires_at: newExpiresAt,
         })
         .eq("id", connection.id);
 
@@ -228,16 +255,15 @@ serve(async (req) => {
       );
     }
 
-    // POST /disconnect - Revoke tokens and remove connection
+    // ── POST ?action=disconnect ──────────────────────────────────────
     if (path === "disconnect" && req.method === "POST") {
       const { data: connection } = await supabaseAdmin
         .from("qbo_connections")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       if (connection) {
-        // Try to revoke token (best effort)
         try {
           const basicAuth = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
           await fetch(QBO_REVOKE_URL, {
@@ -253,10 +279,9 @@ serve(async (req) => {
           console.error("Token revocation failed (non-critical):", e);
         }
 
-        // Delete connection and mappings
-        await supabaseAdmin.from("qbo_client_mappings").delete().eq("user_id", user.id);
-        await supabaseAdmin.from("qbo_invoice_mappings").delete().eq("user_id", user.id);
-        await supabaseAdmin.from("qbo_connections").delete().eq("user_id", user.id);
+        await supabaseAdmin.from("qbo_client_mappings").delete().eq("user_id", userId);
+        await supabaseAdmin.from("qbo_invoice_mappings").delete().eq("user_id", userId);
+        await supabaseAdmin.from("qbo_connections").delete().eq("user_id", userId);
       }
 
       return new Response(
@@ -265,12 +290,12 @@ serve(async (req) => {
       );
     }
 
-    // GET /status - Check connection status
+    // ── GET ?action=status ───────────────────────────────────────────
     if (path === "status" && req.method === "GET") {
       const { data: connection } = await supabaseAdmin
         .from("qbo_connections")
         .select("realm_id, company_name, is_active, token_expires_at, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       return new Response(
