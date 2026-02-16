@@ -153,23 +153,48 @@ serve(async (req) => {
               else errors++;
             }
           } else {
-            const createResp = await fetch(`${qboBase}/customer`, {
-              method: "POST",
-              headers: qboHeaders,
-              body: JSON.stringify(customerData),
-            });
-            if (createResp.ok) {
-              const result = await createResp.json();
+            // First, check if a customer with this DisplayName already exists in QBO
+            const displayNameEscaped = customerData.DisplayName.replace(/'/g, "\\'");
+            const searchResp = await fetch(
+              `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Customer WHERE DisplayName = '${displayNameEscaped}'`)}`,
+              { headers: qboHeaders }
+            );
+            let existingCustomer: any = null;
+            if (searchResp.ok) {
+              const searchData = await searchResp.json();
+              const matches = searchData.QueryResponse?.Customer || [];
+              if (matches.length > 0) {
+                existingCustomer = matches[0];
+              }
+            }
+
+            if (existingCustomer) {
+              // Customer already exists in QBO — just create the mapping
               await supabaseAdmin.from("qbo_client_mappings").insert({
                 user_id: userId,
                 client_id: client.id,
-                qbo_customer_id: result.Customer.Id,
+                qbo_customer_id: existingCustomer.Id,
               });
               created++;
             } else {
-              const errText = await createResp.text();
-              console.error(`Failed to create QBO customer for ${client.id}:`, errText);
-              errors++;
+              const createResp = await fetch(`${qboBase}/customer`, {
+                method: "POST",
+                headers: qboHeaders,
+                body: JSON.stringify(customerData),
+              });
+              if (createResp.ok) {
+                const result = await createResp.json();
+                await supabaseAdmin.from("qbo_client_mappings").insert({
+                  user_id: userId,
+                  client_id: client.id,
+                  qbo_customer_id: result.Customer.Id,
+                });
+                created++;
+              } else {
+                const errText = await createResp.text();
+                console.error(`Failed to create QBO customer for ${client.id}:`, errText);
+                errors++;
+              }
             }
           }
         } catch (e) {
@@ -236,24 +261,47 @@ serve(async (req) => {
 
         if (client) {
           const displayName = client.name || `${client.first_name || ""} ${client.last_name || ""}`.trim();
-          const createResp = await fetch(`${qboBase}/customer`, {
-            method: "POST",
-            headers: qboHeaders,
-            body: JSON.stringify({
-              DisplayName: displayName.substring(0, 100),
-              GivenName: (client.first_name || displayName.split(" ")[0] || "").substring(0, 25),
-              FamilyName: (client.last_name || "").substring(0, 25),
-              ...(client.email ? { PrimaryEmailAddr: { Address: client.email.substring(0, 100) } } : {}),
-            }),
-          });
-          if (createResp.ok) {
-            const result = await createResp.json();
-            qboCustomerId = result.Customer.Id;
+          const displayNameEscaped = displayName.replace(/'/g, "\\'");
+          
+          // Check if customer already exists in QBO
+          const searchResp = await fetch(
+            `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Customer WHERE DisplayName = '${displayNameEscaped}'`)}`,
+            { headers: qboHeaders }
+          );
+          let existingCustomer: any = null;
+          if (searchResp.ok) {
+            const searchData = await searchResp.json();
+            const matches = searchData.QueryResponse?.Customer || [];
+            if (matches.length > 0) existingCustomer = matches[0];
+          }
+
+          if (existingCustomer) {
+            qboCustomerId = existingCustomer.Id;
             await supabaseAdmin.from("qbo_client_mappings").insert({
               user_id: userId,
               client_id: invoice.client_id,
               qbo_customer_id: qboCustomerId!,
             });
+          } else {
+            const createResp = await fetch(`${qboBase}/customer`, {
+              method: "POST",
+              headers: qboHeaders,
+              body: JSON.stringify({
+                DisplayName: displayName.substring(0, 100),
+                GivenName: (client.first_name || displayName.split(" ")[0] || "").substring(0, 25),
+                FamilyName: (client.last_name || "").substring(0, 25),
+                ...(client.email ? { PrimaryEmailAddr: { Address: client.email.substring(0, 100) } } : {}),
+              }),
+            });
+            if (createResp.ok) {
+              const result = await createResp.json();
+              qboCustomerId = result.Customer.Id;
+              await supabaseAdmin.from("qbo_client_mappings").insert({
+                user_id: userId,
+                client_id: invoice.client_id,
+                qbo_customer_id: qboCustomerId!,
+              });
+            }
           }
         }
       }
