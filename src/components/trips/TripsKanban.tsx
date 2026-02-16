@@ -101,28 +101,28 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
         </div>
       )}
       <CardContent className="p-4 space-y-2.5">
-        <h4 className="font-semibold text-base leading-snug line-clamp-2">
+        <h4 className="font-semibold text-[18px] leading-snug line-clamp-2">
           {trip.isOptimistic && <Loader2 className="inline h-4 w-4 animate-spin mr-1" />}
           {trip.trip_name}
         </h4>
         {trip.trip_type && trip.trip_type !== "regular" && (
-          <p className="text-sm text-muted-foreground italic">{trip.trip_type}</p>
+          <p className="text-[14px] text-muted-foreground italic">{trip.trip_type}</p>
         )}
         {trip.clients?.name && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+          <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
             {trip.clients.name}
           </p>
         )}
         {trip.depart_date && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+          <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
             {format(new Date(trip.depart_date), "MMM d")}
             {trip.return_date && ` - ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
           </p>
         )}
         {trip.destination && (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+          <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5" />
             {trip.destination}
           </p>
