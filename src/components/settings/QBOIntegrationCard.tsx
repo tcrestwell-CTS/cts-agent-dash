@@ -2,39 +2,24 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Users, FileText, DollarSign, BarChart3, CheckCircle2, XCircle, AlertTriangle, Copy, Check, Clock, Building2, Key, Shield, HelpCircle } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, XCircle, AlertTriangle, Copy, Check, Clock, Building2, Key, Shield, HelpCircle } from "lucide-react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format, formatDistanceToNow, isPast, isBefore, addDays } from "date-fns";
 import { QBOSetupWizard } from "./QBOSetupWizard";
 
-interface FinancialSummary {
-  profit_and_loss: {
-    total_income: number;
-    total_expenses: number;
-    net_income: number;
-  } | null;
-  balance_sheet: {
-    total_assets: number;
-  } | null;
-}
+// FinancialSummary removed – now lives on QBO Health page
 
 export function QBOIntegrationCard() {
   const {
     status,
     loading,
-    syncing,
     connect,
     handleCallback,
     disconnect,
-    syncClients,
-    syncPayments,
-    getFinancialSummary,
   } = useQBOConnection();
 
-  const [financials, setFinancials] = useState<FinancialSummary | null>(null);
-  const [loadingFinancials, setLoadingFinancials] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [connectError, setConnectError] = useState<{
@@ -65,7 +50,6 @@ export function QBOIntegrationCard() {
 
     if (code && realmId && stateParam) {
       handleCallback(code, realmId, stateParam);
-      // Clean up URL
       const url = new URL(window.location.href);
       url.searchParams.delete("code");
       url.searchParams.delete("realmId");
@@ -73,19 +57,6 @@ export function QBOIntegrationCard() {
       window.history.replaceState({}, "", url.toString());
     }
   }, []);
-
-  const loadFinancials = async () => {
-    setLoadingFinancials(true);
-    const data = await getFinancialSummary();
-    setFinancials(data);
-    setLoadingFinancials(false);
-  };
-
-  useEffect(() => {
-    if (status.connected) {
-      loadFinancials();
-    }
-  }, [status.connected]);
 
   if (loading) {
     return (
@@ -305,80 +276,6 @@ export function QBOIntegrationCard() {
         )}
       </div>
 
-      {/* Sync Actions */}
-      <div className="p-4 space-y-3">
-        <p className="text-sm font-medium text-card-foreground">Sync Actions</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start gap-2"
-            onClick={() => syncClients()}
-            disabled={!!syncing}
-          >
-            {syncing === "clients" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Users className="h-4 w-4" />
-            )}
-            Sync Clients
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start gap-2"
-            onClick={() => syncPayments()}
-            disabled={!!syncing}
-          >
-            {syncing === "payments" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <DollarSign className="h-4 w-4" />
-            )}
-            Sync Payments
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start gap-2"
-            onClick={loadFinancials}
-            disabled={loadingFinancials}
-          >
-            {loadingFinancials ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <BarChart3 className="h-4 w-4" />
-            )}
-            Refresh Financials
-          </Button>
-        </div>
-      </div>
-
-      {/* Financial Summary */}
-      {financials?.profit_and_loss && (
-        <div className="px-4 pb-4">
-          <div className="bg-muted/30 rounded-lg p-3 grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-xs text-muted-foreground">Income (This Month)</p>
-              <p className="text-sm font-semibold text-green-600">
-                ${financials.profit_and_loss.total_income.toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Expenses</p>
-              <p className="text-sm font-semibold text-destructive">
-                ${financials.profit_and_loss.total_expenses.toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Net Income</p>
-              <p className="text-sm font-semibold text-card-foreground">
-                ${financials.profit_and_loss.net_income.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
