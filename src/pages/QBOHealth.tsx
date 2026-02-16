@@ -7,18 +7,44 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
+
+interface FinancialSummary {
+  profit_and_loss: {
+    total_income: number;
+    total_expenses: number;
+    net_income: number;
+  } | null;
+  balance_sheet: {
+    total_assets: number;
+  } | null;
+}
 
 type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, getFinancialSummary } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [financials, setFinancials] = useState<FinancialSummary | null>(null);
+  const [loadingFinancials, setLoadingFinancials] = useState(false);
+
+  const loadFinancials = async () => {
+    setLoadingFinancials(true);
+    const data = await getFinancialSummary();
+    setFinancials(data);
+    setLoadingFinancials(false);
+  };
+
+  useEffect(() => {
+    if (status.connected) {
+      loadFinancials();
+    }
+  }, [status.connected]);
 
   if (adminLoading) {
     return (
@@ -172,6 +198,83 @@ export default function QBOHealth() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Sync Actions */}
+        {status.connected && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sync Actions</CardTitle>
+              <CardDescription>Push and pull data between your system and QuickBooks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
+                  onClick={() => syncClients().then(() => refetchLogs())}
+                  disabled={!!syncing}
+                >
+                  {syncing === "clients" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Users className="h-4 w-4" />
+                  )}
+                  Sync Clients
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
+                  onClick={() => syncPayments().then(() => refetchLogs())}
+                  disabled={!!syncing}
+                >
+                  {syncing === "payments" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <DollarSign className="h-4 w-4" />
+                  )}
+                  Sync Payments
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
+                  onClick={loadFinancials}
+                  disabled={loadingFinancials}
+                >
+                  {loadingFinancials ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <BarChart3 className="h-4 w-4" />
+                  )}
+                  Refresh Financials
+                </Button>
+              </div>
+
+              {/* Financial Summary */}
+              {financials?.profit_and_loss && (
+                <div className="bg-muted/30 rounded-lg p-4 grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Income (This Month)</p>
+                    <p className="text-sm font-semibold text-emerald-600">
+                      ${financials.profit_and_loss.total_income.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Expenses</p>
+                    <p className="text-sm font-semibold text-destructive">
+                      ${financials.profit_and_loss.total_expenses.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Net Income</p>
+                    <p className="text-sm font-semibold text-card-foreground">
+                      ${financials.profit_and_loss.net_income.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sync Log Table */}
         <Card>
