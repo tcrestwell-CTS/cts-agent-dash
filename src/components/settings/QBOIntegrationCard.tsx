@@ -37,6 +37,8 @@ export function QBOIntegrationCard() {
   const [connectError, setConnectError] = useState<{
     current_origin: string;
     allowed_origins: string[];
+    redirect_uri?: string;
+    allowed_redirect_uris?: string[];
   } | null>(null);
   const redirectUri = `${window.location.origin}/settings?tab=integrations`;
 
@@ -107,10 +109,12 @@ export function QBOIntegrationCard() {
   const handleConnect = async () => {
     setConnectError(null);
     const result = await connect();
-    if (result && result.error === "redirect_uri_mismatch") {
+    if (result && (result.error === "redirect_uri_mismatch" || result.error === "redirect_uri_exact_mismatch")) {
       setConnectError({
         current_origin: result.current_origin || window.location.origin,
         allowed_origins: result.allowed_origins || [],
+        redirect_uri: result.redirect_uri,
+        allowed_redirect_uris: result.allowed_redirect_uris,
       });
     }
   };
@@ -140,8 +144,14 @@ export function QBOIntegrationCard() {
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-destructive">Redirect URI mismatch</p>
                   <p className="text-xs text-destructive/80">
-                    The origin <code className="bg-destructive/10 px-1 rounded">{connectError.current_origin}</code> is not in the allowed origins list. Update the <strong>QBO_ALLOWED_ORIGINS</strong> backend secret and add the redirect URI to your Intuit Developer app.
+                    This exact redirect URI must be registered in your Intuit Developer app's Redirect URIs:
                   </p>
+                  <div className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5 mt-1">
+                    <code className="text-xs text-destructive font-mono flex-1 break-all">{connectError.redirect_uri || redirectUri}</code>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(connectError.redirect_uri || redirectUri)}>
+                      {copied === (connectError.redirect_uri || redirectUri) ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

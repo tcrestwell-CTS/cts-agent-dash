@@ -88,31 +88,53 @@ serve(async (req) => {
         .map((o) => o.trim())
         .filter(Boolean);
 
-      if (allowedOrigins.length > 0) {
-        let redirectOrigin: string;
-        try {
-          redirectOrigin = new URL(redirectUri).origin;
-        } catch {
-          return new Response(
-            JSON.stringify({ error: "Invalid redirect_uri format" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      let redirectOrigin: string;
+      try {
+        redirectOrigin = new URL(redirectUri).origin;
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "Invalid redirect_uri format" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        if (!allowedOrigins.some((o) => redirectOrigin === o)) {
-          console.error(
-            `QBO redirect_uri mismatch: "${redirectOrigin}" not in allowed origins [${allowedOrigins.join(", ")}]`
-          );
-          return new Response(
-            JSON.stringify({
-              error: "redirect_uri_mismatch",
-              message: `The current origin "${redirectOrigin}" is not registered as an allowed QuickBooks redirect URI. Please add it to your Intuit Developer app's Redirect URIs, or connect from your production domain.`,
-              current_origin: redirectOrigin,
-              allowed_origins: allowedOrigins,
-            }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      // Build expected full redirect URIs from allowed origins
+      const REDIRECT_PATH = "/settings?tab=integrations";
+      const allowedFullUris = allowedOrigins.map((o) => `${o}${REDIRECT_PATH}`);
+
+      // Check 1: Origin must be in allowed origins list
+      if (allowedOrigins.length > 0 && !allowedOrigins.some((o) => redirectOrigin === o)) {
+        console.error(
+          `QBO redirect_uri mismatch: origin "${redirectOrigin}" not in allowed origins [${allowedOrigins.join(", ")}]`
+        );
+        return new Response(
+          JSON.stringify({
+            error: "redirect_uri_mismatch",
+            message: `The current origin "${redirectOrigin}" is not registered as an allowed QuickBooks redirect URI.`,
+            current_origin: redirectOrigin,
+            redirect_uri: redirectUri,
+            allowed_origins: allowedOrigins,
+            allowed_redirect_uris: allowedFullUris,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check 2: Full redirect URI must exactly match an expected URI
+      if (allowedFullUris.length > 0 && !allowedFullUris.includes(redirectUri)) {
+        console.error(
+          `QBO redirect_uri exact mismatch: "${redirectUri}" not in [${allowedFullUris.join(", ")}]`
+        );
+        return new Response(
+          JSON.stringify({
+            error: "redirect_uri_exact_mismatch",
+            message: `The redirect URI "${redirectUri}" does not exactly match any registered URI. Ensure this exact URI is listed in your Intuit Developer app's Redirect URIs.`,
+            current_origin: redirectOrigin,
+            redirect_uri: redirectUri,
+            allowed_redirect_uris: allowedFullUris,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       const state = crypto.randomUUID();

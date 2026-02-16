@@ -47,7 +47,7 @@ export function useQBOConnection() {
     fetchStatus();
   }, [fetchStatus]);
 
-  const connect = async (): Promise<{ error?: string; current_origin?: string; allowed_origins?: string[] } | void> => {
+  const connect = async (): Promise<{ error?: string; current_origin?: string; allowed_origins?: string[]; redirect_uri?: string; allowed_redirect_uris?: string[] } | void> => {
     try {
       const redirectUri = `${window.location.origin}/settings?tab=integrations`;
       const session = await supabase.auth.getSession();
@@ -64,12 +64,19 @@ export function useQBOConnection() {
       const result = await resp.json();
 
       if (!resp.ok) {
-        if (result.error === "redirect_uri_mismatch") {
+        if (result.error === "redirect_uri_mismatch" || result.error === "redirect_uri_exact_mismatch") {
+          const exactUri = result.redirect_uri || redirectUri;
           toast.error(
-            `This domain isn't registered with QuickBooks. Please add "${result.current_origin}" to your Intuit app's Redirect URIs, or connect from your production domain.`,
-            { duration: 10000 }
+            `Redirect URI mismatch. The exact URI "${exactUri}" must be listed in your Intuit app's Redirect URIs section.`,
+            { duration: 12000 }
           );
-          return { error: "redirect_uri_mismatch", current_origin: result.current_origin, allowed_origins: result.allowed_origins };
+          return {
+            error: result.error,
+            current_origin: result.current_origin,
+            allowed_origins: result.allowed_origins,
+            redirect_uri: result.redirect_uri,
+            allowed_redirect_uris: result.allowed_redirect_uris,
+          };
         }
         throw new Error(result.error || "Failed to get authorization URL");
       }
