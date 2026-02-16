@@ -66,10 +66,17 @@ export function useQBOConnection() {
       if (!resp.ok) {
         if (result.error === "redirect_uri_mismatch" || result.error === "redirect_uri_exact_mismatch") {
           const exactUri = result.redirect_uri || redirectUri;
-          toast.error(
-            `Redirect URI mismatch. The exact URI "${exactUri}" must be listed in your Intuit app's Redirect URIs section.`,
-            { duration: 12000 }
-          );
+          toast.error("QuickBooks Redirect URI Mismatch", {
+            duration: 15000,
+            description: `Origin "${result.current_origin || window.location.origin}" is not registered. Add the URI below to your Intuit app's Redirect URIs and to QBO_ALLOWED_ORIGINS.`,
+            action: {
+              label: "Copy URI",
+              onClick: () => {
+                navigator.clipboard.writeText(exactUri);
+                toast.success("Copied to clipboard");
+              },
+            },
+          });
           return {
             error: result.error,
             current_origin: result.current_origin,
