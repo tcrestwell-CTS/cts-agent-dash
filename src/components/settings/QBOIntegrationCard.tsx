@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Users, FileText, DollarSign, BarChart3, CheckCircle2, XCircle, AlertTriangle, Copy, Check } from "lucide-react";
+import { Loader2, RefreshCw, Users, FileText, DollarSign, BarChart3, CheckCircle2, XCircle, AlertTriangle, Copy, Check, Clock, Building2, Key, Shield } from "lucide-react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { format, formatDistanceToNow, isPast, isBefore, addDays } from "date-fns";
 
 interface FinancialSummary {
   profit_and_loss: {
@@ -215,6 +216,17 @@ export function QBOIntegrationCard() {
     );
   }
 
+  const tokenExpiry = status.connection?.token_expires_at
+    ? new Date(status.connection.token_expires_at)
+    : null;
+  const tokenExpired = tokenExpiry ? isPast(tokenExpiry) : false;
+  const tokenExpiringSoon = tokenExpiry
+    ? !tokenExpired && isBefore(tokenExpiry, addDays(new Date(), 1))
+    : false;
+  const connectedSince = status.connection?.created_at
+    ? new Date(status.connection.created_at)
+    : null;
+
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       {/* Header */}
@@ -239,6 +251,95 @@ export function QBOIntegrationCard() {
         <Button variant="outline" size="sm" onClick={disconnect}>
           Disconnect
         </Button>
+      </div>
+
+      {/* Connection Status Panel */}
+      <div className="p-4 border-b border-border">
+        <p className="text-sm font-medium text-card-foreground mb-3 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          Connection Status
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Company */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Building2 className="h-3 w-3" />
+              Company
+            </div>
+            <p className="text-sm font-medium text-card-foreground">
+              {status.connection?.company_name || "—"}
+            </p>
+          </div>
+
+          {/* Realm ID */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Key className="h-3 w-3" />
+              Realm ID
+            </div>
+            <p className="text-sm font-mono text-card-foreground">
+              {status.connection?.realm_id || "—"}
+            </p>
+          </div>
+
+          {/* Token Status */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              Token Status
+            </div>
+            <div className="flex items-center gap-2">
+              {tokenExpired ? (
+                <Badge variant="destructive" className="text-xs">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Expired
+                </Badge>
+              ) : tokenExpiringSoon ? (
+                <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Expiring Soon
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Valid
+                </Badge>
+              )}
+              {tokenExpiry && (
+                <span className="text-xs text-muted-foreground">
+                  {tokenExpired
+                    ? `Expired ${formatDistanceToNow(tokenExpiry, { addSuffix: true })}`
+                    : `Expires ${formatDistanceToNow(tokenExpiry, { addSuffix: true })}`}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Connected Since */}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CheckCircle2 className="h-3 w-3" />
+              Connected Since
+            </div>
+            <p className="text-sm text-card-foreground">
+              {connectedSince
+                ? format(connectedSince, "MMM d, yyyy 'at' h:mm a")
+                : "—"}
+            </p>
+          </div>
+        </div>
+
+        {tokenExpired && (
+          <div className="mt-3 bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-start gap-2">
+            <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-destructive">Token expired</p>
+              <p className="text-xs text-destructive/80">
+                Disconnect and reconnect to refresh your QuickBooks authorization.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sync Actions */}
