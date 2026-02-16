@@ -478,6 +478,242 @@ serve(async (req) => {
       );
     }
 
+    // ── POST ?action=create-vendor ──────────────────────────────────
+    if (urlPath === "create-vendor" && req.method === "POST") {
+      const { supplier_id } = await req.json();
+      if (!supplier_id) {
+        return new Response(JSON.stringify({ error: "supplier_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: supplier, error: supError } = await supabaseAdmin
+        .from("suppliers")
+        .select("*")
+        .eq("id", supplier_id)
+        .eq("user_id", userId)
+        .single();
+      if (supError || !supplier) {
+        return new Response(JSON.stringify({ error: "Supplier not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const displayName = supplier.name.substring(0, 100);
+      const displayNameEscaped = displayName.replace(/'/g, "\\'");
+
+      // Check if vendor already exists in QBO
+      const searchResp = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Vendor WHERE DisplayName = '${displayNameEscaped}'`)}`,
+        { headers: qboHeaders }
+      );
+      let existingVendor: any = null;
+      if (searchResp.ok) {
+        const searchData = await searchResp.json();
+        const matches = searchData.QueryResponse?.Vendor || [];
+        if (matches.length > 0) existingVendor = matches[0];
+      }
+
+      let qboVendorId: string;
+      if (existingVendor) {
+        qboVendorId = existingVendor.Id;
+      } else {
+        const vendorData: any = {
+          DisplayName: displayName,
+          CompanyName: displayName,
+        };
+        if (supplier.contact_email) vendorData.PrimaryEmailAddr = { Address: supplier.contact_email.substring(0, 100) };
+        if (supplier.contact_phone) vendorData.PrimaryPhone = { FreeFormNumber: supplier.contact_phone.substring(0, 30) };
+        if (supplier.website) vendorData.WebAddr = { URI: supplier.website.substring(0, 1000) };
+
+        const createResp = await fetch(`${qboBase}/vendor`, {
+          method: "POST", headers: qboHeaders, body: JSON.stringify(vendorData),
+        });
+        if (!createResp.ok) {
+          const errText = await createResp.text();
+          console.error("QBO vendor creation failed:", errText);
+          await supabaseAdmin.from("qbo_sync_logs").insert({
+            user_id: userId, sync_type: "vendor", direction: "push", status: "error",
+            error_message: errText.substring(0, 500),
+          });
+          return new Response(
+            JSON.stringify({ error: "Failed to create QBO vendor", details: errText }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const result = await createResp.json();
+        qboVendorId = result.Vendor.Id;
+      }
+
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId, sync_type: "vendor", direction: "push", status: "success", records_processed: 1,
+        details: { supplier_id, qbo_vendor_id: qboVendorId, existed: !!existingVendor },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, qbo_vendor_id: qboVendorId }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── POST ?action=create-bill ────────────────────────────────────
+    if (urlPath === "create-bill" && req.method === "POST") {
+      const { vendor_ref, line_items, txn_date, due_date } = await req.json();
+      if (!vendor_ref || !line_items?.length) {
+        return new Response(JSON.stringify({ error: "vendor_ref and line_items required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const billData: any = {
+        VendorRef: { value: vendor_ref },
+        TxnDate: txn_date || new Date().toISOString().split("T")[0],
+        Line: line_items.map((item: any) => ({
+          Amount: item.amount,
+          DetailType: "AccountBasedExpenseLineDetail",
+          AccountBasedExpenseLineDetail: {
+            AccountRef: { value: item.account_ref || "1" },
+          },
+          Description: item.description || "Travel service",
+        })),
+      };
+      if (due_date) billData.DueDate = due_date;
+
+      const createResp = await fetch(`${qboBase}/bill`, {
+        method: "POST", headers: qboHeaders, body: JSON.stringify(billData),
+      });
+
+      if (!createResp.ok) {
+        const errText = await createResp.text();
+        console.error("QBO bill creation failed:", errText);
+        await supabaseAdmin.from("qbo_sync_logs").insert({
+          user_id: userId, sync_type: "bill", direction: "push", status: "error",
+          error_message: errText.substring(0, 500),
+        });
+        return new Response(
+          JSON.stringify({ error: "Failed to create QBO bill", details: errText }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const result = await createResp.json();
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId, sync_type: "bill", direction: "push", status: "success", records_processed: 1,
+        details: { qbo_bill_id: result.Bill.Id },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, qbo_bill_id: result.Bill.Id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── POST ?action=create-journal-entry ────────────────────────────
+    if (urlPath === "create-journal-entry" && req.method === "POST") {
+      const { lines, txn_date, memo } = await req.json();
+      if (!lines?.length) {
+        return new Response(JSON.stringify({ error: "lines required (array of debit/credit entries)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const journalEntry: any = {
+        TxnDate: txn_date || new Date().toISOString().split("T")[0],
+        Line: lines.map((line: any) => ({
+          Amount: line.amount,
+          DetailType: "JournalEntryLineDetail",
+          JournalEntryLineDetail: {
+            PostingType: line.posting_type, // "Debit" or "Credit"
+            AccountRef: { value: line.account_ref },
+          },
+          Description: line.description || "",
+        })),
+      };
+      if (memo) journalEntry.PrivateNote = memo;
+
+      const createResp = await fetch(`${qboBase}/journalentry`, {
+        method: "POST", headers: qboHeaders, body: JSON.stringify(journalEntry),
+      });
+
+      if (!createResp.ok) {
+        const errText = await createResp.text();
+        console.error("QBO journal entry creation failed:", errText);
+        await supabaseAdmin.from("qbo_sync_logs").insert({
+          user_id: userId, sync_type: "journal_entry", direction: "push", status: "error",
+          error_message: errText.substring(0, 500),
+        });
+        return new Response(
+          JSON.stringify({ error: "Failed to create QBO journal entry", details: errText }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const result = await createResp.json();
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId, sync_type: "journal_entry", direction: "push", status: "success", records_processed: 1,
+        details: { qbo_journal_entry_id: result.JournalEntry.Id },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, qbo_journal_entry_id: result.JournalEntry.Id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── POST ?action=create-expense ─────────────────────────────────
+    if (urlPath === "create-expense" && req.method === "POST") {
+      const { account_ref, payment_type, line_items, txn_date, entity_ref, memo } = await req.json();
+      if (!account_ref || !line_items?.length) {
+        return new Response(JSON.stringify({ error: "account_ref and line_items required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const purchaseData: any = {
+        AccountRef: { value: account_ref },
+        PaymentType: payment_type || "Cash", // Cash, Check, CreditCard
+        TxnDate: txn_date || new Date().toISOString().split("T")[0],
+        Line: line_items.map((item: any) => ({
+          Amount: item.amount,
+          DetailType: "AccountBasedExpenseLineDetail",
+          AccountBasedExpenseLineDetail: {
+            AccountRef: { value: item.expense_account_ref || "1" },
+          },
+          Description: item.description || "Expense",
+        })),
+      };
+      if (entity_ref) purchaseData.EntityRef = { value: entity_ref.id, type: entity_ref.type || "Vendor" };
+      if (memo) purchaseData.PrivateNote = memo;
+
+      const createResp = await fetch(`${qboBase}/purchase`, {
+        method: "POST", headers: qboHeaders, body: JSON.stringify(purchaseData),
+      });
+
+      if (!createResp.ok) {
+        const errText = await createResp.text();
+        console.error("QBO expense creation failed:", errText);
+        await supabaseAdmin.from("qbo_sync_logs").insert({
+          user_id: userId, sync_type: "expense", direction: "push", status: "error",
+          error_message: errText.substring(0, 500),
+        });
+        return new Response(
+          JSON.stringify({ error: "Failed to create QBO expense", details: errText }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const result = await createResp.json();
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId, sync_type: "expense", direction: "push", status: "success", records_processed: 1,
+        details: { qbo_purchase_id: result.Purchase.Id },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, qbo_purchase_id: result.Purchase.Id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
