@@ -138,22 +138,48 @@ export function QBOIntegrationCard() {
         {/* Redirect URI mismatch error */}
         {connectError && (
           <div className="px-4 pb-3">
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-2">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-3">
               <div className="flex items-start gap-2">
                 <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-destructive">Redirect URI mismatch</p>
+                  <p className="text-xs font-medium text-destructive">Redirect URI Mismatch</p>
                   <p className="text-xs text-destructive/80">
-                    This exact redirect URI must be registered in your Intuit Developer app's Redirect URIs:
+                    The URI sent to Intuit does not match any registered Redirect URI in your app.
                   </p>
-                  <div className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5 mt-1">
-                    <code className="text-xs text-destructive font-mono flex-1 break-all">{connectError.redirect_uri || redirectUri}</code>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(connectError.redirect_uri || redirectUri)}>
-                      {copied === (connectError.redirect_uri || redirectUri) ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-                    </Button>
-                  </div>
                 </div>
               </div>
+
+              {/* Attempted URI */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-destructive/90">Attempted URI:</p>
+                <div className="flex items-center gap-2 bg-destructive/5 border border-destructive/20 rounded px-2 py-1.5">
+                  <code className="text-xs text-destructive font-mono flex-1 break-all">{connectError.redirect_uri || redirectUri}</code>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(connectError.redirect_uri || redirectUri)}>
+                    {copied === (connectError.redirect_uri || redirectUri) ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Allowed URIs from backend */}
+              {connectError.allowed_redirect_uris && connectError.allowed_redirect_uris.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-destructive/90">Allowed URIs (from backend config):</p>
+                  <div className="space-y-1">
+                    {connectError.allowed_redirect_uris.map((uri) => (
+                      <div key={uri} className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5">
+                        <code className="text-xs text-foreground font-mono flex-1 break-all">{uri}</code>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(uri)}>
+                          {copied === uri ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-destructive/70">
+                <strong>Fix:</strong> Copy the attempted URI above and add it to your Intuit Developer app's <strong>Redirect URIs</strong> section, then add its origin to <strong>QBO_ALLOWED_ORIGINS</strong>.
+              </p>
             </div>
           </div>
         )}
