@@ -161,38 +161,7 @@ export function useQBOConnection() {
       }
       
       sessionStorage.setItem("qbo_oauth_state", result.state);
-
-      // Use popup to avoid iframe cookie-blocking issues
-      const popup = window.open(result.auth_url, "qbo_oauth", "width=600,height=700,scrollbars=yes");
-      if (!popup) {
-        // Popup blocked — fall back to redirect
-        window.location.href = result.auth_url;
-        return;
-      }
-
-      // Poll the popup for the OAuth callback params
-      const pollInterval = setInterval(() => {
-        try {
-          if (popup.closed) {
-            clearInterval(pollInterval);
-            return;
-          }
-          const popupUrl = popup.location.href;
-          if (popupUrl && popupUrl.includes("code=")) {
-            clearInterval(pollInterval);
-            const url = new URL(popupUrl);
-            const code = url.searchParams.get("code");
-            const realmId = url.searchParams.get("realmId");
-            const state = url.searchParams.get("state");
-            popup.close();
-            if (code && realmId && state) {
-              handleCallback(code, realmId, state);
-            }
-          }
-        } catch {
-          // Cross-origin — popup hasn't redirected back yet, keep polling
-        }
-      }, 500);
+      window.location.href = result.auth_url;
     } catch (err) {
       console.error("QBO connect error:", err);
       toast.error("Failed to start QuickBooks connection");
