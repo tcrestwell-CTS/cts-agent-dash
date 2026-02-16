@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Users, FileText, DollarSign, BarChart3, CheckCircle2, XCircle, AlertTriangle, Copy, Check, Clock, Building2, Key, Shield } from "lucide-react";
+import { Loader2, RefreshCw, Users, FileText, DollarSign, BarChart3, CheckCircle2, XCircle, AlertTriangle, Copy, Check, Clock, Building2, Key, Shield, HelpCircle } from "lucide-react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format, formatDistanceToNow, isPast, isBefore, addDays } from "date-fns";
+import { QBOSetupWizard } from "./QBOSetupWizard";
 
 interface FinancialSummary {
   profit_and_loss: {
@@ -35,6 +36,7 @@ export function QBOIntegrationCard() {
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
   const [connectError, setConnectError] = useState<{
     current_origin: string;
     allowed_origins: string[];
@@ -133,85 +135,46 @@ export function QBOIntegrationCard() {
               <p className="text-sm text-muted-foreground">Not connected</p>
             </div>
           </div>
-          <Button size="sm" onClick={handleConnect}>Connect</Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowWizard((v) => !v)}
+              className="gap-1 text-muted-foreground"
+            >
+              <HelpCircle className="h-4 w-4" />
+              {showWizard ? "Hide Guide" : "Setup Guide"}
+            </Button>
+            {!showWizard && (
+              <Button size="sm" onClick={handleConnect}>
+                Connect
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Redirect URI mismatch error */}
-        {connectError && (
+        {showWizard && (
+          <div className="px-4 pb-4">
+            <QBOSetupWizard onConnect={handleConnect} connectError={connectError} />
+          </div>
+        )}
+
+        {/* Error shown outside wizard when wizard is hidden */}
+        {!showWizard && connectError && (
           <div className="px-4 pb-3">
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-3">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-2">
               <div className="flex items-start gap-2">
                 <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-destructive">Redirect URI Mismatch</p>
                   <p className="text-xs text-destructive/80">
-                    The URI sent to Intuit does not match any registered Redirect URI in your app.
+                    Click <strong>Setup Guide</strong> for step-by-step instructions to resolve this.
                   </p>
                 </div>
               </div>
-
-              {/* Attempted URI */}
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-destructive/90">Attempted URI:</p>
-                <div className="flex items-center gap-2 bg-destructive/5 border border-destructive/20 rounded px-2 py-1.5">
-                  <code className="text-xs text-destructive font-mono flex-1 break-all">{connectError.redirect_uri || redirectUri}</code>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(connectError.redirect_uri || redirectUri)}>
-                    {copied === (connectError.redirect_uri || redirectUri) ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Allowed URIs from backend */}
-              {connectError.allowed_redirect_uris && connectError.allowed_redirect_uris.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-destructive/90">Allowed URIs (from backend config):</p>
-                  <div className="space-y-1">
-                    {connectError.allowed_redirect_uris.map((uri) => (
-                      <div key={uri} className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5">
-                        <code className="text-xs text-foreground font-mono flex-1 break-all">{uri}</code>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(uri)}>
-                          {copied === uri ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <p className="text-xs text-destructive/70">
-                <strong>Fix:</strong> Copy the attempted URI above and add it to your Intuit Developer app's <strong>Redirect URIs</strong> section, then add its origin to <strong>QBO_ALLOWED_ORIGINS</strong>.
-              </p>
             </div>
           </div>
         )}
-
-        {/* All required redirect URIs */}
-        <div className="px-4 pb-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-800">Required Redirect URIs</p>
-                <p className="text-xs text-amber-700">
-                  Ensure <strong>all</strong> of these URIs are listed in your Intuit Developer app's <strong>Redirect URIs</strong> and their origins are in <strong>QBO_ALLOWED_ORIGINS</strong>:
-                </p>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              {allRequiredUris.map((uri) => (
-                <div key={uri} className="flex items-center gap-2 bg-background border border-border rounded px-2 py-1.5">
-                  <code className="text-xs text-foreground flex-1 truncate">{uri}</code>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => copyUri(uri)}>
-                    {copied === uri ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-amber-600 mt-1">
-              Current origin: <code className="bg-amber-100 px-1 rounded">{window.location.origin}</code>
-            </p>
-          </div>
-        </div>
       </div>
     );
   }
