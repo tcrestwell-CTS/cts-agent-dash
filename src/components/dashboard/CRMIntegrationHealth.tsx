@@ -124,6 +124,27 @@ export function CRMIntegrationHealth() {
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
+      ) : !status.connected && status.needs_reconnect ? (
+        <div className="p-4 space-y-3">
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-start gap-2">
+            <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-destructive">Connection Expired</p>
+              <p className="text-xs text-destructive/80">
+                Token refresh failed. Please reconnect QuickBooks.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full"
+            onClick={() => navigate("/settings?tab=integrations")}
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Reconnect in Settings
+          </Button>
+        </div>
       ) : !status.connected ? (
         <div className="p-4 text-center space-y-3">
           <p className="text-sm text-muted-foreground">

@@ -96,6 +96,27 @@ export function QBOIntegrationCard() {
   if (!status.connected) {
     return (
       <div className="border border-border rounded-lg overflow-hidden">
+        {/* Reconnect banner when token refresh failed */}
+        {status.needs_reconnect && (
+          <div className="bg-destructive/10 border-b border-destructive/30 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <p className="text-sm font-semibold text-destructive">QuickBooks Connection Expired</p>
+              <p className="text-xs text-destructive/80">
+                Your QuickBooks authorization could not be automatically refreshed.
+                {status.connection?.company_name && (
+                  <> Company: <strong>{status.connection.company_name}</strong>.</>
+                )}
+                {" "}Please reconnect to restore syncing.
+              </p>
+              <Button size="sm" onClick={handleConnect} className="mt-1">
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Reconnect Now
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -103,7 +124,9 @@ export function QBOIntegrationCard() {
             </div>
             <div>
               <p className="font-medium text-card-foreground">QuickBooks Online</p>
-              <p className="text-sm text-muted-foreground">Not connected</p>
+              <p className="text-sm text-muted-foreground">
+                {status.needs_reconnect ? "Reconnection required" : "Not connected"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -116,7 +139,7 @@ export function QBOIntegrationCard() {
               <HelpCircle className="h-4 w-4" />
               {showWizard ? "Hide Guide" : "Setup Guide"}
             </Button>
-            {!showWizard && (
+            {!showWizard && !status.needs_reconnect && (
               <Button size="sm" onClick={handleConnect}>
                 Connect
               </Button>
