@@ -46,7 +46,7 @@ export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`flex-shrink-0 w-[220px] flex flex-col rounded-lg border-t-4 ${col.color} ${
+                className={`flex-shrink-0 w-[260px] flex flex-col rounded-lg border-t-4 ${col.color} ${
                   snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
                 } transition-colors`}
               >
@@ -100,30 +100,30 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
           />
         </div>
       )}
-      <CardContent className="p-3 space-y-1.5">
-        <h4 className="font-semibold text-sm leading-tight line-clamp-2">
-          {trip.isOptimistic && <Loader2 className="inline h-3 w-3 animate-spin mr-1" />}
+      <CardContent className="p-3.5 space-y-2">
+        <h4 className="font-semibold text-[15px] leading-snug line-clamp-2">
+          {trip.isOptimistic && <Loader2 className="inline h-3.5 w-3.5 animate-spin mr-1" />}
           {trip.trip_name}
         </h4>
         {trip.trip_type && trip.trip_type !== "regular" && (
-          <p className="text-xs text-muted-foreground italic">{trip.trip_type}</p>
+          <p className="text-sm text-muted-foreground italic">{trip.trip_type}</p>
         )}
         {trip.clients?.name && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Users className="h-3 w-3" />
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
             {trip.clients.name}
           </p>
         )}
         {trip.depart_date && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
             {format(new Date(trip.depart_date), "MMM d")}
             {trip.return_date && ` - ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
           </p>
         )}
         {trip.destination && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5" />
             {trip.destination}
           </p>
         )}
