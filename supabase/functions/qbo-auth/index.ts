@@ -350,12 +350,94 @@ serve(async (req) => {
     if (path === "status" && req.method === "GET") {
       const { data: connection } = await supabaseAdmin
         .from("qbo_connections")
-        .select("realm_id, company_name, is_active, token_expires_at, created_at")
+        .select("*")
         .eq("user_id", userId)
         .single();
 
+      if (connection?.is_active) {
+        // Auto-refresh if token is expired or expiring within 5 minutes
+        const tokenExpiry = new Date(connection.token_expires_at);
+        if (tokenExpiry <= new Date(Date.now() + 5 * 60 * 1000)) {
+          console.log("QBO status: token expired/expiring, attempting auto-refresh");
+          const basicAuth = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
+          const tokenResp = await fetch(QBO_TOKEN_URL, {
+            method: "POST",
+            headers: {
+              Authorization: `Basic ${basicAuth}`,
+              "Content-Type": "application/x-www-form-urlencoded",
+              Accept: "application/json",
+            },
+            body: new URLSearchParams({
+              grant_type: "refresh_token",
+              refresh_token: connection.refresh_token,
+            }),
+          });
+
+          if (tokenResp.ok) {
+            const tokens = await tokenResp.json();
+            const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+            await supabaseAdmin
+              .from("qbo_connections")
+              .update({
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+                token_expires_at: newExpiresAt,
+              })
+              .eq("id", connection.id);
+            console.log("QBO status: token auto-refreshed successfully");
+
+            return new Response(
+              JSON.stringify({
+                connected: true,
+                refreshed: true,
+                connection: {
+                  realm_id: connection.realm_id,
+                  company_name: connection.company_name,
+                  is_active: true,
+                  token_expires_at: newExpiresAt,
+                  created_at: connection.created_at,
+                },
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          } else {
+            console.error("QBO status: auto-refresh failed, marking inactive");
+            await supabaseAdmin
+              .from("qbo_connections")
+              .update({ is_active: false })
+              .eq("id", connection.id);
+
+            return new Response(
+              JSON.stringify({
+                connected: false,
+                needs_reconnect: true,
+                connection: {
+                  realm_id: connection.realm_id,
+                  company_name: connection.company_name,
+                  is_active: false,
+                  token_expires_at: connection.token_expires_at,
+                  created_at: connection.created_at,
+                },
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+
       return new Response(
-        JSON.stringify({ connected: !!connection?.is_active, connection }),
+        JSON.stringify({
+          connected: !!connection?.is_active,
+          connection: connection
+            ? {
+                realm_id: connection.realm_id,
+                company_name: connection.company_name,
+                is_active: connection.is_active,
+                token_expires_at: connection.token_expires_at,
+                created_at: connection.created_at,
+              }
+            : null,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

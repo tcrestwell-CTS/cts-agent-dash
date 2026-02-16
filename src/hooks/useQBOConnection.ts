@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface QBOConnectionStatus {
   connected: boolean;
+  needs_reconnect?: boolean;
+  refreshed?: boolean;
   connection: {
     realm_id: string;
     company_name: string | null;
@@ -14,51 +16,121 @@ interface QBOConnectionStatus {
   } | null;
 }
 
+/** Helper: get auth headers for edge function calls */
+async function getAuthHeaders() {
+  const session = await supabase.auth.getSession();
+  return {
+    Authorization: `Bearer ${session.data.session?.access_token}`,
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  };
+}
+
+/** Helper: call an edge function with auto-retry on 401 (token refresh then retry once) */
+async function qboFetchWithRetry(
+  url: string,
+  options: RequestInit,
+  onNeedsReconnect: () => void
+): Promise<Response> {
+  const resp = await fetch(url, options);
+
+  if (resp.status === 401) {
+    // Attempt a token refresh
+    const headers = await getAuthHeaders();
+    const refreshResp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=refresh`,
+      {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+      }
+    );
+
+    if (refreshResp.ok) {
+      // Retry original request
+      const retryHeaders = await getAuthHeaders();
+      const retryOptions = {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          ...retryHeaders,
+        },
+      };
+      return fetch(url, retryOptions);
+    } else {
+      // Refresh failed — need full reconnect
+      onNeedsReconnect();
+      return resp;
+    }
+  }
+
+  return resp;
+}
+
+// Refresh interval: check every 45 minutes
+const REFRESH_CHECK_INTERVAL = 45 * 60 * 1000;
+
 export function useQBOConnection() {
   const { user } = useAuth();
   const [status, setStatus] = useState<QBOConnectionStatus>({ connected: false, connection: null });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const showReconnectToast = useCallback(() => {
+    toast.error("QuickBooks connection expired", {
+      duration: 15000,
+      description: "Your QuickBooks token could not be refreshed. Please reconnect.",
+      action: {
+        label: "Reconnect",
+        onClick: () => {
+          window.location.href = "/settings?tab=integrations";
+        },
+      },
+    });
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     if (!user) return;
     try {
-      const session = await supabase.auth.getSession();
+      const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=status`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
+        { headers }
       );
       if (!resp.ok) throw new Error("Failed to fetch QBO status");
-      const data = await resp.json();
+      const data: QBOConnectionStatus = await resp.json();
       setStatus(data);
+
+      if (data.needs_reconnect) {
+        showReconnectToast();
+      }
+      if (data.refreshed) {
+        console.log("QBO token was auto-refreshed by server");
+      }
     } catch (err) {
       console.error("Failed to fetch QBO status:", err);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, showReconnectToast]);
 
+  // Initial fetch + periodic refresh check
   useEffect(() => {
     fetchStatus();
+
+    // Set up periodic status check (triggers server-side auto-refresh)
+    refreshTimerRef.current = setInterval(fetchStatus, REFRESH_CHECK_INTERVAL);
+    return () => {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+    };
   }, [fetchStatus]);
 
   const connect = async (): Promise<{ error?: string; current_origin?: string; allowed_origins?: string[]; redirect_uri?: string; allowed_redirect_uris?: string[] } | void> => {
     try {
       const redirectUri = `${window.location.origin}/settings?tab=integrations`;
-      const session = await supabase.auth.getSession();
+      const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=authorize&redirect_uri=${encodeURIComponent(redirectUri)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
+        { headers }
       );
 
       const result = await resp.json();
@@ -88,10 +160,7 @@ export function useQBOConnection() {
         throw new Error(result.error || "Failed to get authorization URL");
       }
       
-      // Store state for validation
       sessionStorage.setItem("qbo_oauth_state", result.state);
-      
-      // Redirect to QBO
       window.location.href = result.auth_url;
     } catch (err) {
       console.error("QBO connect error:", err);
@@ -109,16 +178,12 @@ export function useQBOConnection() {
 
     try {
       const redirectUri = `${window.location.origin}/settings?tab=integrations`;
-      const session = await supabase.auth.getSession();
+      const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=callback`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
+          headers: { ...headers, "Content-Type": "application/json" },
           body: JSON.stringify({ code, redirect_uri: redirectUri, realm_id: realmId }),
         }
       );
@@ -137,16 +202,12 @@ export function useQBOConnection() {
 
   const disconnect = async () => {
     try {
-      const session = await supabase.auth.getSession();
+      const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=disconnect`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
+          headers: { ...headers, "Content-Type": "application/json" },
         }
       );
       if (!resp.ok) throw new Error("Disconnect failed");
@@ -161,22 +222,20 @@ export function useQBOConnection() {
   const syncClients = async (clientIds?: string[]) => {
     setSyncing("clients");
     try {
-      const session = await supabase.auth.getSession();
-      const resp = await fetch(
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-clients`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
+          headers: { ...headers, "Content-Type": "application/json" },
           body: JSON.stringify({ client_ids: clientIds }),
-        }
+        },
+        showReconnectToast
       );
       if (!resp.ok) throw new Error("Sync clients failed");
       const data = await resp.json();
       toast.success(`Synced clients: ${data.created} created, ${data.updated} updated`);
+      await fetchStatus();
       return data;
     } catch (err) {
       console.error("Client sync error:", err);
@@ -189,18 +248,15 @@ export function useQBOConnection() {
   const syncInvoice = async (invoiceId: string) => {
     setSyncing("invoice");
     try {
-      const session = await supabase.auth.getSession();
-      const resp = await fetch(
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-invoice`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
+          headers: { ...headers, "Content-Type": "application/json" },
           body: JSON.stringify({ invoice_id: invoiceId }),
-        }
+        },
+        showReconnectToast
       );
       if (!resp.ok) throw new Error("Sync invoice failed");
       const data = await resp.json();
@@ -217,17 +273,14 @@ export function useQBOConnection() {
   const syncPayments = async () => {
     setSyncing("payments");
     try {
-      const session = await supabase.auth.getSession();
-      const resp = await fetch(
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-payments`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-        }
+          headers: { ...headers },
+        },
+        showReconnectToast
       );
       if (!resp.ok) throw new Error("Sync payments failed");
       const data = await resp.json();
@@ -243,15 +296,11 @@ export function useQBOConnection() {
 
   const getFinancialSummary = async () => {
     try {
-      const session = await supabase.auth.getSession();
-      const resp = await fetch(
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=financial-summary`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
+        { headers },
+        showReconnectToast
       );
       if (!resp.ok) throw new Error("Failed to fetch financial summary");
       return await resp.json();
