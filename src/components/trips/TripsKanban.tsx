@@ -46,7 +46,7 @@ export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`flex-shrink-0 w-[300px] flex flex-col rounded-lg border-t-4 ${col.color} ${
+                className={`flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 ${col.color} ${
                   snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
                 } transition-colors`}
               >
@@ -56,7 +56,7 @@ export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
                     {tripsByStatus[col.id]?.length || 0}
                   </span>
                 </div>
-                <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto">
+                <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
                   {tripsByStatus[col.id]?.map((trip, index) => (
                     <Draggable
                       key={trip.id}
@@ -100,7 +100,7 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
           />
         </div>
       )}
-      <CardContent className="p-4 space-y-2.5">
+      <CardContent className="p-4.5 space-y-3">
         <h4 className="font-semibold text-[18px] leading-snug line-clamp-2">
           {trip.isOptimistic && <Loader2 className="inline h-4 w-4 animate-spin mr-1" />}
           {trip.trip_name}
