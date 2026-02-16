@@ -46,13 +46,13 @@ export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`flex-shrink-0 w-[260px] flex flex-col rounded-lg border-t-4 ${col.color} ${
+                className={`flex-shrink-0 w-[300px] flex flex-col rounded-lg border-t-4 ${col.color} ${
                   snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
                 } transition-colors`}
               >
-                <div className="px-3 py-2.5 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">{col.label}</h3>
-                  <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                <div className="px-3.5 py-3 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-foreground">{col.label}</h3>
+                  <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
                     {tripsByStatus[col.id]?.length || 0}
                   </span>
                 </div>
@@ -92,7 +92,7 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
   return (
     <Card className={`overflow-hidden transition-shadow hover:shadow-md ${trip.isOptimistic ? "opacity-60 animate-pulse" : ""}`}>
       {trip.cover_image_url && (
-        <div className="h-28 w-full overflow-hidden">
+        <div className="h-32 w-full overflow-hidden">
           <img
             src={trip.cover_image_url}
             alt={trip.trip_name}
@@ -100,9 +100,9 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
           />
         </div>
       )}
-      <CardContent className="p-3.5 space-y-2">
-        <h4 className="font-semibold text-[15px] leading-snug line-clamp-2">
-          {trip.isOptimistic && <Loader2 className="inline h-3.5 w-3.5 animate-spin mr-1" />}
+      <CardContent className="p-4 space-y-2.5">
+        <h4 className="font-semibold text-base leading-snug line-clamp-2">
+          {trip.isOptimistic && <Loader2 className="inline h-4 w-4 animate-spin mr-1" />}
           {trip.trip_name}
         </h4>
         {trip.trip_type && trip.trip_type !== "regular" && (
