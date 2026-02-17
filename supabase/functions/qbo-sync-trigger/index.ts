@@ -283,9 +283,11 @@ async function handleDepositPosted(
     }
   }
 
+  // Auto-provision required QBO accounts
+  const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
+  const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "Expense");
+
   const grossAmount = payment.amount || 0;
-  // Stripe typically charges ~2.9% + $0.30; Affirm fees may differ
-  // Use payment metadata if available, otherwise estimate
   const stripeFeeRate = 0.029;
   const stripeFixedFee = 0.30;
   const stripeFee = Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
@@ -293,7 +295,7 @@ async function handleDepositPosted(
   const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
   const memo = `Stripe/Affirm deposit – ${payment.details || payment.notes || "Trip payment"}`;
 
-  // ── Step 1: Payment hits Stripe Clearing (Debit Stripe Clearing, Credit Accounts Receivable) ──
+  // ── Step 1: Gross → Stripe Clearing ──
   const step1 = {
     TxnDate: txnDate,
     PrivateNote: `${memo} – Gross payment received`,
@@ -303,7 +305,7 @@ async function handleDepositPosted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Debit",
-          AccountRef: { name: "Stripe Clearing" },
+          AccountRef: { value: stripeClearingId, name: "Stripe Clearing" },
         },
         Description: `Gross payment received – ${payment.details || "Deposit"}`,
       },
@@ -328,7 +330,7 @@ async function handleDepositPosted(
     throw new Error(`Stripe Clearing step 1 failed: ${err}`);
   }
 
-  // ── Step 2: Stripe fees recorded (Debit Stripe Fees expense, Credit Stripe Clearing) ──
+  // ── Step 2: Fees ──
   const step2 = {
     TxnDate: txnDate,
     PrivateNote: `${memo} – Processing fees`,
@@ -338,7 +340,7 @@ async function handleDepositPosted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Debit",
-          AccountRef: { name: "Stripe Processing Fees" },
+          AccountRef: { value: stripeFeesId, name: "Stripe Processing Fees" },
         },
         Description: `Stripe/Affirm processing fee`,
       },
@@ -347,7 +349,7 @@ async function handleDepositPosted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Credit",
-          AccountRef: { name: "Stripe Clearing" },
+          AccountRef: { value: stripeClearingId, name: "Stripe Clearing" },
         },
         Description: `Stripe/Affirm processing fee`,
       },
@@ -362,8 +364,7 @@ async function handleDepositPosted(
     throw new Error(`Stripe Clearing step 2 (fees) failed: ${err}`);
   }
 
-  // ── Step 3: Net transfer to bank (Debit Checking/Bank, Credit Stripe Clearing) ──
-  // This zeroes out the clearing account
+  // ── Step 3: Net → Bank ──
   const step3 = {
     TxnDate: txnDate,
     PrivateNote: `${memo} – Net payout to bank`,
@@ -382,7 +383,7 @@ async function handleDepositPosted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Credit",
-          AccountRef: { name: "Stripe Clearing" },
+          AccountRef: { value: stripeClearingId, name: "Stripe Clearing" },
         },
         Description: `Net Stripe payout to bank`,
       },
@@ -399,12 +400,71 @@ async function handleDepositPosted(
 
   await logSync(supabase, userId, "auto-deposit-posted", "success", 3, undefined, {
     gross: grossAmount, stripe_fee: stripeFee, net: netAmount,
+    accounts_provisioned: { stripe_clearing: stripeClearingId, stripe_fees: stripeFeesId },
   });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ────────────────────────────────────────────────────────────────────────────
+
+// In-memory cache for account IDs within a single function invocation
+const _accountCache = new Map<string, string>();
+
+/**
+ * Ensure a QBO Account exists by name. Creates it if missing.
+ * Returns the QBO Account Id.
+ *
+ * @param accountType - QBO AccountType (e.g. "Other Current Asset", "Expense", "Bank")
+ * @param accountSubType - QBO AccountSubType (e.g. "OtherCurrentAsset", "Expense")
+ */
+async function ensureQBOAccount(
+  qboBase: string, qboHeaders: any,
+  accountName: string, accountType: string, accountSubType: string
+): Promise<string> {
+  // Check cache first
+  if (_accountCache.has(accountName)) {
+    return _accountCache.get(accountName)!;
+  }
+
+  // Query QBO for existing account
+  const nameEscaped = accountName.replace(/'/g, "\\'");
+  const searchResp = await fetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${nameEscaped}'`)}`,
+    { headers: qboHeaders }
+  );
+
+  if (searchResp.ok) {
+    const data = await searchResp.json();
+    const existing = data?.QueryResponse?.Account?.[0];
+    if (existing) {
+      _accountCache.set(accountName, existing.Id);
+      return existing.Id;
+    }
+  }
+
+  // Create the account
+  const createResp = await fetch(`${qboBase}/account`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify({
+      Name: accountName,
+      AccountType: accountType,
+      AccountSubType: accountSubType,
+    }),
+  });
+
+  if (!createResp.ok) {
+    const errText = await createResp.text();
+    throw new Error(`Failed to create QBO Account "${accountName}": ${errText}`);
+  }
+
+  const result = await createResp.json();
+  const id = result.Account.Id;
+  _accountCache.set(accountName, id);
+  console.log(`[QBO] Auto-provisioned account "${accountName}" (ID: ${id})`);
+  return id;
+}
 
 /** Ensure a client exists as a QBO Customer; return QBO customer ID */
 async function ensureQBOCustomer(

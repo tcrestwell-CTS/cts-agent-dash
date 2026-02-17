@@ -727,6 +727,10 @@ serve(async (req) => {
         });
       }
 
+      // Auto-provision required QBO accounts
+      const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
+      const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "Expense");
+
       const date = txn_date || new Date().toISOString().split("T")[0];
       const note = memo || "Stripe/Affirm deposit";
       const results: string[] = [];
@@ -738,7 +742,7 @@ serve(async (req) => {
         Line: [
           {
             Amount: gross_amount, DetailType: "JournalEntryLineDetail",
-            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { name: "Stripe Clearing" } },
+            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { value: stripeClearingId, name: "Stripe Clearing" } },
             Description: `Gross payment received`,
           },
           {
@@ -766,12 +770,12 @@ serve(async (req) => {
         Line: [
           {
             Amount: stripe_fee, DetailType: "JournalEntryLineDetail",
-            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { name: "Stripe Processing Fees" } },
+            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { value: stripeFeesId, name: "Stripe Processing Fees" } },
             Description: `Stripe/Affirm processing fee`,
           },
           {
             Amount: stripe_fee, DetailType: "JournalEntryLineDetail",
-            JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { name: "Stripe Clearing" } },
+            JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { value: stripeClearingId, name: "Stripe Clearing" } },
             Description: `Stripe/Affirm processing fee`,
           },
         ],
@@ -795,7 +799,7 @@ serve(async (req) => {
           },
           {
             Amount: net_amount, DetailType: "JournalEntryLineDetail",
-            JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { name: "Stripe Clearing" } },
+            JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { value: stripeClearingId, name: "Stripe Clearing" } },
             Description: `Net Stripe payout to bank`,
           },
         ],
@@ -810,7 +814,8 @@ serve(async (req) => {
       await supabaseAdmin.from("qbo_sync_logs").insert({
         user_id: userId, sync_type: "stripe_clearing", direction: "push", status: "success",
         records_processed: 3,
-        details: { gross_amount, stripe_fee, net_amount, journal_entry_ids: results },
+        details: { gross_amount, stripe_fee, net_amount, journal_entry_ids: results,
+          accounts_provisioned: { stripe_clearing: stripeClearingId, stripe_fees: stripeFeesId } },
       });
 
       return new Response(
@@ -831,3 +836,58 @@ serve(async (req) => {
     );
   }
 });
+
+// ────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ────────────────────────────────────────────────────────────────────────────
+
+const _accountCache = new Map<string, string>();
+
+/**
+ * Ensure a QBO Account exists by name. Creates it if missing.
+ * Returns the QBO Account Id.
+ */
+async function ensureQBOAccount(
+  qboBase: string, qboHeaders: any,
+  accountName: string, accountType: string, accountSubType: string
+): Promise<string> {
+  if (_accountCache.has(accountName)) {
+    return _accountCache.get(accountName)!;
+  }
+
+  const nameEscaped = accountName.replace(/'/g, "\\'");
+  const searchResp = await fetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${nameEscaped}'`)}`,
+    { headers: qboHeaders }
+  );
+
+  if (searchResp.ok) {
+    const data = await searchResp.json();
+    const existing = data?.QueryResponse?.Account?.[0];
+    if (existing) {
+      _accountCache.set(accountName, existing.Id);
+      return existing.Id;
+    }
+  }
+
+  const createResp = await fetch(`${qboBase}/account`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify({
+      Name: accountName,
+      AccountType: accountType,
+      AccountSubType: accountSubType,
+    }),
+  });
+
+  if (!createResp.ok) {
+    const errText = await createResp.text();
+    throw new Error(`Failed to create QBO Account "${accountName}": ${errText}`);
+  }
+
+  const result = await createResp.json();
+  const id = result.Account.Id;
+  _accountCache.set(accountName, id);
+  console.log(`[QBO] Auto-provisioned account "${accountName}" (ID: ${id})`);
+  return id;
+}
