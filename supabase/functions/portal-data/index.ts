@@ -533,7 +533,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
   } catch (error) {
-    console.error("Portal data error:", error);
+    console.error("Portal data error:", error?.message || error, error?.stack || "");
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
