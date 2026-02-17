@@ -428,7 +428,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Get CC authorizations for this client
       const tripId = url.searchParams.get("tripId");
 
-      let query = supabaseAdmin
+      let query = supabase
         .from("cc_authorizations")
         .select(`
           id, booking_id, authorization_amount, authorization_description,
@@ -439,7 +439,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (tripId) {
         // Filter by bookings belonging to this trip
-        const { data: tripBookings } = await supabaseAdmin
+        const { data: tripBookings } = await supabase
           .from("bookings")
           .select("id")
           .eq("trip_id", tripId);
@@ -459,7 +459,7 @@ const handler = async (req: Request): Promise<Response> => {
       const bookingIds = [...new Set((data || []).map((a: any) => a.booking_id))];
       let bookingsMap: Record<string, any> = {};
       if (bookingIds.length > 0) {
-        const { data: bookings } = await supabaseAdmin
+        const { data: bookings } = await supabase
           .from("bookings")
           .select("id, booking_reference, destination, trip_name")
           .in("id", bookingIds);
