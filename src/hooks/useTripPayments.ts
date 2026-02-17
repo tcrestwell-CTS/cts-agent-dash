@@ -18,6 +18,8 @@ export interface TripPayment {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  stripe_session_id: string | null;
+  stripe_payment_url: string | null;
   bookings?: {
     id: string;
     booking_reference: string;
