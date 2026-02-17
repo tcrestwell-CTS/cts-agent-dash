@@ -42,6 +42,7 @@ export interface SharedTripData {
     clia_number: string | null;
     ccra_number: string | null;
     asta_number: string | null;
+    embarc_number: string | null;
   } | null;
 }
 

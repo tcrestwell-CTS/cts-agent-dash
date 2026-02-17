@@ -18,6 +18,7 @@ interface SharedTripHeroProps {
     clia_number: string | null;
     ccra_number: string | null;
     asta_number: string | null;
+    embarc_number: string | null;
   } | null;
   primaryColor: string;
 }
@@ -27,6 +28,7 @@ export default function SharedTripHero({ branding, advisor, primaryColor }: Shar
     { label: "CLIA", value: advisor?.clia_number },
     { label: "CCRA", value: advisor?.ccra_number },
     { label: "ASTA", value: advisor?.asta_number },
+    { label: "Embarc ID", value: advisor?.embarc_number },
   ].filter(c => c.value);
 
   return (
