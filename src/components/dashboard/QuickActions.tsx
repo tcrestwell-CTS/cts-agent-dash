@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, BookOpen, FileText, RefreshCw, Globe } from "lucide-react";
+import { Plus, Send, BookOpen, FileText, RefreshCw, Globe, Scale } from "lucide-react";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -106,17 +106,27 @@ export function QuickActions() {
           </Button>
         ))}
         {isAdmin && (
-          <Button
-            variant="outline"
-            className="h-auto py-4 flex-col gap-2 col-span-2 border-dashed"
-            onClick={handleRunAutomation}
-            disabled={isRunningAutomation}
-          >
-            <RefreshCw className={`h-5 w-5 ${isRunningAutomation ? "animate-spin" : ""}`} />
-            <span className="text-sm">
-              {isRunningAutomation ? "Running..." : "Run Automation"}
-            </span>
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex-col gap-2"
+              onClick={() => navigate("/qbo-health")}
+            >
+              <Scale className="h-5 w-5" />
+              <span className="text-sm">Stripe Recon</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex-col gap-2 border-dashed"
+              onClick={handleRunAutomation}
+              disabled={isRunningAutomation}
+            >
+              <RefreshCw className={`h-5 w-5 ${isRunningAutomation ? "animate-spin" : ""}`} />
+              <span className="text-sm">
+                {isRunningAutomation ? "Running..." : "Run Automation"}
+              </span>
+            </Button>
+          </>
         )}
       </div>
     </div>
