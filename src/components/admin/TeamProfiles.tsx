@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { AgencyCertifications } from "@/components/shared/AgencyCertifications";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -20,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2, TrendingUp, Award } from "lucide-react";
+import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2, TrendingUp } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { useAllUserRoles, useUpdateUserRole, useDeleteUser } from "@/hooks/useUserRoles";
 import { useUpdateCommissionTier } from "@/hooks/useUpdateCommissionTier";
@@ -246,30 +247,12 @@ export function TeamProfiles() {
                 </div>
                 </div>
 
-                {/* Agency Certifications */}
-                {(() => {
-                  const certs = [
-                    { label: "CLIA", value: profile.clia_number },
-                    { label: "CCRA", value: profile.ccra_number },
-                    { label: "ASTA", value: profile.asta_number },
-                    { label: "Embarc ID", value: profile.embarc_number },
-                  ].filter(c => c.value);
-                  return certs.length > 0 ? (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <div className="flex items-center gap-2 text-sm font-medium text-card-foreground mb-1.5">
-                        <Award className="h-4 w-4 text-muted-foreground" />
-                        Agency Certifications
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {certs.map(c => (
-                          <Badge key={c.label} variant="outline" className="text-xs">
-                            {c.label}: {c.value}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null;
-                })()}
+                <AgencyCertifications
+                  cliaNumber={profile.clia_number}
+                  ccraNumber={profile.ccra_number}
+                  astaNumber={profile.asta_number}
+                  embarcNumber={profile.embarc_number}
+                />
 
               <div className="mt-4 pt-3 border-t border-border space-y-3">
                 {/* Role display/edit */}
