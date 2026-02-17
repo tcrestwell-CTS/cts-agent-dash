@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -25,6 +25,34 @@ export default function PortalTripDetail() {
   const approveItinerary = useApproveItinerary();
   const [showItinerary, setShowItinerary] = useState(false);
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
+
+  const handlePayNow = useCallback(async (paymentId: string) => {
+    setPayingId(paymentId);
+    try {
+      const portalSession = localStorage.getItem("portal_session");
+      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-portal-token": portalToken || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ paymentId, returnUrl: window.location.origin }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed");
+      if (result.url) window.location.href = result.url;
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("Failed to start payment");
+    } finally {
+      setPayingId(null);
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -299,21 +327,67 @@ export default function PortalTripDetail() {
             <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
           ) : (
             <div className="space-y-3">
-              {payments.map((p: any) => (
-                <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{p.payment_type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {p.due_date ? format(new Date(p.due_date), "MMM d, yyyy") : format(new Date(p.payment_date), "MMM d, yyyy")}
-                    </p>
-                    {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
+              {payments.map((p: any) => {
+                const isPending = p.status === "pending";
+                const isPaid = p.status === "paid";
+                const statusIcon = isPaid ? CheckCircle2 : isPending ? Clock : p.status === "refunded" ? DollarSign : p.status === "cancelled" ? XCircle : CreditCard;
+                const StatusIcon = statusIcon;
+                const statusClass = isPaid
+                  ? "bg-green-100 text-green-700 border-green-200"
+                  : isPending
+                  ? "bg-amber-100 text-amber-700 border-amber-200"
+                  : p.status === "authorized"
+                  ? "bg-blue-100 text-blue-700 border-blue-200"
+                  : p.status === "refunded"
+                  ? "bg-purple-100 text-purple-700 border-purple-200"
+                  : "bg-red-100 text-red-700 border-red-200";
+
+                const typeLabel = p.payment_type === "final_balance" ? "Final Balance" :
+                  p.payment_type.charAt(0).toUpperCase() + p.payment_type.slice(1);
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-amber-200 bg-amber-50/50" : ""}`}
+                  >
+                    <div className="space-y-0.5">
+                      <p className="font-medium">{typeLabel}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {p.due_date ? format(new Date(p.due_date), "MMM d, yyyy") : format(new Date(p.payment_date), "MMM d, yyyy")}
+                      </p>
+                      {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
+                      {isPaid && p.payment_method && (
+                        <p className="text-xs text-muted-foreground capitalize">
+                          via {p.payment_method.replace(/_/g, " ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <Badge variant="outline" className={`gap-1 ${statusClass}`}>
+                          <StatusIcon className="h-3 w-3" />
+                          {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                        </Badge>
+                        <p className="text-sm font-semibold mt-1">${Number(p.amount).toLocaleString()}</p>
+                      </div>
+                      {isPending && (
+                        <Button
+                          size="sm"
+                          onClick={() => handlePayNow(p.id)}
+                          disabled={payingId === p.id}
+                        >
+                          {payingId === p.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <CreditCard className="h-4 w-4 mr-1" />
+                          )}
+                          Pay Now
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Badge variant={p.status === "paid" ? "default" : "secondary"}>{p.status}</Badge>
-                    <p className="text-sm font-medium mt-1">${p.amount.toLocaleString()}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

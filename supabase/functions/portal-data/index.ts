@@ -477,6 +477,56 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "payments") {
+      // Get all trips for this client (own + companion)
+      const [ownTripsRes, companionTripIds4] = await Promise.all([
+        supabase.from("trips").select("id, trip_name").eq("client_id", clientId),
+        getCompanionTripIds(),
+      ]);
+
+      const allTripIds = [
+        ...(ownTripsRes.data || []).map((t: any) => t.id),
+        ...companionTripIds4,
+      ];
+
+      if (allTripIds.length === 0) {
+        return new Response(JSON.stringify({ payments: [] }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Build trip name map
+      const tripNameMap: Record<string, string> = {};
+      for (const t of ownTripsRes.data || []) {
+        tripNameMap[t.id] = t.trip_name;
+      }
+      // Fetch companion trip names
+      const missingIds = companionTripIds4.filter((id: string) => !tripNameMap[id]);
+      if (missingIds.length > 0) {
+        const { data: extraTrips } = await supabase
+          .from("trips")
+          .select("id, trip_name")
+          .in("id", missingIds);
+        for (const t of extraTrips || []) {
+          tripNameMap[t.id] = t.trip_name;
+        }
+      }
+
+      const { data: payments } = await supabase
+        .from("trip_payments")
+        .select("id, amount, payment_date, due_date, status, payment_type, payment_method, details, notes, trip_id, stripe_payment_url")
+        .in("trip_id", allTripIds)
+        .order("payment_date", { ascending: false });
+
+      const enrichedPayments = (payments || []).map((p: any) => ({
+        ...p,
+        trip_name: tripNameMap[p.trip_id] || "Trip",
+      }));
+
+      return new Response(JSON.stringify({ payments: enrichedPayments }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
