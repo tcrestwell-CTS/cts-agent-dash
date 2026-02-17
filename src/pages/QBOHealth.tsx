@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2 } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
@@ -27,11 +27,13 @@ type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, getFinancialSummary } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, getFinancialSummary, getStripeReconReport } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
+  const [reconReport, setReconReport] = useState<any>(null);
+  const [loadingRecon, setLoadingRecon] = useState(false);
 
   const loadFinancials = async () => {
     setLoadingFinancials(true);
@@ -276,7 +278,161 @@ export default function QBOHealth() {
           </Card>
         )}
 
-        {/* Sync Log Table */}
+        {/* Stripe Reconciliation Report */}
+        {status.connected && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scale className="h-5 w-5" />
+                    Stripe Clearing Reconciliation
+                  </CardTitle>
+                  <CardDescription>Verify clearing balances by account and payout date</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    setLoadingRecon(true);
+                    const data = await getStripeReconReport();
+                    setReconReport(data);
+                    setLoadingRecon(false);
+                  }}
+                  disabled={loadingRecon}
+                >
+                  {loadingRecon ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  {reconReport ? "Refresh" : "Run Report"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingRecon ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : !reconReport ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                  <p className="text-sm">Click "Run Report" to query QBO for Stripe Clearing activity</p>
+                </div>
+              ) : !reconReport.account_exists ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="font-medium">Stripe Clearing account not found</p>
+                  <p className="text-sm mt-1">It will be auto-created on your first Stripe deposit sync.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Account Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Clearing Balance</p>
+                      <p className={`text-lg font-bold ${
+                        reconReport.summary.is_balanced ? "text-emerald-600" : "text-destructive"
+                      }`}>
+                        ${reconReport.summary.current_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                      {reconReport.summary.is_balanced && (
+                        <Badge variant="outline" className="mt-1 text-emerald-600 border-emerald-200 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Balanced
+                        </Badge>
+                      )}
+                      {!reconReport.summary.is_balanced && (
+                        <Badge variant="destructive" className="mt-1 text-[10px]">
+                          <AlertTriangle className="h-3 w-3 mr-1" /> Unbalanced
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Total Debits</p>
+                      <p className="text-lg font-bold text-foreground">
+                        ${reconReport.summary.total_debits.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Total Credits</p>
+                      <p className="text-lg font-bold text-foreground">
+                        ${reconReport.summary.total_credits.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Processing Fees</p>
+                      <p className="text-lg font-bold text-foreground">
+                        {reconReport.fees_account
+                          ? `$${reconReport.fees_account.current_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* By-Date Breakdown */}
+                  {reconReport.by_date && Object.keys(reconReport.by_date).length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2 text-foreground">By Payout Date</h4>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead className="text-right">Debits</TableHead>
+                              <TableHead className="text-right">Credits</TableHead>
+                              <TableHead className="text-right">Net</TableHead>
+                              <TableHead className="text-center">Status</TableHead>
+                              <TableHead className="text-right">Entries</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {Object.entries(reconReport.by_date as Record<string, { debits: number; credits: number; count: number; balanced: boolean }>)
+                              .sort(([a], [b]) => b.localeCompare(a))
+                              .map(([date, data]) => (
+                                <TableRow key={date}>
+                                  <TableCell className="text-xs font-medium">
+                                    {format(new Date(date + "T12:00:00"), "MMM d, yyyy")}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs">
+                                    ${data.debits.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-xs">
+                                    ${data.credits.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className={`text-right font-mono text-xs ${
+                                    data.balanced ? "text-emerald-600" : "text-destructive"
+                                  }`}>
+                                    ${Math.abs(data.debits - data.credits).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {data.balanced ? (
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                                    ) : (
+                                      <AlertTriangle className="h-4 w-4 text-destructive mx-auto" />
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right text-xs text-muted-foreground">
+                                    {data.count}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Entry Count */}
+                  <p className="text-xs text-muted-foreground text-right">
+                    {reconReport.summary.entry_count} journal entries found
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">

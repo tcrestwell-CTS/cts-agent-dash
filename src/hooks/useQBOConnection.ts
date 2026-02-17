@@ -311,6 +311,23 @@ export function useQBOConnection() {
     }
   };
 
+  const getStripeReconReport = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=stripe-recon-report`,
+        { headers },
+        showReconnectToast
+      );
+      if (!resp.ok) throw new Error("Failed to fetch Stripe reconciliation report");
+      return await resp.json();
+    } catch (err) {
+      console.error("Stripe recon report error:", err);
+      toast.error("Failed to fetch Stripe reconciliation report");
+      return null;
+    }
+  };
+
   return {
     status,
     loading,
@@ -322,6 +339,7 @@ export function useQBOConnection() {
     syncInvoice,
     syncPayments,
     getFinancialSummary,
+    getStripeReconReport,
     refreshStatus: fetchStatus,
   };
 }
