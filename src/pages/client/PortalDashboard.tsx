@@ -2,9 +2,10 @@ import { useState } from "react";
 import { usePortalDashboard } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AgencyCertifications } from "@/components/shared/AgencyCertifications";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Map, CreditCard, MessageSquare, User, Loader2, Award } from "lucide-react";
+import { Map, CreditCard, MessageSquare, User, Loader2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -191,28 +192,13 @@ export default function PortalDashboard() {
               <p className="font-semibold">{agent.full_name}</p>
               {agent.job_title && <p className="text-sm text-muted-foreground">{agent.job_title}</p>}
               {agent.phone && <p className="text-sm text-muted-foreground">{agent.phone}</p>}
-              {(() => {
-                const certs = [
-                  { label: "CLIA", value: agent.clia_number },
-                  { label: "CCRA", value: agent.ccra_number },
-                  { label: "ASTA", value: agent.asta_number },
-                  { label: "Embarc ID", value: agent.embarc_number },
-                ].filter((c: any) => c.value);
-                return certs.length > 0 ? (
-                  <div className="mt-2">
-                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
-                      <Award className="h-3 w-3" /> Agency Certifications
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {certs.map((c: any) => (
-                        <Badge key={c.label} variant="outline" className="text-xs">
-                          {c.label}: {c.value}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null;
-              })()}
+              <AgencyCertifications
+                cliaNumber={agent.clia_number}
+                ccraNumber={agent.ccra_number}
+                astaNumber={agent.asta_number}
+                embarcNumber={agent.embarc_number}
+                compact
+              />
             </div>
           </CardContent>
         </Card>
