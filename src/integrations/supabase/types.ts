@@ -1295,6 +1295,7 @@ export type Database = {
           payment_type: string
           status: string
           stripe_payment_url: string | null
+          stripe_receipt_url: string | null
           stripe_session_id: string | null
           trip_id: string
           updated_at: string
@@ -1313,6 +1314,7 @@ export type Database = {
           payment_type?: string
           status?: string
           stripe_payment_url?: string | null
+          stripe_receipt_url?: string | null
           stripe_session_id?: string | null
           trip_id: string
           updated_at?: string
@@ -1331,6 +1333,7 @@ export type Database = {
           payment_type?: string
           status?: string
           stripe_payment_url?: string | null
+          stripe_receipt_url?: string | null
           stripe_session_id?: string | null
           trip_id?: string
           updated_at?: string

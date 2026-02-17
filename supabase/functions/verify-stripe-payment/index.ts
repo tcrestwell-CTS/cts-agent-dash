@@ -28,7 +28,22 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
+    let receiptUrl: string | null = null;
+
     if (session.payment_status === "paid") {
+      // Try to get receipt URL from the charge
+      if (session.payment_intent) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
+          if (pi.latest_charge) {
+            const charge = await stripe.charges.retrieve(pi.latest_charge as string);
+            receiptUrl = charge.receipt_url || null;
+          }
+        } catch (e) {
+          console.error("Failed to fetch receipt URL:", e);
+        }
+      }
+
       const paymentId = session.metadata?.trip_payment_id;
       if (paymentId) {
         await supabase
@@ -38,6 +53,7 @@ serve(async (req) => {
             payment_method: "stripe",
             payment_date: new Date().toISOString().split("T")[0],
             details: `Stripe payment ${session.payment_intent}`,
+            stripe_receipt_url: receiptUrl,
           })
           .eq("id", paymentId);
       }
@@ -46,6 +62,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       status: session.payment_status,
       paid: session.payment_status === "paid",
+      receiptUrl,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

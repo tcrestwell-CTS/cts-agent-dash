@@ -514,7 +514,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: payments } = await supabase
         .from("trip_payments")
-        .select("id, amount, payment_date, due_date, status, payment_type, payment_method, details, notes, trip_id, stripe_payment_url")
+        .select("id, amount, payment_date, due_date, status, payment_type, payment_method, details, notes, trip_id, stripe_payment_url, stripe_receipt_url")
         .in("trip_id", allTripIds)
         .order("payment_date", { ascending: false });
 
