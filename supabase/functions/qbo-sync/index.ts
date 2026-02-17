@@ -714,6 +714,111 @@ serve(async (req) => {
       );
     }
 
+    // ── POST ?action=stripe-clearing-flow ──────────────────────────
+    // Manual Stripe Clearing account reconciliation:
+    // 1. Gross payment → Stripe Clearing
+    // 2. Stripe fees deducted from Clearing
+    // 3. Net payout from Clearing → Bank
+    if (urlPath === "stripe-clearing-flow" && req.method === "POST") {
+      const { gross_amount, stripe_fee, net_amount, customer_ref, txn_date, memo } = await req.json();
+      if (!gross_amount || stripe_fee == null || !net_amount) {
+        return new Response(JSON.stringify({ error: "gross_amount, stripe_fee, and net_amount required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const date = txn_date || new Date().toISOString().split("T")[0];
+      const note = memo || "Stripe/Affirm deposit";
+      const results: string[] = [];
+
+      // Step 1: Gross → Stripe Clearing
+      const step1 = {
+        TxnDate: date,
+        PrivateNote: `${note} – Gross received`,
+        Line: [
+          {
+            Amount: gross_amount, DetailType: "JournalEntryLineDetail",
+            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { name: "Stripe Clearing" } },
+            Description: `Gross payment received`,
+          },
+          {
+            Amount: gross_amount, DetailType: "JournalEntryLineDetail",
+            JournalEntryLineDetail: {
+              PostingType: "Credit",
+              AccountRef: { name: "Accounts Receivable (A/R)" },
+              ...(customer_ref ? { EntityRef: { value: customer_ref, type: "Customer" } } : {}),
+            },
+            Description: `Gross payment received`,
+          },
+        ],
+      };
+      const r1 = await fetch(`${qboBase}/journalentry`, { method: "POST", headers: qboHeaders, body: JSON.stringify(step1) });
+      if (!r1.ok) {
+        const err = await r1.text();
+        throw new Error(`Stripe Clearing step 1 failed: ${err}`);
+      }
+      results.push((await r1.json()).JournalEntry.Id);
+
+      // Step 2: Fees
+      const step2 = {
+        TxnDate: date,
+        PrivateNote: `${note} – Processing fees`,
+        Line: [
+          {
+            Amount: stripe_fee, DetailType: "JournalEntryLineDetail",
+            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { name: "Stripe Processing Fees" } },
+            Description: `Stripe/Affirm processing fee`,
+          },
+          {
+            Amount: stripe_fee, DetailType: "JournalEntryLineDetail",
+            JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { name: "Stripe Clearing" } },
+            Description: `Stripe/Affirm processing fee`,
+          },
+        ],
+      };
+      const r2 = await fetch(`${qboBase}/journalentry`, { method: "POST", headers: qboHeaders, body: JSON.stringify(step2) });
+      if (!r2.ok) {
+        const err = await r2.text();
+        throw new Error(`Stripe Clearing step 2 failed: ${err}`);
+      }
+      results.push((await r2.json()).JournalEntry.Id);
+
+      // Step 3: Net → Bank
+      const step3 = {
+        TxnDate: date,
+        PrivateNote: `${note} – Net payout to bank`,
+        Line: [
+          {
+            Amount: net_amount, DetailType: "JournalEntryLineDetail",
+            JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { name: "Checking" } },
+            Description: `Net Stripe payout to bank`,
+          },
+          {
+            Amount: net_amount, DetailType: "JournalEntryLineDetail",
+            JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { name: "Stripe Clearing" } },
+            Description: `Net Stripe payout to bank`,
+          },
+        ],
+      };
+      const r3 = await fetch(`${qboBase}/journalentry`, { method: "POST", headers: qboHeaders, body: JSON.stringify(step3) });
+      if (!r3.ok) {
+        const err = await r3.text();
+        throw new Error(`Stripe Clearing step 3 failed: ${err}`);
+      }
+      results.push((await r3.json()).JournalEntry.Id);
+
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId, sync_type: "stripe_clearing", direction: "push", status: "success",
+        records_processed: 3,
+        details: { gross_amount, stripe_fee, net_amount, journal_entry_ids: results },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, journal_entry_ids: results, gross_amount, stripe_fee, net_amount }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

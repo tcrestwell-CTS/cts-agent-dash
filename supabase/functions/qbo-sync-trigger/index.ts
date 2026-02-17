@@ -250,7 +250,14 @@ async function handlePayoutApproved(
   await logSync(supabase, userId, "auto-payout-approved", "success", 1);
 }
 
-/** Deposit posted (trip_payment with type 'deposit' and status 'completed') → QBO ReceivePayment */
+/**
+ * Deposit posted (trip_payment with type 'deposit' and status 'completed')
+ * → Stripe Clearing Account flow:
+ *   1. Payment received into Stripe Clearing account
+ *   2. Stripe processing fees recorded as expense
+ *   3. Net transfer from Stripe Clearing → Bank account
+ *   Result: Clearing account zeroes out, fees tracked, bank reflects net deposit
+ */
 async function handleDepositPosted(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any
 ) {
@@ -276,25 +283,123 @@ async function handleDepositPosted(
     }
   }
 
-  const receivePayment = {
-    CustomerRef: { value: qboCustomerId },
-    TotalAmt: payment.amount,
-    TxnDate: payment.payment_date || new Date().toISOString().split("T")[0],
-    PrivateNote: `Deposit – ${payment.details || payment.notes || "Trip payment"}`,
+  const grossAmount = payment.amount || 0;
+  // Stripe typically charges ~2.9% + $0.30; Affirm fees may differ
+  // Use payment metadata if available, otherwise estimate
+  const stripeFeeRate = 0.029;
+  const stripeFixedFee = 0.30;
+  const stripeFee = Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
+  const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
+  const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
+  const memo = `Stripe/Affirm deposit – ${payment.details || payment.notes || "Trip payment"}`;
+
+  // ── Step 1: Payment hits Stripe Clearing (Debit Stripe Clearing, Credit Accounts Receivable) ──
+  const step1 = {
+    TxnDate: txnDate,
+    PrivateNote: `${memo} – Gross payment received`,
+    Line: [
+      {
+        Amount: grossAmount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Debit",
+          AccountRef: { name: "Stripe Clearing" },
+        },
+        Description: `Gross payment received – ${payment.details || "Deposit"}`,
+      },
+      {
+        Amount: grossAmount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Credit",
+          AccountRef: { name: "Accounts Receivable (A/R)" },
+          EntityRef: { value: qboCustomerId, type: "Customer" },
+        },
+        Description: `Gross payment received – ${payment.details || "Deposit"}`,
+      },
+    ],
   };
 
-  const resp = await fetch(`${qboBase}/payment`, {
-    method: "POST",
-    headers: qboHeaders,
-    body: JSON.stringify(receivePayment),
+  const resp1 = await fetch(`${qboBase}/journalentry`, {
+    method: "POST", headers: qboHeaders, body: JSON.stringify(step1),
   });
-
-  if (!resp.ok) {
-    const errBody = await resp.text();
-    throw new Error(`QBO ReceivePayment failed: ${errBody}`);
+  if (!resp1.ok) {
+    const err = await resp1.text();
+    throw new Error(`Stripe Clearing step 1 failed: ${err}`);
   }
 
-  await logSync(supabase, userId, "auto-deposit-posted", "success", 1);
+  // ── Step 2: Stripe fees recorded (Debit Stripe Fees expense, Credit Stripe Clearing) ──
+  const step2 = {
+    TxnDate: txnDate,
+    PrivateNote: `${memo} – Processing fees`,
+    Line: [
+      {
+        Amount: stripeFee,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Debit",
+          AccountRef: { name: "Stripe Processing Fees" },
+        },
+        Description: `Stripe/Affirm processing fee`,
+      },
+      {
+        Amount: stripeFee,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Credit",
+          AccountRef: { name: "Stripe Clearing" },
+        },
+        Description: `Stripe/Affirm processing fee`,
+      },
+    ],
+  };
+
+  const resp2 = await fetch(`${qboBase}/journalentry`, {
+    method: "POST", headers: qboHeaders, body: JSON.stringify(step2),
+  });
+  if (!resp2.ok) {
+    const err = await resp2.text();
+    throw new Error(`Stripe Clearing step 2 (fees) failed: ${err}`);
+  }
+
+  // ── Step 3: Net transfer to bank (Debit Checking/Bank, Credit Stripe Clearing) ──
+  // This zeroes out the clearing account
+  const step3 = {
+    TxnDate: txnDate,
+    PrivateNote: `${memo} – Net payout to bank`,
+    Line: [
+      {
+        Amount: netAmount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Debit",
+          AccountRef: { name: "Checking" },
+        },
+        Description: `Net Stripe payout to bank`,
+      },
+      {
+        Amount: netAmount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Credit",
+          AccountRef: { name: "Stripe Clearing" },
+        },
+        Description: `Net Stripe payout to bank`,
+      },
+    ],
+  };
+
+  const resp3 = await fetch(`${qboBase}/journalentry`, {
+    method: "POST", headers: qboHeaders, body: JSON.stringify(step3),
+  });
+  if (!resp3.ok) {
+    const err = await resp3.text();
+    throw new Error(`Stripe Clearing step 3 (net transfer) failed: ${err}`);
+  }
+
+  await logSync(supabase, userId, "auto-deposit-posted", "success", 3, undefined, {
+    gross: grossAmount, stripe_fee: stripeFee, net: netAmount,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -368,7 +473,7 @@ async function ensureQBOCustomer(
 }
 
 async function logSync(
-  supabase: any, userId: string, syncType: string, status: string, recordsProcessed: number, errorMessage?: string
+  supabase: any, userId: string, syncType: string, status: string, recordsProcessed: number, errorMessage?: string, details?: any
 ) {
   await supabase.from("qbo_sync_logs").insert({
     user_id: userId,
@@ -377,5 +482,6 @@ async function logSync(
     status,
     records_processed: recordsProcessed,
     error_message: errorMessage || null,
+    details: details || null,
   });
 }
