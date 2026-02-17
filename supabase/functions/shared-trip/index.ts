@@ -69,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
           .maybeSingle(),
         supabase
           .from("profiles")
-          .select("full_name, avatar_url, agency_name, job_title, phone, clia_number, ccra_number, asta_number")
+          .select("full_name, avatar_url, agency_name, job_title, phone, clia_number, ccra_number, asta_number, embarc_number")
           .eq("user_id", trip.user_id)
           .maybeSingle(),
       ]);
@@ -87,6 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
           clia_number: profileRes.data.clia_number,
           ccra_number: profileRes.data.ccra_number,
           asta_number: profileRes.data.asta_number,
+          embarc_number: profileRes.data.embarc_number,
         };
       }
     }

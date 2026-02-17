@@ -13,6 +13,10 @@ export interface TeamProfile {
   phone: string | null;
   commission_rate: number | null;
   commission_tier: CommissionTier | null;
+  clia_number: string | null;
+  ccra_number: string | null;
+  asta_number: string | null;
+  embarc_number: string | null;
   created_at: string;
 }
 

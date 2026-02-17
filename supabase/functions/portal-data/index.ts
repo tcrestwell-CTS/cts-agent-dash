@@ -130,7 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
         const [agentRes, brandingRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("full_name, avatar_url, phone, job_title")
+            .select("full_name, avatar_url, phone, job_title, clia_number, ccra_number, asta_number, embarc_number")
             .eq("user_id", clientRes.data.user_id)
             .single(),
           supabase
