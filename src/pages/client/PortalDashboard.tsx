@@ -1,13 +1,75 @@
+import { useState } from "react";
 import { usePortalDashboard } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Map, CreditCard, MessageSquare, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Map, CreditCard, MessageSquare, User, Loader2 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 export default function PortalDashboard() {
-  const { data, isLoading } = usePortalDashboard();
+  const { data, isLoading, refetch } = usePortalDashboard();
+  const [searchParams] = useSearchParams();
+  const [payingId, setPayingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      toast.success("Payment completed successfully!");
+      // Verify and update payment status
+      const sessionId = searchParams.get("session_id");
+      if (sessionId) {
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-stripe-payment`, {
+          method: "POST",
+          headers: {
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId }),
+        }).then(() => refetch());
+      } else {
+        refetch();
+      }
+    } else if (paymentStatus === "cancelled") {
+      toast.info("Payment was cancelled");
+    }
+  }, [searchParams, refetch]);
+
+  const handlePayNow = async (paymentId: string) => {
+    setPayingId(paymentId);
+    try {
+      const portalSession = localStorage.getItem("portal_session");
+      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-portal-token": portalToken || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          paymentId,
+          returnUrl: window.location.origin,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create payment");
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("Failed to start payment. Please try again.");
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -145,12 +207,29 @@ export default function PortalDashboard() {
               {payments.map((p: any) => (
                 <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium">{p.payment_type}</p>
+                    <p className="font-medium">
+                      {p.payment_type === "final_balance" ? "Final Balance" : 
+                       p.payment_type.charAt(0).toUpperCase() + p.payment_type.slice(1)}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {p.due_date ? `Due ${format(new Date(p.due_date), "MMM d, yyyy")}` : "Pending"}
                     </p>
                   </div>
-                  <p className="font-semibold">${p.amount.toLocaleString()}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="font-semibold">${p.amount.toLocaleString()}</p>
+                    <Button
+                      size="sm"
+                      onClick={() => handlePayNow(p.id)}
+                      disabled={payingId === p.id}
+                    >
+                      {payingId === p.id ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <CreditCard className="h-4 w-4 mr-1" />
+                      )}
+                      Pay Now
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

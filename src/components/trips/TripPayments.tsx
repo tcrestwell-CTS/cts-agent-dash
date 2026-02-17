@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2 } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
@@ -14,6 +14,11 @@ import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,6 +83,26 @@ export function TripPayments({
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
+
+  const handleCreatePaymentLink = async (paymentId: string) => {
+    setCreatingPaymentLink(paymentId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
+        body: { paymentId },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        await navigator.clipboard.writeText(data.url);
+        toast.success("Payment link copied to clipboard!");
+      }
+    } catch (error) {
+      console.error("Error creating payment link:", error);
+      toast.error("Failed to create payment link");
+    } finally {
+      setCreatingPaymentLink(null);
+    }
+  };
 
   const handleMarkAsPaid = async (paymentId: string) => {
     await updatePayment(paymentId, {
@@ -329,6 +354,28 @@ export function TripPayments({
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                  onClick={() => handleCreatePaymentLink(payment.id)}
+                                  disabled={creatingPaymentLink === payment.id}
+                                >
+                                  {creatingPaymentLink === payment.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : payment.stripe_payment_url ? (
+                                    <Copy className="h-4 w-4" />
+                                  ) : (
+                                    <ExternalLink className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {payment.stripe_payment_url ? "Copy Payment Link" : "Create Payment Link"}
+                              </TooltipContent>
+                            </Tooltip>
                             <Button
                               variant="ghost"
                               size="sm"
