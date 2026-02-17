@@ -16,6 +16,7 @@ export interface ProfileData {
   clia_number: string;
   ccra_number: string;
   asta_number: string;
+  embarc_number: string;
 }
 
 const defaultProfile: ProfileData = {
@@ -29,6 +30,7 @@ const defaultProfile: ProfileData = {
   clia_number: "",
   ccra_number: "",
   asta_number: "",
+  embarc_number: "",
 };
 
 export function useProfile() {
@@ -73,6 +75,7 @@ export function useProfile() {
           clia_number: (data as any).clia_number || "",
           ccra_number: (data as any).ccra_number || "",
           asta_number: (data as any).asta_number || "",
+          embarc_number: (data as any).embarc_number || "",
         });
       }
     } catch (error) {
@@ -105,6 +108,7 @@ export function useProfile() {
           clia_number: updatedProfile.clia_number || null,
           ccra_number: updatedProfile.ccra_number || null,
           asta_number: updatedProfile.asta_number || null,
+          embarc_number: updatedProfile.embarc_number || null,
         } as any, {
           onConflict: "user_id",
         });

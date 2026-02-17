@@ -1016,6 +1016,7 @@ export type Database = {
           commission_rate: number | null
           commission_tier: Database["public"]["Enums"]["commission_tier"] | null
           created_at: string
+          embarc_number: string | null
           full_name: string | null
           id: string
           job_title: string | null
@@ -1034,6 +1035,7 @@ export type Database = {
             | Database["public"]["Enums"]["commission_tier"]
             | null
           created_at?: string
+          embarc_number?: string | null
           full_name?: string | null
           id?: string
           job_title?: string | null
@@ -1052,6 +1054,7 @@ export type Database = {
             | Database["public"]["Enums"]["commission_tier"]
             | null
           created_at?: string
+          embarc_number?: string | null
           full_name?: string | null
           id?: string
           job_title?: string | null
