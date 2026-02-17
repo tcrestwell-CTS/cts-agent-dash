@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, Receipt, DollarSign, Clock, CheckCircle2, XCircle, Loader2, ExternalLink } from "lucide-react";
+import { CreditCard, Receipt, DollarSign, Clock, CheckCircle2, XCircle, Loader2, ExternalLink, FileText, Download } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -186,37 +186,53 @@ export default function PortalPayments() {
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Description</th>
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Trip</th>
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Method</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Status</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {payments.map((p: any) => {
-                    const config = statusConfig[p.status] || statusConfig.pending;
-                    const StatusIcon = config.icon;
-                    return (
-                      <tr key={p.id} className="hover:bg-muted/50">
-                        <td className="py-3 text-sm">
-                          {format(new Date(p.payment_date), "MMM d, yyyy")}
-                        </td>
-                        <td className="py-3">
-                          <p className="font-medium text-sm">{formatPaymentType(p.payment_type)}</p>
-                          {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
-                        </td>
-                        <td className="py-3 text-sm text-muted-foreground">{p.trip_name}</td>
-                        <td className="py-3 text-sm text-muted-foreground capitalize">
-                          {p.payment_method?.replace(/_/g, " ") || "—"}
-                        </td>
-                        <td className="py-3">
-                          <Badge variant="outline" className={`gap-1 ${config.className}`}>
-                            <StatusIcon className="h-3 w-3" />
-                            {config.label}
-                          </Badge>
-                        </td>
-                        <td className="py-3 text-right font-semibold text-sm">
-                          {formatCurrency(p.amount)}
-                        </td>
-                      </tr>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Status</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground text-right">Amount</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground text-center">Receipt</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y">
+                   {payments.map((p: any) => {
+                     const config = statusConfig[p.status] || statusConfig.pending;
+                     const StatusIcon = config.icon;
+                     return (
+                       <tr key={p.id} className="hover:bg-muted/50">
+                         <td className="py-3 text-sm">
+                           {format(new Date(p.payment_date), "MMM d, yyyy")}
+                         </td>
+                         <td className="py-3">
+                           <p className="font-medium text-sm">{formatPaymentType(p.payment_type)}</p>
+                           {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
+                         </td>
+                         <td className="py-3 text-sm text-muted-foreground">{p.trip_name}</td>
+                         <td className="py-3 text-sm text-muted-foreground capitalize">
+                           {p.payment_method?.replace(/_/g, " ") || "—"}
+                         </td>
+                         <td className="py-3">
+                           <Badge variant="outline" className={`gap-1 ${config.className}`}>
+                             <StatusIcon className="h-3 w-3" />
+                             {config.label}
+                           </Badge>
+                         </td>
+                         <td className="py-3 text-right font-semibold text-sm">
+                           {formatCurrency(p.amount)}
+                         </td>
+                         <td className="py-3 text-center">
+                           {p.status === "paid" && p.stripe_receipt_url ? (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               className="gap-1 text-xs"
+                               onClick={() => window.open(p.stripe_receipt_url, "_blank")}
+                             >
+                               <FileText className="h-3.5 w-3.5" />
+                               View
+                             </Button>
+                           ) : p.status === "paid" ? (
+                             <span className="text-xs text-muted-foreground">—</span>
+                           ) : null}
+                         </td>
+                       </tr>
                     );
                   })}
                 </tbody>
