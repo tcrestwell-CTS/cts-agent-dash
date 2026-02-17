@@ -38,6 +38,7 @@ import PortalTripDetail from "./pages/client/PortalTripDetail";
 import PortalMessages from "./pages/client/PortalMessages";
 import PortalInvoices from "./pages/client/PortalInvoices";
 import PortalInvoiceDetail from "./pages/client/PortalInvoiceDetail";
+import PortalPayments from "./pages/client/PortalPayments";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
                 <Route index element={<PortalDashboard />} />
                 <Route path="trips" element={<PortalTrips />} />
                 <Route path="trips/:tripId" element={<PortalTripDetail />} />
+                <Route path="payments" element={<PortalPayments />} />
                 <Route path="messages" element={<PortalMessages />} />
                 <Route path="invoices" element={<PortalInvoices />} />
                 <Route path="invoices/:invoiceId" element={<PortalInvoiceDetail />} />

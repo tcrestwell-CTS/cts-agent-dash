@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
 import { usePortalBranding } from "@/hooks/usePortalBranding";
-import { Home, Map, MessageSquare, FileText, LogOut, Menu, X } from "lucide-react";
+import { Home, Map, MessageSquare, FileText, LogOut, Menu, X, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/client", label: "Dashboard", icon: Home, end: true },
   { to: "/client/trips", label: "My Trips", icon: Map },
+  { to: "/client/payments", label: "Payments", icon: CreditCard },
   { to: "/client/messages", label: "Messages", icon: MessageSquare },
   { to: "/client/invoices", label: "Invoices", icon: FileText },
 ];

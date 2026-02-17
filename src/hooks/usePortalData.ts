@@ -86,6 +86,14 @@ export function usePortalInvoices() {
   });
 }
 
+export function usePortalPayments() {
+  return useQuery({
+    queryKey: ["portal", "payments"],
+    queryFn: () => portalFetch("payments"),
+    staleTime: 30_000,
+  });
+}
+
 export function usePortalInvoiceDetail(invoiceId: string | undefined) {
   return useQuery({
     queryKey: ["portal", "invoice-detail", invoiceId],
