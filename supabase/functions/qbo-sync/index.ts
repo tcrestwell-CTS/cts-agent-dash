@@ -824,6 +824,150 @@ serve(async (req) => {
       );
     }
 
+    // ── GET ?action=stripe-recon-report ────────────────────────────
+    // Query QBO for Stripe Clearing account transactions to verify zero balance
+    if (urlPath === "stripe-recon-report" && req.method === "GET") {
+      // Find the Stripe Clearing account
+      const clearingResp = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent("SELECT * FROM Account WHERE Name = 'Stripe Clearing'")}`,
+        { headers: qboHeaders }
+      );
+
+      if (!clearingResp.ok) {
+        throw new Error("Failed to query Stripe Clearing account");
+      }
+
+      const clearingData = await clearingResp.json();
+      const clearingAccount = clearingData?.QueryResponse?.Account?.[0];
+
+      if (!clearingAccount) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            account_exists: false,
+            message: "Stripe Clearing account not found in QBO. It will be auto-created on first Stripe deposit.",
+            entries: [],
+            summary: { current_balance: 0, total_debits: 0, total_credits: 0, entry_count: 0 },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Also find Stripe Processing Fees account
+      const feesResp = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent("SELECT * FROM Account WHERE Name = 'Stripe Processing Fees'")}`,
+        { headers: qboHeaders }
+      );
+      const feesData = feesResp.ok ? await feesResp.json() : null;
+      const feesAccount = feesData?.QueryResponse?.Account?.[0];
+
+      // Get the current balance of the Stripe Clearing account
+      const currentBalance = parseFloat(clearingAccount.CurrentBalance || "0");
+      const feesBalance = feesAccount ? parseFloat(feesAccount.CurrentBalance || "0") : null;
+
+      // Query recent journal entries that reference Stripe Clearing
+      const jeResp = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent(
+          `SELECT * FROM JournalEntry WHERE MetaData.LastUpdatedTime > '2020-01-01' ORDERBY MetaData.LastUpdatedTime DESC MAXRESULTS 200`
+        )}`,
+        { headers: qboHeaders }
+      );
+
+      const entries: any[] = [];
+      if (jeResp.ok) {
+        const jeData = await jeResp.json();
+        const allEntries = jeData?.QueryResponse?.JournalEntry || [];
+
+        for (const je of allEntries) {
+          const lines = je.Line || [];
+          const touchesClearing = lines.some((l: any) =>
+            l.JournalEntryLineDetail?.AccountRef?.value === clearingAccount.Id ||
+            l.JournalEntryLineDetail?.AccountRef?.name === "Stripe Clearing"
+          );
+          if (!touchesClearing) continue;
+
+          let totalDebit = 0;
+          let totalCredit = 0;
+          const lineDetails: any[] = [];
+
+          for (const line of lines) {
+            const detail = line.JournalEntryLineDetail;
+            if (!detail) continue;
+            const amount = parseFloat(line.Amount || "0");
+            const accountName = detail.AccountRef?.name || detail.AccountRef?.value || "Unknown";
+
+            if (detail.PostingType === "Debit") totalDebit += amount;
+            else totalCredit += amount;
+
+            lineDetails.push({
+              account: accountName,
+              posting_type: detail.PostingType,
+              amount,
+              description: line.Description || "",
+            });
+          }
+
+          entries.push({
+            id: je.Id,
+            txn_date: je.TxnDate,
+            memo: je.PrivateNote || "",
+            total_debit: totalDebit,
+            total_credit: totalCredit,
+            lines: lineDetails,
+          });
+        }
+      }
+
+      // Group by payout date for reconciliation
+      const byDate: Record<string, { debits: number; credits: number; count: number; balanced: boolean }> = {};
+      for (const entry of entries) {
+        const date = entry.txn_date;
+        if (!byDate[date]) byDate[date] = { debits: 0, credits: 0, count: 0, balanced: false };
+        // Only count lines that touch Stripe Clearing
+        for (const line of entry.lines) {
+          if (line.account === "Stripe Clearing" || line.account === clearingAccount.Id) {
+            if (line.posting_type === "Debit") byDate[date].debits += line.amount;
+            else byDate[date].credits += line.amount;
+          }
+        }
+        byDate[date].count++;
+      }
+      for (const date of Object.keys(byDate)) {
+        byDate[date].balanced = Math.abs(byDate[date].debits - byDate[date].credits) < 0.01;
+      }
+
+      const totalDebits = entries.reduce((sum, e) => sum + e.total_debit, 0);
+      const totalCredits = entries.reduce((sum, e) => sum + e.total_credit, 0);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          account_exists: true,
+          clearing_account: {
+            id: clearingAccount.Id,
+            name: clearingAccount.Name,
+            current_balance: currentBalance,
+            account_type: clearingAccount.AccountType,
+          },
+          fees_account: feesAccount ? {
+            id: feesAccount.Id,
+            name: feesAccount.Name,
+            current_balance: feesBalance,
+          } : null,
+          summary: {
+            current_balance: currentBalance,
+            total_debits: Math.round(totalDebits * 100) / 100,
+            total_credits: Math.round(totalCredits * 100) / 100,
+            entry_count: entries.length,
+            is_balanced: Math.abs(currentBalance) < 0.01,
+          },
+          by_date: byDate,
+          entries: entries.slice(0, 50), // Latest 50
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
