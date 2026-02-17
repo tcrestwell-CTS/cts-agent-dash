@@ -28,6 +28,7 @@ const Settings = () => {
     clia_number: "",
     ccra_number: "",
     asta_number: "",
+    embarc_number: "",
   });
 
   // Update form when profile loads
@@ -42,6 +43,7 @@ const Settings = () => {
         clia_number: profile.clia_number,
         ccra_number: profile.ccra_number,
         asta_number: profile.asta_number,
+        embarc_number: profile.embarc_number,
       });
     }
   }, [profile]);
@@ -202,7 +204,7 @@ const Settings = () => {
                   {/* Certification Numbers */}
                   <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-4">
                     <h3 className="font-medium text-card-foreground">Certification Numbers</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="clia">CLIA #</Label>
                         <Input
@@ -228,6 +230,15 @@ const Settings = () => {
                           value={formData.asta_number}
                           onChange={(e) => handleInputChange("asta_number", e.target.value)}
                           placeholder="e.g. 900391006"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="embarc">Embarc ID</Label>
+                        <Input
+                          id="embarc"
+                          value={formData.embarc_number}
+                          onChange={(e) => handleInputChange("embarc_number", e.target.value)}
+                          placeholder="e.g. EMB-12345"
                         />
                       </div>
                     </div>
