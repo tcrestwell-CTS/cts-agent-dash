@@ -1359,6 +1359,68 @@ export type Database = {
           },
         ]
       }
+      trip_travelers: {
+        Row: {
+          birthday: string | null
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          is_primary: boolean | null
+          known_traveler_number: string | null
+          last_name: string | null
+          notes: string | null
+          passport_info: string | null
+          phone: string | null
+          relationship: string | null
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birthday?: string | null
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          is_primary?: boolean | null
+          known_traveler_number?: string | null
+          last_name?: string | null
+          notes?: string | null
+          passport_info?: string | null
+          phone?: string | null
+          relationship?: string | null
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birthday?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_primary?: boolean | null
+          known_traveler_number?: string | null
+          last_name?: string | null
+          notes?: string | null
+          passport_info?: string | null
+          phone?: string | null
+          relationship?: string | null
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_travelers_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           allow_pdf_downloads: boolean

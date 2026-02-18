@@ -452,6 +452,7 @@ const TripDetail = () => {
               <TripTravelersCard
                 client={trip.clients}
                 clientId={trip.client_id}
+                tripId={trip.id}
               />
               {isGroupTrip && (
                 <TripSettingsSidebar
