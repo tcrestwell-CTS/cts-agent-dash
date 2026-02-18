@@ -15,6 +15,7 @@ import { UpcomingPayments } from "@/components/dashboard/UpcomingPayments";
 import { InvoiceSearch } from "@/components/dashboard/InvoiceSearch";
 import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { CRMIntegrationHealth } from "@/components/dashboard/CRMIntegrationHealth";
+import { FareBuzzCard } from "@/components/dashboard/FareBuzzCard";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -180,6 +181,9 @@ const Index = () => {
         {/* Right Column - Widgets */}
         <div className="space-y-6">
           <QuickActions />
+
+          {/* FareBuzz Flight Portal */}
+          <FareBuzzCard />
           
           {/* CRM Integration Health */}
           <CRMIntegrationHealth />
