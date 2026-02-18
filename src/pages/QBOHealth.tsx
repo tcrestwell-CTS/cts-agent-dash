@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale, Landmark } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
@@ -27,7 +27,7 @@ type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, getFinancialSummary, getStripeReconReport } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getStripeReconReport } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
@@ -209,7 +209,7 @@ export default function QBOHealth() {
               <CardDescription>Push and pull data between your system and QuickBooks</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <Button
                   variant="outline"
                   className="justify-start gap-2"
@@ -235,6 +235,19 @@ export default function QBOHealth() {
                     <DollarSign className="h-4 w-4" />
                   )}
                   Sync Payments
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
+                  onClick={() => syncStripeDeposits().then(() => refetchLogs())}
+                  disabled={!!syncing}
+                >
+                  {syncing === "stripe-deposits" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Landmark className="h-4 w-4" />
+                  )}
+                  Sync Stripe Deposits
                 </Button>
                 <Button
                   variant="outline"
