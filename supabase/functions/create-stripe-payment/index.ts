@@ -22,7 +22,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { paymentId, returnUrl, portalToken } = await req.json();
+    // Parse body once
+    const body = await req.json();
+    const { paymentId, returnUrl, portalToken, embedded } = body;
     if (!paymentId) throw new Error("paymentId is required");
 
     // Determine auth context: agent (Authorization header) or client (portal token)
@@ -33,7 +35,6 @@ serve(async (req) => {
     const portalTokenHeader = req.headers.get("x-portal-token") || portalToken;
 
     if (portalTokenHeader) {
-      // Portal client flow
       const { data: session } = await supabase
         .from("client_portal_sessions")
         .select("client_id, expires_at, verified_at")
@@ -46,7 +47,6 @@ serve(async (req) => {
       clientId = session.client_id;
       isPortal = true;
     } else if (authHeader) {
-      // Agent flow - validate via Supabase auth
       const anonClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!
@@ -68,19 +68,18 @@ serve(async (req) => {
     if (paymentError || !payment) throw new Error("Payment not found");
     if (payment.status === "paid") throw new Error("Payment already completed");
 
-    // Get trip info for the checkout description
+    // Get trip info
     const { data: trip } = await supabase
       .from("trips")
       .select("trip_name, client_id, user_id")
       .eq("id", payment.trip_id)
       .single();
 
-    // If portal, verify client has access to this trip
     if (isPortal && trip && trip.client_id !== clientId) {
       throw new Error("Unauthorized: you don't have access to this payment");
     }
 
-    // Get client email for Stripe customer lookup
+    // Get client email
     const actualClientId = clientId || trip?.client_id;
     let customerEmail: string | null = null;
     if (actualClientId) {
@@ -92,10 +91,8 @@ serve(async (req) => {
       customerEmail = client?.email || null;
     }
 
-    // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Check for existing Stripe customer
     let customerId: string | undefined;
     if (customerEmail) {
       const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
@@ -104,59 +101,90 @@ serve(async (req) => {
       }
     }
 
-    // Build line item description
     const paymentTypeLabel = payment.payment_type === "final_balance"
       ? "Final Balance"
       : payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1);
     const description = `${paymentTypeLabel}${trip?.trip_name ? ` – ${trip.trip_name}` : ""}`;
 
     const origin = returnUrl || req.headers.get("origin") || "https://cts-agent-dash.lovable.app";
-
-    // Build success/cancel URLs depending on whether this is a portal (client) or agent flow
     const tripIdParam = payment.trip_id ? `&trip_id=${payment.trip_id}` : "";
-    const successUrl = isPortal
-      ? `${origin}/client?payment=success`
-      : `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`;
-    const cancelUrl = isPortal
-      ? `${origin}/client?payment=cancelled`
-      : `${origin}/payment-success?payment=cancelled${tripIdParam}`;
 
-    // Create Stripe Checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : customerEmail || undefined,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: description,
-              description: payment.details || undefined,
+    let session: any;
+
+    if (!isPortal && embedded) {
+      // Embedded checkout — renders inside the app
+      session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : customerEmail || undefined,
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: description,
+                description: payment.details || undefined,
+              },
+              unit_amount: Math.round(payment.amount * 100),
             },
-            unit_amount: Math.round(payment.amount * 100), // Convert dollars to cents
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        mode: "payment",
+        ui_mode: "embedded",
+        return_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`,
+        metadata: {
+          trip_payment_id: paymentId,
+          trip_id: payment.trip_id,
         },
-      ],
-      mode: "payment",
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        trip_payment_id: paymentId,
-        trip_id: payment.trip_id,
-      },
-    });
+      });
+    } else {
+      // Hosted redirect mode (portal clients or fallback)
+      const successUrl = isPortal
+        ? `${origin}/client?payment=success`
+        : `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`;
+      const cancelUrl = isPortal
+        ? `${origin}/client?payment=cancelled`
+        : `${origin}/payment-success?payment=cancelled${tripIdParam}`;
 
-    // Store Stripe session info on the payment record
+      session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : customerEmail || undefined,
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: description,
+                description: payment.details || undefined,
+              },
+              unit_amount: Math.round(payment.amount * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          trip_payment_id: paymentId,
+          trip_id: payment.trip_id,
+        },
+      });
+    }
+
     await supabase
       .from("trip_payments")
       .update({
         stripe_session_id: session.id,
-        stripe_payment_url: session.url,
+        stripe_payment_url: session.url || null,
       })
       .eq("id", paymentId);
 
-    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
+    return new Response(JSON.stringify({
+      url: session.url,
+      sessionId: session.id,
+      clientSecret: session.client_secret || null,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
