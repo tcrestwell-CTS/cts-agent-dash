@@ -446,8 +446,8 @@ const TripDetail = () => {
             </Tabs>
           </div>
 
-          {/* Right sidebar — always visible on large screens */}
-          <div className="hidden lg:block">
+          {/* Right sidebar */}
+          <div className="space-y-4 lg:block">
             <div className="sticky top-6 space-y-4">
               <TripTravelersCard
                 client={trip.clients}
