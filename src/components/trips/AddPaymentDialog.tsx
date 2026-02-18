@@ -82,13 +82,19 @@ function SharedPaymentFields({ formData, setFormData, bookings }: SharedFieldsPr
     return name || `${supplier} - ${dest}`.trim() || b.booking_reference;
   };
 
+  const handleBookingChange = (v: string) => {
+    const booking = bookings.find((b) => b.id === v);
+    const newAmount = booking ? String(booking.gross_sales || "") : formData.amount;
+    setFormData({ ...formData, booking_id: v, amount: newAmount });
+  };
+
   return (
     <>
       <div className="space-y-2">
         <Label>Link to Booking (Optional)</Label>
         <Select
           value={formData.booking_id}
-          onValueChange={(v) => setFormData({ ...formData, booking_id: v })}
+          onValueChange={handleBookingChange}
         >
           <SelectTrigger><SelectValue placeholder="Select a booking" /></SelectTrigger>
           <SelectContent>
