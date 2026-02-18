@@ -22,6 +22,7 @@ import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { StripeCheckoutDialog } from "@/components/trips/StripeCheckoutDialog";
 
 interface AddPaymentDialogProps {
   open: boolean;
@@ -163,6 +164,8 @@ export function AddPaymentDialog({
   const [formData, setFormData] = useState({ ...defaultForm });
   const [stripeLoading, setStripeLoading] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [checkoutPaymentId, setCheckoutPaymentId] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const handleClose = (val: boolean) => {
     if (!val) {
@@ -189,7 +192,7 @@ export function AddPaymentDialog({
     });
   };
 
-  // MODE: Take Payment — Stripe Checkout opens in new tab, agent is redirected to /payment-success
+  // MODE: Take Payment — open embedded Stripe Checkout inside the app
   const handleStripeAgentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.amount || parseFloat(formData.amount) <= 0) return;
@@ -197,21 +200,15 @@ export function AddPaymentDialog({
     try {
       const record = await createPendingRecord();
       if (!record) return;
-
-      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
-        body: { paymentId: record.id, returnUrl: window.location.origin },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-        toast.success("Stripe Checkout opened in a new tab");
-        setFormData({ ...defaultForm });
-        handleClose(false);
-        onPaymentCreated?.();
-      }
+      // Close the mode dialog and open embedded checkout
+      onOpenChange(false);
+      setCheckoutPaymentId(record.id);
+      setCheckoutOpen(true);
+      setFormData({ ...defaultForm });
+      setMode(null);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to create Stripe payment");
+      toast.error("Failed to create payment record");
     } finally {
       setStripeLoading(false);
     }
@@ -272,8 +269,9 @@ export function AddPaymentDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-2">
             {mode && (
@@ -439,7 +437,24 @@ export function AddPaymentDialog({
             </div>
           </form>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {checkoutPaymentId && (
+        <StripeCheckoutDialog
+          open={checkoutOpen}
+          onOpenChange={(v) => {
+            setCheckoutOpen(v);
+            if (!v) {
+              setCheckoutPaymentId(null);
+              onPaymentCreated?.();
+            }
+          }}
+          paymentId={checkoutPaymentId}
+          tripId={tripId}
+          onComplete={() => onPaymentCreated?.()}
+        />
+      )}
+    </>
   );
 }
