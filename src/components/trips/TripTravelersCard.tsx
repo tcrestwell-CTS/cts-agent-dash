@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+import { useClients } from "@/hooks/useClients";
 import {
   useTripTravelers,
   useCreateTripTraveler,
@@ -90,6 +90,7 @@ const emptyForm = {
 
 export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCardProps) {
   const { data: travelers = [], isLoading } = useTripTravelers(tripId);
+  const { data: allClients = [] } = useClients();
   const createTraveler = useCreateTripTraveler();
   const updateTraveler = useUpdateTripTraveler();
   const deleteTraveler = useDeleteTripTraveler();
@@ -97,9 +98,53 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTraveler, setEditingTraveler] = useState<TripTraveler | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [nameSearch, setNameSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Filter clients by typed name (min 2 chars)
+  const clientSuggestions = nameSearch.trim().length >= 2
+    ? allClients.filter((c) => {
+        const full = `${c.first_name || ""} ${c.last_name || ""} ${c.name}`.toLowerCase();
+        return full.includes(nameSearch.toLowerCase());
+      }).slice(0, 6)
+    : [];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleNameChange = (value: string) => {
+    setNameSearch(value);
+    setForm((f) => ({ ...f, first_name: value }));
+    setShowSuggestions(true);
+  };
+
+  const selectClientSuggestion = (c: typeof allClients[0]) => {
+    const firstName = c.first_name || c.name.split(" ")[0] || "";
+    const lastName = c.last_name || c.name.split(" ").slice(1).join(" ") || "";
+    setForm((f) => ({
+      ...f,
+      first_name: firstName,
+      last_name: lastName,
+      email: c.email || f.email,
+      phone: c.phone || f.phone,
+      known_traveler_number: (c as any).known_traveler_number || f.known_traveler_number,
+      passport_info: (c as any).passport_info || f.passport_info,
+    }));
+    setNameSearch(firstName);
+    setShowSuggestions(false);
+  };
 
   const openAdd = () => {
     setForm(emptyForm);
+    setNameSearch("");
     setEditingTraveler(null);
     setShowAddDialog(true);
   };
@@ -117,6 +162,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
       notes: t.notes || "",
       is_primary: t.is_primary,
     });
+    setNameSearch(t.first_name);
     setEditingTraveler(t);
     setShowAddDialog(true);
   };
@@ -188,7 +234,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
         </CardHeader>
 
         <CardContent className="space-y-2 pt-0">
-          {/* Linked client — shown as primary if no explicit primary traveler */}
           {client && (
             <>
               <div className="flex items-center gap-2.5 group">
@@ -212,7 +257,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
             </>
           )}
 
-          {/* Trip travelers */}
           {travelers.length === 0 && !isLoading && (
             <p className="text-xs text-muted-foreground text-center py-3">
               {client ? "No additional travelers yet" : "No travelers added yet"}
@@ -230,11 +274,9 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium truncate">
-                      {t.first_name} {t.last_name || ""}
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium truncate">
+                    {t.first_name} {t.last_name || ""}
+                  </p>
                   <p className="text-xs text-muted-foreground capitalize">{t.relationship}</p>
                   {t.email && (
                     <p className="text-xs text-muted-foreground truncate">{t.email}</p>
@@ -295,15 +337,39 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Name */}
+            {/* Name row with autocomplete on First Name */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">First Name *</Label>
-                <Input
-                  placeholder="Jane"
-                  value={form.first_name}
-                  onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
-                />
+                <div className="relative" ref={suggestionsRef}>
+                  <Input
+                    placeholder="Jane"
+                    value={nameSearch}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    onFocus={() => nameSearch.trim().length >= 2 && setShowSuggestions(true)}
+                    autoComplete="off"
+                  />
+                  {showSuggestions && clientSuggestions.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+                      {clientSuggestions.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex flex-col gap-0.5"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            selectClientSuggestion(c);
+                          }}
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          {c.email && (
+                            <span className="text-xs text-muted-foreground">{c.email}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Last Name</Label>
