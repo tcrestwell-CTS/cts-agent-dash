@@ -146,7 +146,7 @@ export function PortalLayout() {
       {/* Footer */}
       <footer className="border-t py-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-3">
         <a
-          href="https://crestwellgetaways.com/term-and-conditions"
+          href="https://portal.crestwelltravels.com/terms-and-conditions"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-foreground transition-colors underline"
