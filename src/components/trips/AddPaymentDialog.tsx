@@ -66,136 +66,22 @@ const defaultForm = {
   notes: "",
 };
 
-export function AddPaymentDialog({
-  open,
-  onOpenChange,
-  tripId,
-  bookings,
-  onPaymentCreated,
-}: AddPaymentDialogProps) {
-  const { createPayment, creating } = useTripPayments(tripId);
-  const [mode, setMode] = useState<PaymentMode>(null);
-  const [formData, setFormData] = useState({ ...defaultForm });
-  const [stripeLoading, setStripeLoading] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+// ── Shared fields extracted as a proper top-level component to avoid ref warnings ──
+interface SharedFieldsProps {
+  formData: typeof defaultForm;
+  setFormData: (d: typeof defaultForm) => void;
+  bookings: TripBooking[];
+}
 
-  const handleClose = (val: boolean) => {
-    if (!val) {
-      setMode(null);
-      setFormData({ ...defaultForm });
-      setGeneratedLink(null);
-    }
-    onOpenChange(val);
+function SharedPaymentFields({ formData, setFormData, bookings }: SharedFieldsProps) {
+  const getBookingLabel = (b: TripBooking) => {
+    const supplier = b.suppliers?.name || "";
+    const dest = b.destination || "";
+    const name = b.trip_name || "";
+    return name || `${supplier} - ${dest}`.trim() || b.booking_reference;
   };
 
-  const getBookingLabel = (booking: TripBooking) => {
-    const supplier = booking.suppliers?.name || "";
-    const destination = booking.destination || "";
-    const tripName = booking.trip_name || "";
-    return tripName || `${supplier} - ${destination}`.trim() || booking.booking_reference;
-  };
-
-  // Shared: create a pending payment record and return its id
-  const createPendingRecord = async () => {
-    const result = await createPayment({
-      trip_id: tripId,
-      booking_id: formData.booking_id === "none" ? null : formData.booking_id,
-      amount: parseFloat(formData.amount),
-      payment_date: formData.payment_date,
-      due_date: formData.due_date || null,
-      payment_type: formData.payment_type,
-      payment_method: null,
-      status: "pending",
-      details: formData.details || null,
-      notes: formData.notes || null,
-    });
-    return result;
-  };
-
-  // MODE: Take Payment (Stripe Checkout — opens in new tab for agent)
-  const handleStripeAgentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.amount || parseFloat(formData.amount) <= 0) return;
-    setStripeLoading(true);
-    try {
-      const record = await createPendingRecord();
-      if (!record) return;
-
-      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
-        body: { paymentId: record.id, returnUrl: window.location.origin },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-        toast.success("Stripe Checkout opened in a new tab");
-        setFormData({ ...defaultForm });
-        handleClose(false);
-        onPaymentCreated?.();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to create Stripe payment");
-    } finally {
-      setStripeLoading(false);
-    }
-  };
-
-  // MODE: Send Payment Link (create record, generate URL, show for copying)
-  const handleStripeLinkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.amount || parseFloat(formData.amount) <= 0) return;
-    setStripeLoading(true);
-    try {
-      const record = await createPendingRecord();
-      if (!record) return;
-
-      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
-        body: { paymentId: record.id, returnUrl: window.location.origin },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        setGeneratedLink(data.url);
-        onPaymentCreated?.();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate payment link");
-    } finally {
-      setStripeLoading(false);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    if (!generatedLink) return;
-    await navigator.clipboard.writeText(generatedLink);
-    toast.success("Payment link copied to clipboard!");
-  };
-
-  // MODE: Manual log
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.amount || parseFloat(formData.amount) <= 0) return;
-    const result = await createPayment({
-      trip_id: tripId,
-      booking_id: formData.booking_id === "none" ? null : formData.booking_id,
-      amount: parseFloat(formData.amount),
-      payment_date: formData.payment_date,
-      due_date: formData.due_date || null,
-      payment_type: formData.payment_type,
-      payment_method: formData.payment_method === "none" ? null : formData.payment_method,
-      status: formData.status,
-      details: formData.details || null,
-      notes: formData.notes || null,
-    });
-    if (result) {
-      setFormData({ ...defaultForm });
-      handleClose(false);
-      onPaymentCreated?.();
-    }
-  };
-
-  // ── Shared form fields ──────────────────────────────────────────
-  const SharedFields = () => (
+  return (
     <>
       <div className="space-y-2">
         <Label>Link to Booking (Optional)</Label>
@@ -263,6 +149,127 @@ export function AddPaymentDialog({
       </div>
     </>
   );
+}
+
+export function AddPaymentDialog({
+  open,
+  onOpenChange,
+  tripId,
+  bookings,
+  onPaymentCreated,
+}: AddPaymentDialogProps) {
+  const { createPayment, creating } = useTripPayments(tripId);
+  const [mode, setMode] = useState<PaymentMode>(null);
+  const [formData, setFormData] = useState({ ...defaultForm });
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+
+  const handleClose = (val: boolean) => {
+    if (!val) {
+      setMode(null);
+      setFormData({ ...defaultForm });
+      setGeneratedLink(null);
+    }
+    onOpenChange(val);
+  };
+
+  // Shared: create a pending payment record and return it
+  const createPendingRecord = async () => {
+    return createPayment({
+      trip_id: tripId,
+      booking_id: formData.booking_id === "none" ? null : formData.booking_id,
+      amount: parseFloat(formData.amount),
+      payment_date: formData.payment_date,
+      due_date: formData.due_date || null,
+      payment_type: formData.payment_type,
+      payment_method: null,
+      status: "pending",
+      details: formData.details || null,
+      notes: formData.notes || null,
+    });
+  };
+
+  // MODE: Take Payment — Stripe Checkout opens in new tab, agent is redirected to /payment-success
+  const handleStripeAgentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.amount || parseFloat(formData.amount) <= 0) return;
+    setStripeLoading(true);
+    try {
+      const record = await createPendingRecord();
+      if (!record) return;
+
+      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
+        body: { paymentId: record.id, returnUrl: window.location.origin },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+        toast.success("Stripe Checkout opened in a new tab");
+        setFormData({ ...defaultForm });
+        handleClose(false);
+        onPaymentCreated?.();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create Stripe payment");
+    } finally {
+      setStripeLoading(false);
+    }
+  };
+
+  // MODE: Send Payment Link
+  const handleStripeLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.amount || parseFloat(formData.amount) <= 0) return;
+    setStripeLoading(true);
+    try {
+      const record = await createPendingRecord();
+      if (!record) return;
+
+      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
+        body: { paymentId: record.id, returnUrl: window.location.origin },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        setGeneratedLink(data.url);
+        onPaymentCreated?.();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate payment link");
+    } finally {
+      setStripeLoading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!generatedLink) return;
+    await navigator.clipboard.writeText(generatedLink);
+    toast.success("Payment link copied to clipboard!");
+  };
+
+  // MODE: Manual log
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.amount || parseFloat(formData.amount) <= 0) return;
+    const result = await createPayment({
+      trip_id: tripId,
+      booking_id: formData.booking_id === "none" ? null : formData.booking_id,
+      amount: parseFloat(formData.amount),
+      payment_date: formData.payment_date,
+      due_date: formData.due_date || null,
+      payment_type: formData.payment_type,
+      payment_method: formData.payment_method === "none" ? null : formData.payment_method,
+      status: formData.status,
+      details: formData.details || null,
+      notes: formData.notes || null,
+    });
+    if (result) {
+      setFormData({ ...defaultForm });
+      handleClose(false);
+      onPaymentCreated?.();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -280,9 +287,7 @@ export function AddPaymentDialog({
               </Button>
             )}
             <DialogTitle>
-              {!mode
-                ? "Add Payment"
-                : MODES.find((m) => m.id === mode)?.title}
+              {!mode ? "Add Payment" : MODES.find((m) => m.id === mode)?.title}
             </DialogTitle>
           </div>
         </DialogHeader>
@@ -315,7 +320,7 @@ export function AddPaymentDialog({
         {/* ── TAKE PAYMENT ── */}
         {mode === "stripe_agent" && (
           <form onSubmit={handleStripeAgentSubmit} className="space-y-4 mt-2">
-            <SharedFields />
+            <SharedPaymentFields formData={formData} setFormData={setFormData} bookings={bookings} />
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
               <Button type="submit" disabled={stripeLoading || !formData.amount}>
@@ -330,7 +335,7 @@ export function AddPaymentDialog({
         {/* ── SEND PAYMENT LINK ── */}
         {mode === "stripe_link" && !generatedLink && (
           <form onSubmit={handleStripeLinkSubmit} className="space-y-4 mt-2">
-            <SharedFields />
+            <SharedPaymentFields formData={formData} setFormData={setFormData} bookings={bookings} />
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
               <Button type="submit" disabled={stripeLoading || !formData.amount}>
@@ -349,9 +354,7 @@ export function AddPaymentDialog({
               <p className="text-sm font-medium text-foreground">Payment link ready</p>
               <p className="text-xs text-muted-foreground break-all">{generatedLink}</p>
               <div className="flex gap-2">
-                <Button className="flex-1" onClick={handleCopyLink}>
-                  Copy Link
-                </Button>
+                <Button className="flex-1" onClick={handleCopyLink}>Copy Link</Button>
                 <Button variant="outline" size="icon" asChild>
                   <a href={generatedLink} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-4 w-4" />
@@ -368,7 +371,7 @@ export function AddPaymentDialog({
         {/* ── MANUAL LOG ── */}
         {mode === "manual" && (
           <form onSubmit={handleManualSubmit} className="space-y-4 mt-2">
-            <SharedFields />
+            <SharedPaymentFields formData={formData} setFormData={setFormData} bookings={bookings} />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
