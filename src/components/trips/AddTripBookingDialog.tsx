@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Ship, Plane, Hotel, Car, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
