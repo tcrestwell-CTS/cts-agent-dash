@@ -112,6 +112,15 @@ serve(async (req) => {
 
     const origin = returnUrl || req.headers.get("origin") || "https://cts-agent-dash.lovable.app";
 
+    // Build success/cancel URLs depending on whether this is a portal (client) or agent flow
+    const tripIdParam = payment.trip_id ? `&trip_id=${payment.trip_id}` : "";
+    const successUrl = isPortal
+      ? `${origin}/client?payment=success`
+      : `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`;
+    const cancelUrl = isPortal
+      ? `${origin}/client?payment=cancelled`
+      : `${origin}/payment-success?payment=cancelled${tripIdParam}`;
+
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -130,8 +139,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${origin}/client/dashboard?payment=success`,
-      cancel_url: `${origin}/client/dashboard?payment=cancelled`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         trip_payment_id: paymentId,
         trip_id: payment.trip_id,

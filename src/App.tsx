@@ -29,6 +29,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedTrip from "./pages/SharedTrip";
 import CCAuthorize from "./pages/CCAuthorize";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import QBOHealth from "./pages/QBOHealth";
 import { ScrollToTop } from "./components/ScrollToTop";
 import PortalLogin from "./pages/client/PortalLogin";
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="/supplier-docs" element={<SupplierDocs />} />
               <Route path="/shared/:token" element={<SharedTrip />} />
               <Route path="/authorize/:token" element={<CCAuthorize />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
 
               {/* Client Portal Routes */}
               <Route path="/client/login" element={<PortalLogin />} />
