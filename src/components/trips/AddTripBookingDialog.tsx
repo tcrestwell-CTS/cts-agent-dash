@@ -156,6 +156,11 @@ export function AddTripBookingDialog({
       return;
     }
 
+    if (!clientId) {
+      toast.error("This trip has no client assigned. Please add a client to the trip before creating bookings.");
+      return;
+    }
+
     if (formData.return_date < formData.depart_date) {
       toast.error("Return date must be after departure date");
       return;
