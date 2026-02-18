@@ -30,6 +30,66 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const url = new URL(req.url);
+    const resource = url.searchParams.get("resource");
+
+    // ── Health check endpoint (no auth required) ──────────────────────────────
+    if (resource === "health") {
+      const startMs = Date.now();
+      const checks: Record<string, { ok: boolean; latency_ms?: number; error?: string }> = {};
+
+      // 1. Database connectivity – lightweight ping via count query
+      try {
+        const dbStart = Date.now();
+        const { error: dbErr } = await supabase
+          .from("client_portal_sessions")
+          .select("id", { count: "exact", head: true });
+        checks.database = dbErr
+          ? { ok: false, error: dbErr.message }
+          : { ok: true, latency_ms: Date.now() - dbStart };
+      } catch (e: any) {
+        checks.database = { ok: false, error: e?.message ?? "unknown" };
+      }
+
+      // 2. Session table readable (validates service-role key scope)
+      try {
+        const tblStart = Date.now();
+        const { error: tblErr } = await supabase
+          .from("clients")
+          .select("id", { count: "exact", head: true });
+        checks.clients_table = tblErr
+          ? { ok: false, error: tblErr.message }
+          : { ok: true, latency_ms: Date.now() - tblStart };
+      } catch (e: any) {
+        checks.clients_table = { ok: false, error: e?.message ?? "unknown" };
+      }
+
+      // 3. Env vars present
+      const envVars = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+      const missingEnv = envVars.filter((v) => !Deno.env.get(v));
+      checks.env = missingEnv.length === 0
+        ? { ok: true }
+        : { ok: false, error: `Missing: ${missingEnv.join(", ")}` };
+
+      const allOk = Object.values(checks).every((c) => c.ok);
+      const status = allOk ? "healthy" : "degraded";
+
+      return new Response(
+        JSON.stringify({
+          status,
+          function: "portal-data",
+          timestamp: new Date().toISOString(),
+          total_latency_ms: Date.now() - startMs,
+          checks,
+        }),
+        {
+          status: allOk ? 200 : 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // ── Auth-gated resources ──────────────────────────────────────────────────
     const portalToken = req.headers.get("x-portal-token");
     if (!portalToken) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -45,8 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const clientId = session.client_id;
-    const url = new URL(req.url);
-    const resource = url.searchParams.get("resource");
+
 
     // Helper: find trips where this client is a travel companion (via email match)
     async function getCompanionTripIds(): Promise<string[]> {
