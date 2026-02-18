@@ -21,6 +21,7 @@ import {
 import { Loader2, Ship, Plane, Hotel, Car, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useClients } from "@/hooks/useClients";
+import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ type BookingType = typeof BOOKING_TYPES[number]["value"];
 
 interface AddTripBookingDialogProps {
   tripId: string;
-  clientId: string;
+  clientId: string | null;
   destination?: string;
   departDate?: string;
   returnDate?: string;
@@ -62,8 +63,13 @@ export function AddTripBookingDialog({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { activeSuppliers, isLoading: suppliersLoading } = useSuppliers();
+  const { data: clients = [] } = useClients();
+  const { data: tripTravelers = [] } = useTripTravelers(tripId);
   const [creating, setCreating] = useState(false);
   const [showFinancials, setShowFinancials] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+
+  const effectiveClientId = clientId || selectedClientId;
 
   const [formData, setFormData] = useState({
     booking_type: "" as BookingType | "",
@@ -157,8 +163,8 @@ export function AddTripBookingDialog({
       return;
     }
 
-    if (!clientId) {
-      toast.error("This trip has no client assigned. Please add a client to the trip before creating bookings.");
+    if (!effectiveClientId) {
+      toast.error("Please select a client for this booking.");
       return;
     }
 
@@ -176,7 +182,7 @@ export function AddTripBookingDialog({
 
       const bookingData = {
         user_id: user.id,
-        client_id: clientId,
+        client_id: effectiveClientId,
         trip_id: tripId,
         destination: formData.destination,
         depart_date: formData.depart_date,
@@ -233,6 +239,25 @@ export function AddTripBookingDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Client Picker — only shown when trip has no assigned client */}
+          {!clientId && (
+            <div className="space-y-2">
+              <Label>Client *</Label>
+              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client for this booking..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Booking Type Selection */}
           <div className="space-y-2">
             <Label>Booking Type *</Label>
