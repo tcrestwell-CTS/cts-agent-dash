@@ -824,6 +824,148 @@ serve(async (req) => {
       );
     }
 
+    // ── POST ?action=sync-stripe-deposits ──────────────────────────
+    // Batch-sync all completed Stripe deposits that haven't been pushed to QBO yet.
+    // Looks for trip_payments where: payment_method = 'stripe', status = 'completed',
+    // and no matching qbo_sync_log entry with sync_type = 'auto-deposit-posted'.
+    if (urlPath === "sync-stripe-deposits" && req.method === "POST") {
+      // Fetch all completed Stripe deposits for this user
+      const { data: deposits, error: depErr } = await supabaseAdmin
+        .from("trip_payments")
+        .select("*, trips(client_id, trip_name)")
+        .eq("user_id", userId)
+        .eq("status", "completed")
+        .eq("payment_type", "deposit")
+        .not("stripe_session_id", "is", null);
+
+      if (depErr) throw new Error(`Failed to fetch deposits: ${depErr.message}`);
+      if (!deposits || deposits.length === 0) {
+        return new Response(
+          JSON.stringify({ success: true, synced: 0, skipped: 0, message: "No completed Stripe deposits found" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fetch already-synced deposit IDs from qbo_sync_logs
+      const { data: existingLogs } = await supabaseAdmin
+        .from("qbo_sync_logs")
+        .select("details")
+        .eq("user_id", userId)
+        .eq("sync_type", "auto-deposit-posted")
+        .eq("status", "success");
+
+      const syncedIds = new Set<string>(
+        (existingLogs || [])
+          .map((l: any) => l.details?.payment_id)
+          .filter(Boolean)
+      );
+
+      // Auto-provision accounts once
+      const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
+      const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "Expense");
+
+      let synced = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      for (const payment of deposits) {
+        if (syncedIds.has(payment.id)) { skipped++; continue; }
+
+        try {
+          // Resolve client → QBO customer
+          let qboCustomerId: string | undefined;
+          const clientId = (payment as any).trips?.client_id;
+          if (clientId) {
+            const { data: client } = await supabaseAdmin.from("clients").select("*").eq("id", clientId).single();
+            if (client) {
+              const { data: mapping } = await supabaseAdmin
+                .from("qbo_client_mappings").select("qbo_customer_id")
+                .eq("user_id", userId).eq("client_id", client.id).single();
+              qboCustomerId = mapping?.qbo_customer_id;
+            }
+          }
+
+          const gross = payment.amount || 0;
+          const fee = Math.round((gross * 0.029 + 0.30) * 100) / 100;
+          const net = Math.round((gross - fee) * 100) / 100;
+          const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
+          const memo = `Stripe deposit – ${(payment as any).trips?.trip_name || payment.details || "Trip payment"}`;
+
+          // Step 1: Gross → Stripe Clearing
+          const s1 = await fetch(`${qboBase}/journalentry`, {
+            method: "POST", headers: qboHeaders,
+            body: JSON.stringify({
+              TxnDate: txnDate, PrivateNote: `${memo} – Gross received`,
+              Line: [
+                { Amount: gross, DetailType: "JournalEntryLineDetail",
+                  JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { value: stripeClearingId } },
+                  Description: "Gross payment received" },
+                { Amount: gross, DetailType: "JournalEntryLineDetail",
+                  JournalEntryLineDetail: {
+                    PostingType: "Credit", AccountRef: { name: "Accounts Receivable (A/R)" },
+                    ...(qboCustomerId ? { EntityRef: { value: qboCustomerId, type: "Customer" } } : {}),
+                  }, Description: "Gross payment received" },
+              ],
+            }),
+          });
+          if (!s1.ok) throw new Error(`Step 1 failed: ${await s1.text()}`);
+
+          // Step 2: Fees
+          const s2 = await fetch(`${qboBase}/journalentry`, {
+            method: "POST", headers: qboHeaders,
+            body: JSON.stringify({
+              TxnDate: txnDate, PrivateNote: `${memo} – Processing fees`,
+              Line: [
+                { Amount: fee, DetailType: "JournalEntryLineDetail",
+                  JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { value: stripeFeesId } },
+                  Description: "Stripe processing fee" },
+                { Amount: fee, DetailType: "JournalEntryLineDetail",
+                  JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { value: stripeClearingId } },
+                  Description: "Stripe processing fee" },
+              ],
+            }),
+          });
+          if (!s2.ok) throw new Error(`Step 2 failed: ${await s2.text()}`);
+
+          // Step 3: Net → Bank
+          const s3 = await fetch(`${qboBase}/journalentry`, {
+            method: "POST", headers: qboHeaders,
+            body: JSON.stringify({
+              TxnDate: txnDate, PrivateNote: `${memo} – Net payout`,
+              Line: [
+                { Amount: net, DetailType: "JournalEntryLineDetail",
+                  JournalEntryLineDetail: { PostingType: "Debit", AccountRef: { name: "Checking" } },
+                  Description: "Net Stripe payout to bank" },
+                { Amount: net, DetailType: "JournalEntryLineDetail",
+                  JournalEntryLineDetail: { PostingType: "Credit", AccountRef: { value: stripeClearingId } },
+                  Description: "Net Stripe payout to bank" },
+              ],
+            }),
+          });
+          if (!s3.ok) throw new Error(`Step 3 failed: ${await s3.text()}`);
+
+          await supabaseAdmin.from("qbo_sync_logs").insert({
+            user_id: userId, sync_type: "auto-deposit-posted", direction: "push", status: "success",
+            records_processed: 3,
+            details: { payment_id: payment.id, gross, stripe_fee: fee, net },
+          });
+          synced++;
+        } catch (e: any) {
+          errors.push(`Payment ${payment.id}: ${e.message}`);
+          await supabaseAdmin.from("qbo_sync_logs").insert({
+            user_id: userId, sync_type: "auto-deposit-posted", direction: "push", status: "error",
+            records_processed: 0, error_message: e.message,
+            details: { payment_id: payment.id },
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: errors.length === 0, synced, skipped, errors }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── GET ?action=stripe-recon-report ────────────────────────────
     // Query QBO for Stripe Clearing account transactions to verify zero balance
     if (urlPath === "stripe-recon-report" && req.method === "GET") {

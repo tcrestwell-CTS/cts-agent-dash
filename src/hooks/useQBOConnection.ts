@@ -311,6 +311,45 @@ export function useQBOConnection() {
     }
   };
 
+  const syncStripeDeposits = async () => {
+    setSyncing("stripe-deposits");
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-stripe-deposits`,
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+        },
+        showReconnectToast
+      );
+      if (!resp.ok) throw new Error("Stripe deposit sync failed");
+      const data = await resp.json();
+      if (data.synced > 0) {
+        toast.success(`Stripe deposits synced`, {
+          description: `${data.synced} deposit(s) pushed to QBO${data.skipped > 0 ? `, ${data.skipped} already synced` : ""}`,
+        });
+      } else if (data.skipped > 0) {
+        toast.info("All deposits already synced", {
+          description: `${data.skipped} deposit(s) were already in QBO`,
+        });
+      } else {
+        toast.info(data.message || "No completed Stripe deposits found");
+      }
+      if (data.errors?.length > 0) {
+        toast.error(`${data.errors.length} deposit(s) failed`, {
+          description: data.errors[0],
+        });
+      }
+      return data;
+    } catch (err) {
+      console.error("Stripe deposit sync error:", err);
+      toast.error("Failed to sync Stripe deposits to QuickBooks");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
   const getStripeReconReport = async () => {
     try {
       const headers = await getAuthHeaders();
@@ -338,6 +377,7 @@ export function useQBOConnection() {
     syncClients,
     syncInvoice,
     syncPayments,
+    syncStripeDeposits,
     getFinancialSummary,
     getStripeReconReport,
     refreshStatus: fetchStatus,
