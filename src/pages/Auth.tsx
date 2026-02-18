@@ -837,11 +837,11 @@ const Auth = () => {
             </div>
             <p className="text-center text-sm text-muted-foreground">
               By signing in, you agree to our{" "}
-              <a href="https://crestwellgetaways.com/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              <a href="https://portal.crestwelltravels.com/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Terms and Conditions
               </a>{" "}
               and{" "}
-              <a href="https://crestwellgetaways.com/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              <a href="https://portal.crestwelltravels.com/privacy-policy-2" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Privacy Policy
               </a>
             </p>
