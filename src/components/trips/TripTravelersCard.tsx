@@ -151,11 +151,17 @@ export function TripTravelersCard({ client, clientId }: TripTravelersCardProps) 
         </CardHeader>
 
         <CardContent className="space-y-3 pt-0">
-          {/* No client */}
+        {/* No client */}
           {!client && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No client assigned to this trip
-            </p>
+            <div className="text-center py-4 space-y-2">
+              <UserRound className="h-8 w-8 mx-auto text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">
+                No client assigned to this trip.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Assign a client in <span className="font-medium text-foreground">Trip Details</span> to manage travelers.
+              </p>
+            </div>
           )}
 
           {/* Primary client */}
