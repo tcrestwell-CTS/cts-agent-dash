@@ -155,7 +155,7 @@ export function PortalLayout() {
         </a>
         <span>·</span>
         <a
-          href="https://crestwellgetaways.com/privacy-policy"
+          href="https://portal.crestwelltravels.com/privacy-policy-2"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-foreground transition-colors underline"
