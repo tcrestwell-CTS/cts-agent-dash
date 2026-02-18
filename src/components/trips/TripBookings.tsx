@@ -39,7 +39,7 @@ interface Commission {
 
 interface TripBookingsProps {
   tripId: string;
-  clientId: string;
+  clientId: string | null;
   bookings: TripBooking[];
   tripTotal: number;
   totalCommission: number;
