@@ -16,14 +16,21 @@ import {
   Menu,
   X,
   HeartPulse,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/crestwell-logo.png";
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Context so DashboardLayout can read collapsed state
+export const SidebarCollapsedContext = createContext<boolean>(false);
+export const useSidebarCollapsed = () => useContext(SidebarCollapsedContext);
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -44,17 +51,22 @@ const adminNavigation = [
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onCollapsedChange: (val: boolean) => void;
+}
+
+export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { canView: canViewTeam } = useCanViewTeam();
   const { data: userRole } = useUserRole();
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close sidebar on route change (mobile)
+  // Close mobile sidebar on route change
   useEffect(() => {
-    if (isMobile) setOpen(false);
+    if (isMobile) setMobileOpen(false);
   }, [location.pathname, isMobile]);
 
   const userInitials = user?.user_metadata?.full_name
@@ -66,134 +78,154 @@ export function Sidebar() {
     : user?.email?.substring(0, 2).toUpperCase() || "U";
 
   const userName = user?.user_metadata?.full_name || user?.email || "User";
-  
+
   const getRoleLabel = (role: string | null | undefined) => {
     switch (role) {
-      case "admin":
-        return "Admin";
-      case "office_admin":
-        return "Office Admin";
+      case "admin": return "Admin";
+      case "office_admin": return "Office Admin";
       case "user":
-      default:
-        return "Travel Agent";
+      default: return "Travel Agent";
     }
+  };
+
+  const NavItem = ({ item }: { item: typeof navigation[0] }) => {
+    const isActive = location.pathname === item.href;
+    const link = (
+      <Link
+        to={item.href}
+        className={cn(
+          "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+          collapsed && !isMobile ? "justify-center px-2" : "",
+          isActive
+            ? "bg-sidebar-accent text-sidebar-primary"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        )}
+      >
+        <item.icon
+          className={cn(
+            "h-5 w-5 shrink-0 transition-colors",
+            isActive
+              ? "text-sidebar-primary"
+              : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
+          )}
+        />
+        {(!collapsed || isMobile) && <span>{item.name}</span>}
+      </Link>
+    );
+
+    if (collapsed && !isMobile) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{link}</TooltipTrigger>
+          <TooltipContent side="right">{item.name}</TooltipContent>
+        </Tooltip>
+      );
+    }
+    return link;
   };
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-20 items-center px-4 border-b border-sidebar-border justify-between">
-        <img 
-          src={crestwellLogo} 
-          alt="Crestwell Travel Services" 
-          className="h-14 w-auto object-contain"
-        />
-        {isMobile && (
-          <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-sidebar-foreground">
-            <X className="h-5 w-5" />
-          </Button>
+      {/* Logo / collapse toggle */}
+      <div
+        className={cn(
+          "flex h-20 items-center border-b border-sidebar-border",
+          collapsed && !isMobile ? "justify-center px-2" : "px-4 justify-between"
+        )}
+      >
+        {!isMobile ? (
+          <button
+            onClick={() => onCollapsedChange(!collapsed)}
+            className="flex items-center gap-2 group focus:outline-none"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <img
+              src={crestwellLogo}
+              alt="Crestwell Travel Services"
+              className={cn(
+                "object-contain transition-all duration-300",
+                collapsed ? "h-8 w-8" : "h-14 w-auto"
+              )}
+            />
+            {!collapsed && (
+              <ChevronLeft className="h-4 w-4 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 transition-colors ml-1 shrink-0" />
+            )}
+          </button>
+        ) : (
+          <>
+            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-14 w-auto object-contain" />
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="text-sidebar-foreground">
+              <X className="h-5 w-5" />
+            </Button>
+          </>
         )}
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 transition-colors",
-                  isActive
-                    ? "text-sidebar-primary"
-                    : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
-                )}
-              />
-              {item.name}
-            </Link>
-          );
-        })}
+        <TooltipProvider delayDuration={0}>
+          {navigation.map((item) => (
+            <NavItem key={item.name} item={item} />
+          ))}
 
-        {/* Team Management - visible to admins and office admins */}
-        {canViewTeam && (
-          <>
-            <div className="pt-4 pb-2 px-3">
-              <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-                Team
-              </p>
-            </div>
-            {adminNavigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-primary"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon
-                    className={cn(
-                      "h-5 w-5 transition-colors",
-                      isActive
-                        ? "text-sidebar-primary"
-                        : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
-                    )}
-                  />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </>
-        )}
+          {canViewTeam && (
+            <>
+              {(!collapsed || isMobile) && (
+                <div className="pt-4 pb-2 px-3">
+                  <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">Team</p>
+                </div>
+              )}
+              {collapsed && !isMobile && <div className="pt-4 pb-2"><hr className="border-sidebar-border" /></div>}
+              {adminNavigation.map((item) => (
+                <NavItem key={item.name} item={item} />
+              ))}
+            </>
+          )}
+        </TooltipProvider>
       </nav>
 
       {/* User section */}
       <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 mb-3">
-          {user?.user_metadata?.avatar_url ? (
-            <img
-              src={user.user_metadata.avatar_url}
-              alt="Avatar"
-              className="h-9 w-9 rounded-full object-cover"
-            />
-          ) : (
-            <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center">
-              <span className="text-sm font-medium text-sidebar-foreground">
-                {userInitials}
-              </span>
+        {(!collapsed || isMobile) ? (
+          <>
+            <div className="flex items-center gap-3 mb-3">
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Avatar" className="h-9 w-9 rounded-full object-cover" />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center shrink-0">
+                  <span className="text-sm font-medium text-sidebar-foreground">{userInitials}</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>
+                <p className="text-xs text-sidebar-foreground/60 truncate">{getRoleLabel(userRole)}</p>
+              </div>
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {userName}
-            </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">
-              {getRoleLabel(userRole)}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={signOut}
-          className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Button>
+          </>
+        ) : (
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={signOut}
+                  className="flex items-center justify-center w-full p-2 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Sign out</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     </div>
   );
@@ -203,26 +235,25 @@ export function Sidebar() {
       {/* Mobile hamburger header */}
       {isMobile && (
         <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-3 border-b border-border bg-background px-4">
-          <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
+          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
           <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-8 w-auto object-contain" />
         </header>
       )}
 
-      {/* Overlay */}
-      {isMobile && open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity"
-          onClick={() => setOpen(false)}
-        />
+      {/* Mobile overlay */}
+      {isMobile && mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 transition-opacity" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300",
-          isMobile && !open && "-translate-x-full"
+          "fixed left-0 top-0 z-50 h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
+          isMobile
+            ? cn("w-64", mobileOpen ? "translate-x-0" : "-translate-x-full")
+            : collapsed ? "w-16" : "w-64"
         )}
       >
         {sidebarContent}
