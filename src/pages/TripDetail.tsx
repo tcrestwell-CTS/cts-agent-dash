@@ -32,6 +32,7 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { useTrip, useTrips } from "@/hooks/useTrips";
+import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
@@ -71,6 +72,7 @@ const TripDetail = () => {
   const { deleteTrip } = useTrips();
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
+  const { data: tripTravelers = [] } = useTripTravelers(tripId);
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
 
@@ -200,7 +202,13 @@ const TripDetail = () => {
                 )}
               </div>
               <p className="text-muted-foreground mt-1">
-                {trip.clients?.name || "No client assigned"}
+                {trip.clients?.name ||
+                  (() => {
+                    const primary = tripTravelers.find((t) => t.is_primary) || tripTravelers[0];
+                    return primary
+                      ? `${primary.first_name}${primary.last_name ? " " + primary.last_name : ""}`
+                      : "No client assigned";
+                  })()}
               </p>
             </div>
           </div>
