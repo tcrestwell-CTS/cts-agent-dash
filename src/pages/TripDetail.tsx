@@ -30,6 +30,7 @@ import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
+import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { useProfile } from "@/hooks/useProfile";
@@ -293,7 +294,7 @@ const TripDetail = () => {
         </div>
 
         {/* Main content */}
-        <div className={isGroupTrip ? "grid gap-6 lg:grid-cols-[1fr_280px] items-start" : "space-y-6"}>
+        <div className="grid gap-6 lg:grid-cols-[1fr_280px] items-start">
           {/* Left / main content */}
           <div className="space-y-6">
             {/* Status Workflow */}
@@ -396,34 +397,8 @@ const TripDetail = () => {
               />
             )}
 
-            {/* Travelers */}
-            {trip.clients && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Travelers
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="font-semibold text-primary">
-                        {trip.clients.name?.charAt(0).toUpperCase() || "?"}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium">{trip.clients.name || "Unknown"}</p>
-                      {trip.clients.email && (
-                        <p className="text-sm text-muted-foreground">
-                          {trip.clients.email}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+
+
 
             {/* Tabs for Bookings and Payments */}
             <Tabs defaultValue={defaultTab} className="w-full">
@@ -471,19 +446,23 @@ const TripDetail = () => {
             </Tabs>
           </div>
 
-          {/* Right settings sidebar — GROUP TRIPS ONLY */}
-          {isGroupTrip && (
-            <div className="hidden lg:block">
-              <div className="sticky top-6">
+          {/* Right sidebar — always visible on large screens */}
+          <div className="hidden lg:block">
+            <div className="sticky top-6 space-y-4">
+              <TripTravelersCard
+                client={trip.clients}
+                clientId={trip.client_id}
+              />
+              {isGroupTrip && (
                 <TripSettingsSidebar
                   tripId={trip.id}
                   settings={tripSettings}
                   agencyName={profile?.agency_name || undefined}
                   onSettingsChange={fetchTrip}
                 />
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </DashboardLayout>
