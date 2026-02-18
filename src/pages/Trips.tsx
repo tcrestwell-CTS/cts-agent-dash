@@ -40,6 +40,18 @@ import type { Supplier } from "@/types/supplier";
 const initialPortalSuppliers: Supplier[] = [
   // Flights
   {
+    id: "farebuzz",
+    name: "FareBuzz",
+    url: "https://www.farebuzz.com/default.aspx",
+    description: "FareBuzz agent home portal for exclusive net fares, multi-city search, group bookings, and flight commission tracking.",
+    category: "flights",
+    isFavorite: false,
+    notes: "",
+    visitCount: 0,
+    integrationType: "redirect",
+    apiStatus: "none",
+  },
+  {
     id: "centrav",
     name: "Centrav",
     url: "https://www.centrav.com",
