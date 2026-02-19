@@ -26,7 +26,9 @@ import {
   Loader2,
   LayoutGrid,
   List,
+  FileDown,
 } from "lucide-react";
+import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
@@ -536,6 +538,15 @@ const Trips = () => {
             <p className="text-muted-foreground text-sm mt-1">Manage client trips and access booking portals</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generateBookingFlowPDF()}
+              className="gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              Booking Flow PDF
+            </Button>
             {activeTab === "trips" && (
               <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
