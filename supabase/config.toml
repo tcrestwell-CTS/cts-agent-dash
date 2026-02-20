@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.receive-lead]
 verify_jwt = false
+
+[functions.create-virtual-card]
+verify_jwt = false

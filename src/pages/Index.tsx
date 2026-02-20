@@ -15,6 +15,7 @@ import { UpcomingPayments } from "@/components/dashboard/UpcomingPayments";
 import { InvoiceSearch } from "@/components/dashboard/InvoiceSearch";
 import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { CRMIntegrationHealth } from "@/components/dashboard/CRMIntegrationHealth";
+import { VirtualCardNotifications } from "@/components/dashboard/VirtualCardNotifications";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -179,6 +180,9 @@ const Index = () => {
 
         {/* Right Column - Widgets */}
         <div className="space-y-6">
+          {/* Virtual Card Notifications — shown when there are pending cards */}
+          <VirtualCardNotifications />
+
           <QuickActions />
 
           {/* CRM Integration Health */}
