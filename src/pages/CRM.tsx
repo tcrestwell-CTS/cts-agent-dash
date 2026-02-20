@@ -10,7 +10,7 @@ import { ClientCard } from "@/components/crm/ClientCard";
 import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { LeadsWebhookConfig } from "@/components/crm/LeadsWebhookConfig";
+
 
 type StatusFilter = "all" | "active" | "lead" | "inactive" | "traveled" | "travelling" | "cancelled";
 
@@ -185,8 +185,7 @@ const CRM = () => {
 
         {TAB_CONFIG.map(({ value }) => (
           <TabsContent key={value} value={value}>
-            {value === "lead" && <LeadsWebhookConfig />}
-            <ClientGrid status={value} />
+          <ClientGrid status={value} />
           </TabsContent>
         ))}
       </Tabs>
