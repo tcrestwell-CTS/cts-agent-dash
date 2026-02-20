@@ -1603,6 +1603,63 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_leads: {
+        Row: {
+          budget: string | null
+          created_at: string
+          email: string | null
+          id: string
+          lead_id: string | null
+          location: string | null
+          name: string | null
+          phone: string | null
+          project_type: string | null
+          raw_payload: Json | null
+          received_at: string
+          source: string
+          status: string
+          timeline: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          name?: string | null
+          phone?: string | null
+          project_type?: string | null
+          raw_payload?: Json | null
+          received_at?: string
+          source?: string
+          status?: string
+          timeline?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          name?: string | null
+          phone?: string | null
+          project_type?: string | null
+          raw_payload?: Json | null
+          received_at?: string
+          source?: string
+          status?: string
+          timeline?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

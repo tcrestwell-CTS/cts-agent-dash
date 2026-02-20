@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.qbo-sync-trigger]
 verify_jwt = false
+
+[functions.receive-lead]
+verify_jwt = false
