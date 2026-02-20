@@ -6,10 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Webhook, Send, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Webhook, Send, Save, ChevronDown, ChevronUp,
+  CheckCircle2, XCircle, Clock, Loader2, AlertCircle,
+} from "lucide-react";
 import { useGetWebhookConfig, useUpsertWebhookConfig } from "@/hooks/useWebhookConfiguration";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 const EXAMPLE_PAYLOAD = {
   lead_id: "abc123",
@@ -22,6 +27,18 @@ const EXAMPLE_PAYLOAD = {
   timeline: "1-3 Months",
 };
 
+interface TestResult {
+  success: boolean;
+  status?: number;
+  statusText?: string;
+  error?: string;
+  latencyMs: number;
+  sentAt: string;
+  payload: object;
+  url: string;
+  method: string;
+}
+
 export function LeadsWebhookConfig() {
   const { data: config, isLoading } = useGetWebhookConfig();
   const upsert = useUpsertWebhookConfig();
@@ -33,6 +50,7 @@ export function LeadsWebhookConfig() {
   const [isActive, setIsActive] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -58,22 +76,41 @@ export function LeadsWebhookConfig() {
       return;
     }
     setIsTesting(true);
+    setTestResult(null);
+    const sentAt = new Date().toISOString();
+    const t0 = Date.now();
+
     try {
       const { data, error } = await supabase.functions.invoke("test-webhook", {
         body: { webhook_url: webhookUrl, http_method: httpMethod },
       });
+      const latencyMs = Date.now() - t0;
+
       if (error) throw error;
-      if (data?.success) {
-        toast({ title: "Webhook test successful", description: `Received status ${data.status} from your endpoint.` });
-      } else {
-        toast({
-          title: "Webhook test failed",
-          description: data?.error || `Status: ${data?.status} ${data?.statusText}`,
-          variant: "destructive",
-        });
-      }
+
+      const result: TestResult = {
+        success: data?.success ?? false,
+        status: data?.status,
+        statusText: data?.statusText,
+        error: data?.error,
+        latencyMs,
+        sentAt,
+        payload: { ...EXAMPLE_PAYLOAD, test: true, sent_at: sentAt },
+        url: webhookUrl,
+        method: httpMethod,
+      };
+      setTestResult(result);
     } catch (err: any) {
-      toast({ title: "Test failed", description: err.message, variant: "destructive" });
+      const latencyMs = Date.now() - t0;
+      setTestResult({
+        success: false,
+        error: err.message,
+        latencyMs,
+        sentAt,
+        payload: { ...EXAMPLE_PAYLOAD, test: true, sent_at: sentAt },
+        url: webhookUrl,
+        method: httpMethod,
+      });
     } finally {
       setIsTesting(false);
     }
@@ -114,7 +151,7 @@ export function LeadsWebhookConfig() {
               id="webhook-url"
               placeholder="https://your-crm.com/api/leads"
               value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
+              onChange={(e) => { setWebhookUrl(e.target.value); setTestResult(null); }}
             />
             <p className="text-xs text-muted-foreground">The endpoint where lead data will be sent automatically</p>
           </div>
@@ -123,7 +160,7 @@ export function LeadsWebhookConfig() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>HTTP Method</Label>
-              <Select value={httpMethod} onValueChange={setHttpMethod}>
+              <Select value={httpMethod} onValueChange={(v) => { setHttpMethod(v); setTestResult(null); }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -180,7 +217,9 @@ export function LeadsWebhookConfig() {
                 onClick={handleTest}
                 disabled={isTesting || !webhookUrl}
               >
-                <Send className="h-4 w-4 mr-1.5" />
+                {isTesting
+                  ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  : <Send className="h-4 w-4 mr-1.5" />}
                 {isTesting ? "Sending..." : "Test Webhook"}
               </Button>
               <Button
@@ -193,6 +232,105 @@ export function LeadsWebhookConfig() {
               </Button>
             </div>
           </div>
+
+          {/* ── Test Result Panel ── */}
+          {testResult && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                {/* Status headline */}
+                <div className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2.5",
+                  testResult.success
+                    ? "bg-success/10 border border-success/20"
+                    : "bg-destructive/10 border border-destructive/20"
+                )}>
+                  {testResult.success
+                    ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                    : <XCircle className="h-4 w-4 text-destructive shrink-0" />}
+                  <span className={cn(
+                    "text-sm font-medium",
+                    testResult.success ? "text-success" : "text-destructive"
+                  )}>
+                    {testResult.success ? "Payload delivered successfully" : "Delivery failed"}
+                  </span>
+                  <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {testResult.latencyMs}ms
+                  </span>
+                </div>
+
+                {/* Request metadata table */}
+                <div className="rounded-lg border border-border/50 overflow-hidden text-xs">
+                  <div className="bg-muted/50 px-3 py-1.5 font-semibold text-muted-foreground uppercase tracking-wide text-[10px]">
+                    Request Details
+                  </div>
+                  <div className="divide-y divide-border/40">
+                    <div className="flex items-center px-3 py-2 gap-3">
+                      <span className="text-muted-foreground w-24 shrink-0">Method</span>
+                      <Badge variant="outline" className="text-[10px] font-mono">{testResult.method}</Badge>
+                    </div>
+                    <div className="flex items-start px-3 py-2 gap-3">
+                      <span className="text-muted-foreground w-24 shrink-0">Endpoint</span>
+                      <span className="font-mono break-all text-foreground">{testResult.url}</span>
+                    </div>
+                    <div className="flex items-center px-3 py-2 gap-3">
+                      <span className="text-muted-foreground w-24 shrink-0">Sent at</span>
+                      <span className="font-mono text-foreground">
+                        {new Date(testResult.sentAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {testResult.status != null && (
+                      <div className="flex items-center px-3 py-2 gap-3">
+                        <span className="text-muted-foreground w-24 shrink-0">Response</span>
+                        <Badge
+                          variant={testResult.success ? "default" : "destructive"}
+                          className="text-[10px] font-mono"
+                        >
+                          {testResult.status} {testResult.statusText}
+                        </Badge>
+                      </div>
+                    )}
+                    {testResult.error && (
+                      <div className="flex items-start px-3 py-2 gap-3">
+                        <span className="text-muted-foreground w-24 shrink-0">Error</span>
+                        <span className="font-mono text-destructive break-all">{testResult.error}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center px-3 py-2 gap-3">
+                      <span className="text-muted-foreground w-24 shrink-0">Latency</span>
+                      <span className={cn(
+                        "font-mono",
+                        testResult.latencyMs < 500
+                          ? "text-success"
+                          : testResult.latencyMs < 2000
+                          ? "text-accent"
+                          : "text-destructive"
+                      )}>
+                        {testResult.latencyMs}ms
+                        {testResult.latencyMs < 500 ? " (fast)" : testResult.latencyMs < 2000 ? " (ok)" : " (slow)"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payload sent */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                    <AlertCircle className="h-3 w-3" />
+                    Payload Sent
+                  </div>
+                  <pre className="bg-muted rounded-lg p-3 text-xs font-mono overflow-x-auto text-foreground leading-relaxed">
+                    {JSON.stringify(testResult.payload, null, 2)}
+                  </pre>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  Re-run the test any time to verify your endpoint is receiving data correctly.
+                </p>
+              </div>
+            </>
+          )}
         </CardContent>
       )}
     </Card>
