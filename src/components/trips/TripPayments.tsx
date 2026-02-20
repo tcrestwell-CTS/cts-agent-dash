@@ -9,6 +9,7 @@ import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { AddPaymentDialog } from "./AddPaymentDialog";
+import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -482,33 +483,52 @@ export function TripPayments({
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Date</th>
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Details</th>
                     <th className="pb-3 font-medium text-sm text-muted-foreground">Status</th>
+                    <th className="pb-3 font-medium text-sm text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {pastPayments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-muted/50">
-                      <td className="py-3">
-                        <p className="font-medium text-primary">{getPaymentLabel(payment)}</p>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{formatCurrency(payment.amount)}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 text-sm">
-                        {format(new Date(payment.payment_date), "MMM d, yyyy")}
-                      </td>
-                      <td className="py-3 text-sm text-primary">
-                        {payment.details || "-"}
-                      </td>
-                      <td className="py-3">
-                        <Badge variant="outline" className={statusColors[payment.status]}>
-                          {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
+                  {pastPayments.map((payment) => {
+                    // Resolve supplier name from the linked booking
+                    const paymentSupplier = payment.bookings?.suppliers?.name;
+                    return (
+                      <tr key={payment.id} className="hover:bg-muted/50">
+                        <td className="py-3">
+                          <p className="font-medium text-primary">{getPaymentLabel(payment)}</p>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{formatCurrency(payment.amount)}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-sm">
+                          {format(new Date(payment.payment_date), "MMM d, yyyy")}
+                        </td>
+                        <td className="py-3 text-sm text-primary">
+                          {payment.details || "-"}
+                        </td>
+                        <td className="py-3">
+                          <Badge variant="outline" className={statusColors[payment.status]}>
+                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                          </Badge>
+                        </td>
+                        {/* Issue Virtual Card: shown only when payment is paid/confirmed.
+                            Agents can use this to pay the supplier via Affirm VCN on behalf of the client. */}
+                        <td className="py-3">
+                          <AffirmVirtualCardButton
+                            paymentStatus={payment.status}
+                            amount={payment.amount}
+                            orderId={payment.id}
+                            clientName={clientName}
+                            clientEmail={clientEmail}
+                            clientPhone={clientPhone}
+                            supplierName={paymentSupplier}
+                            tripName={tripName}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
