@@ -24,7 +24,7 @@ serve(async (req) => {
 
     // Parse body once
     const body = await req.json();
-    const { paymentId, returnUrl, portalToken, embedded } = body;
+    const { paymentId, returnUrl, portalToken, embedded, paymentMethodChoice } = body;
     if (!paymentId) throw new Error("paymentId is required");
 
     // Determine auth context: agent (Authorization header) or client (portal token)
@@ -172,12 +172,19 @@ serve(async (req) => {
       });
     }
 
+    const updateData: any = {
+      stripe_session_id: session.id,
+      stripe_payment_url: session.url || null,
+    };
+
+    // Store client's payment method choice (stripe/affirm) for virtual card flow
+    if (paymentMethodChoice) {
+      updateData.payment_method_choice = paymentMethodChoice;
+    }
+
     await supabase
       .from("trip_payments")
-      .update({
-        stripe_session_id: session.id,
-        stripe_payment_url: session.url || null,
-      })
+      .update(updateData)
       .eq("id", paymentId);
 
     return new Response(JSON.stringify({

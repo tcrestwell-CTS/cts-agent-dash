@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          trip_id: string | null
+          trip_payment_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          trip_id?: string | null
+          trip_payment_id?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          trip_id?: string | null
+          trip_payment_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_notifications_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_notifications_trip_payment_id_fkey"
+            columns: ["trip_payment_id"]
+            isOneToOne: false
+            referencedRelation: "trip_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_travelers: {
         Row: {
           booking_id: string
@@ -1295,6 +1346,7 @@ export type Database = {
           notes: string | null
           payment_date: string
           payment_method: string | null
+          payment_method_choice: string | null
           payment_type: string
           status: string
           stripe_payment_url: string | null
@@ -1303,6 +1355,8 @@ export type Database = {
           trip_id: string
           updated_at: string
           user_id: string
+          virtual_card_id: string | null
+          virtual_card_status: string | null
         }
         Insert: {
           amount?: number
@@ -1314,6 +1368,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          payment_method_choice?: string | null
           payment_type?: string
           status?: string
           stripe_payment_url?: string | null
@@ -1322,6 +1377,8 @@ export type Database = {
           trip_id: string
           updated_at?: string
           user_id: string
+          virtual_card_id?: string | null
+          virtual_card_status?: string | null
         }
         Update: {
           amount?: number
@@ -1333,6 +1390,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          payment_method_choice?: string | null
           payment_type?: string
           status?: string
           stripe_payment_url?: string | null
@@ -1341,6 +1399,8 @@ export type Database = {
           trip_id?: string
           updated_at?: string
           user_id?: string
+          virtual_card_id?: string | null
+          virtual_card_status?: string | null
         }
         Relationships: [
           {

@@ -170,7 +170,7 @@ serve(async (req) => {
       if (paymentId) {
         const { data: paymentBefore } = await supabase
           .from("trip_payments")
-          .select("amount, payment_type, status")
+          .select("amount, payment_type, status, payment_method_choice")
           .eq("id", paymentId)
           .single();
 
@@ -194,6 +194,33 @@ serve(async (req) => {
             receiptUrl,
             paymentBefore.payment_type,
           ).catch((e) => console.error("Receipt email background error:", e));
+
+          // Trigger virtual card creation if client chose Stripe payment method
+          // This creates a Stripe Issuing virtual card and notifies the agent
+          if (paymentBefore.payment_method_choice === "stripe") {
+            try {
+              const vcRes = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-virtual-card`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                    apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+                  },
+                  body: JSON.stringify({ paymentId, method: "stripe" }),
+                },
+              );
+              if (!vcRes.ok) {
+                const vcErr = await vcRes.text();
+                console.error("Virtual card creation failed:", vcErr);
+              } else {
+                console.log("Virtual card creation triggered for payment", paymentId);
+              }
+            } catch (vcError) {
+              console.error("Virtual card creation error:", vcError);
+            }
+          }
         }
       }
     }
