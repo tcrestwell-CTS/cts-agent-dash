@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.create-virtual-card]
 verify_jwt = false
+
+[functions.retrieve-virtual-card]
+verify_jwt = false

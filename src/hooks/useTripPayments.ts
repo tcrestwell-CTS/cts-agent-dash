@@ -20,6 +20,10 @@ export interface TripPayment {
   updated_at: string;
   stripe_session_id: string | null;
   stripe_payment_url: string | null;
+  stripe_receipt_url: string | null;
+  payment_method_choice: string | null;
+  virtual_card_status: string | null;
+  virtual_card_id: string | null;
   bookings?: {
     id: string;
     booking_reference: string;

@@ -10,6 +10,7 @@ import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
+import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -512,19 +513,35 @@ export function TripPayments({
                             {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
                         </td>
-                        {/* Issue Virtual Card: shown only when payment is paid/confirmed.
-                            Agents can use this to pay the supplier via Affirm VCN on behalf of the client. */}
+                        {/* Virtual Card Actions:
+                            - Stripe Issuing: shown when payment_method_choice is 'stripe' and card is ready
+                            - Affirm VCN: shown for paid payments where agent can issue an Affirm card */}
                         <td className="py-3">
-                          <AffirmVirtualCardButton
-                            paymentStatus={payment.status}
-                            amount={payment.amount}
-                            orderId={payment.id}
-                            clientName={clientName}
-                            clientEmail={clientEmail}
-                            clientPhone={clientPhone}
-                            supplierName={paymentSupplier}
-                            tripName={tripName}
-                          />
+                          <div className="flex items-center gap-1">
+                            <StripeVirtualCardButton
+                              paymentId={payment.id}
+                              paymentStatus={payment.status}
+                              virtualCardStatus={payment.virtual_card_status}
+                              virtualCardId={payment.virtual_card_id}
+                              paymentMethodChoice={payment.payment_method_choice}
+                              amount={payment.amount}
+                              clientName={clientName}
+                              tripName={tripName}
+                            />
+                            {/* Only show Affirm button if no Stripe card exists */}
+                            {payment.payment_method_choice !== "stripe" && (
+                              <AffirmVirtualCardButton
+                                paymentStatus={payment.status}
+                                amount={payment.amount}
+                                orderId={payment.id}
+                                clientName={clientName}
+                                clientEmail={clientEmail}
+                                clientPhone={clientPhone}
+                                supplierName={paymentSupplier}
+                                tripName={tripName}
+                              />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
