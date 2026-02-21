@@ -16,6 +16,7 @@ interface StripeVirtualCardButtonProps {
   virtualCardStatus: string | null;
   virtualCardId: string | null;
   paymentMethodChoice: string | null;
+  paymentMethod: string | null;
   paymentStatus: string;
   amount: number;
   clientName?: string;
@@ -34,6 +35,7 @@ export function StripeVirtualCardButton({
   virtualCardStatus,
   virtualCardId,
   paymentMethodChoice,
+  paymentMethod,
   paymentStatus,
   amount,
   clientName,
@@ -46,33 +48,45 @@ export function StripeVirtualCardButton({
   const [showCvc, setShowCvc] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Only render for Stripe-paid payments with a virtual card
-  if (
-    paymentStatus !== "paid" ||
-    paymentMethodChoice !== "stripe" ||
-    !virtualCardId ||
-    virtualCardStatus !== "ready"
-  ) {
+  // Show for paid Stripe payments — either explicit choice or payment_method is stripe
+  const isStripePaid =
+    paymentStatus === "paid" &&
+    (paymentMethodChoice === "stripe" || (!paymentMethodChoice && paymentMethod === "stripe"));
+
+  if (!isStripePaid) {
     return null;
   }
+
+  const hasCard = virtualCardId && virtualCardStatus === "ready";
 
   const handleRetrieveCard = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("retrieve-virtual-card", {
-        body: { paymentId },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setCardDetails(data);
-      setShowCardDialog(true);
-      setShowNumber(false);
-      setShowCvc(false);
+      if (hasCard) {
+        // Retrieve existing card details
+        const { data, error } = await supabase.functions.invoke("retrieve-virtual-card", {
+          body: { paymentId },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        setCardDetails(data);
+        setShowCardDialog(true);
+        setShowNumber(false);
+        setShowCvc(false);
+      } else {
+        // Issue a new Stripe virtual card
+        const { data, error } = await supabase.functions.invoke("create-virtual-card", {
+          body: { paymentId, method: "stripe" },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        toast.success("Stripe virtual card created! Click 'Retrieve Card' to view details.");
+        // Trigger a page refresh to update the payment data
+        window.location.reload();
+      }
     } catch (err: any) {
-      console.error("Error retrieving virtual card:", err);
-      toast.error(err.message || "Failed to retrieve card details");
+      console.error("Error with virtual card:", err);
+      toast.error(err.message || "Failed to process virtual card");
     } finally {
       setLoading(false);
     }
@@ -99,14 +113,14 @@ export function StripeVirtualCardButton({
         className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10"
         onClick={handleRetrieveCard}
         disabled={loading}
-        title="Retrieve Stripe Issuing virtual card details"
+        title={hasCard ? "Retrieve Stripe Issuing virtual card details" : "Issue a Stripe Issuing virtual card"}
       >
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
           <CreditCard className="h-3.5 w-3.5" />
         )}
-        Retrieve Card
+        {hasCard ? "Retrieve Card" : "Issue Card"}
       </Button>
 
       <Dialog open={showCardDialog} onOpenChange={setShowCardDialog}>

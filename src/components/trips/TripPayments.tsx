@@ -524,12 +524,13 @@ export function TripPayments({
                               virtualCardStatus={payment.virtual_card_status}
                               virtualCardId={payment.virtual_card_id}
                               paymentMethodChoice={payment.payment_method_choice}
+                              paymentMethod={payment.payment_method}
                               amount={payment.amount}
                               clientName={clientName}
                               tripName={tripName}
                             />
-                            {/* Only show Affirm button if no Stripe card exists */}
-                            {payment.payment_method_choice !== "stripe" && (
+                            {/* Only show Affirm button for explicit Affirm payments or non-Stripe paid payments */}
+                            {payment.payment_method_choice === "affirm" && (
                               <AffirmVirtualCardButton
                                 paymentStatus={payment.status}
                                 amount={payment.amount}
