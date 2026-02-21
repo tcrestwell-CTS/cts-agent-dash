@@ -195,9 +195,10 @@ serve(async (req) => {
             paymentBefore.payment_type,
           ).catch((e) => console.error("Receipt email background error:", e));
 
-          // Trigger virtual card creation if client chose Stripe payment method
-          // This creates a Stripe Issuing virtual card and notifies the agent
-          if (paymentBefore.payment_method_choice === "stripe") {
+          // Always trigger Stripe Issuing virtual card creation for Stripe payments.
+          // If the client explicitly chose Affirm, skip (Affirm VCN is handled client-side).
+          // For all other cases (explicit "stripe" choice or no choice set), issue a Stripe VCN.
+          if (paymentBefore.payment_method_choice !== "affirm") {
             try {
               const vcRes = await fetch(
                 `${Deno.env.get("SUPABASE_URL")}/functions/v1/create-virtual-card`,
@@ -215,7 +216,7 @@ serve(async (req) => {
                 const vcErr = await vcRes.text();
                 console.error("Virtual card creation failed:", vcErr);
               } else {
-                console.log("Virtual card creation triggered for payment", paymentId);
+                console.log("Stripe VCN creation triggered for payment", paymentId);
               }
             } catch (vcError) {
               console.error("Virtual card creation error:", vcError);
