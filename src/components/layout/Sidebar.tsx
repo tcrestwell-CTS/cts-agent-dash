@@ -18,6 +18,10 @@ import {
   HeartPulse,
   ChevronLeft,
   ChevronRight,
+  Bell,
+  CreditCard,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,8 +29,12 @@ import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/crestwell-logo.png";
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAgentNotifications } from "@/hooks/useAgentNotifications";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 // Context so DashboardLayout can read collapsed state
 export const SidebarCollapsedContext = createContext<boolean>(false);
@@ -63,11 +71,26 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const { data: userRole } = useUserRole();
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useAgentNotifications();
 
   // Close mobile sidebar on route change
   useEffect(() => {
     if (isMobile) setMobileOpen(false);
   }, [location.pathname, isMobile]);
+
+  // Close notification panel on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    if (notifOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notifOpen]);
 
   const userInitials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -183,6 +206,103 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
           )}
         </TooltipProvider>
       </nav>
+
+      {/* Notification Bell */}
+      <div className="border-t border-sidebar-border px-3 py-2" ref={notifRef}>
+        {collapsed && !isMobile ? (
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  className="relative flex items-center justify-center w-full p-2 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-2 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Notifications{unreadCount > 0 ? ` (${unreadCount})` : ""}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <button
+            onClick={() => setNotifOpen(!notifOpen)}
+            className="relative flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+          >
+            <Bell className="h-5 w-5 shrink-0" />
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <Badge variant="default" className="ml-auto text-[10px] px-1.5 py-0 h-5">
+                {unreadCount}
+              </Badge>
+            )}
+          </button>
+        )}
+
+        {/* Notification Dropdown */}
+        {notifOpen && (
+          <div className={cn(
+            "absolute z-[60] bg-popover border border-border rounded-lg shadow-lg overflow-hidden",
+            collapsed && !isMobile
+              ? "left-[calc(100%+8px)] bottom-16 w-80"
+              : "left-4 right-4 bottom-[calc(100%+4px)] w-auto"
+          )} style={{ maxHeight: 400 }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+              {unreadCount > 0 && (
+                <button
+                  onClick={() => markAllAsRead.mutate()}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 340 }}>
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  No notifications yet
+                </div>
+              ) : (
+                notifications.slice(0, 10).map((n) => (
+                  <div
+                    key={n.id}
+                    className={cn(
+                      "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors text-sm",
+                      n.is_read ? "bg-popover" : "bg-primary/5"
+                    )}
+                    onClick={() => {
+                      if (!n.is_read) markAsRead.mutate(n.id);
+                      if (n.trip_id) {
+                        navigate(`/trips/${n.trip_id}`);
+                        setNotifOpen(false);
+                        if (isMobile) setMobileOpen(false);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <CreditCard className={cn("h-4 w-4 mt-0.5 shrink-0", n.is_read ? "text-muted-foreground" : "text-primary")} />
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("font-medium truncate", n.is_read ? "text-muted-foreground" : "text-foreground")}>
+                          {n.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">
+                          {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* User section */}
       <div className="border-t border-sidebar-border p-4">
