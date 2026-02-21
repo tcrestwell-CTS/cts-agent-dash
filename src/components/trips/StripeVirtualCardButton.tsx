@@ -80,8 +80,11 @@ export function StripeVirtualCardButton({
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
+        if (!data?.virtualCardId) {
+          toast.error("Stripe Issuing is not enabled on this account. Please process supplier payment manually.");
+          return;
+        }
         toast.success("Stripe virtual card created! Click 'Retrieve Card' to view details.");
-        // Trigger a page refresh to update the payment data
         window.location.reload();
       }
     } catch (err: any) {
