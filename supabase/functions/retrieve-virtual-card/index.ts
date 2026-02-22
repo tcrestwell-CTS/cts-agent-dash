@@ -64,12 +64,29 @@ serve(async (req) => {
       throw new Error("This payment does not have a Stripe Issuing card");
     }
 
+    // Check if agent has a connected account
+    const { data: connectedAccount } = await supabase
+      .from("stripe_connected_accounts")
+      .select("stripe_account_id, card_issuing_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const stripeAccountHeader = connectedAccount?.card_issuing_status === "active"
+      ? connectedAccount.stripe_account_id
+      : null;
+
     // Retrieve the card with sensitive details expanded
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    const card = await stripe.issuing.cards.retrieve(payment.virtual_card_id, {
-      expand: ["number", "cvc"],
-    });
+    const retrieveOptions = stripeAccountHeader
+      ? { stripeAccount: stripeAccountHeader }
+      : undefined;
+
+    const card = await stripe.issuing.cards.retrieve(
+      payment.virtual_card_id,
+      { expand: ["number", "cvc"] },
+      retrieveOptions,
+    );
 
     return new Response(
       JSON.stringify({

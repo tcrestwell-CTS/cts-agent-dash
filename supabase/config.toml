@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.retrieve-virtual-card]
 verify_jwt = false
+
+[functions.stripe-connect-onboarding]
+verify_jwt = false
