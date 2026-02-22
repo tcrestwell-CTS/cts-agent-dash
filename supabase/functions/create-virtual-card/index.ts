@@ -108,43 +108,55 @@ serve(async (req) => {
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
       try {
-        // Step 1: Create or find a cardholder for this agency
-        // We use the agent's email as the unique identifier
+        // Check if agent has a Stripe Connect connected account
+        const { data: connectedAccount } = await supabase
+          .from("stripe_connected_accounts")
+          .select("stripe_account_id, card_issuing_status")
+          .eq("user_id", agentUserId)
+          .maybeSingle();
+
+        const stripeAccountHeader = connectedAccount?.card_issuing_status === "active"
+          ? connectedAccount.stripe_account_id
+          : null;
+
+        // Step 1: Create or find a cardholder
         let cardholder: any;
-        const existingCardholders = await stripe.issuing.cardholders.list({
-          email: agentEmail || undefined,
-          limit: 1,
-        });
+        const listParams: any = { email: agentEmail || undefined, limit: 1 };
+        const existingCardholders = stripeAccountHeader
+          ? await stripe.issuing.cardholders.list(listParams, { stripeAccount: stripeAccountHeader })
+          : await stripe.issuing.cardholders.list(listParams);
 
         if (existingCardholders.data.length > 0) {
           cardholder = existingCardholders.data[0];
         } else {
-          // Create a new cardholder for the agent/agency
-          cardholder = await stripe.issuing.cardholders.create({
+          const createParams: any = {
             name: agentProfile?.full_name || "Crestwell Travel Agent",
             email: agentEmail || undefined,
             type: "individual",
             billing: {
               address: {
-                line1: "N/A", // Replace with actual agency address when available
+                line1: "N/A",
                 city: "N/A",
                 state: "CA",
                 postal_code: "00000",
                 country: "US",
               },
             },
-          });
+          };
+          cardholder = stripeAccountHeader
+            ? await stripe.issuing.cardholders.create(createParams, { stripeAccount: stripeAccountHeader })
+            : await stripe.issuing.cardholders.create(createParams);
         }
 
         // Step 2: Create a virtual card with spending limit matching the payment
-        const card = await stripe.issuing.cards.create({
+        const cardParams: any = {
           cardholder: cardholder.id,
           currency: "usd",
           type: "virtual",
           spending_controls: {
             spending_limits: [
               {
-                amount: Math.round(payment.amount * 100), // Stripe uses cents
+                amount: Math.round(payment.amount * 100),
                 interval: "all_time",
               },
             ],
@@ -154,14 +166,18 @@ serve(async (req) => {
             trip_id: payment.trip_id,
             client_name: clientName,
           },
-        });
+        };
+
+        const card = stripeAccountHeader
+          ? await stripe.issuing.cards.create(cardParams, { stripeAccount: stripeAccountHeader })
+          : await stripe.issuing.cards.create(cardParams);
 
         virtualCardId = card.id;
 
+        const accountLabel = stripeAccountHeader ? " (Connected Account)" : "";
         notificationTitle = `💳 Stripe Virtual Card Ready`;
-        notificationMessage = `A Stripe Issuing virtual card has been created for ${clientName}'s ${formattedAmount} payment on "${tripName}". Retrieve the card details from your dashboard.`;
+        notificationMessage = `A Stripe Issuing virtual card${accountLabel} has been created for ${clientName}'s ${formattedAmount} payment on "${tripName}". Retrieve the card details from your dashboard.`;
       } catch (stripeErr: any) {
-        // If Stripe Issuing is not enabled, fall back to a notification-only flow
         console.error("Stripe Issuing error:", stripeErr.message);
 
         notificationTitle = `💳 Stripe Payment Approved`;

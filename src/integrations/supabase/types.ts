@@ -1287,6 +1287,45 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_connected_accounts: {
+        Row: {
+          business_name: string | null
+          card_issuing_status: string
+          created_at: string
+          id: string
+          onboarding_status: string
+          requirements_due: Json | null
+          stripe_account_id: string
+          transfers_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_name?: string | null
+          card_issuing_status?: string
+          created_at?: string
+          id?: string
+          onboarding_status?: string
+          requirements_due?: Json | null
+          stripe_account_id: string
+          transfers_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_name?: string | null
+          card_issuing_status?: string
+          created_at?: string
+          id?: string
+          onboarding_status?: string
+          requirements_due?: Json | null
+          stripe_account_id?: string
+          transfers_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           commission_rate: number
