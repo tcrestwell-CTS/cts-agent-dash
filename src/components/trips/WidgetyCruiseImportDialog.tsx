@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ship, Search, ChevronRight, Loader2, Anchor, MapPin, Calendar, DollarSign } from "lucide-react";
+import { Ship, Search, ChevronRight, Loader2, Anchor, MapPin, Calendar, DollarSign, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -114,6 +114,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   const [selectedDate, setSelectedDate] = useState<WidgetyDate | null>(null);
   const [previewItems, setPreviewItems] = useState<WidgetyItineraryItem[]>([]);
   const [meta, setMeta] = useState<{ ship_title?: string; operator_title?: string; holiday_name?: string }>({});
+  const [selectedCabin, setSelectedCabin] = useState<{ deal_name: string; cabin: WidgetyCabinPrice; room_type: string } | null>(null);
 
   // Auto-match on open
   useEffect(() => {
@@ -286,6 +287,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     setPreviewItems([]);
     setSelectedHoliday(null);
     setSelectedDate(null);
+    setSelectedCabin(null);
     setMeta({});
     setSearchQuery("");
   };
@@ -564,8 +566,25 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                                       const fees = parseFloat(cabin.non_comm_charges || "0");
                                       const fmt = (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
                                       return (
-                                        <div key={ci} className="flex items-center justify-between py-1 px-2 rounded border text-xs">
+                                        <button
+                                          key={ci}
+                                          onClick={() => setSelectedCabin({
+                                            deal_name: deal.name || "",
+                                            cabin,
+                                            room_type: roomType,
+                                          })}
+                                          className={`w-full flex items-center justify-between py-1.5 px-2 rounded border text-xs transition-colors ${
+                                            selectedCabin?.cabin.grade_code === cabin.grade_code && selectedCabin?.room_type === roomType
+                                              ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                                              : "hover:bg-accent/50"
+                                          }`}
+                                        >
                                           <div className="flex items-center gap-2 min-w-0">
+                                            {selectedCabin?.cabin.grade_code === cabin.grade_code && selectedCabin?.room_type === roomType ? (
+                                              <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                            ) : (
+                                              <span className="w-3.5 shrink-0" />
+                                            )}
                                             <span className="font-mono text-muted-foreground">{cabin.grade_code}</span>
                                             <span className="truncate">{cabin.grade_name}</span>
                                             {cabin.availability && cabin.availability !== "available" && (
@@ -590,7 +609,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                                               {fees > 0 ? `+${fmt(fees)}` : ""}
                                             </span>
                                           </div>
-                                        </div>
+                                        </button>
                                       );
                                     })}
                                   </>
@@ -607,6 +626,19 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                 <p className="text-sm text-muted-foreground text-center py-8">No detailed cabin pricing available for this sailing</p>
               )}
             </ScrollArea>
+            {selectedCabin && (
+              <div className="mt-2 p-2 bg-primary/5 border border-primary/20 rounded-md">
+                <p className="text-xs font-medium text-primary">
+                  Selected: {selectedCabin.room_type} — {selectedCabin.cabin.grade_code} {selectedCabin.cabin.grade_name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ${parseFloat(selectedCabin.cabin.double_price_pp).toLocaleString(undefined, { maximumFractionDigits: 0 })} pp (double)
+                  {selectedCabin.cabin.non_comm_charges && parseFloat(selectedCabin.cabin.non_comm_charges) > 0
+                    ? ` + $${parseFloat(selectedCabin.cabin.non_comm_charges).toLocaleString(undefined, { maximumFractionDigits: 0 })} port fees`
+                    : ""}
+                </p>
+              </div>
+            )}
             <Separator className="my-3" />
             <div className="flex justify-end">
               <Button onClick={handleContinueToItinerary}>
@@ -636,6 +668,11 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                     <p className="text-xs text-muted-foreground">
                       {meta.operator_title}{meta.ship_title ? ` • ${meta.ship_title}` : ""}
                     </p>
+                    {selectedCabin && (
+                      <p className="text-xs text-primary mt-1">
+                        Cabin: {selectedCabin.room_type} — {selectedCabin.cabin.grade_code} {selectedCabin.cabin.grade_name} • ${parseFloat(selectedCabin.cabin.double_price_pp).toLocaleString(undefined, { maximumFractionDigits: 0 })} pp
+                      </p>
+                    )}
                   </div>
                 )}
                 <ScrollArea className="flex-1 h-[300px]">
