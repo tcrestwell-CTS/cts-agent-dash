@@ -45,6 +45,8 @@ serve(async (req) => {
       paymentId,
       method,           // 'stripe' or 'affirm'
       affirmCheckoutId, // Only for Affirm — the checkout_id from Affirm VCN callback
+      expirationDays,   // Optional: number of days until card expires (default 14)
+      mccRestrictions,  // Optional: array of allowed MCC categories
     } = body;
 
     if (!paymentId) throw new Error("paymentId is required");
@@ -148,7 +150,27 @@ serve(async (req) => {
             : await stripe.issuing.cardholders.create(createParams);
         }
 
-        // Step 2: Create a virtual card with spending limit matching the payment
+        // Step 2: Create a virtual card with spending limit and controls
+        // Travel-related MCC categories
+        const defaultTravelMCCs = [
+          "airlines_air_carriers",
+          "lodging_hotels_motels_resorts",
+          "travel_agencies_tour_operators",
+          "transportation_services",
+          "car_rental_agencies",
+          "cruise_lines",
+          "steamship_cruise_lines",
+          "boat_rentals_and_leases",
+          "tourist_attractions_and_exhibits",
+          "bus_lines",
+          "railroads",
+          "limousines_and_taxicabs",
+          "passenger_railways",
+        ];
+        const allowedCategories = mccRestrictions && mccRestrictions.length > 0
+          ? mccRestrictions
+          : defaultTravelMCCs;
+
         const cardParams: any = {
           cardholder: cardholder.id,
           currency: "usd",
@@ -158,13 +180,16 @@ serve(async (req) => {
               {
                 amount: Math.round(payment.amount * 100),
                 interval: "all_time",
+                categories: allowedCategories,
               },
             ],
+            allowed_categories: allowedCategories,
           },
           metadata: {
             trip_payment_id: paymentId,
             trip_id: payment.trip_id,
             client_name: clientName,
+            expiration_days: String(expirationDays || 14),
           },
         };
 
