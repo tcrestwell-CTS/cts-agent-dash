@@ -60,18 +60,41 @@ export function useCreateTripTraveler() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (traveler: TripTravelerInsert) => {
+    mutationFn: async (traveler: TripTravelerInsert & { client_id?: string | null }) => {
       if (!user) throw new Error("Not authenticated");
+      const { client_id, ...travelerData } = traveler;
       const { data, error } = await supabase
         .from("trip_travelers")
-        .insert({ ...traveler, user_id: user.id })
+        .insert({ ...travelerData, user_id: user.id })
         .select()
         .single();
       if (error) throw error;
+
+      // Also create as a client companion if trip has a client
+      if (client_id) {
+        await supabase
+          .from("client_companions")
+          .insert({
+            client_id,
+            user_id: user.id,
+            first_name: travelerData.first_name,
+            last_name: travelerData.last_name || null,
+            relationship: travelerData.relationship || "companion",
+            email: travelerData.email || null,
+            phone: travelerData.phone || null,
+            birthday: travelerData.birthday || null,
+            known_traveler_number: travelerData.known_traveler_number || null,
+            passport_info: travelerData.passport_info || null,
+            notes: travelerData.notes || null,
+          });
+        // Don't throw on companion insert failure — it's a best-effort sync
+      }
+
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["trip-travelers", data.trip_id] });
+      queryClient.invalidateQueries({ queryKey: ["companions"] });
       toast.success("Traveler added");
     },
     onError: (error: Error) => {
