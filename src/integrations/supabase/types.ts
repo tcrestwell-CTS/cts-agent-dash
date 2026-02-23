@@ -1406,6 +1406,7 @@ export type Database = {
           stripe_payment_url: string | null
           stripe_receipt_url: string | null
           stripe_session_id: string | null
+          terms_accepted_at: string | null
           trip_id: string
           updated_at: string
           user_id: string
@@ -1428,6 +1429,7 @@ export type Database = {
           stripe_payment_url?: string | null
           stripe_receipt_url?: string | null
           stripe_session_id?: string | null
+          terms_accepted_at?: string | null
           trip_id: string
           updated_at?: string
           user_id: string
@@ -1450,6 +1452,7 @@ export type Database = {
           stripe_payment_url?: string | null
           stripe_receipt_url?: string | null
           stripe_session_id?: string | null
+          terms_accepted_at?: string | null
           trip_id?: string
           updated_at?: string
           user_id?: string
@@ -1545,6 +1548,8 @@ export type Database = {
           created_at: string
           currency: string
           depart_date: string | null
+          deposit_amount: number | null
+          deposit_required: boolean | null
           destination: string | null
           id: string
           itinerary_approved_at: string | null
@@ -1552,6 +1557,7 @@ export type Database = {
           itinerary_style: string
           notes: string | null
           parent_trip_id: string | null
+          post_trip_email_sent: boolean | null
           pricing_visibility: string
           published_at: string | null
           return_date: string | null
@@ -1578,6 +1584,8 @@ export type Database = {
           created_at?: string
           currency?: string
           depart_date?: string | null
+          deposit_amount?: number | null
+          deposit_required?: boolean | null
           destination?: string | null
           id?: string
           itinerary_approved_at?: string | null
@@ -1585,6 +1593,7 @@ export type Database = {
           itinerary_style?: string
           notes?: string | null
           parent_trip_id?: string | null
+          post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           published_at?: string | null
           return_date?: string | null
@@ -1611,6 +1620,8 @@ export type Database = {
           created_at?: string
           currency?: string
           depart_date?: string | null
+          deposit_amount?: number | null
+          deposit_required?: boolean | null
           destination?: string | null
           id?: string
           itinerary_approved_at?: string | null
@@ -1618,6 +1629,7 @@ export type Database = {
           itinerary_style?: string
           notes?: string | null
           parent_trip_id?: string | null
+          post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           published_at?: string | null
           return_date?: string | null

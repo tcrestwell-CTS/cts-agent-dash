@@ -9,9 +9,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { RequestChangesDialog } from "@/components/client/RequestChangesDialog";
+import { PaymentMilestoneTracker } from "@/components/client/PaymentMilestoneTracker";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -26,6 +28,7 @@ export default function PortalTripDetail() {
   const [showItinerary, setShowItinerary] = useState(false);
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [changeRequest, setChangeRequest] = useState<{ id: string; name: string } | null>(null);
 
   const handlePayNow = useCallback(async (paymentId: string) => {
     setPayingId(paymentId);
@@ -77,6 +80,29 @@ export default function PortalTripDetail() {
 
   const { trip, bookings = [], payments = [], itinerary = [], itineraries = [] } = data;
   const approvedId = trip.approved_itinerary_id;
+
+  // Check if deposit has been paid (for confirmation gate)
+  const depositPaid = payments.some((p: any) => 
+    (p.payment_type === "deposit" || p.payment_type === "payment") && p.status === "paid"
+  );
+  const depositRequired = trip.deposit_required && !depositPaid;
+  const totalCost = trip.total_gross_sales || 0;
+
+  const handleChangeRequest = async (message: string) => {
+    const portalSession = localStorage.getItem("portal_session");
+    const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=send_message`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "x-portal-token": portalToken || "",
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message }),
+    });
+    if (!res.ok) throw new Error("Failed to send");
+  };
 
   const handleApprove = async () => {
     if (!confirmApproval || !tripId) return;
@@ -186,17 +212,28 @@ export default function PortalTripDetail() {
                           <p className="text-sm text-muted-foreground mt-1">{itin.overview}</p>
                         )}
                       </div>
-                      {!isApproved && (
+                      <div className="flex gap-2 shrink-0">
+                        {!isApproved && (
+                          <Button
+                            size="sm"
+                            variant={approvedId ? "outline" : "default"}
+                            className="gap-1.5"
+                            onClick={() => setConfirmApproval({ id: itin.id, name: itin.name })}
+                          >
+                            <ThumbsUp className="h-3.5 w-3.5" />
+                            {approvedId ? "Switch" : "Approve"}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
-                          variant={approvedId ? "outline" : "default"}
-                          className="shrink-0 gap-1.5"
-                          onClick={() => setConfirmApproval({ id: itin.id, name: itin.name })}
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => setChangeRequest({ id: itin.id, name: itin.name })}
                         >
-                          <ThumbsUp className="h-3.5 w-3.5" />
-                          {approvedId ? "Switch" : "Approve"}
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          Request Changes
                         </Button>
-                      )}
+                      </div>
                     </div>
 
                     {/* Itinerary items */}
@@ -239,7 +276,17 @@ export default function PortalTripDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {bookings.length === 0 ? (
+          {depositRequired ? (
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
+              <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">Booking details locked</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Pay your deposit to unlock full booking confirmation details.
+                </p>
+              </div>
+            </div>
+          ) : bookings.length === 0 ? (
             <p className="text-sm text-muted-foreground">No bookings yet.</p>
           ) : (
             <div className="space-y-3">
@@ -393,6 +440,20 @@ export default function PortalTripDetail() {
         </CardContent>
       </Card>
 
+      {/* Payment Milestone Tracker */}
+      {payments.length > 0 && totalCost > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Payment Milestones
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PaymentMilestoneTracker payments={payments} totalCost={totalCost} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Notes */}
       {trip.notes && (
         <Card>
@@ -423,6 +484,14 @@ export default function PortalTripDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Request Changes Dialog */}
+      <RequestChangesDialog
+        open={!!changeRequest}
+        onOpenChange={(open) => !open && setChangeRequest(null)}
+        itineraryName={changeRequest?.name || ""}
+        onSubmit={handleChangeRequest}
+      />
     </div>
   );
 }
