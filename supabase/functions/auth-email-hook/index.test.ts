@@ -100,6 +100,157 @@ async function fetchPreview(type: string): Promise<{ status: number; html: strin
   return { status: res.status, html: await res.text() };
 }
 
+// ── DNS / Verification Edge-Case Harness ─────────────────────────────────
+
+Deno.test("handles malformed JSON body gracefully", async () => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${ANON_KEY}`,
+    },
+    body: "not-json{{{",
+  });
+  const text = await res.text();
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx for malformed JSON, got ${res.status}`);
+});
+
+Deno.test("handles missing content-type header", async () => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${ANON_KEY}`,
+    },
+    body: JSON.stringify({ type: "auth", data: { action_type: "signup" } }),
+  });
+  const text = await res.text();
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx without content-type, got ${res.status}`);
+});
+
+Deno.test("rejects stale/replayed webhook with fabricated timestamp", async () => {
+  const staleTimestamp = String(Math.floor(Date.now() / 1000) - 600); // 10 min ago
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${ANON_KEY}`,
+      "x-lovable-signature": "fake-sig-value",
+      "x-lovable-timestamp": staleTimestamp,
+    },
+    body: JSON.stringify({
+      type: "auth",
+      version: "1",
+      run_id: "test-replay-run",
+      data: { action_type: "signup", email: "replay@test.com", url: "https://example.com" },
+    }),
+  });
+  const text = await res.text();
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx for stale timestamp, got ${res.status}`);
+});
+
+Deno.test("rejects webhook with missing signature header", async () => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${ANON_KEY}`,
+      "x-lovable-timestamp": String(Math.floor(Date.now() / 1000)),
+    },
+    body: JSON.stringify({
+      type: "auth",
+      version: "1",
+      run_id: "test-nosig-run",
+      data: { action_type: "signup", email: "nosig@test.com", url: "https://example.com" },
+    }),
+  });
+  const text = await res.text();
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx for missing signature, got ${res.status}`);
+});
+
+Deno.test("rejects webhook with missing timestamp header", async () => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${ANON_KEY}`,
+      "x-lovable-signature": "fake-sig-value",
+    },
+    body: JSON.stringify({
+      type: "auth",
+      version: "1",
+      run_id: "test-notime-run",
+      data: { action_type: "recovery", email: "notime@test.com", url: "https://example.com" },
+    }),
+  });
+  const text = await res.text();
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx for missing timestamp, got ${res.status}`);
+});
+
+Deno.test("rejects webhook payload with unsupported version", async () => {
+  // This tests the version guard even though signature will fail first —
+  // the test validates the function rejects before reaching template rendering
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${ANON_KEY}`,
+      "x-lovable-signature": "fake-sig",
+      "x-lovable-timestamp": String(Math.floor(Date.now() / 1000)),
+    },
+    body: JSON.stringify({
+      type: "auth",
+      version: "99",
+      run_id: "test-version-run",
+      data: { action_type: "signup", email: "ver@test.com", url: "https://example.com" },
+    }),
+  });
+  const text = await res.text();
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx for bad version, got ${res.status}`);
+});
+
+Deno.test("preview endpoint rejects missing body", async () => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook/preview`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${LOVABLE_API_KEY || "no-key"}`,
+    },
+    body: "",
+  });
+  const text = await res.text();
+  // Should get 400 (bad JSON) or 401 (no key) — never 200 or 500
+  assertEquals(res.status >= 400 && res.status < 500, true, `Expected 4xx for empty body, got ${res.status}`);
+});
+
+Deno.test("GET on main endpoint returns 4xx or handled response", async () => {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+    method: "GET",
+    headers: { "Authorization": `Bearer ${ANON_KEY}` },
+  });
+  const text = await res.text();
+  // GET is not a valid method for webhook — should not return 200
+  assertEquals(res.status !== 200, true, `GET should not return 200, got ${res.status}`);
+});
+
+Deno.test("concurrent requests don't cause 5xx", async () => {
+  const requests = Array.from({ length: 5 }, () =>
+    fetch(`${SUPABASE_URL}/functions/v1/auth-email-hook`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({ type: "auth", data: { action_type: "signup", email: "concurrent@test.com" } }),
+    }).then(async (r) => { await r.text(); return r.status; })
+  );
+  const statuses = await Promise.all(requests);
+  for (const status of statuses) {
+    assertEquals(status < 500, true, `Concurrent request returned 5xx: ${status}`);
+  }
+});
+
+// ── Template Rendering Tests (require LOVABLE_API_KEY) ───────────────────
+
 if (LOVABLE_API_KEY) {
   for (const type of EMAIL_TYPES) {
     Deno.test(`[preview] ${type} renders valid branded HTML`, async () => {
@@ -152,6 +303,16 @@ if (LOVABLE_API_KEY) {
 
   Deno.test("[preview] unknown type returns 400", async () => {
     const { status } = await fetchPreview("nonexistent");
+    assertEquals(status, 400);
+  });
+
+  Deno.test("[preview] empty type string returns 400", async () => {
+    const { status } = await fetchPreview("");
+    assertEquals(status, 400);
+  });
+
+  Deno.test("[preview] SQL injection in type field returns 400", async () => {
+    const { status } = await fetchPreview("'; DROP TABLE users; --");
     assertEquals(status, 400);
   });
 } else {
