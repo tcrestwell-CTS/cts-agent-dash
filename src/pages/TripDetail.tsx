@@ -171,6 +171,8 @@ const TripDetail = () => {
     tags: (trip as any).tags || [],
     allow_pdf_downloads: (trip as any).allow_pdf_downloads || false,
     itinerary_style: (trip as any).itinerary_style || "vertical_list",
+    deposit_required: (trip as any).deposit_required || false,
+    deposit_amount: (trip as any).deposit_amount || 0,
   };
 
   return (

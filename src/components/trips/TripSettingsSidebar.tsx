@@ -21,6 +21,8 @@ interface TripSettings {
   tags: string[];
   allow_pdf_downloads: boolean;
   itinerary_style: string;
+  deposit_required: boolean;
+  deposit_amount: number;
 }
 
 interface TripSettingsSidebarProps {
@@ -159,6 +161,32 @@ export function TripSettingsSidebar({
               onCheckedChange={(v) => updateSetting("allow_pdf_downloads", v)}
             />
           </div>
+
+          {/* Deposit Required */}
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Deposit Required</Label>
+            <Switch
+              checked={localSettings.deposit_required}
+              onCheckedChange={(v) => updateSetting("deposit_required", v)}
+            />
+          </div>
+
+          {/* Deposit Amount */}
+          {localSettings.deposit_required && (
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Deposit Amount ($)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={localSettings.deposit_amount || ""}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setLocalSettings((s) => ({ ...s, deposit_amount: val }));
+                }}
+                onBlur={(e) => updateSetting("deposit_amount", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          )}
 
           {/* Itinerary Style */}
           <div className="space-y-1.5">

@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import SharedTripHero from "@/components/shared-trip/SharedTripHero";
 import SharedTripMeta from "@/components/shared-trip/SharedTripMeta";
 import SharedTripItinerary from "@/components/shared-trip/SharedTripItinerary";
+import SharedTripInvestment from "@/components/shared-trip/SharedTripInvestment";
 import SharedTripFooter from "@/components/shared-trip/SharedTripFooter";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -19,6 +20,12 @@ export interface SharedTripData {
     total_cost: number | null;
     cover_image_url: string | null;
   };
+  deposit: {
+    required: boolean;
+    amount: number;
+  };
+  cancellationTerms: string[];
+  paymentDeadlines: { label: string; date: string }[];
   itinerary: any[];
   bookings: any[];
   branding: {
@@ -128,6 +135,14 @@ export default function SharedTrip() {
         <SharedTripItinerary
           itinerary={data.itinerary}
           departDate={data.trip.depart_date}
+          primaryColor={primaryColor}
+        />
+
+        <SharedTripInvestment
+          trip={data.trip}
+          deposit={data.deposit || { required: false, amount: 0 }}
+          cancellationTerms={data.cancellationTerms || []}
+          paymentDeadlines={data.paymentDeadlines || []}
           primaryColor={primaryColor}
         />
 
