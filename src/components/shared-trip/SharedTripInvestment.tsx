@@ -1,5 +1,14 @@
-import { DollarSign, Calendar, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SharedTripInvestmentProps {
   trip: {
@@ -26,11 +35,27 @@ export default function SharedTripInvestment({
   const totalCost = trip.total_cost || 0;
   const depositAmount = deposit.required ? deposit.amount : 0;
   const finalBalance = totalCost - depositAmount;
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [accepted, setAccepted] = useState({
+    totalCost: false,
+    cancellation: false,
+    travelerNames: false,
+  });
 
   if (totalCost <= 0) return null;
 
+  const allAccepted = accepted.totalCost && accepted.cancellation && accepted.travelerNames;
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+  const handleAcceptTerms = () => {
+    setTermsAccepted(true);
+    setShowTerms(false);
+  };
+
+  const paymentAmount = deposit.required && depositAmount > 0 ? depositAmount : totalCost;
 
   return (
     <div className="space-y-6">
@@ -66,7 +91,6 @@ export default function SharedTripInvestment({
             </>
           )}
 
-          {/* Payment deadlines from bookings */}
           {paymentDeadlines.length > 0 && paymentDeadlines.map((deadline, i) => (
             <div key={i} className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -121,6 +145,114 @@ export default function SharedTripInvestment({
           </ul>
         </div>
       )}
+
+      {/* Ready to Book CTA */}
+      <div className="rounded-xl border border-gray-200 p-6 text-center space-y-4 bg-gray-50">
+        <h3 className="text-lg font-bold text-gray-900">Ready to Book?</h3>
+        <p className="text-sm text-gray-500 max-w-md mx-auto">
+          Review and accept the terms below to proceed. Your travel advisor will then coordinate your payment.
+        </p>
+        {termsAccepted ? (
+          <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: primaryColor }}>
+            <CheckCircle2 className="h-5 w-5" />
+            Terms accepted — your advisor will be in touch with payment details.
+          </div>
+        ) : (
+          <Button
+            size="lg"
+            className="text-white"
+            style={{ backgroundColor: primaryColor }}
+            onClick={() => setShowTerms(true)}
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            Review Terms & Proceed
+          </Button>
+        )}
+      </div>
+
+      {/* Terms Acceptance Dialog */}
+      <Dialog open={showTerms} onOpenChange={setShowTerms}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" style={{ color: primaryColor }} />
+              Pre-Payment Agreement
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            <div className="rounded-lg p-4 border" style={{ backgroundColor: `${primaryColor}08`, borderColor: `${primaryColor}30` }}>
+              <p className="text-sm text-gray-700">
+                Please review and confirm the following before your advisor proceeds with payment for your trip.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={accepted.totalCost}
+                  onCheckedChange={(v) => setAccepted((s) => ({ ...s, totalCost: !!v }))}
+                  className="mt-0.5"
+                />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  I confirm the {deposit.required && depositAmount > 0 ? "deposit" : "payment"} amount of{" "}
+                  <strong>{formatCurrency(paymentAmount)}</strong>
+                  {deposit.required && depositAmount > 0 && (
+                    <> (total trip cost: {formatCurrency(totalCost)})</>
+                  )} and understand any remaining balance will be due as specified.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={accepted.cancellation}
+                  onCheckedChange={(v) => setAccepted((s) => ({ ...s, cancellation: !!v }))}
+                  className="mt-0.5"
+                />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  I have read and accept the cancellation policy.
+                  {cancellationTerms.length > 0 && (
+                    <span className="block text-xs text-gray-500 mt-1 italic">
+                      {cancellationTerms.join(" • ")}
+                    </span>
+                  )}
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={accepted.travelerNames}
+                  onCheckedChange={(v) => setAccepted((s) => ({ ...s, travelerNames: !!v }))}
+                  className="mt-0.5"
+                />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  I confirm that all traveler names match their passport/ID exactly as provided.
+                </span>
+              </label>
+            </div>
+
+            {!allAccepted && (
+              <div className="flex items-center gap-2 text-xs text-amber-600">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Please check all boxes to continue.
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowTerms(false)}>Cancel</Button>
+              <Button
+                disabled={!allAccepted}
+                className="text-white"
+                style={{ backgroundColor: primaryColor }}
+                onClick={handleAcceptTerms}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Accept & Continue
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
