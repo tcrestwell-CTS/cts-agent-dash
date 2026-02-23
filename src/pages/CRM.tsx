@@ -2,11 +2,12 @@ import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { Search, Users, LayoutGrid, List } from "lucide-react";
 import { useClientWithBookings } from "@/hooks/useClients";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { AddClientDialog } from "@/components/crm/AddClientDialog";
 import { ClientCard } from "@/components/crm/ClientCard";
+import { ClientListView } from "@/components/crm/ClientListView";
 import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -28,6 +29,7 @@ const CRM = () => {
   const { data: isAdmin } = useIsAdmin();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<StatusFilter>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const statusCounts = useMemo(() => {
     if (!clients) return { all: 0, active: 0, lead: 0, inactive: 0, traveled: 0, travelling: 0, cancelled: 0 };
@@ -62,7 +64,7 @@ const CRM = () => {
     });
   };
 
-  const ClientGrid = ({ status }: { status: StatusFilter }) => {
+  const ClientDisplay = ({ status }: { status: StatusFilter }) => {
     const filtered = getFilteredClients(status);
 
     if (isLoading) {
@@ -121,6 +123,10 @@ const CRM = () => {
       );
     }
 
+    if (viewMode === "list") {
+      return <ClientListView clients={filtered} />;
+    }
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((client) => (
@@ -144,8 +150,8 @@ const CRM = () => {
       </div>
 
       {/* Search */}
-      <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 mb-6">
-        <div className="relative max-w-md">
+      <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 mb-6 flex items-center justify-between gap-4">
+        <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search clients..."
@@ -153,6 +159,24 @@ const CRM = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        <div className="flex items-center gap-1 border border-border rounded-lg p-0.5">
+          <Button
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode("grid")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode("list")}
+          >
+            <List className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -185,7 +209,7 @@ const CRM = () => {
 
         {TAB_CONFIG.map(({ value }) => (
           <TabsContent key={value} value={value}>
-          <ClientGrid status={value} />
+          <ClientDisplay status={value} />
           </TabsContent>
         ))}
       </Tabs>

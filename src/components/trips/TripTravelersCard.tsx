@@ -186,6 +186,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
     } else {
       await createTraveler.mutateAsync({
         trip_id: tripId,
+        client_id: clientId,
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim() || null,
         relationship: form.relationship,
