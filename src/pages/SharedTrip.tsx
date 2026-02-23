@@ -111,7 +111,7 @@ export default function SharedTrip() {
   return (
     <div className="min-h-screen bg-white">
       {data.trip.cover_image_url && (
-        <div className="relative w-full h-screen overflow-hidden">
+        <div className="relative w-full h-[40vh] overflow-hidden">
           <img
             src={data.trip.cover_image_url}
             alt={data.trip.trip_name}
