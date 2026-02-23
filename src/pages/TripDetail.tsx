@@ -27,6 +27,7 @@ import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
+import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
@@ -197,7 +198,7 @@ const TripDetail = () => {
                 </Badge>
                 {trip.trip_type && (
                   <Badge variant="secondary">
-                    {trip.trip_type === "group" ? "Group Trip" : "Regular"}
+                    {trip.trip_type.charAt(0).toUpperCase() + trip.trip_type.slice(1).replace(/_/g, " ")}
                   </Badge>
                 )}
               </div>
@@ -470,6 +471,12 @@ const TripDetail = () => {
                   onSettingsChange={fetchTrip}
                 />
               )}
+              <TripCloseoutChecklist
+                bookings={bookings}
+                payments={payments}
+                tripTotal={trip.total_gross_sales}
+                tripStatus={trip.status}
+              />
             </div>
           </div>
         </div>

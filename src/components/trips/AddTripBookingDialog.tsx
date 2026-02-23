@@ -184,6 +184,7 @@ export function AddTripBookingDialog({
         user_id: user.id,
         client_id: effectiveClientId,
         trip_id: tripId,
+        booking_type: formData.booking_type,
         destination: formData.destination,
         depart_date: formData.depart_date,
         return_date: formData.return_date,

@@ -64,6 +64,7 @@ export function AddClientDialog() {
     loyalty_programs: "",
     tags: "",
     status: "lead",
+    lead_source: "",
     notes: "",
   });
 
@@ -107,6 +108,7 @@ export function AddClientDialog() {
       loyalty_programs: formData.loyalty_programs || null,
       tags: formData.tags || null,
       status: formData.status,
+      lead_source: formData.lead_source || null,
       notes: formData.notes || null,
       location: formData.address_city && formData.address_state 
         ? `${formData.address_city}, ${formData.address_state}` 
@@ -144,6 +146,7 @@ export function AddClientDialog() {
       loyalty_programs: "",
       tags: "",
       status: "lead",
+      lead_source: "",
       notes: "",
     });
     setOpen(false);
@@ -573,6 +576,26 @@ export function AddClientDialog() {
 
               {/* Other Tab */}
               <TabsContent value="other" className="space-y-4 mt-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="lead_source">Lead Source</Label>
+                  <Select
+                    value={formData.lead_source}
+                    onValueChange={(value) => updateField("lead_source", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="How did they find you?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                      <SelectItem value="partner">Partner</SelectItem>
+                      <SelectItem value="repeat">Repeat Client</SelectItem>
+                      <SelectItem value="social_media">Social Media</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="loyalty_programs">Loyalty Programs</Label>
                   <Textarea

@@ -107,7 +107,9 @@ export type Database = {
       bookings: {
         Row: {
           booking_reference: string
+          booking_type: string
           calculated_commission: number | null
+          cancellation_terms: string | null
           client_id: string
           commission_override_amount: number | null
           commission_revenue: number
@@ -125,9 +127,11 @@ export type Database = {
           override_notes: string | null
           override_pending_approval: boolean | null
           owner_agent: string | null
+          payment_deadline: string | null
           return_date: string
           status: string
           supplier_id: string | null
+          supplier_invoice_url: string | null
           supplier_payout: number
           total_amount: number
           travelers: number
@@ -139,7 +143,9 @@ export type Database = {
         }
         Insert: {
           booking_reference: string
+          booking_type?: string
           calculated_commission?: number | null
+          cancellation_terms?: string | null
           client_id: string
           commission_override_amount?: number | null
           commission_revenue?: number
@@ -157,9 +163,11 @@ export type Database = {
           override_notes?: string | null
           override_pending_approval?: boolean | null
           owner_agent?: string | null
+          payment_deadline?: string | null
           return_date: string
           status?: string
           supplier_id?: string | null
+          supplier_invoice_url?: string | null
           supplier_payout?: number
           total_amount?: number
           travelers?: number
@@ -171,7 +179,9 @@ export type Database = {
         }
         Update: {
           booking_reference?: string
+          booking_type?: string
           calculated_commission?: number | null
+          cancellation_terms?: string | null
           client_id?: string
           commission_override_amount?: number | null
           commission_revenue?: number
@@ -189,9 +199,11 @@ export type Database = {
           override_notes?: string | null
           override_pending_approval?: boolean | null
           owner_agent?: string | null
+          payment_deadline?: string | null
           return_date?: string
           status?: string
           supplier_id?: string | null
+          supplier_invoice_url?: string | null
           supplier_payout?: number
           total_amount?: number
           travelers?: number
@@ -491,6 +503,7 @@ export type Database = {
           id: string
           known_traveler_number: string | null
           last_name: string | null
+          lead_source: string | null
           location: string | null
           lodging_elevator_preference: string | null
           lodging_floor_preference: string | null
@@ -530,6 +543,7 @@ export type Database = {
           id?: string
           known_traveler_number?: string | null
           last_name?: string | null
+          lead_source?: string | null
           location?: string | null
           lodging_elevator_preference?: string | null
           lodging_floor_preference?: string | null
@@ -569,6 +583,7 @@ export type Database = {
           id?: string
           known_traveler_number?: string | null
           last_name?: string | null
+          lead_source?: string | null
           location?: string | null
           lodging_elevator_preference?: string | null
           lodging_floor_preference?: string | null
@@ -1524,6 +1539,7 @@ export type Database = {
         Row: {
           allow_pdf_downloads: boolean
           approved_itinerary_id: string | null
+          budget_range: string | null
           client_id: string | null
           cover_image_url: string | null
           created_at: string
@@ -1556,6 +1572,7 @@ export type Database = {
         Insert: {
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
+          budget_range?: string | null
           client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -1588,6 +1605,7 @@ export type Database = {
         Update: {
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
+          budget_range?: string | null
           client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
