@@ -1,198 +1,116 @@
 
 
-# CRM Workflow Verification: Current State vs. Plan
+# Premium Client Journey Enhancement Plan
 
-## Summary
+## Current Coverage Assessment
 
-The platform already covers approximately **85-90%** of the described workflow. Below is a phase-by-phase breakdown showing what's implemented, what's partially covered, and what's missing.
+The platform already implements approximately 75% of this client journey. Here's what exists and what needs to be built.
 
----
+## What's Already Built
 
-## Phase 1 -- Lead Intake: IMPLEMENTED
+- **Trip Preview/Proposal**: Published trip page with itinerary, cover images, advisor card, certifications
+- **Itinerary Approval**: Client can approve/switch between itinerary options in the portal
+- **Payment Flow**: Stripe checkout, Affirm financing, payment links, manual logging, deposits, final balance
+- **Client Dashboard**: Trip overview, pending payments, unread messages, agent card
+- **Payment History**: Full transaction table with receipts, status badges, Pay Now buttons
+- **Booking Visibility**: Clients can see bookings with status and amounts
+- **CC Authorization**: Signature capture, Terms acknowledgment, card data collection
+- **Messaging**: Real-time portal messaging between agent and client
+- **Invoices**: PDF generation, portal viewing, email delivery
+- **Virtual Cards**: Auto-issued on Stripe payment, Affirm VCN capture, agent retrieval
 
-| Requirement | Status |
-|---|---|
-| Website form / webhook integration | Done -- `receive-lead` edge function with unique inbound URL per agent |
-| Referral / manual entry | Done -- `AddClientDialog` with full profile fields and status dropdown (Lead/Active/Inactive) |
-| Client profile (email, phone, address, passport, notes) | Done -- comprehensive fields including travel IDs, preferences, companions |
-| Source tagging (Web, Referral, Partner, Repeat Client) | Partial -- `tags` field exists on clients table but no structured source enum; `webhook_leads` tracks `source` field for inbound leads |
-| Lead deduplication | Done -- unique constraint on `user_id` + `lead_id` in `webhook_leads` |
+## What's Missing (Prioritized)
 
-**Gap:** No structured "lead source" dropdown (Web/Referral/Partner/Repeat). Currently free-text tags.
+### Priority 1: Investment Breakdown on Shared Trip Page
+The public proposal page currently shows total cost but lacks a structured pricing breakdown showing deposit amount, final payment due date, what's included/excluded, and cancellation terms.
 
----
+**Changes:**
+- Update `shared-trip` edge function to return pricing breakdown data (deposit amount, payment schedule, inclusions/exclusions from trip notes)
+- Add a new `SharedTripInvestment` component showing Total Trip Cost, Deposit Due, Final Payment Due Date, What's Included, What's Not Included
+- Add cancellation policy section from booking `cancellation_terms`
 
-## Phase 2 -- Create Trip: IMPLEMENTED
+### Priority 2: "Request Changes" Button on Portal Trip Detail
+Clients can only approve itineraries but cannot request changes. Need a simple mechanism to send a change request message to the agent.
 
-| Requirement | Status |
-|---|---|
-| New Trip dialog | Done -- `AddTripDialog` with trip name, destination, dates, notes |
-| Select client | Partial -- client is assigned at the trip level via `client_id`, but the `AddTripDialog` does not include a client selector; client is typically assigned from the client detail page or via the trip sidebar |
-| Trip type (Honeymoon, Family, Luxury, Cruise) | Partial -- only "Regular" and "Group" options exist; no Honeymoon/Family/Luxury/Cruise categories |
-| Estimated budget range | Missing -- no budget field on trips table |
-| Start/End dates, Destination | Done |
+**Changes:**
+- Add "Request Changes" button next to the Approve button on each itinerary option in `PortalTripDetail.tsx`
+- When clicked, show a text input dialog for the client to describe requested changes
+- Submit as a portal message (type: `change_request`) and notify the agent
 
-**Gaps:**
-- Trip creation dialog lacks inline client selection
-- No trip category/type beyond Regular vs Group
-- No budget range field
+### Priority 3: Pre-Payment Agreement/Terms Acceptance
+Currently, CC authorization has terms acceptance but there's no general terms agreement step before paying via Stripe/Affirm. The client should acknowledge cancellation policy and confirm traveler names before payment.
 
----
+**Changes:**
+- Add a `PaymentAgreementStep` component shown in the portal before the payment method selection dialog
+- Require checkbox acknowledgment of: cancellation policy, traveler names match passports, total trip cost
+- Store acceptance timestamp on the trip_payments record via a new `terms_accepted_at` column
 
-## Phase 3 -- Add Trip Components (Bookings): IMPLEMENTED
+### Priority 4: Confirmation Details Gate (Post-Payment Access Control)
+Currently, all trip data is visible regardless of payment status. The plan requires that final confirmation numbers and transfer details are hidden until deposit is paid.
 
-| Requirement | Status |
-|---|---|
-| Hotels, Flights, Transfers, Tours, Insurance | Done -- bookings are generic components linked to trips via `trip_id` |
-| Supplier name | Done -- supplier selector with auto-populated commission rates |
-| Confirmation number | Done -- `booking_reference` field |
-| Net cost / Client price | Done -- `gross_sales`, `net_sales`, `supplier_payout` |
-| Commission % | Done -- `commission_rate` with supplier-derived or manual rates |
-| Cancellation terms | Partial -- available via booking `notes` field, not a dedicated field |
-| Payment deadline | Missing -- no dedicated payment deadline per booking component |
-| Service fee / Planning fee | Partial -- can be modeled as bookings with custom commission settings, but no dedicated fee type |
+**Changes:**
+- Add `deposit_required` boolean and `deposit_amount` numeric columns to `trips` table
+- In `PortalTripDetail`, conditionally hide booking confirmation numbers and detailed booking info when no deposit payment is recorded
+- Show a "Pay deposit to unlock full trip details" banner instead
 
-**Gaps:**
-- No booking "type" field (Hotel/Flight/Transfer/Tour/Insurance/Fee)
-- No per-component payment deadline field
-- No dedicated cancellation terms field
+### Priority 5: Post-Trip Automation (Review + Referral)
+After trip completion, automatically request a review and referral from the client.
 
----
+**Changes:**
+- Add a `post_trip_email_sent` boolean column to `trips`
+- Create a trigger or scheduled function that sends a branded "How was your trip?" email with a review link when trip status changes to `completed`
+- Include a referral request with a shareable link
 
-## Phase 4 -- Proposal + Pricing: PARTIALLY IMPLEMENTED
+### Priority 6: Payment Milestone Progress in Portal
+Clients see individual payments but lack a visual milestone tracker showing deposit paid, second payment due, final balance due.
 
-| Requirement | Status |
-|---|---|
-| Build proposal / itinerary | Done -- itinerary builder with AI generation, cover images, day-by-day items |
-| Send to client | Done -- `PublishTripButton` generates shareable link; portal link sending |
-| Proposal status tracking (Draft/Sent/Viewed/Approved) | Partial -- `published_at` timestamp exists; `itinerary_approved_at` and `itinerary_approved_by_client_id` exist for approval; no "Viewed" tracking |
-| Confirm margin before payment | Done -- Trip Financials card shows gross, commissionable, commission revenue, supplier payout |
-| Confirm deposit required | Partial -- payment dialog supports deposits but no formal "deposit required" flag |
-
-**Gaps:**
-- No explicit proposal status workflow (Draft -> Sent -> Viewed -> Approved)
-- No "viewed" tracking for shared trip links
-- No formal deposit requirement toggle
+**Changes:**
+- Add a `PaymentMilestoneTracker` component to `PortalTripDetail`
+- Show a visual progress bar with milestone markers (Deposit, Interim Payments, Final Balance)
+- Highlight the current milestone and upcoming due dates
 
 ---
 
-## Phase 5 -- Client Payment Flow: IMPLEMENTED
+## Technical Details
 
-| Requirement | Status |
-|---|---|
-| Full Payment / Deposit + Final Balance | Done -- `AddPaymentDialog` with payment_type options |
-| Stripe payment | Done -- embedded Stripe Checkout and payment link modes |
-| Affirm payment | Done -- `AffirmVirtualCardButton` in portal |
-| ACH / Wire | Partial -- "Log Manually" mode covers these as external payments |
-| Mark invoice as paid | Done -- invoice status tracking with `useInvoices` |
-| Record amount received | Done -- `trip_payments` with amount, status, payment_date |
-| Attach Stripe transaction ID | Done -- `stripe_session_id`, `stripe_receipt_url` on `trip_payments` |
+### Database Changes (Single Migration)
 
-**Gap:** No dedicated ACH/Wire payment method selector; these are handled as manual logs.
+```text
+ALTER TABLE trips
+  ADD COLUMN deposit_required boolean DEFAULT false,
+  ADD COLUMN deposit_amount numeric DEFAULT 0;
 
----
+ALTER TABLE trip_payments
+  ADD COLUMN terms_accepted_at timestamptz;
 
-## Phase 6 -- Supplier Payment (Virtual Card): IMPLEMENTED
+ALTER TABLE trips
+  ADD COLUMN post_trip_email_sent boolean DEFAULT false;
+```
 
-| Requirement | Status |
-|---|---|
-| Agent requests virtual card | Done -- `StripeVirtualCardButton` with manual "Issue Card" dialog |
-| Approval (if required) | Partial -- no formal approval workflow for card issuance; any agent can issue |
-| Issue Stripe virtual card | Done -- `create-virtual-card` edge function with MCC restrictions |
-| Card auto-locks | Done -- `stripe-issuing-webhook` auto-cancels card after successful transaction |
-| Payment confirmation | Done -- `virtual_card_status` tracking on `trip_payments` |
-| Mark supplier as "Paid" | Partial -- booking status updates to `confirmed` on transaction; no explicit "Supplier Paid" status |
-| Attach invoice | Missing -- no supplier invoice upload/attachment |
+### Files to Create
+- `src/components/shared-trip/SharedTripInvestment.tsx` -- Pricing breakdown for public proposal
+- `src/components/client/PaymentAgreementStep.tsx` -- Terms acceptance before payment
+- `src/components/client/PaymentMilestoneTracker.tsx` -- Visual milestone progress bar
+- `src/components/client/RequestChangesDialog.tsx` -- Change request message dialog
 
-**Gaps:**
-- No admin approval threshold for card issuance (e.g., $10K+ requires admin)
-- No supplier invoice attachment feature
+### Files to Modify
+- `supabase/functions/shared-trip/index.ts` -- Return pricing/payment schedule data
+- `src/pages/SharedTrip.tsx` -- Render investment breakdown
+- `src/pages/client/PortalTripDetail.tsx` -- Add Request Changes button, agreement gate, milestone tracker, confirmation gate
+- `src/pages/client/PortalPayments.tsx` -- Add agreement step before payment method dialog
+- `src/components/trips/TripSettingsSidebar.tsx` -- Add deposit required toggle
+- `src/pages/TripDetail.tsx` -- Add deposit configuration fields
 
----
+### Edge Function Changes
+- Update `shared-trip` to include payment schedule, cancellation terms, and inclusion/exclusion data from bookings
+- Add post-trip email template to `send-email` function
 
-## Phase 7 -- Commission Tracking: IMPLEMENTED
-
-| Requirement | Status |
-|---|---|
-| Commission expected / % / due date | Done -- calculated from booking data; expected date = 30 days before departure |
-| Commission received date | Done -- `paid_date` on commissions table |
-| Split (advisor % vs host %) | Done -- tier-based splits (Tier 1: 70/30, Tier 2: 80/20, Tier 3: 95/5) |
-| Update when received | Done -- commission status updates (pending -> paid) |
-| QuickBooks sync on commission received | Done -- `trigger_qbo_commission_received` database trigger |
-
-Fully covered.
-
----
-
-## Phase 8 -- Accounting Sync (QuickBooks): IMPLEMENTED
-
-| Requirement | Status |
-|---|---|
-| Client Pays -> Debit Stripe Clearing / Credit AR | Done -- automated via `trigger_qbo_deposit_posted` |
-| Supplier Paid -> Debit Expense / Credit Clearing | Done -- `trigger_qbo_booking_confirmed` |
-| Commission Split -> Advisor payable | Done -- `trigger_qbo_payout_approved` |
-| Stripe Reconciliation Report | Done -- QBO Health page with reconciliation by payout date |
-| Auto-provision accounts | Done -- Stripe Clearing + Processing Fees created on first use |
-
-Fully covered with the 3-step journal entry flow.
-
----
-
-## Phase 9 -- Trip Closeout: PARTIALLY IMPLEMENTED
-
-| Requirement | Status |
-|---|---|
-| Trip status workflow (Planning -> Booked -> Traveling -> Completed) | Done -- `TripStatusWorkflow` component |
-| Archive after completion | Done -- archive option for completed/cancelled trips |
-| All supplier payments confirmed | Partial -- virtual card status visible but no formal checklist |
-| Final balance paid check | Partial -- payment progress bar shows remaining balance |
-| Commission schedule logged | Done -- commission history with expected dates |
-| Refunds processed | Missing -- no refund tracking feature |
-
-**Gaps:**
-- No formal closeout checklist UI
-- No refund tracking
-- Status workflow missing "inbound" as a pre-planning stage (though `inbound` exists in `statusColors` on Trips page but not in `TripStatusWorkflow`)
-
----
-
-## Advanced Controls: PARTIALLY IMPLEMENTED
-
-| Requirement | Status |
-|---|---|
-| Required invoice upload before supplier payment | Missing |
-| Payment approval threshold ($10K+) | Missing |
-| Commission aging report | Partial -- expected dates shown but no dedicated aging view |
-| Trip profitability dashboard | Partial -- Trip Financials card + Analytics page |
-| Payment deadline reminders | Missing |
-| Automatic task creation on deposit receipt | Missing |
-
----
-
-## Recommended Next Steps (Priority Order)
-
-1. **Add booking type field** -- Add a `booking_type` enum (Flight, Hotel, Cruise, Transfer, Tour, Insurance, Fee) to the bookings table and add it to the booking creation dialog. This is the most impactful structural gap.
-
-2. **Add client selector to trip creation** -- Include a client dropdown in `AddTripDialog` so trips can be linked to a client at creation time.
-
-3. **Add trip category/tags** -- Expand trip type beyond Regular/Group to include Honeymoon, Family, Luxury, Cruise, Adventure, etc.
-
-4. **Closeout checklist** -- Add a simple checklist component to the Trip Detail page (all suppliers paid, commissions tracked, balance settled, notes archived) that agents can check off before marking a trip complete.
-
-5. **Supplier invoice attachment** -- Add file upload to booking components for supplier invoices/confirmations.
-
-6. **Payment approval threshold** -- Add admin-configurable threshold where virtual card issuance above a certain amount requires admin approval.
-
-7. **Refund tracking** -- Add refund records linked to trip_payments with reason and status.
-
----
-
-## Technical Implementation Notes
-
-- Booking type field: new migration adding `booking_type text DEFAULT 'other'` to bookings table; update `AddBookingDialog`, `AddTripBookingDialog`, `EditBookingDialog`
-- Client selector in trip dialog: add client dropdown using existing `useClients` hook; set `client_id` on trip creation
-- Trip categories: add `trip_category text` column to trips; update `AddTripDialog` with category selector
-- Closeout checklist: pure frontend component reading existing trip data (payments, bookings, commissions) to show completion status
-- Supplier invoice: new storage bucket `supplier-docs` + `supplier_invoice_url` column on bookings
-- Refund tracking: new `trip_refunds` table with RLS policies matching trip_payments patterns
+### Sequencing
+1. Database migration (new columns)
+2. Investment breakdown on shared trip (public-facing, no auth needed)
+3. Request Changes dialog in portal
+4. Payment agreement step
+5. Confirmation details gate
+6. Payment milestone tracker
+7. Post-trip email automation
 
