@@ -1,116 +1,217 @@
 
+# Level 1: Tighten the Workflow -- Reduce Friction and Risk
 
-# Premium Client Journey Enhancement Plan
-
-## Current Coverage Assessment
-
-The platform already implements approximately 75% of this client journey. Here's what exists and what needs to be built.
-
-## What's Already Built
-
-- **Trip Preview/Proposal**: Published trip page with itinerary, cover images, advisor card, certifications
-- **Itinerary Approval**: Client can approve/switch between itinerary options in the portal
-- **Payment Flow**: Stripe checkout, Affirm financing, payment links, manual logging, deposits, final balance
-- **Client Dashboard**: Trip overview, pending payments, unread messages, agent card
-- **Payment History**: Full transaction table with receipts, status badges, Pay Now buttons
-- **Booking Visibility**: Clients can see bookings with status and amounts
-- **CC Authorization**: Signature capture, Terms acknowledgment, card data collection
-- **Messaging**: Real-time portal messaging between agent and client
-- **Invoices**: PDF generation, portal viewing, email delivery
-- **Virtual Cards**: Auto-issued on Stripe payment, Affirm VCN capture, agent retrieval
-
-## What's Missing (Prioritized)
-
-### Priority 1: Investment Breakdown on Shared Trip Page
-The public proposal page currently shows total cost but lacks a structured pricing breakdown showing deposit amount, final payment due date, what's included/excluded, and cancellation terms.
-
-**Changes:**
-- Update `shared-trip` edge function to return pricing breakdown data (deposit amount, payment schedule, inclusions/exclusions from trip notes)
-- Add a new `SharedTripInvestment` component showing Total Trip Cost, Deposit Due, Final Payment Due Date, What's Included, What's Not Included
-- Add cancellation policy section from booking `cancellation_terms`
-
-### Priority 2: "Request Changes" Button on Portal Trip Detail
-Clients can only approve itineraries but cannot request changes. Need a simple mechanism to send a change request message to the agent.
-
-**Changes:**
-- Add "Request Changes" button next to the Approve button on each itinerary option in `PortalTripDetail.tsx`
-- When clicked, show a text input dialog for the client to describe requested changes
-- Submit as a portal message (type: `change_request`) and notify the agent
-
-### Priority 3: Pre-Payment Agreement/Terms Acceptance
-Currently, CC authorization has terms acceptance but there's no general terms agreement step before paying via Stripe/Affirm. The client should acknowledge cancellation policy and confirm traveler names before payment.
-
-**Changes:**
-- Add a `PaymentAgreementStep` component shown in the portal before the payment method selection dialog
-- Require checkbox acknowledgment of: cancellation policy, traveler names match passports, total trip cost
-- Store acceptance timestamp on the trip_payments record via a new `terms_accepted_at` column
-
-### Priority 4: Confirmation Details Gate (Post-Payment Access Control)
-Currently, all trip data is visible regardless of payment status. The plan requires that final confirmation numbers and transfer details are hidden until deposit is paid.
-
-**Changes:**
-- Add `deposit_required` boolean and `deposit_amount` numeric columns to `trips` table
-- In `PortalTripDetail`, conditionally hide booking confirmation numbers and detailed booking info when no deposit payment is recorded
-- Show a "Pay deposit to unlock full trip details" banner instead
-
-### Priority 5: Post-Trip Automation (Review + Referral)
-After trip completion, automatically request a review and referral from the client.
-
-**Changes:**
-- Add a `post_trip_email_sent` boolean column to `trips`
-- Create a trigger or scheduled function that sends a branded "How was your trip?" email with a review link when trip status changes to `completed`
-- Include a referral request with a shareable link
-
-### Priority 6: Payment Milestone Progress in Portal
-Clients see individual payments but lack a visual milestone tracker showing deposit paid, second payment due, final balance due.
-
-**Changes:**
-- Add a `PaymentMilestoneTracker` component to `PortalTripDetail`
-- Show a visual progress bar with milestone markers (Deposit, Interim Payments, Final Balance)
-- Highlight the current milestone and upcoming due dates
+This plan addresses four handoff points in the Crestwell Workflow, adding data-driven guardrails at each stage.
 
 ---
 
-## Technical Details
+## What Already Exists
 
-### Database Changes (Single Migration)
+Before building, here is what the platform already has:
+- **Lead -> Trip**: Basic trip creation with client selector, budget range, trip type, and dates
+- **Proposal -> Approval**: SharedTripInvestment with deposit/balance breakdown, cancellation terms, pre-payment agreement with 3 checkboxes
+- **Payment -> Supplier Payment**: Virtual card issuance with invoice upload requirement, auto-lock after charge, Stripe balance validation via issuing webhook
+- **Commission Layer**: Expected commission dates (30 days before departure), tier-based splits, agent breakdown, CSV export, monthly trend chart
 
-```text
-ALTER TABLE trips
-  ADD COLUMN deposit_required boolean DEFAULT false,
-  ADD COLUMN deposit_amount numeric DEFAULT 0;
+---
 
-ALTER TABLE trip_payments
-  ADD COLUMN terms_accepted_at timestamptz;
+## 1. Lead to Trip -- Speed Layer
 
-ALTER TABLE trips
-  ADD COLUMN post_trip_email_sent boolean DEFAULT false;
+### Database Changes
+Add new columns to the `trips` table:
+```sql
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS readiness_score jsonb DEFAULT '{}';
 ```
 
-### Files to Create
-- `src/components/shared-trip/SharedTripInvestment.tsx` -- Pricing breakdown for public proposal
-- `src/components/client/PaymentAgreementStep.tsx` -- Terms acceptance before payment
-- `src/components/client/PaymentMilestoneTracker.tsx` -- Visual milestone progress bar
-- `src/components/client/RequestChangesDialog.tsx` -- Change request message dialog
+The `readiness_score` column will store a JSON object like:
+```json
+{
+  "budget_confirmed": true,
+  "dates_confirmed": false,
+  "supplier_checked": false,
+  "margin_confirmed": false
+}
+```
 
-### Files to Modify
-- `supabase/functions/shared-trip/index.ts` -- Return pricing/payment schedule data
-- `src/pages/SharedTrip.tsx` -- Render investment breakdown
-- `src/pages/client/PortalTripDetail.tsx` -- Add Request Changes button, agreement gate, milestone tracker, confirmation gate
-- `src/pages/client/PortalPayments.tsx` -- Add agreement step before payment method dialog
-- `src/components/trips/TripSettingsSidebar.tsx` -- Add deposit required toggle
-- `src/pages/TripDetail.tsx` -- Add deposit configuration fields
+### New: Auto-Create Trip Draft on Lead Conversion
+- In the CRM page, when a lead's status changes to "active", show a prompt: **"Create a trip for this client?"**
+- If accepted, open `AddTripDialog` pre-filled with the client's ID, name, and any known preferences
+- This is a UI-only change in `EditClientDialog` or the status-change handler in CRM
 
-### Edge Function Changes
-- Update `shared-trip` to include payment schedule, cancellation terms, and inclusion/exclusion data from bookings
-- Add post-trip email template to `send-email` function
+### New: Trip Readiness Score Card
+- Create `src/components/trips/TripReadinessScore.tsx`
+- A sidebar card on the Trip Detail page showing 4 checklist items:
+  - **Budget confirmed** -- checked when `budget_range` is set
+  - **Dates confirmed** -- checked when both `depart_date` and `return_date` are set
+  - **Supplier availability checked** -- checked when at least 1 booking exists with a supplier assigned
+  - **Margin confirmed** -- checked when `total_commission_revenue > 0`
+- Display as a circular progress ring with percentage and individual check items
+- When all 4 are green, show a "Ready for Proposal" badge
 
-### Sequencing
-1. Database migration (new columns)
-2. Investment breakdown on shared trip (public-facing, no auth needed)
-3. Request Changes dialog in portal
-4. Payment agreement step
-5. Confirmation details gate
-6. Payment milestone tracker
-7. Post-trip email automation
+### New: Proposal Gate
+- In `TripStatusWorkflow`, when advancing from "planning" to "booked", check the readiness score
+- If any items are unchecked, show a warning dialog: "This trip has incomplete readiness items. Proceed anyway?"
+- This prevents messy proposals from going out
 
+### Files to Create/Modify
+| File | Action |
+|------|--------|
+| `src/components/trips/TripReadinessScore.tsx` | Create -- readiness score card component |
+| `src/pages/TripDetail.tsx` | Modify -- add TripReadinessScore to right sidebar |
+| `src/components/trips/TripStatusWorkflow.tsx` | Modify -- add readiness gate before status advance |
+| `src/pages/CRM.tsx` or `src/components/crm/EditClientDialog.tsx` | Modify -- add auto trip-creation prompt on lead conversion |
+
+---
+
+## 2. Proposal to Approval -- Conversion Layer
+
+### New: Urgency Banner
+- In `SharedTripInvestment`, add an amber banner at the top: "Pricing is subject to availability and may change. Book now to secure these rates."
+- Conditionally shown when the trip is in "planning" status
+
+### New: Optional Upgrades Section
+- Add an "Optional Upgrades" section to the shared trip page between the investment breakdown and the "Ready to Book" CTA
+- Data source: bookings on the trip with a new `is_upgrade` flag, or a simpler approach using trip notes/tags
+- For now, implement as a static section that agents can populate via trip settings (a text area for upgrade descriptions)
+
+### New: Advisor Video Intro
+- Add a `video_intro_url` column to `branding_settings` table
+- In the shared trip page hero (`SharedTripHero`), if the agent has a video URL configured, embed it as an optional iframe or link
+- Simple embed: YouTube/Vimeo URL rendered in an iframe
+
+### New: Follow-Up Reminders
+- Add a `follow_up_reminders` table to track scheduled follow-ups
+- Database trigger: When a trip is published but not approved within 48 hours, insert a reminder notification into `agent_notifications`
+- This uses the existing notification bell system
+
+### Database Changes
+```sql
+ALTER TABLE branding_settings ADD COLUMN IF NOT EXISTS video_intro_url text;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS upgrade_notes text;
+```
+
+### Files to Create/Modify
+| File | Action |
+|------|--------|
+| `src/components/shared-trip/SharedTripInvestment.tsx` | Modify -- add urgency banner |
+| `src/components/shared-trip/SharedTripHero.tsx` | Modify -- add advisor video embed |
+| `src/pages/SharedTrip.tsx` | Modify -- pass upgrade notes, render upgrades section |
+| `src/components/trips/TripSettingsSidebar.tsx` | Modify -- add upgrade notes and video URL fields |
+| Migration | Add `video_intro_url` to branding_settings, `upgrade_notes` to trips |
+
+---
+
+## 3. Payment to Supplier Payment -- Risk Layer
+
+### What Already Exists
+- Invoice upload requirement before virtual card issuance (enforced in Stripe Issuing flow)
+- Auto-lock cards after charge (stripe-issuing-webhook)
+- Balance validation in issuing authorization requests
+
+### New: Supplier Payment Status Dashboard
+- Create `src/components/trips/SupplierPaymentStatus.tsx`
+- A card on the Trip Detail page (within Bookings tab or as a new tab) showing per-booking:
+  - Booking reference and supplier name
+  - Invoice uploaded (yes/no)
+  - Virtual card status (not issued / pending / ready / authorized / locked)
+  - Payment amount vs. authorized amount
+- Color-coded rows: green = paid, yellow = pending, red = overdue
+
+### New: Funding Confirmation Gate
+- In the virtual card creation flow (`StripeVirtualCardButton`), before issuing a card, display the current Stripe Issuing balance
+- If insufficient funds, show a warning and block card creation
+- This calls the existing `retrieve-virtual-card` edge function or a new balance check
+
+### Files to Create/Modify
+| File | Action |
+|------|--------|
+| `src/components/trips/SupplierPaymentStatus.tsx` | Create -- supplier payment dashboard per trip |
+| `src/pages/TripDetail.tsx` | Modify -- add supplier payment status to bookings tab |
+| `src/components/trips/StripeVirtualCardButton.tsx` | Modify -- add funding confirmation check |
+
+---
+
+## 4. Commission Layer -- Profit Control
+
+### What Already Exists
+- Commission expected date (30 days before departure) with countdown
+- Tier-based splits with agent/agency breakdown
+- Monthly earnings trend chart
+
+### New: Commission Aging Report
+- Add a new section to the Commissions page showing commissions grouped by age:
+  - 0-30 days, 31-60 days, 61-90 days, 90+ days overdue
+- Only for "pending" commissions past their expected date
+- Visual: horizontal bar chart or simple table with color-coded aging buckets
+
+### New: Commission Variance Tracking
+- Add `expected_commission` column to `commissions` table
+- When a commission is created, auto-populate `expected_commission` based on supplier rate and commissionable amount
+- On the Commissions page, show a variance column: `Received - Expected`
+- Highlight negative variances in red
+
+### New: Margin Per Trip
+- On the Trip Detail financials card, add a "Margin %" row:
+  - `(total_commission_revenue / total_gross_sales) * 100`
+- Simple calculation, no database changes needed
+
+### New: Advisor Profitability Dashboard
+- On the Commission Report page (admin only), add a summary section:
+  - Per agent: total gross sales, total commission, margin %, number of trips
+  - Sortable columns
+  - This extends the existing `agentBreakdown` in the Commissions page with margin calculations
+
+### Database Changes
+```sql
+ALTER TABLE commissions ADD COLUMN IF NOT EXISTS expected_commission numeric DEFAULT 0;
+```
+
+### Files to Create/Modify
+| File | Action |
+|------|--------|
+| Migration | Add `expected_commission` to commissions |
+| `src/pages/Commissions.tsx` | Modify -- add aging report section and variance column |
+| `src/pages/TripDetail.tsx` | Modify -- add margin % to financials card |
+| `src/pages/CommissionReport.tsx` | Modify -- add advisor profitability summary |
+| `src/hooks/useCommissions.ts` | Modify -- include expected_commission in queries |
+
+---
+
+## Summary of Database Migrations
+
+```sql
+-- Single migration for all Level 1 changes
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS readiness_score jsonb DEFAULT '{}';
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS upgrade_notes text;
+ALTER TABLE branding_settings ADD COLUMN IF NOT EXISTS video_intro_url text;
+ALTER TABLE commissions ADD COLUMN IF NOT EXISTS expected_commission numeric DEFAULT 0;
+```
+
+## Implementation Order
+
+1. Database migration (single migration for all new columns)
+2. Trip Readiness Score + Proposal Gate (Level 1.1)
+3. Auto trip creation on lead conversion (Level 1.1)
+4. Urgency banner + upgrade notes + video intro (Level 1.2)
+5. Supplier Payment Status dashboard (Level 1.3)
+6. Margin per trip + Commission aging + variance (Level 1.4)
+7. Advisor profitability dashboard (Level 1.4)
+
+## New Files (4)
+- `src/components/trips/TripReadinessScore.tsx`
+- `src/components/trips/SupplierPaymentStatus.tsx`
+- `src/components/commissions/CommissionAgingReport.tsx`
+- 1 database migration
+
+## Modified Files (~12)
+- `src/pages/TripDetail.tsx`
+- `src/components/trips/TripStatusWorkflow.tsx`
+- `src/pages/CRM.tsx` or `src/components/crm/EditClientDialog.tsx`
+- `src/components/shared-trip/SharedTripInvestment.tsx`
+- `src/components/shared-trip/SharedTripHero.tsx`
+- `src/pages/SharedTrip.tsx`
+- `src/components/trips/TripSettingsSidebar.tsx`
+- `src/components/trips/StripeVirtualCardButton.tsx`
+- `src/pages/Commissions.tsx`
+- `src/pages/CommissionReport.tsx`
+- `src/hooks/useCommissions.ts`
