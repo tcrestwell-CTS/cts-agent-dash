@@ -415,6 +415,14 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                                   {item.description && (
                                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>
                                   )}
+                                  {item.category === "flight" && ((item as any).flight_number || (item as any).departure_city_code) && (
+                                    <div className="flex items-center gap-1 mt-0.5 text-[10px] font-medium text-blue-600">
+                                      {(item as any).flight_number && <span>{(item as any).flight_number}</span>}
+                                      {(item as any).departure_city_code && (item as any).arrival_city_code && (
+                                        <span>{(item as any).departure_city_code} → {(item as any).arrival_city_code}</span>
+                                      )}
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                                     {item.start_time && (
                                       <span className="flex items-center gap-0.5">
@@ -491,6 +499,14 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                               </div>
                               {item.description && (
                                 <p className="text-sm text-muted-foreground mt-0.5">{item.description}</p>
+                              )}
+                              {item.category === "flight" && ((item as any).flight_number || (item as any).departure_city_code) && (
+                                <div className="flex items-center gap-2 mt-1 text-xs font-medium text-blue-600">
+                                  {(item as any).flight_number && <span>✈ {(item as any).flight_number}</span>}
+                                  {(item as any).departure_city_code && (item as any).arrival_city_code && (
+                                    <span>{(item as any).departure_city_code} → {(item as any).arrival_city_code}</span>
+                                  )}
+                                </div>
                               )}
                               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                                 {item.start_time && (
