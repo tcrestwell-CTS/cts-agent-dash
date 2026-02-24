@@ -190,7 +190,34 @@ serve(async (req) => {
             .eq("id", payment.booking_id);
         }
 
-        // 4. Notify the agent
+        // 4. Fire QBO supplier_paid journal entry
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          await fetch(`${supabaseUrl}/functions/v1/qbo-sync-trigger`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify({
+              trigger_type: "supplier_paid",
+              record: {
+                id: payment.id,
+                user_id: payment.user_id,
+                trip_id: payment.trip_id,
+                amount: transactionAmount / 100,
+                payment_date: new Date().toISOString().split("T")[0],
+                details: `Virtual card charge – ${transaction.merchant_data?.name || "Supplier"}`,
+              },
+            }),
+          });
+          console.log("Fired qbo-sync-trigger supplier_paid");
+        } catch (qboErr: any) {
+          console.error("Failed to fire qbo-sync-trigger:", qboErr.message);
+        }
+
+        // 5. Notify the agent
         const formattedAmount = new Intl.NumberFormat("en-US", {
           style: "currency",
           currency: "USD",
