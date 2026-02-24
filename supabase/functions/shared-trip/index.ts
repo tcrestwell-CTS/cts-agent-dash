@@ -17,6 +17,77 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // === POST: Record terms acceptance with audit logging ===
+    if (req.method === "POST") {
+      const { token, signature, ip_address, user_agent } = await req.json();
+
+      if (!token || !signature) {
+        return new Response(JSON.stringify({ error: "token and signature required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find the trip by share token
+      const { data: trip } = await supabase
+        .from("trips")
+        .select("id, user_id, trip_name, total_gross_sales, client_id")
+        .eq("share_token", token)
+        .not("published_at", "is", null)
+        .single();
+
+      if (!trip) {
+        return new Response(JSON.stringify({ error: "Trip not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get client name
+      let clientName = "Client";
+      if (trip.client_id) {
+        const { data: client } = await supabase
+          .from("clients")
+          .select("name")
+          .eq("id", trip.client_id)
+          .single();
+        if (client) clientName = client.name;
+      }
+
+      // Update any pending trip_payments for this trip with terms acceptance
+      await supabase
+        .from("trip_payments")
+        .update({
+          terms_accepted_at: new Date().toISOString(),
+          acceptance_signature: signature,
+        })
+        .eq("trip_id", trip.id)
+        .eq("status", "pending");
+
+      // Write to compliance_audit_log
+      await supabase.from("compliance_audit_log").insert({
+        user_id: trip.user_id,
+        event_type: "terms_accepted",
+        entity_type: "trip",
+        entity_id: trip.id,
+        client_name: clientName,
+        ip_address: ip_address || null,
+        user_agent: user_agent || null,
+        signature,
+        metadata: {
+          trip_name: trip.trip_name,
+          total_cost: trip.total_gross_sales,
+        },
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === GET: Fetch shared trip data ===
+
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
 

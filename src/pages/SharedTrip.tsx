@@ -159,6 +159,7 @@ export default function SharedTrip() {
           paymentDeadlines={data.paymentDeadlines || []}
           primaryColor={primaryColor}
           upgradeNotes={(data as any).upgrade_notes}
+          shareToken={token || undefined}
         />
 
         <PaymentTimelineVisual
