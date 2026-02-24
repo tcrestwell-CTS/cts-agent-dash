@@ -16,6 +16,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useItinerary, type ItineraryItem } from "@/hooks/useItinerary";
 import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
+import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
@@ -95,10 +96,11 @@ function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop
 }
 
 export function TripItinerary({ tripId, itineraryId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
-  const { items, loading, generating, addItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId, itineraryId);
+  const { items, loading, generating, addItem, updateItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId, itineraryId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
   const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string } | null>(null);
+  const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
 
   const handleDropComponent = useCallback((category: string, day: number) => {
     setAddCategoryDay({ day, category });
@@ -395,7 +397,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                           {dayItems.map((item) => {
                             const Icon = categoryIcons[item.category] || Target;
                             return (
-                              <div key={item.id} className="flex gap-2 group relative p-2 rounded-md hover:bg-muted/50 transition-colors">
+                              <div key={item.id} className="flex gap-2 group relative p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setEditingItem(item)}>
                                 <div className={`h-7 w-7 rounded-md flex-shrink-0 flex items-center justify-center ${categoryColors[item.category] || categoryColors.activity}`}>
                                   <Icon className="h-3.5 w-3.5" />
                                 </div>
@@ -405,7 +407,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                                     <Button
                                       variant="ghost" size="icon"
                                       className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive flex-shrink-0"
-                                      onClick={() => deleteItem(item.id)}
+                                      onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
@@ -466,7 +468,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                   {dayItems.map((item) => {
                     const Icon = categoryIcons[item.category] || Target;
                     return (
-                      <div key={item.id} className="flex gap-3 group relative">
+                      <div key={item.id} className="flex gap-3 group relative cursor-pointer" onClick={() => setEditingItem(item)}>
                         <div className="flex flex-col items-center">
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${categoryColors[item.category] || categoryColors.activity}`}>
                             <Icon className="h-4 w-4" />
@@ -508,7 +510,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                             <Button
                               variant="ghost" size="icon"
                               className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                              onClick={() => deleteItem(item.id)}
+                              onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -541,6 +543,16 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
           onControlledOpenChange={(open) => {
             if (!open) setAddCategoryDay(null);
           }}
+        />
+      )}
+
+      {/* Edit dialog */}
+      {editingItem && (
+        <EditItineraryItemDialog
+          item={editingItem}
+          open={!!editingItem}
+          onOpenChange={(open) => { if (!open) setEditingItem(null); }}
+          onUpdate={updateItem}
         />
       )}
     </div>
