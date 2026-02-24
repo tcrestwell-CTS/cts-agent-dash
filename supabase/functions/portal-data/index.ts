@@ -700,6 +700,57 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "doc-checklist") {
+      if (req.method === "POST") {
+        const { tripId, itemKey, isChecked } = await req.json();
+        if (!tripId || !itemKey) {
+          return new Response(JSON.stringify({ error: "tripId and itemKey required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { error } = await supabase
+          .from("client_document_checklist")
+          .upsert(
+            {
+              client_id: clientId,
+              trip_id: tripId,
+              item_key: itemKey,
+              is_checked: !!isChecked,
+              checked_at: isChecked ? new Date().toISOString() : null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "client_id,trip_id,item_key" }
+          );
+
+        if (error) {
+          console.error("Checklist upsert error:", error);
+          throw error;
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // GET checklist
+      const tripId = url.searchParams.get("tripId");
+      if (!tripId) {
+        return new Response(JSON.stringify({ error: "tripId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: items } = await supabase
+        .from("client_document_checklist")
+        .select("item_key, is_checked, checked_at")
+        .eq("client_id", clientId)
+        .eq("trip_id", tripId);
+
+      return new Response(JSON.stringify({ items: items || [] }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -143,3 +143,12 @@ export function usePortalCCAuthorizations(tripId: string | undefined) {
     staleTime: 30_000,
   });
 }
+
+export function usePortalDocChecklist(tripId: string | undefined) {
+  return useQuery({
+    queryKey: ["portal", "doc-checklist", tripId],
+    queryFn: () => portalFetch("doc-checklist", { tripId: tripId! }),
+    enabled: !!tripId,
+    staleTime: 30_000,
+  });
+}

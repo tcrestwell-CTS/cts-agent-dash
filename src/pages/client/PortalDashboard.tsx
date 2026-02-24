@@ -10,6 +10,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 
 export default function PortalDashboard() {
   const { data, isLoading, refetch } = usePortalDashboard();
@@ -155,16 +156,19 @@ export default function PortalDashboard() {
                   to={`/client/trips/${trip.id}`}
                   className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">{trip.trip_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {trip.destination}
                       {trip.depart_date && ` · ${format(new Date(trip.depart_date), "MMM d, yyyy")}`}
                     </p>
                   </div>
-                  <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
-                    {trip.status}
-                  </Badge>
+                  <div className="flex items-center gap-3">
+                    <DepartureCountdown departDate={trip.depart_date} returnDate={trip.return_date} compact />
+                    <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
+                      {trip.status}
+                    </Badge>
+                  </div>
                 </Link>
               ))}
             </div>

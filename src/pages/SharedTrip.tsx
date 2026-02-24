@@ -6,6 +6,7 @@ import SharedTripMeta from "@/components/shared-trip/SharedTripMeta";
 import SharedTripItinerary from "@/components/shared-trip/SharedTripItinerary";
 import SharedTripInvestment from "@/components/shared-trip/SharedTripInvestment";
 import SharedTripFooter from "@/components/shared-trip/SharedTripFooter";
+import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
 import { Card, CardContent } from "@/components/ui/card";
 
 export interface SharedTripData {
@@ -117,7 +118,18 @@ export default function SharedTrip() {
             alt={data.trip.trip_name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 max-w-4xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">{data.trip.trip_name}</h1>
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-white/90 text-sm">
+              {data.trip.destination && <span>📍 {data.trip.destination}</span>}
+              {data.trip.depart_date && (
+                <span>📅 {new Date(data.trip.depart_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  {data.trip.return_date && ` – ${new Date(data.trip.return_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       )}
       <SharedTripHero branding={data.branding} advisor={data.advisor} primaryColor={primaryColor} />
@@ -145,6 +157,13 @@ export default function SharedTrip() {
           paymentDeadlines={data.paymentDeadlines || []}
           primaryColor={primaryColor}
           upgradeNotes={(data as any).upgrade_notes}
+        />
+
+        <PaymentTimelineVisual
+          deposit={data.deposit || { required: false, amount: 0 }}
+          paymentDeadlines={data.paymentDeadlines || []}
+          totalCost={data.trip.total_cost || 0}
+          primaryColor={primaryColor}
         />
 
         <SharedTripFooter branding={data.branding} advisor={data.advisor} />
