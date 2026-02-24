@@ -460,10 +460,11 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     } else if (resource === "invoices") {
+      const allClientIds = await getAllClientIds();
       const { data: invoices } = await supabase
         .from("invoices")
         .select("id, invoice_number, invoice_date, total_amount, amount_paid, amount_remaining, status, trip_name")
-        .eq("client_id", clientId)
+        .in("client_id", allClientIds)
         .order("invoice_date", { ascending: false });
 
       return new Response(JSON.stringify({ invoices: invoices || [] }), {
@@ -650,8 +651,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     } else if (resource === "payments") {
       // Get all trips for this client (own + companion)
+      const allClientIds = await getAllClientIds();
       const [ownTripsRes, companionTripIds4] = await Promise.all([
-        supabase.from("trips").select("id, trip_name").eq("client_id", clientId),
+        supabase.from("trips").select("id, trip_name").in("client_id", allClientIds),
         getCompanionTripIds(),
       ]);
 
