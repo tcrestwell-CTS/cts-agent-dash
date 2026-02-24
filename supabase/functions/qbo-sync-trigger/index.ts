@@ -10,6 +10,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   - commission_received
  *   - payout_approved
  *   - deposit_posted
+ *   - supplier_paid
+ *   - trip_completed
  */
 
 const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
@@ -109,6 +111,12 @@ serve(async (req) => {
         break;
       case "deposit_posted":
         await handleDepositPosted(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "supplier_paid":
+        await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "trip_completed":
+        await handleTripCompleted(supabase, qboBase, qboHeaders, userId, record);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
@@ -401,6 +409,121 @@ async function handleDepositPosted(
   await logSync(supabase, userId, "auto-deposit-posted", "success", 3, undefined, {
     gross: grossAmount, stripe_fee: stripeFee, net: netAmount,
     accounts_provisioned: { stripe_clearing: stripeClearingId, stripe_fees: stripeFeesId },
+  });
+}
+
+/**
+ * Supplier paid (virtual card transaction completed)
+ * → Debit "Supplier Expense", Credit "Stripe Clearing"
+ */
+async function handleSupplierPaid(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, record: any
+) {
+  const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "Expense");
+  const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
+
+  const amount = record.amount || 0;
+  const txnDate = record.payment_date || new Date().toISOString().split("T")[0];
+  const memo = `Supplier payment via virtual card – ${record.details || record.notes || "Trip payment"}`;
+
+  const journalEntry = {
+    TxnDate: txnDate,
+    PrivateNote: memo,
+    Line: [
+      {
+        Amount: amount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Debit",
+          AccountRef: { value: supplierExpenseId, name: "Supplier Expense" },
+        },
+        Description: memo,
+      },
+      {
+        Amount: amount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Credit",
+          AccountRef: { value: stripeClearingId, name: "Stripe Clearing" },
+        },
+        Description: memo,
+      },
+    ],
+  };
+
+  const resp = await fetch(`${qboBase}/journalentry`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(journalEntry),
+  });
+
+  if (!resp.ok) {
+    const errBody = await resp.text();
+    throw new Error(`QBO Supplier Paid journal entry failed: ${errBody}`);
+  }
+
+  await logSync(supabase, userId, "auto-supplier-paid", "success", 1, undefined, {
+    amount,
+    trip_payment_id: record.id,
+    accounts: { supplier_expense: supplierExpenseId, stripe_clearing: stripeClearingId },
+  });
+}
+
+/**
+ * Trip completed (revenue recognition)
+ * → Debit "Client Deposit" (liability), Credit "Commission Revenue"
+ */
+async function handleTripCompleted(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, trip: any
+) {
+  const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiability");
+  const commissionRevenueId = await ensureQBOAccount(qboBase, qboHeaders, "Commission Revenue", "Income", "ServiceFeeIncome");
+
+  const amount = trip.total_commission_revenue || 0;
+  const txnDate = new Date().toISOString().split("T")[0];
+  const memo = `Revenue recognition – Trip "${trip.trip_name}" completed`;
+
+  const journalEntry = {
+    TxnDate: txnDate,
+    PrivateNote: memo,
+    Line: [
+      {
+        Amount: amount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Debit",
+          AccountRef: { value: clientDepositId, name: "Client Deposit" },
+        },
+        Description: memo,
+      },
+      {
+        Amount: amount,
+        DetailType: "JournalEntryLineDetail",
+        JournalEntryLineDetail: {
+          PostingType: "Credit",
+          AccountRef: { value: commissionRevenueId, name: "Commission Revenue" },
+        },
+        Description: memo,
+      },
+    ],
+  };
+
+  const resp = await fetch(`${qboBase}/journalentry`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(journalEntry),
+  });
+
+  if (!resp.ok) {
+    const errBody = await resp.text();
+    throw new Error(`QBO Trip Completed journal entry failed: ${errBody}`);
+  }
+
+  await logSync(supabase, userId, "auto-trip-completed", "success", 1, undefined, {
+    amount,
+    trip_id: trip.id,
+    trip_name: trip.trip_name,
+    accounts: { client_deposit: clientDepositId, commission_revenue: commissionRevenueId },
   });
 }
 

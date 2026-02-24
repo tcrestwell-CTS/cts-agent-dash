@@ -27,13 +27,15 @@ type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getStripeReconReport } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getStripeReconReport, getFinancialLifecycle } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
   const [reconReport, setReconReport] = useState<any>(null);
   const [loadingRecon, setLoadingRecon] = useState(false);
+  const [lifecycle, setLifecycle] = useState<any[] | null>(null);
+  const [loadingLifecycle, setLoadingLifecycle] = useState(false);
 
   const loadFinancials = async () => {
     setLoadingFinancials(true);
@@ -42,11 +44,22 @@ export default function QBOHealth() {
     setLoadingFinancials(false);
   };
 
+  const loadLifecycle = async () => {
+    setLoadingLifecycle(true);
+    const data = await getFinancialLifecycle();
+    setLifecycle(data);
+    setLoadingLifecycle(false);
+  };
+
   useEffect(() => {
     if (status.connected) {
       loadFinancials();
     }
   }, [status.connected]);
+
+  useEffect(() => {
+    loadLifecycle();
+  }, []);
 
   if (adminLoading) {
     return (
@@ -446,6 +459,194 @@ export default function QBOHealth() {
             </CardContent>
           </Card>
         )}
+
+        {/* Financial Lifecycle per-Trip */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Financial Lifecycle
+                </CardTitle>
+                <CardDescription>Per-trip money flow: Client Paid → Fees → Supplier → Commission</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadLifecycle} disabled={loadingLifecycle}>
+                {loadingLifecycle ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingLifecycle ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : !lifecycle?.length ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <DollarSign className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">No trip financial data found</p>
+              </div>
+            ) : (
+              <div className="rounded-md border overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Trip</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Client Paid</TableHead>
+                      <TableHead className="text-right">Fees</TableHead>
+                      <TableHead className="text-right">Supplier Paid</TableHead>
+                      <TableHead className="text-right">Commission Earned</TableHead>
+                      <TableHead className="text-right">Commission Paid</TableHead>
+                      <TableHead className="text-right">Net Position</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lifecycle.map((row: any) => {
+                      const isCompleted = row.status === "completed";
+                      const isBalanced = isCompleted && Math.abs(row.netPosition) < 1;
+                      const hasDiscrepancy = isCompleted && Math.abs(row.netPosition) >= 1;
+                      return (
+                        <TableRow key={row.tripId}>
+                          <TableCell className="text-xs font-medium max-w-[180px] truncate">{row.tripName}</TableCell>
+                          <TableCell>
+                            <Badge variant={isCompleted ? "default" : "outline"} className="capitalize text-[10px]">
+                              {row.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs">${row.clientPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-mono text-xs text-muted-foreground">${row.stripeFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${row.supplierPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${row.commissionEarned.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${row.commissionPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className={`text-right font-mono text-xs font-semibold ${
+                            isBalanced ? "text-emerald-600" : hasDiscrepancy ? "text-destructive" : "text-foreground"
+                          }`}>
+                            ${row.netPosition.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {isBalanced && <CheckCircle2 className="h-3 w-3 inline ml-1" />}
+                            {hasDiscrepancy && <AlertTriangle className="h-3 w-3 inline ml-1" />}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Journal Entry Audit Trail */}
+        {(() => {
+          const autoLogs = logs?.filter((l) => l.sync_type.startsWith("auto-")) || [];
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Automated Journal Entries
+                </CardTitle>
+                <CardDescription>Audit trail of all auto-generated QBO journal entries</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {logsLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                  </div>
+                ) : !autoLogs.length ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm">No automated journal entries yet</p>
+                    <p className="text-xs mt-1">Entries appear when deposits, supplier payments, commissions, or trip completions are processed.</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Records</TableHead>
+                          <TableHead>Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {autoLogs.slice(0, 25).map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {format(new Date(log.created_at), "MMM d, h:mm a")}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {log.sync_type.replace("auto-", "").replace(/-/g, " ")}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {log.status === "success" ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-destructive" />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs">{log.records_processed}</TableCell>
+                            <TableCell className="max-w-[200px]">
+                              {log.error_message ? (
+                                <span className="text-xs text-destructive truncate block" title={log.error_message}>{log.error_message}</span>
+                              ) : log.details ? (
+                                <span className="text-xs text-muted-foreground truncate block">
+                                  {typeof log.details === 'object' && (log.details as any)?.amount 
+                                    ? `$${Number((log.details as any).amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}` 
+                                    : "—"}
+                                </span>
+                              ) : null}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Unmatched Transactions Alert */}
+        {(() => {
+          if (!lifecycle?.length || !logs?.length) return null;
+          const unmatchedTrips = lifecycle.filter(
+            (t: any) => t.supplierPaid > 0 && t.clientPaid > 0 && t.status !== "completed"
+          );
+          if (!unmatchedTrips.length) return null;
+          return (
+            <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="h-5 w-5" />
+                  In-Progress Trips with Open Positions
+                </CardTitle>
+                <CardDescription>These trips have financial activity but aren't completed yet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {unmatchedTrips.map((t: any) => (
+                    <div key={t.tripId} className="flex items-center justify-between p-2 bg-background rounded border text-sm">
+                      <span className="font-medium truncate max-w-[200px]">{t.tripName}</span>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>Paid: ${t.clientPaid.toLocaleString()}</span>
+                        <span>Supplier: ${t.supplierPaid.toLocaleString()}</span>
+                        <span className="font-semibold text-amber-600">Net: ${t.netPosition.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">

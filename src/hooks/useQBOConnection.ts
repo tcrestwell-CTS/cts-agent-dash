@@ -367,6 +367,91 @@ export function useQBOConnection() {
     }
   };
 
+  const getFinancialLifecycle = async () => {
+    if (!user) return null;
+    try {
+      // Fetch trips with financial data
+      const { data: trips, error: tripsErr } = await supabase
+        .from("trips")
+        .select("id, trip_name, status, client_id, total_gross_sales, total_commission_revenue, total_supplier_payout")
+        .eq("user_id", user.id)
+        .in("status", ["confirmed", "in_progress", "completed"])
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (tripsErr || !trips?.length) return [];
+
+      const tripIds = trips.map((t) => t.id);
+
+      // Fetch completed payments, paid commissions, and virtual card payments in parallel
+      const [paymentsRes, commissionsRes, vcPaymentsRes] = await Promise.all([
+        supabase
+          .from("trip_payments")
+          .select("trip_id, amount, status, payment_method")
+          .in("trip_id", tripIds)
+          .eq("status", "completed"),
+        supabase
+          .from("commissions")
+          .select("booking_id, amount, status")
+          .eq("user_id", user.id)
+          .eq("status", "paid"),
+        supabase
+          .from("trip_payments")
+          .select("trip_id, amount, virtual_card_status")
+          .in("trip_id", tripIds)
+          .in("virtual_card_status", ["used", "authorized"]),
+      ]);
+
+      const payments = paymentsRes.data || [];
+      const commissions = commissionsRes.data || [];
+      const vcPayments = vcPaymentsRes.data || [];
+
+      // Get booking IDs for commission matching
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, trip_id, commission_revenue")
+        .in("trip_id", tripIds);
+
+      const bookingsByTrip = new Map<string, typeof bookings>();
+      (bookings || []).forEach((b) => {
+        const arr = bookingsByTrip.get(b.trip_id!) || [];
+        arr.push(b);
+        bookingsByTrip.set(b.trip_id!, arr);
+      });
+
+      return trips.map((trip) => {
+        const tripPayments = payments.filter((p) => p.trip_id === trip.id);
+        const clientPaid = tripPayments.reduce((s, p) => s + Number(p.amount), 0);
+        const stripeFees = Math.round(clientPaid * 0.029 * 100 + (clientPaid > 0 ? 30 : 0)) / 100;
+        const supplierPaid = vcPayments
+          .filter((p) => p.trip_id === trip.id)
+          .reduce((s, p) => s + Number(p.amount), 0);
+
+        const tripBookingIds = (bookingsByTrip.get(trip.id) || []).map((b) => b.id);
+        const commissionPaid = commissions
+          .filter((c) => tripBookingIds.includes(c.booking_id))
+          .reduce((s, c) => s + Number(c.amount), 0);
+
+        const netPosition = clientPaid - stripeFees - supplierPaid - commissionPaid;
+
+        return {
+          tripId: trip.id,
+          tripName: trip.trip_name,
+          status: trip.status,
+          clientPaid,
+          stripeFees,
+          supplierPaid,
+          commissionEarned: Number(trip.total_commission_revenue) || 0,
+          commissionPaid,
+          netPosition,
+        };
+      });
+    } catch (err) {
+      console.error("Financial lifecycle error:", err);
+      return null;
+    }
+  };
+
   return {
     status,
     loading,
@@ -380,6 +465,7 @@ export function useQBOConnection() {
     syncStripeDeposits,
     getFinancialSummary,
     getStripeReconReport,
+    getFinancialLifecycle,
     refreshStatus: fetchStatus,
   };
 }
