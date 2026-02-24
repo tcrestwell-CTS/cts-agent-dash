@@ -41,3 +41,5 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.widgety-cruise]
     verify_jwt = false
+  [functions.payment-reminders]
+    verify_jwt = false

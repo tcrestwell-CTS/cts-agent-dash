@@ -104,6 +104,92 @@ export type Database = {
           },
         ]
       }
+      agent_onboarding_progress: {
+        Row: {
+          branding_configured: boolean
+          created_at: string
+          first_booking_added: boolean
+          first_client_added: boolean
+          first_trip_created: boolean
+          id: string
+          onboarding_completed_at: string | null
+          profile_completed: boolean
+          training_started: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branding_configured?: boolean
+          created_at?: string
+          first_booking_added?: boolean
+          first_client_added?: boolean
+          first_trip_created?: boolean
+          id?: string
+          onboarding_completed_at?: string | null
+          profile_completed?: boolean
+          training_started?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branding_configured?: boolean
+          created_at?: string
+          first_booking_added?: boolean
+          first_client_added?: boolean
+          first_trip_created?: boolean
+          id?: string
+          onboarding_completed_at?: string | null
+          profile_completed?: boolean
+          training_started?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_training_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          module_id: string
+          notes: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          module_id: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          module_id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_training_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_travelers: {
         Row: {
           booking_id: string
@@ -1160,6 +1246,39 @@ export type Database = {
           },
         ]
       }
+      mentor_assignments: {
+        Row: {
+          assigned_by: string
+          created_at: string
+          id: string
+          is_active: boolean
+          mentee_user_id: string
+          mentor_user_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mentee_user_id: string
+          mentor_user_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mentee_user_id?: string
+          mentor_user_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           client_messages: boolean
@@ -1551,6 +1670,48 @@ export type Database = {
         }
         Relationships: []
       }
+      training_modules: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_minutes: number | null
+          id: string
+          is_required: boolean
+          resource_url: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_required?: boolean
+          resource_url?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_required?: boolean
+          resource_url?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trip_payments: {
         Row: {
           acceptance_signature: string | null
@@ -1640,6 +1801,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trip_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          destination: string | null
+          duration_days: number | null
+          id: string
+          is_public: boolean
+          name: string
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          destination?: string | null
+          duration_days?: number | null
+          id?: string
+          is_public?: boolean
+          name: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          destination?: string | null
+          duration_days?: number | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       trip_travelers: {
         Row: {
@@ -1969,6 +2172,7 @@ export type Database = {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
       }
+      check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
