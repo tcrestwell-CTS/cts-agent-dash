@@ -5,8 +5,9 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sparkles, Download, Trash2, Import, Ship,
   Plane, Hotel, Car, UtensilsCrossed, Camera, ShoppingBag,
-  Music, Target, Heart, ChevronDown, ChevronUp, GripVertical,
+  Music, Target, Heart, ChevronDown, ChevronUp, GripVertical, ExternalLink,
 } from "lucide-react";
+import { useSuppliers, type Supplier } from "@/hooks/useSuppliers";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -48,6 +49,17 @@ const tripComponents = [
   { category: "entertainment", label: "Entertainment", icon: Music },
 ];
 
+// Map itinerary categories to supplier_type values
+const categoryToSupplierType: Record<string, string[]> = {
+  flight: ["airline", "flight", "air"],
+  hotel: ["hotel", "lodging", "resort", "accommodation"],
+  cruise: ["cruise", "cruise line"],
+  transportation: ["transportation", "transfer", "car rental", "rail"],
+  dining: ["dining", "restaurant"],
+  activity: ["tour", "activity", "excursion"],
+  entertainment: ["entertainment"],
+};
+
 export function ItinerarySidebar({
   tripId,
   destination,
@@ -67,6 +79,16 @@ export function ItinerarySidebar({
 }: ItinerarySidebarProps) {
   const [aiOpen, setAiOpen] = useState(true);
   const [preferences, setPreferences] = useState("");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const { activeSuppliers } = useSuppliers();
+
+  const getSupplersForCategory = (category: string): Supplier[] => {
+    const types = categoryToSupplierType[category];
+    if (!types) return [];
+    return activeSuppliers.filter((s) =>
+      types.some((t) => s.supplier_type.toLowerCase().includes(t))
+    );
+  };
 
   const cruiseBookings = bookings.filter(
     (b) => b.suppliers?.supplier_type?.toLowerCase() === "cruise"
@@ -149,25 +171,69 @@ export function ItinerarySidebar({
         <Separator />
 
         {/* Trip Components */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Trip Components</p>
           <p className="text-[10px] text-muted-foreground mb-2">Drag onto a day or click to add</p>
-          {tripComponents.map(({ category, label, icon: Icon }) => (
-            <button
-              key={category}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/x-trip-component", category);
-                e.dataTransfer.effectAllowed = "copy";
-              }}
-              onClick={() => onAddCategory(category)}
-              className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm hover:bg-muted/50 transition-colors text-foreground cursor-grab active:cursor-grabbing"
-            >
-              <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
-              <Icon className="h-4 w-4 text-muted-foreground" />
-              <span>{label}</span>
-            </button>
-          ))}
+          {tripComponents.map(({ category, label, icon: Icon }) => {
+            const suppliers = getSupplersForCategory(category);
+            const isExpanded = expandedCategory === category;
+
+            return (
+              <div key={category}>
+                <div className="flex items-center">
+                  <button
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("application/x-trip-component", category);
+                      e.dataTransfer.effectAllowed = "copy";
+                    }}
+                    onClick={() => onAddCategory(category)}
+                    className="flex items-center gap-2.5 flex-1 px-2 py-1.5 rounded-md text-sm hover:bg-muted/50 transition-colors text-foreground cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span>{label}</span>
+                  </button>
+                  {suppliers.length > 0 && (
+                    <button
+                      onClick={() => setExpandedCategory(isExpanded ? null : category)}
+                      className="p-1 rounded hover:bg-muted/50 transition-colors"
+                      title={`${suppliers.length} supplier${suppliers.length > 1 ? "s" : ""}`}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                {isExpanded && suppliers.length > 0 && (
+                  <div className="ml-8 mb-1 space-y-0.5">
+                    {suppliers.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-2 px-2 py-1 rounded text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="truncate flex-1">{s.name}</span>
+                        {s.website && (
+                          <a
+                            href={s.website.startsWith("http") ? s.website : `https://${s.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-primary hover:text-primary/80 flex-shrink-0"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {hasItems && (
