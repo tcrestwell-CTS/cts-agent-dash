@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,15 +24,29 @@ interface Props {
   tripId: string;
   dayNumber: number;
   onAdd: (data: any) => Promise<boolean>;
+  defaultCategory?: string;
+  controlledOpen?: boolean;
+  onControlledOpenChange?: (open: boolean) => void;
 }
 
-export function AddItineraryItemDialog({ tripId, dayNumber, onAdd }: Props) {
-  const [open, setOpen] = useState(false);
+export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCategory, controlledOpen, onControlledOpenChange }: Props) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (v: boolean) => onControlledOpenChange?.(v) : setInternalOpen;
+
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    title: "", description: "", category: "activity", location: "",
+    title: "", description: "", category: defaultCategory || "activity", location: "",
     start_time: "", end_time: "", notes: "",
   });
+
+  // Sync defaultCategory when controlled dialog opens
+  useEffect(() => {
+    if (open && defaultCategory) {
+      setForm(prev => ({ ...prev, category: defaultCategory }));
+    }
+  }, [open, defaultCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +72,13 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
-          <Plus className="h-3 w-3 mr-1" /> Add Item
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm" className="text-muted-foreground">
+            <Plus className="h-3 w-3 mr-1" /> Add Item
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Itinerary Item — Day {dayNumber}</DialogTitle>

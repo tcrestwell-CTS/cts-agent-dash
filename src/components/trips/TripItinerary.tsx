@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,13 +56,42 @@ interface Props {
 export interface ItinerarySidebarCallbacks {
   generating: boolean;
   hasItems: boolean;
+  totalDays: number;
   unimportedBookings: TripBooking[];
   onAIGenerate: (preferences: string) => void;
   onImportBookings: (bookings: TripBooking[]) => void;
   onExportPDF: () => void;
   onClearAll: () => void;
   onAddCategory: (category: string) => void;
+  onAddCategoryToDay: (category: string, day: number) => void;
   onWidgetyImport: (items: any[]) => Promise<boolean>;
+}
+
+function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop: (category: string, day: number) => void; children: React.ReactNode; className?: string }) {
+  const [isOver, setIsOver] = useState(false);
+  return (
+    <div
+      className={`${className || ""} ${isOver ? "ring-2 ring-primary ring-offset-2 rounded-lg" : ""} transition-all`}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("application/x-trip-component")) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          setIsOver(true);
+        }
+      }}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={(e) => {
+        const category = e.dataTransfer.getData("application/x-trip-component");
+        if (category) {
+          e.preventDefault();
+          onDrop(category, day);
+        }
+        setIsOver(false);
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function TripItinerary({ tripId, itineraryId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
@@ -70,6 +99,10 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
   const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string } | null>(null);
+
+  const handleDropComponent = useCallback((category: string, day: number) => {
+    setAddCategoryDay({ day, category });
+  }, []);
 
   // Detect cruise bookings for Widgety integration
   const cruiseBookings = bookings.filter(
@@ -177,6 +210,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
       onSidebarReady({
         generating,
         hasItems: items.length > 0,
+        totalDays,
         unimportedBookings,
         onAIGenerate: async (prefs: string) => {
           await generateWithAI(destination, departDate, returnDate, tripName, bookings, prefs);
@@ -185,13 +219,15 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         onExportPDF: handleExportPDF,
         onClearAll: clearAll,
         onAddCategory: (category: string) => {
-          // Add item for day 1 with specified category — opens the add dialog conceptually
           setAddCategoryDay({ day: 1, category });
+        },
+        onAddCategoryToDay: (category: string, day: number) => {
+          setAddCategoryDay({ day, category });
         },
         onWidgetyImport: handleWidgetyImport,
       });
     }
-  }, [onSidebarReady, generating, items.length, unimportedBookings.length]);
+  }, [onSidebarReady, generating, items.length, unimportedBookings.length, totalDays]);
 
   if (loading) {
     return <div className="space-y-4">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-24" />)}</div>;
@@ -330,66 +366,73 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               const dateStr = departDate ? format(addDays(parseISO(departDate), day - 1), "EEE, MMM d") : null;
 
               return (
-                <Card key={day} className="min-w-[300px] max-w-[340px] flex-shrink-0">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                          {day}
-                        </span>
-                        Day {day}
-                      </CardTitle>
-                      <AddItineraryItemDialog tripId={tripId} dayNumber={day} onAdd={addItem} />
-                    </div>
-                    {dateStr && <p className="text-xs text-muted-foreground mt-1">{dateStr}</p>}
-                  </CardHeader>
-                  <CardContent>
-                    {dayItems.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">No activities planned</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {dayItems.map((item) => {
-                          const Icon = categoryIcons[item.category] || Target;
-                          return (
-                            <div key={item.id} className="flex gap-2 group relative p-2 rounded-md hover:bg-muted/50 transition-colors">
-                              <div className={`h-7 w-7 rounded-md flex-shrink-0 flex items-center justify-center ${categoryColors[item.category] || categoryColors.activity}`}>
-                                <Icon className="h-3.5 w-3.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-1">
-                                  <span className="font-medium text-sm truncate">{item.title}</span>
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive flex-shrink-0"
-                                    onClick={() => deleteItem(item.id)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                {item.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>
-                                )}
-                                <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                                  {item.start_time && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Clock className="h-2.5 w-2.5" />
-                                      {item.start_time.slice(0, 5)}
-                                    </span>
-                                  )}
-                                  {item.location && (
-                                    <span className="flex items-center gap-0.5 truncate">
-                                      <MapPin className="h-2.5 w-2.5" /> {item.location}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                <DayDropZone
+                  key={day}
+                  day={day}
+                  onDrop={handleDropComponent}
+                  className="min-w-[300px] max-w-[340px] flex-shrink-0"
+                >
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                            {day}
+                          </span>
+                          Day {day}
+                        </CardTitle>
+                        <AddItineraryItemDialog tripId={tripId} dayNumber={day} onAdd={addItem} />
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {dateStr && <p className="text-xs text-muted-foreground mt-1">{dateStr}</p>}
+                    </CardHeader>
+                    <CardContent>
+                      {dayItems.length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic">No activities planned</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {dayItems.map((item) => {
+                            const Icon = categoryIcons[item.category] || Target;
+                            return (
+                              <div key={item.id} className="flex gap-2 group relative p-2 rounded-md hover:bg-muted/50 transition-colors">
+                                <div className={`h-7 w-7 rounded-md flex-shrink-0 flex items-center justify-center ${categoryColors[item.category] || categoryColors.activity}`}>
+                                  <Icon className="h-3.5 w-3.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-1">
+                                    <span className="font-medium text-sm truncate">{item.title}</span>
+                                    <Button
+                                      variant="ghost" size="icon"
+                                      className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive flex-shrink-0"
+                                      onClick={() => deleteItem(item.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  {item.description && (
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                                    {item.start_time && (
+                                      <span className="flex items-center gap-0.5">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {item.start_time.slice(0, 5)}
+                                      </span>
+                                    )}
+                                    {item.location && (
+                                      <span className="flex items-center gap-0.5 truncate">
+                                        <MapPin className="h-2.5 w-2.5" /> {item.location}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </DayDropZone>
               );
             })}
           </div>
@@ -399,7 +442,8 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         const dateStr = departDate ? format(addDays(parseISO(departDate), day - 1), "EEEE, MMM d") : null;
 
         return (
-          <Card key={day}>
+          <DayDropZone key={day} day={day} onDrop={handleDropComponent}>
+            <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -475,12 +519,27 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               )}
             </CardContent>
           </Card>
+          </DayDropZone>
         );
       })}
 
       {/* Add new day */}
       {items.length > 0 && (
         <AddItineraryItemDialog tripId={tripId} dayNumber={totalDays + 1} onAdd={addItem} />
+      )}
+
+      {/* Controlled dialog for sidebar click / drag-drop */}
+      {addCategoryDay && (
+        <AddItineraryItemDialog
+          tripId={tripId}
+          dayNumber={addCategoryDay.day}
+          defaultCategory={addCategoryDay.category}
+          onAdd={addItem}
+          controlledOpen={!!addCategoryDay}
+          onControlledOpenChange={(open) => {
+            if (!open) setAddCategoryDay(null);
+          }}
+        />
       )}
     </div>
   );
