@@ -81,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Use the origin from the request (so the link opens in the same browser context),
       // fall back to PORTAL_BASE_URL or published URL
-      let portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+      let portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://app.crestwelltravels.com";
       // Ensure the URL has a protocol prefix
       if (!/^https?:\/\//i.test(portalBaseUrl)) {
         portalBaseUrl = `https://${portalBaseUrl}`;
