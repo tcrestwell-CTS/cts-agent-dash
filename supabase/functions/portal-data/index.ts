@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@4.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -351,6 +352,86 @@ const handler = async (req: Request): Promise<Response> => {
         message: `${clientData?.name || "Client"} approved "${itinData?.name || "Itinerary"}" for their trip.`,
         trip_id: tripId,
       });
+
+      // Send email alert to the agent
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (RESEND_API_KEY) {
+          const resend = new Resend(RESEND_API_KEY);
+
+          // Get agent email from auth.users
+          const { data: agentUser } = await supabase.auth.admin.getUserById(tripCheck.user_id);
+          const agentEmail = agentUser?.user?.email;
+
+          // Get branding for styled email
+          const { data: branding } = await supabase
+            .from("branding_settings")
+            .select("*")
+            .eq("user_id", tripCheck.user_id)
+            .maybeSingle();
+
+          // Get trip name
+          const { data: tripData } = await supabase
+            .from("trips")
+            .select("trip_name")
+            .eq("id", tripId)
+            .single();
+
+          const agencyName = branding?.agency_name || "Crestwell Travel Services";
+          const primaryColor = branding?.primary_color || "#0D7377";
+          const logoUrl = branding?.logo_url || "";
+          const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
+          const fromName = branding?.from_name || agencyName;
+          const clientName = clientData?.name || "Your client";
+          const itineraryName = itinData?.name || "an itinerary";
+          const tripName = tripData?.trip_name || "their trip";
+
+          let portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://app.crestwelltravels.com";
+          if (!/^https?:\/\//i.test(portalBaseUrl)) portalBaseUrl = `https://${portalBaseUrl}`;
+          const dashboardUrl = portalBaseUrl.replace(/\/client.*$/, "").replace(/\/+$/, "");
+
+          const logoHtml = logoUrl
+            ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
+            : "";
+
+          if (agentEmail) {
+            const html = `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  ${logoHtml}
+                </div>
+                <h2 style="color: ${primaryColor}; margin-bottom: 8px;">✅ Itinerary Approved!</h2>
+                <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                  Great news! <strong>${clientName}</strong> has approved the itinerary <strong>"${itineraryName}"</strong> for <strong>${tripName}</strong>.
+                </p>
+                <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                  You can now proceed with confirming bookings and next steps for this trip.
+                </p>
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${dashboardUrl}/trips/${tripId}" style="background-color: ${primaryColor}; color: #ffffff; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                    View Trip Details
+                  </a>
+                </div>
+                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+                  <p style="margin: 0;">${agencyName}</p>
+                </div>
+              </div>
+            `;
+
+            await resend.emails.send({
+              from: `${fromName} <${fromEmail}>`,
+              to: [agentEmail],
+              subject: `✅ ${clientName} approved "${itineraryName}" — ${tripName}`,
+              html,
+            });
+
+            console.log("Itinerary approval email sent to agent:", agentEmail);
+          }
+        }
+      } catch (emailErr) {
+        // Don't fail the approval if email fails
+        console.error("Failed to send itinerary approval email:", emailErr);
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
