@@ -12,6 +12,7 @@ import { AddPaymentDialog } from "./AddPaymentDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
+import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +87,9 @@ export function TripPayments({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
+  const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
 
   const handleCreatePaymentLink = async (paymentId: string) => {
     setCreatingPaymentLink(paymentId);
@@ -141,15 +145,16 @@ export function TripPayments({
 
   const handleGenerateInvoice = async () => {
     setGeneratingInvoice(true);
+    setInvoicePreviewOpen(true);
+    setInvoicePreviewUrl(null);
     try {
-      // Get sequential invoice number and create invoice record
       const invoiceNumber = await getNextInvoiceNumber();
       if (!invoiceNumber) {
         toast.error("Failed to generate invoice number");
+        setInvoicePreviewOpen(false);
         return;
       }
 
-      // Create invoice record in database
       await createInvoice({
         trip_id: tripId,
         client_id: clientId,
@@ -160,12 +165,16 @@ export function TripPayments({
         amount_remaining: totalRemaining,
       });
 
-      // Generate and download PDF
-      await generateInvoicePDF(getInvoiceData(invoiceNumber));
+      const blobUrl = await generateInvoicePDF(getInvoiceData(invoiceNumber), { returnBlobUrl: true });
+      if (blobUrl && typeof blobUrl === "string") {
+        setInvoicePreviewUrl(blobUrl);
+        setInvoicePreviewNumber(invoiceNumber);
+      }
       toast.success(`Invoice ${invoiceNumber} generated`);
     } catch (error) {
       console.error("Error generating invoice:", error);
       toast.error("Failed to generate invoice");
+      setInvoicePreviewOpen(false);
     } finally {
       setGeneratingInvoice(false);
     }
@@ -305,7 +314,7 @@ export function TripPayments({
                 ) : (
                   <FileText className="h-4 w-4 mr-2" />
                 )}
-                Download Invoice
+                Generate Invoice
               </Button>
               <Button size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -560,6 +569,20 @@ export function TripPayments({
         tripId={tripId}
         bookings={bookings}
         onPaymentCreated={onDataChange}
+      />
+
+      <InvoicePreviewDialog
+        open={invoicePreviewOpen}
+        onOpenChange={(open) => {
+          setInvoicePreviewOpen(open);
+          if (!open && invoicePreviewUrl) {
+            URL.revokeObjectURL(invoicePreviewUrl);
+            setInvoicePreviewUrl(null);
+          }
+        }}
+        pdfUrl={invoicePreviewUrl}
+        invoiceNumber={invoicePreviewNumber}
+        generating={generatingInvoice}
       />
     </div>
   );

@@ -27,6 +27,7 @@ export interface InvoiceData {
 
 interface GenerateOptions {
   returnBase64?: boolean;
+  returnBlobUrl?: boolean;
 }
 
 // Helper to load image as base64
@@ -374,9 +375,14 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   ].filter(Boolean);
   doc.text(contactParts.join(" | "), margin, yPos);
 
-  // Return base64 or save the PDF
+  // Return base64 or blob URL or save the PDF
   if (options?.returnBase64) {
     return doc.output("datauristring").split(",")[1];
+  }
+
+  if (options?.returnBlobUrl) {
+    const blob = doc.output("blob");
+    return URL.createObjectURL(blob);
   }
   
   const fileName = `Invoice_${data.tripName.replace(/[^a-zA-Z0-9]/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.pdf`;

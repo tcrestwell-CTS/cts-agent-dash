@@ -64,6 +64,7 @@ import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
+import { InvoicePreviewDialog } from "@/components/trips/InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useClient } from "@/hooks/useClients";
@@ -159,6 +160,9 @@ const BookingDetail = () => {
   const [cancelPenalty, setCancelPenalty] = useState("");
   const [cancelRefund, setCancelRefund] = useState("");
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
+  const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
   const [customRate, setCustomRate] = useState<string>("");
   const { user } = useAuth();
 
@@ -175,6 +179,8 @@ const BookingDetail = () => {
   const handleGenerateInvoice = async () => {
     if (!booking) return;
     setGeneratingInvoice(true);
+    setInvoicePreviewOpen(true);
+    setInvoicePreviewUrl(null);
     try {
       const grossSales = tripFinancials?.grossSales || booking.total_amount;
       
@@ -215,11 +221,16 @@ const BookingDetail = () => {
         invoiceData.invoiceNumber = invoice.invoice_number;
       }
 
-      await generateInvoicePDF(invoiceData as any);
-      toast.success("Invoice generated and downloaded");
+      const blobUrl = await generateInvoicePDF(invoiceData as any, { returnBlobUrl: true });
+      if (blobUrl && typeof blobUrl === "string") {
+        setInvoicePreviewUrl(blobUrl);
+        setInvoicePreviewNumber(invoice?.invoice_number);
+      }
+      toast.success("Invoice generated");
     } catch (err) {
       console.error("Error generating invoice:", err);
       toast.error("Failed to generate invoice");
+      setInvoicePreviewOpen(false);
     } finally {
       setGeneratingInvoice(false);
     }
@@ -1076,6 +1087,20 @@ const BookingDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InvoicePreviewDialog
+        open={invoicePreviewOpen}
+        onOpenChange={(open) => {
+          setInvoicePreviewOpen(open);
+          if (!open && invoicePreviewUrl) {
+            URL.revokeObjectURL(invoicePreviewUrl);
+            setInvoicePreviewUrl(null);
+          }
+        }}
+        pdfUrl={invoicePreviewUrl}
+        invoiceNumber={invoicePreviewNumber}
+        generating={generatingInvoice}
+      />
     </DashboardLayout>
   );
 };
