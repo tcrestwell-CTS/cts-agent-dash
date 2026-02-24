@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_settings: {
+        Row: {
+          approval_threshold: number
+          commission_holdback_pct: number
+          created_at: string
+          evaluation_period_months: number
+          id: string
+          tier_1_threshold: number
+          tier_2_threshold: number
+          tier_auto_promote: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approval_threshold?: number
+          commission_holdback_pct?: number
+          created_at?: string
+          evaluation_period_months?: number
+          id?: string
+          tier_1_threshold?: number
+          tier_2_threshold?: number
+          tier_auto_promote?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approval_threshold?: number
+          commission_holdback_pct?: number
+          created_at?: string
+          evaluation_period_months?: number
+          id?: string
+          tier_1_threshold?: number
+          tier_2_threshold?: number
+          tier_auto_promote?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_notifications: {
         Row: {
           created_at: string
@@ -106,6 +145,8 @@ export type Database = {
       }
       bookings: {
         Row: {
+          approval_required: boolean | null
+          approval_type: string | null
           booking_reference: string
           booking_type: string
           calculated_commission: number | null
@@ -146,6 +187,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_required?: boolean | null
+          approval_type?: string | null
           booking_reference: string
           booking_type?: string
           calculated_commission?: number | null
@@ -186,6 +229,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_required?: boolean | null
+          approval_type?: string | null
           booking_reference?: string
           booking_type?: string
           calculated_commission?: number | null
@@ -673,6 +718,9 @@ export type Database = {
           booking_id: string
           created_at: string
           expected_commission: number | null
+          holdback_amount: number | null
+          holdback_released: boolean | null
+          holdback_released_at: string | null
           id: string
           paid_date: string | null
           rate: number
@@ -685,6 +733,9 @@ export type Database = {
           booking_id: string
           created_at?: string
           expected_commission?: number | null
+          holdback_amount?: number | null
+          holdback_released?: boolean | null
+          holdback_released_at?: string | null
           id?: string
           paid_date?: string | null
           rate: number
@@ -697,6 +748,9 @@ export type Database = {
           booking_id?: string
           created_at?: string
           expected_commission?: number | null
+          holdback_amount?: number | null
+          holdback_released?: boolean | null
+          holdback_released_at?: string | null
           id?: string
           paid_date?: string | null
           rate?: number

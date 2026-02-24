@@ -53,3 +53,19 @@ export function calculateAgencyCommission(
   const config = getTierConfig(tier);
   return (totalCommission * config.agencySplit) / 100;
 }
+
+export function getNextTier(tier: CommissionTier | null | undefined): CommissionTier | null {
+  const current = tier || "tier_1";
+  switch (current) {
+    case "none":
+      return null; // Office admins don't get promoted
+    case "tier_1":
+      return "tier_2";
+    case "tier_2":
+      return "tier_3";
+    case "tier_3":
+      return null; // Already at max
+    default:
+      return null;
+  }
+}

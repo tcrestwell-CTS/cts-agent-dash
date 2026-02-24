@@ -176,6 +176,16 @@ export function BookingCard({
           </div>
         )}
 
+        {/* High-Value Approval Pending Badge */}
+        {booking.approval_required && booking.status === "pending" && (
+          <div className="flex items-center gap-2 p-2 bg-accent/10 border border-accent/20 rounded-lg">
+            <AlertTriangle className="h-4 w-4 text-accent shrink-0" />
+            <span className="text-xs text-accent font-medium">
+              High-value booking — pending admin approval
+            </span>
+          </div>
+        )}
+
         {/* Agent (admin only) */}
         {isAdmin && booking.owner_agent && (
           <div className="text-xs text-muted-foreground pt-1 border-t border-border/50">

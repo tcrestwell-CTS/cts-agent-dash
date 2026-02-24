@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle } from "lucide-react";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useCanViewTeam } from "@/hooks/useAdmin";
@@ -24,11 +25,33 @@ import { InviteAgentDialog } from "@/components/admin/InviteAgentDialog";
 import { TeamProfiles } from "@/components/admin/TeamProfiles";
 import { Navigate } from "react-router-dom";
 import { getTierConfig } from "@/lib/commissionTiers";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 
 const TeamManagement = () => {
   const { canView, canManage, isLoading: roleLoading } = useCanViewTeam();
   const { invitations, loading, sending, sendInvitation, resendInvitation, revokeInvitation } = useInvitations();
+  const [evaluating, setEvaluating] = useState(false);
+
+  const handleEvaluateTiers = async () => {
+    setEvaluating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("evaluate-tiers");
+      if (error) throw error;
+      const result = data as { message: string; promotions: Array<{ name: string; from: string; to: string }> };
+      if (result.promotions?.length > 0) {
+        toast.success(`${result.promotions.length} agent(s) promoted!`);
+      } else {
+        toast.info("No tier promotions needed at this time");
+      }
+    } catch (err) {
+      console.error("Error evaluating tiers:", err);
+      toast.error("Failed to evaluate tiers");
+    } finally {
+      setEvaluating(false);
+    }
+  };
 
   // Redirect users without access
   if (!roleLoading && !canView) {
@@ -87,7 +110,18 @@ const TeamManagement = () => {
         </div>
         <div className="flex items-center gap-2">
           {canManage && (
-            <InviteAgentDialog onSubmit={sendInvitation} sending={sending} />
+            <>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleEvaluateTiers}
+                disabled={evaluating}
+              >
+                {evaluating ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+                Re-evaluate Tiers
+              </Button>
+              <InviteAgentDialog onSubmit={sendInvitation} sending={sending} />
+            </>
           )}
         </div>
       </div>

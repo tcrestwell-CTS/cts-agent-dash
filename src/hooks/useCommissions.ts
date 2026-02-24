@@ -15,6 +15,9 @@ export interface Commission {
   expected_commission: number;
   created_at: string;
   updated_at: string;
+  holdback_amount: number;
+  holdback_released: boolean;
+  holdback_released_at: string | null;
 }
 
 export interface CommissionInsert {
@@ -72,12 +75,24 @@ export function useCreateCommission() {
     mutationFn: async (commission: CommissionInsert) => {
       if (!user) throw new Error("User not authenticated");
 
+      // Fetch agency settings for holdback percentage
+      const { data: agencySettings } = await supabase
+        .from("agency_settings")
+        .select("commission_holdback_pct")
+        .limit(1)
+        .maybeSingle();
+
+      const holdbackPct = agencySettings?.commission_holdback_pct ?? 10;
+      const holdbackAmount = (commission.amount * holdbackPct) / 100;
+
       const { data, error } = await supabase
         .from("commissions")
         .insert({
           ...commission,
           user_id: user.id,
           status: commission.status || "pending",
+          holdback_amount: holdbackAmount,
+          holdback_released: false,
         })
         .select()
         .single();
