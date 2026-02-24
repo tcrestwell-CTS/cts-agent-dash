@@ -213,7 +213,7 @@ export function useTrips() {
       // Auto-assign trip_page_url using the share_token
       const shareToken = (newTrip as any).share_token;
       if (shareToken && !newTrip.trip_page_url) {
-        const tripPageUrl = `https://crestwelltravels.com/trips/${shareToken}`;
+        const tripPageUrl = `https://app.crestwelltravels.com/shared/${shareToken}`;
         await supabase
           .from("trips")
           .update({ trip_page_url: tripPageUrl })

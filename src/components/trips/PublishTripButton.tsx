@@ -29,8 +29,9 @@ export function PublishTripButton({
   const [copied, setCopied] = useState(false);
 
   const hasUnpublishedChanges = !publishedAt || new Date(updatedAt) > new Date(publishedAt);
+  const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
   const clientUrl = shareToken
-    ? `${window.location.origin}/shared/${shareToken}`
+    ? `${PRODUCTION_DOMAIN}/shared/${shareToken}`
     : null;
   const previewUrl = shareToken
     ? `/shared/${shareToken}`
