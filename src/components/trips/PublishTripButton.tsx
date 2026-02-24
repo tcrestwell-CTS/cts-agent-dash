@@ -30,10 +30,10 @@ export function PublishTripButton({
 
   const hasUnpublishedChanges = !publishedAt || new Date(updatedAt) > new Date(publishedAt);
   const clientUrl = shareToken
-    ? `https://app.crestwelltravels.com/shared/${shareToken}`
+    ? `${window.location.origin}/shared/${shareToken}`
     : null;
   const previewUrl = shareToken
-    ? `https://portal.crestwelltravels.com/client/trips/${shareToken}`
+    ? `/shared/${shareToken}`
     : null;
 
   const handlePublish = async () => {
