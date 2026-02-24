@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentPerformance, AgentStats, DateRange } from "@/hooks/useAgentPerformance";
-import { Trophy, Users, DollarSign, Briefcase, TrendingUp, Target } from "lucide-react";
+import { Trophy, Users, DollarSign, Briefcase, TrendingUp, Target, Clock, Percent } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -403,6 +403,67 @@ export function AgentPerformanceSection({ dateRange }: AgentPerformanceSectionPr
             </div>
           </CardContent>
         </Card>
+
+        {/* New: Margin & Lead Response Time */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Percent className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{myStats.marginPct.toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground">Commission Margin</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatCurrency(myStats.totalCommissionRevenue)} / {formatCurrency(myStats.totalGrossSales)} gross
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{myStats.avgLeadResponseDays.toFixed(1)}</p>
+                  <p className="text-xs text-muted-foreground">Avg Lead Response (days)</p>
+                  <p className="text-[10px] text-muted-foreground">From client creation to first booking</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* New: Close Rate by Trip Type */}
+        {Object.keys(myStats.closeRateByType).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                Close Rate by Trip Type
+              </CardTitle>
+              <CardDescription>Confirmed/completed vs total per booking type</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(myStats.closeRateByType).map(([type, data]) => (
+                  <div key={type} className="flex items-center gap-3">
+                    <span className="text-sm font-medium capitalize w-24">{type}</span>
+                    <div className="flex-1">
+                      <Progress value={data.rate} className="h-2" />
+                    </div>
+                    <span className="text-sm font-semibold w-16 text-right">{data.rate.toFixed(0)}%</span>
+                    <span className="text-xs text-muted-foreground w-16 text-right">({data.closed}/{data.total})</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }

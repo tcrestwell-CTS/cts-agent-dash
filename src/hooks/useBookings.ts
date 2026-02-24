@@ -6,6 +6,8 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 
 export interface Booking {
   id: string;
+  created_at: string;
+  booking_type: string;
   booking_reference: string;
   destination: string;
   depart_date: string;
@@ -125,6 +127,8 @@ export function useBookings() {
         .from("bookings")
         .select(`
           id,
+          created_at,
+          booking_type,
           booking_reference,
           destination,
           depart_date,
@@ -635,7 +639,6 @@ export function useBookings() {
 
 // Extended booking type with full client data for detail page
 export interface BookingWithClient extends Booking {
-  created_at?: string;
   updated_at?: string;
   clients: {
     id: string;
@@ -679,6 +682,7 @@ export function useBooking(bookingId: string | undefined) {
           .from("bookings")
           .select(`
             id,
+            booking_type,
             booking_reference,
             destination,
             depart_date,
@@ -766,6 +770,8 @@ export function useClientBookings(clientId: string | undefined) {
           .from("bookings")
           .select(`
             id,
+            created_at,
+            booking_type,
             booking_reference,
             destination,
             depart_date,

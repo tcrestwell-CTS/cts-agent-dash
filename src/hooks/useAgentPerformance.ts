@@ -5,11 +5,17 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { useTeamProfiles, TeamProfile } from "@/hooks/useTeamProfiles";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
-import { parseISO, isWithinInterval } from "date-fns";
+import { parseISO, isWithinInterval, differenceInDays } from "date-fns";
 
 export interface DateRange {
   from: Date;
   to: Date;
+}
+
+export interface CloseRateByType {
+  total: number;
+  closed: number;
+  rate: number;
 }
 
 export interface AgentStats {
@@ -25,6 +31,11 @@ export interface AgentStats {
   paidCommissions: number;
   avgBookingValue: number;
   conversionRate: number;
+  marginPct: number;
+  avgLeadResponseDays: number;
+  closeRateByType: Record<string, CloseRateByType>;
+  totalGrossSales: number;
+  totalCommissionRevenue: number;
 }
 
 export function useAgentPerformance(dateRange?: DateRange) {
@@ -100,6 +111,46 @@ export function useAgentPerformance(dateRange?: DateRange) {
         ? (clientsWithBookings / agentClients.length) * 100 
         : 0;
 
+      // New: Margin calculation
+      const totalGrossSales = agentBookings.reduce((sum, b) => sum + (b.gross_sales || 0), 0);
+      const totalCommissionRevenue = agentBookings.reduce((sum, b) => sum + (b.commission_revenue || 0), 0);
+      const marginPct = totalGrossSales > 0 ? (totalCommissionRevenue / totalGrossSales) * 100 : 0;
+
+      // New: Lead response time (avg days from client created_at to first booking created_at)
+      const clientFirstBooking: Record<string, string> = {};
+      agentBookings.forEach(b => {
+        if (!clientFirstBooking[b.client_id] || b.created_at < clientFirstBooking[b.client_id]) {
+          clientFirstBooking[b.client_id] = b.created_at;
+        }
+      });
+      const responseDays: number[] = [];
+      agentClients.forEach(c => {
+        const firstBooking = clientFirstBooking[c.id];
+        if (firstBooking) {
+          const days = differenceInDays(parseISO(firstBooking), parseISO(c.created_at));
+          responseDays.push(Math.max(0, days));
+        }
+      });
+      const avgLeadResponseDays = responseDays.length > 0
+        ? responseDays.reduce((a, b) => a + b, 0) / responseDays.length
+        : 0;
+
+      // New: Close rate by trip type
+      const closeRateByType: Record<string, { total: number; closed: number; rate: number }> = {};
+      agentBookings.forEach(b => {
+        const type = b.booking_type || "other";
+        if (!closeRateByType[type]) {
+          closeRateByType[type] = { total: 0, closed: 0, rate: 0 };
+        }
+        closeRateByType[type].total += 1;
+        if (b.status === "confirmed" || b.status === "completed") {
+          closeRateByType[type].closed += 1;
+        }
+      });
+      Object.values(closeRateByType).forEach(v => {
+        v.rate = v.total > 0 ? (v.closed / v.total) * 100 : 0;
+      });
+
       return {
         userId: profile.user_id,
         fullName: profile.full_name || "Unknown Agent",
@@ -113,6 +164,11 @@ export function useAgentPerformance(dateRange?: DateRange) {
         paidCommissions,
         avgBookingValue: agentBookings.length > 0 ? totalRevenue / agentBookings.length : 0,
         conversionRate,
+        marginPct,
+        avgLeadResponseDays,
+        closeRateByType,
+        totalGrossSales,
+        totalCommissionRevenue,
       };
     });
 
