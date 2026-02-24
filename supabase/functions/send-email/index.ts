@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
     const fromName = branding?.from_name || agencyName;
 
     // Build the client portal URL
-    let portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://cts-agent-dash.lovable.app";
+    let portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://app.crestwelltravels.com";
     if (!/^https?:\/\//i.test(portalBaseUrl)) {
       portalBaseUrl = `https://${portalBaseUrl}`;
     }
