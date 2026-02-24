@@ -39,6 +39,7 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
   const [form, setForm] = useState({
     title: "", description: "", category: defaultCategory || "activity", location: "",
     start_time: "", end_time: "", notes: "",
+    flight_number: "", departure_city_code: "", arrival_city_code: "",
   });
 
   // Sync defaultCategory when controlled dialog opens
@@ -62,10 +63,13 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
       start_time: form.start_time || undefined,
       end_time: form.end_time || undefined,
       notes: form.notes || undefined,
+      flight_number: form.flight_number || undefined,
+      departure_city_code: form.departure_city_code || undefined,
+      arrival_city_code: form.arrival_city_code || undefined,
     });
     setSaving(false);
     if (success) {
-      setForm({ title: "", description: "", category: "activity", location: "", start_time: "", end_time: "", notes: "" });
+      setForm({ title: "", description: "", category: "activity", location: "", start_time: "", end_time: "", notes: "", flight_number: "", departure_city_code: "", arrival_city_code: "" });
       setOpen(false);
     }
   };
@@ -113,6 +117,22 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
               <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
             </div>
           </div>
+          {form.category === "flight" && (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Flight #</Label>
+                <Input value={form.flight_number} onChange={(e) => setForm({ ...form, flight_number: e.target.value })} placeholder="AA 1234" />
+              </div>
+              <div>
+                <Label>From (Code)</Label>
+                <Input value={form.departure_city_code} onChange={(e) => setForm({ ...form, departure_city_code: e.target.value.toUpperCase() })} placeholder="JFK" maxLength={4} />
+              </div>
+              <div>
+                <Label>To (Code)</Label>
+                <Input value={form.arrival_city_code} onChange={(e) => setForm({ ...form, arrival_city_code: e.target.value.toUpperCase() })} placeholder="LAX" maxLength={4} />
+              </div>
+            </div>
+          )}
           <div>
             <Label>Description</Label>
             <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Details about this activity" rows={2} />

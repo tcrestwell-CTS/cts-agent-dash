@@ -37,6 +37,9 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
     start_time: item.start_time || "",
     end_time: item.end_time || "",
     notes: item.notes || "",
+    flight_number: (item as any).flight_number || "",
+    departure_city_code: (item as any).departure_city_code || "",
+    arrival_city_code: (item as any).arrival_city_code || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +54,9 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
       start_time: form.start_time || null,
       end_time: form.end_time || null,
       notes: form.notes || null,
+      flight_number: form.flight_number || null,
+      departure_city_code: form.departure_city_code || null,
+      arrival_city_code: form.arrival_city_code || null,
     });
     setSaving(false);
     if (success) {
@@ -94,6 +100,22 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
               <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
             </div>
           </div>
+          {form.category === "flight" && (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Flight #</Label>
+                <Input value={form.flight_number} onChange={(e) => setForm({ ...form, flight_number: e.target.value })} placeholder="AA 1234" />
+              </div>
+              <div>
+                <Label>From (Code)</Label>
+                <Input value={form.departure_city_code} onChange={(e) => setForm({ ...form, departure_city_code: e.target.value.toUpperCase() })} placeholder="JFK" maxLength={4} />
+              </div>
+              <div>
+                <Label>To (Code)</Label>
+                <Input value={form.arrival_city_code} onChange={(e) => setForm({ ...form, arrival_city_code: e.target.value.toUpperCase() })} placeholder="LAX" maxLength={4} />
+              </div>
+            </div>
+          )}
           <div>
             <Label>Description</Label>
             <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />

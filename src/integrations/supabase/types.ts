@@ -1166,12 +1166,15 @@ export type Database = {
       }
       itinerary_items: {
         Row: {
+          arrival_city_code: string | null
           booking_id: string | null
           category: string
           created_at: string
           day_number: number
+          departure_city_code: string | null
           description: string | null
           end_time: string | null
+          flight_number: string | null
           id: string
           item_date: string | null
           itinerary_id: string | null
@@ -1185,12 +1188,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          arrival_city_code?: string | null
           booking_id?: string | null
           category?: string
           created_at?: string
           day_number: number
+          departure_city_code?: string | null
           description?: string | null
           end_time?: string | null
+          flight_number?: string | null
           id?: string
           item_date?: string | null
           itinerary_id?: string | null
@@ -1204,12 +1210,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          arrival_city_code?: string | null
           booking_id?: string | null
           category?: string
           created_at?: string
           day_number?: number
+          departure_city_code?: string | null
           description?: string | null
           end_time?: string | null
+          flight_number?: string | null
           id?: string
           item_date?: string | null
           itinerary_id?: string | null

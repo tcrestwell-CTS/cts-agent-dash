@@ -18,6 +18,9 @@ export interface ItineraryItem {
   location: string | null;
   notes: string | null;
   sort_order: number;
+  flight_number: string | null;
+  departure_city_code: string | null;
+  arrival_city_code: string | null;
   created_at: string;
   updated_at: string;
 }
