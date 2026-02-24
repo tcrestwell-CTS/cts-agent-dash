@@ -107,10 +107,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     const clientId = session.client_id;
 
+    // Helper: find ALL client IDs sharing the same email (handles duplicate client records)
+    async function getAllClientIds(): Promise<string[]> {
+      const { data: client } = await supabase
+        .from("clients")
+        .select("email")
+        .eq("id", clientId)
+        .single();
+
+      if (!client?.email) return [clientId];
+
+      const { data: siblings } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("email", client.email);
+
+      if (!siblings?.length) return [clientId];
+
+      return [...new Set(siblings.map((c: any) => c.id))];
+    }
 
     // Helper: find trips where this client is a travel companion (via email match)
     async function getCompanionTripIds(): Promise<string[]> {
-      // Get the client's email
       const { data: client } = await supabase
         .from("clients")
         .select("email")
@@ -119,7 +137,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (!client?.email) return [];
 
-      // Find companion records matching this client's email
       const { data: companions } = await supabase
         .from("client_companions")
         .select("id")
@@ -129,7 +146,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       const companionIds = companions.map((c: any) => c.id);
 
-      // Find bookings these companions are travelers on
       const { data: travelerLinks } = await supabase
         .from("booking_travelers")
         .select("booking_id")
@@ -139,7 +155,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       const bookingIds = travelerLinks.map((t: any) => t.booking_id);
 
-      // Get trip IDs from those bookings
       const { data: bookings } = await supabase
         .from("bookings")
         .select("trip_id")
@@ -152,10 +167,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (resource === "dashboard") {
+      // Get all client IDs for this email (handles duplicates)
+      const allClientIds = await getAllClientIds();
+
       // Get client info + own trips + recent payments + agent profile
       const [clientRes, tripsRes, companionTripIds, paymentsRes, messagesRes] = await Promise.all([
         supabase.from("clients").select("id, name, first_name, last_name, email, user_id").eq("id", clientId).single(),
-        supabase.from("trips").select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales").eq("client_id", clientId).neq("status", "archived").neq("status", "cancelled").order("depart_date", { ascending: false }),
+        supabase.from("trips").select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales").in("client_id", allClientIds).neq("status", "archived").neq("status", "cancelled").order("depart_date", { ascending: false }),
         getCompanionTripIds(),
         supabase.from("trip_payments").select("id, amount, payment_date, status, payment_type, trip_id, due_date").eq("status", "pending").order("due_date", { ascending: true }).limit(5),
         supabase.from("portal_messages").select("id, message, sender_type, created_at, read_at").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5),
@@ -216,11 +234,12 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     } else if (resource === "trips") {
+      const allClientIds = await getAllClientIds();
       const [ownTripsRes, companionTripIds2] = await Promise.all([
         supabase
           .from("trips")
           .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
-          .eq("client_id", clientId)
+          .in("client_id", allClientIds)
           .neq("status", "archived")
           .neq("status", "cancelled")
           .order("depart_date", { ascending: false }),
@@ -257,7 +276,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Check if client owns the trip OR is a companion on it
-      const companionTripIds3 = await getCompanionTripIds();
+      const [allClientIds, companionTripIds3] = await Promise.all([
+        getAllClientIds(),
+        getCompanionTripIds(),
+      ]);
       const isCompanion = companionTripIds3.includes(tripId);
 
       const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes] = await Promise.all([
@@ -268,8 +290,8 @@ const handler = async (req: Request): Promise<Response> => {
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
       ]);
 
-      // Verify the client has access (either owner or companion)
-      if (!tripRes.data || (tripRes.data.client_id !== clientId && !isCompanion)) {
+      // Verify the client has access (either owner, sibling client record, or companion)
+      if (!tripRes.data || (!allClientIds.includes(tripRes.data.client_id) && !isCompanion)) {
         return new Response(JSON.stringify({ error: "Trip not found" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
