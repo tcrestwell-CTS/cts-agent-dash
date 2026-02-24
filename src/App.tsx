@@ -32,6 +32,7 @@ import CCAuthorize from "./pages/CCAuthorize";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import QBOHealth from "./pages/QBOHealth";
 import RiskCompliance from "./pages/RiskCompliance";
+import MonthlyReconciliation from "./pages/MonthlyReconciliation";
 import { ScrollToTop } from "./components/ScrollToTop";
 import PortalLogin from "./pages/client/PortalLogin";
 import PortalDashboard from "./pages/client/PortalDashboard";
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
               <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
+              <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
               <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
               <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
               <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />

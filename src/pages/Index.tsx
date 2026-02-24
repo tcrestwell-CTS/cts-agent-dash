@@ -15,6 +15,7 @@ import { UpcomingPayments } from "@/components/dashboard/UpcomingPayments";
 import { InvoiceSearch } from "@/components/dashboard/InvoiceSearch";
 import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
 import { CRMIntegrationHealth } from "@/components/dashboard/CRMIntegrationHealth";
+import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
 import { VirtualCardNotifications } from "@/components/dashboard/VirtualCardNotifications";
 import { Calendar, Users, DollarSign, TrendingUp, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,7 +89,8 @@ const Index = () => {
         <AgencyMetrics />
       ) : (
         <>
-
+      {/* Onboarding Wizard for new agents */}
+      <OnboardingWizard />
       {/* Stats Grid - Always visible with minimal loading states */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
