@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
 import { AgencySalesTab } from "@/components/analytics/AgencySalesTab";
+import { AgentIntelligenceTab } from "@/components/analytics/AgentIntelligenceTab";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { DateRangeFilter, DateRange } from "@/components/analytics/DateRangeFilter";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
@@ -47,6 +48,7 @@ import {
   Calendar,
   Trophy,
   Download,
+  Brain,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -118,6 +120,9 @@ const Analytics = () => {
   const { bookings, loading: bookingsLoading } = useBookings();
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
+  const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const canViewIntelligence = isAdmin || isOfficeAdmin;
 
   // Default to last 12 months
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -523,6 +528,12 @@ const Analytics = () => {
               <Trophy className="h-4 w-4" />
               Agent Performance
             </TabsTrigger>
+            {canViewIntelligence && (
+              <TabsTrigger value="intelligence" className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                Agent Intelligence
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -775,6 +786,12 @@ const Analytics = () => {
           <TabsContent value="agents">
             <AgentPerformanceSection dateRange={dateRange} />
           </TabsContent>
+
+          {canViewIntelligence && (
+            <TabsContent value="intelligence">
+              <AgentIntelligenceTab dateRange={dateRange} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
