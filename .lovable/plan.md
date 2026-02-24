@@ -1,142 +1,182 @@
 
 
-# Level 5: Risk & Compliance Layer
+# Level 6: Scalability Architecture
 
-Add legal protection infrastructure for the platform's roles as payment intermediary, commission distributor, and virtual card issuer.
+Design the platform to support 30+ agents with granular permissions, automated commission tier progression, configurable approval thresholds, and commission holdback reserves.
 
 ---
 
 ## What Already Exists
 
-- **T&C acceptance**: `terms_accepted_at` and `acceptance_signature` on `trip_payments`; 3-checkbox agreement + e-signature in `SharedTripInvestment`
-- **CC Authorization**: Full signed authorization flow with encrypted storage and 30-day auto-delete
-- **Booking statuses**: Include `cancelled` with `cancellation_terms` text field per booking
-- **Refund status**: `trip_payments.status` already supports `refunded` value with UI badges
-- **Stripe Issuing webhook**: Handles auth requests, transactions, card locking
-- **QBO sync triggers**: Automated journal entries for deposits, bookings, commissions, payouts, supplier payments, trip completion
-
-## What's Missing
-
-1. **No audit log** of T&C acceptance events (IP, user agent, timestamp, signature)
-2. **No refund tracking dashboard** -- refunded payments exist but no centralized view
-3. **No chargeback/dispute detection** -- Stripe disputes are not captured
-4. **No supplier cancellation tracking** -- bookings can be cancelled but no structured cancellation record (date, penalty, refund amount)
-5. **No IP capture** on proposal approvals
+- **RBAC**: Three roles (admin, office_admin, user) enforced via `user_roles` table and `has_role()` security definer function
+- **Commission Tiers**: Static tiers (None, Tier 1: 70/30, Tier 2: 80/20, Tier 3: 95/5) manually assigned by admins
+- **Override Approval**: Commission overrides exceeding calculated amounts require admin approval via `PendingOverridesCard`
+- **Role-Scoped Views**: Sidebar navigation, team management, and analytics already filter by role
+- **RLS Enforcement**: 100% coverage -- agents see only their own data, admins/office admins see all
 
 ---
 
-## Plan
+## What's New
 
-### 1. Compliance Audit Log Table
+### 1. Agency Settings Table (Configurable Thresholds)
 
-Create a new `compliance_audit_log` table to record every legally significant event:
+Create an `agency_settings` table to store agency-wide configuration that admins can adjust:
 
-```text
-id | uuid PK
-user_id | uuid (agent who owns the record)
-event_type | text (terms_accepted, proposal_approved, cc_authorized, refund_issued, dispute_opened, cancellation_recorded)
-entity_type | text (trip_payment, booking, cc_authorization)
-entity_id | uuid
-client_name | text
-ip_address | text
-user_agent | text
-signature | text (typed name for e-sign events)
-metadata | jsonb (amount, trip name, etc.)
-created_at | timestamptz
-```
+- `approval_threshold`: Dollar amount above which bookings require admin approval (default: $10,000)
+- `commission_holdback_pct`: Percentage withheld from agent commission payouts until trip completion (default: 10%)
+- `tier_auto_promote`: Whether automatic tier promotion is enabled (default: false)
+- `tier_1_threshold`: Gross sales threshold to auto-promote to Tier 2 (default: $100,000)
+- `tier_2_threshold`: Gross sales threshold to auto-promote to Tier 3 (default: $250,000)
+- `evaluation_period_months`: Rolling period for tier evaluation (default: 12)
 
-RLS: Agents can view their own logs; admins/office admins can view all.
+This is a single-row table scoped to the agency (keyed by the admin's user_id, readable by all authenticated users).
 
-### 2. IP + User Agent Capture on Approvals
+### 2. Approval Threshold on High-Value Bookings
 
-- Update `SharedTripInvestment` to capture the client's IP address when they accept terms
-- Use a lightweight IP detection approach (fetch from a public API like `https://api.ipify.org`)
-- Pass IP + user agent + signature to the `shared-trip` edge function
-- The edge function writes to `compliance_audit_log` and updates `trip_payments.terms_accepted_at` + `acceptance_signature`
-- Also capture IP on CC authorization submissions (update `cc-authorization` edge function)
+Currently, only commission overrides require approval. Add a new approval gate:
 
-### 3. Refund Tracking Dashboard
+- When an agent creates a booking with `gross_sales >= approval_threshold`, automatically flag it with `approval_required = true`
+- Show these in the existing `PendingOverridesCard` (renamed to `PendingApprovalsCard`) alongside commission overrides
+- Admins can approve or reject from the same interface
+- Booking stays in `pending` status until approved; agents see a "Pending Admin Approval" badge
 
-Create a new admin-only page `/refunds` (or a section within QBO Health) showing:
+**Changes**:
+- Add `approval_required` and `approval_type` columns to `bookings`
+- Update booking creation logic in `useBookings.ts` to check threshold
+- Expand `PendingOverridesCard` to show both override and threshold approvals
 
-- All `trip_payments` with `status = 'refunded'` across the agency
-- Columns: Date, Client, Trip, Amount, Refund Reason, Agent, Stripe Receipt
-- Summary cards: Total Refunds (count + amount), This Month, By Agent
-- Filter by date range and agent
-- Link to Stripe receipt URL when available
+### 3. Commission Holdback Reserve
 
-### 4. Chargeback Alert Workflow
+Implement a configurable holdback percentage on agent commission payouts:
 
-- Add a new webhook handler in `stripe-issuing-webhook` (or a separate function) for `charge.dispute.created` events
-- When a dispute is received:
-  - Create an `agent_notification` with type `chargeback_alert`
-  - Log to `compliance_audit_log` with event_type `dispute_opened`
-  - Update the corresponding `trip_payment` status to `disputed` (add as a new valid status)
-- Dashboard: Show disputed payments in the refund tracking view with a red "Disputed" badge
+- When a commission is created, calculate `holdback_amount = commission_amount * holdback_pct / 100`
+- Store `holdback_amount` and `holdback_released` on the `commissions` table
+- The holdback is released automatically when the trip status changes to `completed`
+- Show holdback amounts in the Commissions page with "Held" and "Released" badges
+- Add a "Commission Reserve" summary card on the admin dashboard showing total held vs. released
 
-### 5. Supplier Cancellation Tracking
+**Changes**:
+- Add `holdback_amount`, `holdback_released`, `holdback_released_at` columns to `commissions`
+- Update commission creation flow to calculate holdback based on agency settings
+- Add a database trigger on trips status change to release holdbacks
+- Update Commissions UI to display holdback status
 
-Add structured cancellation fields to the `bookings` table:
+### 4. Automatic Commission Tier Promotion
 
-```text
-cancelled_at | timestamptz
-cancellation_penalty | numeric (default 0)
-cancellation_refund_amount | numeric (default 0)
-cancellation_reason | text
-```
+Add logic to evaluate agent performance and auto-promote tiers:
 
-- When a booking status changes to `cancelled`, prompt the agent for cancellation details (penalty, refund amount, reason)
-- Show a cancellation details card on `BookingDetail` when status is cancelled
-- Add a "Supplier Cancellations" section to the refund tracking page showing all cancelled bookings with financial impact
+- Create a new database function `evaluate_agent_tiers()` that:
+  - Sums each agent's gross sales over the rolling evaluation period
+  - Compares against tier thresholds from `agency_settings`
+  - Updates `profiles.commission_tier` if the agent qualifies for a higher tier
+  - Logs the promotion in `compliance_audit_log` for audit trail
+- This function can be called manually by admins via a "Re-evaluate Tiers" button, or scheduled via a cron-style edge function
+- Agents are never auto-demoted (only promoted); demotion remains a manual admin action
+
+**Changes**:
+- Create `evaluate_agent_tiers()` database function
+- Create `evaluate-tiers` edge function (callable by admins)
+- Add "Re-evaluate Tiers" button on Team Management page
+- Show tier change history in agent profiles
+
+### 5. Agency Settings Admin UI
+
+Add a new "Agency Settings" tab on the Settings page (admin-only) to configure:
+
+- Approval threshold amount
+- Commission holdback percentage
+- Tier auto-promotion toggle and thresholds
+- Evaluation period
+
+This replaces hardcoded values with a configurable system.
+
+### 6. Enhanced Permission Guards
+
+For 30 agents, tighten permission enforcement:
+
+- Add `useCanApproveBookings()` hook (returns true for admin only)
+- Add `useCanEditSettings()` hook (returns true for admin only)
+- Add `useCanViewFinancials()` hook (admin + office_admin)
+- Consolidate all permission checks into a single `usePermissions()` hook that returns a permissions object
+- Use this throughout the app instead of scattered `useIsAdmin` / `useIsOfficeAdmin` calls
 
 ---
 
 ## Database Changes
 
 ```sql
--- 1. Compliance audit log
-CREATE TABLE public.compliance_audit_log (
+-- 1. Agency settings (single-row config table)
+CREATE TABLE public.agency_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  event_type text NOT NULL,
-  entity_type text NOT NULL,
-  entity_id uuid NOT NULL,
-  client_name text,
-  ip_address text,
-  user_agent text,
-  signature text,
-  metadata jsonb DEFAULT '{}'::jsonb,
-  created_at timestamptz NOT NULL DEFAULT now()
+  approval_threshold numeric NOT NULL DEFAULT 10000,
+  commission_holdback_pct numeric NOT NULL DEFAULT 10,
+  tier_auto_promote boolean NOT NULL DEFAULT false,
+  tier_1_threshold numeric NOT NULL DEFAULT 100000,
+  tier_2_threshold numeric NOT NULL DEFAULT 250000,
+  evaluation_period_months integer NOT NULL DEFAULT 12,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.compliance_audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agency_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own audit logs"
-  ON public.compliance_audit_log FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
+-- All authenticated users can read settings
+CREATE POLICY "Authenticated users can view agency settings"
+  ON public.agency_settings FOR SELECT TO authenticated
+  USING (true);
 
-CREATE POLICY "Users can insert their own audit logs"
-  ON public.compliance_audit_log FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+-- Only admins can modify
+CREATE POLICY "Admins can insert agency settings"
+  ON public.agency_settings FOR INSERT TO authenticated
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
 
-CREATE POLICY "Admins can view all audit logs"
-  ON public.compliance_audit_log FOR SELECT TO authenticated
+CREATE POLICY "Admins can update agency settings"
+  ON public.agency_settings FOR UPDATE TO authenticated
   USING (has_role(auth.uid(), 'admin'::app_role));
 
-CREATE POLICY "Office admins can view all audit logs"
-  ON public.compliance_audit_log FOR SELECT TO authenticated
-  USING (has_role(auth.uid(), 'office_admin'::app_role));
-
--- 2. Supplier cancellation fields on bookings
+-- 2. Booking approval fields
 ALTER TABLE public.bookings
-  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
-  ADD COLUMN IF NOT EXISTS cancellation_penalty numeric DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS cancellation_refund_amount numeric DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS cancellation_reason text;
+  ADD COLUMN IF NOT EXISTS approval_required boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS approval_type text; -- 'high_value', 'override', null
 
--- 3. Index for audit log queries
-CREATE INDEX idx_compliance_audit_event_type ON public.compliance_audit_log(event_type);
-CREATE INDEX idx_compliance_audit_user_id ON public.compliance_audit_log(user_id);
+-- 3. Commission holdback fields
+ALTER TABLE public.commissions
+  ADD COLUMN IF NOT EXISTS holdback_amount numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS holdback_released boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS holdback_released_at timestamptz;
+
+-- 4. Trigger to release holdbacks when trip completes
+CREATE OR REPLACE FUNCTION public.release_commission_holdbacks()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NEW.status = 'completed' AND (OLD.status IS DISTINCT FROM 'completed') THEN
+    UPDATE public.commissions
+    SET holdback_released = true,
+        holdback_released_at = now(),
+        updated_at = now()
+    WHERE booking_id IN (
+      SELECT id FROM public.bookings WHERE trip_id = NEW.id
+    )
+    AND holdback_released = false;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trigger_release_holdbacks
+  AFTER UPDATE ON public.trips
+  FOR EACH ROW
+  EXECUTE FUNCTION public.release_commission_holdbacks();
+
+-- 5. Index for performance at scale
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON public.bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_commissions_booking_id ON public.commissions(booking_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_approval ON public.bookings(approval_required) WHERE approval_required = true;
 ```
 
 ---
@@ -145,35 +185,39 @@ CREATE INDEX idx_compliance_audit_user_id ON public.compliance_audit_log(user_id
 
 | File | Purpose |
 |------|---------|
-| `src/pages/RiskCompliance.tsx` | Refund tracking dashboard + compliance audit trail + supplier cancellations |
-| `src/hooks/useComplianceAudit.ts` | Hook to query compliance_audit_log and refund data |
-| `supabase/functions/stripe-dispute-webhook/index.ts` | Webhook handler for Stripe dispute events |
+| `src/hooks/useAgencySettings.ts` | Hook to read/update agency_settings; includes holdback and threshold config |
+| `src/hooks/usePermissions.ts` | Consolidated permissions hook replacing scattered admin checks |
+| `src/components/settings/AgencySettingsTab.tsx` | Admin UI for configuring thresholds, holdback %, tier promotion rules |
+| `supabase/functions/evaluate-tiers/index.ts` | Edge function to evaluate and auto-promote agent tiers |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/shared-trip/SharedTripInvestment.tsx` | Capture IP + user agent on terms acceptance, POST to shared-trip edge function |
-| `supabase/functions/shared-trip/index.ts` | Accept POST with signature/IP/user_agent, write to compliance_audit_log |
-| `supabase/functions/cc-authorization/index.ts` | Log IP + user agent to compliance_audit_log on CC auth submission |
-| `src/pages/BookingDetail.tsx` | Add cancellation details dialog when status changes to cancelled; show cancellation card |
-| `src/hooks/useBookings.ts` | Add cancellation fields to Booking interface and select query |
-| `src/components/layout/Sidebar.tsx` | Add "Risk & Compliance" nav item for admins |
-| `src/App.tsx` | Add `/risk-compliance` route |
+| `src/hooks/useBookings.ts` | Check `approval_threshold` from agency settings during booking creation; set `approval_required` and `approval_type` |
+| `src/hooks/useCommissions.ts` | Calculate `holdback_amount` on commission creation using agency settings holdback % |
+| `src/components/commissions/PendingOverridesCard.tsx` | Rename to `PendingApprovalsCard`; show both high-value booking approvals and commission overrides |
+| `src/pages/Commissions.tsx` | Add holdback summary cards (Total Held, Total Released, Net Payable) |
+| `src/pages/Settings.tsx` | Add "Agency" tab for admin users with `AgencySettingsTab` |
+| `src/pages/TeamManagement.tsx` | Add "Re-evaluate Tiers" button; show tier change history |
+| `src/components/bookings/BookingCard.tsx` | Show "Pending Approval" badge for high-value bookings |
+| `src/pages/BookingDetail.tsx` | Show approval status section for flagged bookings |
+| `src/lib/commissionTiers.ts` | Add helper `getNextTier()` for tier promotion logic |
 | `src/integrations/supabase/types.ts` | Auto-updated with new table/columns |
-| `supabase/config.toml` | Add `stripe-dispute-webhook` with `verify_jwt = false` |
 
 ---
 
 ## Implementation Order
 
-1. Database migration (compliance_audit_log table + booking cancellation columns)
-2. Create `useComplianceAudit` hook
-3. Create `RiskCompliance` page with refund dashboard + audit trail + supplier cancellations
-4. Add route and sidebar navigation
-5. Update `SharedTripInvestment` + `shared-trip` edge function for IP/signature logging
-6. Update `cc-authorization` edge function for audit logging
-7. Add cancellation details dialog to `BookingDetail`
-8. Create `stripe-dispute-webhook` edge function for chargeback alerts
-9. Deploy edge functions
+1. Database migration (agency_settings table, booking approval columns, commission holdback columns, holdback release trigger, indexes)
+2. Create `useAgencySettings` hook
+3. Create `usePermissions` hook
+4. Create `AgencySettingsTab` component and add to Settings page
+5. Update booking creation to check approval threshold
+6. Expand `PendingOverridesCard` to handle both approval types
+7. Update commission creation to calculate holdback
+8. Update Commissions page with holdback UI
+9. Create `evaluate-tiers` edge function
+10. Add "Re-evaluate Tiers" to Team Management
+11. Deploy edge functions
 
