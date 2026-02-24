@@ -11,11 +11,18 @@ const ENCRYPTION_KEY = Deno.env.get("CC_ENCRYPTION_KEY")!;
 // Derive a CryptoKey from the secret
 async function getKey(): Promise<CryptoKey> {
   const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw", enc.encode(ENCRYPTION_KEY).slice(0, 32),
-    { name: "AES-GCM" }, false, ["encrypt", "decrypt"]
+  // First import as PBKDF2 key material, then derive a proper 256-bit AES key
+  const baseKey = await crypto.subtle.importKey(
+    "raw", enc.encode(ENCRYPTION_KEY),
+    { name: "PBKDF2" }, false, ["deriveKey"]
   );
-  return keyMaterial;
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: enc.encode("cc-auth-salt"), iterations: 100000, hash: "SHA-256" },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
 }
 
 async function encrypt(plaintext: string): Promise<string> {
