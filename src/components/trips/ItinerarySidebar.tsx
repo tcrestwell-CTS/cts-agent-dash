@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sparkles, Download, Trash2, Import, Ship,
   Plane, Hotel, Car, UtensilsCrossed, Camera, ShoppingBag,
-  Music, Target, Heart, ChevronDown, ChevronUp,
+  Music, Target, Heart, ChevronDown, ChevronUp, GripVertical,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -151,12 +151,19 @@ export function ItinerarySidebar({
         {/* Trip Components */}
         <div className="space-y-1">
           <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Trip Components</p>
+          <p className="text-[10px] text-muted-foreground mb-2">Drag onto a day or click to add</p>
           {tripComponents.map(({ category, label, icon: Icon }) => (
             <button
               key={category}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("application/x-trip-component", category);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
               onClick={() => onAddCategory(category)}
-              className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm hover:bg-muted/50 transition-colors text-foreground"
+              className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-sm hover:bg-muted/50 transition-colors text-foreground cursor-grab active:cursor-grabbing"
             >
+              <GripVertical className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
               <Icon className="h-4 w-4 text-muted-foreground" />
               <span>{label}</span>
             </button>
