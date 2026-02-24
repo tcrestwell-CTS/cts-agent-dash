@@ -1,170 +1,179 @@
 
 
-# Level 4: Financial Architecture Optimization
+# Level 5: Risk & Compliance Layer
 
-Complete the automated accounting lifecycle and build a unified reconciliation dashboard that eliminates end-of-month chaos.
+Add legal protection infrastructure for the platform's roles as payment intermediary, commission distributor, and virtual card issuer.
 
 ---
 
 ## What Already Exists
 
-The platform already has significant financial automation in place:
-
-- **4 database triggers** fire the `qbo-sync-trigger` edge function automatically:
-  - `deposit_posted`: Client payment completed -> 3-step Stripe Clearing journal entries (Gross, Fees, Net)
-  - `booking_confirmed`: Booking status -> confirmed -> QBO Invoice created
-  - `commission_received`: Commission status -> paid -> Journal entry (Debit Checking, Credit Commission Income)
-  - `payout_approved`: Override approved -> QBO Expense (Advisor payout)
-- **Stripe Clearing Reconciliation Report** on QBOHealth page (balance, by-date breakdown, balanced/unbalanced badge)
-- **Manual sync actions**: Sync Clients, Sync Payments, Sync Stripe Deposits, Stripe Clearing Flow
-- **Auto-provisioning** of QBO accounts (Stripe Clearing, Stripe Processing Fees)
-
----
+- **T&C acceptance**: `terms_accepted_at` and `acceptance_signature` on `trip_payments`; 3-checkbox agreement + e-signature in `SharedTripInvestment`
+- **CC Authorization**: Full signed authorization flow with encrypted storage and 30-day auto-delete
+- **Booking statuses**: Include `cancelled` with `cancellation_terms` text field per booking
+- **Refund status**: `trip_payments.status` already supports `refunded` value with UI badges
+- **Stripe Issuing webhook**: Handles auth requests, transactions, card locking
+- **QBO sync triggers**: Automated journal entries for deposits, bookings, commissions, payouts, supplier payments, trip completion
 
 ## What's Missing
 
-### Gap 1: Incomplete Journal Posting Lifecycle
-Two booking events are **not** automated:
-- **Virtual card authorized** (supplier payment via Stripe Issuing) -- no journal entry is created
-- **Trip completion** (liability-to-revenue recognition) -- no automation exists
-
-The documented 5-step lifecycle should be:
-1. Client Payment -> Debit Stripe Clearing, Credit Client Deposit (liability) -- **partially done** (currently credits A/R instead of a liability account)
-2. Supplier Payment (virtual card charge) -> Debit Supplier Expense, Credit Stripe Clearing -- **not automated**
-3. Trip Completion -> Debit Client Deposit (liability), Credit Commission Revenue -- **not automated**
-4. Commission Split -> Debit Advisor Commission Expense, Credit Advisor Payable -- **exists** (payout_approved)
-5. Advisor Payout -> Debit Advisor Payable, Credit Bank -- **exists** (commission_received)
-
-### Gap 2: No Unified Financial Lifecycle View
-The QBOHealth page shows Stripe Clearing reconciliation, but there's no view that shows the **complete money flow per trip**: client payment -> supplier payment -> commission -> payout. Admins have to mentally stitch together data from multiple pages.
+1. **No audit log** of T&C acceptance events (IP, user agent, timestamp, signature)
+2. **No refund tracking dashboard** -- refunded payments exist but no centralized view
+3. **No chargeback/dispute detection** -- Stripe disputes are not captured
+4. **No supplier cancellation tracking** -- bookings can be cancelled but no structured cancellation record (date, penalty, refund amount)
+5. **No IP capture** on proposal approvals
 
 ---
 
 ## Plan
 
-### 1. Add Two New Automated Triggers
+### 1. Compliance Audit Log Table
 
-**Trigger: Virtual Card Transaction (Supplier Payment)**
-- When the `stripe-issuing-webhook` processes an `issuing_transaction.created` event and auto-locks a card, also fire a `qbo-sync-trigger` call with `trigger_type: 'supplier_paid'`
-- The handler creates a journal entry: Debit "Supplier Expense", Credit "Stripe Clearing"
-- This accounts for money leaving the clearing account to pay a supplier
+Create a new `compliance_audit_log` table to record every legally significant event:
 
-**Trigger: Trip Completed (Revenue Recognition)**
-- The existing `trigger_post_trip_email` fires when trip status changes to 'completed'
-- Add a new database trigger `trigger_qbo_trip_completed` on the `trips` table that fires when status changes to 'completed'
-- The handler creates a journal entry: Debit "Client Deposit" (liability), Credit "Commission Revenue"
-- Uses the trip's `total_commission_revenue` amount
+```text
+id | uuid PK
+user_id | uuid (agent who owns the record)
+event_type | text (terms_accepted, proposal_approved, cc_authorized, refund_issued, dispute_opened, cancellation_recorded)
+entity_type | text (trip_payment, booking, cc_authorization)
+entity_id | uuid
+client_name | text
+ip_address | text
+user_agent | text
+signature | text (typed name for e-sign events)
+metadata | jsonb (amount, trip name, etc.)
+created_at | timestamptz
+```
 
-### 2. New Handler in `qbo-sync-trigger`
+RLS: Agents can view their own logs; admins/office admins can view all.
 
-Add two new cases to the existing `qbo-sync-trigger` edge function:
-- `supplier_paid`: Creates journal entry (Debit Supplier Expense, Credit Stripe Clearing) using the virtual card authorization amount
-- `trip_completed`: Creates journal entry (Debit Client Deposit, Credit Commission Revenue) using the trip's total commission revenue
+### 2. IP + User Agent Capture on Approvals
 
-Both will auto-provision any missing QBO accounts (Client Deposit, Supplier Expense, Commission Revenue).
+- Update `SharedTripInvestment` to capture the client's IP address when they accept terms
+- Use a lightweight IP detection approach (fetch from a public API like `https://api.ipify.org`)
+- Pass IP + user agent + signature to the `shared-trip` edge function
+- The edge function writes to `compliance_audit_log` and updates `trip_payments.terms_accepted_at` + `acceptance_signature`
+- Also capture IP on CC authorization submissions (update `cc-authorization` edge function)
 
-### 3. Enhanced Reconciliation Dashboard
+### 3. Refund Tracking Dashboard
 
-Upgrade the existing QBOHealth page with a new **"Financial Lifecycle"** section:
+Create a new admin-only page `/refunds` (or a section within QBO Health) showing:
 
-**Per-Trip Money Flow Table**
-- Query trips with their bookings, payments, and commissions
-- For each trip, show a row with columns:
-  - Trip Name / Client
-  - Client Paid (sum of completed trip_payments)
-  - Stripe Fees (calculated)
-  - Supplier Paid (sum of bookings with virtual_card_status = 'authorized' or 'locked')
-  - Commission Earned (total_commission_revenue)
-  - Commission Paid Out (sum of paid commissions)
-  - Net Position (Client Paid - Fees - Supplier Paid - Commission Paid)
-- Color coding: Green = balanced (net near zero for completed trips), Amber = in progress, Red = discrepancy
+- All `trip_payments` with `status = 'refunded'` across the agency
+- Columns: Date, Client, Trip, Amount, Refund Reason, Agent, Stripe Receipt
+- Summary cards: Total Refunds (count + amount), This Month, By Agent
+- Filter by date range and agent
+- Link to Stripe receipt URL when available
 
-**Unmatched Transactions Alert**
-- Show payments without matching journal entries in QBO sync logs
-- Show virtual card charges without corresponding supplier expense entries
-- Actionable: "Sync Now" button per unmatched item
+### 4. Chargeback Alert Workflow
 
-### 4. Journal Entry Audit Trail
+- Add a new webhook handler in `stripe-issuing-webhook` (or a separate function) for `charge.dispute.created` events
+- When a dispute is received:
+  - Create an `agent_notification` with type `chargeback_alert`
+  - Log to `compliance_audit_log` with event_type `dispute_opened`
+  - Update the corresponding `trip_payment` status to `disputed` (add as a new valid status)
+- Dashboard: Show disputed payments in the refund tracking view with a red "Disputed" badge
 
-Add a new section to QBOHealth showing the automated journal entries log:
-- Filter `qbo_sync_logs` by `sync_type` starting with "auto-"
-- Show: Date, Type (deposit/supplier/commission/payout/trip-complete), Amount, Status, QBO Entry ID
-- This replaces manually checking QBO for each entry
+### 5. Supplier Cancellation Tracking
+
+Add structured cancellation fields to the `bookings` table:
+
+```text
+cancelled_at | timestamptz
+cancellation_penalty | numeric (default 0)
+cancellation_refund_amount | numeric (default 0)
+cancellation_reason | text
+```
+
+- When a booking status changes to `cancelled`, prompt the agent for cancellation details (penalty, refund amount, reason)
+- Show a cancellation details card on `BookingDetail` when status is cancelled
+- Add a "Supplier Cancellations" section to the refund tracking page showing all cancelled bookings with financial impact
 
 ---
 
 ## Database Changes
 
 ```sql
--- New trigger for trip completion -> QBO journal entry
-CREATE OR REPLACE FUNCTION public.trigger_qbo_trip_completed()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  SECURITY DEFINER
-  SET search_path TO 'public', 'extensions'
-AS $$
-DECLARE
-  _service_key text;
-BEGIN
-  IF NEW.status = 'completed' 
-     AND (OLD.status IS DISTINCT FROM 'completed')
-     AND COALESCE(NEW.total_commission_revenue, 0) > 0 THEN
-    
-    SELECT decrypted_secret INTO _service_key
-    FROM vault.decrypted_secrets
-    WHERE name = 'SUPABASE_SERVICE_ROLE_KEY'
-    LIMIT 1;
+-- 1. Compliance audit log
+CREATE TABLE public.compliance_audit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  event_type text NOT NULL,
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  client_name text,
+  ip_address text,
+  user_agent text,
+  signature text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-    PERFORM net.http_post(
-      url := 'https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/qbo-sync-trigger',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || _service_key
-      ),
-      body := jsonb_build_object(
-        'trigger_type', 'trip_completed',
-        'record', row_to_json(NEW)::jsonb
-      )
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$;
+ALTER TABLE public.compliance_audit_log ENABLE ROW LEVEL SECURITY;
 
-CREATE TRIGGER trigger_qbo_trip_completed
-  AFTER UPDATE ON public.trips
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_qbo_trip_completed();
+CREATE POLICY "Users can view their own audit logs"
+  ON public.compliance_audit_log FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own audit logs"
+  ON public.compliance_audit_log FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all audit logs"
+  ON public.compliance_audit_log FOR SELECT TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Office admins can view all audit logs"
+  ON public.compliance_audit_log FOR SELECT TO authenticated
+  USING (has_role(auth.uid(), 'office_admin'::app_role));
+
+-- 2. Supplier cancellation fields on bookings
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
+  ADD COLUMN IF NOT EXISTS cancellation_penalty numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cancellation_refund_amount numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cancellation_reason text;
+
+-- 3. Index for audit log queries
+CREATE INDEX idx_compliance_audit_event_type ON public.compliance_audit_log(event_type);
+CREATE INDEX idx_compliance_audit_user_id ON public.compliance_audit_log(user_id);
 ```
 
-No new tables needed -- all data is already in `qbo_sync_logs`, `trip_payments`, `bookings`, `commissions`, and `trips`.
-
 ---
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/qbo-sync-trigger/index.ts` | Add `supplier_paid` and `trip_completed` handlers with auto-provisioned accounts |
-| `supabase/functions/stripe-issuing-webhook/index.ts` | After auto-locking a card on `issuing_transaction.created`, fire `qbo-sync-trigger` with `supplier_paid` |
-| `src/pages/QBOHealth.tsx` | Add "Financial Lifecycle" per-trip table, unmatched transactions alert, and journal entry audit trail |
-| `src/hooks/useQBOConnection.ts` | Add `getFinancialLifecycle()` method to fetch per-trip money flow data |
-| Database migration | Add `trigger_qbo_trip_completed` trigger and function |
 
 ## Files to Create
 
 | File | Purpose |
 |------|---------|
-| None | All changes fit within existing files |
+| `src/pages/RiskCompliance.tsx` | Refund tracking dashboard + compliance audit trail + supplier cancellations |
+| `src/hooks/useComplianceAudit.ts` | Hook to query compliance_audit_log and refund data |
+| `supabase/functions/stripe-dispute-webhook/index.ts` | Webhook handler for Stripe dispute events |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/shared-trip/SharedTripInvestment.tsx` | Capture IP + user agent on terms acceptance, POST to shared-trip edge function |
+| `supabase/functions/shared-trip/index.ts` | Accept POST with signature/IP/user_agent, write to compliance_audit_log |
+| `supabase/functions/cc-authorization/index.ts` | Log IP + user agent to compliance_audit_log on CC auth submission |
+| `src/pages/BookingDetail.tsx` | Add cancellation details dialog when status changes to cancelled; show cancellation card |
+| `src/hooks/useBookings.ts` | Add cancellation fields to Booking interface and select query |
+| `src/components/layout/Sidebar.tsx` | Add "Risk & Compliance" nav item for admins |
+| `src/App.tsx` | Add `/risk-compliance` route |
+| `src/integrations/supabase/types.ts` | Auto-updated with new table/columns |
+| `supabase/config.toml` | Add `stripe-dispute-webhook` with `verify_jwt = false` |
 
 ---
 
 ## Implementation Order
 
-1. Database migration (trip_completed trigger)
-2. Add `supplier_paid` and `trip_completed` handlers to `qbo-sync-trigger`
-3. Update `stripe-issuing-webhook` to fire supplier_paid after card lock
-4. Add Financial Lifecycle section to QBOHealth page
-5. Add Journal Entry Audit Trail to QBOHealth page
-6. Add unmatched transaction detection
+1. Database migration (compliance_audit_log table + booking cancellation columns)
+2. Create `useComplianceAudit` hook
+3. Create `RiskCompliance` page with refund dashboard + audit trail + supplier cancellations
+4. Add route and sidebar navigation
+5. Update `SharedTripInvestment` + `shared-trip` edge function for IP/signature logging
+6. Update `cc-authorization` edge function for audit logging
+7. Add cancellation details dialog to `BookingDetail`
+8. Create `stripe-dispute-webhook` edge function for chargeback alerts
+9. Deploy edge functions
 
