@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ const Auth = () => {
   const [storedInvitationToken, setStoredInvitationToken] = useState<string | null>(null);
   const inviteToken = searchParams.get("invite");
   const switchAccount = searchParams.get("switch");
+  const postAuthRunning = useRef(false);
 
   // If switch=true, sign out immediately
   useEffect(() => {
@@ -60,8 +61,10 @@ const Auth = () => {
   useEffect(() => {
     if (loading) return;
     if (!user) return;
+    if (postAuthRunning.current) return;
 
     const handlePostAuth = async () => {
+      postAuthRunning.current = true;
       setIsValidating(true);
       const userEmail = user.email?.toLowerCase();
 
@@ -210,9 +213,10 @@ const Auth = () => {
         devError("[Auth] Unexpected error during validation:", err);
         toast.error("An error occurred while validating your access.");
         await signOut();
-      } finally {
-        setIsValidating(false);
-      }
+    } finally {
+      setIsValidating(false);
+      postAuthRunning.current = false;
+    }
     };
 
     handlePostAuth();
