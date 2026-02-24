@@ -109,7 +109,11 @@ export type Database = {
           booking_reference: string
           booking_type: string
           calculated_commission: number | null
+          cancellation_penalty: number | null
+          cancellation_reason: string | null
+          cancellation_refund_amount: number | null
           cancellation_terms: string | null
+          cancelled_at: string | null
           client_id: string
           commission_override_amount: number | null
           commission_revenue: number
@@ -145,7 +149,11 @@ export type Database = {
           booking_reference: string
           booking_type?: string
           calculated_commission?: number | null
+          cancellation_penalty?: number | null
+          cancellation_reason?: string | null
+          cancellation_refund_amount?: number | null
           cancellation_terms?: string | null
+          cancelled_at?: string | null
           client_id: string
           commission_override_amount?: number | null
           commission_revenue?: number
@@ -181,7 +189,11 @@ export type Database = {
           booking_reference?: string
           booking_type?: string
           calculated_commission?: number | null
+          cancellation_penalty?: number | null
+          cancellation_reason?: string | null
+          cancellation_refund_amount?: number | null
           cancellation_terms?: string | null
+          cancelled_at?: string | null
           client_id?: string
           commission_override_amount?: number | null
           commission_revenue?: number
@@ -701,6 +713,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      compliance_audit_log: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          signature: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          signature?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          signature?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       email_logs: {
         Row: {

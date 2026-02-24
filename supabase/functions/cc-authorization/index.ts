@@ -206,6 +206,26 @@ const handler = async (req: Request): Promise<Response> => {
         message: `💳 ${clientData?.name || "Client"} has authorized credit card ending in ${lastFour} for this booking.`,
       });
 
+      // Log to compliance audit
+      const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("x-real-ip") || null;
+      const clientUA = req.headers.get("user-agent") || null;
+
+      await supabaseAdmin.from("compliance_audit_log").insert({
+        user_id: auth.user_id,
+        event_type: "cc_authorized",
+        entity_type: "cc_authorization",
+        entity_id: auth.id,
+        client_name: clientData?.name || null,
+        ip_address: clientIp,
+        user_agent: clientUA,
+        metadata: {
+          last_four: lastFour,
+          booking_id: auth.booking_id,
+          cardholder_name: cardholder_name,
+        },
+      });
+
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

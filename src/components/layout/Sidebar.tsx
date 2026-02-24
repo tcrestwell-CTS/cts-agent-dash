@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   HeartPulse,
+  ShieldAlert,
   ChevronLeft,
   ChevronRight,
   Bell,
@@ -57,6 +58,7 @@ const navigation = [
 const adminNavigation = [
   { name: "Team Management", href: "/team", icon: UserPlus },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
+  { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
 ];
 
 interface SidebarProps {

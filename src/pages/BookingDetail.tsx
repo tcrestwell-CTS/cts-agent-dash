@@ -47,6 +47,7 @@ import {
   Receipt,
   Map,
   CreditCard,
+  Ban,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings } from "@/hooks/useBookings";
@@ -69,6 +70,8 @@ import { useClient } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
@@ -151,8 +154,13 @@ const BookingDetail = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCCAuthDialog, setShowCCAuthDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelPenalty, setCancelPenalty] = useState("");
+  const [cancelRefund, setCancelRefund] = useState("");
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [customRate, setCustomRate] = useState<string>("");
+  const { user } = useAuth();
 
   const handleDelete = async () => {
     if (booking) {
@@ -286,7 +294,13 @@ const BookingDetail = () => {
               </h1>
               <Select
                 value={booking.status}
-                onValueChange={(value) => updateBookingStatus(booking.id, value)}
+                onValueChange={(value) => {
+                  if (value === "cancelled") {
+                    setShowCancelDialog(true);
+                  } else {
+                    updateBookingStatus(booking.id, value);
+                  }
+                }}
                 disabled={updatingStatus}
               >
                 <SelectTrigger className="w-auto h-8 px-2 border-0 bg-transparent">
@@ -543,6 +557,42 @@ const BookingDetail = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-foreground whitespace-pre-wrap">{booking.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cancellation Details */}
+          {booking.status === "cancelled" && (
+            <Card className="border-destructive/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <Ban className="h-5 w-5" />
+                  Cancellation Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {booking.cancellation_reason && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Reason</p>
+                    <p className="text-foreground">{booking.cancellation_reason}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Cancellation Penalty</p>
+                    <p className="font-semibold text-warning">{formatCurrency(booking.cancellation_penalty || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Refund to Client</p>
+                    <p className="font-semibold text-success">{formatCurrency(booking.cancellation_refund_amount || 0)}</p>
+                  </div>
+                </div>
+                {booking.cancelled_at && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Cancelled On</p>
+                    <p className="text-foreground">{formatDate(booking.cancelled_at)}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -926,6 +976,106 @@ const BookingDetail = () => {
         bookingAmount={booking.gross_sales || booking.total_amount}
         bookingReference={booking.booking_reference}
       />
+
+      {/* Cancellation Details Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-destructive" />
+              Cancel Booking
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Record the cancellation details for {booking.trip_name || booking.destination}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="cancel-reason">Cancellation Reason</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Why is this booking being cancelled?"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="cancel-penalty">Supplier Penalty ($)</Label>
+                <Input
+                  id="cancel-penalty"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={cancelPenalty}
+                  onChange={(e) => setCancelPenalty(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cancel-refund">Refund to Client ($)</Label>
+                <Input
+                  id="cancel-refund"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={cancelRefund}
+                  onChange={(e) => setCancelRefund(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Back</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                const { error } = await supabase
+                  .from("bookings")
+                  .update({
+                    status: "cancelled",
+                    cancelled_at: new Date().toISOString(),
+                    cancellation_reason: cancelReason || null,
+                    cancellation_penalty: parseFloat(cancelPenalty) || 0,
+                    cancellation_refund_amount: parseFloat(cancelRefund) || 0,
+                  })
+                  .eq("id", booking.id);
+
+                if (error) {
+                  toast.error("Failed to cancel booking");
+                } else {
+                  // Log to compliance audit
+                  if (user) {
+                    await supabase.from("compliance_audit_log").insert({
+                      user_id: user.id,
+                      event_type: "cancellation_recorded",
+                      entity_type: "booking",
+                      entity_id: booking.id,
+                      client_name: booking.clients?.name || null,
+                      metadata: {
+                        booking_reference: booking.booking_reference,
+                        destination: booking.destination,
+                        penalty: parseFloat(cancelPenalty) || 0,
+                        refund: parseFloat(cancelRefund) || 0,
+                        reason: cancelReason,
+                      },
+                    });
+                  }
+                  toast.success("Booking cancelled");
+                  refetch();
+                }
+                setShowCancelDialog(false);
+                setCancelReason("");
+                setCancelPenalty("");
+                setCancelRefund("");
+              }}
+            >
+              Confirm Cancellation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

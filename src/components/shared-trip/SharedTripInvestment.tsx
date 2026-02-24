@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SharedTripInvestmentProps {
   trip: {
@@ -26,6 +27,7 @@ interface SharedTripInvestmentProps {
   cancellationTerms: string[];
   paymentDeadlines: { label: string; date: string }[];
   primaryColor: string;
+  shareToken?: string;
 }
 
 export default function SharedTripInvestment({
@@ -35,6 +37,7 @@ export default function SharedTripInvestment({
   paymentDeadlines,
   primaryColor,
   upgradeNotes,
+  shareToken,
 }: SharedTripInvestmentProps) {
   const totalCost = trip.total_cost || 0;
   const depositAmount = deposit.required ? deposit.amount : 0;
@@ -47,6 +50,7 @@ export default function SharedTripInvestment({
     travelerNames: false,
   });
   const [signature, setSignature] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (totalCost <= 0) return null;
 
@@ -55,9 +59,50 @@ export default function SharedTripInvestment({
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
-  const handleAcceptTerms = () => {
-    setTermsAccepted(true);
-    setShowTerms(false);
+  const handleAcceptTerms = async () => {
+    if (!shareToken) {
+      setTermsAccepted(true);
+      setShowTerms(false);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Capture IP address
+      let ipAddress = null;
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
+        ipAddress = ipData.ip;
+      } catch {
+        // IP capture is best-effort
+      }
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/shared-trip`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: shareToken,
+            signature: signature.trim(),
+            ip_address: ipAddress,
+            user_agent: navigator.userAgent,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Failed to log terms acceptance");
+      }
+    } catch (err) {
+      console.error("Error logging terms acceptance:", err);
+    } finally {
+      setSubmitting(false);
+      setTermsAccepted(true);
+      setShowTerms(false);
+    }
   };
 
   const paymentAmount = deposit.required && depositAmount > 0 ? depositAmount : totalCost;
@@ -284,13 +329,17 @@ export default function SharedTripInvestment({
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowTerms(false)}>Cancel</Button>
               <Button
-                disabled={!allAccepted}
+                disabled={!allAccepted || submitting}
                 className="text-white"
                 style={{ backgroundColor: primaryColor }}
                 onClick={handleAcceptTerms}
               >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Accept & Continue
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CreditCard className="h-4 w-4 mr-2" />
+                )}
+                {submitting ? "Processing..." : "Accept & Continue"}
               </Button>
             </div>
           </div>

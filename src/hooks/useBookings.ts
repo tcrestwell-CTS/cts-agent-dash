@@ -38,6 +38,11 @@ export interface Booking {
   override_notes: string | null;
   // Trip reference
   trip_id: string | null;
+  // Cancellation fields
+  cancelled_at: string | null;
+  cancellation_penalty: number;
+  cancellation_refund_amount: number;
+  cancellation_reason: string | null;
   clients?: {
     name: string;
     email: string | null;
@@ -156,6 +161,10 @@ export function useBookings() {
           override_approved_at,
           override_notes,
           trip_id,
+          cancelled_at,
+          cancellation_penalty,
+          cancellation_refund_amount,
+          cancellation_reason,
           clients (
             name,
             email
@@ -712,6 +721,10 @@ export function useBooking(bookingId: string | undefined) {
             override_approved_at,
             override_notes,
             trip_id,
+            cancelled_at,
+            cancellation_penalty,
+            cancellation_refund_amount,
+            cancellation_reason,
             clients (
               id,
               name,
@@ -799,6 +812,10 @@ export function useClientBookings(clientId: string | undefined) {
             override_approved_at,
             override_notes,
             trip_id,
+            cancelled_at,
+            cancellation_penalty,
+            cancellation_refund_amount,
+            cancellation_reason,
             trips (
               id,
               status
