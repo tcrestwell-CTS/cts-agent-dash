@@ -446,6 +446,54 @@ export type Database = {
           },
         ]
       }
+      client_document_checklist: {
+        Row: {
+          checked_at: string | null
+          client_id: string
+          created_at: string
+          id: string
+          is_checked: boolean
+          item_key: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          checked_at?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          item_key: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          checked_at?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          item_key?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_document_checklist_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_document_checklist_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portal_sessions: {
         Row: {
           client_id: string
@@ -1397,6 +1445,7 @@ export type Database = {
       }
       trip_payments: {
         Row: {
+          acceptance_signature: string | null
           amount: number
           booking_id: string | null
           created_at: string
@@ -1420,6 +1469,7 @@ export type Database = {
           virtual_card_status: string | null
         }
         Insert: {
+          acceptance_signature?: string | null
           amount?: number
           booking_id?: string | null
           created_at?: string
@@ -1443,6 +1493,7 @@ export type Database = {
           virtual_card_status?: string | null
         }
         Update: {
+          acceptance_signature?: string | null
           amount?: number
           booking_id?: string | null
           created_at?: string

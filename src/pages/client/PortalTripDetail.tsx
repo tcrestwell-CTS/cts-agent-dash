@@ -14,6 +14,9 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { RequestChangesDialog } from "@/components/client/RequestChangesDialog";
 import { PaymentMilestoneTracker } from "@/components/client/PaymentMilestoneTracker";
+import { DepartureCountdown } from "@/components/client/DepartureCountdown";
+import { TravelDocChecklist } from "@/components/client/TravelDocChecklist";
+import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocationTimeline";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -81,7 +84,6 @@ export default function PortalTripDetail() {
   const { trip, bookings = [], payments = [], itinerary = [], itineraries = [] } = data;
   const approvedId = trip.approved_itinerary_id;
 
-  // Check if deposit has been paid (for confirmation gate)
   const depositPaid = payments.some((p: any) => 
     (p.payment_type === "deposit" || p.payment_type === "payment") && p.status === "paid"
   );
@@ -116,7 +118,6 @@ export default function PortalTripDetail() {
     }
   };
 
-  // Group itinerary items by itinerary_id
   const itemsByItinerary = itinerary.reduce((acc: Record<string, any[]>, item: any) => {
     const key = item.itinerary_id || "default";
     (acc[key] = acc[key] || []).push(item);
@@ -159,6 +160,28 @@ export default function PortalTripDetail() {
         </div>
       </div>
 
+      {/* Departure Countdown */}
+      <DepartureCountdown departDate={trip.depart_date} returnDate={trip.return_date} />
+
+      {/* Payment Milestone Tracker - moved up for prominence */}
+      {payments.length > 0 && totalCost > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Payment Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PaymentMilestoneTracker payments={payments} totalCost={totalCost} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Location Timeline */}
+      {itinerary.length > 0 && (
+        <ItineraryLocationTimeline items={itinerary} />
+      )}
+
       {/* Itinerary Options */}
       {itineraries.length > 0 && (
         <Card>
@@ -188,15 +211,9 @@ export default function PortalTripDetail() {
                     isApproved ? "border-primary ring-1 ring-primary/30" : ""
                   }`}
                 >
-                  {/* Cover image */}
                   {itin.cover_image_url && (
-                    <img
-                      src={itin.cover_image_url}
-                      alt={itin.name}
-                      className="w-full h-36 object-cover"
-                    />
+                    <img src={itin.cover_image_url} alt={itin.name} className="w-full h-36 object-cover" />
                   )}
-
                   <div className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
@@ -235,11 +252,7 @@ export default function PortalTripDetail() {
                         </Button>
                       </div>
                     </div>
-
-                    {/* Itinerary items */}
-                    {items.length > 0 && (
-                      <ItineraryItemsList items={items} />
-                    )}
+                    {items.length > 0 && <ItineraryItemsList items={items} />}
                   </div>
                 </div>
               );
@@ -248,22 +261,17 @@ export default function PortalTripDetail() {
         </Card>
       )}
 
-      {/* Legacy itinerary (items without itinerary_id) */}
+      {/* Legacy itinerary */}
       {(itemsByItinerary["default"]?.length > 0 && itineraries.length === 0) && (
         <Card>
-          <CardHeader
-            className="cursor-pointer select-none"
-            onClick={() => setShowItinerary(!showItinerary)}
-          >
+          <CardHeader className="cursor-pointer select-none" onClick={() => setShowItinerary(!showItinerary)}>
             <CardTitle className="text-base flex items-center gap-2">
               <ClipboardList className="h-4 w-4" /> View Full Itinerary ({itinerary.length} items)
               {showItinerary ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
             </CardTitle>
           </CardHeader>
           {showItinerary && (
-            <CardContent>
-              <ItineraryItemsList items={itinerary} />
-            </CardContent>
+            <CardContent><ItineraryItemsList items={itinerary} /></CardContent>
           )}
         </Card>
       )}
@@ -281,9 +289,7 @@ export default function PortalTripDetail() {
               <Lock className="h-5 w-5 text-amber-600 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-amber-800">Booking details locked</p>
-                <p className="text-xs text-amber-600 mt-0.5">
-                  Pay your deposit to unlock full booking confirmation details.
-                </p>
+                <p className="text-xs text-amber-600 mt-0.5">Pay your deposit to unlock full booking confirmation details.</p>
               </div>
             </div>
           ) : bookings.length === 0 ? (
@@ -300,12 +306,8 @@ export default function PortalTripDetail() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">
-                      {b.status}
-                    </Badge>
-                    {b.total_amount > 0 && (
-                      <p className="text-sm font-medium">${b.total_amount.toLocaleString()}</p>
-                    )}
+                    <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
+                    {b.total_amount > 0 && <p className="text-sm font-medium">${b.total_amount.toLocaleString()}</p>}
                   </div>
                 </div>
               ))}
@@ -328,14 +330,8 @@ export default function PortalTripDetail() {
                 <div key={auth.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <p className="font-medium">${Number(auth.authorization_amount).toLocaleString()}</p>
-                    {auth.authorization_description && (
-                      <p className="text-sm text-muted-foreground">{auth.authorization_description}</p>
-                    )}
-                    {auth.booking && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {auth.booking.trip_name || auth.booking.destination}
-                      </p>
-                    )}
+                    {auth.authorization_description && <p className="text-sm text-muted-foreground">{auth.authorization_description}</p>}
+                    {auth.booking && <p className="text-xs text-muted-foreground mt-0.5">{auth.booking.trip_name || auth.booking.destination}</p>}
                   </div>
                   <div className="text-right space-y-1">
                     <Badge variant={auth.status === "authorized" ? "default" : auth.status === "pending" ? "secondary" : "outline"}>
@@ -343,10 +339,7 @@ export default function PortalTripDetail() {
                     </Badge>
                     {auth.status === "pending" && (
                       <div>
-                        <a
-                          href={`/authorize/${auth.access_token}`}
-                          className="text-xs text-primary hover:underline font-medium"
-                        >
+                        <a href={`/authorize/${auth.access_token}`} className="text-xs text-primary hover:underline font-medium">
                           Complete Authorization →
                         </a>
                       </div>
@@ -404,9 +397,7 @@ export default function PortalTripDetail() {
                       </p>
                       {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
                       {isPaid && p.payment_method && (
-                        <p className="text-xs text-muted-foreground capitalize">
-                          via {p.payment_method.replace(/_/g, " ")}
-                        </p>
+                        <p className="text-xs text-muted-foreground capitalize">via {p.payment_method.replace(/_/g, " ")}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
@@ -418,11 +409,7 @@ export default function PortalTripDetail() {
                         <p className="text-sm font-semibold mt-1">${Number(p.amount).toLocaleString()}</p>
                       </div>
                       {isPending && (
-                        <Button
-                          size="sm"
-                          onClick={() => handlePayNow(p.id)}
-                          disabled={payingId === p.id}
-                        >
+                        <Button size="sm" onClick={() => handlePayNow(p.id)} disabled={payingId === p.id}>
                           {payingId === p.id ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                           ) : (
@@ -440,26 +427,13 @@ export default function PortalTripDetail() {
         </CardContent>
       </Card>
 
-      {/* Payment Milestone Tracker */}
-      {payments.length > 0 && totalCost > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> Payment Milestones
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PaymentMilestoneTracker payments={payments} totalCost={totalCost} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Travel Document Checklist */}
+      {tripId && <TravelDocChecklist tripId={tripId} />}
 
       {/* Notes */}
       {trip.notes && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Trip Notes</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Trip Notes</CardTitle></CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{trip.notes}</p>
           </CardContent>
@@ -485,7 +459,6 @@ export default function PortalTripDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Request Changes Dialog */}
       <RequestChangesDialog
         open={!!changeRequest}
         onOpenChange={(open) => !open && setChangeRequest(null)}
@@ -522,9 +495,7 @@ function ItineraryItemsList({ items }: { items: any[] }) {
                   <span className="text-lg">{categoryIcons[item.category] || "📌"}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{item.title}</p>
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                    )}
+                    {item.description && <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>}
                     <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
                       {(item.start_time || item.end_time) && (
                         <span className="flex items-center gap-1">
@@ -538,9 +509,7 @@ function ItineraryItemsList({ items }: { items: any[] }) {
                         </span>
                       )}
                     </div>
-                    {item.notes && (
-                      <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>
-                    )}
+                    {item.notes && <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>}
                   </div>
                 </div>
               </div>

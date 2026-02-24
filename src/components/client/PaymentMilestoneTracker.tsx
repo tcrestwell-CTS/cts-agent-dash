@@ -1,5 +1,5 @@
-import { CheckCircle2, Circle, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { CheckCircle2, Circle, Clock, AlertTriangle } from "lucide-react";
+import { format, isPast, differenceInDays } from "date-fns";
 
 interface Payment {
   id: string;
@@ -29,6 +29,21 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
     .reduce((sum, p) => sum + Number(p.amount), 0);
 
   const progress = totalCost > 0 ? Math.min((totalPaid / totalCost) * 100, 100) : 0;
+  const remaining = totalCost - totalPaid;
+
+  // Find next pending payment
+  const nextPending = sorted.find(p => p.status === "pending");
+  const nextDueDate = nextPending?.due_date;
+  const isOverdue = nextDueDate ? isPast(new Date(nextDueDate)) : false;
+  const daysTilDue = nextDueDate ? differenceInDays(new Date(nextDueDate), new Date()) : null;
+  const isDueSoon = daysTilDue !== null && daysTilDue >= 0 && daysTilDue <= 14;
+
+  // Urgency state
+  const urgencyColor = isOverdue
+    ? "bg-destructive"
+    : isDueSoon
+    ? "bg-amber-500"
+    : "bg-primary";
 
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
@@ -38,6 +53,35 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
 
   return (
     <div className="space-y-4">
+      {/* Remaining balance callout */}
+      {remaining > 0 && (
+        <div className={`flex items-center gap-3 rounded-lg px-4 py-3 ${
+          isOverdue
+            ? "bg-destructive/10 border border-destructive/20"
+            : isDueSoon
+            ? "bg-amber-50 border border-amber-200"
+            : "bg-muted/50 border border-border"
+        }`}>
+          {isOverdue ? (
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          ) : isDueSoon ? (
+            <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+          ) : null}
+          <p className={`text-sm font-medium ${
+            isOverdue ? "text-destructive" : isDueSoon ? "text-amber-800" : "text-foreground"
+          }`}>
+            {formatCurrency(remaining)} remaining
+            {nextDueDate && (
+              <span className="font-normal text-muted-foreground">
+                {isOverdue
+                  ? ` — payment was due ${format(new Date(nextDueDate), "MMM d")}`
+                  : ` — next payment due ${format(new Date(nextDueDate), "MMM d, yyyy")}`}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-foreground">Payment Progress</span>
         <span className="text-muted-foreground">
@@ -48,7 +92,7 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
       {/* Progress bar */}
       <div className="h-2.5 bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full bg-primary rounded-full transition-all duration-500"
+          className={`h-full rounded-full transition-all duration-500 ${urgencyColor}`}
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -59,26 +103,33 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
           const isPaid = payment.status === "paid";
           const isPending = payment.status === "pending";
           const date = payment.due_date || payment.payment_date;
+          const paymentOverdue = isPending && payment.due_date && isPast(new Date(payment.due_date));
 
           return (
             <div key={payment.id} className="flex items-center gap-3">
               {isPaid ? (
                 <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+              ) : paymentOverdue ? (
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
               ) : isPending ? (
                 <Clock className="h-5 w-5 text-amber-500 shrink-0" />
               ) : (
                 <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${isPaid ? "text-green-700" : "text-foreground"}`}>
+                <p className={`text-sm font-medium ${
+                  isPaid ? "text-green-700" : paymentOverdue ? "text-destructive" : "text-foreground"
+                }`}>
                   {typeLabel(payment.payment_type)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {isPaid ? "Paid" : "Due"}{" "}
+                  {isPaid ? "Paid" : paymentOverdue ? "Overdue" : "Due"}{" "}
                   {date && format(new Date(date), "MMM d, yyyy")}
                 </p>
               </div>
-              <span className={`text-sm font-semibold ${isPaid ? "text-green-700" : "text-foreground"}`}>
+              <span className={`text-sm font-semibold ${
+                isPaid ? "text-green-700" : paymentOverdue ? "text-destructive" : "text-foreground"
+              }`}>
                 {formatCurrency(payment.amount)}
               </span>
             </div>
