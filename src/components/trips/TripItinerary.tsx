@@ -322,29 +322,31 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         )}
       </div>}
 
-      {/* Empty State */}
+      {/* Empty State — also a drop zone */}
       {items.length === 0 && !generating && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">No Itinerary Yet</h3>
-            <p className="text-muted-foreground mb-4 max-w-sm">
-              Use AI to auto-generate a detailed itinerary, import from existing bookings, or add items manually.
-            </p>
-            <div className="flex gap-2">
-              <Button onClick={() => setAiPromptOpen(true)}>
-                <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
-              </Button>
-              {unimportedBookings.length > 0 && (
-                <Button variant="outline" onClick={() => importFromBookings(unimportedBookings)}>
-                  <Import className="h-4 w-4 mr-2" /> Import Bookings
+        <DayDropZone day={1} onDrop={handleDropComponent}>
+          <Card className="border-dashed border-2 transition-colors">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">No Itinerary Yet</h3>
+              <p className="text-muted-foreground mb-4 max-w-sm">
+                Drag a trip component here, use AI to auto-generate, import from existing bookings, or add items manually.
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => setAiPromptOpen(true)}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
                 </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                {unimportedBookings.length > 0 && (
+                  <Button variant="outline" onClick={() => importFromBookings(unimportedBookings)}>
+                    <Import className="h-4 w-4 mr-2" /> Import Bookings
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </DayDropZone>
       )}
 
       {/* Generating skeleton */}
