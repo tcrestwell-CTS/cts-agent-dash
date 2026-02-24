@@ -37,5 +37,7 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.stripe-dispute-webhook]
     verify_jwt = false
+  [functions.evaluate-tiers]
+    verify_jwt = false
   [functions.widgety-cruise]
     verify_jwt = false

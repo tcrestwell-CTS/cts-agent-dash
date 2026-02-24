@@ -264,7 +264,7 @@ const Commissions = () => {
       {isAdmin && <div className="mb-6"><PendingOverridesCard /></div>}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-muted-foreground">Total Earned (Your Share)</p>
@@ -327,6 +327,26 @@ const Commissions = () => {
           </p>
           <p className="text-sm text-muted-foreground mt-2">
             {totals.pendingCount} pending
+          </p>
+        </div>
+
+        {/* Holdback Reserve Card */}
+        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-muted-foreground">Holdback Reserve</p>
+            <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+              <ArrowUpRight className="h-5 w-5 text-accent" />
+            </div>
+          </div>
+          <p className="text-3xl font-semibold text-accent">
+            {formatCurrency(
+              (commissions || [])
+                .filter((c) => !c.holdback_released && c.holdback_amount > 0)
+                .reduce((sum, c) => sum + c.holdback_amount, 0)
+            )}
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            {(commissions || []).filter((c) => c.holdback_released).length} released
           </p>
         </div>
       </div>

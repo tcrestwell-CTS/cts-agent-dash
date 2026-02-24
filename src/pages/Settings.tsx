@@ -6,18 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2 } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTierConfig } from "@/lib/commissionTiers";
 import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
 import { StripeConnectCard } from "@/components/settings/StripeConnectCard";
+import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
+import { usePermissions } from "@/hooks/usePermissions";
 
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
   const { preferences, loading: notifLoading, updatePreference } = useNotificationPreferences();
+  const { isAdmin } = usePermissions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -106,6 +109,12 @@ const Settings = () => {
             <Link2 className="h-4 w-4" />
             Integrations
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="agency" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Agency
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -551,6 +560,12 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="agency">
+            <AgencySettingsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </DashboardLayout>
   );

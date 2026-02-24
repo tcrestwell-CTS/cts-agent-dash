@@ -43,6 +43,9 @@ export interface Booking {
   cancellation_penalty: number;
   cancellation_refund_amount: number;
   cancellation_reason: string | null;
+  // Approval fields
+  approval_required: boolean;
+  approval_type: string | null;
   clients?: {
     name: string;
     email: string | null;
@@ -165,6 +168,8 @@ export function useBookings() {
           cancellation_penalty,
           cancellation_refund_amount,
           cancellation_reason,
+          approval_required,
+          approval_type,
           clients (
             name,
             email
@@ -335,6 +340,15 @@ export function useBookings() {
     setCreating(true);
     try {
       const bookingReference = generateBookingReference();
+
+      // Fetch agency settings for approval threshold
+      const { data: agencySettings } = await supabase
+        .from("agency_settings")
+        .select("approval_threshold")
+        .limit(1)
+        .maybeSingle();
+
+      const approvalThreshold = agencySettings?.approval_threshold ?? 10000;
       
       // Calculate financial fields
       const grossSales = data.gross_sales ?? data.total_amount;
@@ -350,6 +364,8 @@ export function useBookings() {
       const overrideAmount = hasOverride ? data.commission_override_amount : null;
       const needsApproval = hasOverride && overrideAmount! > commissionRevenue;
 
+      // Check if high-value booking requires admin approval
+      const isHighValue = approvalThreshold > 0 && grossSales >= approvalThreshold && !isAdmin;
       const { data: newBooking, error } = await supabase
         .from("bookings")
         .insert({
@@ -363,7 +379,7 @@ export function useBookings() {
           total_amount: grossSales,
           trip_name: data.trip_name || null,
           notes: data.notes || null,
-          status: "confirmed",
+          status: isHighValue ? "pending" : "confirmed",
           owner_agent: agentName,
           supplier_id: data.supplier_id || null,
           gross_sales: grossSales,
@@ -376,6 +392,8 @@ export function useBookings() {
           override_pending_approval: needsApproval,
           override_approved: hasOverride && !needsApproval,
           override_notes: data.override_notes || null,
+          approval_required: isHighValue,
+          approval_type: isHighValue ? "high_value" : null,
         })
         .select(`
           *,
@@ -424,6 +442,11 @@ export function useBookings() {
           overrideReason: data.override_notes || "",
         });
         toast.info("Commission override submitted for admin approval");
+      }
+
+      // Notify about high-value approval
+      if (isHighValue) {
+        toast.info("High-value booking submitted for admin approval");
       }
 
       // Refresh bookings list
@@ -725,6 +748,8 @@ export function useBooking(bookingId: string | undefined) {
             cancellation_penalty,
             cancellation_refund_amount,
             cancellation_reason,
+            approval_required,
+            approval_type,
             clients (
               id,
               name,
@@ -816,6 +841,8 @@ export function useClientBookings(clientId: string | undefined) {
             cancellation_penalty,
             cancellation_refund_amount,
             cancellation_reason,
+            approval_required,
+            approval_type,
             trips (
               id,
               status
