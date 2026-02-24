@@ -86,8 +86,8 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
               </Select>
             </div>
             <div>
-              <Label>Location</Label>
-              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+              <Label>{form.category === "hotel" ? "Hotel / Property" : "Location"}</Label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={form.category === "hotel" ? "e.g., Marriott Downtown" : ""} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

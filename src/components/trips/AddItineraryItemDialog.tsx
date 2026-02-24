@@ -103,8 +103,8 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
               </Select>
             </div>
             <div>
-              <Label>Location</Label>
-              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Place name" />
+              <Label>{form.category === "hotel" ? "Hotel / Property" : "Location"}</Label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={form.category === "hotel" ? "e.g., Marriott Downtown" : "Place name"} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
