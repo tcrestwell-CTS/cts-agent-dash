@@ -12,6 +12,7 @@ export interface Commission {
   rate: number;
   status: string;
   paid_date: string | null;
+  expected_commission: number;
   created_at: string;
   updated_at: string;
 }

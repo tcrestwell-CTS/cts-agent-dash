@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -19,6 +19,7 @@ interface TripStatusWorkflowProps {
   currentStatus: string;
   onStatusChange: (newStatus: string) => Promise<boolean>;
   disabled?: boolean;
+  readinessComplete?: boolean;
 }
 
 const WORKFLOW_STATUSES = [
@@ -28,9 +29,10 @@ const WORKFLOW_STATUSES = [
   { key: "completed", label: "Completed", icon: CheckCircle2, description: "Trip completed" },
 ] as const;
 
-export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: TripStatusWorkflowProps) {
+export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, readinessComplete = true }: TripStatusWorkflowProps) {
   const [updating, setUpdating] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [showReadinessWarning, setShowReadinessWarning] = useState(false);
 
   const currentIndex = WORKFLOW_STATUSES.findIndex((s) => s.key === currentStatus);
   const isCancelled = currentStatus === "cancelled";
@@ -243,20 +245,54 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled }: 
               )}
 
               {nextStatus ? (
-                <Button
-                  onClick={() => handleStatusChange(nextStatus.key)}
-                  disabled={updating || disabled}
-                  className="gap-2"
-                >
-                  {updating && pendingStatus === nextStatus.key ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      Mark as {nextStatus.label}
-                      <ChevronRight className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
+                <>
+                  <Button
+                    onClick={() => {
+                      if (currentStatus === "planning" && nextStatus.key === "booked" && !readinessComplete) {
+                        setShowReadinessWarning(true);
+                      } else {
+                        handleStatusChange(nextStatus.key);
+                      }
+                    }}
+                    disabled={updating || disabled}
+                    className="gap-2"
+                  >
+                    {updating && pendingStatus === nextStatus.key ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        Mark as {nextStatus.label}
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Readiness Warning Dialog */}
+                  <AlertDialog open={showReadinessWarning} onOpenChange={setShowReadinessWarning}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-warning" />
+                          Incomplete Trip Readiness
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This trip has incomplete readiness items. Moving to "Booked" without all items checked may result in an incomplete proposal. Proceed anyway?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Go Back</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            setShowReadinessWarning(false);
+                            handleStatusChange(nextStatus.key);
+                          }}
+                        >
+                          Proceed Anyway
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               ) : (
                 <div className="flex items-center gap-2 text-primary">
                   <CheckCircle2 className="h-5 w-5" />

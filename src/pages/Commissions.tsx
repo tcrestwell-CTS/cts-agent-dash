@@ -25,6 +25,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
+import { CommissionAgingReport } from "@/components/commissions/CommissionAgingReport";
 import { useMemo } from "react";
 import { format, parseISO, startOfMonth, subMonths, subDays, startOfYear, isWithinInterval, isPast, differenceInDays } from "date-fns";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
@@ -388,6 +389,9 @@ const Commissions = () => {
           </Table>
         </div>
       )}
+
+      {/* Commission Aging Report */}
+      <CommissionAgingReport commissions={enrichedCommissions} />
 
       {/* Chart and Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -28,6 +28,8 @@ import { TripBookings } from "@/components/trips/TripBookings";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
 import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
 import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist";
+import { TripReadinessScore } from "@/components/trips/TripReadinessScore";
+import { SupplierPaymentStatus } from "@/components/trips/SupplierPaymentStatus";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
@@ -173,6 +175,7 @@ const TripDetail = () => {
     itinerary_style: (trip as any).itinerary_style || "vertical_list",
     deposit_required: (trip as any).deposit_required || false,
     deposit_amount: (trip as any).deposit_amount || 0,
+    upgrade_notes: (trip as any).upgrade_notes || "",
   };
 
   return (
@@ -313,6 +316,13 @@ const TripDetail = () => {
               currentStatus={trip.status}
               onStatusChange={updateTripStatus}
               disabled={updatingStatus}
+              readinessComplete={
+                !!(trip as any).budget_range &&
+                !!trip.depart_date &&
+                !!trip.return_date &&
+                bookings.some((b: any) => b.supplier_id) &&
+                trip.total_commission_revenue > 0
+              }
             />
 
             {/* Cover Image */}
@@ -390,11 +400,19 @@ const TripDetail = () => {
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-muted-foreground">Supplier Payout</span>
+                  <span className="text-sm text-muted-foreground">Supplier Payout</span>
                     <span className="font-medium">
                       {formatCurrency(trip.total_supplier_payout)}
                     </span>
                   </div>
+                  {trip.total_gross_sales > 0 && (
+                    <div className="flex justify-between items-center py-2 border-t">
+                      <span className="text-sm text-muted-foreground">Margin %</span>
+                      <span className="font-semibold text-primary">
+                        {((trip.total_commission_revenue / trip.total_gross_sales) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -424,7 +442,7 @@ const TripDetail = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="bookings" className="mt-6">
+              <TabsContent value="bookings" className="mt-6 space-y-6">
                 <TripBookings
                   tripId={tripId!}
                   clientId={trip.client_id}
@@ -435,6 +453,10 @@ const TripDetail = () => {
                   departDate={trip.depart_date || undefined}
                   returnDate={trip.return_date || undefined}
                   onDataChange={fetchTrip}
+                />
+                <SupplierPaymentStatus
+                  bookings={bookings}
+                  payments={payments}
                 />
               </TabsContent>
 
@@ -460,6 +482,13 @@ const TripDetail = () => {
           {/* Right sidebar */}
           <div className="space-y-4 lg:block">
             <div className="sticky top-6 space-y-4">
+              <TripReadinessScore
+                budgetRange={(trip as any).budget_range}
+                departDate={trip.depart_date}
+                returnDate={trip.return_date}
+                hasSupplierBooking={bookings.some((b: any) => b.supplier_id)}
+                totalCommissionRevenue={trip.total_commission_revenue}
+              />
               <TripTravelersCard
                 client={trip.clients}
                 clientId={trip.client_id}
