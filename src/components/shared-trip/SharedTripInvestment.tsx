@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -44,10 +46,11 @@ export default function SharedTripInvestment({
     cancellation: false,
     travelerNames: false,
   });
+  const [signature, setSignature] = useState("");
 
   if (totalCost <= 0) return null;
 
-  const allAccepted = accepted.totalCost && accepted.cancellation && accepted.travelerNames;
+  const allAccepted = accepted.totalCost && accepted.cancellation && accepted.travelerNames && signature.trim().length >= 2;
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
@@ -252,7 +255,26 @@ export default function SharedTripInvestment({
               </label>
             </div>
 
-            {!allAccepted && (
+            {/* E-Signature */}
+            <div className="space-y-2 border-t pt-4">
+              <Label htmlFor="signature" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <PenLine className="h-4 w-4" style={{ color: primaryColor }} />
+                Type your full name as your electronic signature
+              </Label>
+              <Input
+                id="signature"
+                placeholder="e.g. John Smith"
+                value={signature}
+                onChange={(e) => setSignature(e.target.value)}
+                className="font-serif italic text-lg"
+                maxLength={100}
+              />
+              {signature.trim().length > 0 && signature.trim().length < 2 && (
+                <p className="text-xs text-amber-600">Please enter at least 2 characters.</p>
+              )}
+            </div>
+
+            {!(accepted.totalCost && accepted.cancellation && accepted.travelerNames) && (
               <div className="flex items-center gap-2 text-xs text-amber-600">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 Please check all boxes to continue.

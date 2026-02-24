@@ -135,7 +135,9 @@ export default function SharedTrip() {
       <SharedTripHero branding={data.branding} advisor={data.advisor} primaryColor={primaryColor} />
 
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
-        <SharedTripMeta trip={data.trip} primaryColor={primaryColor} />
+        {!data.trip.cover_image_url && (
+          <SharedTripMeta trip={data.trip} primaryColor={primaryColor} />
+        )}
 
         {data.trip.notes && (
           <div>
