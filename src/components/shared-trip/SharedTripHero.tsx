@@ -6,6 +6,7 @@ interface SharedTripHeroProps {
     logo_url: string | null;
     primary_color: string | null;
     tagline: string | null;
+    video_intro_url?: string | null;
   } | null;
   advisor: {
     name: string | null;
@@ -42,8 +43,19 @@ export default function SharedTripHero({ branding, advisor, primaryColor }: Shar
           <h2 className="text-white text-xl font-semibold">
             {branding?.agency_name || "Travel Itinerary"}
           </h2>
-          {branding?.tagline && (
+         {branding?.tagline && (
             <p className="text-white/80 text-sm italic">{branding.tagline}</p>
+          )}
+          {branding?.video_intro_url && (
+            <div className="mt-3 rounded-lg overflow-hidden max-w-sm">
+              <iframe
+                src={branding.video_intro_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                className="w-full aspect-video rounded-lg"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Meet your advisor"
+              />
+            </div>
           )}
         </div>
 

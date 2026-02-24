@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Lock, Shield } from "lucide-react";
@@ -23,6 +24,7 @@ interface TripSettings {
   itinerary_style: string;
   deposit_required: boolean;
   deposit_amount: number;
+  upgrade_notes?: string;
 }
 
 interface TripSettingsSidebarProps {
@@ -187,6 +189,19 @@ export function TripSettingsSidebar({
               />
             </div>
           )}
+
+          {/* Upgrade Notes */}
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Optional Upgrades</Label>
+            <Textarea
+              placeholder="Describe optional upgrades for the client proposal..."
+              value={localSettings.upgrade_notes || ""}
+              onChange={(e) => setLocalSettings((s) => ({ ...s, upgrade_notes: e.target.value }))}
+              onBlur={(e) => updateSetting("upgrade_notes", e.target.value || null)}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">Shown on the shared trip page</p>
+          </div>
 
           {/* Itinerary Style */}
           <div className="space-y-1.5">

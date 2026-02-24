@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,7 @@ interface SharedTripInvestmentProps {
     depart_date: string | null;
     notes: string | null;
   };
+  upgradeNotes?: string | null;
   deposit: {
     required: boolean;
     amount: number;
@@ -31,6 +32,7 @@ export default function SharedTripInvestment({
   cancellationTerms,
   paymentDeadlines,
   primaryColor,
+  upgradeNotes,
 }: SharedTripInvestmentProps) {
   const totalCost = trip.total_cost || 0;
   const depositAmount = deposit.required ? deposit.amount : 0;
@@ -60,6 +62,14 @@ export default function SharedTripInvestment({
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-900">Your Investment</h2>
+
+      {/* Urgency Banner */}
+      <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-5 py-3">
+        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+        <p className="text-sm text-amber-800 font-medium">
+          Pricing is subject to availability and may change. Book now to secure these rates.
+        </p>
+      </div>
 
       {/* Pricing Breakdown */}
       <div className="rounded-xl border border-gray-200 overflow-hidden">
@@ -143,6 +153,17 @@ export default function SharedTripInvestment({
               <li key={i} className="text-sm text-amber-700">{term}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Optional Upgrades */}
+      {upgradeNotes && (
+        <div className="rounded-xl border border-gray-200 p-6">
+          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <ArrowUpRight className="h-4 w-4" style={{ color: primaryColor }} />
+            Optional Upgrades
+          </h3>
+          <p className="text-sm text-gray-600 whitespace-pre-wrap">{upgradeNotes}</p>
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -148,7 +149,24 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
         : null,
     });
 
+    // Check if status changed from lead to active — offer trip creation
+    const wasLead = client.status === "lead";
+    const nowActive = formData.status === "active";
+
     onOpenChange(false);
+
+    if (wasLead && nowActive) {
+      // Small delay so dialog closes first
+      setTimeout(() => {
+        const createTrip = window.confirm(
+          `${name} has been converted to an active client. Would you like to create a trip for them?`
+        );
+        if (createTrip) {
+          // Navigate to trips page with client pre-selected
+          window.location.href = `/trips?newTrip=true&clientId=${client.id}&clientName=${encodeURIComponent(name)}`;
+        }
+      }, 300);
+    }
   };
 
   const updateField = (field: string, value: string) => {

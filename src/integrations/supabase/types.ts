@@ -255,6 +255,7 @@ export type Database = {
           tagline: string | null
           updated_at: string
           user_id: string
+          video_intro_url: string | null
           website: string | null
         }
         Insert: {
@@ -274,6 +275,7 @@ export type Database = {
           tagline?: string | null
           updated_at?: string
           user_id: string
+          video_intro_url?: string | null
           website?: string | null
         }
         Update: {
@@ -293,6 +295,7 @@ export type Database = {
           tagline?: string | null
           updated_at?: string
           user_id?: string
+          video_intro_url?: string | null
           website?: string | null
         }
         Relationships: []
@@ -609,6 +612,7 @@ export type Database = {
           amount: number
           booking_id: string
           created_at: string
+          expected_commission: number | null
           id: string
           paid_date: string | null
           rate: number
@@ -620,6 +624,7 @@ export type Database = {
           amount: number
           booking_id: string
           created_at?: string
+          expected_commission?: number | null
           id?: string
           paid_date?: string | null
           rate: number
@@ -631,6 +636,7 @@ export type Database = {
           amount?: number
           booking_id?: string
           created_at?: string
+          expected_commission?: number | null
           id?: string
           paid_date?: string | null
           rate?: number
@@ -1560,6 +1566,7 @@ export type Database = {
           post_trip_email_sent: boolean | null
           pricing_visibility: string
           published_at: string | null
+          readiness_score: Json | null
           return_date: string | null
           share_token: string
           status: string
@@ -1573,6 +1580,7 @@ export type Database = {
           trip_page_url: string | null
           trip_type: string | null
           updated_at: string
+          upgrade_notes: string | null
           user_id: string
         }
         Insert: {
@@ -1596,6 +1604,7 @@ export type Database = {
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           published_at?: string | null
+          readiness_score?: Json | null
           return_date?: string | null
           share_token?: string
           status?: string
@@ -1609,6 +1618,7 @@ export type Database = {
           trip_page_url?: string | null
           trip_type?: string | null
           updated_at?: string
+          upgrade_notes?: string | null
           user_id: string
         }
         Update: {
@@ -1632,6 +1642,7 @@ export type Database = {
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           published_at?: string | null
+          readiness_score?: Json | null
           return_date?: string | null
           share_token?: string
           status?: string
@@ -1645,6 +1656,7 @@ export type Database = {
           trip_page_url?: string | null
           trip_type?: string | null
           updated_at?: string
+          upgrade_notes?: string | null
           user_id?: string
         }
         Relationships: [

@@ -144,6 +144,7 @@ export default function SharedTrip() {
           cancellationTerms={data.cancellationTerms || []}
           paymentDeadlines={data.paymentDeadlines || []}
           primaryColor={primaryColor}
+          upgradeNotes={(data as any).upgrade_notes}
         />
 
         <SharedTripFooter branding={data.branding} advisor={data.advisor} />

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileSpreadsheet, DollarSign, TrendingUp, Users } from "lucide-react";
+import { Download, FileSpreadsheet, DollarSign, TrendingUp, Users, Percent } from "lucide-react";
 import { useCommissionReport, useAgentList } from "@/hooks/useCommissionReport";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
@@ -84,6 +84,7 @@ export default function CommissionReport() {
     const uniqueAgents = new Set(filteredData.map((item) => item.user_id)).size;
     const paidCount = filteredData.filter((item) => item.status === "paid").length;
     const pendingCount = filteredData.filter((item) => item.status === "pending").length;
+    const marginPct = totalGrossSales > 0 ? (totalCommission / totalGrossSales) * 100 : 0;
 
     return {
       totalCommission,
@@ -93,8 +94,46 @@ export default function CommissionReport() {
       count: filteredData.length,
       paidCount,
       pendingCount,
+      marginPct,
     };
   }, [filteredData]);
+
+  // Advisor profitability breakdown (admin only)
+  const advisorProfitability = useMemo(() => {
+    if (!canViewAll || !filteredData.length) return [];
+
+    const byAgent = filteredData.reduce((acc, item) => {
+      const userId = item.user_id;
+      if (!acc[userId]) {
+        acc[userId] = {
+          name: item.agent?.full_name || "Unknown",
+          tier: (item.agent?.commission_tier || "tier_1") as CommissionTier,
+          grossSales: 0,
+          totalCommission: 0,
+          agentEarnings: 0,
+          tripCount: new Set<string>(),
+        };
+      }
+      acc[userId].grossSales += item.booking?.gross_sales || item.booking?.total_amount || 0;
+      acc[userId].totalCommission += item.amount;
+      acc[userId].agentEarnings += calculateAgentCommission(item.amount, acc[userId].tier);
+      if (item.booking?.trip_id) acc[userId].tripCount.add(item.booking.trip_id);
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.entries(byAgent)
+      .map(([userId, data]) => ({
+        userId,
+        name: data.name,
+        tierLabel: getTierConfig(data.tier).label,
+        grossSales: data.grossSales,
+        totalCommission: data.totalCommission,
+        agentEarnings: data.agentEarnings,
+        tripCount: data.tripCount.size,
+        margin: data.grossSales > 0 ? (data.totalCommission / data.grossSales) * 100 : 0,
+      }))
+      .sort((a, b) => b.agentEarnings - a.agentEarnings);
+  }, [canViewAll, filteredData]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-US", {
@@ -212,7 +251,7 @@ export default function CommissionReport() {
         />
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Gross Sales</p>
@@ -258,7 +297,56 @@ export default function CommissionReport() {
               {canViewAll ? `${stats.uniqueAgents} agents` : "After agent split"}
             </p>
           </div>
+
+          <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">Avg Margin</p>
+              <Percent className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-2xl font-semibold text-primary">
+              {stats.marginPct.toFixed(1)}%
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Commission / Gross Sales</p>
+          </div>
         </div>
+
+        {/* Advisor Profitability (Admin) */}
+        {canViewAll && advisorProfitability.length > 0 && (
+          <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-card-foreground">Advisor Profitability</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left text-sm font-medium text-muted-foreground p-3">Agent</th>
+                    <th className="text-left text-sm font-medium text-muted-foreground p-3">Tier</th>
+                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Gross Sales</th>
+                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Commission</th>
+                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Agent Earnings</th>
+                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Margin %</th>
+                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Trips</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {advisorProfitability.map((a) => (
+                    <tr key={a.userId} className="border-b last:border-0">
+                      <td className="p-3 text-sm font-medium">{a.name}</td>
+                      <td className="p-3 text-sm text-muted-foreground">{a.tierLabel}</td>
+                      <td className="p-3 text-sm text-right">{formatCurrency(a.grossSales)}</td>
+                      <td className="p-3 text-sm text-right text-primary font-medium">{formatCurrency(a.totalCommission)}</td>
+                      <td className="p-3 text-sm text-right text-success font-semibold">{formatCurrency(a.agentEarnings)}</td>
+                      <td className="p-3 text-sm text-right font-medium">{a.margin.toFixed(1)}%</td>
+                      <td className="p-3 text-sm text-right">{a.tripCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <CommissionReportTable data={filteredData} showAgentColumn={canViewAll || false} />
