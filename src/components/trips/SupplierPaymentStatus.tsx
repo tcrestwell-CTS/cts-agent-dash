@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, FileText, CreditCard, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface Booking {
   id: string;
@@ -88,7 +89,9 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium truncate">{booking.booking_reference}</p>
+                  <Link to={`/bookings/${booking.id}`} className="text-sm font-medium truncate text-primary hover:underline">
+                    {booking.booking_reference}
+                  </Link>
                   <span className="text-xs text-muted-foreground">•</span>
                   <p className="text-xs text-muted-foreground truncate">{supplierName}</p>
                 </div>
