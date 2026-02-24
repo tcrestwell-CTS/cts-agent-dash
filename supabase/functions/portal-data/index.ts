@@ -343,6 +343,15 @@ const handler = async (req: Request): Promise<Response> => {
         message: `✅ ${clientData?.name || "Client"} has approved itinerary "${itinData?.name || "Unknown"}" for this trip.`,
       });
 
+      // Insert agent notification so it appears in the bell icon
+      await supabase.from("agent_notifications").insert({
+        user_id: tripCheck.user_id,
+        type: "itinerary_approved",
+        title: "Itinerary Approved",
+        message: `${clientData?.name || "Client"} approved "${itinData?.name || "Itinerary"}" for their trip.`,
+        trip_id: tripId,
+      });
+
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
