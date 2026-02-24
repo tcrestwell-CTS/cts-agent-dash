@@ -1,156 +1,106 @@
 
 
-# Level 2: Upgrade the Client Experience
+# Level 3: Agent Performance Intelligence
 
-Transform the client portal from functional to premium, and make the proposal page feel like a luxury microsite.
+Upgrade from tracking metrics to decision intelligence -- giving agency leaders the data to coach agents and optimize operations.
 
 ---
 
 ## What Already Exists
 
-**Client Portal (PortalTripDetail):**
-- Trip header with name, destination, dates, status badge
-- Itinerary options with approve/request changes
-- Bookings list with confirmation gate (locked until deposit paid)
-- Payments list with "Pay Now" buttons (Stripe)
-- Payment Milestone Tracker (progress bar + milestone list)
-- CC Authorizations section
-- Trip notes
-
-**Proposal Page (SharedTrip):**
-- Hero cover photo (full-width 40vh)
-- Agency branding bar with advisor card + video embed
-- Trip meta (name, destination, dates, cost, type)
-- Day-by-day itinerary with category icons
-- Investment breakdown (total cost, deposit, balance, deadlines)
-- "What's Included" / "Not Included" lists
-- Urgency banner + optional upgrades
-- Pre-payment agreement dialog (3 checkboxes)
-- Footer with agency info
+The platform already calculates per-agent:
+- **Revenue** (total booking amounts)
+- **Bookings count** and **Avg Booking Value**
+- **Conversion rate** (clients with bookings / total clients)
+- **Commission totals** (pending + paid)
+- Revenue bar chart + commissions chart
+- Agent ranking table with progress bars
+- Advisor profitability on Commission Report page (gross sales, commission, margin %, trips)
 
 ---
 
-## Part 1: Client Portal Enhancements
+## What's New
 
-### 1A. Departure Countdown
-- Add a prominent countdown card at the top of `PortalTripDetail` and on `PortalDashboard` trip cards
-- Shows days until departure with visual ring/number
-- Changes tone: "X days to go!" (far out) vs "Departing soon!" (under 7 days) vs "You're traveling!" (during trip)
-- Pure frontend calculation from `depart_date`, no database changes
+### 1. Enhanced AgentStats with Margin, Close Rate by Trip Type, and Lead Response Time
 
-### 1B. Balance Reminder Progress Bar
-- Already exists as `PaymentMilestoneTracker` -- enhance it to be more prominent
-- Move it higher on the `PortalTripDetail` page (right after the trip header)
-- Add a colored urgency state: green (on track), amber (payment due soon), red (overdue)
-- Add remaining balance callout text: "You have $X,XXX remaining -- next payment due MMM D"
-- Also show a mini version on `PortalDashboard` per trip
+Expand the `AgentStats` interface and `useAgentPerformance` hook to calculate:
 
-### 1C. Document Checklist
-- Create a new component `TravelDocChecklist` showing:
-  - Passport valid for travel (checkbox)
-  - Travel insurance obtained (checkbox)
-  - Visa requirements reviewed (checkbox)
-  - Emergency contacts provided (checkbox)
-- Client-side state stored via the portal-data edge function
-- New database table `client_document_checklist` with columns: `id`, `client_id`, `trip_id`, `item_key`, `is_checked`, `created_at`, `updated_at`
-- Edge function endpoint to read/update checklist items
+- **Margin per advisor**: `(total_commission_revenue / total_gross_sales) * 100` using booking-level financial data (already available on bookings)
+- **Close rate by trip type**: Group bookings by `booking_type`, count confirmed vs total per type per agent
+- **Lead response time**: Average days between client `created_at` (lead creation) and their first booking's `created_at` -- a proxy for how quickly the agent converts leads
 
-### 1D. Emergency Contact Button
-- Add a floating or sticky "Need Help?" button in the portal layout
-- Tapping it shows the agent's phone number, email, and a quick-message form
-- Uses existing agent data from the portal session -- no database changes
+No database changes needed -- all data is already available in existing tables.
 
-### 1E. Interactive Itinerary Map (Simplified)
-- Add a visual location timeline instead of a full map (avoids needing Google Maps API key)
-- Show destinations as connected dots on a horizontal timeline with location labels
-- Derived from itinerary item locations -- no database changes
-- If a map API is later desired, the component can be upgraded
+### 2. New: Agent Intelligence Dashboard Tab
+
+Add a new **"Agent Intelligence"** tab on the Analytics page (visible to admins/office admins) that shows:
+
+- **Scorecard grid**: Revenue, Margin %, Conversion Rate, Avg Booking Value, Avg Lead Response Time per agent
+- **Close Rate by Trip Type heatmap**: Table with agents as rows, trip types as columns, close rates as colored cells
+- **Agent Comparison radar chart**: Select 2 agents to compare across 5 dimensions (revenue, margin, conversion, avg value, response time)
+
+### 3. Individual Agent View Enhancement
+
+For regular agents viewing their own performance, add:
+- Margin % display
+- Lead response time metric
+- Close rate breakdown by trip type (simple bar chart)
 
 ---
 
-## Part 2: Proposal Page Enhancements (Luxury Microsite)
+## Technical Details
 
-### 2A. Enhanced Hero
-- Trip name overlaid on the cover photo with gradient text shadow
-- Destination + dates shown over the image
-- Smoother gradient overlay (from-black/60 via-black/30 to-transparent)
-- Already has cover photo -- just need to overlay trip info on it
+### Changes to `useAgentPerformance` hook
 
-### 2B. Payment Timeline Visual
-- Add a horizontal timeline component showing the payment schedule
-- Deposit -> Interim payments -> Final balance with dates and amounts
-- Visual dots connected by a line, colored by status
-- Rendered from existing `paymentDeadlines` data
-
-### 2C. Secure Approval + E-Sign Enhancement
-- Upgrade the existing "Review Terms & Proceed" flow
-- Add a typed signature field (client types their name as agreement)
-- Add timestamp + IP capture for the acceptance record
-- Store signature in the existing `terms_accepted_at` field + a new `acceptance_signature` text field on `trip_payments`
-- Update the shared-trip edge function to accept and store the signature
-
----
-
-## Database Changes
-
-```sql
--- Document checklist for client portal
-CREATE TABLE client_document_checklist (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id uuid NOT NULL,
-  trip_id uuid NOT NULL,
-  item_key text NOT NULL,
-  is_checked boolean NOT NULL DEFAULT false,
-  checked_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(client_id, trip_id, item_key)
-);
-
-ALTER TABLE client_document_checklist ENABLE ROW LEVEL SECURITY;
-
--- No RLS policies needed for direct access since this is accessed
--- via service-role through the portal-data edge function
-
--- Acceptance signature for proposals
-ALTER TABLE trip_payments ADD COLUMN IF NOT EXISTS acceptance_signature text;
+Add to `AgentStats`:
+```typescript
+marginPct: number;           // commission_revenue / gross_sales * 100
+avgLeadResponseDays: number; // avg days from client creation to first booking
+closeRateByType: Record<string, { total: number; closed: number; rate: number }>;
+totalGrossSales: number;
+totalCommissionRevenue: number;
 ```
 
+Calculation logic:
+- **Margin**: Sum `commission_revenue` and `gross_sales` from agent's bookings (these columns already exist)
+- **Lead response time**: For each client, find their earliest booking `created_at`, subtract client `created_at`, average across all clients
+- **Close rate by type**: Group agent's bookings by `booking_type`, count those with status "confirmed" or "completed" vs total
+
+### New Component: `AgentIntelligenceTab`
+
+A new component `src/components/analytics/AgentIntelligenceTab.tsx` containing:
+
+1. **Intelligence Scorecard** -- A sortable table with columns: Agent, Revenue, Gross Sales, Margin %, Avg Booking Value, Conversion %, Avg Lead Response (days), Total Bookings
+2. **Trip Type Performance** -- A table/heatmap showing close rates by booking type per agent
+3. **Agent Comparison** -- A Recharts RadarChart comparing two selected agents across normalized metrics
+
+### Modified: Analytics Page
+
+Add a new tab "Agent Intelligence" alongside existing "Overview", "Agent Performance", and "Agency Sales" tabs.
+
 ---
 
-## New Files
+## Files to Create
 
 | File | Purpose |
 |------|---------|
-| `src/components/client/DepartureCountdown.tsx` | Countdown to departure date |
-| `src/components/client/TravelDocChecklist.tsx` | Document checklist with checkboxes |
-| `src/components/client/EmergencyContactButton.tsx` | Floating help/contact button |
-| `src/components/client/ItineraryLocationTimeline.tsx` | Visual location dots timeline |
-| `src/components/shared-trip/PaymentTimelineVisual.tsx` | Horizontal payment schedule timeline |
+| `src/components/analytics/AgentIntelligenceTab.tsx` | Full intelligence dashboard with scorecard, trip type heatmap, and comparison chart |
 
-## Modified Files
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/client/PortalDashboard.tsx` | Add departure countdown per trip, mini balance bar |
-| `src/pages/client/PortalTripDetail.tsx` | Add countdown, enhanced balance bar, doc checklist, location timeline |
-| `src/components/client/PortalLayout.tsx` | Add emergency contact floating button |
-| `src/components/client/PaymentMilestoneTracker.tsx` | Add urgency colors + remaining balance text |
-| `src/pages/SharedTrip.tsx` | Overlay trip info on hero, add payment timeline |
-| `src/components/shared-trip/SharedTripInvestment.tsx` | Add typed e-signature field to agreement dialog |
-| `src/components/shared-trip/SharedTripMeta.tsx` | Minor: move into hero overlay when cover exists |
-| `src/hooks/usePortalData.ts` | Add checklist fetch/update hooks |
-| `supabase/functions/portal-data/index.ts` | Add checklist read/write endpoints |
+| `src/hooks/useAgentPerformance.ts` | Add margin, lead response time, close rate by type, gross sales, commission revenue to AgentStats |
+| `src/components/analytics/AgentPerformanceSection.tsx` | Add margin %, response time, and trip type breakdown to single-agent view |
+| `src/pages/Analytics.tsx` | Add "Agent Intelligence" tab (admin only) |
+
+## No Database Changes
+
+All metrics are derived from existing columns: `bookings.commission_revenue`, `bookings.gross_sales`, `bookings.booking_type`, `bookings.status`, `clients.created_at`, and `bookings.created_at`.
 
 ## Implementation Order
 
-1. Database migration (checklist table + signature column)
-2. Departure Countdown component + integrate into portal dashboard and trip detail
-3. Enhanced Payment Milestone Tracker (urgency colors, remaining balance)
-4. Document Checklist (component + edge function endpoints)
-5. Emergency Contact Button in portal layout
-6. Location Timeline for itinerary
-7. Proposal hero overlay enhancement
-8. Payment Timeline Visual for proposal page
-9. E-signature field in proposal agreement dialog
-
+1. Enhance `useAgentPerformance` hook with new calculated fields
+2. Create `AgentIntelligenceTab` component
+3. Add new tab to Analytics page
+4. Enhance single-agent view in `AgentPerformanceSection`
