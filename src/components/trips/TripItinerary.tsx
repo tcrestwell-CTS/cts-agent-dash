@@ -99,10 +99,15 @@ function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop
 
 export function TripItinerary({ tripId, itineraryId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
   const { items, loading, generating, addItem, updateItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId, itineraryId);
+  const { blocks, createBlock, updateBlock, deleteBlock, fetchBlocks } = useOptionBlocks(tripId, itineraryId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
-  const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string } | null>(null);
+  const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string; optionBlockId?: string } | null>(null);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+
+  const handleAddOptionBlock = useCallback(async (dayNumber: number) => {
+    await createBlock(dayNumber);
+  }, [createBlock]);
 
   const handleDropComponent = useCallback((category: string, day: number) => {
     setAddCategoryDay({ day, category });
