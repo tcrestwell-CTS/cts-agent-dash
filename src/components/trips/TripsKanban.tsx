@@ -1,9 +1,21 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Users, MapPin, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Trip } from "@/hooks/useTrips";
+import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 
 export interface KanbanColumn {
   id: string;
@@ -14,7 +26,7 @@ export interface KanbanColumn {
 interface TripsKanbanProps {
   trips: Trip[];
   columns: KanbanColumn[];
-  onStatusChange: (tripId: string, newStatus: string) => Promise<boolean>;
+  onStatusChange: (tripId: string, newStatus: string, cancellationOptions?: CancellationOptions) => Promise<boolean>;
 }
 
 // Convert hex color to a Tailwind-compatible border style
@@ -24,6 +36,13 @@ function columnBorderStyle(hexColor: string) {
 
 export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps) {
   const navigate = useNavigate();
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  const [pendingDrag, setPendingDrag] = useState<{ tripId: string; newStatus: "cancelled" | "archived"; tripName: string } | null>(null);
+  const [cleanupOptions, setCleanupOptions] = useState<CancellationOptions>({
+    unpublish: true,
+    deactivateAutomations: true,
+    completeTasks: true,
+  });
 
   const tripsByStatus = columns.reduce((acc, col) => {
     acc[col.id] = trips.filter((t) => t.status === col.id);
@@ -40,96 +59,171 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
     const newStatus = destination.droppableId;
     const trip = trips.find((t) => t.id === draggableId);
     if (!trip || trip.status === newStatus) return;
+
+    // Intercept cancelled/archived to show cleanup dialog
+    if (newStatus === "cancelled" || newStatus === "archived") {
+      setPendingDrag({ tripId: trip.id, newStatus, tripName: trip.trip_name });
+      setCleanupOptions({ unpublish: true, deactivateAutomations: true, completeTasks: true });
+      setShowCleanupDialog(true);
+      return;
+    }
+
     await onStatusChange(draggableId, newStatus);
   };
 
-  return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]">
-        {columns.map((col) => (
-          <Droppable droppableId={col.id} key={col.id}>
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                style={columnBorderStyle(col.color)}
-                className={`flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 ${
-                  snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
-                } transition-colors`}
-              >
-                <div className="px-3.5 py-3 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-foreground">{col.label}</h3>
-                  <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
-                    {tripsByStatus[col.id]?.length || 0}
-                  </span>
-                </div>
-                <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
-                  {tripsByStatus[col.id]?.map((trip, index) => (
-                    <Draggable
-                      key={trip.id}
-                      draggableId={trip.id}
-                      index={index}
-                      isDragDisabled={trip.isOptimistic}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
-                          className={`cursor-pointer ${snapshot.isDragging ? "rotate-2 shadow-lg" : ""}`}
-                        >
-                          <KanbanTripCard trip={trip} />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              </div>
-            )}
-          </Droppable>
-        ))}
+  const handleCleanupSubmit = async () => {
+    if (!pendingDrag) return;
+    setShowCleanupDialog(false);
+    await onStatusChange(pendingDrag.tripId, pendingDrag.newStatus, cleanupOptions);
+    setPendingDrag(null);
+  };
 
-        {/* Show orphaned trips in an "Other" column if any exist */}
-        {orphanedTrips.length > 0 && (
-          <Droppable droppableId="__orphaned__" isDropDisabled>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 border-t-muted bg-muted/20"
-              >
-                <div className="px-3.5 py-3 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-muted-foreground">Other</h3>
-                  <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
-                    {orphanedTrips.length}
-                  </span>
+  const handleCleanupCancel = () => {
+    setShowCleanupDialog(false);
+    setPendingDrag(null);
+  };
+
+  return (
+    <>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]">
+          {columns.map((col) => (
+            <Droppable droppableId={col.id} key={col.id}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  style={columnBorderStyle(col.color)}
+                  className={`flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 ${
+                    snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
+                  } transition-colors`}
+                >
+                  <div className="px-3.5 py-3 flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-foreground">{col.label}</h3>
+                    <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
+                      {tripsByStatus[col.id]?.length || 0}
+                    </span>
+                  </div>
+                  <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
+                    {tripsByStatus[col.id]?.map((trip, index) => (
+                      <Draggable
+                        key={trip.id}
+                        draggableId={trip.id}
+                        index={index}
+                        isDragDisabled={trip.isOptimistic}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
+                            className={`cursor-pointer ${snapshot.isDragging ? "rotate-2 shadow-lg" : ""}`}
+                          >
+                            <KanbanTripCard trip={trip} />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
                 </div>
-                <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
-                  {orphanedTrips.map((trip, index) => (
-                    <Draggable key={trip.id} draggableId={trip.id} index={index} isDragDisabled>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          onClick={() => navigate(`/trips/${trip.id}`)}
-                          className="cursor-pointer"
-                        >
-                          <KanbanTripCard trip={trip} />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
+              )}
+            </Droppable>
+          ))}
+
+          {/* Show orphaned trips in an "Other" column if any exist */}
+          {orphanedTrips.length > 0 && (
+            <Droppable droppableId="__orphaned__" isDropDisabled>
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 border-t-muted bg-muted/20"
+                >
+                  <div className="px-3.5 py-3 flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-muted-foreground">Other</h3>
+                    <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
+                      {orphanedTrips.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
+                    {orphanedTrips.map((trip, index) => (
+                      <Draggable key={trip.id} draggableId={trip.id} index={index} isDragDisabled>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            onClick={() => navigate(`/trips/${trip.id}`)}
+                            className="cursor-pointer"
+                          >
+                            <KanbanTripCard trip={trip} />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
                 </div>
-              </div>
-            )}
-          </Droppable>
-        )}
-      </div>
-    </DragDropContext>
+              )}
+            </Droppable>
+          )}
+        </div>
+      </DragDropContext>
+
+      {/* Cleanup Dialog for Cancel / Archive from Kanban */}
+      <Dialog open={showCleanupDialog} onOpenChange={(open) => { if (!open) handleCleanupCancel(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Move {pendingDrag?.tripName ? `"${pendingDrag.tripName}"` : "trip"} to{" "}
+              {pendingDrag?.newStatus === "cancelled" ? "Cancelled" : "Archived"}
+            </DialogTitle>
+            <DialogDescription>
+              Choose what happens with this trip's automations, tasks, and publishing.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <Checkbox
+                checked={cleanupOptions.unpublish}
+                onCheckedChange={(checked) =>
+                  setCleanupOptions((prev) => ({ ...prev, unpublish: checked === true }))
+                }
+              />
+              <span className="text-sm font-medium">Unpublish Trip</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <Checkbox
+                checked={cleanupOptions.deactivateAutomations}
+                onCheckedChange={(checked) =>
+                  setCleanupOptions((prev) => ({ ...prev, deactivateAutomations: checked === true }))
+                }
+              />
+              <span className="text-sm font-medium">Deactivate Automations</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <Checkbox
+                checked={cleanupOptions.completeTasks}
+                onCheckedChange={(checked) =>
+                  setCleanupOptions((prev) => ({ ...prev, completeTasks: checked === true }))
+                }
+              />
+              <span className="text-sm font-medium">Complete Tasks</span>
+            </label>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCleanupCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleCleanupSubmit}>
+              Submit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
