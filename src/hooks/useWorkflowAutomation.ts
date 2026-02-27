@@ -156,6 +156,22 @@ export function useWorkflowAutomation() {
 
       // === FINAL PAID ===
       if (newStatus === "final_paid") {
+        // Validate: at least one final/payment marked as paid
+        const { data: paidPayments } = await supabase
+          .from("trip_payments")
+          .select("id")
+          .eq("trip_id", trip.id)
+          .in("payment_type", ["final_balance", "payment"])
+          .eq("status", "completed")
+          .limit(1);
+
+        if (!paidPayments || paidPayments.length === 0) {
+          return {
+            allowed: false,
+            error: "Final payment must be logged and marked as paid before moving to Final Paid",
+          };
+        }
+
         await createWorkflowTask(
           trip.id,
           `Confirm Supplier Payments for ${trip.trip_name}`,
