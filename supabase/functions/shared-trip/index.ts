@@ -116,6 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
     let bookingsForResponse: any[] = [];
     let cancellationTerms: string[] = [];
     let paymentDeadlines: { label: string; date: string }[] = [];
+    let optionBlocks: any[] = [];
 
     if (snapshot && snapshot.itinerary) {
       // Serve from frozen snapshot
