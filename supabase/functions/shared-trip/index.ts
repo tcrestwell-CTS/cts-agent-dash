@@ -151,6 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
       });
+      optionBlocks = snapshot.optionBlocks || [];
     } else {
       // Legacy fallback: serve live data for trips published before versioning
       const [itineraryRes, bookingsRes] = await Promise.all([
