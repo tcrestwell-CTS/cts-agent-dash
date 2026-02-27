@@ -26,7 +26,7 @@ import {
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
-import { TripStatusWorkflow } from "@/components/trips/TripStatusWorkflow";
+import { TripStatusWorkflow, CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist";
 import { TripReadinessScore } from "@/components/trips/TripReadinessScore";
 import { SupplierPaymentStatus } from "@/components/trips/SupplierPaymentStatus";
@@ -91,10 +91,10 @@ const TripDetail = () => {
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const { processStatusChange } = useWorkflowAutomation();
 
-  const handleWorkflowStatusChange = async (newStatus: string) => {
+  const handleWorkflowStatusChange = async (newStatus: string, cancellationOptions?: CancellationOptions) => {
     if (!trip) return false;
     setWorkflowError(null);
-    const result = await processStatusChange(newStatus, { trip, bookings });
+    const result = await processStatusChange(newStatus, { trip, bookings }, cancellationOptions);
     if (!result.allowed) {
       setWorkflowError(result.error || "Cannot transition to this status");
       return false;
@@ -337,6 +337,7 @@ const TripDetail = () => {
             {/* Status Workflow */}
             <TripStatusWorkflow
               currentStatus={trip.status}
+              tripName={trip.trip_name}
               onStatusChange={handleWorkflowStatusChange}
               disabled={updatingStatus}
               readinessComplete={
