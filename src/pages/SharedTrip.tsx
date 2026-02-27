@@ -150,6 +150,7 @@ export default function SharedTrip() {
           itinerary={data.itinerary}
           departDate={data.trip.depart_date}
           primaryColor={primaryColor}
+          optionBlocks={(data as any).optionBlocks || []}
         />
 
         <SharedTripInvestment
