@@ -497,7 +497,9 @@ const TripDetail = () => {
                   destination={trip.destination || undefined}
                   departDate={trip.depart_date || undefined}
                   returnDate={trip.return_date || undefined}
+                  tripStatus={trip.status}
                   onDataChange={fetchTrip}
+                  onStatusChange={handleWorkflowStatusChange}
                 />
               </TabsContent>
             </Tabs>
