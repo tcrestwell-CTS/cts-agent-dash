@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -114,12 +115,23 @@ export function TripPayments({
     }
   };
 
+  const { handlePaymentStatusChange } = useWorkflowAutomation();
+
   const handleMarkAsPaid = async (paymentId: string) => {
+    const payment = payments.find((p) => p.id === paymentId);
     await updatePayment(paymentId, {
       status: "paid",
       payment_date: new Date().toISOString().split("T")[0],
     });
     onDataChange?.();
+
+    // Auto-transition trip status based on payment type
+    if (payment && tripStatus && onStatusChange) {
+      const newStatus = await handlePaymentStatusChange(tripId, payment.payment_type, tripStatus);
+      if (newStatus) {
+        await onStatusChange(newStatus);
+      }
+    }
   };
 
   // Get supplier name from the first booking if available
