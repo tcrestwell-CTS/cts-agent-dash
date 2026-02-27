@@ -34,6 +34,8 @@ export interface Trip {
   tags: string[];
   allow_pdf_downloads: boolean;
   itinerary_style: string;
+  proposal_sent_at: string | null;
+  follow_up_due_at: string | null;
   clients?: {
     id: string;
     name: string;
@@ -167,6 +169,8 @@ export function useTrips() {
       tags: [],
       allow_pdf_downloads: false,
       itinerary_style: "vertical_list",
+      proposal_sent_at: null,
+      follow_up_due_at: null,
       clients: null,
       isOptimistic: true,
     };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle, Send, MousePointerClick, Shield, Banknote, CreditCard, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -20,16 +20,22 @@ interface TripStatusWorkflowProps {
   onStatusChange: (newStatus: string) => Promise<boolean>;
   disabled?: boolean;
   readinessComplete?: boolean;
+  validationError?: string | null;
 }
 
 const WORKFLOW_STATUSES = [
   { key: "planning", label: "Planning", icon: Calendar, description: "Trip is being planned" },
-  { key: "booked", label: "Booked", icon: Check, description: "All bookings confirmed" },
+  { key: "proposal_sent", label: "Proposal Sent", icon: Send, description: "Proposal sent to client" },
+  { key: "option_selected", label: "Option Selected", icon: MousePointerClick, description: "Client chose an option" },
+  { key: "deposit_authorized", label: "Deposit Auth", icon: Shield, description: "Client authorized deposit" },
+  { key: "deposit_paid", label: "Deposit Paid", icon: Banknote, description: "Deposit payment confirmed" },
+  { key: "final_paid", label: "Final Paid", icon: CreditCard, description: "Full balance paid" },
+  { key: "booked", label: "Booked", icon: BookOpen, description: "All bookings confirmed" },
   { key: "traveling", label: "Traveling", icon: Plane, description: "Client is on the trip" },
   { key: "completed", label: "Completed", icon: CheckCircle2, description: "Trip completed" },
 ] as const;
 
-export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, readinessComplete = true }: TripStatusWorkflowProps) {
+export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, readinessComplete = true, validationError }: TripStatusWorkflowProps) {
   const [updating, setUpdating] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [showReadinessWarning, setShowReadinessWarning] = useState(false);
@@ -58,7 +64,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
   };
 
   const getPreviousStatus = () => {
-    if (isCancelled || isArchived) return WORKFLOW_STATUSES[0]; // Allow returning to planning
+    if (isCancelled || isArchived) return WORKFLOW_STATUSES[0];
     const prevIndex = currentIndex - 1;
     return prevIndex >= 0 ? WORKFLOW_STATUSES[prevIndex] : null;
   };
@@ -66,15 +72,14 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
   const nextStatus = getNextStatus();
   const previousStatus = getPreviousStatus();
 
-  // Show archive option for completed or cancelled trips
   const canArchive = currentStatus === "completed" || currentStatus === "cancelled";
 
   return (
-    <Card className="max-w-2xl">
+    <Card className="max-w-3xl">
       <CardContent className="pt-6">
         {/* Status Progress Bar */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 overflow-x-auto">
+          <div className="flex items-center justify-between min-w-[600px]">
             {WORKFLOW_STATUSES.map((status, index) => {
               const Icon = status.icon;
               const isCompleted = !isCancelled && !isArchived && index < currentIndex;
@@ -86,7 +91,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                   <div className="flex flex-col items-center">
                     <div
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
+                        "w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all",
                         isCompleted
                           ? "bg-primary border-primary text-primary-foreground"
                           : isCurrent
@@ -95,16 +100,16 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                       )}
                     >
                       {isPending ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : isCompleted ? (
-                        <Check className="h-5 w-5" />
+                        <Check className="h-4 w-4" />
                       ) : (
-                        <Icon className="h-5 w-5" />
+                        <Icon className="h-4 w-4" />
                       )}
                     </div>
                     <span
                       className={cn(
-                        "text-xs mt-2 font-medium text-center",
+                        "text-[10px] mt-1.5 font-medium text-center leading-tight max-w-[60px]",
                         isCurrent ? "text-primary" : isCompleted ? "text-foreground" : "text-muted-foreground"
                       )}
                     >
@@ -114,7 +119,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                   {index < WORKFLOW_STATUSES.length - 1 && (
                     <div
                       className={cn(
-                        "flex-1 h-0.5 mx-2",
+                        "flex-1 h-0.5 mx-1",
                         !isCancelled && !isArchived && index < currentIndex ? "bg-primary" : "bg-muted-foreground/30"
                       )}
                     />
@@ -124,6 +129,16 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
             })}
           </div>
         </div>
+
+        {/* Validation Error */}
+        {validationError && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
+            <div className="flex items-center gap-2 text-destructive text-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p>{validationError}</p>
+            </div>
+          </div>
+        )}
 
         {/* Archived State */}
         {isArchived && (
@@ -217,7 +232,6 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Archive button for completed trips */}
               {canArchive && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -248,7 +262,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                 <>
                   <Button
                     onClick={() => {
-                      if (currentStatus === "planning" && nextStatus.key === "booked" && !readinessComplete) {
+                      if (currentStatus === "planning" && nextStatus.key === "proposal_sent" && !readinessComplete) {
                         setShowReadinessWarning(true);
                       } else {
                         handleStatusChange(nextStatus.key);
@@ -267,7 +281,6 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                     )}
                   </Button>
 
-                  {/* Readiness Warning Dialog */}
                   <AlertDialog open={showReadinessWarning} onOpenChange={setShowReadinessWarning}>
                     <AlertDialogContent>
                       <AlertDialogHeader>
@@ -276,7 +289,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                           Incomplete Trip Readiness
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          This trip has incomplete readiness items. Moving to "Booked" without all items checked may result in an incomplete proposal. Proceed anyway?
+                          This trip has incomplete readiness items. Sending a proposal without all items checked may result in an incomplete proposal. Proceed anyway?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

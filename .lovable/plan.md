@@ -1,125 +1,223 @@
 
 
-# Phase 5: Workflow Automation Engine
+# Level 6: Scalability Architecture
 
-## Overview
-Implement an event-driven workflow automation system that automatically transitions trip statuses and creates tasks/notifications based on specific triggers throughout the trip lifecycle.
+Design the platform to support 30+ agents with granular permissions, automated commission tier progression, configurable approval thresholds, and commission holdback reserves.
 
-## New Trip Statuses
+---
 
-The current default statuses (Inbound, Planning, Booked, Traveling, Traveled, Cancelled, Archived) need new intermediate statuses added to the seed defaults:
+## What Already Exists
 
-| New Status | Color | Position | Description |
-|---|---|---|---|
-| Proposal Sent | `#f97316` (orange) | After Planning (sort 2) | Agent published itinerary and sent proposal |
-| Option Selected | `#06b6d4` (cyan) | After Proposal Sent (sort 3) | Client chose an option block alternative |
-| Deposit Authorized | `#8b5cf6` (violet) | After Option Selected (sort 4) | Client submitted payment authorization |
-| Deposit Paid | `#10b981` (emerald) | After Deposit Authorized (sort 5) | Deposit payment confirmed |
-| Final Paid | `#059669` (green-dark) | After Deposit Paid (sort 6) | Full balance paid |
+- **RBAC**: Three roles (admin, office_admin, user) enforced via `user_roles` table and `has_role()` security definer function
+- **Commission Tiers**: Static tiers (None, Tier 1: 70/30, Tier 2: 80/20, Tier 3: 95/5) manually assigned by admins
+- **Override Approval**: Commission overrides exceeding calculated amounts require admin approval via `PendingOverridesCard`
+- **Role-Scoped Views**: Sidebar navigation, team management, and analytics already filter by role
+- **RLS Enforcement**: 100% coverage -- agents see only their own data, admins/office admins see all
 
-Updated sort order for existing statuses: Booked (7), Traveling (8), Traveled (9), Cancelled (10), Archived (11).
+---
+
+## What's New
+
+### 1. Agency Settings Table (Configurable Thresholds)
+
+Create an `agency_settings` table to store agency-wide configuration that admins can adjust:
+
+- `approval_threshold`: Dollar amount above which bookings require admin approval (default: $10,000)
+- `commission_holdback_pct`: Percentage withheld from agent commission payouts until trip completion (default: 10%)
+- `tier_auto_promote`: Whether automatic tier promotion is enabled (default: false)
+- `tier_1_threshold`: Gross sales threshold to auto-promote to Tier 2 (default: $100,000)
+- `tier_2_threshold`: Gross sales threshold to auto-promote to Tier 3 (default: $250,000)
+- `evaluation_period_months`: Rolling period for tier evaluation (default: 12)
+
+This is a single-row table scoped to the agency (keyed by the admin's user_id, readable by all authenticated users).
+
+### 2. Approval Threshold on High-Value Bookings
+
+Currently, only commission overrides require approval. Add a new approval gate:
+
+- When an agent creates a booking with `gross_sales >= approval_threshold`, automatically flag it with `approval_required = true`
+- Show these in the existing `PendingOverridesCard` (renamed to `PendingApprovalsCard`) alongside commission overrides
+- Admins can approve or reject from the same interface
+- Booking stays in `pending` status until approved; agents see a "Pending Admin Approval" badge
+
+**Changes**:
+- Add `approval_required` and `approval_type` columns to `bookings`
+- Update booking creation logic in `useBookings.ts` to check threshold
+- Expand `PendingOverridesCard` to show both override and threshold approvals
+
+### 3. Commission Holdback Reserve
+
+Implement a configurable holdback percentage on agent commission payouts:
+
+- When a commission is created, calculate `holdback_amount = commission_amount * holdback_pct / 100`
+- Store `holdback_amount` and `holdback_released` on the `commissions` table
+- The holdback is released automatically when the trip status changes to `completed`
+- Show holdback amounts in the Commissions page with "Held" and "Released" badges
+- Add a "Commission Reserve" summary card on the admin dashboard showing total held vs. released
+
+**Changes**:
+- Add `holdback_amount`, `holdback_released`, `holdback_released_at` columns to `commissions`
+- Update commission creation flow to calculate holdback based on agency settings
+- Add a database trigger on trips status change to release holdbacks
+- Update Commissions UI to display holdback status
+
+### 4. Automatic Commission Tier Promotion
+
+Add logic to evaluate agent performance and auto-promote tiers:
+
+- Create a new database function `evaluate_agent_tiers()` that:
+  - Sums each agent's gross sales over the rolling evaluation period
+  - Compares against tier thresholds from `agency_settings`
+  - Updates `profiles.commission_tier` if the agent qualifies for a higher tier
+  - Logs the promotion in `compliance_audit_log` for audit trail
+- This function can be called manually by admins via a "Re-evaluate Tiers" button, or scheduled via a cron-style edge function
+- Agents are never auto-demoted (only promoted); demotion remains a manual admin action
+
+**Changes**:
+- Create `evaluate_agent_tiers()` database function
+- Create `evaluate-tiers` edge function (callable by admins)
+- Add "Re-evaluate Tiers" button on Team Management page
+- Show tier change history in agent profiles
+
+### 5. Agency Settings Admin UI
+
+Add a new "Agency Settings" tab on the Settings page (admin-only) to configure:
+
+- Approval threshold amount
+- Commission holdback percentage
+- Tier auto-promotion toggle and thresholds
+- Evaluation period
+
+This replaces hardcoded values with a configurable system.
+
+### 6. Enhanced Permission Guards
+
+For 30 agents, tighten permission enforcement:
+
+- Add `useCanApproveBookings()` hook (returns true for admin only)
+- Add `useCanEditSettings()` hook (returns true for admin only)
+- Add `useCanViewFinancials()` hook (admin + office_admin)
+- Consolidate all permission checks into a single `usePermissions()` hook that returns a permissions object
+- Use this throughout the app instead of scattered `useIsAdmin` / `useIsOfficeAdmin` calls
+
+---
 
 ## Database Changes
 
-### 1. New `workflow_tasks` table
-Stores automated tasks created by the workflow engine.
+```sql
+-- 1. Agency settings (single-row config table)
+CREATE TABLE public.agency_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  approval_threshold numeric NOT NULL DEFAULT 10000,
+  commission_holdback_pct numeric NOT NULL DEFAULT 10,
+  tier_auto_promote boolean NOT NULL DEFAULT false,
+  tier_1_threshold numeric NOT NULL DEFAULT 100000,
+  tier_2_threshold numeric NOT NULL DEFAULT 250000,
+  evaluation_period_months integer NOT NULL DEFAULT 12,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-```text
-workflow_tasks
-  id           UUID PK
-  trip_id      UUID FK -> trips
-  user_id      UUID (agent)
-  title        TEXT
-  description  TEXT
-  task_type    TEXT (follow_up, prepare_invoice, charge_card, booking_completion, supplier_confirmation)
-  status       TEXT (pending, completed, dismissed)
-  due_at       TIMESTAMPTZ
-  created_at   TIMESTAMPTZ
-  completed_at TIMESTAMPTZ
+ALTER TABLE public.agency_settings ENABLE ROW LEVEL SECURITY;
+
+-- All authenticated users can read settings
+CREATE POLICY "Authenticated users can view agency settings"
+  ON public.agency_settings FOR SELECT TO authenticated
+  USING (true);
+
+-- Only admins can modify
+CREATE POLICY "Admins can insert agency settings"
+  ON public.agency_settings FOR INSERT TO authenticated
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can update agency settings"
+  ON public.agency_settings FOR UPDATE TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+-- 2. Booking approval fields
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS approval_required boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS approval_type text; -- 'high_value', 'override', null
+
+-- 3. Commission holdback fields
+ALTER TABLE public.commissions
+  ADD COLUMN IF NOT EXISTS holdback_amount numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS holdback_released boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS holdback_released_at timestamptz;
+
+-- 4. Trigger to release holdbacks when trip completes
+CREATE OR REPLACE FUNCTION public.release_commission_holdbacks()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+BEGIN
+  IF NEW.status = 'completed' AND (OLD.status IS DISTINCT FROM 'completed') THEN
+    UPDATE public.commissions
+    SET holdback_released = true,
+        holdback_released_at = now(),
+        updated_at = now()
+    WHERE booking_id IN (
+      SELECT id FROM public.bookings WHERE trip_id = NEW.id
+    )
+    AND holdback_released = false;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trigger_release_holdbacks
+  AFTER UPDATE ON public.trips
+  FOR EACH ROW
+  EXECUTE FUNCTION public.release_commission_holdbacks();
+
+-- 5. Index for performance at scale
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON public.bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_commissions_booking_id ON public.commissions(booking_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_approval ON public.bookings(approval_required) WHERE approval_required = true;
 ```
 
-RLS: Users see/manage their own tasks. Admins see all.
+---
 
-### 2. New columns on `trips` table
-- `proposal_sent_at` TIMESTAMPTZ -- timestamp of when proposal was sent
-- `follow_up_due_at` TIMESTAMPTZ -- 7-day follow-up deadline
+## Files to Create
 
-## Implementation
+| File | Purpose |
+|------|---------|
+| `src/hooks/useAgencySettings.ts` | Hook to read/update agency_settings; includes holdback and threshold config |
+| `src/hooks/usePermissions.ts` | Consolidated permissions hook replacing scattered admin checks |
+| `src/components/settings/AgencySettingsTab.tsx` | Admin UI for configuring thresholds, holdback %, tier promotion rules |
+| `supabase/functions/evaluate-tiers/index.ts` | Edge function to evaluate and auto-promote agent tiers |
 
-### Task 1: Database Migration
-- Create `workflow_tasks` table with RLS
-- Add `proposal_sent_at` and `follow_up_due_at` columns to `trips`
-- Update default seed statuses in `useTripStatuses.ts`
+## Files to Modify
 
-### Task 2: Workflow Engine Hook (`useWorkflowAutomation`)
-A new hook that encapsulates all automation logic. It wraps `updateTripStatus` and intercepts status changes to perform validations and side effects.
+| File | Changes |
+|------|---------|
+| `src/hooks/useBookings.ts` | Check `approval_threshold` from agency settings during booking creation; set `approval_required` and `approval_type` |
+| `src/hooks/useCommissions.ts` | Calculate `holdback_amount` on commission creation using agency settings holdback % |
+| `src/components/commissions/PendingOverridesCard.tsx` | Rename to `PendingApprovalsCard`; show both high-value booking approvals and commission overrides |
+| `src/pages/Commissions.tsx` | Add holdback summary cards (Total Held, Total Released, Net Payable) |
+| `src/pages/Settings.tsx` | Add "Agency" tab for admin users with `AgencySettingsTab` |
+| `src/pages/TeamManagement.tsx` | Add "Re-evaluate Tiers" button; show tier change history |
+| `src/components/bookings/BookingCard.tsx` | Show "Pending Approval" badge for high-value bookings |
+| `src/pages/BookingDetail.tsx` | Show approval status section for flagged bookings |
+| `src/lib/commissionTiers.ts` | Add helper `getNextTier()` for tier promotion logic |
+| `src/integrations/supabase/types.ts` | Auto-updated with new table/columns |
 
-**On "Proposal Sent":**
-- Validate: trip must be published (`published_at` is not null)
-- Validate: at least one itinerary item with a price exists (check bookings `gross_sales > 0`)
-- Auto: set `proposal_sent_at = now()`, `follow_up_due_at = now() + 7 days`
-- Auto: create `workflow_task` type `follow_up` due in 7 days
-- Auto: create agent notification "Proposal sent for [trip_name]"
+---
 
-**On "Option Selected":**
-- Auto: create `workflow_task` type `prepare_invoice` titled "Prepare Deposit Invoice"
-- Auto: create agent notification
-- Note: The actual trigger from client option selection will be handled in the portal/shared-trip flow (future enhancement). For now, the agent can manually move to this status.
+## Implementation Order
 
-**On "Deposit Authorized":**
-- Auto: create `workflow_task` type `charge_card` titled "Charge Card for [trip_name]"
-- Auto: create agent notification alerting advisor
-- Auto: log compliance audit entry for T&C acceptance
-
-**On "Deposit Paid":**
-- Triggered when advisor logs a deposit payment or marks payment as paid
-- Auto: move status to `deposit_paid`
-- Auto: create `workflow_task` type `booking_completion`
-
-**On "Final Paid":**
-- Triggered when advisor logs final payment
-- Auto: move status to `final_paid`
-- Auto: create `workflow_task` type `supplier_confirmation` titled "Confirm Supplier Payments"
-
-### Task 3: Update TripStatusWorkflow Component
-- Replace hardcoded `WORKFLOW_STATUSES` array with the new expanded workflow
-- Add validation gates (e.g., proposal_sent requires published itinerary)
-- Show validation error messages when preconditions aren't met
-
-### Task 4: Payment-Triggered Status Changes
-- Modify `TripPayments.tsx` `handleMarkAsPaid` to call the workflow engine
-- When a deposit payment is marked paid and trip is in `deposit_authorized` or `option_selected`, auto-transition to `deposit_paid`
-- When a final payment is marked paid and trip is in `deposit_paid`, auto-transition to `final_paid`
-
-### Task 5: Workflow Tasks Panel
-- New `WorkflowTasks` component displayed on TripDetail page
-- Shows pending tasks with due dates, dismiss/complete actions
-- Overdue tasks highlighted in red
-- Integrates into the existing trip detail sidebar or as a card above the tabs
-
-### Task 6: Update Kanban & Status References
-- Update `statusColors` map in `TripDetail.tsx` with new status colors
-- Ensure `TripStatusWorkflow` progress bar shows all stages
-- Update legacy status map in `useTripStatuses.ts`
-
-## Technical Notes
-
-- All automations run client-side in the workflow hook -- no new edge functions needed
-- The hook intercepts `updateTripStatus` calls and performs pre/post actions
-- Workflow tasks use the existing `agent_notifications` pattern for consistency
-- The 7-day follow-up timer is stored as `follow_up_due_at` on the trip; a future cron job could automate reminder emails
-- Existing trips with old statuses remain backward-compatible via the legacy status map
-
-## Files Changed
-
-| File | Action |
-|---|---|
-| `supabase/migrations/..._workflow_tasks.sql` | Create -- new table + trips columns |
-| `src/hooks/useWorkflowAutomation.ts` | Create -- workflow engine hook |
-| `src/components/trips/WorkflowTasks.tsx` | Create -- task panel component |
-| `src/hooks/useTripStatuses.ts` | Edit -- update default statuses + legacy map |
-| `src/components/trips/TripStatusWorkflow.tsx` | Edit -- expanded workflow stages + gates |
-| `src/pages/TripDetail.tsx` | Edit -- integrate WorkflowTasks + wire automation |
-| `src/components/trips/TripPayments.tsx` | Edit -- payment-triggered status changes |
-| `src/hooks/useTrips.ts` | Edit -- add new fields to Trip interface |
+1. Database migration (agency_settings table, booking approval columns, commission holdback columns, holdback release trigger, indexes)
+2. Create `useAgencySettings` hook
+3. Create `usePermissions` hook
+4. Create `AgencySettingsTab` component and add to Settings page
+5. Update booking creation to check approval threshold
+6. Expand `PendingOverridesCard` to handle both approval types
+7. Update commission creation to calculate holdback
+8. Update Commissions page with holdback UI
+9. Create `evaluate-tiers` edge function
+10. Add "Re-evaluate Tiers" to Team Management
+11. Deploy edge functions
 

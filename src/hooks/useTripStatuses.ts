@@ -17,17 +17,27 @@ export interface TripStatus {
 const DEFAULT_STATUSES = [
   { name: "Inbound", color: "#f59e0b", sort_order: 0 },
   { name: "Planning", color: "#3b82f6", sort_order: 1 },
-  { name: "Booked", color: "#22c55e", sort_order: 2 },
-  { name: "Traveling", color: "#a855f7", sort_order: 3 },
-  { name: "Traveled", color: "#6b7280", sort_order: 4 },
-  { name: "Cancelled", color: "#ef4444", sort_order: 5 },
-  { name: "Archived", color: "#64748b", sort_order: 6 },
+  { name: "Proposal Sent", color: "#f97316", sort_order: 2 },
+  { name: "Option Selected", color: "#06b6d4", sort_order: 3 },
+  { name: "Deposit Authorized", color: "#8b5cf6", sort_order: 4 },
+  { name: "Deposit Paid", color: "#10b981", sort_order: 5 },
+  { name: "Final Paid", color: "#059669", sort_order: 6 },
+  { name: "Booked", color: "#22c55e", sort_order: 7 },
+  { name: "Traveling", color: "#a855f7", sort_order: 8 },
+  { name: "Traveled", color: "#6b7280", sort_order: 9 },
+  { name: "Cancelled", color: "#ef4444", sort_order: 10 },
+  { name: "Archived", color: "#64748b", sort_order: 11 },
 ];
 
 // Map old hardcoded status ids to display names for backward compat
 const LEGACY_STATUS_MAP: Record<string, string> = {
   inbound: "Inbound",
   planning: "Planning",
+  proposal_sent: "Proposal Sent",
+  option_selected: "Option Selected",
+  deposit_authorized: "Deposit Authorized",
+  deposit_paid: "Deposit Paid",
+  final_paid: "Final Paid",
   booked: "Booked",
   traveling: "Traveling",
   completed: "Traveled",

@@ -34,6 +34,8 @@ import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
+import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
+import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
@@ -59,6 +61,11 @@ import {
 
 const statusColors: Record<string, string> = {
   planning: "bg-blue-100 text-blue-700 border-blue-200",
+  proposal_sent: "bg-orange-100 text-orange-700 border-orange-200",
+  option_selected: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  deposit_authorized: "bg-violet-100 text-violet-700 border-violet-200",
+  deposit_paid: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  final_paid: "bg-green-100 text-green-800 border-green-300",
   booked: "bg-green-100 text-green-700 border-green-200",
   traveling: "bg-purple-100 text-purple-700 border-purple-200",
   completed: "bg-gray-100 text-gray-700 border-gray-200",
@@ -78,6 +85,19 @@ const TripDetail = () => {
   const { data: tripTravelers = [] } = useTripTravelers(tripId);
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const { processStatusChange } = useWorkflowAutomation();
+
+  const handleWorkflowStatusChange = async (newStatus: string) => {
+    if (!trip) return false;
+    setWorkflowError(null);
+    const result = await processStatusChange(newStatus, { trip, bookings });
+    if (!result.allowed) {
+      setWorkflowError(result.error || "Cannot transition to this status");
+      return false;
+    }
+    return updateTripStatus(newStatus);
+  };
 
   // Refresh trip data when page gains focus
   useEffect(() => {
@@ -314,7 +334,7 @@ const TripDetail = () => {
             {/* Status Workflow */}
             <TripStatusWorkflow
               currentStatus={trip.status}
-              onStatusChange={updateTripStatus}
+              onStatusChange={handleWorkflowStatusChange}
               disabled={updatingStatus}
               readinessComplete={
                 !!(trip as any).budget_range &&
@@ -323,7 +343,11 @@ const TripDetail = () => {
                 bookings.some((b: any) => b.supplier_id) &&
                 trip.total_commission_revenue > 0
               }
+              validationError={workflowError}
             />
+
+            {/* Workflow Tasks */}
+            <WorkflowTasks tripId={trip.id} />
 
             {/* Cover Image */}
             <TripCoverImage
@@ -473,7 +497,9 @@ const TripDetail = () => {
                   destination={trip.destination || undefined}
                   departDate={trip.depart_date || undefined}
                   returnDate={trip.return_date || undefined}
+                  tripStatus={trip.status}
                   onDataChange={fetchTrip}
+                  onStatusChange={handleWorkflowStatusChange}
                 />
               </TabsContent>
             </Tabs>
