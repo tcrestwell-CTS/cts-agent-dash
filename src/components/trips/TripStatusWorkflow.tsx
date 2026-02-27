@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle, Send, MousePointerClick, Shield, Banknote, CreditCard, BookOpen, Clock, CircleDollarSign, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,9 +24,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+export interface CancellationOptions {
+  unpublish: boolean;
+  deactivateAutomations: boolean;
+  completeTasks: boolean;
+}
+
 interface TripStatusWorkflowProps {
   currentStatus: string;
-  onStatusChange: (newStatus: string) => Promise<boolean>;
+  tripName?: string;
+  onStatusChange: (newStatus: string, cancellationOptions?: CancellationOptions) => Promise<boolean>;
   disabled?: boolean;
   readinessComplete?: boolean;
   validationError?: string | null;
@@ -37,26 +53,37 @@ const WORKFLOW_STATUSES = [
   { key: "commission_received", label: "Comm. Received", icon: BadgeCheck, description: "All commissions received" },
 ] as const;
 
-export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, readinessComplete = true, validationError }: TripStatusWorkflowProps) {
+export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, disabled, readinessComplete = true, validationError }: TripStatusWorkflowProps) {
   const [updating, setUpdating] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [showReadinessWarning, setShowReadinessWarning] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelOptions, setCancelOptions] = useState<CancellationOptions>({
+    unpublish: true,
+    deactivateAutomations: true,
+    completeTasks: true,
+  });
 
   const currentIndex = WORKFLOW_STATUSES.findIndex((s) => s.key === currentStatus);
   const isCancelled = currentStatus === "cancelled";
   const isArchived = currentStatus === "archived";
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string, options?: CancellationOptions) => {
     if (disabled || updating) return;
     
     setUpdating(true);
     setPendingStatus(newStatus);
     try {
-      await onStatusChange(newStatus);
+      await onStatusChange(newStatus, options);
     } finally {
       setUpdating(false);
       setPendingStatus(null);
     }
+  };
+
+  const handleCancelSubmit = async () => {
+    setShowCancelDialog(false);
+    await handleStatusChange("cancelled", cancelOptions);
   };
 
   const getNextStatus = () => {
@@ -217,7 +244,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
         {/* Action Buttons */}
         {!isCancelled && !isArchived && (
           <div className="flex items-center justify-between gap-4">
-            <div>
+            <div className="flex items-center gap-2">
               {previousStatus && (
                 <Button
                   variant="outline"
@@ -231,6 +258,21 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
                   Back to {previousStatus.label}
                 </Button>
               )}
+
+              {/* Cancel Trip Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50 hover:bg-destructive/5"
+                onClick={() => {
+                  setCancelOptions({ unpublish: true, deactivateAutomations: true, completeTasks: true });
+                  setShowCancelDialog(true);
+                }}
+                disabled={updating || disabled}
+              >
+                <XCircle className="h-4 w-4" />
+                Cancel Trip
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -317,6 +359,58 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
             </div>
           </div>
         )}
+
+        {/* Cancellation Dialog */}
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Move {tripName ? `"${tripName}"` : "trip"} to Cancelled</DialogTitle>
+              <DialogDescription>
+                Choose what happens with this trip's automations, tasks, and publishing.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={cancelOptions.unpublish}
+                  onCheckedChange={(checked) =>
+                    setCancelOptions((prev) => ({ ...prev, unpublish: checked === true }))
+                  }
+                />
+                <span className="text-sm font-medium">Unpublish Trip</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={cancelOptions.deactivateAutomations}
+                  onCheckedChange={(checked) =>
+                    setCancelOptions((prev) => ({ ...prev, deactivateAutomations: checked === true }))
+                  }
+                />
+                <span className="text-sm font-medium">Deactivate Automations</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={cancelOptions.completeTasks}
+                  onCheckedChange={(checked) =>
+                    setCancelOptions((prev) => ({ ...prev, completeTasks: checked === true }))
+                  }
+                />
+                <span className="text-sm font-medium">Complete Tasks</span>
+              </label>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCancelSubmit} disabled={updating}>
+                {updating && pendingStatus === "cancelled" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                Submit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
