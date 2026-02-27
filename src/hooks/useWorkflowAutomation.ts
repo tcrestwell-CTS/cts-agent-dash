@@ -300,6 +300,52 @@ export function useWorkflowAutomation() {
         return { allowed: true };
       }
 
+      // === CANCELLED ===
+      if (newStatus === "cancelled") {
+        const opts = cancellationOptions || { unpublish: true, deactivateAutomations: true, completeTasks: true };
+
+        if (opts.unpublish && trip.published_at) {
+          await supabase
+            .from("trips")
+            .update({ published_at: null, published_snapshot: null } as any)
+            .eq("id", trip.id);
+        }
+
+        if (opts.deactivateAutomations) {
+          await supabase
+            .from("trips")
+            .update({ follow_up_due_at: null } as any)
+            .eq("id", trip.id);
+        }
+
+        if (opts.completeTasks) {
+          await supabase
+            .from("workflow_tasks")
+            .update({ status: "completed", completed_at: new Date().toISOString() } as any)
+            .eq("trip_id", trip.id)
+            .eq("status", "pending");
+        }
+
+        await createNotification(
+          "Trip Cancelled",
+          `"${trip.trip_name}" has been cancelled.${opts.unpublish ? " Trip unpublished." : ""}${opts.completeTasks ? " Open tasks completed." : ""}`,
+          trip.id
+        );
+
+        if (user) {
+          await supabase.from("compliance_audit_log").insert({
+            user_id: user.id,
+            entity_type: "trip",
+            entity_id: trip.id,
+            event_type: "trip_cancelled",
+            client_name: trip.clients?.name || null,
+            metadata: { status_transition: "cancelled", trip_name: trip.trip_name, options: opts },
+          } as any);
+        }
+
+        return { allowed: true };
+      }
+
       // === ARCHIVED ===
       if (newStatus === "archived") {
         // Check archiving eligibility
