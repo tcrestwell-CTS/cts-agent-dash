@@ -34,6 +34,8 @@ import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
+import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
+import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
@@ -83,6 +85,19 @@ const TripDetail = () => {
   const { data: tripTravelers = [] } = useTripTravelers(tripId);
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const { processStatusChange } = useWorkflowAutomation();
+
+  const handleWorkflowStatusChange = async (newStatus: string) => {
+    if (!trip) return false;
+    setWorkflowError(null);
+    const result = await processStatusChange(newStatus, { trip, bookings });
+    if (!result.allowed) {
+      setWorkflowError(result.error || "Cannot transition to this status");
+      return false;
+    }
+    return updateTripStatus(newStatus);
+  };
 
   // Refresh trip data when page gains focus
   useEffect(() => {
