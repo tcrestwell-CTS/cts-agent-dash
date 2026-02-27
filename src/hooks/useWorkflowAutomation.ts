@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Trip } from "./useTrips";
+import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 
 interface WorkflowContext {
   trip: Trip;
@@ -47,7 +48,8 @@ export function useWorkflowAutomation() {
   const processStatusChange = useCallback(
     async (
       newStatus: string,
-      ctx: WorkflowContext
+      ctx: WorkflowContext,
+      cancellationOptions?: CancellationOptions
     ): Promise<{ allowed: boolean; error?: string }> => {
       const { trip, bookings } = ctx;
 
