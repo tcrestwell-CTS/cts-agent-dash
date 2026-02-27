@@ -68,7 +68,10 @@ const statusColors: Record<string, string> = {
   final_paid: "bg-green-100 text-green-800 border-green-300",
   booked: "bg-green-100 text-green-700 border-green-200",
   traveling: "bg-purple-100 text-purple-700 border-purple-200",
+  traveled: "bg-gray-100 text-gray-700 border-gray-200",
   completed: "bg-gray-100 text-gray-700 border-gray-200",
+  commission_pending: "bg-amber-100 text-amber-700 border-amber-200",
+  commission_received: "bg-green-100 text-green-800 border-green-300",
   cancelled: "bg-red-100 text-red-700 border-red-200",
   archived: "bg-slate-100 text-slate-500 border-slate-200",
 };

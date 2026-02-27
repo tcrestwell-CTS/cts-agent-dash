@@ -25,8 +25,10 @@ const DEFAULT_STATUSES = [
   { name: "Booked", color: "#22c55e", sort_order: 7 },
   { name: "Traveling", color: "#a855f7", sort_order: 8 },
   { name: "Traveled", color: "#6b7280", sort_order: 9 },
-  { name: "Cancelled", color: "#ef4444", sort_order: 10 },
-  { name: "Archived", color: "#64748b", sort_order: 11 },
+  { name: "Commission Pending", color: "#d97706", sort_order: 10 },
+  { name: "Commission Received", color: "#16a34a", sort_order: 11 },
+  { name: "Cancelled", color: "#ef4444", sort_order: 12 },
+  { name: "Archived", color: "#64748b", sort_order: 13 },
 ];
 
 // Map old hardcoded status ids to display names for backward compat
@@ -40,7 +42,10 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
   final_paid: "Final Paid",
   booked: "Booked",
   traveling: "Traveling",
+  traveled: "Traveled",
   completed: "Traveled",
+  commission_pending: "Commission Pending",
+  commission_received: "Commission Received",
   cancelled: "Cancelled",
   archived: "Archived",
 };
