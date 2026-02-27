@@ -334,7 +334,7 @@ const TripDetail = () => {
             {/* Status Workflow */}
             <TripStatusWorkflow
               currentStatus={trip.status}
-              onStatusChange={updateTripStatus}
+              onStatusChange={handleWorkflowStatusChange}
               disabled={updatingStatus}
               readinessComplete={
                 !!(trip as any).budget_range &&
@@ -343,7 +343,11 @@ const TripDetail = () => {
                 bookings.some((b: any) => b.supplier_id) &&
                 trip.total_commission_revenue > 0
               }
+              validationError={workflowError}
             />
+
+            {/* Workflow Tasks */}
+            <WorkflowTasks tripId={trip.id} />
 
             {/* Cover Image */}
             <TripCoverImage
