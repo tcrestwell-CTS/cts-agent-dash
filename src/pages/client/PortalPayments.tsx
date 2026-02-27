@@ -49,7 +49,10 @@ export default function PortalPayments() {
    */
   const handleAgreementAccepted = () => {
     setShowAgreement(false);
-    setShowMethodDialog(true);
+    // Small delay to let the agreement dialog close before opening the method dialog
+    setTimeout(() => {
+      setShowMethodDialog(true);
+    }, 150);
   };
 
   /**
