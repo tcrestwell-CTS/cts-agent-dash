@@ -608,7 +608,15 @@ const Trips = () => {
               <TripsKanban
                 trips={filteredTrips}
                 columns={kanbanColumns}
-                onStatusChange={async (tripId, newStatus) => {
+                onStatusChange={async (tripId, newStatus, cancellationOptions) => {
+                  const trip = filteredTrips.find(t => t.id === tripId);
+                  if (!trip) return false;
+                  const result = await processStatusChange(newStatus, { trip, bookings: [] }, cancellationOptions);
+                  if (!result.allowed) {
+                    const { toast } = await import("@/hooks/use-toast");
+                    toast({ title: "Cannot change status", description: result.error, variant: "destructive" });
+                    return false;
+                  }
                   return await updateTrip(tripId, { status: newStatus });
                 }}
               />
