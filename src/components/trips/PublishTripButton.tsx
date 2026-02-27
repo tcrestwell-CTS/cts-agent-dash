@@ -40,9 +40,48 @@ export function PublishTripButton({
   const handlePublish = async () => {
     setPublishing(true);
     try {
+      // 1. Fetch current itinerary items and bookings to snapshot
+      const [itineraryRes, bookingsRes, itinerariesRes] = await Promise.all([
+        supabase
+          .from("itinerary_items")
+          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id")
+          .eq("trip_id", tripId)
+          .order("day_number", { ascending: true })
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("bookings")
+          .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type")
+          .eq("trip_id", tripId),
+        supabase
+          .from("itineraries")
+          .select("id, name, sort_order, cover_image_url, overview, depart_date, return_date")
+          .eq("trip_id", tripId)
+          .order("sort_order", { ascending: true }),
+      ]);
+
+      const snapshot = {
+        itinerary: itineraryRes.data || [],
+        bookings: (bookingsRes.data || []).map((b: any) => ({
+          destination: b.destination,
+          depart_date: b.depart_date,
+          return_date: b.return_date,
+          status: b.status,
+          trip_name: b.trip_name,
+          booking_type: b.booking_type,
+          cancellation_terms: b.cancellation_terms,
+          payment_deadline: b.payment_deadline,
+        })),
+        itineraries: itinerariesRes.data || [],
+        snapshot_at: new Date().toISOString(),
+      };
+
+      // 2. Update trip with snapshot and published_at timestamp
       const { error } = await supabase
         .from("trips")
-        .update({ published_at: new Date().toISOString() } as any)
+        .update({
+          published_at: new Date().toISOString(),
+          published_snapshot: snapshot,
+        } as any)
         .eq("id", tripId);
 
       if (error) throw error;
@@ -108,6 +147,13 @@ export function PublishTripButton({
                   : "Publish this trip to create a shareable public itinerary page."}
               </p>
             </div>
+
+            {hasUnpublishedChanges && publishedAt && (
+              <div className="flex items-center gap-2 text-xs text-orange-600 bg-orange-50 rounded px-2 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
+                Unpublished changes — clients see the last published version
+              </div>
+            )}
 
             <Button
               onClick={handlePublish}
