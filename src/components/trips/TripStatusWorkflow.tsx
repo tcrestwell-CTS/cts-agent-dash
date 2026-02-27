@@ -57,8 +57,9 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
   const [updating, setUpdating] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [showReadinessWarning, setShowReadinessWarning] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelOptions, setCancelOptions] = useState<CancellationOptions>({
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  const [cleanupTarget, setCleanupTarget] = useState<"cancelled" | "archived">("cancelled");
+  const [cleanupOptions, setCleanupOptions] = useState<CancellationOptions>({
     unpublish: true,
     deactivateAutomations: true,
     completeTasks: true,
@@ -81,9 +82,15 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
     }
   };
 
-  const handleCancelSubmit = async () => {
-    setShowCancelDialog(false);
-    await handleStatusChange("cancelled", cancelOptions);
+  const openCleanupDialog = (target: "cancelled" | "archived") => {
+    setCleanupTarget(target);
+    setCleanupOptions({ unpublish: true, deactivateAutomations: true, completeTasks: true });
+    setShowCleanupDialog(true);
+  };
+
+  const handleCleanupSubmit = async () => {
+    setShowCleanupDialog(false);
+    await handleStatusChange(cleanupTarget, cleanupOptions);
   };
 
   const getNextStatus = () => {
@@ -214,29 +221,16 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
                 ) : null}
                 Reactivate Trip
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Archive className="h-4 w-4" />
-                    Archive
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Archive this trip?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Archived trips will be excluded from agency revenue reporting and analytics.
-                      You can restore it later if needed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleStatusChange("archived")}>
-                      Archive Trip
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => openCleanupDialog("archived")}
+                disabled={updating}
+              >
+                <Archive className="h-4 w-4" />
+                Archive
+              </Button>
             </div>
           </div>
         )}
@@ -264,10 +258,7 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
                 variant="outline"
                 size="sm"
                 className="gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50 hover:bg-destructive/5"
-                onClick={() => {
-                  setCancelOptions({ unpublish: true, deactivateAutomations: true, completeTasks: true });
-                  setShowCancelDialog(true);
-                }}
+                onClick={() => openCleanupDialog("cancelled")}
                 disabled={updating || disabled}
               >
                 <XCircle className="h-4 w-4" />
@@ -277,29 +268,16 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
 
             <div className="flex items-center gap-2">
               {canArchive && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Archive className="h-4 w-4" />
-                      Archive
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Archive this trip?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Archived trips will be excluded from agency revenue reporting and analytics.
-                        You can restore it later if needed.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleStatusChange("archived")}>
-                        Archive Trip
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => openCleanupDialog("archived")}
+                  disabled={updating || disabled}
+                >
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </Button>
               )}
 
               {nextStatus ? (
