@@ -21,6 +21,7 @@ export interface ItineraryItem {
   flight_number: string | null;
   departure_city_code: string | null;
   arrival_city_code: string | null;
+  option_block_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +40,7 @@ export interface CreateItineraryItemData {
   notes?: string;
   booking_id?: string;
   sort_order?: number;
+  option_block_id?: string;
 }
 
 export function useItinerary(tripId: string | undefined, itineraryId?: string | null) {
