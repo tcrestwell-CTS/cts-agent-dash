@@ -317,6 +317,24 @@ export default function PortalPayments() {
         </Card>
       )}
 
+      {/* Payment Agreement Dialog */}
+      <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Payment Agreement</DialogTitle>
+          </DialogHeader>
+          {selectedPayment && (
+            <PaymentAgreementStep
+              tripName={selectedPayment.trip_name || "Trip"}
+              amount={selectedPayment.amount}
+              cancellationTerms={selectedPayment.cancellation_terms}
+              onAccept={handleAgreementAccepted}
+              onCancel={() => setShowAgreement(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Payment Method Selection Dialog */}
       <Dialog open={showMethodDialog} onOpenChange={setShowMethodDialog}>
         <DialogContent className="max-w-md">
