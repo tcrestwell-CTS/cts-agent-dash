@@ -247,6 +247,7 @@ const handler = async (req: Request): Promise<Response> => {
       cancellationTerms,
       paymentDeadlines,
       itinerary,
+      optionBlocks,
       bookings: bookingsForResponse,
       branding,
       advisor,
