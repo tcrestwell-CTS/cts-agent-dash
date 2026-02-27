@@ -147,10 +147,24 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
     ? differenceInDays(parseISO(returnDate), parseISO(departDate)) + 1
     : Math.max(...items.map(i => i.day_number), 1);
 
+  // Separate regular items (not in option blocks) from option block items
   const dayGroups: Record<number, ItineraryItem[]> = {};
+  const optionBlockItems: Record<string, ItineraryItem[]> = {};
   for (const item of items) {
-    if (!dayGroups[item.day_number]) dayGroups[item.day_number] = [];
-    dayGroups[item.day_number].push(item);
+    if (item.option_block_id) {
+      if (!optionBlockItems[item.option_block_id]) optionBlockItems[item.option_block_id] = [];
+      optionBlockItems[item.option_block_id].push(item);
+    } else {
+      if (!dayGroups[item.day_number]) dayGroups[item.day_number] = [];
+      dayGroups[item.day_number].push(item);
+    }
+  }
+
+  // Group option blocks by day
+  const dayBlocks: Record<number, typeof blocks> = {};
+  for (const block of blocks) {
+    if (!dayBlocks[block.day_number]) dayBlocks[block.day_number] = [];
+    dayBlocks[block.day_number].push(block);
   }
 
   const handleGenerate = async () => {
