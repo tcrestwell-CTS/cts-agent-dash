@@ -32,6 +32,8 @@ import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
+import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useTripStatuses } from "@/hooks/useTripStatuses";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
