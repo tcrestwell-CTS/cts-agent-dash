@@ -410,8 +410,8 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       </div>
                       {dateStr && <p className="text-xs text-muted-foreground mt-1">{dateStr}</p>}
                     </CardHeader>
-                    <CardContent>
-                      {dayItems.length === 0 ? (
+                    <CardContent className="space-y-2">
+                      {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
                         <p className="text-sm text-muted-foreground italic">No activities planned</p>
                       ) : (
                         <div className="space-y-2">
@@ -461,8 +461,31 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                               </div>
                             );
                           })}
+
+                          {/* Option blocks for this day */}
+                          {(dayBlocks[day] || []).map((block) => (
+                            <OptionBlockCard
+                              key={block.id}
+                              block={block}
+                              items={optionBlockItems[block.id] || []}
+                              onAddItem={(blockId, dayNum) => setAddCategoryDay({ day: dayNum, category: "hotel", optionBlockId: blockId })}
+                              onEditItem={setEditingItem}
+                              onDeleteItem={deleteItem}
+                              onUpdateBlock={updateBlock}
+                              onDeleteBlock={deleteBlock}
+                            />
+                          ))}
                         </div>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-muted-foreground text-xs"
+                        onClick={() => handleAddOptionBlock(day)}
+                      >
+                        <Layers className="h-3 w-3 mr-1" /> Add Option Block
+                      </Button>
                     </CardContent>
                   </Card>
                 </DayDropZone>
