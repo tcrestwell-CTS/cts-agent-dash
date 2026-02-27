@@ -29,6 +29,7 @@ import {
 import { Building2, CheckCircle2 } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { Badge } from "@/components/ui/badge";
+import { OpsAlerts } from "@/components/dashboard/OpsAlerts";
 
 type DateRange = "mtd" | "ytd";
 
@@ -247,6 +248,9 @@ export function AgencyMetrics() {
 
       {/* Full Width Gross Sales */}
       <MiniBarChart data={chartData.grossSales} title="Gross sales by month" />
+
+      {/* Ops Alerts */}
+      <OpsAlerts />
 
       {/* Active Authorizations */}
       <ActiveAuthorizations bookings={bookings || []} clients={clients || []} navigate={navigate} />
