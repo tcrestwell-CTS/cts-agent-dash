@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ClipboardCheck, Loader2 } from "lucide-react";
+import { ClipboardCheck, Loader2, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 const DOC_ITEMS = [
-  { key: "passport", label: "Passport valid for travel" },
-  { key: "insurance", label: "Travel insurance obtained" },
-  { key: "visa", label: "Visa requirements reviewed" },
-  { key: "emergency_contacts", label: "Emergency contacts provided" },
+  { key: "passport", label: "Passport valid for travel", description: "Ensure passport is valid for at least 6 months past your return date" },
+  { key: "insurance", label: "Travel insurance obtained", description: "Confirm coverage for medical, trip cancellation, and baggage" },
+  { key: "visa", label: "Visa requirements reviewed", description: "Check entry requirements for all destinations on your itinerary" },
+  { key: "emergency_contacts", label: "Emergency contacts provided", description: "Share emergency contact information with your travel agent" },
 ];
 
 interface TravelDocChecklistProps {
@@ -78,47 +79,72 @@ export function TravelDocChecklist({ tripId }: TravelDocChecklistProps) {
   };
 
   const completed = DOC_ITEMS.filter(i => checklist[i.key]).length;
+  const progress = (completed / DOC_ITEMS.length) * 100;
+  const allDone = completed === DOC_ITEMS.length;
 
   return (
-    <Card>
+    <Card className={allDone ? "border-green-200 bg-green-50/30" : ""}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <ClipboardCheck className="h-4 w-4" />
-          Travel Documents
-          {!loading && (
-            <span className="text-xs font-normal text-muted-foreground ml-auto">
-              {completed}/{DOC_ITEMS.length} complete
-            </span>
+          {allDone ? (
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          ) : (
+            <ClipboardCheck className="h-4 w-4" />
           )}
+          Travel Documents
+          <span className={`text-xs font-normal ml-auto ${allDone ? "text-green-600" : "text-muted-foreground"}`}>
+            {loading ? "..." : allDone ? "All complete ✓" : `${completed}/${DOC_ITEMS.length} complete`}
+          </span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-3">
-            {DOC_ITEMS.map(item => (
-              <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
-                <Checkbox
-                  checked={!!checklist[item.key]}
-                  onCheckedChange={(v) => toggleItem(item.key, !!v)}
-                  disabled={updating === item.key}
-                />
-                <span className={`text-sm transition-colors ${
-                  checklist[item.key]
-                    ? "text-muted-foreground line-through"
-                    : "text-foreground group-hover:text-primary"
-                }`}>
-                  {item.label}
-                </span>
-                {updating === item.key && (
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />
-                )}
-              </label>
-            ))}
-          </div>
+          <>
+            <Progress value={progress} className="h-2" />
+            <div className="space-y-1">
+              {DOC_ITEMS.map(item => {
+                const isChecked = !!checklist[item.key];
+                return (
+                  <label
+                    key={item.key}
+                    className={`flex items-start gap-3 cursor-pointer rounded-lg p-3 transition-colors ${
+                      isChecked
+                        ? "bg-green-50/50"
+                        : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={(v) => toggleItem(item.key, !!v)}
+                      disabled={updating === item.key}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-medium transition-colors ${
+                        isChecked
+                          ? "text-green-700 line-through"
+                          : "text-foreground"
+                      }`}>
+                        {item.label}
+                      </span>
+                      <p className={`text-xs mt-0.5 ${
+                        isChecked ? "text-green-600/60" : "text-muted-foreground"
+                      }`}>
+                        {item.description}
+                      </p>
+                    </div>
+                    {updating === item.key && (
+                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mt-1" />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

@@ -154,8 +154,19 @@ export default function PortalDashboard() {
                 <Link
                   key={trip.id}
                   to={`/client/trips/${trip.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
+                  {trip.cover_image_url ? (
+                    <img
+                      src={trip.cover_image_url}
+                      alt={trip.trip_name}
+                      className="h-16 w-24 rounded-md object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-16 w-24 rounded-md bg-gradient-to-br from-primary/10 to-muted shrink-0 flex items-center justify-center">
+                      <Map className="h-6 w-6 text-muted-foreground/50" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{trip.trip_name}</p>
                     <p className="text-sm text-muted-foreground">

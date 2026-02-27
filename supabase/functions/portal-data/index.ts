@@ -238,7 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
       const [ownTripsRes, companionTripIds2] = await Promise.all([
         supabase
           .from("trips")
-          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
+          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type, cover_image_url")
           .in("client_id", allClientIds)
           .neq("status", "archived")
           .neq("status", "cancelled")
@@ -252,7 +252,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (extraIds.length > 0) {
         const { data } = await supabase
           .from("trips")
-          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type")
+          .select("id, trip_name, destination, depart_date, return_date, status, total_gross_sales, notes, trip_type, cover_image_url")
           .in("id", extraIds)
           .neq("status", "archived")
           .neq("status", "cancelled");
@@ -282,12 +282,13 @@ const handler = async (req: Request): Promise<Response> => {
       ]);
       const isCompanion = companionTripIds3.includes(tripId);
 
-      const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes] = await Promise.all([
+      const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
-        supabase.from("bookings").select("id, booking_reference, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
+        supabase.from("bookings").select("id, booking_reference, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id, cancellation_terms").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes").eq("trip_id", tripId),
-        supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
+        supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
+        supabase.from("option_blocks").select("id, day_number, title, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
       ]);
 
       // Verify the client has access (either owner, sibling client record, or companion)
@@ -303,6 +304,7 @@ const handler = async (req: Request): Promise<Response> => {
         payments: paymentsRes.data || [],
         itinerary: itineraryRes.data || [],
         itineraries: itinerariesRes.data || [],
+        optionBlocks: optionBlocksRes.data || [],
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
