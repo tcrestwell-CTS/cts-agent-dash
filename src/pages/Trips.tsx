@@ -32,6 +32,7 @@ import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import { useTripStatuses } from "@/hooks/useTripStatuses";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
 import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
@@ -332,15 +333,7 @@ const portalCategories = [
   { id: "all-inclusive", label: "All-Inclusive", icon: Palmtree },
 ];
 
-const statusColors: Record<string, string> = {
-  inbound: "bg-amber-100 text-amber-700 border-amber-200",
-  planning: "bg-blue-100 text-blue-700 border-blue-200",
-  booked: "bg-green-100 text-green-700 border-green-200",
-  traveling: "bg-purple-100 text-purple-700 border-purple-200",
-  completed: "bg-gray-100 text-gray-700 border-gray-200",
-  cancelled: "bg-red-100 text-red-700 border-red-200",
-  archived: "bg-slate-100 text-slate-500 border-slate-200",
-};
+// Status colors are now dynamic from useTripStatuses
 
 // CTS Bookings Widget Component
 function CTSBookingsWidget() {
