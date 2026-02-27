@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PaymentAgreementStep } from "@/components/client/PaymentAgreementStep";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: any; className: string }> = {
   paid: { label: "Paid", variant: "default", icon: CheckCircle2, className: "bg-green-100 text-green-700 border-green-200" },
@@ -33,13 +34,21 @@ export default function PortalPayments() {
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [affirmLoading, setAffirmLoading] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
 
   /**
-   * Opens the payment method selection dialog for a pending payment.
-   * Client can choose between Stripe or Affirm.
+   * Opens the payment agreement step first before showing payment methods.
    */
   const handlePayNowClick = (payment: any) => {
     setSelectedPayment(payment);
+    setShowAgreement(true);
+  };
+
+  /**
+   * Called when client accepts the agreement — proceeds to payment method selection.
+   */
+  const handleAgreementAccepted = () => {
+    setShowAgreement(false);
     setShowMethodDialog(true);
   };
 
@@ -307,6 +316,24 @@ export default function PortalPayments() {
           </CardContent>
         </Card>
       )}
+
+      {/* Payment Agreement Dialog */}
+      <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Payment Agreement</DialogTitle>
+          </DialogHeader>
+          {selectedPayment && (
+            <PaymentAgreementStep
+              tripName={selectedPayment.trip_name || "Trip"}
+              amount={selectedPayment.amount}
+              cancellationTerms={selectedPayment.cancellation_terms}
+              onAccept={handleAgreementAccepted}
+              onCancel={() => setShowAgreement(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Method Selection Dialog */}
       <Dialog open={showMethodDialog} onOpenChange={setShowMethodDialog}>
