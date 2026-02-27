@@ -5,28 +5,34 @@ import { Calendar, Users, MapPin, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import type { Trip } from "@/hooks/useTrips";
 
-const KANBAN_COLUMNS = [
-  { id: "inbound", label: "Inbound", color: "border-t-amber-400" },
-  { id: "planning", label: "Planning", color: "border-t-blue-400" },
-  { id: "booked", label: "Booked", color: "border-t-green-400" },
-  { id: "traveling", label: "Traveling", color: "border-t-purple-400" },
-  { id: "completed", label: "Traveled", color: "border-t-gray-400" },
-  { id: "cancelled", label: "Cancelled", color: "border-t-red-400" },
-  { id: "archived", label: "Archived", color: "border-t-slate-400" },
-];
+export interface KanbanColumn {
+  id: string;
+  label: string;
+  color: string;
+}
 
 interface TripsKanbanProps {
   trips: Trip[];
+  columns: KanbanColumn[];
   onStatusChange: (tripId: string, newStatus: string) => Promise<boolean>;
 }
 
-export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
+// Convert hex color to a Tailwind-compatible border style
+function columnBorderStyle(hexColor: string) {
+  return { borderTopColor: hexColor };
+}
+
+export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps) {
   const navigate = useNavigate();
 
-  const tripsByStatus = KANBAN_COLUMNS.reduce((acc, col) => {
+  const tripsByStatus = columns.reduce((acc, col) => {
     acc[col.id] = trips.filter((t) => t.status === col.id);
     return acc;
   }, {} as Record<string, Trip[]>);
+
+  // Also collect trips with statuses not in any column (orphaned)
+  const knownIds = new Set(columns.map((c) => c.id));
+  const orphanedTrips = trips.filter((t) => !knownIds.has(t.status));
 
   const handleDragEnd = async (result: DropResult) => {
     const { draggableId, destination } = result;
@@ -40,13 +46,14 @@ export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]">
-        {KANBAN_COLUMNS.map((col) => (
+        {columns.map((col) => (
           <Droppable droppableId={col.id} key={col.id}>
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 ${col.color} ${
+                style={columnBorderStyle(col.color)}
+                className={`flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 ${
                   snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
                 } transition-colors`}
               >
@@ -83,6 +90,44 @@ export function TripsKanban({ trips, onStatusChange }: TripsKanbanProps) {
             )}
           </Droppable>
         ))}
+
+        {/* Show orphaned trips in an "Other" column if any exist */}
+        {orphanedTrips.length > 0 && (
+          <Droppable droppableId="__orphaned__" isDropDisabled>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 border-t-muted bg-muted/20"
+              >
+                <div className="px-3.5 py-3 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-muted-foreground">Other</h3>
+                  <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
+                    {orphanedTrips.length}
+                  </span>
+                </div>
+                <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
+                  {orphanedTrips.map((trip, index) => (
+                    <Draggable key={trip.id} draggableId={trip.id} index={index} isDragDisabled>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          onClick={() => navigate(`/trips/${trip.id}`)}
+                          className="cursor-pointer"
+                        >
+                          <KanbanTripCard trip={trip} />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              </div>
+            )}
+          </Droppable>
+        )}
       </div>
     </DragDropContext>
   );
