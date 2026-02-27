@@ -169,6 +169,8 @@ export function useTrips() {
       tags: [],
       allow_pdf_downloads: false,
       itinerary_style: "vertical_list",
+      proposal_sent_at: null,
+      follow_up_due_at: null,
       clients: null,
       isOptimistic: true,
     };
