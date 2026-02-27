@@ -604,6 +604,7 @@ const Trips = () => {
             ) : viewMode === "kanban" ? (
               <TripsKanban
                 trips={filteredTrips}
+                columns={kanbanColumns}
                 onStatusChange={async (tripId, newStatus) => {
                   return await updateTrip(tripId, { status: newStatus });
                 }}
@@ -657,9 +658,9 @@ const Trips = () => {
                             </h3>
                             <Badge
                               variant="outline"
-                              className={statusColors[trip.status] || statusColors.planning}
+                              style={{ borderColor: getStatusColor(trip.status), color: getStatusColor(trip.status) }}
                             >
-                              {trip.isOptimistic ? "Saving..." : trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+                              {trip.isOptimistic ? "Saving..." : getStatusLabel(trip.status)}
                             </Badge>
                           </div>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
