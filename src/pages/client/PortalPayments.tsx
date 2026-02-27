@@ -34,13 +34,21 @@ export default function PortalPayments() {
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [affirmLoading, setAffirmLoading] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
 
   /**
-   * Opens the payment method selection dialog for a pending payment.
-   * Client can choose between Stripe or Affirm.
+   * Opens the payment agreement step first before showing payment methods.
    */
   const handlePayNowClick = (payment: any) => {
     setSelectedPayment(payment);
+    setShowAgreement(true);
+  };
+
+  /**
+   * Called when client accepts the agreement — proceeds to payment method selection.
+   */
+  const handleAgreementAccepted = () => {
+    setShowAgreement(false);
     setShowMethodDialog(true);
   };
 
