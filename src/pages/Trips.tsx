@@ -32,6 +32,8 @@ import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
+import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useTripStatuses } from "@/hooks/useTripStatuses";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
@@ -443,6 +445,7 @@ const Trips = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { trips, loading, fetchTrips, updateTrip } = useTrips();
+  const { processStatusChange } = useWorkflowAutomation();
   const { kanbanColumns, getStatusLabel, getStatusColor, loading: statusesLoading } = useTripStatuses();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -605,7 +608,15 @@ const Trips = () => {
               <TripsKanban
                 trips={filteredTrips}
                 columns={kanbanColumns}
-                onStatusChange={async (tripId, newStatus) => {
+                onStatusChange={async (tripId, newStatus, cancellationOptions) => {
+                  const trip = filteredTrips.find(t => t.id === tripId);
+                  if (!trip) return false;
+                  const result = await processStatusChange(newStatus, { trip, bookings: [] }, cancellationOptions);
+                  if (!result.allowed) {
+                    const { toast } = await import("@/hooks/use-toast");
+                    toast({ title: "Cannot change status", description: result.error, variant: "destructive" });
+                    return false;
+                  }
                   return await updateTrip(tripId, { status: newStatus });
                 }}
               />
