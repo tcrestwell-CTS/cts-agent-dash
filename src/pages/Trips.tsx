@@ -443,6 +443,7 @@ const Trips = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { trips, loading, fetchTrips, updateTrip } = useTrips();
+  const { kanbanColumns, getStatusLabel, getStatusColor, loading: statusesLoading } = useTripStatuses();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
