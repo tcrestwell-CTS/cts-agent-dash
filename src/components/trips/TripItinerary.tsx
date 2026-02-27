@@ -513,7 +513,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               </div>
             </CardHeader>
             <CardContent>
-              {dayItems.length === 0 ? (
+              {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
                 <p className="text-sm text-muted-foreground italic">No activities planned</p>
               ) : (
                 <div className="space-y-3">
@@ -579,8 +579,31 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       </div>
                     );
                   })}
+
+                  {/* Option blocks for this day */}
+                  {(dayBlocks[day] || []).map((block) => (
+                    <OptionBlockCard
+                      key={block.id}
+                      block={block}
+                      items={optionBlockItems[block.id] || []}
+                      onAddItem={(blockId, dayNum) => setAddCategoryDay({ day: dayNum, category: "hotel", optionBlockId: blockId })}
+                      onEditItem={setEditingItem}
+                      onDeleteItem={deleteItem}
+                      onUpdateBlock={updateBlock}
+                      onDeleteBlock={deleteBlock}
+                    />
+                  ))}
                 </div>
               )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-2 text-muted-foreground text-xs"
+                onClick={() => handleAddOptionBlock(day)}
+              >
+                <Layers className="h-3 w-3 mr-1" /> Add Option Block
+              </Button>
             </CardContent>
           </Card>
           </DayDropZone>
@@ -592,13 +615,18 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         <AddItineraryItemDialog tripId={tripId} dayNumber={totalDays + 1} onAdd={addItem} />
       )}
 
-      {/* Controlled dialog for sidebar click / drag-drop */}
+      {/* Controlled dialog for sidebar click / drag-drop / option block add */}
       {addCategoryDay && (
         <AddItineraryItemDialog
           tripId={tripId}
           dayNumber={addCategoryDay.day}
           defaultCategory={addCategoryDay.category}
-          onAdd={addItem}
+          onAdd={async (data) => {
+            if (addCategoryDay.optionBlockId) {
+              return addItem({ ...data, option_block_id: addCategoryDay.optionBlockId });
+            }
+            return addItem(data);
+          }}
           controlledOpen={!!addCategoryDay}
           onControlledOpenChange={(open) => {
             if (!open) setAddCategoryDay(null);
