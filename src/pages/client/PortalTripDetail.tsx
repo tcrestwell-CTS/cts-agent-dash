@@ -9,11 +9,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { RequestChangesDialog } from "@/components/client/RequestChangesDialog";
 import { PaymentMilestoneTracker } from "@/components/client/PaymentMilestoneTracker";
+import { PaymentAgreementStep } from "@/components/client/PaymentAgreementStep";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { TravelDocChecklist } from "@/components/client/TravelDocChecklist";
 import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocationTimeline";
@@ -25,20 +29,38 @@ const categoryIcons: Record<string, string> = {
 
 export default function PortalTripDetail() {
   const { tripId } = useParams();
-  const { data, isLoading } = usePortalTripDetail(tripId);
+  const { data, isLoading, refetch } = usePortalTripDetail(tripId);
   const { data: ccData } = usePortalCCAuthorizations(tripId);
   const approveItinerary = useApproveItinerary();
   const [showItinerary, setShowItinerary] = useState(false);
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [changeRequest, setChangeRequest] = useState<{ id: string; name: string } | null>(null);
+  const [selectedOptionChoices, setSelectedOptionChoices] = useState<Record<string, string>>({});
 
-  const handlePayNow = useCallback(async (paymentId: string) => {
-    setPayingId(paymentId);
+  // Payment agreement flow state
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [showMethodDialog, setShowMethodDialog] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [affirmLoading, setAffirmLoading] = useState(false);
+
+  const handlePayNowClick = (payment: any) => {
+    setSelectedPayment(payment);
+    setShowAgreement(true);
+  };
+
+  const handleAgreementAccepted = () => {
+    setShowAgreement(false);
+    setTimeout(() => setShowMethodDialog(true), 150);
+  };
+
+  const handleStripePayment = async () => {
+    if (!selectedPayment) return;
+    setPayingId(selectedPayment.id);
+    setShowMethodDialog(false);
     try {
       const portalSession = localStorage.getItem("portal_session");
       const portalToken = portalSession ? JSON.parse(portalSession).token : null;
-
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
         method: "POST",
         headers: {
@@ -46,9 +68,8 @@ export default function PortalTripDetail() {
           "x-portal-token": portalToken || "",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ paymentId, returnUrl: window.location.origin }),
+        body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin, paymentMethodChoice: "stripe" }),
       });
-
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Failed");
       if (result.url) window.location.href = result.url;
@@ -58,13 +79,59 @@ export default function PortalTripDetail() {
     } finally {
       setPayingId(null);
     }
-  }, []);
+  };
+
+  const handleAffirmPayment = async () => {
+    if (!selectedPayment) return;
+    if (typeof (window as any).affirm === "undefined") {
+      toast.error("Affirm is not available. Please try card payment or contact your agent.");
+      return;
+    }
+    setAffirmLoading(true);
+    setShowMethodDialog(false);
+    const affirm = (window as any).affirm;
+    const checkoutData = {
+      merchant: { name: "Crestwell Travel Services", use_vcn: true },
+      shipping: { name: { first: "Client", last: "" }, address: { line1: "N/A", city: "N/A", state: "CA", zipcode: "00000", country: "USA" }, phone_number: "0000000000", email: "client@example.com" },
+      billing: { name: { first: "Client", last: "" }, address: { line1: "N/A", city: "N/A", state: "CA", zipcode: "00000", country: "USA" }, phone_number: "0000000000", email: "client@example.com" },
+      items: [{ display_name: `Trip Payment – ${selectedPayment.trip_name || "Travel"}`, sku: selectedPayment.id, unit_price: Math.round(selectedPayment.amount * 100), qty: 1, item_url: window.location.href }],
+      order_id: selectedPayment.id,
+      metadata: { mode: "modal" },
+      total: Math.round(selectedPayment.amount * 100),
+      shipping_amount: 0,
+      tax_amount: 0,
+    };
+    affirm.ui.ready(function () {
+      affirm.checkout(checkoutData);
+      affirm.checkout.open_vcn({
+        success: async function (card_response: any) {
+          setAffirmLoading(false);
+          toast.success("Affirm approved! Your agent has been notified.");
+          try {
+            const portalSession = localStorage.getItem("portal_session");
+            const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-virtual-card`, {
+              method: "POST",
+              headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "x-portal-token": portalToken || "", "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId: selectedPayment.id, method: "affirm", affirmCheckoutId: card_response.checkout_id || null }),
+            });
+            refetch();
+          } catch (err) { console.error("Error notifying agent:", err); }
+        },
+        error: function () {
+          setAffirmLoading(false);
+          toast.error("Affirm checkout was cancelled or declined.");
+        },
+        checkout_data: checkoutData,
+      });
+    });
+  };
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40" />
+        <Skeleton className="h-48 rounded-xl" />
         <Skeleton className="h-40" />
       </div>
     );
@@ -81,14 +148,20 @@ export default function PortalTripDetail() {
     );
   }
 
-  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [] } = data;
+  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [] } = data;
   const approvedId = trip.approved_itinerary_id;
 
-  const depositPaid = payments.some((p: any) => 
+  const depositPaid = payments.some((p: any) =>
     (p.payment_type === "deposit" || p.payment_type === "payment") && p.status === "paid"
   );
   const depositRequired = trip.deposit_required && !depositPaid;
   const totalCost = trip.total_gross_sales || 0;
+
+  // Get cancellation terms from bookings for the agreement step
+  const cancellationTerms = bookings
+    .map((b: any) => b.cancellation_terms)
+    .filter(Boolean)
+    .join(" | ");
 
   const handleChangeRequest = async (message: string) => {
     const portalSession = localStorage.getItem("portal_session");
@@ -96,11 +169,7 @@ export default function PortalTripDetail() {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=send_message`;
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "x-portal-token": portalToken || "",
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: { "x-portal-token": portalToken || "", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
     });
     if (!res.ok) throw new Error("Failed to send");
@@ -124,46 +193,100 @@ export default function PortalTripDetail() {
     return acc;
   }, {});
 
+  // Group option blocks by day
+  const optionBlocksByDay = optionBlocks.reduce((acc: Record<number, any[]>, block: any) => {
+    (acc[block.day_number] = acc[block.day_number] || []).push(block);
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link to="/client/trips">
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-            {trip.destination && (
-              <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {trip.destination}</span>
+      {/* Hero Cover Image */}
+      {trip.cover_image_url && (
+        <div className="relative -mx-4 -mt-6 mb-2 h-[30vh] min-h-[200px] overflow-hidden">
+          <img
+            src={trip.cover_image_url}
+            alt={trip.trip_name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="max-w-6xl mx-auto">
+              <h1 className="text-3xl font-bold text-white drop-shadow-lg">{trip.trip_name}</h1>
+              <div className="flex items-center gap-3 text-white/90 text-sm mt-2">
+                {trip.destination && (
+                  <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {trip.destination}</span>
+                )}
+                {trip.depart_date && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {format(new Date(trip.depart_date), "MMM d")}
+                    {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="absolute top-4 left-4">
+            <Link to="/client/trips">
+              <Button variant="secondary" size="icon" className="shadow-md"><ArrowLeft className="h-4 w-4" /></Button>
+            </Link>
+          </div>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            {trip.published_at && trip.share_token && (
+              <Button variant="secondary" size="sm" className="shadow-md" asChild>
+                <Link to={`/shared/${trip.share_token}`}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> View Itinerary
+                </Link>
+              </Button>
             )}
-            {trip.depart_date && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                {format(new Date(trip.depart_date), "MMM d")}
-                {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
-              </span>
-            )}
+            <Badge variant={trip.status === "confirmed" ? "default" : "secondary"} className="shadow-md">
+              {trip.status}
+            </Badge>
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          {trip.published_at && trip.share_token && (
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/shared/${trip.share_token}`}>
-                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                View Itinerary
-              </Link>
-            </Button>
-          )}
-          <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
-            {trip.status}
-          </Badge>
+      )}
+
+      {/* Standard header when no cover image */}
+      {!trip.cover_image_url && (
+        <div className="flex items-center gap-3">
+          <Link to="/client/trips">
+            <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+              {trip.destination && (
+                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {trip.destination}</span>
+              )}
+              {trip.depart_date && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {format(new Date(trip.depart_date), "MMM d")}
+                  {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {trip.published_at && trip.share_token && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/shared/${trip.share_token}`}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> View Itinerary
+                </Link>
+              </Button>
+            )}
+            <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
+              {trip.status}
+            </Badge>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Departure Countdown */}
       <DepartureCountdown departDate={trip.depart_date} returnDate={trip.return_date} />
 
-      {/* Payment Milestone Tracker - moved up for prominence */}
+      {/* Payment Milestone Tracker */}
       {payments.length > 0 && totalCost > 0 && (
         <Card>
           <CardHeader>
@@ -180,6 +303,78 @@ export default function PortalTripDetail() {
       {/* Location Timeline */}
       {itinerary.length > 0 && (
         <ItineraryLocationTimeline items={itinerary} />
+      )}
+
+      {/* Option Blocks */}
+      {optionBlocks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Layers className="h-4 w-4" /> Your Choices
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {Object.entries(optionBlocksByDay).map(([day, blocks]: [string, any[]]) => (
+              <div key={day} className="space-y-4">
+                <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5" /> Day {day}
+                </h4>
+                {blocks.map((block: any) => {
+                  const blockItems = itinerary.filter((item: any) => item.option_block_id === block.id);
+                  if (blockItems.length === 0) return null;
+                  const selectedId = selectedOptionChoices[block.id];
+
+                  return (
+                    <div key={block.id} className="space-y-2">
+                      <p className="text-sm font-medium">{block.title}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {blockItems.map((item: any, idx: number) => {
+                          const isSelected = selectedId === item.id;
+                          const optionLabel = String.fromCharCode(65 + idx); // A, B, C...
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => setSelectedOptionChoices(prev => ({ ...prev, [block.id]: item.id }))}
+                              className={`text-left p-4 rounded-lg border-2 transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                  : "border-border hover:border-primary/40 hover:bg-muted/30"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                  isSelected
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }`}>
+                                  {isSelected ? <CheckCircle2 className="h-4 w-4" /> : optionLabel}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base">{categoryIcons[item.category] || "📌"}</span>
+                                    <p className="font-medium text-sm">{item.title}</p>
+                                  </div>
+                                  {item.description && (
+                                    <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                                  )}
+                                  {item.location && (
+                                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                      <MapPinned className="h-3 w-3" /> {item.location}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* Itinerary Options */}
@@ -409,8 +604,8 @@ export default function PortalTripDetail() {
                         <p className="text-sm font-semibold mt-1">${Number(p.amount).toLocaleString()}</p>
                       </div>
                       {isPending && (
-                        <Button size="sm" onClick={() => handlePayNow(p.id)} disabled={payingId === p.id}>
-                          {payingId === p.id ? (
+                        <Button size="sm" onClick={() => handlePayNowClick(p)} disabled={payingId === p.id || affirmLoading}>
+                          {payingId === p.id || affirmLoading ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                           ) : (
                             <CreditCard className="h-4 w-4 mr-1" />
@@ -439,6 +634,64 @@ export default function PortalTripDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Payment Agreement Dialog */}
+      <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Payment Agreement</DialogTitle>
+          </DialogHeader>
+          {selectedPayment && (
+            <PaymentAgreementStep
+              tripName={trip.trip_name || "Trip"}
+              amount={selectedPayment.amount}
+              cancellationTerms={cancellationTerms || undefined}
+              onAccept={handleAgreementAccepted}
+              onCancel={() => setShowAgreement(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={showMethodDialog} onOpenChange={setShowMethodDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Payment Method</DialogTitle>
+            <DialogDescription>
+              Select how you'd like to pay{" "}
+              {selectedPayment && <strong>${Number(selectedPayment.amount).toLocaleString()}</strong>}
+              {" "}for <strong>{trip.trip_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <button
+              onClick={handleStripePayment}
+              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-left"
+            >
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <CreditCard className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Pay with Card</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Pay instantly using your credit or debit card via secure checkout.</p>
+              </div>
+            </button>
+            <button
+              onClick={handleAffirmPayment}
+              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-accent/50 hover:bg-accent/5 transition-all text-left"
+            >
+              <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                <Wallet className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Pay with Affirm</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Finance your trip with flexible monthly payments.</p>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Approval confirmation */}
       <AlertDialog open={!!confirmApproval} onOpenChange={(open) => !open && setConfirmApproval(null)}>
@@ -470,7 +723,10 @@ export default function PortalTripDetail() {
 }
 
 function ItineraryItemsList({ items }: { items: any[] }) {
-  const grouped = items.reduce((acc: Record<number, any[]>, item: any) => {
+  // Filter out items that belong to option blocks (they're rendered separately)
+  const regularItems = items.filter((item: any) => !item.option_block_id);
+  
+  const grouped = regularItems.reduce((acc: Record<number, any[]>, item: any) => {
     (acc[item.day_number] = acc[item.day_number] || []).push(item);
     return acc;
   }, {});
