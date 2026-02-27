@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2 } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,8 +14,8 @@ import { getTierConfig } from "@/lib/commissionTiers";
 import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
 import { StripeConnectCard } from "@/components/settings/StripeConnectCard";
 import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
+import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
 import { usePermissions } from "@/hooks/usePermissions";
-
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
@@ -108,6 +108,10 @@ const Settings = () => {
           <TabsTrigger value="integrations" className="gap-2">
             <Link2 className="h-4 w-4" />
             Integrations
+          </TabsTrigger>
+          <TabsTrigger value="statuses" className="gap-2">
+            <Columns3 className="h-4 w-4" />
+            Statuses
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="agency" className="gap-2">
@@ -559,6 +563,10 @@ const Settings = () => {
               <QBOIntegrationCard />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="statuses">
+          <TripStatusesSettings />
         </TabsContent>
 
         {isAdmin && (
