@@ -42,7 +42,10 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
   final_paid: "Final Paid",
   booked: "Booked",
   traveling: "Traveling",
+  traveled: "Traveled",
   completed: "Traveled",
+  commission_pending: "Commission Pending",
+  commission_received: "Commission Received",
   cancelled: "Cancelled",
   archived: "Archived",
 };

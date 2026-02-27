@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle, Send, MousePointerClick, Shield, Banknote, CreditCard, BookOpen } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle, Send, MousePointerClick, Shield, Banknote, CreditCard, BookOpen, Clock, CircleDollarSign, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -32,7 +32,9 @@ const WORKFLOW_STATUSES = [
   { key: "final_paid", label: "Final Paid", icon: CreditCard, description: "Full balance paid" },
   { key: "booked", label: "Booked", icon: BookOpen, description: "All bookings confirmed" },
   { key: "traveling", label: "Traveling", icon: Plane, description: "Client is on the trip" },
-  { key: "completed", label: "Completed", icon: CheckCircle2, description: "Trip completed" },
+  { key: "traveled", label: "Traveled", icon: CheckCircle2, description: "Trip completed" },
+  { key: "commission_pending", label: "Comm. Pending", icon: Clock, description: "Awaiting commission" },
+  { key: "commission_received", label: "Comm. Received", icon: BadgeCheck, description: "All commissions received" },
 ] as const;
 
 export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, readinessComplete = true, validationError }: TripStatusWorkflowProps) {
@@ -72,7 +74,7 @@ export function TripStatusWorkflow({ currentStatus, onStatusChange, disabled, re
   const nextStatus = getNextStatus();
   const previousStatus = getPreviousStatus();
 
-  const canArchive = currentStatus === "completed" || currentStatus === "cancelled";
+  const canArchive = currentStatus === "commission_received" || currentStatus === "cancelled" || currentStatus === "traveled" || currentStatus === "completed";
 
   return (
     <Card className="max-w-3xl">

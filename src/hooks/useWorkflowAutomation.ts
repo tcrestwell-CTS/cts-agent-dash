@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 import { Trip } from "./useTrips";
 
 interface WorkflowContext {
@@ -51,10 +50,9 @@ export function useWorkflowAutomation() {
       ctx: WorkflowContext
     ): Promise<{ allowed: boolean; error?: string }> => {
       const { trip, bookings } = ctx;
-      const slug = newStatus;
 
       // === PROPOSAL SENT ===
-      if (slug === "proposal_sent") {
+      if (newStatus === "proposal_sent") {
         if (!trip.published_at) {
           return { allowed: false, error: "Trip must be published before sending a proposal" };
         }
@@ -63,7 +61,6 @@ export function useWorkflowAutomation() {
           return { allowed: false, error: "At least one priced booking must exist" };
         }
 
-        // Set timestamps
         const followUpDate = new Date();
         followUpDate.setDate(followUpDate.getDate() + 7);
 
@@ -93,7 +90,7 @@ export function useWorkflowAutomation() {
       }
 
       // === OPTION SELECTED ===
-      if (slug === "option_selected") {
+      if (newStatus === "option_selected") {
         await createWorkflowTask(
           trip.id,
           `Prepare Deposit Invoice for ${trip.trip_name}`,
@@ -111,7 +108,7 @@ export function useWorkflowAutomation() {
       }
 
       // === DEPOSIT AUTHORIZED ===
-      if (slug === "deposit_authorized") {
+      if (newStatus === "deposit_authorized") {
         await createWorkflowTask(
           trip.id,
           `Charge Card for ${trip.trip_name}`,
@@ -125,7 +122,6 @@ export function useWorkflowAutomation() {
           trip.id
         );
 
-        // Log compliance audit
         if (user) {
           await supabase.from("compliance_audit_log").insert({
             user_id: user.id,
@@ -141,7 +137,7 @@ export function useWorkflowAutomation() {
       }
 
       // === DEPOSIT PAID ===
-      if (slug === "deposit_paid") {
+      if (newStatus === "deposit_paid") {
         await createWorkflowTask(
           trip.id,
           `Complete bookings for ${trip.trip_name}`,
@@ -159,7 +155,7 @@ export function useWorkflowAutomation() {
       }
 
       // === FINAL PAID ===
-      if (slug === "final_paid") {
+      if (newStatus === "final_paid") {
         await createWorkflowTask(
           trip.id,
           `Confirm Supplier Payments for ${trip.trip_name}`,
@@ -172,6 +168,157 @@ export function useWorkflowAutomation() {
           `Final payment received for "${trip.trip_name}". Confirm supplier payments.`,
           trip.id
         );
+
+        return { allowed: true };
+      }
+
+      // === BOOKED ===
+      if (newStatus === "booked") {
+        // Validate: every booking must have supplier, confirmation #, price, and commission
+        const invalidBookings = bookings.filter(
+          (b) => !b.suppliers?.name || !b.booking_reference || b.gross_sales <= 0 || b.commission_revenue <= 0
+        );
+        if (invalidBookings.length > 0) {
+          return {
+            allowed: false,
+            error: "All bookings must have a supplier, confirmation number, price, and expected commission before marking as Booked",
+          };
+        }
+
+        // Create commission forecast entries for bookings that don't have one yet
+        for (const booking of bookings) {
+          const { data: existing } = await supabase
+            .from("commissions")
+            .select("id")
+            .eq("booking_id", booking.id)
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            await supabase.from("commissions").insert({
+              user_id: user!.id,
+              booking_id: booking.id,
+              amount: booking.commission_revenue,
+              rate: booking.commissionable_amount > 0
+                ? (booking.commission_revenue / booking.commissionable_amount) * 100
+                : 0,
+              status: "pending",
+              expected_commission: booking.commission_revenue,
+            });
+          }
+        }
+
+        await createNotification(
+          "All Bookings Confirmed",
+          `All bookings for "${trip.trip_name}" are confirmed. Commission forecast entries created.`,
+          trip.id
+        );
+
+        return { allowed: true };
+      }
+
+      // === TRAVELED ===
+      if (newStatus === "traveled") {
+        await createWorkflowTask(
+          trip.id,
+          `Reconcile commissions for ${trip.trip_name}`,
+          "commission_reconciliation",
+          "Trip completed. Verify all commissions have been received from suppliers."
+        );
+
+        await createWorkflowTask(
+          trip.id,
+          `Send post-trip follow-up for ${trip.trip_name}`,
+          "post_trip_followup",
+          "Send review request and referral ask to client."
+        );
+
+        await createNotification(
+          "Trip Completed",
+          `"${trip.trip_name}" travel dates have passed. Commission reconciliation and follow-up tasks created.`,
+          trip.id
+        );
+
+        return { allowed: true };
+      }
+
+      // === COMMISSION PENDING ===
+      if (newStatus === "commission_pending") {
+        await createNotification(
+          "Commission Overdue",
+          `Expected commission date has passed for "${trip.trip_name}". Follow up with suppliers.`,
+          trip.id
+        );
+
+        await createWorkflowTask(
+          trip.id,
+          `Follow up on overdue commission for ${trip.trip_name}`,
+          "commission_followup",
+          "Expected commission date has passed. Contact suppliers to verify payment status."
+        );
+
+        return { allowed: true };
+      }
+
+      // === COMMISSION RECEIVED ===
+      if (newStatus === "commission_received") {
+        // Log reconciliation entry
+        if (user) {
+          await supabase.from("compliance_audit_log").insert({
+            user_id: user.id,
+            entity_type: "trip",
+            entity_id: trip.id,
+            event_type: "commission_reconciled",
+            client_name: trip.clients?.name || null,
+            metadata: { status_transition: "commission_received", trip_name: trip.trip_name },
+          } as any);
+        }
+
+        await createNotification(
+          "Commission Received",
+          `All commissions received for "${trip.trip_name}". Trip eligible for archiving.`,
+          trip.id
+        );
+
+        return { allowed: true };
+      }
+
+      // === ARCHIVED ===
+      if (newStatus === "archived") {
+        // Check archiving eligibility
+        if (trip.status !== "commission_received" && trip.status !== "cancelled") {
+          // Check if commission_received — only allow archive from there or cancelled
+          const allowedArchiveFrom = ["commission_received", "cancelled", "completed", "traveled"];
+          if (!allowedArchiveFrom.includes(trip.status)) {
+            return {
+              allowed: false,
+              error: "Trip must have all commissions received (or be cancelled) before archiving",
+            };
+          }
+        }
+
+        // Check for open payment tasks
+        const { data: openTasks } = await supabase
+          .from("workflow_tasks")
+          .select("id")
+          .eq("trip_id", trip.id)
+          .eq("status", "pending")
+          .limit(1);
+
+        if (openTasks && openTasks.length > 0) {
+          return { allowed: false, error: "Complete or dismiss all open workflow tasks before archiving" };
+        }
+
+        // Check for open CC authorizations
+        const { data: openAuths } = await supabase
+          .from("cc_authorizations")
+          .select("id")
+          .in("booking_id", bookings.map((b) => b.id))
+          .in("status", ["pending", "authorized"])
+          .limit(1);
+
+        if (openAuths && openAuths.length > 0) {
+          return { allowed: false, error: "All CC authorizations must be expired or completed before archiving" };
+        }
 
         return { allowed: true };
       }
