@@ -338,11 +338,11 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
           </div>
         )}
 
-        {/* Cancellation Dialog */}
-        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        {/* Cleanup Dialog (Cancel / Archive) */}
+        <Dialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Move {tripName ? `"${tripName}"` : "trip"} to Cancelled</DialogTitle>
+              <DialogTitle>Move {tripName ? `"${tripName}"` : "trip"} to {cleanupTarget === "cancelled" ? "Cancelled" : "Archived"}</DialogTitle>
               <DialogDescription>
                 Choose what happens with this trip's automations, tasks, and publishing.
               </DialogDescription>
@@ -350,38 +350,38 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
             <div className="space-y-4 py-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={cancelOptions.unpublish}
+                  checked={cleanupOptions.unpublish}
                   onCheckedChange={(checked) =>
-                    setCancelOptions((prev) => ({ ...prev, unpublish: checked === true }))
+                    setCleanupOptions((prev) => ({ ...prev, unpublish: checked === true }))
                   }
                 />
                 <span className="text-sm font-medium">Unpublish Trip</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={cancelOptions.deactivateAutomations}
+                  checked={cleanupOptions.deactivateAutomations}
                   onCheckedChange={(checked) =>
-                    setCancelOptions((prev) => ({ ...prev, deactivateAutomations: checked === true }))
+                    setCleanupOptions((prev) => ({ ...prev, deactivateAutomations: checked === true }))
                   }
                 />
                 <span className="text-sm font-medium">Deactivate Automations</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={cancelOptions.completeTasks}
+                  checked={cleanupOptions.completeTasks}
                   onCheckedChange={(checked) =>
-                    setCancelOptions((prev) => ({ ...prev, completeTasks: checked === true }))
+                    setCleanupOptions((prev) => ({ ...prev, completeTasks: checked === true }))
                   }
                 />
                 <span className="text-sm font-medium">Complete Tasks</span>
               </label>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+              <Button variant="outline" onClick={() => setShowCleanupDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCancelSubmit} disabled={updating}>
-                {updating && pendingStatus === "cancelled" ? (
+              <Button onClick={handleCleanupSubmit} disabled={updating}>
+                {updating && pendingStatus === cleanupTarget ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : null}
                 Submit
