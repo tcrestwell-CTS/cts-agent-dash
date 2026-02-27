@@ -2022,6 +2022,7 @@ export type Database = {
           deposit_amount: number | null
           deposit_required: boolean | null
           destination: string | null
+          follow_up_due_at: string | null
           id: string
           itinerary_approved_at: string | null
           itinerary_approved_by_client_id: string | null
@@ -2030,6 +2031,7 @@ export type Database = {
           parent_trip_id: string | null
           post_trip_email_sent: boolean | null
           pricing_visibility: string
+          proposal_sent_at: string | null
           published_at: string | null
           published_snapshot: Json | null
           readiness_score: Json | null
@@ -2061,6 +2063,7 @@ export type Database = {
           deposit_amount?: number | null
           deposit_required?: boolean | null
           destination?: string | null
+          follow_up_due_at?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
@@ -2069,6 +2072,7 @@ export type Database = {
           parent_trip_id?: string | null
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
+          proposal_sent_at?: string | null
           published_at?: string | null
           published_snapshot?: Json | null
           readiness_score?: Json | null
@@ -2100,6 +2104,7 @@ export type Database = {
           deposit_amount?: number | null
           deposit_required?: boolean | null
           destination?: string | null
+          follow_up_due_at?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
@@ -2108,6 +2113,7 @@ export type Database = {
           parent_trip_id?: string | null
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
+          proposal_sent_at?: string | null
           published_at?: string | null
           published_snapshot?: Json | null
           readiness_score?: Json | null
@@ -2268,6 +2274,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workflow_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          status: string
+          task_type: string
+          title: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          status?: string
+          task_type?: string
+          title: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          status?: string
+          task_type?: string
+          title?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_tasks_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
