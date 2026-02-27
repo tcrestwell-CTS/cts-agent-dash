@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sparkles, Download, Trash2, Import, Clock, MapPin, Plus,
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, ShoppingBag,
-  Music, Target, Heart,
+  Music, Target, Heart, Layers,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useItinerary, type ItineraryItem } from "@/hooks/useItinerary";
+import { useOptionBlocks } from "@/hooks/useOptionBlocks";
 import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
 import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
+import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
