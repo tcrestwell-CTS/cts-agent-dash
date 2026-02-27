@@ -34,6 +34,8 @@ export interface Trip {
   tags: string[];
   allow_pdf_downloads: boolean;
   itinerary_style: string;
+  proposal_sent_at: string | null;
+  follow_up_due_at: string | null;
   clients?: {
     id: string;
     name: string;
