@@ -189,9 +189,15 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
       });
-    }
 
-    // Fetch agent branding and profile (always live — not versioned)
+      // Fetch option blocks for legacy trips
+      const optionBlocksRes = await supabase
+        .from("option_blocks")
+        .select("id, trip_id, day_number, title, sort_order")
+        .eq("trip_id", trip.id)
+        .order("sort_order", { ascending: true });
+      optionBlocks = optionBlocksRes.data || [];
+    }
     let branding = null;
     let advisor = null;
 
