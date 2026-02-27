@@ -565,6 +565,10 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="statuses">
+          <TripStatusesSettings />
+        </TabsContent>
+
         {isAdmin && (
           <TabsContent value="agency">
             <AgencySettingsTab />
