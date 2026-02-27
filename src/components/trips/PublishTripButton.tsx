@@ -41,10 +41,10 @@ export function PublishTripButton({
     setPublishing(true);
     try {
       // 1. Fetch current itinerary items and bookings to snapshot
-      const [itineraryRes, bookingsRes, itinerariesRes] = await Promise.all([
+      const [itineraryRes, bookingsRes, itinerariesRes, optionBlocksRes] = await Promise.all([
         supabase
           .from("itinerary_items")
-          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id")
+          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id")
           .eq("trip_id", tripId)
           .order("day_number", { ascending: true })
           .order("sort_order", { ascending: true }),
@@ -56,6 +56,12 @@ export function PublishTripButton({
           .from("itineraries")
           .select("id, name, sort_order, cover_image_url, overview, depart_date, return_date")
           .eq("trip_id", tripId)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("option_blocks")
+          .select("id, day_number, title, sort_order, itinerary_id")
+          .eq("trip_id", tripId)
+          .order("day_number", { ascending: true })
           .order("sort_order", { ascending: true }),
       ]);
 
@@ -72,6 +78,7 @@ export function PublishTripButton({
           payment_deadline: b.payment_deadline,
         })),
         itineraries: itinerariesRes.data || [],
+        optionBlocks: optionBlocksRes.data || [],
         snapshot_at: new Date().toISOString(),
       };
 

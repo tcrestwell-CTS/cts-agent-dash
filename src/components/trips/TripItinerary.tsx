@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sparkles, Download, Trash2, Import, Clock, MapPin, Plus,
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, ShoppingBag,
-  Music, Target, Heart,
+  Music, Target, Heart, Layers,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useItinerary, type ItineraryItem } from "@/hooks/useItinerary";
+import { useOptionBlocks } from "@/hooks/useOptionBlocks";
 import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
 import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
+import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
@@ -97,10 +99,15 @@ function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop
 
 export function TripItinerary({ tripId, itineraryId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
   const { items, loading, generating, addItem, updateItem, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId, itineraryId);
+  const { blocks, createBlock, updateBlock, deleteBlock, fetchBlocks } = useOptionBlocks(tripId, itineraryId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
-  const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string } | null>(null);
+  const [addCategoryDay, setAddCategoryDay] = useState<{ day: number; category: string; optionBlockId?: string } | null>(null);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+
+  const handleAddOptionBlock = useCallback(async (dayNumber: number) => {
+    await createBlock(dayNumber);
+  }, [createBlock]);
 
   const handleDropComponent = useCallback((category: string, day: number) => {
     setAddCategoryDay({ day, category });
@@ -140,10 +147,24 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
     ? differenceInDays(parseISO(returnDate), parseISO(departDate)) + 1
     : Math.max(...items.map(i => i.day_number), 1);
 
+  // Separate regular items (not in option blocks) from option block items
   const dayGroups: Record<number, ItineraryItem[]> = {};
+  const optionBlockItems: Record<string, ItineraryItem[]> = {};
   for (const item of items) {
-    if (!dayGroups[item.day_number]) dayGroups[item.day_number] = [];
-    dayGroups[item.day_number].push(item);
+    if (item.option_block_id) {
+      if (!optionBlockItems[item.option_block_id]) optionBlockItems[item.option_block_id] = [];
+      optionBlockItems[item.option_block_id].push(item);
+    } else {
+      if (!dayGroups[item.day_number]) dayGroups[item.day_number] = [];
+      dayGroups[item.day_number].push(item);
+    }
+  }
+
+  // Group option blocks by day
+  const dayBlocks: Record<number, typeof blocks> = {};
+  for (const block of blocks) {
+    if (!dayBlocks[block.day_number]) dayBlocks[block.day_number] = [];
+    dayBlocks[block.day_number].push(block);
   }
 
   const handleGenerate = async () => {
@@ -389,8 +410,8 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       </div>
                       {dateStr && <p className="text-xs text-muted-foreground mt-1">{dateStr}</p>}
                     </CardHeader>
-                    <CardContent>
-                      {dayItems.length === 0 ? (
+                    <CardContent className="space-y-2">
+                      {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
                         <p className="text-sm text-muted-foreground italic">No activities planned</p>
                       ) : (
                         <div className="space-y-2">
@@ -440,8 +461,31 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                               </div>
                             );
                           })}
+
+                          {/* Option blocks for this day */}
+                          {(dayBlocks[day] || []).map((block) => (
+                            <OptionBlockCard
+                              key={block.id}
+                              block={block}
+                              items={optionBlockItems[block.id] || []}
+                              onAddItem={(blockId, dayNum) => setAddCategoryDay({ day: dayNum, category: "hotel", optionBlockId: blockId })}
+                              onEditItem={setEditingItem}
+                              onDeleteItem={deleteItem}
+                              onUpdateBlock={updateBlock}
+                              onDeleteBlock={deleteBlock}
+                            />
+                          ))}
                         </div>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-muted-foreground text-xs"
+                        onClick={() => handleAddOptionBlock(day)}
+                      >
+                        <Layers className="h-3 w-3 mr-1" /> Add Option Block
+                      </Button>
                     </CardContent>
                   </Card>
                 </DayDropZone>
@@ -469,7 +513,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               </div>
             </CardHeader>
             <CardContent>
-              {dayItems.length === 0 ? (
+              {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
                 <p className="text-sm text-muted-foreground italic">No activities planned</p>
               ) : (
                 <div className="space-y-3">
@@ -535,8 +579,31 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       </div>
                     );
                   })}
+
+                  {/* Option blocks for this day */}
+                  {(dayBlocks[day] || []).map((block) => (
+                    <OptionBlockCard
+                      key={block.id}
+                      block={block}
+                      items={optionBlockItems[block.id] || []}
+                      onAddItem={(blockId, dayNum) => setAddCategoryDay({ day: dayNum, category: "hotel", optionBlockId: blockId })}
+                      onEditItem={setEditingItem}
+                      onDeleteItem={deleteItem}
+                      onUpdateBlock={updateBlock}
+                      onDeleteBlock={deleteBlock}
+                    />
+                  ))}
                 </div>
               )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-2 text-muted-foreground text-xs"
+                onClick={() => handleAddOptionBlock(day)}
+              >
+                <Layers className="h-3 w-3 mr-1" /> Add Option Block
+              </Button>
             </CardContent>
           </Card>
           </DayDropZone>
@@ -548,13 +615,18 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         <AddItineraryItemDialog tripId={tripId} dayNumber={totalDays + 1} onAdd={addItem} />
       )}
 
-      {/* Controlled dialog for sidebar click / drag-drop */}
+      {/* Controlled dialog for sidebar click / drag-drop / option block add */}
       {addCategoryDay && (
         <AddItineraryItemDialog
           tripId={tripId}
           dayNumber={addCategoryDay.day}
           defaultCategory={addCategoryDay.category}
-          onAdd={addItem}
+          onAdd={async (data) => {
+            if (addCategoryDay.optionBlockId) {
+              return addItem({ ...data, option_block_id: addCategoryDay.optionBlockId });
+            }
+            return addItem(data);
+          }}
           controlledOpen={!!addCategoryDay}
           onControlledOpenChange={(open) => {
             if (!open) setAddCategoryDay(null);
