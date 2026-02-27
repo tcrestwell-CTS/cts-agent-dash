@@ -1180,6 +1180,7 @@ export type Database = {
           itinerary_id: string | null
           location: string | null
           notes: string | null
+          option_block_id: string | null
           sort_order: number
           start_time: string | null
           title: string
@@ -1202,6 +1203,7 @@ export type Database = {
           itinerary_id?: string | null
           location?: string | null
           notes?: string | null
+          option_block_id?: string | null
           sort_order?: number
           start_time?: string | null
           title: string
@@ -1224,6 +1226,7 @@ export type Database = {
           itinerary_id?: string | null
           location?: string | null
           notes?: string | null
+          option_block_id?: string | null
           sort_order?: number
           start_time?: string | null
           title?: string
@@ -1244,6 +1247,13 @@ export type Database = {
             columns: ["itinerary_id"]
             isOneToOne: false
             referencedRelation: "itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itinerary_items_option_block_id_fkey"
+            columns: ["option_block_id"]
+            isOneToOne: false
+            referencedRelation: "option_blocks"
             referencedColumns: ["id"]
           },
           {
@@ -1323,6 +1333,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      option_blocks: {
+        Row: {
+          created_at: string
+          day_number: number
+          id: string
+          itinerary_id: string | null
+          sort_order: number
+          title: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_number?: number
+          id?: string
+          itinerary_id?: string | null
+          sort_order?: number
+          title?: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          id?: string
+          itinerary_id?: string | null
+          sort_order?: number
+          title?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_blocks_itinerary_id_fkey"
+            columns: ["itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_blocks_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portal_messages: {
         Row: {
