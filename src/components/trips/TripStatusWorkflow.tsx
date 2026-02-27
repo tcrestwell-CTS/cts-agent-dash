@@ -57,8 +57,9 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
   const [updating, setUpdating] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [showReadinessWarning, setShowReadinessWarning] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelOptions, setCancelOptions] = useState<CancellationOptions>({
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+  const [cleanupTarget, setCleanupTarget] = useState<"cancelled" | "archived">("cancelled");
+  const [cleanupOptions, setCleanupOptions] = useState<CancellationOptions>({
     unpublish: true,
     deactivateAutomations: true,
     completeTasks: true,
@@ -81,9 +82,15 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
     }
   };
 
-  const handleCancelSubmit = async () => {
-    setShowCancelDialog(false);
-    await handleStatusChange("cancelled", cancelOptions);
+  const openCleanupDialog = (target: "cancelled" | "archived") => {
+    setCleanupTarget(target);
+    setCleanupOptions({ unpublish: true, deactivateAutomations: true, completeTasks: true });
+    setShowCleanupDialog(true);
+  };
+
+  const handleCleanupSubmit = async () => {
+    setShowCleanupDialog(false);
+    await handleStatusChange(cleanupTarget, cleanupOptions);
   };
 
   const getNextStatus = () => {
@@ -214,29 +221,16 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
                 ) : null}
                 Reactivate Trip
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Archive className="h-4 w-4" />
-                    Archive
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Archive this trip?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Archived trips will be excluded from agency revenue reporting and analytics.
-                      You can restore it later if needed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleStatusChange("archived")}>
-                      Archive Trip
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => openCleanupDialog("archived")}
+                disabled={updating}
+              >
+                <Archive className="h-4 w-4" />
+                Archive
+              </Button>
             </div>
           </div>
         )}
@@ -264,10 +258,7 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
                 variant="outline"
                 size="sm"
                 className="gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/50 hover:bg-destructive/5"
-                onClick={() => {
-                  setCancelOptions({ unpublish: true, deactivateAutomations: true, completeTasks: true });
-                  setShowCancelDialog(true);
-                }}
+                onClick={() => openCleanupDialog("cancelled")}
                 disabled={updating || disabled}
               >
                 <XCircle className="h-4 w-4" />
@@ -277,29 +268,16 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
 
             <div className="flex items-center gap-2">
               {canArchive && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Archive className="h-4 w-4" />
-                      Archive
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Archive this trip?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Archived trips will be excluded from agency revenue reporting and analytics.
-                        You can restore it later if needed.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleStatusChange("archived")}>
-                        Archive Trip
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => openCleanupDialog("archived")}
+                  disabled={updating || disabled}
+                >
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </Button>
               )}
 
               {nextStatus ? (
@@ -360,11 +338,11 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
           </div>
         )}
 
-        {/* Cancellation Dialog */}
-        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        {/* Cleanup Dialog (Cancel / Archive) */}
+        <Dialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Move {tripName ? `"${tripName}"` : "trip"} to Cancelled</DialogTitle>
+              <DialogTitle>Move {tripName ? `"${tripName}"` : "trip"} to {cleanupTarget === "cancelled" ? "Cancelled" : "Archived"}</DialogTitle>
               <DialogDescription>
                 Choose what happens with this trip's automations, tasks, and publishing.
               </DialogDescription>
@@ -372,38 +350,38 @@ export function TripStatusWorkflow({ currentStatus, tripName, onStatusChange, di
             <div className="space-y-4 py-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={cancelOptions.unpublish}
+                  checked={cleanupOptions.unpublish}
                   onCheckedChange={(checked) =>
-                    setCancelOptions((prev) => ({ ...prev, unpublish: checked === true }))
+                    setCleanupOptions((prev) => ({ ...prev, unpublish: checked === true }))
                   }
                 />
                 <span className="text-sm font-medium">Unpublish Trip</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={cancelOptions.deactivateAutomations}
+                  checked={cleanupOptions.deactivateAutomations}
                   onCheckedChange={(checked) =>
-                    setCancelOptions((prev) => ({ ...prev, deactivateAutomations: checked === true }))
+                    setCleanupOptions((prev) => ({ ...prev, deactivateAutomations: checked === true }))
                   }
                 />
                 <span className="text-sm font-medium">Deactivate Automations</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
-                  checked={cancelOptions.completeTasks}
+                  checked={cleanupOptions.completeTasks}
                   onCheckedChange={(checked) =>
-                    setCancelOptions((prev) => ({ ...prev, completeTasks: checked === true }))
+                    setCleanupOptions((prev) => ({ ...prev, completeTasks: checked === true }))
                   }
                 />
                 <span className="text-sm font-medium">Complete Tasks</span>
               </label>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+              <Button variant="outline" onClick={() => setShowCleanupDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCancelSubmit} disabled={updating}>
-                {updating && pendingStatus === "cancelled" ? (
+              <Button onClick={handleCleanupSubmit} disabled={updating}>
+                {updating && pendingStatus === cleanupTarget ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : null}
                 Submit

@@ -350,7 +350,6 @@ export function useWorkflowAutomation() {
       if (newStatus === "archived") {
         // Check archiving eligibility
         if (trip.status !== "commission_received" && trip.status !== "cancelled") {
-          // Check if commission_received — only allow archive from there or cancelled
           const allowedArchiveFrom = ["commission_received", "cancelled", "completed", "traveled"];
           if (!allowedArchiveFrom.includes(trip.status)) {
             return {
@@ -360,16 +359,20 @@ export function useWorkflowAutomation() {
           }
         }
 
-        // Check for open payment tasks
-        const { data: openTasks } = await supabase
-          .from("workflow_tasks")
-          .select("id")
-          .eq("trip_id", trip.id)
-          .eq("status", "pending")
-          .limit(1);
+        // Check for open payment tasks (only if not auto-completing)
+        const opts = cancellationOptions || { unpublish: true, deactivateAutomations: true, completeTasks: true };
 
-        if (openTasks && openTasks.length > 0) {
-          return { allowed: false, error: "Complete or dismiss all open workflow tasks before archiving" };
+        if (!opts.completeTasks) {
+          const { data: openTasks } = await supabase
+            .from("workflow_tasks")
+            .select("id")
+            .eq("trip_id", trip.id)
+            .eq("status", "pending")
+            .limit(1);
+
+          if (openTasks && openTasks.length > 0) {
+            return { allowed: false, error: "Complete or dismiss all open workflow tasks before archiving" };
+          }
         }
 
         // Check for open CC authorizations
@@ -382,6 +385,29 @@ export function useWorkflowAutomation() {
 
         if (openAuths && openAuths.length > 0) {
           return { allowed: false, error: "All CC authorizations must be expired or completed before archiving" };
+        }
+
+        // Apply cleanup options
+        if (opts.unpublish && trip.published_at) {
+          await supabase
+            .from("trips")
+            .update({ published_at: null, published_snapshot: null } as any)
+            .eq("id", trip.id);
+        }
+
+        if (opts.deactivateAutomations) {
+          await supabase
+            .from("trips")
+            .update({ follow_up_due_at: null } as any)
+            .eq("id", trip.id);
+        }
+
+        if (opts.completeTasks) {
+          await supabase
+            .from("workflow_tasks")
+            .update({ status: "completed", completed_at: new Date().toISOString() } as any)
+            .eq("trip_id", trip.id)
+            .eq("status", "pending");
         }
 
         return { allowed: true };
