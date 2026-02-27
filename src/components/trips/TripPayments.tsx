@@ -46,7 +46,9 @@ interface TripPaymentsProps {
   destination?: string;
   departDate?: string;
   returnDate?: string;
+  tripStatus?: string;
   onDataChange?: () => void;
+  onStatusChange?: (newStatus: string) => Promise<boolean>;
 }
 
 const statusColors: Record<string, string> = {
@@ -69,7 +71,9 @@ export function TripPayments({
   destination,
   departDate,
   returnDate,
+  tripStatus,
   onDataChange,
+  onStatusChange,
 }: TripPaymentsProps) {
   const {
     payments,
