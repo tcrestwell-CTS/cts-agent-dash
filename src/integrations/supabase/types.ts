@@ -1970,6 +1970,7 @@ export type Database = {
           post_trip_email_sent: boolean | null
           pricing_visibility: string
           published_at: string | null
+          published_snapshot: Json | null
           readiness_score: Json | null
           return_date: string | null
           share_token: string
@@ -2008,6 +2009,7 @@ export type Database = {
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           published_at?: string | null
+          published_snapshot?: Json | null
           readiness_score?: Json | null
           return_date?: string | null
           share_token?: string
@@ -2046,6 +2048,7 @@ export type Database = {
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           published_at?: string | null
+          published_snapshot?: Json | null
           readiness_score?: Json | null
           return_date?: string | null
           share_token?: string
