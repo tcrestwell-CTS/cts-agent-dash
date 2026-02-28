@@ -110,7 +110,7 @@ const BookingDetail = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { booking, loading, error, refetch } = useBooking(bookingId);
-  const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatus } = useBookings();
+  const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatusId } = useBookings();
   const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
   const { data: userCommissionRate } = useUserCommissionRate();
   const { data: userTier } = useUserCommissionTier();

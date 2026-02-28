@@ -16,7 +16,7 @@ import { Booking } from "@/hooks/useBookings";
 interface BookingCardProps {
   booking: Booking;
   isAdmin: boolean;
-  updatingStatus: boolean;
+  updatingStatusId: string | null;
   onStatusChange: (id: string, status: string) => void;
   onEdit: (booking: Booking) => void;
   onDelete: (booking: Booking) => void;
@@ -57,7 +57,7 @@ const formatCurrency = (amount: number) => {
 export function BookingCard({
   booking,
   isAdmin,
-  updatingStatus,
+  updatingStatusId,
   onStatusChange,
   onEdit,
   onDelete,
@@ -91,7 +91,7 @@ export function BookingCard({
           <Select
             value={booking.status}
             onValueChange={(value) => onStatusChange(booking.id, value)}
-            disabled={updatingStatus}
+            disabled={updatingStatusId === booking.id}
           >
             <SelectTrigger className="w-auto h-7 px-2 border-0 bg-transparent">
               <SelectValue>
