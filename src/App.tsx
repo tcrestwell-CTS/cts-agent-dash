@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PortalAuthProvider } from "@/contexts/PortalAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import Index from "./pages/Index";
 import CRM from "./pages/CRM";
@@ -71,7 +72,7 @@ const App = () => (
               <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
               <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
               <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
-              <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
+              <Route path="/team" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><TeamManagement /></AdminRoute></ProtectedRoute>} />
               <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
               <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
               <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
