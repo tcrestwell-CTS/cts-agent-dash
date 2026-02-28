@@ -562,7 +562,7 @@ const Analytics = () => {
           <StatCard
             title="Period Clients"
             value={kpis?.periodClients?.toString() || "0"}
-            change={`${kpis?.conversionRate?.toFixed(0) || 0}% conversion rate`}
+            change={`${kpis?.bookingRate?.toFixed(0) || 0}% booking rate`}
             changeType="neutral"
             icon={Users}
           />
