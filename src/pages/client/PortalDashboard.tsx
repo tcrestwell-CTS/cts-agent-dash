@@ -5,64 +5,84 @@ import { Badge } from "@/components/ui/badge";
 import { AgencyCertifications } from "@/components/shared/AgencyCertifications";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Map, CreditCard, MessageSquare, User, Loader2 } from "lucide-react";
+import { Map, CreditCard, MessageSquare, User, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
+import { supabase } from "@/integrations/supabase/client";
+
+interface PortalTrip {
+  id: string;
+  trip_name: string;
+  destination: string | null;
+  depart_date: string | null;
+  return_date: string | null;
+  cover_image_url: string | null;
+  status: string;
+}
+
+interface PortalPayment {
+  id: string;
+  amount: number;
+  payment_type: string;
+  due_date: string | null;
+  status: string;
+}
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
 export default function PortalDashboard() {
-  const { data, isLoading, refetch } = usePortalDashboard();
-  const [searchParams] = useSearchParams();
+  const { data, isLoading, isError, refetch } = usePortalDashboard();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [payingId, setPayingId] = useState<string | null>(null);
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     if (paymentStatus === "success") {
       toast.success("Payment completed successfully!");
-      // Verify and update payment status
       const sessionId = searchParams.get("session_id");
       if (sessionId) {
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-stripe-payment`, {
-          method: "POST",
-          headers: {
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ sessionId }),
+        supabase.functions.invoke("verify-stripe-payment", {
+          body: { sessionId },
         }).then(() => refetch());
       } else {
         refetch();
       }
+      // Clear payment params to prevent re-triggering on refresh
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("payment");
+      newParams.delete("session_id");
+      setSearchParams(newParams, { replace: true });
     } else if (paymentStatus === "cancelled") {
       toast.info("Payment was cancelled");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("payment");
+      setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams, refetch]);
+  }, [searchParams, refetch, setSearchParams]);
 
   const handlePayNow = async (paymentId: string) => {
     setPayingId(paymentId);
     try {
-      const portalSession = localStorage.getItem("portal_session");
-      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+      let portalToken: string | null = null;
+      try {
+        const raw = localStorage.getItem("portal_session");
+        if (raw) portalToken = JSON.parse(raw).token;
+      } catch {
+        portalToken = null;
+      }
 
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
-        method: "POST",
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "x-portal-token": portalToken || "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentId,
-          returnUrl: window.location.origin,
-        }),
+      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
+        body: { paymentId, returnUrl: window.location.origin },
+        headers: { "x-portal-token": portalToken || "" },
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create payment");
+      if (error) throw new Error(error.message || "Failed to create payment");
 
-      if (data.url) {
+      if (data?.url) {
         window.location.href = data.url;
       }
     } catch (error) {
@@ -84,9 +104,25 @@ export default function PortalDashboard() {
     );
   }
 
+  if (isError || (!isLoading && !data)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 space-y-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <h2 className="text-xl font-semibold text-foreground">Something went wrong</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          We couldn't load your dashboard. Please check your connection and try again.
+        </p>
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   const client = data?.client;
-  const trips = data?.trips || [];
-  const payments = data?.upcoming_payments || [];
+  const trips: PortalTrip[] = data?.trips || [];
+  const payments: PortalPayment[] = data?.upcoming_payments || [];
   const agent = data?.agent;
   const unreadMessages = data?.unread_messages || 0;
 
@@ -150,7 +186,7 @@ export default function PortalDashboard() {
             <p className="text-sm text-muted-foreground">No active trips yet.</p>
           ) : (
             <div className="space-y-3">
-              {trips.slice(0, 5).map((trip: any) => (
+              {trips.slice(0, 5).map((trip: PortalTrip) => (
                 <Link
                   key={trip.id}
                   to={`/client/trips/${trip.id}`}
@@ -182,6 +218,11 @@ export default function PortalDashboard() {
                   </div>
                 </Link>
               ))}
+              {trips.length > 5 && (
+                <Link to="/client/trips" className="text-sm text-primary hover:underline mt-2 block">
+                  View all {trips.length} trips →
+                </Link>
+              )}
             </div>
           )}
         </CardContent>
@@ -227,7 +268,7 @@ export default function PortalDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {payments.map((p: any) => (
+              {payments.map((p: PortalPayment) => (
                 <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <p className="font-medium">
@@ -239,7 +280,7 @@ export default function PortalDashboard() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="font-semibold">${p.amount.toLocaleString()}</p>
+                    <p className="font-semibold">{formatCurrency(p.amount)}</p>
                     <Button
                       size="sm"
                       onClick={() => handlePayNow(p.id)}
