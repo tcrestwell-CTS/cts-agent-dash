@@ -312,7 +312,7 @@ const BookingDetail = () => {
                     updateBookingStatus(booking.id, value);
                   }
                 }}
-                disabled={updatingStatus}
+                disabled={updatingStatusId === booking.id}
               >
                 <SelectTrigger className="w-auto h-8 px-2 border-0 bg-transparent">
                   <SelectValue>
