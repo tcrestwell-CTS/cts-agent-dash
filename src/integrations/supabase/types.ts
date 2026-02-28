@@ -637,6 +637,71 @@ export type Database = {
           },
         ]
       }
+      client_option_selections: {
+        Row: {
+          agent_confirmed: boolean
+          agent_confirmed_at: string | null
+          client_id: string
+          created_at: string
+          id: string
+          option_block_id: string
+          selected_item_id: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_confirmed?: boolean
+          agent_confirmed_at?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          option_block_id: string
+          selected_item_id: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_confirmed?: boolean
+          agent_confirmed_at?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          option_block_id?: string
+          selected_item_id?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_option_selections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_option_selections_option_block_id_fkey"
+            columns: ["option_block_id"]
+            isOneToOne: false
+            referencedRelation: "option_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_option_selections_selected_item_id_fkey"
+            columns: ["selected_item_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_option_selections_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portal_sessions: {
         Row: {
           client_id: string
