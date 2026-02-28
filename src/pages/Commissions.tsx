@@ -16,7 +16,9 @@ import {
   DollarSign,
   Calendar,
   ArrowUpRight,
-  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Users,
 } from "lucide-react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useBookings } from "@/hooks/useBookings";
@@ -26,13 +28,14 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
 import { CommissionAgingReport } from "@/components/commissions/CommissionAgingReport";
-import { useMemo } from "react";
-import { format, parseISO, startOfMonth, subMonths, subDays, startOfYear, isWithinInterval, isPast, differenceInDays } from "date-fns";
+import { useMemo, useState } from "react";
+import { format, parseISO, startOfMonth, subMonths, subDays, isWithinInterval, isPast, differenceInDays } from "date-fns";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
-import { Users } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
+const ITEMS_PER_PAGE = 25;
 
 const Commissions = () => {
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
@@ -41,47 +44,56 @@ const Commissions = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { data: isAdmin } = useIsAdmin();
   const { data: teamProfiles, isLoading: teamProfilesLoading } = useTeamProfiles();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loading = commissionsLoading || bookingsLoading || clientsLoading || profileLoading || (isAdmin && teamProfilesLoading);
 
-  // Get commission tier config for the current user
   const tierConfig = getTierConfig(profile?.commission_tier);
 
-  // Combine commission data with booking and client info
+  // Build lookup maps to avoid O(n²) scans
+  const bookingMap = useMemo(
+    () => new Map((bookings || []).map((b) => [b.id, b])),
+    [bookings]
+  );
+  const clientMap = useMemo(
+    () => new Map((clients || []).map((c) => [c.id, c])),
+    [clients]
+  );
+
+  // Combine commission data with booking and client info using Maps
   const enrichedCommissions = useMemo(() => {
     if (!commissions || !bookings || !clients) return [];
 
-    return commissions.map((commission) => {
-      const booking = bookings.find((b) => b.id === commission.booking_id);
-      const client = booking ? clients.find((c) => c.id === booking.client_id) : null;
-      
-      // Calculate expected commission date (30 days before departure)
-      const expectedCommissionDate = booking 
-        ? subDays(new Date(booking.depart_date), 30)
-        : null;
+    return commissions
+      .map((commission) => {
+        const booking = bookingMap.get(commission.booking_id);
+        const client = booking ? clientMap.get(booking.client_id) : undefined;
 
-      return {
-        ...commission,
-        booking,
-        client,
-        agentShare: calculateAgentCommission(commission.amount, profile?.commission_tier),
-        expectedCommissionDate,
-      };
-    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [commissions, bookings, clients, profile?.commission_tier]);
+        const expectedCommissionDate = booking
+          ? subDays(new Date(booking.depart_date), 30)
+          : null;
 
-  // Calculate totals
+        return {
+          ...commission,
+          booking,
+          client,
+          agentShare: calculateAgentCommission(commission.amount, profile?.commission_tier),
+          expectedCommissionDate,
+        };
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [commissions, bookings, clients, profile?.commission_tier, bookingMap, clientMap]);
+
+  // Calculate totals including holdback
   const totals = useMemo(() => {
     if (!enrichedCommissions.length) {
-      return { totalEarned: 0, thisMonth: 0, paid: 0, pending: 0, paidCount: 0, pendingCount: 0 };
+      return { totalEarned: 0, thisMonth: 0, paid: 0, pending: 0, paidCount: 0, pendingCount: 0, holdbackTotal: 0, holdbackReleasedCount: 0 };
     }
 
     const now = new Date();
     const thisMonthStart = startOfMonth(now);
-    const yearStart = startOfYear(now);
 
-    const totalEarned = enrichedCommissions
-      .reduce((sum, c) => sum + c.agentShare, 0);
+    const totalEarned = enrichedCommissions.reduce((sum, c) => sum + c.agentShare, 0);
 
     const thisMonth = enrichedCommissions
       .filter((c) => {
@@ -93,6 +105,13 @@ const Commissions = () => {
     const paidCommissions = enrichedCommissions.filter((c) => c.status === "paid");
     const pendingCommissions = enrichedCommissions.filter((c) => c.status === "pending");
 
+    // Holdback calc moved here from inline JSX
+    const holdbackTotal = (commissions || [])
+      .filter((c) => !c.holdback_released && c.holdback_amount > 0)
+      .reduce((sum, c) => sum + c.holdback_amount, 0);
+
+    const holdbackReleasedCount = (commissions || []).filter((c) => c.holdback_released).length;
+
     return {
       totalEarned,
       thisMonth,
@@ -100,10 +119,12 @@ const Commissions = () => {
       pending: pendingCommissions.reduce((sum, c) => sum + c.agentShare, 0),
       paidCount: paidCommissions.length,
       pendingCount: pendingCommissions.length,
+      holdbackTotal,
+      holdbackReleasedCount,
     };
-  }, [enrichedCommissions]);
+  }, [enrichedCommissions, commissions]);
 
-  // Monthly earnings data for chart
+  // Monthly earnings data for Recharts
   const monthlyData = useMemo(() => {
     if (!enrichedCommissions.length) return [];
 
@@ -113,7 +134,7 @@ const Commissions = () => {
     for (let i = 5; i >= 0; i--) {
       const monthDate = startOfMonth(subMonths(now, i));
       const monthEnd = i === 0 ? now : startOfMonth(subMonths(now, i - 1));
-      
+
       const monthEarnings = enrichedCommissions
         .filter((c) => {
           const createdDate = parseISO(c.created_at);
@@ -130,51 +151,54 @@ const Commissions = () => {
     return months;
   }, [enrichedCommissions]);
 
-  const maxEarned = Math.max(...monthlyData.map((d) => d.earned), 1);
-
   // Admin-only: Agent breakdown with earnings per agent
   const agentBreakdown = useMemo(() => {
     if (!isAdmin || !commissions || !teamProfiles) return [];
 
-    // Group commissions by user_id
     const commissionsByAgent = commissions.reduce((acc, commission) => {
       const userId = commission.user_id;
-      if (!acc[userId]) {
-        acc[userId] = [];
-      }
+      if (!acc[userId]) acc[userId] = [];
       acc[userId].push(commission);
       return acc;
     }, {} as Record<string, typeof commissions>);
 
-    // Map to agent breakdown data
-    return teamProfiles.map((agent) => {
-      const agentCommissions = commissionsByAgent[agent.user_id] || [];
-      const tier = agent.commission_tier as CommissionTier | null;
-      const tierConfig = getTierConfig(tier);
-      
-      const totalCommission = agentCommissions.reduce((sum, c) => sum + c.amount, 0);
-      const agentEarnings = agentCommissions.reduce(
-        (sum, c) => sum + calculateAgentCommission(c.amount, tier),
-        0
-      );
-      const pendingCount = agentCommissions.filter((c) => c.status === "pending").length;
-      const paidCount = agentCommissions.filter((c) => c.status === "paid").length;
+    return teamProfiles
+      .map((agent) => {
+        const agentCommissions = commissionsByAgent[agent.user_id] || [];
+        const tier = agent.commission_tier as CommissionTier | null;
+        const agentTierConfig = getTierConfig(tier);
 
-      return {
-        userId: agent.user_id,
-        name: agent.full_name || "Unknown Agent",
-        tier: tier || "tier_1",
-        tierLabel: tierConfig.label,
-        agentSplit: tierConfig.agentSplit,
-        totalCommission,
-        agentEarnings,
-        bookingCount: agentCommissions.length,
-        pendingCount,
-        paidCount,
-      };
-    }).filter((agent) => agent.bookingCount > 0)
+        const totalCommission = agentCommissions.reduce((sum, c) => sum + c.amount, 0);
+        const agentEarnings = agentCommissions.reduce(
+          (sum, c) => sum + calculateAgentCommission(c.amount, tier),
+          0
+        );
+        const pendingCount = agentCommissions.filter((c) => c.status === "pending").length;
+        const paidCount = agentCommissions.filter((c) => c.status === "paid").length;
+
+        return {
+          userId: agent.user_id,
+          name: agent.full_name || "Unknown Agent",
+          tier: tier || "tier_1",
+          tierLabel: agentTierConfig.label,
+          agentSplit: agentTierConfig.agentSplit,
+          totalCommission,
+          agentEarnings,
+          bookingCount: agentCommissions.length,
+          pendingCount,
+          paidCount,
+        };
+      })
+      .filter((agent) => agent.bookingCount > 0)
       .sort((a, b) => b.agentEarnings - a.agentEarnings);
   }, [isAdmin, commissions, teamProfiles]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(enrichedCommissions.length / ITEMS_PER_PAGE));
+  const paginatedCommissions = useMemo(
+    () => enrichedCommissions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE),
+    [enrichedCommissions, currentPage]
+  );
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -248,8 +272,8 @@ const Commissions = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">{isAdmin ? "Team Commissions" : "My Commissions"}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{isAdmin 
-            ? "View and manage all agent commission earnings" 
+          <p className="text-muted-foreground text-sm mt-1">{isAdmin
+            ? "View and manage all agent commission earnings"
             : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -330,7 +354,7 @@ const Commissions = () => {
           </p>
         </div>
 
-        {/* Holdback Reserve Card */}
+        {/* Holdback Reserve Card — now uses memoized totals */}
         <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-muted-foreground">Holdback Reserve</p>
@@ -339,14 +363,10 @@ const Commissions = () => {
             </div>
           </div>
           <p className="text-3xl font-semibold text-accent">
-            {formatCurrency(
-              (commissions || [])
-                .filter((c) => !c.holdback_released && c.holdback_amount > 0)
-                .reduce((sum, c) => sum + c.holdback_amount, 0)
-            )}
+            {formatCurrency(totals.holdbackTotal)}
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            {(commissions || []).filter((c) => c.holdback_released).length} released
+            {totals.holdbackReleasedCount} released
           </p>
         </div>
       </div>
@@ -415,34 +435,35 @@ const Commissions = () => {
 
       {/* Chart and Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart */}
+        {/* Recharts Bar Chart */}
         <div className="bg-card rounded-xl p-6 shadow-card border border-border/50">
           <h3 className="text-lg font-semibold text-card-foreground mb-6">
             Your Earnings Trend
           </h3>
           {monthlyData.length > 0 && monthlyData.some((d) => d.earned > 0) ? (
-            <div className="flex items-end justify-between gap-3 h-48">
-              {monthlyData.map((data) => (
-                <div
-                  key={data.month}
-                  className="flex-1 flex flex-col items-center gap-2"
-                >
-                  <div
-                    className="w-full bg-primary rounded-t transition-all hover:bg-primary/80 relative group"
-                    style={{ height: `${Math.max((data.earned / maxEarned) * 100, 4)}%` }}
-                  >
-                    {data.earned > 0 && (
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-card px-2 py-1 rounded shadow text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border">
-                        {formatCurrency(data.earned)}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {data.month}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={192}>
+              <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} className="fill-muted-foreground" />
+                <YAxis
+                  tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                  tick={{ fontSize: 11 }}
+                  className="fill-muted-foreground"
+                  width={45}
+                />
+                <RechartsTooltip
+                  formatter={(value: number) => [formatCurrency(value), "Earned"]}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                  }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                />
+                <Bar dataKey="earned" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
               No earnings data yet
@@ -450,77 +471,114 @@ const Commissions = () => {
           )}
         </div>
 
-        {/* Table */}
+        {/* Table with Pagination */}
         <div className="lg:col-span-2 bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold text-card-foreground">
               Your Commission History
             </h3>
+            {enrichedCommissions.length > ITEMS_PER_PAGE && (
+              <p className="text-sm text-muted-foreground">
+                {enrichedCommissions.length} total
+              </p>
+            )}
           </div>
           {enrichedCommissions.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Booking</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="text-right">Booking Amt</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Your Share</TableHead>
-                  <TableHead>Expected Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {enrichedCommissions.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.booking?.booking_reference || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{item.client?.name || "Unknown"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.booking?.destination || "N/A"}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.booking?.total_amount || 0)}
-                    </TableCell>
-                    <TableCell className="text-right">{item.rate}%</TableCell>
-                    <TableCell className="text-right font-semibold text-success">
-                      {formatCurrency(item.agentShare)}
-                    </TableCell>
-                    <TableCell>
-                      {item.expectedCommissionDate && (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Booking</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Booking Amt</TableHead>
+                    <TableHead className="text-right">Rate</TableHead>
+                    <TableHead className="text-right">Your Share</TableHead>
+                    <TableHead>Expected Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCommissions.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        {item.booking?.booking_reference || "N/A"}
+                      </TableCell>
+                      <TableCell>
                         <div>
-                          <p className={`text-sm font-medium ${isPast(item.expectedCommissionDate) ? "text-success" : "text-foreground"}`}>
-                            {format(item.expectedCommissionDate, "MMM d, yyyy")}
-                          </p>
+                          <p className="font-medium">{item.client?.name || "Unknown"}</p>
                           <p className="text-xs text-muted-foreground">
-                            {isPast(item.expectedCommissionDate)
-                              ? "Available"
-                              : `${differenceInDays(item.expectedCommissionDate, new Date())} days`}
+                            {item.booking?.destination || "N/A"}
                           </p>
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={
-                          item.status === "paid"
-                            ? "bg-success/10 text-success"
-                            : "bg-warning/10 text-warning"
-                        }
-                      >
-                        {item.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(item.booking?.total_amount || 0)}
+                      </TableCell>
+                      <TableCell className="text-right">{item.rate}%</TableCell>
+                      <TableCell className="text-right font-semibold text-success">
+                        {formatCurrency(item.agentShare)}
+                      </TableCell>
+                      <TableCell>
+                        {item.expectedCommissionDate && (
+                          <div>
+                            <p className={`text-sm font-medium ${isPast(item.expectedCommissionDate) ? "text-success" : "text-foreground"}`}>
+                              {format(item.expectedCommissionDate, "MMM d, yyyy")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {isPast(item.expectedCommissionDate)
+                                ? "Available"
+                                : `${differenceInDays(item.expectedCommissionDate, new Date())} days`}
+                            </p>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={
+                            item.status === "paid"
+                              ? "bg-success/10 text-success"
+                              : "bg-warning/10 text-warning"
+                          }
+                        >
+                          {item.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, enrichedCommissions.length)} of {enrichedCommissions.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="p-8 text-center text-muted-foreground">
               No commissions yet. Create bookings to start earning commissions.
