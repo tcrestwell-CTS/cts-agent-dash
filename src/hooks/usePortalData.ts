@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-function getToken() {
+// NOTE: Portal data hooks use raw fetch instead of supabase.functions.invoke
+// because portal-data is a GET endpoint with query params, which invoke() doesn't
+// support natively. The portal uses its own token-based auth (x-portal-token)
+// rather than Supabase JWT auth.
+
+function getToken(): string | null {
   try {
     const stored = localStorage.getItem("portal_session");
     return stored ? JSON.parse(stored).token : null;
@@ -30,7 +35,7 @@ async function portalFetch(resource: string, params?: Record<string, string>) {
   return res.json();
 }
 
-async function portalPost(resource: string, body: any) {
+async function portalPost(resource: string, body: Record<string, unknown>) {
   const token = getToken();
   if (!token) throw new Error("Not authenticated");
 
@@ -54,61 +59,74 @@ async function portalPost(resource: string, body: any) {
 }
 
 export function usePortalDashboard() {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "dashboard"],
     queryFn: () => portalFetch("dashboard"),
+    enabled: !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalTrips() {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "trips"],
     queryFn: () => portalFetch("trips"),
+    enabled: !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalTripDetail(tripId: string | undefined) {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "trip-detail", tripId],
     queryFn: () => portalFetch("trip-detail", { tripId: tripId! }),
-    enabled: !!tripId,
+    enabled: !!tripId && !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalInvoices() {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "invoices"],
     queryFn: () => portalFetch("invoices"),
+    enabled: !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalPayments() {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "payments"],
     queryFn: () => portalFetch("payments"),
+    enabled: !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalInvoiceDetail(invoiceId: string | undefined) {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "invoice-detail", invoiceId],
     queryFn: () => portalFetch("invoice-detail", { invoiceId: invoiceId! }),
-    enabled: !!invoiceId,
+    enabled: !!invoiceId && !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalMessages() {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "messages"],
     queryFn: () => portalFetch("messages"),
+    enabled: !!token,
     staleTime: 10_000,
     refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -136,19 +154,21 @@ export function useApproveItinerary() {
 }
 
 export function usePortalCCAuthorizations(tripId: string | undefined) {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "cc-authorizations", tripId],
     queryFn: () => portalFetch("cc-authorizations", { tripId: tripId! }),
-    enabled: !!tripId,
+    enabled: !!tripId && !!token,
     staleTime: 30_000,
   });
 }
 
 export function usePortalDocChecklist(tripId: string | undefined) {
+  const token = getToken();
   return useQuery({
     queryKey: ["portal", "doc-checklist", tripId],
     queryFn: () => portalFetch("doc-checklist", { tripId: tripId! }),
-    enabled: !!tripId,
+    enabled: !!tripId && !!token,
     staleTime: 30_000,
   });
 }
