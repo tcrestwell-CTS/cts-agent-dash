@@ -27,6 +27,17 @@ const categoryIcons: Record<string, string> = {
   activity: "🎯", dining: "🍽️", meeting: "📋", other: "📌",
 };
 
+const bookingTypeIcons: Record<string, { icon: string; label: string }> = {
+  flight: { icon: "✈️", label: "Flight" },
+  hotel: { icon: "🏨", label: "Hotel" },
+  cruise: { icon: "🚢", label: "Cruise" },
+  car_rental: { icon: "🚗", label: "Car Rental" },
+  tour: { icon: "🎯", label: "Tour" },
+  transfer: { icon: "🚐", label: "Transfer" },
+  insurance: { icon: "🛡️", label: "Insurance" },
+  other: { icon: "📌", label: "Other" },
+};
+
 export default function PortalTripDetail() {
   const { tripId } = useParams();
   const { data, isLoading, refetch } = usePortalTripDetail(tripId);
