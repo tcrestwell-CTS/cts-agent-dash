@@ -34,6 +34,15 @@ export const COMMISSION_TIERS: Record<CommissionTier, TierConfig> = {
   },
 };
 
+// Dev-time assertion: verify all tier splits sum to 100
+if (import.meta.env.DEV) {
+  Object.entries(COMMISSION_TIERS).forEach(([tier, config]) => {
+    if (config.agentSplit + config.agencySplit !== 100) {
+      console.error(`Commission tier "${tier}" splits don't sum to 100! (${config.agentSplit} + ${config.agencySplit} = ${config.agentSplit + config.agencySplit})`);
+    }
+  });
+}
+
 export function getTierConfig(tier: CommissionTier | null | undefined): TierConfig {
   return COMMISSION_TIERS[tier || "tier_1"];
 }
