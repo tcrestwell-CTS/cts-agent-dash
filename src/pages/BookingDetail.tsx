@@ -110,7 +110,7 @@ const BookingDetail = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { booking, loading, error, refetch } = useBooking(bookingId);
-  const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatus } = useBookings();
+  const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatusId } = useBookings();
   const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
   const { data: userCommissionRate } = useUserCommissionRate();
   const { data: userTier } = useUserCommissionTier();
@@ -312,7 +312,7 @@ const BookingDetail = () => {
                     updateBookingStatus(booking.id, value);
                   }
                 }}
-                disabled={updatingStatus}
+                disabled={updatingStatusId === booking.id}
               >
                 <SelectTrigger className="w-auto h-8 px-2 border-0 bg-transparent">
                   <SelectValue>
