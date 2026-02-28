@@ -558,11 +558,17 @@ export default function PortalTripDetail() {
               {bookings.map((b: any) => (
                 <div key={b.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium">{b.trip_name || b.booking_reference}</p>
+                    <p className="font-medium">{b.trip_name || b.destination}</p>
                     <p className="text-sm text-muted-foreground">
                       {b.destination}
                       {b.depart_date && ` · ${format(new Date(b.depart_date), "MMM d, yyyy")}`}
                     </p>
+                    {b.booking_reference && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        <span className="font-mono font-medium">{b.booking_reference}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
