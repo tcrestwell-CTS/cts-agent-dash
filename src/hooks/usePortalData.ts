@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-// NOTE: Portal data hooks use raw fetch instead of supabase.functions.invoke
-// because portal-data is a GET endpoint with query params, which invoke() doesn't
-// support natively. The portal uses its own token-based auth (x-portal-token)
-// rather than Supabase JWT auth.
+// NOTE: Portal data hooks support DUAL auth:
+// 1. Supabase Auth JWT (persistent accounts) — sent via Authorization header
+// 2. Legacy portal token — sent via x-portal-token header
+// The edge function accepts both.
 
-function getToken(): string | null {
+function getLegacyToken(): string | null {
   try {
     const stored = localStorage.getItem("portal_session");
     return stored ? JSON.parse(stored).token : null;
@@ -14,18 +15,47 @@ function getToken(): string | null {
   }
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  };
+
+  // Prefer Supabase Auth JWT
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers["authorization"] = `Bearer ${session.access_token}`;
+    return headers;
+  }
+
+  // Fall back to legacy portal token
+  const legacyToken = getLegacyToken();
+  if (legacyToken) {
+    headers["x-portal-token"] = legacyToken;
+  }
+
+  return headers;
+}
+
+function hasAnyAuth(): boolean {
+  // Quick synchronous check — real validation happens in the fetch
+  try {
+    const stored = localStorage.getItem("portal_session");
+    if (stored) return true;
+  } catch {}
+  // Can't synchronously check Supabase session, so optimistically return true
+  // and let the fetch handle auth errors
+  return true;
+}
+
 async function portalFetch(resource: string, params?: Record<string, string>) {
-  const token = getToken();
-  if (!token) throw new Error("Not authenticated");
+  const headers = await getAuthHeaders();
+  if (!headers["authorization"] && !headers["x-portal-token"]) {
+    throw new Error("Not authenticated");
+  }
 
   const searchParams = new URLSearchParams({ resource, ...params });
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?${searchParams.toString()}`;
-  const res = await fetch(url, {
-    headers: {
-      "x-portal-token": token,
-      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
-  });
+  const res = await fetch(url, { headers });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -36,15 +66,16 @@ async function portalFetch(resource: string, params?: Record<string, string>) {
 }
 
 async function portalPost(resource: string, body: Record<string, unknown>) {
-  const token = getToken();
-  if (!token) throw new Error("Not authenticated");
+  const headers = await getAuthHeaders();
+  if (!headers["authorization"] && !headers["x-portal-token"]) {
+    throw new Error("Not authenticated");
+  }
 
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=${resource}`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      "x-portal-token": token,
-      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      ...headers,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -59,71 +90,64 @@ async function portalPost(resource: string, body: Record<string, unknown>) {
 }
 
 export function usePortalDashboard() {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "dashboard"],
     queryFn: () => portalFetch("dashboard"),
-    enabled: !!token,
+    enabled: hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalTrips() {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "trips"],
     queryFn: () => portalFetch("trips"),
-    enabled: !!token,
+    enabled: hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalTripDetail(tripId: string | undefined) {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "trip-detail", tripId],
     queryFn: () => portalFetch("trip-detail", { tripId: tripId! }),
-    enabled: !!tripId && !!token,
+    enabled: !!tripId && hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalInvoices() {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "invoices"],
     queryFn: () => portalFetch("invoices"),
-    enabled: !!token,
+    enabled: hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalPayments() {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "payments"],
     queryFn: () => portalFetch("payments"),
-    enabled: !!token,
+    enabled: hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalInvoiceDetail(invoiceId: string | undefined) {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "invoice-detail", invoiceId],
     queryFn: () => portalFetch("invoice-detail", { invoiceId: invoiceId! }),
-    enabled: !!invoiceId && !!token,
+    enabled: !!invoiceId && hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalMessages() {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "messages"],
     queryFn: () => portalFetch("messages"),
-    enabled: !!token,
+    enabled: hasAnyAuth(),
     staleTime: 10_000,
     refetchInterval: 15_000,
     refetchIntervalInBackground: false,
@@ -154,31 +178,28 @@ export function useApproveItinerary() {
 }
 
 export function usePortalCCAuthorizations(tripId: string | undefined) {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "cc-authorizations", tripId],
     queryFn: () => portalFetch("cc-authorizations", { tripId: tripId! }),
-    enabled: !!tripId && !!token,
+    enabled: !!tripId && hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalDocChecklist(tripId: string | undefined) {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "doc-checklist", tripId],
     queryFn: () => portalFetch("doc-checklist", { tripId: tripId! }),
-    enabled: !!tripId && !!token,
+    enabled: !!tripId && hasAnyAuth(),
     staleTime: 30_000,
   });
 }
 
 export function usePortalOptionSelections(tripId: string | undefined) {
-  const token = getToken();
   return useQuery({
     queryKey: ["portal", "option-selections", tripId],
     queryFn: () => portalFetch("option-selections", { tripId: tripId! }),
-    enabled: !!tripId && !!token,
+    enabled: !!tripId && hasAnyAuth(),
     staleTime: 30_000,
   });
 }

@@ -1,24 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Loader2, CheckCircle, KeyRound } from "lucide-react";
+import { Mail, Loader2, CheckCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import portalHero from "@/assets/portal-hero.jpg";
 import crestwellLogo from "@/assets/crestwell-logo.png";
 
+type Mode = "choose" | "magic-link" | "sign-in" | "sign-up";
+
 export default function PortalLogin() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [mode, setMode] = useState<"choose" | "magic-link">("choose");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [mode, setMode] = useState<Mode>("choose");
   const [searchParams] = useSearchParams();
-  const { login, session } = usePortalAuth();
+  const { loginWithToken, loginWithPassword, signUp, session } = usePortalAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,10 +29,11 @@ export default function PortalLogin() {
     return () => { document.title = "Crestwell Travel Services - Agent"; };
   }, []);
 
+  // Handle magic-link token from URL
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
-      login(token).then((result) => {
+      loginWithToken(token).then((result) => {
         if (result.success) {
           navigate("/client", { replace: true });
         } else {
@@ -37,56 +41,12 @@ export default function PortalLogin() {
         }
       });
     }
-  }, [searchParams, login, navigate]);
+  }, [searchParams, loginWithToken, navigate]);
 
+  // Redirect if already authenticated
   useEffect(() => {
     if (session) navigate("/client", { replace: true });
   }, [session, navigate]);
-
-  // Handle Google OAuth callback - check if user just signed in via Supabase Auth
-  useEffect(() => {
-    const handleGoogleCallback = async () => {
-      const { data: { session: supaSession } } = await supabase.auth.getSession();
-      if (supaSession?.user?.email) {
-        setGoogleLoading(true);
-        try {
-          const { data, error } = await supabase.functions.invoke("portal-auth", {
-            body: { action: "google-login", email: supaSession.user.email },
-          });
-          // Sign out of Supabase Auth (portal uses its own session)
-          await supabase.auth.signOut();
-
-          if (error || !data?.success) {
-            toast.error(data?.error || "Could not find a client account for your Google email.");
-            setGoogleLoading(false);
-            return;
-          }
-
-          const portalSession = {
-            clientId: data.client_id,
-            clientName: data.client_name,
-            token: data.token,
-          };
-          localStorage.setItem("portal_session", JSON.stringify(portalSession));
-          window.location.href = "/client";
-        } catch {
-          toast.error("Failed to sign in with Google.");
-          setGoogleLoading(false);
-        }
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        handleGoogleCallback();
-      }
-    });
-
-    // Also check on mount (in case returning from OAuth redirect)
-    handleGoogleCallback();
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -99,16 +59,50 @@ export default function PortalLogin() {
     }
   };
 
+  const handlePasswordSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    setAuthLoading(true);
+    const result = await loginWithPassword(email, password);
+    if (!result.success) {
+      toast.error(result.error || "Sign in failed.");
+    }
+    setAuthLoading(false);
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return;
+    }
+    setAuthLoading(true);
+    const result = await signUp(email, password);
+    if (!result.success) {
+      toast.error(result.error || "Sign up failed.");
+    } else if (result.needsConfirmation) {
+      setSent(true);
+    }
+    setAuthLoading(false);
+  };
+
   const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke("portal-auth", {
-        body: { action: "send-magic-link", email: email.trim(), origin: window.location.origin },
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-auth`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ action: "send-magic-link", email: email.trim(), origin: window.location.origin }),
       });
-      if (error) throw error;
+      if (!res.ok) throw new Error("Failed");
       setSent(true);
     } catch {
       toast.error("Failed to send access link. Please try again.");
@@ -117,23 +111,144 @@ export default function PortalLogin() {
     }
   };
 
+  // Google icon SVG
+  const GoogleIcon = () => (
+    <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+  );
+
   const rightPanel = () => {
+    // Confirmation / sent state
     if (sent) {
       return (
         <div className="text-center space-y-4">
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
           <h2 className="text-xl font-semibold">Check Your Email</h2>
           <p className="text-muted-foreground">
-            If an account exists for <strong>{email}</strong>, we've sent a secure access link.
-            Click the link in your email to access your travel portal.
+            {mode === "sign-up"
+              ? <>We've sent a confirmation to <strong>{email}</strong>. Click the link to activate your account.</>
+              : <>If an account exists for <strong>{email}</strong>, we've sent a secure access link.</>
+            }
           </p>
-          <Button variant="outline" onClick={() => { setSent(false); setEmail(""); setMode("choose"); }}>
+          <Button variant="outline" onClick={() => { setSent(false); setEmail(""); setPassword(""); setMode("choose"); }}>
             Back to Sign In
           </Button>
         </div>
       );
     }
 
+    // Sign in with email/password
+    if (mode === "sign-in") {
+      return (
+        <div className="space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
+            <p className="text-muted-foreground text-sm">Enter your email and password</p>
+          </div>
+          <form onSubmit={handlePasswordSignIn} className="space-y-4">
+            <Input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={authLoading}
+            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={authLoading}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <Button type="submit" className="w-full" disabled={authLoading}>
+              {authLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
+              Sign In
+            </Button>
+          </form>
+          <p className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <button className="text-primary underline hover:text-primary/80" onClick={() => { setMode("sign-up"); setPassword(""); }}>
+              Create one
+            </button>
+          </p>
+          <Button variant="ghost" className="w-full text-sm" onClick={() => { setMode("choose"); setPassword(""); }}>
+            ← Back to sign in options
+          </Button>
+        </div>
+      );
+    }
+
+    // Sign up with email/password
+    if (mode === "sign-up") {
+      return (
+        <div className="space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Create Account</h1>
+            <p className="text-muted-foreground text-sm">Set up your client portal account</p>
+          </div>
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <Input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={authLoading}
+            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password (min 6 chars)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={authLoading}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <Button type="submit" className="w-full" disabled={authLoading}>
+              {authLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Create Account
+            </Button>
+          </form>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button className="text-primary underline hover:text-primary/80" onClick={() => { setMode("sign-in"); setPassword(""); }}>
+              Sign in
+            </button>
+          </p>
+          <Button variant="ghost" className="w-full text-sm" onClick={() => { setMode("choose"); setPassword(""); }}>
+            ← Back to sign in options
+          </Button>
+        </div>
+      );
+    }
+
+    // Magic link mode
     if (mode === "magic-link") {
       return (
         <div className="space-y-6">
@@ -151,11 +266,7 @@ export default function PortalLogin() {
               disabled={sending}
             />
             <Button type="submit" className="w-full" disabled={sending}>
-              {sending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Mail className="h-4 w-4 mr-2" />
-              )}
+              {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
               Send Access Link
             </Button>
           </form>
@@ -166,6 +277,7 @@ export default function PortalLogin() {
       );
     }
 
+    // Choose mode (default)
     return (
       <div className="space-y-6">
         <div className="text-center space-y-1">
@@ -180,17 +292,18 @@ export default function PortalLogin() {
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
           >
-            {googleLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-            )}
+            {googleLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GoogleIcon />}
             Sign in with Google
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            size="lg"
+            onClick={() => setMode("sign-in")}
+          >
+            <KeyRound className="h-4 w-4 mr-2" />
+            Sign in with email
           </Button>
 
           <div className="relative my-2">
@@ -202,9 +315,9 @@ export default function PortalLogin() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" size="lg" onClick={() => setMode("magic-link")}>
+          <Button variant="ghost" className="w-full text-sm" onClick={() => setMode("magic-link")}>
             <Mail className="h-4 w-4 mr-2" />
-            Sign in with magic link
+            Send me a magic link instead
           </Button>
         </div>
         <p className="text-xs text-muted-foreground text-center px-4">
