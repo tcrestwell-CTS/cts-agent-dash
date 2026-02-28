@@ -172,3 +172,28 @@ export function usePortalDocChecklist(tripId: string | undefined) {
     staleTime: 30_000,
   });
 }
+
+export function usePortalOptionSelections(tripId: string | undefined) {
+  const token = getToken();
+  return useQuery({
+    queryKey: ["portal", "option-selections", tripId],
+    queryFn: () => portalFetch("option-selections", { tripId: tripId! }),
+    enabled: !!tripId && !!token,
+    staleTime: 30_000,
+  });
+}
+
+export function useSelectOption() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tripId, optionBlockId, selectedItemId }: {
+      tripId: string;
+      optionBlockId: string;
+      selectedItemId: string;
+    }) => portalPost("select-option", { tripId, optionBlockId, selectedItemId }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["portal", "option-selections", variables.tripId] });
+      queryClient.invalidateQueries({ queryKey: ["portal", "trip-detail", variables.tripId] });
+    },
+  });
+}

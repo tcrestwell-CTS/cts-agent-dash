@@ -753,6 +753,119 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "select-option") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { tripId, optionBlockId, selectedItemId } = await req.json();
+      if (!tripId || !optionBlockId || !selectedItemId) {
+        return new Response(JSON.stringify({ error: "tripId, optionBlockId, and selectedItemId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify client has access to this trip
+      const allClientIds = await getAllClientIds();
+      const { data: tripCheck } = await supabase
+        .from("trips")
+        .select("id, client_id, user_id, trip_name")
+        .eq("id", tripId)
+        .single();
+
+      if (!tripCheck || !allClientIds.includes(tripCheck.client_id)) {
+        return new Response(JSON.stringify({ error: "Trip not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify the item belongs to the option block
+      const { data: itemCheck } = await supabase
+        .from("itinerary_items")
+        .select("id, title, option_block_id")
+        .eq("id", selectedItemId)
+        .eq("option_block_id", optionBlockId)
+        .single();
+
+      if (!itemCheck) {
+        return new Response(JSON.stringify({ error: "Invalid option selection" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Upsert the selection
+      const { error: upsertError } = await supabase
+        .from("client_option_selections")
+        .upsert({
+          client_id: clientId,
+          trip_id: tripId,
+          option_block_id: optionBlockId,
+          selected_item_id: selectedItemId,
+          agent_confirmed: false,
+          agent_confirmed_at: null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "client_id,trip_id,option_block_id" });
+
+      if (upsertError) {
+        console.error("Option selection upsert error:", upsertError);
+        throw upsertError;
+      }
+
+      // Get block title for the notification
+      const { data: blockData } = await supabase
+        .from("option_blocks")
+        .select("title")
+        .eq("id", optionBlockId)
+        .single();
+
+      const { data: clientData } = await supabase
+        .from("clients")
+        .select("name")
+        .eq("id", clientId)
+        .single();
+
+      // Notify agent via portal message
+      await supabase.from("portal_messages").insert({
+        client_id: clientId,
+        agent_user_id: tripCheck.user_id,
+        sender_type: "client",
+        message: `🎯 ${clientData?.name || "Client"} selected "${itemCheck.title}" for "${blockData?.title || "option"}" on ${tripCheck.trip_name}. Awaiting your confirmation.`,
+      });
+
+      // Agent notification bell
+      await supabase.from("agent_notifications").insert({
+        user_id: tripCheck.user_id,
+        type: "option_selected",
+        title: "Option Selected",
+        message: `${clientData?.name || "Client"} chose "${itemCheck.title}" for "${blockData?.title || "option"}" — needs confirmation.`,
+        trip_id: tripId,
+      });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "option-selections") {
+      // GET saved selections for a trip
+      const tripId = url.searchParams.get("tripId");
+      if (!tripId) {
+        return new Response(JSON.stringify({ error: "tripId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: selections } = await supabase
+        .from("client_option_selections")
+        .select("option_block_id, selected_item_id, agent_confirmed, agent_confirmed_at")
+        .eq("client_id", clientId)
+        .eq("trip_id", tripId);
+
+      return new Response(JSON.stringify({ selections: selections || [] }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
