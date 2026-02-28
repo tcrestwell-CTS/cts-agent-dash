@@ -105,7 +105,7 @@ export function useBookings() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [agentName, setAgentName] = useState<string | null>(null);
 
   // Fetch agent's profile name for booking creation
@@ -514,7 +514,7 @@ export function useBookings() {
       return false;
     }
 
-    setUpdatingStatus(true);
+    setUpdatingStatusId(bookingId);
     try {
       // First get the booking with client info
       const booking = bookings.find(b => b.id === bookingId);
@@ -562,7 +562,7 @@ export function useBookings() {
       toast.error("Failed to update booking status");
       return false;
     } finally {
-      setUpdatingStatus(false);
+      setUpdatingStatusId(null);
     }
   };
 
@@ -659,7 +659,7 @@ export function useBookings() {
     loading,
     creating,
     updating,
-    updatingStatus,
+    updatingStatusId,
     isAdmin: !!isAdmin,
     createBooking,
     updateBooking,
