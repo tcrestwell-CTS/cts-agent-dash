@@ -27,6 +27,17 @@ const categoryIcons: Record<string, string> = {
   activity: "🎯", dining: "🍽️", meeting: "📋", other: "📌",
 };
 
+const bookingTypeIcons: Record<string, { icon: string; label: string }> = {
+  flight: { icon: "✈️", label: "Flight" },
+  hotel: { icon: "🏨", label: "Hotel" },
+  cruise: { icon: "🚢", label: "Cruise" },
+  car_rental: { icon: "🚗", label: "Car Rental" },
+  tour: { icon: "🎯", label: "Tour" },
+  transfer: { icon: "🚐", label: "Transfer" },
+  insurance: { icon: "🛡️", label: "Insurance" },
+  other: { icon: "📌", label: "Other" },
+};
+
 export default function PortalTripDetail() {
   const { tripId } = useParams();
   const { data, isLoading, refetch } = usePortalTripDetail(tripId);
@@ -555,27 +566,35 @@ export default function PortalTripDetail() {
             <p className="text-sm text-muted-foreground">No bookings yet.</p>
           ) : (
             <div className="space-y-3">
-              {bookings.map((b: any) => (
-                <div key={b.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{b.trip_name || b.destination}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {b.destination}
-                      {b.depart_date && ` · ${format(new Date(b.depart_date), "MMM d, yyyy")}`}
-                    </p>
-                    {b.booking_reference && (
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Hash className="h-3 w-3" />
-                        <span className="font-mono font-medium">{b.booking_reference}</span>
-                      </p>
-                    )}
+              {bookings.map((b: any) => {
+                const typeInfo = bookingTypeIcons[b.booking_type] || bookingTypeIcons.other;
+                return (
+                  <div key={b.id} className="flex items-start justify-between p-4 rounded-lg border">
+                    <div className="flex gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">
+                        {typeInfo.icon}
+                      </div>
+                      <div>
+                        <p className="font-medium">{b.trip_name || b.destination}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {typeInfo.label} · {b.destination}
+                          {b.depart_date && ` · ${format(new Date(b.depart_date), "MMM d, yyyy")}`}
+                        </p>
+                        {b.booking_reference && (
+                          <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/80 border">
+                            <Hash className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-mono text-xs font-semibold tracking-wide">{b.booking_reference}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
+                      {b.total_amount > 0 && <p className="text-sm font-medium">${b.total_amount.toLocaleString()}</p>}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
-                    {b.total_amount > 0 && <p className="text-sm font-medium">${b.total_amount.toLocaleString()}</p>}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
