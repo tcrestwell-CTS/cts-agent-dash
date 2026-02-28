@@ -3,6 +3,91 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import {
+  sendBookingConfirmationEmail,
+  sendOverrideApprovalNotification,
+  sendTripCompletedEmail,
+} from "@/lib/emailNotifications";
+
+// ── Shared select strings ──────────────────────────────────────────────
+// Base fields present on every booking query
+const BOOKING_FIELDS = `
+  id,
+  created_at,
+  booking_type,
+  booking_reference,
+  destination,
+  depart_date,
+  return_date,
+  travelers,
+  total_amount,
+  status,
+  trip_name,
+  trip_page_url,
+  owner_agent,
+  user_id,
+  client_id,
+  notes,
+  supplier_id,
+  gross_sales,
+  commissionable_amount,
+  commission_revenue,
+  net_sales,
+  supplier_payout,
+  calculated_commission,
+  commission_override_amount,
+  override_pending_approval,
+  override_approved,
+  override_approved_by,
+  override_approved_at,
+  override_notes,
+  trip_id,
+  cancelled_at,
+  cancellation_penalty,
+  cancellation_refund_amount,
+  cancellation_reason,
+  approval_required,
+  approval_type
+`;
+
+const BOOKING_SELECT_LIST = `
+  ${BOOKING_FIELDS},
+  clients (
+    name,
+    email
+  ),
+  trips (
+    id,
+    status
+  )
+`;
+
+const BOOKING_SELECT_DETAIL = `
+  ${BOOKING_FIELDS},
+  updated_at,
+  clients (
+    id,
+    name,
+    email,
+    phone,
+    first_name,
+    last_name,
+    location,
+    status
+  ),
+  suppliers (
+    id,
+    name,
+    commissionable_percentage,
+    commission_rate
+  ),
+  trips (
+    id,
+    status
+  )
+`;
+
+// ── Types ──────────────────────────────────────────────────────────────
 
 export interface Booking {
   id: string;
@@ -89,7 +174,7 @@ export interface UpdateBookingData {
   total_amount?: number;
   trip_name?: string;
   notes?: string;
-  // New financial fields
+  // Financial fields
   supplier_id?: string | null;
   gross_sales?: number;
   commissionable_amount?: number;
@@ -97,6 +182,8 @@ export interface UpdateBookingData {
   net_sales?: number;
   supplier_payout?: number;
 }
+
+// ── Main hook ──────────────────────────────────────────────────────────
 
 export function useBookings() {
   const { user } = useAuth();
@@ -133,52 +220,7 @@ export function useBookings() {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select(`
-          id,
-          created_at,
-          booking_type,
-          booking_reference,
-          destination,
-          depart_date,
-          return_date,
-          travelers,
-          total_amount,
-          status,
-          trip_name,
-          trip_page_url,
-          owner_agent,
-          user_id,
-          client_id,
-          notes,
-          supplier_id,
-          gross_sales,
-          commissionable_amount,
-          commission_revenue,
-          net_sales,
-          supplier_payout,
-          calculated_commission,
-          commission_override_amount,
-          override_pending_approval,
-          override_approved,
-          override_approved_by,
-          override_approved_at,
-          override_notes,
-          trip_id,
-          cancelled_at,
-          cancellation_penalty,
-          cancellation_refund_amount,
-          cancellation_reason,
-          approval_required,
-          approval_type,
-          clients (
-            name,
-            email
-          ),
-          trips (
-            id,
-            status
-          )
-        `)
+        .select(BOOKING_SELECT_LIST)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -203,132 +245,6 @@ export function useBookings() {
     crypto.getRandomValues(array);
     const random = Array.from(array, b => b.toString(36).padStart(2, '0')).join('').toUpperCase().slice(0, 12);
     return `CW-${random}`;
-  };
-
-  const sendBookingConfirmationEmail = async (booking: {
-    clientName: string;
-    clientEmail: string;
-    destination: string;
-    departDate: string;
-    returnDate: string;
-    reference: string;
-  }) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.error("No session for sending email");
-        return false;
-      }
-
-      const response = await supabase.functions.invoke("send-email", {
-        body: {
-          to: booking.clientEmail,
-          subject: `Booking Confirmed: ${booking.destination}`,
-          template: "booking_confirmation",
-          data: {
-            clientName: booking.clientName,
-            destination: booking.destination,
-            dates: `${booking.departDate} - ${booking.returnDate}`,
-            reference: booking.reference,
-          },
-        },
-      });
-
-      if (response.error) {
-        console.error("Error sending confirmation email:", response.error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error sending confirmation email:", error);
-      return false;
-    }
-  };
-
-  const sendOverrideApprovalNotification = async (overrideData: {
-    agentName: string;
-    bookingReference: string;
-    clientName: string;
-    destination: string;
-    calculatedCommission: number;
-    overrideAmount: number;
-    overrideReason: string;
-  }) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.error("No session for sending override notification");
-        return false;
-      }
-
-      // Get admin users to notify
-      const { data: adminRoles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
-
-      if (rolesError || !adminRoles?.length) {
-        console.error("No admins found or error fetching admins:", rolesError);
-        return false;
-      }
-
-      // Get admin profiles with emails
-      const adminUserIds = adminRoles.map(r => r.user_id);
-      
-      // Since we can't directly get emails from auth.users, we'll use a service role approach
-      // For now, we'll send to all admins we can find through the profiles table
-      // In production, you might want to store admin notification emails in branding_settings
-      
-      const { data: branding } = await supabase
-        .from("branding_settings")
-        .select("email_address")
-        .single();
-
-      const adminEmail = branding?.email_address;
-      
-      if (!adminEmail) {
-        console.log("No admin notification email configured in branding settings");
-        return false;
-      }
-
-      const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-          minimumFractionDigits: 2,
-        }).format(value);
-      };
-
-      const response = await supabase.functions.invoke("send-email", {
-        body: {
-          to: adminEmail,
-          subject: `⚠️ Commission Override Requires Approval - ${overrideData.bookingReference}`,
-          template: "commission_override_approval",
-          data: {
-            agentName: overrideData.agentName,
-            bookingReference: overrideData.bookingReference,
-            clientName: overrideData.clientName,
-            destination: overrideData.destination,
-            calculatedCommission: formatCurrency(overrideData.calculatedCommission),
-            overrideAmount: formatCurrency(overrideData.overrideAmount),
-            overrideReason: overrideData.overrideReason || "No reason provided",
-            approvalUrl: `${window.location.origin}/commissions`,
-          },
-        },
-      });
-
-      if (response.error) {
-        console.error("Error sending override notification:", response.error);
-        return false;
-      }
-
-      console.log("Override approval notification sent to admin");
-      return true;
-    } catch (error) {
-      console.error("Error sending override notification:", error);
-      return false;
-    }
   };
 
   const createBooking = async (data: CreateBookingData) => {
@@ -461,49 +377,6 @@ export function useBookings() {
     }
   };
 
-  const sendTripCompletedEmail = async (booking: {
-    clientName: string;
-    clientEmail: string;
-    destination: string;
-    tripName: string | null;
-    departDate: string;
-    returnDate: string;
-    reference: string;
-  }) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.error("No session for sending email");
-        return false;
-      }
-
-      const response = await supabase.functions.invoke("send-email", {
-        body: {
-          to: booking.clientEmail,
-          subject: `Thanks for traveling with us! - ${booking.destination}`,
-          template: "trip_completed",
-          data: {
-            clientName: booking.clientName,
-            destination: booking.destination,
-            tripName: booking.tripName || booking.destination,
-            dates: `${booking.departDate} - ${booking.returnDate}`,
-            reference: booking.reference,
-          },
-        },
-      });
-
-      if (response.error) {
-        console.error("Error sending trip completed email:", response.error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error sending trip completed email:", error);
-      return false;
-    }
-  };
-
   const updateBookingStatus = async (
     bookingId: string,
     newStatus: string,
@@ -574,18 +447,27 @@ export function useBookings() {
 
     setUpdating(true);
     try {
+      // Build update payload including all provided fields (financial + non-financial)
+      const updatePayload: Record<string, unknown> = {};
+
+      if (data.destination !== undefined) updatePayload.destination = data.destination;
+      if (data.depart_date !== undefined) updatePayload.depart_date = data.depart_date;
+      if (data.return_date !== undefined) updatePayload.return_date = data.return_date;
+      if (data.travelers !== undefined) updatePayload.travelers = data.travelers;
+      if (data.total_amount !== undefined) updatePayload.total_amount = data.total_amount;
+      if (data.trip_name !== undefined) updatePayload.trip_name = data.trip_name || null;
+      if (data.notes !== undefined) updatePayload.notes = data.notes || null;
+      if (data.supplier_id !== undefined) updatePayload.supplier_id = data.supplier_id;
+      // Financial fields — no longer silently ignored
+      if (data.gross_sales !== undefined) updatePayload.gross_sales = data.gross_sales;
+      if (data.commissionable_amount !== undefined) updatePayload.commissionable_amount = data.commissionable_amount;
+      if (data.commission_revenue !== undefined) updatePayload.commission_revenue = data.commission_revenue;
+      if (data.net_sales !== undefined) updatePayload.net_sales = data.net_sales;
+      if (data.supplier_payout !== undefined) updatePayload.supplier_payout = data.supplier_payout;
+
       const { error } = await supabase
         .from("bookings")
-        .update({
-          destination: data.destination,
-          depart_date: data.depart_date,
-          return_date: data.return_date,
-          travelers: data.travelers,
-          total_amount: data.total_amount,
-          trip_name: data.trip_name || null,
-          notes: data.notes || null,
-          supplier_id: data.supplier_id,
-        })
+        .update(updatePayload)
         .eq("id", bookingId);
 
       if (error) {
@@ -669,6 +551,8 @@ export function useBookings() {
   };
 }
 
+// ── Detail hook ────────────────────────────────────────────────────────
+
 // Extended booking type with full client data for detail page
 export interface BookingWithClient extends Booking {
   updated_at?: string;
@@ -712,65 +596,7 @@ export function useBooking(bookingId: string | undefined) {
         setLoading(true);
         const { data, error: fetchError } = await supabase
           .from("bookings")
-          .select(`
-            id,
-            booking_type,
-            booking_reference,
-            destination,
-            depart_date,
-            return_date,
-            travelers,
-            total_amount,
-            status,
-            trip_name,
-            trip_page_url,
-            owner_agent,
-            user_id,
-            client_id,
-            notes,
-            created_at,
-            updated_at,
-            supplier_id,
-            gross_sales,
-            commissionable_amount,
-            commission_revenue,
-            net_sales,
-            supplier_payout,
-            calculated_commission,
-            commission_override_amount,
-            override_pending_approval,
-            override_approved,
-            override_approved_by,
-            override_approved_at,
-            override_notes,
-            trip_id,
-            cancelled_at,
-            cancellation_penalty,
-            cancellation_refund_amount,
-            cancellation_reason,
-            approval_required,
-            approval_type,
-            clients (
-              id,
-              name,
-              email,
-              phone,
-              first_name,
-              last_name,
-              location,
-              status
-            ),
-            suppliers (
-              id,
-              name,
-              commissionable_percentage,
-              commission_rate
-            ),
-            trips (
-              id,
-              status
-            )
-          `)
+          .select(BOOKING_SELECT_DETAIL)
           .eq("id", bookingId)
           .maybeSingle();
 
@@ -790,7 +616,8 @@ export function useBooking(bookingId: string | undefined) {
   return { booking, loading, error, refetch };
 }
 
-// Hook to fetch bookings for a specific client
+// ── Client bookings hook ───────────────────────────────────────────────
+
 export function useClientBookings(clientId: string | undefined) {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -807,42 +634,7 @@ export function useClientBookings(clientId: string | undefined) {
         const { data, error } = await supabase
           .from("bookings")
           .select(`
-            id,
-            created_at,
-            booking_type,
-            booking_reference,
-            destination,
-            depart_date,
-            return_date,
-            travelers,
-            total_amount,
-            status,
-            trip_name,
-            trip_page_url,
-            owner_agent,
-            user_id,
-            client_id,
-            notes,
-            supplier_id,
-            gross_sales,
-            commissionable_amount,
-            commission_revenue,
-            net_sales,
-            supplier_payout,
-            calculated_commission,
-            commission_override_amount,
-            override_pending_approval,
-            override_approved,
-            override_approved_by,
-            override_approved_at,
-            override_notes,
-            trip_id,
-            cancelled_at,
-            cancellation_penalty,
-            cancellation_refund_amount,
-            cancellation_reason,
-            approval_required,
-            approval_type,
+            ${BOOKING_FIELDS},
             trips (
               id,
               status
