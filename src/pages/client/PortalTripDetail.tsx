@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations } from "@/hooks/usePortalData";
+import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations, usePortalOptionSelections, useSelectOption } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers, Send, Hash } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { RequestChangesDialog } from "@/components/client/RequestChangesDialog";
@@ -31,7 +31,9 @@ export default function PortalTripDetail() {
   const { tripId } = useParams();
   const { data, isLoading, refetch } = usePortalTripDetail(tripId);
   const { data: ccData } = usePortalCCAuthorizations(tripId);
+  const { data: selectionsData } = usePortalOptionSelections(tripId);
   const approveItinerary = useApproveItinerary();
+  const selectOption = useSelectOption();
   const [showItinerary, setShowItinerary] = useState(false);
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -322,23 +324,85 @@ export default function PortalTripDetail() {
                 {blocks.map((block: any) => {
                   const blockItems = itinerary.filter((item: any) => item.option_block_id === block.id);
                   if (blockItems.length === 0) return null;
-                  const selectedId = selectedOptionChoices[block.id];
+
+                  // Check saved server selection
+                  const savedSelection = (selectionsData?.selections || []).find(
+                    (s: any) => s.option_block_id === block.id
+                  );
+                  const localChoice = selectedOptionChoices[block.id];
+                  const activeSelection = localChoice || savedSelection?.selected_item_id;
+                  const isConfirmed = savedSelection?.agent_confirmed;
+                  const isSaved = savedSelection?.selected_item_id === activeSelection && !localChoice;
+                  const hasUnsavedChange = localChoice && localChoice !== savedSelection?.selected_item_id;
 
                   return (
                     <div key={block.id} className="space-y-2">
-                      <p className="text-sm font-medium">{block.title}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{block.title}</p>
+                        <div className="flex items-center gap-2">
+                          {isConfirmed && (
+                            <Badge variant="default" className="gap-1 text-[10px]">
+                              <CheckCircle2 className="h-3 w-3" /> Confirmed
+                            </Badge>
+                          )}
+                          {isSaved && !isConfirmed && (
+                            <Badge variant="secondary" className="gap-1 text-[10px]">
+                              <Clock className="h-3 w-3" /> Awaiting Confirmation
+                            </Badge>
+                          )}
+                          {hasUnsavedChange && (
+                            <Button
+                              size="sm"
+                              className="gap-1.5 h-7 text-xs"
+                              disabled={selectOption.isPending}
+                              onClick={() => {
+                                if (!tripId) return;
+                                selectOption.mutate(
+                                  { tripId, optionBlockId: block.id, selectedItemId: localChoice },
+                                  {
+                                    onSuccess: () => {
+                                      toast.success("Selection sent to your advisor for confirmation!");
+                                      setSelectedOptionChoices(prev => {
+                                        const next = { ...prev };
+                                        delete next[block.id];
+                                        return next;
+                                      });
+                                    },
+                                    onError: () => toast.error("Failed to save selection"),
+                                  }
+                                );
+                              }}
+                            >
+                              {selectOption.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3" />
+                              )}
+                              Submit Choice
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {blockItems.map((item: any, idx: number) => {
-                          const isSelected = selectedId === item.id;
-                          const optionLabel = String.fromCharCode(65 + idx); // A, B, C...
+                          const isSelected = activeSelection === item.id;
+                          const optionLabel = String.fromCharCode(65 + idx);
                           return (
                             <button
                               key={item.id}
-                              onClick={() => setSelectedOptionChoices(prev => ({ ...prev, [block.id]: item.id }))}
+                              onClick={() => {
+                                if (isConfirmed) return; // Don't allow changes after confirmation
+                                setSelectedOptionChoices(prev => ({ ...prev, [block.id]: item.id }));
+                              }}
+                              disabled={isConfirmed}
                               className={`text-left p-4 rounded-lg border-2 transition-all ${
-                                isSelected
-                                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                  : "border-border hover:border-primary/40 hover:bg-muted/30"
+                                isConfirmed
+                                  ? isSelected
+                                    ? "border-primary bg-primary/5 cursor-default"
+                                    : "border-border opacity-50 cursor-default"
+                                  : isSelected
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                    : "border-border hover:border-primary/40 hover:bg-muted/30"
                               }`}
                             >
                               <div className="flex items-start gap-3">
@@ -494,11 +558,17 @@ export default function PortalTripDetail() {
               {bookings.map((b: any) => (
                 <div key={b.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium">{b.trip_name || b.booking_reference}</p>
+                    <p className="font-medium">{b.trip_name || b.destination}</p>
                     <p className="text-sm text-muted-foreground">
                       {b.destination}
                       {b.depart_date && ` · ${format(new Date(b.depart_date), "MMM d, yyyy")}`}
                     </p>
+                    {b.booking_reference && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        <span className="font-mono font-medium">{b.booking_reference}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
