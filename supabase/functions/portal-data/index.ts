@@ -90,22 +90,42 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ── Auth-gated resources ──────────────────────────────────────────────────
-    const portalToken = req.headers.get("x-portal-token");
-    if (!portalToken) {
+    // ── Auth-gated resources (dual auth: JWT or legacy portal token) ─────────
+    let clientId: string | null = null;
+
+    // 1. Try Supabase Auth JWT first
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const jwt = authHeader.substring(7);
+      try {
+        const { data: { user }, error: userErr } = await supabase.auth.getUser(jwt);
+        if (user && !userErr) {
+          const { data: cp } = await supabase
+            .from("client_profiles")
+            .select("client_id")
+            .eq("auth_user_id", user.id)
+            .maybeSingle();
+          if (cp) clientId = cp.client_id;
+        }
+      } catch (e) {
+        console.error("JWT auth error:", e);
+      }
+    }
+
+    // 2. Fall back to legacy portal token
+    if (!clientId) {
+      const portalToken = req.headers.get("x-portal-token");
+      if (portalToken) {
+        const session = await validatePortalToken(supabase, portalToken);
+        if (session) clientId = session.client_id;
+      }
+    }
+
+    if (!clientId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const session = await validatePortalToken(supabase, portalToken);
-    if (!session) {
-      return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const clientId = session.client_id;
 
     // Helper: find ALL client IDs sharing the same email (handles duplicate client records)
     async function getAllClientIds(): Promise<string[]> {

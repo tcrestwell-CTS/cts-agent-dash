@@ -19,9 +19,126 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { action, email, token, origin } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
+    // ── Check if a client record exists for an email ─────────────────────────
+    if (action === "check-client-email") {
+      const emailLower = (body.email || "").toLowerCase().trim();
+      if (!emailLower) {
+        return new Response(JSON.stringify({ exists: false }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: client } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("email", emailLower)
+        .limit(1)
+        .maybeSingle();
+
+      return new Response(JSON.stringify({ exists: !!client }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Link Supabase Auth user to client_profiles ───────────────────────────
+    if (action === "link-client") {
+      const { authUserId, email } = body;
+      if (!authUserId || !email) {
+        return new Response(JSON.stringify({ error: "authUserId and email required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const emailLower = email.toLowerCase().trim();
+
+      // Check if already linked
+      const { data: existing } = await supabase
+        .from("client_profiles")
+        .select("client_id")
+        .eq("auth_user_id", authUserId)
+        .maybeSingle();
+
+      if (existing) {
+        // Already linked — return the client info
+        const { data: client } = await supabase
+          .from("clients")
+          .select("id, name, first_name")
+          .eq("id", existing.client_id)
+          .single();
+
+        return new Response(JSON.stringify({
+          success: true,
+          client_id: existing.client_id,
+          client_name: client?.first_name || client?.name || "Client",
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find client by email
+      const { data: client } = await supabase
+        .from("clients")
+        .select("id, name, first_name, email")
+        .eq("email", emailLower)
+        .limit(1)
+        .maybeSingle();
+
+      if (!client) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "No client account found for this email. Please contact your travel agent.",
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create the link (use service role to bypass RLS)
+      const { error: insertError } = await supabase
+        .from("client_profiles")
+        .insert({
+          auth_user_id: authUserId,
+          client_id: client.id,
+        });
+
+      if (insertError) {
+        console.error("client_profiles insert error:", insertError);
+        // Might be a unique constraint violation if race condition
+        if (insertError.code === "23505") {
+          // Already exists — fetch and return
+          const { data: existingRetry } = await supabase
+            .from("client_profiles")
+            .select("client_id")
+            .eq("auth_user_id", authUserId)
+            .single();
+
+          if (existingRetry) {
+            return new Response(JSON.stringify({
+              success: true,
+              client_id: existingRetry.client_id,
+              client_name: client.first_name || client.name || "Client",
+            }), {
+              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+        throw insertError;
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        client_id: client.id,
+        client_name: client.first_name || client.name || "Client",
+      }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Send magic link ──────────────────────────────────────────────────────
     if (action === "send-magic-link") {
+      const { email, origin } = body;
       if (!email) {
         return new Response(JSON.stringify({ error: "Email is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -30,8 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const emailLower = email.toLowerCase().trim();
 
-      // Find client by email
-      const { data: client, error: clientError } = await supabase
+      const { data: client } = await supabase
         .from("clients")
         .select("id, name, first_name, email, user_id")
         .eq("email", emailLower)
@@ -39,16 +155,13 @@ const handler = async (req: Request): Promise<Response> => {
         .maybeSingle();
 
       if (!client) {
-        // Don't reveal if email exists or not
+        // Don't reveal if email exists
         return new Response(JSON.stringify({ success: true }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Generate token
       const portalToken = crypto.randomUUID() + "-" + crypto.randomUUID();
-
-      // Create session (expires in 7 days)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -66,7 +179,6 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("Failed to create session");
       }
 
-      // Get agent branding for email styling
       const { data: branding } = await supabase
         .from("branding_settings")
         .select("*")
@@ -79,13 +191,8 @@ const handler = async (req: Request): Promise<Response> => {
       const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
       const fromName = branding?.from_name || agencyName;
 
-      // Use the origin from the request (so the link opens in the same browser context),
-      // fall back to PORTAL_BASE_URL or published URL
       let portalBaseUrl = origin || Deno.env.get("PORTAL_BASE_URL") || "https://app.crestwelltravels.com";
-      // Ensure the URL has a protocol prefix
-      if (!/^https?:\/\//i.test(portalBaseUrl)) {
-        portalBaseUrl = `https://${portalBaseUrl}`;
-      }
+      if (!/^https?:\/\//i.test(portalBaseUrl)) portalBaseUrl = `https://${portalBaseUrl}`;
       const baseUrlObj = new URL(portalBaseUrl);
       const pathHasClient = baseUrlObj.pathname.includes("/client");
       const portalPath = pathHasClient ? "/login" : "/client/login";
@@ -94,7 +201,6 @@ const handler = async (req: Request): Promise<Response> => {
       const logoHtml = logoUrl
         ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
         : "";
-
       const clientName = client.first_name || client.name || "Valued Client";
 
       const emailHtml = `
@@ -117,7 +223,6 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
       `;
 
-      // Send email
       const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
       if (RESEND_API_KEY) {
         const resend = new Resend(RESEND_API_KEY);
@@ -132,16 +237,18 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-    } else if (action === "verify-token") {
+    // ── Verify legacy token ──────────────────────────────────────────────────
+    if (action === "verify-token") {
+      const { token } = body;
       if (!token) {
         return new Response(JSON.stringify({ error: "Token is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Find valid session
-      const { data: session, error: sessionError } = await supabase
+      const { data: session } = await supabase
         .from("client_portal_sessions")
         .select("id, client_id, email, expires_at")
         .eq("token", token)
@@ -154,13 +261,11 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // Mark as verified
       await supabase
         .from("client_portal_sessions")
         .update({ verified_at: new Date().toISOString() })
         .eq("id", session.id);
 
-      // Get client info
       const { data: client } = await supabase
         .from("clients")
         .select("id, name, first_name, last_name, email, user_id")
@@ -175,9 +280,11 @@ const handler = async (req: Request): Promise<Response> => {
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-    } else if (action === "google-login") {
-      // Google OAuth flow: match authenticated user's email to a client
+    // ── Google OAuth login (legacy bridge) ───────────────────────────────────
+    if (action === "google-login") {
+      const { email } = body;
       if (!email) {
         return new Response(JSON.stringify({ error: "Email is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -186,7 +293,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       const emailLower = email.toLowerCase().trim();
 
-      // Find client by email
       const { data: client } = await supabase
         .from("clients")
         .select("id, name, first_name, email, user_id")
@@ -195,12 +301,14 @@ const handler = async (req: Request): Promise<Response> => {
         .maybeSingle();
 
       if (!client) {
-        return new Response(JSON.stringify({ success: false, error: "No client account found for this email. Please contact your travel agent." }), {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "No client account found for this email. Please contact your travel agent.",
+        }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Create a portal session token
       const portalToken = crypto.randomUUID() + "-" + crypto.randomUUID();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
@@ -228,12 +336,11 @@ const handler = async (req: Request): Promise<Response> => {
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-    } else {
-      return new Response(JSON.stringify({ error: "Invalid action" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
+
+    return new Response(JSON.stringify({ error: "Invalid action" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Portal auth error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
