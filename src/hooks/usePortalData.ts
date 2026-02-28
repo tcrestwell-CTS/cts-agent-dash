@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+// NOTE: Portal data hooks use raw fetch instead of supabase.functions.invoke
+// because portal-data is a GET endpoint with query params, which invoke() doesn't
+// support natively. The portal uses its own token-based auth (x-portal-token)
+// rather than Supabase JWT auth.
 
 function getToken(): string | null {
   try {
@@ -15,15 +19,6 @@ async function portalFetch(resource: string, params?: Record<string, string>) {
   if (!token) throw new Error("Not authenticated");
 
   const searchParams = new URLSearchParams({ resource, ...params });
-
-  const { data, error } = await supabase.functions.invoke("portal-data", {
-    headers: { "x-portal-token": token },
-    body: null,
-    method: "GET",
-  });
-
-  // supabase.functions.invoke doesn't support query params natively for GET,
-  // so we fall back to a direct fetch using the project URL from the client
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?${searchParams.toString()}`;
   const res = await fetch(url, {
     headers: {
