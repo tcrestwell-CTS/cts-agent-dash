@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { CommissionTier, getTierConfig } from "@/lib/commissionTiers";
+import { useAgencySettings } from "@/hooks/useAgencySettings";
 
 export interface Commission {
   id: string;
@@ -28,11 +29,25 @@ export interface CommissionInsert {
   paid_date?: string | null;
 }
 
+/** Fields explicitly allowed for commission updates */
+type CommissionUpdate = {
+  id: string;
+  status?: string;
+  paid_date?: string | null;
+  holdback_released?: boolean;
+  holdback_released_at?: string | null;
+  amount?: number;
+  rate?: number;
+  expected_commission?: number;
+};
+
+// RLS policies on commissions table scope results to current user.
+// Admins/office admins see all via separate policies — see database RLS config.
 export function useCommissions() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["commissions", user?.id],
+    queryKey: ["commissions"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("commissions")
@@ -70,17 +85,12 @@ export function useBookingCommission(bookingId: string | undefined) {
 export function useCreateCommission() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  // Cache agency settings (1hr staleTime) to avoid extra DB call per creation
+  const { data: agencySettings } = useAgencySettings();
 
   return useMutation({
     mutationFn: async (commission: CommissionInsert) => {
       if (!user) throw new Error("User not authenticated");
-
-      // Fetch agency settings for holdback percentage
-      const { data: agencySettings } = await supabase
-        .from("agency_settings")
-        .select("commission_holdback_pct")
-        .limit(1)
-        .maybeSingle();
 
       const holdbackPct = agencySettings?.commission_holdback_pct ?? 10;
       const holdbackAmount = (commission.amount * holdbackPct) / 100;
@@ -115,10 +125,7 @@ export function useUpdateCommission() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      ...updates
-    }: Partial<Commission> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: CommissionUpdate) => {
       const { data, error } = await supabase
         .from("commissions")
         .update(updates)
@@ -129,22 +136,39 @@ export function useUpdateCommission() {
       if (error) throw error;
       return data;
     },
+    // Optimistic update for instant UI feedback on status changes
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["commissions"] });
+      const previous = queryClient.getQueryData<Commission[]>(["commissions"]);
+      if (previous) {
+        queryClient.setQueryData<Commission[]>(["commissions"], (old) =>
+          (old || []).map((c) =>
+            c.id === variables.id ? { ...c, ...variables } : c
+          )
+        );
+      }
+      return { previous };
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["commission", data.booking_id] });
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
       toast.success("Commission updated successfully");
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["commissions"], context.previous);
+      }
       toast.error("Failed to update commission: " + error.message);
     },
   });
 }
 
-export function useUserCommissionRate() {
+/** Merged hook: returns both commission_rate and commission_tier in a single query */
+export function useUserCommissionProfile() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["user-commission-rate", user?.id],
+    queryKey: ["user-commission-profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
 
@@ -155,35 +179,35 @@ export function useUserCommissionRate() {
         .maybeSingle();
 
       if (error) throw error;
-      
-      // Use tier-based rate if available, otherwise fall back to commission_rate
+
       const tier = data?.commission_tier as CommissionTier | null;
-      if (tier) {
-        return getTierConfig(tier).agentSplit;
-      }
-      return data?.commission_rate ?? 10; // Default to 10% if not set
+      const rate = tier
+        ? getTierConfig(tier).agentSplit
+        : (data?.commission_rate ?? 10);
+
+      return {
+        tier: (tier || "tier_1") as CommissionTier,
+        rate,
+        rawCommissionRate: data?.commission_rate,
+      };
     },
     enabled: !!user,
   });
 }
 
+// Legacy wrappers — delegate to merged hook to avoid duplicate queries
+export function useUserCommissionRate() {
+  const profile = useUserCommissionProfile();
+  return {
+    ...profile,
+    data: profile.data?.rate ?? null,
+  };
+}
+
 export function useUserCommissionTier() {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ["user-commission-tier", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("commission_tier")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return (data?.commission_tier as CommissionTier | null) || "tier_1";
-    },
-    enabled: !!user,
-  });
+  const profile = useUserCommissionProfile();
+  return {
+    ...profile,
+    data: profile.data?.tier ?? null,
+  };
 }
