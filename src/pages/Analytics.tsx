@@ -14,6 +14,7 @@ import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { DateRangeFilter, DateRange } from "@/components/analytics/DateRangeFilter";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
+import type { TooltipProps } from "recharts";
 import {
   AreaChart,
   Area,
@@ -87,7 +88,7 @@ function StatCard({
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
             {change && (
               <div className="flex items-center gap-1">
                 {changeType === "positive" && <TrendingUp className="h-4 w-4 text-green-500" />}
@@ -260,8 +261,11 @@ const Analytics = () => {
 
     // Commission revenue metrics from booking data
     const periodGrossSales = periodBookings.reduce((sum, b) => sum + (b.gross_sales || b.total_amount || 0), 0);
-    const periodCommissionRevenue = periodBookings.reduce((sum, b) => sum + (b.commission_revenue || (b.total_amount * 0.085)), 0);
-    const periodNetSales = periodBookings.reduce((sum, b) => sum + (b.net_sales || (b.total_amount * 0.915)), 0);
+    // Named constants — keep in sync with agency_settings default commission rate
+    const DEFAULT_COMMISSION_RATE = 0.085;
+    const DEFAULT_NET_RATE = 1 - DEFAULT_COMMISSION_RATE;
+    const periodCommissionRevenue = periodBookings.reduce((sum, b) => sum + (b.commission_revenue || (b.total_amount * DEFAULT_COMMISSION_RATE)), 0);
+    const periodNetSales = periodBookings.reduce((sum, b) => sum + (b.net_sales || (b.total_amount * DEFAULT_NET_RATE)), 0);
 
     // All-time metrics (using original data for comparison)
     const totalRevenue = bookings
@@ -270,7 +274,7 @@ const Analytics = () => {
 
     const totalCommissionRevenue = bookings
       ?.filter((b) => b.status !== "cancelled")
-      .reduce((sum, b) => sum + (b.commission_revenue || (b.total_amount * 0.085)), 0) || 0;
+      .reduce((sum, b) => sum + (b.commission_revenue || (b.total_amount * DEFAULT_COMMISSION_RATE)), 0) || 0;
 
     // Average booking value (within period)
     const avgBookingValue =
@@ -278,9 +282,10 @@ const Analytics = () => {
         ? periodBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0) / periodBookings.length
         : 0;
 
-    // Conversion rate (within period)
+    // Booking rate: clients with bookings in period / total clients (all-time)
     const clientsWithBookings = new Set(filteredBookings.map((b) => b.client_id)).size;
-    const conversionRate = filteredClients.length > 0 ? (clientsWithBookings / filteredClients.length) * 100 : 0;
+    const allClientsCount = clients?.length || 0;
+    const bookingRate = allClientsCount > 0 ? (clientsWithBookings / allClientsCount) * 100 : 0;
 
     // Commission metrics (all commissions - not date filtered as they track differently)
     const totalPending = commissions
@@ -299,7 +304,7 @@ const Analytics = () => {
       totalClients: clients?.length || 0,
       periodClients: filteredClients.length,
       avgBookingValue,
-      conversionRate,
+      bookingRate,
       pendingCommissions: totalPending,
       paidCommissions: totalPaid,
       // New commission structure metrics
@@ -308,7 +313,7 @@ const Analytics = () => {
       periodNetSales,
       totalCommissionRevenue,
     };
-  }, [bookings, clients, filteredBookings, filteredClients, commissions]);
+  }, [filteredBookings, filteredClients, commissions, bookings?.length, clients?.length]);
 
   // Export functions
   const handleExportBookings = () => {
@@ -420,8 +425,8 @@ const Analytics = () => {
         value: formatCurrencyForExport(kpis.avgBookingValue),
       },
       {
-        metric: "Conversion Rate (%)",
-        value: kpis.conversionRate.toFixed(1),
+        metric: "Booking Rate (%)",
+        value: kpis.bookingRate.toFixed(1),
       },
       {
         metric: "Pending Commissions",
@@ -439,14 +444,14 @@ const Analytics = () => {
     toast.success("Summary exported successfully");
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
       return (
         <div className="rounded-lg border bg-background p-3 shadow-md">
           <p className="text-sm font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.name === "revenue" ? formatCurrency(entry.value) : entry.value}
+              {entry.name}: {entry.name === "revenue" ? formatCurrency(entry.value as number) : entry.value}
             </p>
           ))}
         </div>
@@ -557,7 +562,7 @@ const Analytics = () => {
           <StatCard
             title="Period Clients"
             value={kpis?.periodClients?.toString() || "0"}
-            change={`${kpis?.conversionRate?.toFixed(0) || 0}% conversion rate`}
+            change={`${kpis?.bookingRate?.toFixed(0) || 0}% booking rate`}
             changeType="neutral"
             icon={Users}
           />
@@ -630,7 +635,7 @@ const Analytics = () => {
                 <TrendingUp className="h-5 w-5" />
                 Revenue Trend
               </CardTitle>
-              <CardDescription>Monthly revenue over the last 12 months</CardDescription>
+              <CardDescription>Monthly revenue from {format(dateRange.from, "MMM yyyy")} to {format(dateRange.to, "MMM yyyy")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -687,7 +692,7 @@ const Analytics = () => {
                         outerRadius={100}
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) => (percent > 0.1 ? `${(percent * 100).toFixed(0)}%` : "")}
                         labelLine={false}
                       >
                         {bookingStatusData.map((_, index) => (
