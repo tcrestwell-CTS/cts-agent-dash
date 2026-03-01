@@ -953,6 +953,163 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "notify-payment-method") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { tripId, paymentId, method } = await req.json();
+      if (!tripId || !method) {
+        return new Response(JSON.stringify({ error: "tripId and method required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify client access
+      const allClientIds = await getAllClientIds();
+      const { data: tripCheck } = await supabase
+        .from("trips")
+        .select("id, client_id, user_id, trip_name")
+        .eq("id", tripId)
+        .single();
+
+      if (!tripCheck || !allClientIds.includes(tripCheck.client_id)) {
+        return new Response(JSON.stringify({ error: "Trip not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: clientData } = await supabase
+        .from("clients")
+        .select("name, email")
+        .eq("id", clientId)
+        .single();
+
+      const clientName = clientData?.name || "Client";
+      const tripName = tripCheck.trip_name || "a trip";
+
+      // Get payment amount if paymentId provided
+      let paymentAmount = 0;
+      if (paymentId) {
+        const { data: paymentData } = await supabase
+          .from("trip_payments")
+          .select("amount")
+          .eq("id", paymentId)
+          .single();
+        paymentAmount = paymentData?.amount || 0;
+      }
+
+      const methodLabels: Record<string, string> = {
+        stripe: "Pay with Card (Stripe)",
+        affirm: "Pay with Affirm",
+        cc_to_agent: "Send Card Info to Agent",
+      };
+      const methodLabel = methodLabels[method] || method;
+      const amountStr = paymentAmount > 0 ? ` ($${Number(paymentAmount).toLocaleString()})` : "";
+
+      // 1. Dashboard notification
+      await supabase.from("agent_notifications").insert({
+        user_id: tripCheck.user_id,
+        type: "payment_method_selected",
+        title: "Payment Method Selected",
+        message: `${clientName} chose "${methodLabel}"${amountStr} for ${tripName}.`,
+        trip_id: tripId,
+      });
+
+      // 2. Portal message
+      await supabase.from("portal_messages").insert({
+        client_id: clientId,
+        agent_user_id: tripCheck.user_id,
+        sender_type: "client",
+        message: `💳 ${clientName} selected "${methodLabel}"${amountStr} for ${tripName}.`,
+      });
+
+      // 3. If CC-to-agent, create a workflow task
+      if (method === "cc_to_agent") {
+        await supabase.from("workflow_tasks").insert({
+          trip_id: tripId,
+          user_id: tripCheck.user_id,
+          title: `Send CC Authorization to ${clientName}`,
+          description: `${clientName} wants to submit their card info for ${tripName}${amountStr}. Create and send a CC authorization form.`,
+          task_type: "cc_authorization_request",
+          status: "pending",
+        } as any);
+      }
+
+      // 4. Email notification to agent
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (RESEND_API_KEY) {
+          const resend = new Resend(RESEND_API_KEY);
+          const { data: agentUser } = await supabase.auth.admin.getUserById(tripCheck.user_id);
+          const agentEmail = agentUser?.user?.email;
+
+          const { data: branding } = await supabase
+            .from("branding_settings")
+            .select("agency_name, primary_color, logo_url, from_email, from_name")
+            .eq("user_id", tripCheck.user_id)
+            .maybeSingle();
+
+          const agencyName = branding?.agency_name || "Crestwell Travel Services";
+          const primaryColor = branding?.primary_color || "#0D7377";
+          const logoUrl = branding?.logo_url || "";
+          const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
+          const fromName = branding?.from_name || agencyName;
+
+          let portalBaseUrl = Deno.env.get("PORTAL_BASE_URL") || "https://app.crestwelltravels.com";
+          if (!/^https?:\/\//i.test(portalBaseUrl)) portalBaseUrl = `https://${portalBaseUrl}`;
+          const dashboardUrl = portalBaseUrl.replace(/\/client.*$/, "").replace(/\/+$/, "");
+
+          const logoHtml = logoUrl
+            ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
+            : "";
+
+          const ccNote = method === "cc_to_agent"
+            ? `<p style="color: #374151; font-size: 16px; line-height: 1.6; margin-top: 16px;">
+                 <strong>Action Required:</strong> ${clientName} is waiting for you to send a secure CC authorization form. A workflow task has been created for you.
+               </p>`
+            : "";
+
+          if (agentEmail) {
+            const html = `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  ${logoHtml}
+                </div>
+                <h2 style="color: ${primaryColor}; margin-bottom: 8px;">💳 Payment Method Selected</h2>
+                <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                  <strong>${clientName}</strong> has selected <strong>${methodLabel}</strong>${amountStr} for <strong>${tripName}</strong>.
+                </p>
+                ${ccNote}
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${dashboardUrl}/trips/${tripId}" style="background-color: ${primaryColor}; color: #ffffff; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                    View Trip Details
+                  </a>
+                </div>
+                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+                  <p style="margin: 0;">${agencyName}</p>
+                </div>
+              </div>
+            `;
+
+            await resend.emails.send({
+              from: `${fromName} <${fromEmail}>`,
+              to: [agentEmail],
+              subject: `💳 ${clientName} chose "${methodLabel}" — ${tripName}`,
+              html,
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error("Failed to send payment method email:", emailErr);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

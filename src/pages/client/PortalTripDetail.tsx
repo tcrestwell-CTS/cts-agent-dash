@@ -62,6 +62,28 @@ export default function PortalTripDetail() {
     setShowAgreement(true);
   };
 
+  const notifyAgentPaymentMethod = useCallback(async (method: string) => {
+    try {
+      const portalSession = localStorage.getItem("portal_session");
+      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=notify-payment-method`, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-portal-token": portalToken || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tripId,
+          paymentId: selectedPayment?.id,
+          method,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to notify agent of payment method:", err);
+    }
+  }, [tripId, selectedPayment]);
+
   const handleAgreementAccepted = () => {
     setShowAgreement(false);
     setTimeout(() => setShowMethodDialog(true), 150);
@@ -70,28 +92,29 @@ export default function PortalTripDetail() {
   const handleStripePayment = async () => {
     if (!selectedPayment) return;
     setPayingId(selectedPayment.id);
-    setShowMethodDialog(false);
-    try {
-      const portalSession = localStorage.getItem("portal_session");
-      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
-        method: "POST",
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "x-portal-token": portalToken || "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin, paymentMethodChoice: "stripe" }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed");
-      if (result.url) window.location.href = result.url;
-    } catch (error) {
-      console.error("Payment error:", error);
-      toast.error("Failed to start payment");
-    } finally {
-      setPayingId(null);
-    }
+      setShowMethodDialog(false);
+      notifyAgentPaymentMethod("stripe");
+      try {
+        const portalSession = localStorage.getItem("portal_session");
+        const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
+          method: "POST",
+          headers: {
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "x-portal-token": portalToken || "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin, paymentMethodChoice: "stripe" }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Failed");
+        if (result.url) window.location.href = result.url;
+      } catch (error) {
+        console.error("Payment error:", error);
+        toast.error("Failed to start payment");
+      } finally {
+        setPayingId(null);
+      }
   };
 
   const handleAffirmPayment = async () => {
@@ -102,6 +125,7 @@ export default function PortalTripDetail() {
     }
     setAffirmLoading(true);
     setShowMethodDialog(false);
+    notifyAgentPaymentMethod("affirm");
     const affirm = (window as any).affirm;
     const checkoutData = {
       merchant: { name: "Crestwell Travel Services", use_vcn: true },
@@ -784,14 +808,13 @@ export default function PortalTripDetail() {
               <button
                 onClick={() => {
                   setShowMethodDialog(false);
+                  notifyAgentPaymentMethod("cc_to_agent");
                   // Find if there's a pending CC auth for this trip's bookings
                   const pendingAuth = ccData?.authorizations?.find((a: any) => a.status === "pending");
                   if (pendingAuth) {
                     window.location.href = `/authorize/${pendingAuth.access_token}`;
                   } else {
                     toast.info("Your advisor will send you a secure card authorization form shortly. Please check back soon.");
-                    // Send message to agent requesting CC auth
-                    handleChangeRequest(`I'd like to submit my credit card information for payment of ${selectedPayment ? `$${Number(selectedPayment.amount).toLocaleString()}` : "this trip"}.`);
                   }
                 }}
                 className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
