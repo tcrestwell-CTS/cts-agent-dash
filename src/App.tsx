@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,42 +10,53 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
-import Index from "./pages/Index";
-import CRM from "./pages/CRM";
-import ClientDetail from "./pages/ClientDetail";
-import Bookings from "./pages/Bookings";
-import BookingDetail from "./pages/BookingDetail";
-import Training from "./pages/Training";
-import Commissions from "./pages/Commissions";
-import CommissionReport from "./pages/CommissionReport";
-import Analytics from "./pages/Analytics";
-import Branding from "./pages/Branding";
-import Settings from "./pages/Settings";
-import TeamManagement from "./pages/TeamManagement";
-import Suppliers from "./pages/Suppliers";
-import SupplierDocs from "./pages/SupplierDocs";
-import Trips from "./pages/Trips";
-import TripDetail from "./pages/TripDetail";
-import ItineraryBuilder from "./pages/ItineraryBuilder";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
-import SharedTrip from "./pages/SharedTrip";
-import CCAuthorize from "./pages/CCAuthorize";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import QBOHealth from "./pages/QBOHealth";
-import RiskCompliance from "./pages/RiskCompliance";
-import MonthlyReconciliation from "./pages/MonthlyReconciliation";
 import { ScrollToTop } from "./components/ScrollToTop";
-import PortalLogin from "./pages/client/PortalLogin";
-import PortalDashboard from "./pages/client/PortalDashboard";
-import PortalTrips from "./pages/client/PortalTrips";
-import PortalTripDetail from "./pages/client/PortalTripDetail";
-import PortalMessages from "./pages/client/PortalMessages";
-import PortalInvoices from "./pages/client/PortalInvoices";
-import PortalInvoiceDetail from "./pages/client/PortalInvoiceDetail";
-import PortalPayments from "./pages/client/PortalPayments";
 
-const queryClient = new QueryClient();
+// Lazy-loaded pages
+const Index = lazy(() => import("./pages/Index"));
+const CRM = lazy(() => import("./pages/CRM"));
+const ClientDetail = lazy(() => import("./pages/ClientDetail"));
+const Bookings = lazy(() => import("./pages/Bookings"));
+const BookingDetail = lazy(() => import("./pages/BookingDetail"));
+const Training = lazy(() => import("./pages/Training"));
+const Commissions = lazy(() => import("./pages/Commissions"));
+const CommissionReport = lazy(() => import("./pages/CommissionReport"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Branding = lazy(() => import("./pages/Branding"));
+const Settings = lazy(() => import("./pages/Settings"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+const Suppliers = lazy(() => import("./pages/Suppliers"));
+const SupplierDocs = lazy(() => import("./pages/SupplierDocs"));
+const Trips = lazy(() => import("./pages/Trips"));
+const TripDetail = lazy(() => import("./pages/TripDetail"));
+const ItineraryBuilder = lazy(() => import("./pages/ItineraryBuilder"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const SharedTrip = lazy(() => import("./pages/SharedTrip"));
+const CCAuthorize = lazy(() => import("./pages/CCAuthorize"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const QBOHealth = lazy(() => import("./pages/QBOHealth"));
+const RiskCompliance = lazy(() => import("./pages/RiskCompliance"));
+const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
+const PortalLogin = lazy(() => import("./pages/client/PortalLogin"));
+const PortalDashboard = lazy(() => import("./pages/client/PortalDashboard"));
+const PortalTrips = lazy(() => import("./pages/client/PortalTrips"));
+const PortalTripDetail = lazy(() => import("./pages/client/PortalTripDetail"));
+const PortalMessages = lazy(() => import("./pages/client/PortalMessages"));
+const PortalInvoices = lazy(() => import("./pages/client/PortalInvoices"));
+const PortalInvoiceDetail = lazy(() => import("./pages/client/PortalInvoiceDetail"));
+const PortalPayments = lazy(() => import("./pages/client/PortalPayments"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -55,6 +67,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse flex flex-col items-center gap-4"><div className="h-12 w-12 rounded-xl bg-primary/20" /><div className="h-4 w-32 rounded bg-muted" /></div></div>}>
             <Routes>
               {/* Agent Dashboard Routes */}
               <Route path="/auth" element={<Auth />} />
@@ -97,6 +110,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </PortalAuthProvider>
       </AuthProvider>
