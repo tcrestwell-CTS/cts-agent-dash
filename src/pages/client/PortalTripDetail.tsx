@@ -125,6 +125,7 @@ export default function PortalTripDetail() {
     }
     setAffirmLoading(true);
     setShowMethodDialog(false);
+    notifyAgentPaymentMethod("affirm");
     const affirm = (window as any).affirm;
     const checkoutData = {
       merchant: { name: "Crestwell Travel Services", use_vcn: true },
