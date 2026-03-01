@@ -86,5 +86,6 @@ export default function Notifications() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
