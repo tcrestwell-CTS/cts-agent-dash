@@ -1,88 +1,77 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePortalDashboard } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgencyCertifications } from "@/components/shared/AgencyCertifications";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Map, CreditCard, MessageSquare, User, Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Map, CreditCard, MessageSquare, User, Loader2, WifiOff } from "lucide-react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useEffect } from "react";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
-import { supabase } from "@/integrations/supabase/client";
-
-interface PortalTrip {
-  id: string;
-  trip_name: string;
-  destination: string | null;
-  depart_date: string | null;
-  return_date: string | null;
-  cover_image_url: string | null;
-  status: string;
-}
-
-interface PortalPayment {
-  id: string;
-  amount: number;
-  payment_type: string;
-  due_date: string | null;
-  status: string;
-}
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+import { PWAInstallPrompt } from "@/components/client/PWAInstallPrompt";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function PortalDashboard() {
-  const { data, isLoading, isError, refetch } = usePortalDashboard();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { data, isLoading, refetch } = usePortalDashboard();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [payingId, setPayingId] = useState<string | null>(null);
+  const isOnline = useOnlineStatus();
 
+  // Handle Stripe payment return — show toast once, then clean URL so it
+  // doesn't re-fire if the user refreshes the page.
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
+    if (!paymentStatus) return;
+
     if (paymentStatus === "success") {
       toast.success("Payment completed successfully!");
       const sessionId = searchParams.get("session_id");
       if (sessionId) {
-        supabase.functions.invoke("verify-stripe-payment", {
-          body: { sessionId },
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-stripe-payment`, {
+          method: "POST",
+          headers: {
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId }),
         }).then(() => refetch());
       } else {
         refetch();
       }
-      // Clear payment params to prevent re-triggering on refresh
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("payment");
-      newParams.delete("session_id");
-      setSearchParams(newParams, { replace: true });
     } else if (paymentStatus === "cancelled") {
       toast.info("Payment was cancelled");
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("payment");
-      setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams, refetch, setSearchParams]);
+
+    // Clear ?payment=&session_id= from the URL so toast doesn't re-fire on refresh
+    navigate("/client", { replace: true });
+  }, []); // intentionally empty — run once on mount only
 
   const handlePayNow = async (paymentId: string) => {
     setPayingId(paymentId);
     try {
-      let portalToken: string | null = null;
-      try {
-        const raw = localStorage.getItem("portal_session");
-        if (raw) portalToken = JSON.parse(raw).token;
-      } catch {
-        portalToken = null;
-      }
+      const portalSession = localStorage.getItem("portal_session");
+      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
 
-      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
-        body: { paymentId, returnUrl: window.location.origin },
-        headers: { "x-portal-token": portalToken || "" },
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-portal-token": portalToken || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          paymentId,
+          returnUrl: window.location.origin + "/client",
+        }),
       });
 
-      if (error) throw new Error(error.message || "Failed to create payment");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create payment");
 
-      if (data?.url) {
+      if (data.url) {
         window.location.href = data.url;
       }
     } catch (error) {
@@ -104,30 +93,23 @@ export default function PortalDashboard() {
     );
   }
 
-  if (isError || (!isLoading && !data)) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 space-y-4">
-        <AlertCircle className="h-12 w-12 text-destructive" />
-        <h2 className="text-xl font-semibold text-foreground">Something went wrong</h2>
-        <p className="text-muted-foreground text-center max-w-md">
-          We couldn't load your dashboard. Please check your connection and try again.
-        </p>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
   const client = data?.client;
-  const trips: PortalTrip[] = data?.trips || [];
-  const payments: PortalPayment[] = data?.upcoming_payments || [];
+  const trips = data?.trips || [];
+  const payments = data?.upcoming_payments || [];
   const agent = data?.agent;
   const unreadMessages = data?.unread_messages || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-safe-bottom">
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          You're offline. Some information may be out of date.
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-foreground">
           Welcome back, {client?.first_name || client?.name || "Traveler"}
@@ -164,8 +146,8 @@ export default function PortalDashboard() {
         <Link to="/client/messages">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="pt-6 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-info" />
+              <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{unreadMessages}</p>
@@ -175,6 +157,9 @@ export default function PortalDashboard() {
           </Card>
         </Link>
       </div>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
 
       {/* Upcoming Trips */}
       <Card>
@@ -186,7 +171,7 @@ export default function PortalDashboard() {
             <p className="text-sm text-muted-foreground">No active trips yet.</p>
           ) : (
             <div className="space-y-3">
-              {trips.slice(0, 5).map((trip: PortalTrip) => (
+              {trips.slice(0, 5).map((trip: any) => (
                 <Link
                   key={trip.id}
                   to={`/client/trips/${trip.id}`}
@@ -218,11 +203,6 @@ export default function PortalDashboard() {
                   </div>
                 </Link>
               ))}
-              {trips.length > 5 && (
-                <Link to="/client/trips" className="text-sm text-primary hover:underline mt-2 block">
-                  View all {trips.length} trips →
-                </Link>
-              )}
             </div>
           )}
         </CardContent>
@@ -268,11 +248,11 @@ export default function PortalDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {payments.map((p: PortalPayment) => (
+              {payments.map((p: any) => (
                 <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <p className="font-medium">
-                      {p.payment_type === "final_balance" ? "Final Balance" : 
+                      {p.payment_type === "final_balance" ? "Final Balance" :
                        p.payment_type.charAt(0).toUpperCase() + p.payment_type.slice(1)}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -280,7 +260,7 @@ export default function PortalDashboard() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className="font-semibold">{formatCurrency(p.amount)}</p>
+                    <p className="font-semibold">${p.amount.toLocaleString()}</p>
                     <Button
                       size="sm"
                       onClick={() => handlePayNow(p.id)}
