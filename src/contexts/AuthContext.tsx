@@ -21,38 +21,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    let cancelled = false;
-
-    const timeout = setTimeout(() => {
-      setLoading((prev) => (prev ? false : prev));
-    }, 8000);
-
-    // Fallback session bootstrap in case auth events are delayed/missed
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      if (cancelled) return;
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-    });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        if (cancelled) return;
-
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
 
         if (event === "SIGNED_OUT") {
-          // Clear all cached data to prevent data leaks between user sessions
           queryClient.clear();
         }
       }
     );
 
     return () => {
-      cancelled = true;
-      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [queryClient]);
