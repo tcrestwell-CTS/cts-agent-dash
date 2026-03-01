@@ -675,6 +675,47 @@ export default function PortalTripDetail() {
             <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
           ) : (
             <div className="space-y-3">
+              {/* Pay Full Amount option when there are multiple pending payments */}
+              {(() => {
+                const pendingPayments = payments.filter((p: any) => p.status === "pending");
+                const totalPending = pendingPayments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+                if (pendingPayments.length > 1) {
+                  return (
+                    <div className="flex items-center justify-between p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-sm flex items-center gap-2">
+                          <Wallet className="h-4 w-4" /> Pay Full Amount
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Pay all remaining balance at once instead of installments
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-bold">${totalPending.toLocaleString()}</p>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            // Create a virtual "full payment" object
+                            const fullPayment = {
+                              id: pendingPayments[0].id,
+                              amount: totalPending,
+                              payment_type: "full_payment",
+                              status: "pending",
+                              trip_name: trip.trip_name,
+                            };
+                            handlePayNowClick(fullPayment);
+                          }}
+                          disabled={!!payingId || affirmLoading}
+                        >
+                          <CreditCard className="h-4 w-4 mr-1" /> Pay Now
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {payments.map((p: any) => {
                 const isPending = p.status === "pending";
                 const isPaid = p.status === "paid";
@@ -691,6 +732,7 @@ export default function PortalTripDetail() {
                   : "bg-red-100 text-red-700 border-red-200";
 
                 const typeLabel = p.payment_type === "final_balance" ? "Final Balance" :
+                  p.payment_type === "full_payment" ? "Full Payment" :
                   p.payment_type.charAt(0).toUpperCase() + p.payment_type.slice(1);
 
                 return (

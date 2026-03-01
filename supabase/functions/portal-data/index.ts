@@ -326,9 +326,12 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (!hasPendingOrPaid) {
           const tripTotal = Number(tripRes.data.total_gross_sales || 0);
-          const depositAmount = Number(tripRes.data.deposit_amount || 0);
-          const isDepositRequired = Boolean(tripRes.data.deposit_required) && depositAmount > 0;
-          const paymentAmount = isDepositRequired ? depositAmount : tripTotal;
+          const autoDeposit = Math.round(tripTotal * 0.25 * 100) / 100;
+          const isDepositRequired = Boolean(tripRes.data.deposit_required);
+          const depositAmount = isDepositRequired
+            ? (tripRes.data.deposit_override ? Number(tripRes.data.deposit_amount || 0) : autoDeposit)
+            : 0;
+          const paymentAmount = isDepositRequired && depositAmount > 0 ? depositAmount : tripTotal;
 
           if (paymentAmount > 0) {
             const { data: insertedPayment, error: insertPaymentError } = await supabase
@@ -337,9 +340,9 @@ const handler = async (req: Request): Promise<Response> => {
                 trip_id: tripId,
                 user_id: tripRes.data.user_id,
                 amount: paymentAmount,
-                payment_type: isDepositRequired ? "deposit" : "payment",
+                payment_type: isDepositRequired && depositAmount > 0 ? "deposit" : "payment",
                 status: "pending",
-                details: isDepositRequired
+                details: isDepositRequired && depositAmount > 0
                   ? "Deposit for approved itinerary"
                   : "Payment for approved itinerary",
               })
