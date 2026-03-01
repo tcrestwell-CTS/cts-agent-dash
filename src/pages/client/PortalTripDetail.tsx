@@ -778,6 +778,33 @@ export default function PortalTripDetail() {
                 <p className="text-sm text-muted-foreground mt-0.5">Finance your trip with flexible monthly payments.</p>
               </div>
             </button>
+
+            {/* CC Authorization — send card info to agent */}
+            {tripId && (
+              <button
+                onClick={() => {
+                  setShowMethodDialog(false);
+                  // Find if there's a pending CC auth for this trip's bookings
+                  const pendingAuth = ccData?.authorizations?.find((a: any) => a.status === "pending");
+                  if (pendingAuth) {
+                    window.location.href = `/authorize/${pendingAuth.access_token}`;
+                  } else {
+                    toast.info("Your advisor will send you a secure card authorization form shortly. Please check back soon.");
+                    // Send message to agent requesting CC auth
+                    handleChangeRequest(`I'd like to submit my credit card information for payment of ${selectedPayment ? `$${Number(selectedPayment.amount).toLocaleString()}` : "this trip"}.`);
+                  }
+                }}
+                className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
+              >
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">Send Card Info to Agent</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">Securely authorize your credit card and let your advisor process the payment.</p>
+                </div>
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

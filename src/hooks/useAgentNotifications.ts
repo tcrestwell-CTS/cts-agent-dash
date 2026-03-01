@@ -28,7 +28,7 @@ export function useAgentNotifications() {
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
       if (error) throw error;
       return (data || []) as AgentNotification[];
     },

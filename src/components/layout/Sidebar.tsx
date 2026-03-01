@@ -271,38 +271,58 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
                   No notifications yet
                 </div>
               ) : (
-                notifications.slice(0, 10).map((n) => (
-                  <div
-                    key={n.id}
-                    className={cn(
-                      "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors text-sm",
-                      n.is_read ? "bg-popover" : "bg-primary/5"
-                    )}
-                    onClick={() => {
-                      if (!n.is_read) markAsRead.mutate(n.id);
-                      if (n.trip_id) {
-                        navigate(`/trips/${n.trip_id}`);
-                        setNotifOpen(false);
-                        if (isMobile) setMobileOpen(false);
-                      }
-                    }}
-                  >
-                    <div className="flex items-start gap-2">
-                      <CreditCard className={cn("h-4 w-4 mt-0.5 shrink-0", n.is_read ? "text-muted-foreground" : "text-primary")} />
-                      <div className="flex-1 min-w-0">
-                        <p className={cn("font-medium truncate", n.is_read ? "text-muted-foreground" : "text-foreground")}>
-                          {n.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">
-                          {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                        </p>
+                notifications.slice(0, 10).map((n) => {
+                  const NotifIcon = n.type === "itinerary_approved" ? CheckCircle2
+                    : n.type === "payment_reminder" ? Bell
+                    : n.type === "option_selected" ? ExternalLink
+                    : CreditCard;
+                  return (
+                    <div
+                      key={n.id}
+                      className={cn(
+                        "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors text-sm",
+                        n.is_read ? "bg-popover" : "bg-primary/5"
+                      )}
+                      onClick={() => {
+                        if (!n.is_read) markAsRead.mutate(n.id);
+                        if (n.trip_id) {
+                          navigate(`/trips/${n.trip_id}`);
+                          setNotifOpen(false);
+                          if (isMobile) setMobileOpen(false);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <NotifIcon className={cn("h-4 w-4 mt-0.5 shrink-0", n.is_read ? "text-muted-foreground" : "text-primary")} />
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("font-medium truncate", n.is_read ? "text-muted-foreground" : "text-foreground")}>
+                            {n.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                          <p className="text-xs text-muted-foreground/60 mt-1">
+                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
+            {notifications.length > 0 && (
+              <div className="border-t border-border px-4 py-2">
+                <button
+                  onClick={() => {
+                    setNotifOpen(false);
+                    if (isMobile) setMobileOpen(false);
+                    navigate("/notifications");
+                  }}
+                  className="w-full text-center text-xs font-medium text-primary hover:underline py-1"
+                >
+                  View All Notifications
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
