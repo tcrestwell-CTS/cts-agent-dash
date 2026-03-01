@@ -707,10 +707,10 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
 
-        // Get client's agent
+        // Get client's agent and name
         const { data: client } = await supabase
           .from("clients")
-          .select("user_id")
+          .select("user_id, name")
           .eq("id", clientId)
           .single();
 
@@ -734,6 +734,44 @@ const handler = async (req: Request): Promise<Response> => {
         if (error) {
           console.error("Message insert error:", error);
           throw error;
+        }
+
+        // Dashboard notification for agent
+        const truncatedMsg = message.trim().length > 100 ? message.trim().slice(0, 100) + "…" : message.trim();
+        await supabase.from("agent_notifications").insert({
+          user_id: client.user_id,
+          type: "client_message",
+          title: `New Message from ${client.name}`,
+          message: truncatedMsg,
+        });
+
+        // Email notification to agent
+        try {
+          const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+          if (RESEND_API_KEY) {
+            const resend = new Resend(RESEND_API_KEY);
+            const { data: agentUser } = await supabase.auth.admin.getUserById(client.user_id);
+            const agentEmail = agentUser?.user?.email;
+            if (agentEmail) {
+              await resend.emails.send({
+                from: "Crestwell Travel <notify@notify.crestwellgetaways.com>",
+                to: [agentEmail],
+                subject: `New Portal Message from ${client.name}`,
+                html: `
+                  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#1a1a2e;">New Client Message</h2>
+                    <p><strong>${client.name}</strong> sent you a message via the client portal:</p>
+                    <div style="background:#f4f4f5;border-radius:8px;padding:16px;margin:16px 0;">
+                      <p style="margin:0;white-space:pre-wrap;">${message.trim()}</p>
+                    </div>
+                    <p style="color:#6b7280;font-size:14px;">Log in to your dashboard to reply.</p>
+                  </div>
+                `,
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error("Client message email notification failed:", emailErr);
         }
 
         return new Response(JSON.stringify({ message: newMsg }), {
