@@ -52,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-  }, []);
+    queryClient.clear();
+    window.location.href = "/auth";
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
