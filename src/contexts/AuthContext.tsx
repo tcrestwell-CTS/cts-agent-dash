@@ -49,11 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    queryClient.clear();
-    window.location.href = "/auth";
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out error:", err);
+    } finally {
+      setUser(null);
+      setSession(null);
+      queryClient.clear();
+      window.location.href = "/auth";
+    }
   }, [queryClient]);
 
   return (
