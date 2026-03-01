@@ -343,14 +343,16 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // Verify client owns the trip
+      // Verify client owns the trip (check all sibling client IDs)
+      const allClientIds = await getAllClientIds();
+
       const { data: tripCheck } = await supabase
         .from("trips")
         .select("id, client_id, user_id")
         .eq("id", tripId)
         .single();
 
-      if (!tripCheck || tripCheck.client_id !== clientId) {
+      if (!tripCheck || !allClientIds.includes(tripCheck.client_id)) {
         return new Response(JSON.stringify({ error: "Trip not found" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
