@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp } from "lucide-react";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useCanViewTeam } from "@/hooks/useAdmin";
@@ -126,7 +126,7 @@ const TeamManagement = () => {
         </div>
       </div>
 
-      {/* Tabs for Profiles and Invitations */}
+      {/* Tabs for Profiles, Invitations, and Sessions */}
       <Tabs defaultValue="profiles" className="space-y-6">
         <TabsList>
           <TabsTrigger value="profiles" className="gap-2">
@@ -136,6 +136,10 @@ const TeamManagement = () => {
           <TabsTrigger value="invitations" className="gap-2">
             <Users className="h-4 w-4" />
             Invitations
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="gap-2">
+            <Monitor className="h-4 w-4" />
+            Active Sessions
           </TabsTrigger>
         </TabsList>
 
