@@ -21,10 +21,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Rely solely on onAuthStateChange — INITIAL_SESSION handles existing sessions,
-    // making a separate getSession() call redundant and avoiding race conditions.
+    let cancelled = false;
+
+    const timeout = setTimeout(() => {
+      setLoading((prev) => (prev ? false : prev));
+    }, 8000);
+
+    // Fallback session bootstrap in case auth events are delayed/missed
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (cancelled) return;
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        if (cancelled) return;
+
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
@@ -36,7 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [queryClient]);
 
   const signIn = useCallback(async (email: string, password: string) => {
