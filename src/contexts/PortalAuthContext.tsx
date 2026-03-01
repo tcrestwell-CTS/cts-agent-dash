@@ -63,50 +63,62 @@ export function PortalAuthProvider({ children }: { children: React.ReactNode }) 
     let cancelled = false;
 
     async function init() {
-      // 1. Check for Supabase Auth session first
-      const { data: { session: supaSession } } = await supabase.auth.getSession();
-      if (supaSession?.user && !cancelled) {
-        const linked = await linkAuthUserToClient(supaSession.user);
-        if (linked) {
-          setSession({
-            clientId: linked.clientId,
-            clientName: linked.clientName,
-            authUser: supaSession.user,
-          });
-          // Clear any legacy token
-          localStorage.removeItem("portal_session");
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 2. Fall back to legacy portal token
-      const stored = localStorage.getItem("portal_session");
-      if (stored && !cancelled) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+      try {
+        // 1. Check for Supabase Auth session first
+        const { data: { session: supaSession } } = await supabase.auth.getSession();
+        if (supaSession?.user && !cancelled) {
+          const linked = await linkAuthUserToClient(supaSession.user);
+          if (linked) {
+            setSession({
+              clientId: linked.clientId,
+              clientName: linked.clientName,
+              authUser: supaSession.user,
+            });
+            // Clear any legacy token
             localStorage.removeItem("portal_session");
-            setLoading(false);
+            if (!cancelled) setLoading(false);
             return;
           }
-          const { success } = await verifyLegacyToken(parsed.token);
-          if (success) {
-            setSession({
-              clientId: parsed.clientId,
-              clientName: parsed.clientName,
-              token: parsed.token,
-            });
-          } else {
+        }
+
+        // 2. Fall back to legacy portal token
+        const stored = localStorage.getItem("portal_session");
+        if (stored && !cancelled) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+              localStorage.removeItem("portal_session");
+              if (!cancelled) setLoading(false);
+              return;
+            }
+            const { success } = await verifyLegacyToken(parsed.token);
+            if (success) {
+              setSession({
+                clientId: parsed.clientId,
+                clientName: parsed.clientName,
+                token: parsed.token,
+              });
+            } else {
+              localStorage.removeItem("portal_session");
+            }
+          } catch {
             localStorage.removeItem("portal_session");
           }
-        } catch {
-          localStorage.removeItem("portal_session");
         }
+      } catch (err) {
+        console.error("Portal auth init error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      if (!cancelled) setLoading(false);
     }
+
+    // Safety timeout — never stay loading forever
+    const timeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) console.warn("Portal auth: loading timed out, forcing completion");
+        return false;
+      });
+    }, 8000);
 
     init();
 
