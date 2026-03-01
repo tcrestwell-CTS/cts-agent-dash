@@ -1260,7 +1260,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("Failed to send payment method email:", emailErr);
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, ccAccessToken }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
