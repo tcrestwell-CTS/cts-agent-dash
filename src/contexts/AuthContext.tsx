@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
@@ -15,6 +16,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const signingOutRef = useRef(false);
 
   useEffect(() => {
     // FIX: Previously this called BOTH onAuthStateChange AND getSession(),
@@ -24,9 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // onAuthStateChange fires immediately with the current session on mount,
     // so getSession() is completely redundant and was removed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (_event, nextSession) => {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
         setLoading(false);
       }
     );
@@ -35,10 +38,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    if (signingOutRef.current) return;
+    signingOutRef.current = true;
+
+    const currentUserId = user?.id;
+
+    // Optimistically clear local app state first to prevent sticky UI/auth loops
     setUser(null);
     setSession(null);
-  }, []);
+
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+
+      if (currentUserId) {
+        await supabase.from("active_sessions").delete().eq("user_id", currentUserId);
+      }
+
+      queryClient.clear();
+
+      // Purge lingering auth tokens from browser storage
+      const clearAuthKeys = (storage: Storage) => {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (!key) continue;
+          if (key.includes("supabase.auth.token") || key.startsWith("sb-")) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => storage.removeItem(key));
+      };
+
+      clearAuthKeys(localStorage);
+      clearAuthKeys(sessionStorage);
+    } catch (error) {
+      console.error("Sign out failed, forcing local cleanup:", error);
+      queryClient.clear();
+    } finally {
+      signingOutRef.current = false;
+      if (window.location.pathname !== "/auth") {
+        window.location.replace("/auth");
+      }
+    }
+  }, [queryClient, user?.id]);
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signOut }}>
