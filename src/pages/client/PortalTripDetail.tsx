@@ -808,14 +808,13 @@ export default function PortalTripDetail() {
               <button
                 onClick={() => {
                   setShowMethodDialog(false);
+                  notifyAgentPaymentMethod("cc_to_agent");
                   // Find if there's a pending CC auth for this trip's bookings
                   const pendingAuth = ccData?.authorizations?.find((a: any) => a.status === "pending");
                   if (pendingAuth) {
                     window.location.href = `/authorize/${pendingAuth.access_token}`;
                   } else {
                     toast.info("Your advisor will send you a secure card authorization form shortly. Please check back soon.");
-                    // Send message to agent requesting CC auth
-                    handleChangeRequest(`I'd like to submit my credit card information for payment of ${selectedPayment ? `$${Number(selectedPayment.amount).toLocaleString()}` : "this trip"}.`);
                   }
                 }}
                 className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
