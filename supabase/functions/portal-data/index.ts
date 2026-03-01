@@ -318,10 +318,47 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
+      let payments = paymentsRes.data || [];
+
+      // Backfill pending payment for already-approved trips created before auto-payment rollout
+      if (tripRes.data.approved_itinerary_id) {
+        const hasPendingOrPaid = payments.some((p: any) => ["pending", "paid"].includes(p.status));
+
+        if (!hasPendingOrPaid) {
+          const tripTotal = Number(tripRes.data.total_gross_sales || 0);
+          const depositAmount = Number(tripRes.data.deposit_amount || 0);
+          const isDepositRequired = Boolean(tripRes.data.deposit_required) && depositAmount > 0;
+          const paymentAmount = isDepositRequired ? depositAmount : tripTotal;
+
+          if (paymentAmount > 0) {
+            const { data: insertedPayment, error: insertPaymentError } = await supabase
+              .from("trip_payments")
+              .insert({
+                trip_id: tripId,
+                user_id: tripRes.data.user_id,
+                amount: paymentAmount,
+                payment_type: isDepositRequired ? "deposit" : "payment",
+                status: "pending",
+                details: isDepositRequired
+                  ? "Deposit for approved itinerary"
+                  : "Payment for approved itinerary",
+              })
+              .select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url")
+              .single();
+
+            if (insertPaymentError) {
+              console.error("Failed to auto-create backfill payment in trip-detail:", insertPaymentError);
+            } else if (insertedPayment) {
+              payments = [insertedPayment, ...payments];
+            }
+          }
+        }
+      }
+
       return new Response(JSON.stringify({
         trip: tripRes.data,
         bookings: bookingsRes.data || [],
-        payments: paymentsRes.data || [],
+        payments,
         itinerary: itineraryRes.data || [],
         itineraries: itinerariesRes.data || [],
         optionBlocks: optionBlocksRes.data || [],
