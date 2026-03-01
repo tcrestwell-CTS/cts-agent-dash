@@ -2110,6 +2110,16 @@ export type Database = {
         Row: {
           allow_pdf_downloads: boolean
           approved_itinerary_id: string | null
+          budget_change_request_message: string | null
+          budget_change_requested: boolean | null
+          budget_change_requested_at: string | null
+          budget_change_requested_by_client_id: string | null
+          budget_confirmation_ip: string | null
+          budget_confirmation_signature: string | null
+          budget_confirmation_user_agent: string | null
+          budget_confirmed: boolean | null
+          budget_confirmed_at: string | null
+          budget_confirmed_by_client_id: string | null
           budget_range: string | null
           client_id: string | null
           cover_image_url: string | null
@@ -2151,6 +2161,16 @@ export type Database = {
         Insert: {
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
+          budget_change_request_message?: string | null
+          budget_change_requested?: boolean | null
+          budget_change_requested_at?: string | null
+          budget_change_requested_by_client_id?: string | null
+          budget_confirmation_ip?: string | null
+          budget_confirmation_signature?: string | null
+          budget_confirmation_user_agent?: string | null
+          budget_confirmed?: boolean | null
+          budget_confirmed_at?: string | null
+          budget_confirmed_by_client_id?: string | null
           budget_range?: string | null
           client_id?: string | null
           cover_image_url?: string | null
@@ -2192,6 +2212,16 @@ export type Database = {
         Update: {
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
+          budget_change_request_message?: string | null
+          budget_change_requested?: boolean | null
+          budget_change_requested_at?: string | null
+          budget_change_requested_by_client_id?: string | null
+          budget_confirmation_ip?: string | null
+          budget_confirmation_signature?: string | null
+          budget_confirmation_user_agent?: string | null
+          budget_confirmed?: boolean | null
+          budget_confirmed_at?: string | null
+          budget_confirmed_by_client_id?: string | null
           budget_range?: string | null
           client_id?: string | null
           cover_image_url?: string | null
@@ -2236,6 +2266,20 @@ export type Database = {
             columns: ["approved_itinerary_id"]
             isOneToOne: false
             referencedRelation: "itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_budget_change_requested_by_client_id_fkey"
+            columns: ["budget_change_requested_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_budget_confirmed_by_client_id_fkey"
+            columns: ["budget_confirmed_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
