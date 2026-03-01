@@ -387,6 +387,25 @@ export default function PortalPayments() {
                 </p>
               </div>
             </button>
+
+            {/* CC Authorization — send card info to agent */}
+            <button
+              onClick={() => {
+                setShowMethodDialog(false);
+                toast.info("Your advisor will send you a secure card authorization form shortly. Please check back soon or contact your agent.");
+              }}
+              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
+            >
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Send Card Info to Agent</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Securely authorize your credit card and let your advisor process the payment on your behalf.
+                </p>
+              </div>
+            </button>
           </div>
         </DialogContent>
       </Dialog>
