@@ -27,6 +27,7 @@ import { Navigate } from "react-router-dom";
 import { getTierConfig } from "@/lib/commissionTiers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ActiveSessionsWidget } from "@/components/admin/ActiveSessionsWidget";
 
 
 const TeamManagement = () => {
@@ -277,6 +278,10 @@ const TeamManagement = () => {
           </Table>
         )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="sessions">
+          <ActiveSessionsWidget />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
