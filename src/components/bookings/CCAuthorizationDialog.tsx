@@ -213,9 +213,21 @@ export function CCAuthorizationDialog({
 
                       <div className="flex gap-2">
                         {auth.status === "pending" && (
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => copyAuthLink(auth.access_token)}>
-                            <Copy className="h-3.5 w-3.5" /> Copy Link
-                          </Button>
+                          <>
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => copyAuthLink(auth.access_token)}>
+                              <Copy className="h-3.5 w-3.5" /> Copy Link
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => sendAuthLinkEmail(auth)}
+                              disabled={sendingEmail}
+                            >
+                              {sendingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                              Email to Client
+                            </Button>
+                          </>
                         )}
                         {auth.status === "authorized" && (
                           <Button
