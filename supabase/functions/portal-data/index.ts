@@ -348,7 +348,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: tripCheck } = await supabase
         .from("trips")
-        .select("id, client_id, user_id")
+        .select("id, client_id, user_id, total_gross_sales, deposit_required, deposit_amount")
         .eq("id", tripId)
         .single();
 
