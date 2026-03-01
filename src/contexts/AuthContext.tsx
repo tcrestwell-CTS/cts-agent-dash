@@ -21,10 +21,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Rely solely on onAuthStateChange — INITIAL_SESSION handles existing sessions,
-    // making a separate getSession() call redundant and avoiding race conditions.
+    let cancelled = false;
+
+    const timeout = setTimeout(() => {
+      setLoading((prev) => (prev ? false : prev));
+    }, 8000);
+
+    // Fallback session bootstrap in case auth events are delayed/missed
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (cancelled) return;
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        if (cancelled) return;
+
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
@@ -36,7 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [queryClient]);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -50,14 +68,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error("Sign out error:", err);
+      // Clear local session first so logout works even with stale/invalid sessions
+      await supabase.auth.signOut({ scope: "local" });
+      // Best-effort revoke across devices
+      void supabase.auth.signOut({ scope: "global" });
+    } catch {
+      // Ignore and continue with local cleanup/redirect
     } finally {
       setUser(null);
       setSession(null);
       queryClient.clear();
-      window.location.href = "/auth";
+
+      // Remove any persisted auth token keys left in storage
+      const clearAuthKeys = (storage: Storage) => {
+        for (let i = storage.length - 1; i >= 0; i--) {
+          const key = storage.key(i);
+          if (key?.startsWith("sb-") && key.endsWith("-auth-token")) {
+            storage.removeItem(key);
+          }
+        }
+      };
+      clearAuthKeys(localStorage);
+      clearAuthKeys(sessionStorage);
+
+      window.location.replace("/auth");
     }
   }, [queryClient]);
 
