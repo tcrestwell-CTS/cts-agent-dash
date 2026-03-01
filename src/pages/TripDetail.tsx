@@ -22,6 +22,9 @@ import {
   Map,
   Link2,
   Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
