@@ -105,13 +105,48 @@ export function CCAuthorizationDialog({
     toast.success(`${label} copied`);
   };
 
+  const PRODUCTION_DOMAIN = "https://agents.crestwelltravels.com";
+
   const getAuthLink = (token: string) => {
-    return `${window.location.origin}/authorize/${token}`;
+    return `${PRODUCTION_DOMAIN}/authorize/${token}`;
   };
 
   const copyAuthLink = (token: string) => {
     navigator.clipboard.writeText(getAuthLink(token));
     toast.success("Authorization link copied to clipboard");
+  };
+
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const sendAuthLinkEmail = async (auth: CCAuthorization) => {
+    setSendingEmail(true);
+    try {
+      const { error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("send-email", {
+        body: {
+          to: null, // will be looked up from client
+          clientId: clientId,
+          template: "custom",
+          subject: `Credit Card Authorization — ${bookingReference}`,
+          templateData: {
+            clientName: clientName,
+            customMessage: `
+              <p>Please complete your credit card authorization for booking <strong>${bookingReference}</strong> (${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(auth.authorization_amount)}).</p>
+              <p style="margin: 24px 0; text-align: center;">
+                <a href="${getAuthLink(auth.access_token)}" style="background-color: #0D7377; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Complete CC Authorization</a>
+              </p>
+              <p style="font-size: 13px; color: #6b7280;">This is a secure, encrypted form. Your card information is protected.</p>
+            `,
+          },
+        },
+      });
+      if (error) throw error;
+      toast.success("CC authorization link emailed to client");
+    } catch (err: any) {
+      console.error("Failed to send CC auth email:", err);
+      toast.error("Failed to send email");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   return (
@@ -178,9 +213,21 @@ export function CCAuthorizationDialog({
 
                       <div className="flex gap-2">
                         {auth.status === "pending" && (
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => copyAuthLink(auth.access_token)}>
-                            <Copy className="h-3.5 w-3.5" /> Copy Link
-                          </Button>
+                          <>
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => copyAuthLink(auth.access_token)}>
+                              <Copy className="h-3.5 w-3.5" /> Copy Link
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => sendAuthLinkEmail(auth)}
+                              disabled={sendingEmail}
+                            >
+                              {sendingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                              Email to Client
+                            </Button>
+                          </>
                         )}
                         {auth.status === "authorized" && (
                           <Button
