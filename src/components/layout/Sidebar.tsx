@@ -315,11 +315,11 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
                   onClick={() => {
                     setNotifOpen(false);
                     if (isMobile) setMobileOpen(false);
-                    navigate("/notifications");
+                    navigate("/notifications?filter=pending");
                   }}
                   className="w-full text-center text-xs font-medium text-primary hover:underline py-1"
                 >
-                  View All Notifications
+                  View Pending Notifications
                 </button>
               </div>
             )}
