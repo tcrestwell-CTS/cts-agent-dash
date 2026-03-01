@@ -2154,6 +2154,7 @@ export type Database = {
           currency: string
           depart_date: string | null
           deposit_amount: number | null
+          deposit_override: boolean
           deposit_required: boolean | null
           destination: string | null
           follow_up_due_at: string | null
@@ -2163,6 +2164,7 @@ export type Database = {
           itinerary_style: string
           notes: string | null
           parent_trip_id: string | null
+          payment_mode: string
           post_trip_email_sent: boolean | null
           pricing_visibility: string
           proposal_sent_at: string | null
@@ -2205,6 +2207,7 @@ export type Database = {
           currency?: string
           depart_date?: string | null
           deposit_amount?: number | null
+          deposit_override?: boolean
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
@@ -2214,6 +2217,7 @@ export type Database = {
           itinerary_style?: string
           notes?: string | null
           parent_trip_id?: string | null
+          payment_mode?: string
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           proposal_sent_at?: string | null
@@ -2256,6 +2260,7 @@ export type Database = {
           currency?: string
           depart_date?: string | null
           deposit_amount?: number | null
+          deposit_override?: boolean
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
@@ -2265,6 +2270,7 @@ export type Database = {
           itinerary_style?: string
           notes?: string | null
           parent_trip_id?: string | null
+          payment_mode?: string
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           proposal_sent_at?: string | null

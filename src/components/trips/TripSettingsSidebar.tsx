@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Lock, Shield } from "lucide-react";
+import { Lock, Shield, DollarSign, Calendar, Info } from "lucide-react";
+import { format, subDays, differenceInMonths, addMonths } from "date-fns";
 
 interface TripSettings {
   currency: string;
@@ -24,6 +26,8 @@ interface TripSettings {
   itinerary_style: string;
   deposit_required: boolean;
   deposit_amount: number;
+  deposit_override: boolean;
+  payment_mode: string;
   upgrade_notes?: string;
 }
 
@@ -31,6 +35,8 @@ interface TripSettingsSidebarProps {
   tripId: string;
   settings: TripSettings;
   agencyName?: string;
+  tripTotal?: number;
+  departDate?: string;
   onSettingsChange: () => void;
 }
 
@@ -38,6 +44,8 @@ export function TripSettingsSidebar({
   tripId,
   settings,
   agencyName,
+  tripTotal = 0,
+  departDate,
   onSettingsChange,
 }: TripSettingsSidebarProps) {
   const [localSettings, setLocalSettings] = useState<TripSettings>(settings);
@@ -46,6 +54,40 @@ export function TripSettingsSidebar({
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  const autoDepositAmount = useMemo(() => Math.round(tripTotal * 0.25 * 100) / 100, [tripTotal]);
+
+  const effectiveDeposit = localSettings.deposit_override
+    ? localSettings.deposit_amount
+    : autoDepositAmount;
+
+  // Calculate payment schedule preview
+  const schedulePreview = useMemo(() => {
+    if (localSettings.payment_mode !== "payment_schedule" || !departDate || tripTotal <= 0) return null;
+
+    const finalDueDate = subDays(new Date(departDate), 90);
+    const now = new Date();
+    const deposit = effectiveDeposit;
+    const remaining = tripTotal - deposit;
+    if (remaining <= 0) return null;
+
+    const monthsUntilFinal = Math.max(1, differenceInMonths(finalDueDate, now));
+    const monthlyAmount = Math.round((remaining / monthsUntilFinal) * 100) / 100;
+
+    const installments: { label: string; amount: number; dueDate: Date }[] = [];
+    for (let i = 1; i <= monthsUntilFinal; i++) {
+      const dueDate = i === monthsUntilFinal ? finalDueDate : addMonths(now, i);
+      const isLast = i === monthsUntilFinal;
+      const amount = isLast ? remaining - monthlyAmount * (monthsUntilFinal - 1) : monthlyAmount;
+      installments.push({
+        label: isLast ? "Final Payment" : `Payment ${i}`,
+        amount: Math.round(amount * 100) / 100,
+        dueDate,
+      });
+    }
+
+    return { installments, finalDueDate, monthlyAmount };
+  }, [localSettings.payment_mode, departDate, tripTotal, effectiveDeposit]);
 
   const updateSetting = async (field: string, value: any) => {
     const updated = { ...localSettings, [field]: value };
@@ -64,6 +106,23 @@ export function TripSettingsSidebar({
     }
   };
 
+  const updateMultipleSettings = async (updates: Record<string, any>) => {
+    const updated = { ...localSettings, ...updates };
+    setLocalSettings(updated);
+
+    const { error } = await supabase
+      .from("trips")
+      .update(updates as any)
+      .eq("id", tripId);
+
+    if (error) {
+      toast.error("Failed to update settings");
+      setLocalSettings(settings);
+    } else {
+      onSettingsChange();
+    }
+  };
+
   const addTag = () => {
     const tag = tagInput.trim();
     if (tag && !localSettings.tags.includes(tag)) {
@@ -76,8 +135,194 @@ export function TripSettingsSidebar({
     updateSetting("tags", localSettings.tags.filter((t) => t !== tag));
   };
 
+  const formatCurrency = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+
   return (
     <div className="space-y-4">
+      {/* Payment Configuration */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Payment Options
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Configure how clients pay for this trip.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Payment Mode */}
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Payment Mode</Label>
+            <Select
+              value={localSettings.payment_mode}
+              onValueChange={(v) => updateSetting("payment_mode", v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="deposit_balance">Deposit + Final Balance</SelectItem>
+                <SelectItem value="payment_schedule">Payment Schedule (Monthly)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {localSettings.payment_mode === "deposit_balance"
+                ? "Client pays deposit, then remaining balance before departure."
+                : "Client pays deposit, then equal monthly installments. Final payment due 90 days before departure."}
+            </p>
+          </div>
+
+          {/* Deposit Section */}
+          <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Deposit Required</Label>
+              <Switch
+                checked={localSettings.deposit_required}
+                onCheckedChange={(v) => {
+                  if (v) {
+                    updateMultipleSettings({
+                      deposit_required: true,
+                      deposit_amount: localSettings.deposit_override ? localSettings.deposit_amount : autoDepositAmount,
+                    });
+                  } else {
+                    updateSetting("deposit_required", false);
+                  }
+                }}
+              />
+            </div>
+
+            {localSettings.deposit_required && (
+              <>
+                {/* Auto-calculated amount */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">25% of trip total</span>
+                  <span className="font-semibold">{formatCurrency(autoDepositAmount)}</span>
+                </div>
+
+                {tripTotal <= 0 && (
+                  <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 rounded-md p-2">
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>Add bookings to auto-calculate the deposit amount.</span>
+                  </div>
+                )}
+
+                {/* Override checkbox */}
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="deposit-override"
+                    checked={localSettings.deposit_override}
+                    onCheckedChange={(checked) => {
+                      const isOverride = !!checked;
+                      if (isOverride) {
+                        updateSetting("deposit_override", true);
+                      } else {
+                        updateMultipleSettings({
+                          deposit_override: false,
+                          deposit_amount: autoDepositAmount,
+                        });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="deposit-override" className="text-sm cursor-pointer">
+                    Override deposit amount
+                  </Label>
+                </div>
+
+                {/* Custom amount input */}
+                {localSettings.deposit_override && (
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Custom Deposit ($)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={localSettings.deposit_amount || ""}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setLocalSettings((s) => ({ ...s, deposit_amount: val }));
+                      }}
+                      onBlur={(e) =>
+                        updateSetting("deposit_amount", parseFloat(e.target.value) || 0)
+                      }
+                    />
+                  </div>
+                )}
+
+                {/* Effective deposit display */}
+                <div className="flex items-center justify-between text-sm pt-1 border-t">
+                  <span className="font-medium">Deposit Amount</span>
+                  <Badge variant="outline" className="font-semibold">
+                    {formatCurrency(effectiveDeposit)}
+                  </Badge>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Payment Schedule Preview */}
+          {localSettings.payment_mode === "payment_schedule" && localSettings.deposit_required && schedulePreview && (
+            <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Calendar className="h-3.5 w-3.5" />
+                Schedule Preview
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Deposit (due now)</span>
+                  <span className="font-semibold">{formatCurrency(effectiveDeposit)}</span>
+                </div>
+                {schedulePreview.installments.map((inst, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {inst.label} — {format(inst.dueDate, "MMM d, yyyy")}
+                    </span>
+                    <span className="font-semibold">{formatCurrency(inst.amount)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-xs pt-1 border-t font-semibold">
+                  <span>Total</span>
+                  <span>{formatCurrency(tripTotal)}</span>
+                </div>
+              </div>
+              {!departDate && (
+                <p className="text-xs text-amber-600">Set a departure date to calculate the schedule.</p>
+              )}
+            </div>
+          )}
+
+          {localSettings.payment_mode === "deposit_balance" && localSettings.deposit_required && tripTotal > 0 && (
+            <div className="space-y-1.5 rounded-lg border p-3 bg-muted/30">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Calendar className="h-3.5 w-3.5" />
+                Balance Preview
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Deposit</span>
+                <span className="font-semibold">{formatCurrency(effectiveDeposit)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  Final Balance
+                  {departDate && ` (due by ${format(subDays(new Date(departDate), 90), "MMM d, yyyy")})`}
+                </span>
+                <span className="font-semibold">{formatCurrency(Math.max(0, tripTotal - effectiveDeposit))}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(tripTotal)}</span>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Client always has the option to pay the full amount at once.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Trip Settings */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Trip Settings</CardTitle>
@@ -163,32 +408,6 @@ export function TripSettingsSidebar({
               onCheckedChange={(v) => updateSetting("allow_pdf_downloads", v)}
             />
           </div>
-
-          {/* Deposit Required */}
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Deposit Required</Label>
-            <Switch
-              checked={localSettings.deposit_required}
-              onCheckedChange={(v) => updateSetting("deposit_required", v)}
-            />
-          </div>
-
-          {/* Deposit Amount */}
-          {localSettings.deposit_required && (
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Deposit Amount ($)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={localSettings.deposit_amount || ""}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  setLocalSettings((s) => ({ ...s, deposit_amount: val }));
-                }}
-                onBlur={(e) => updateSetting("deposit_amount", parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          )}
 
           {/* Upgrade Notes */}
           <div className="space-y-1.5">

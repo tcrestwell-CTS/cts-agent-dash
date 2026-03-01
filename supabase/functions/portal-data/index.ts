@@ -326,9 +326,12 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (!hasPendingOrPaid) {
           const tripTotal = Number(tripRes.data.total_gross_sales || 0);
-          const depositAmount = Number(tripRes.data.deposit_amount || 0);
-          const isDepositRequired = Boolean(tripRes.data.deposit_required) && depositAmount > 0;
-          const paymentAmount = isDepositRequired ? depositAmount : tripTotal;
+          const autoDeposit = Math.round(tripTotal * 0.25 * 100) / 100;
+          const isDepositRequired = Boolean(tripRes.data.deposit_required);
+          const depositAmount = isDepositRequired
+            ? (tripRes.data.deposit_override ? Number(tripRes.data.deposit_amount || 0) : autoDeposit)
+            : 0;
+          const paymentAmount = isDepositRequired && depositAmount > 0 ? depositAmount : tripTotal;
 
           if (paymentAmount > 0) {
             const { data: insertedPayment, error: insertPaymentError } = await supabase
@@ -337,9 +340,9 @@ const handler = async (req: Request): Promise<Response> => {
                 trip_id: tripId,
                 user_id: tripRes.data.user_id,
                 amount: paymentAmount,
-                payment_type: isDepositRequired ? "deposit" : "payment",
+                payment_type: isDepositRequired && depositAmount > 0 ? "deposit" : "payment",
                 status: "pending",
-                details: isDepositRequired
+                details: isDepositRequired && depositAmount > 0
                   ? "Deposit for approved itinerary"
                   : "Payment for approved itinerary",
               })
@@ -385,7 +388,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: tripCheck } = await supabase
         .from("trips")
-        .select("id, client_id, user_id, total_gross_sales, deposit_required, deposit_amount")
+        .select("id, client_id, user_id, total_gross_sales, deposit_required, deposit_amount, deposit_override, payment_mode, depart_date")
         .eq("id", tripId)
         .single();
 
@@ -407,7 +410,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (updateError) throw updateError;
 
-      // Auto-create a pending payment if none exists yet
+      // Auto-create pending payment records based on payment_mode
       const { data: existingPayments } = await supabase
         .from("trip_payments")
         .select("id")
@@ -416,22 +419,94 @@ const handler = async (req: Request): Promise<Response> => {
         .limit(1);
 
       if (!existingPayments || existingPayments.length === 0) {
-        const tripTotal = tripCheck.total_gross_sales || 0;
-        const isDepositRequired = tripCheck.deposit_required && tripCheck.deposit_amount > 0;
-        const paymentAmount = isDepositRequired ? tripCheck.deposit_amount : tripTotal;
-        const paymentType = isDepositRequired ? "deposit" : "payment";
+        const tripTotal = Number(tripCheck.total_gross_sales || 0);
+        const paymentMode = tripCheck.payment_mode || "deposit_balance";
+        const autoDeposit = Math.round(tripTotal * 0.25 * 100) / 100;
+        const isDepositRequired = Boolean(tripCheck.deposit_required);
+        const depositAmount = isDepositRequired
+          ? (tripCheck.deposit_override ? Number(tripCheck.deposit_amount || 0) : autoDeposit)
+          : 0;
 
-        if (paymentAmount > 0) {
-          await supabase.from("trip_payments").insert({
-            trip_id: tripId,
-            user_id: tripCheck.user_id,
-            amount: paymentAmount,
-            payment_type: paymentType,
-            status: "pending",
-            details: isDepositRequired
-              ? `Deposit for approved itinerary`
-              : `Payment for approved itinerary`,
-          });
+        if (tripTotal > 0) {
+          const paymentsToInsert: any[] = [];
+
+          if (isDepositRequired && depositAmount > 0) {
+            // Always create deposit as first payment
+            paymentsToInsert.push({
+              trip_id: tripId,
+              user_id: tripCheck.user_id,
+              amount: depositAmount,
+              payment_type: "deposit",
+              status: "pending",
+              details: "Deposit for approved itinerary",
+            });
+
+            const remaining = tripTotal - depositAmount;
+
+            if (remaining > 0) {
+              if (paymentMode === "payment_schedule" && tripCheck.depart_date) {
+                // Calculate monthly installments, final due 90 days before departure
+                const now = new Date();
+                const departDate = new Date(tripCheck.depart_date);
+                const finalDueDate = new Date(departDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+                // Calculate months between now and final due date
+                let months = (finalDueDate.getFullYear() - now.getFullYear()) * 12 + (finalDueDate.getMonth() - now.getMonth());
+                if (months < 1) months = 1;
+
+                const monthlyAmount = Math.round((remaining / months) * 100) / 100;
+
+                for (let i = 1; i <= months; i++) {
+                  const isLast = i === months;
+                  const dueDate = isLast
+                    ? finalDueDate
+                    : new Date(now.getFullYear(), now.getMonth() + i, now.getDate());
+                  const amount = isLast
+                    ? Math.round((remaining - monthlyAmount * (months - 1)) * 100) / 100
+                    : monthlyAmount;
+
+                  paymentsToInsert.push({
+                    trip_id: tripId,
+                    user_id: tripCheck.user_id,
+                    amount,
+                    payment_type: isLast ? "final_balance" : "payment",
+                    status: "pending",
+                    due_date: dueDate.toISOString().split("T")[0],
+                    details: isLast ? "Final payment (due 90 days before departure)" : `Installment ${i} of ${months}`,
+                  });
+                }
+              } else {
+                // deposit_balance mode: single final balance payment
+                const finalDueDate = tripCheck.depart_date
+                  ? new Date(new Date(tripCheck.depart_date).getTime() - 90 * 24 * 60 * 60 * 1000)
+                  : null;
+
+                paymentsToInsert.push({
+                  trip_id: tripId,
+                  user_id: tripCheck.user_id,
+                  amount: remaining,
+                  payment_type: "final_balance",
+                  status: "pending",
+                  due_date: finalDueDate ? finalDueDate.toISOString().split("T")[0] : null,
+                  details: "Final balance for approved itinerary",
+                });
+              }
+            }
+          } else {
+            // No deposit — single full payment
+            paymentsToInsert.push({
+              trip_id: tripId,
+              user_id: tripCheck.user_id,
+              amount: tripTotal,
+              payment_type: "payment",
+              status: "pending",
+              details: "Payment for approved itinerary",
+            });
+          }
+
+          if (paymentsToInsert.length > 0) {
+            await supabase.from("trip_payments").insert(paymentsToInsert);
+          }
         }
       }
 

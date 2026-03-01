@@ -201,6 +201,8 @@ const TripDetail = () => {
     itinerary_style: (trip as any).itinerary_style || "vertical_list",
     deposit_required: (trip as any).deposit_required || false,
     deposit_amount: (trip as any).deposit_amount || 0,
+    deposit_override: (trip as any).deposit_override || false,
+    payment_mode: (trip as any).payment_mode || "deposit_balance",
     upgrade_notes: (trip as any).upgrade_notes || "",
   };
 
@@ -561,14 +563,14 @@ const TripDetail = () => {
                 clientId={trip.client_id}
                 tripId={trip.id}
               />
-              {isGroupTrip && (
-                <TripSettingsSidebar
-                  tripId={trip.id}
-                  settings={tripSettings}
-                  agencyName={profile?.agency_name || undefined}
-                  onSettingsChange={fetchTrip}
-                />
-              )}
+              <TripSettingsSidebar
+                tripId={trip.id}
+                settings={tripSettings}
+                agencyName={profile?.agency_name || undefined}
+                tripTotal={trip.total_gross_sales}
+                departDate={trip.depart_date || undefined}
+                onSettingsChange={fetchTrip}
+              />
               <TripCloseoutChecklist
                 bookings={bookings}
                 payments={payments}
