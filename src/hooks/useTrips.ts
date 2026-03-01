@@ -98,8 +98,13 @@ export function useTrips() {
   const [updating, setUpdating] = useState(false);
 
   const fetchTrips = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setTrips([]);
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from("trips")
@@ -118,6 +123,7 @@ export function useTrips() {
       setTrips(data || []);
     } catch (error) {
       console.error("Error fetching trips:", error);
+      toast.error("Unable to load trips. Please refresh and try again.");
     } finally {
       setLoading(false);
     }

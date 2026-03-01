@@ -598,28 +598,37 @@ const Trips = () => {
               </div>
             </div>
 
-            {loading ? (
+            {loading || statusesLoading ? (
               <div className="grid gap-4">
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-32 w-full" />
                 ))}
               </div>
             ) : viewMode === "kanban" ? (
-              <TripsKanban
-                trips={filteredTrips}
-                columns={kanbanColumns}
-                onStatusChange={async (tripId, newStatus, cancellationOptions) => {
-                  const trip = filteredTrips.find(t => t.id === tripId);
-                  if (!trip) return false;
-                  const result = await processStatusChange(newStatus, { trip, bookings: [] }, cancellationOptions);
-                  if (!result.allowed) {
-                    const { toast } = await import("@/hooks/use-toast");
-                    toast({ title: "Cannot change status", description: result.error, variant: "destructive" });
-                    return false;
-                  }
-                  return await updateTrip(tripId, { status: newStatus });
-                }}
-              />
+              kanbanColumns.length === 0 ? (
+                <Card>
+                  <CardContent className="py-10 text-center">
+                    <p className="text-sm text-muted-foreground">Trip statuses are still syncing, so Kanban can’t render yet.</p>
+                    <Button variant="outline" className="mt-4" onClick={() => setViewMode("list")}>Switch to List View</Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <TripsKanban
+                  trips={filteredTrips}
+                  columns={kanbanColumns}
+                  onStatusChange={async (tripId, newStatus, cancellationOptions) => {
+                    const trip = filteredTrips.find(t => t.id === tripId);
+                    if (!trip) return false;
+                    const result = await processStatusChange(newStatus, { trip, bookings: [] }, cancellationOptions);
+                    if (!result.allowed) {
+                      const { toast } = await import("@/hooks/use-toast");
+                      toast({ title: "Cannot change status", description: result.error, variant: "destructive" });
+                      return false;
+                    }
+                    return await updateTrip(tripId, { status: newStatus });
+                  }}
+                />
+              )
             ) : filteredTrips.length === 0 ? (
               <Card>
                 <CardContent className="py-12">
