@@ -403,6 +403,38 @@ const TripDetail = () => {
                       <p className="text-sm">{trip.notes}</p>
                     </div>
                   )}
+                  {/* Budget Confirmation Status */}
+                  {(trip as any).budget_range && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground mb-2">Budget</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{(trip as any).budget_range}</span>
+                        {(trip as any).budget_confirmed ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Client Confirmed
+                          </Badge>
+                        ) : (trip as any).budget_change_requested ? (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            Change Requested
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Pending Approval
+                          </Badge>
+                        )}
+                      </div>
+                      {(trip as any).budget_change_requested && (trip as any).budget_change_request_message && (
+                        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-3">
+                          <p className="text-xs text-amber-800 italic">
+                            "{(trip as any).budget_change_request_message}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
