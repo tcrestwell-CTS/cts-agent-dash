@@ -39,6 +39,7 @@ const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
 const QBOHealth           = lazy(() => import("./pages/QBOHealth"));
 const RiskCompliance      = lazy(() => import("./pages/RiskCompliance"));
 const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
+const Notifications       = lazy(() => import("./pages/Notifications"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
@@ -107,6 +108,7 @@ const App = () => (
                 <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
                 <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
