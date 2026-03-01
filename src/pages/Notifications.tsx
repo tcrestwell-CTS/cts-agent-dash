@@ -1,7 +1,7 @@
 import { useAgentNotifications } from "@/hooks/useAgentNotifications";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Bell, CreditCard, CheckCircle2, ExternalLink, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ export default function Notifications() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -85,5 +86,6 @@ export default function Notifications() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
