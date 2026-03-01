@@ -5,6 +5,7 @@ import SharedTripHero from "@/components/shared-trip/SharedTripHero";
 import SharedTripMeta from "@/components/shared-trip/SharedTripMeta";
 import SharedTripItinerary from "@/components/shared-trip/SharedTripItinerary";
 import SharedTripInvestment from "@/components/shared-trip/SharedTripInvestment";
+import SharedTripBudgetConfirmation from "@/components/shared-trip/SharedTripBudgetConfirmation";
 import SharedTripFooter from "@/components/shared-trip/SharedTripFooter";
 import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
 import { Card, CardContent } from "@/components/ui/card";
@@ -152,6 +153,18 @@ export default function SharedTrip() {
           primaryColor={primaryColor}
           optionBlocks={(data as any).optionBlocks || []}
         />
+
+        {(data as any).budget?.range && (
+          <SharedTripBudgetConfirmation
+            budgetRange={(data as any).budget.range}
+            confirmed={(data as any).budget.confirmed}
+            confirmedAt={(data as any).budget.confirmed_at}
+            changeRequested={(data as any).budget.change_requested}
+            changeRequestMessage={(data as any).budget.change_request_message}
+            primaryColor={primaryColor}
+            shareToken={token || undefined}
+          />
+        )}
 
         <SharedTripInvestment
           trip={data.trip}
