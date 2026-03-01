@@ -1140,13 +1140,53 @@ const handler = async (req: Request): Promise<Response> => {
         message: `💳 ${clientName} selected "${methodLabel}"${amountStr} for ${tripName}.`,
       });
 
-      // 3. If CC-to-agent, create a workflow task
+      // 3. If CC-to-agent, auto-create a CC authorization and return access_token
+      let ccAccessToken: string | null = null;
       if (method === "cc_to_agent") {
+        // Check for existing pending CC auth for this trip
+        const { data: existingAuth } = await supabase
+          .from("cc_authorizations")
+          .select("id, access_token")
+          .eq("user_id", tripCheck.user_id)
+          .eq("client_id", tripCheck.client_id)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle();
+
+        if (existingAuth) {
+          ccAccessToken = existingAuth.access_token;
+        } else {
+          // Find the first booking for this trip to link the CC auth
+          const { data: tripBookings } = await supabase
+            .from("bookings")
+            .select("id")
+            .eq("trip_id", tripId)
+            .limit(1);
+
+          const bookingId = tripBookings?.[0]?.id;
+          if (bookingId) {
+            const { data: newAuth } = await supabase
+              .from("cc_authorizations")
+              .insert({
+                booking_id: bookingId,
+                client_id: tripCheck.client_id,
+                user_id: tripCheck.user_id,
+                authorization_amount: paymentAmount || 0,
+                authorization_description: `Payment for ${tripName}`,
+                status: "pending",
+              })
+              .select("access_token")
+              .single();
+            ccAccessToken = newAuth?.access_token || null;
+          }
+        }
+
+        // Still create a workflow task for the agent
         await supabase.from("workflow_tasks").insert({
           trip_id: tripId,
           user_id: tripCheck.user_id,
-          title: `Send CC Authorization to ${clientName}`,
-          description: `${clientName} wants to submit their card info for ${tripName}${amountStr}. Create and send a CC authorization form.`,
+          title: `CC Authorization from ${clientName}`,
+          description: `${clientName} is submitting their card info for ${tripName}${amountStr}.`,
           task_type: "cc_authorization_request",
           status: "pending",
         } as any);
