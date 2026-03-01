@@ -348,7 +348,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: tripCheck } = await supabase
         .from("trips")
-        .select("id, client_id, user_id")
+        .select("id, client_id, user_id, total_gross_sales, deposit_required, deposit_amount")
         .eq("id", tripId)
         .single();
 
@@ -369,6 +369,34 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("id", tripId);
 
       if (updateError) throw updateError;
+
+      // Auto-create a pending payment if none exists yet
+      const { data: existingPayments } = await supabase
+        .from("trip_payments")
+        .select("id")
+        .eq("trip_id", tripId)
+        .in("status", ["pending", "paid"])
+        .limit(1);
+
+      if (!existingPayments || existingPayments.length === 0) {
+        const tripTotal = tripCheck.total_gross_sales || 0;
+        const isDepositRequired = tripCheck.deposit_required && tripCheck.deposit_amount > 0;
+        const paymentAmount = isDepositRequired ? tripCheck.deposit_amount : tripTotal;
+        const paymentType = isDepositRequired ? "deposit" : "payment";
+
+        if (paymentAmount > 0) {
+          await supabase.from("trip_payments").insert({
+            trip_id: tripId,
+            user_id: tripCheck.user_id,
+            amount: paymentAmount,
+            payment_type: paymentType,
+            status: "pending",
+            details: isDepositRequired
+              ? `Deposit for approved itinerary`
+              : `Payment for approved itinerary`,
+          });
+        }
+      }
 
       // Send notification message to agent
       const { data: itinData } = await supabase
