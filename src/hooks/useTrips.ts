@@ -156,8 +156,8 @@ export function useTrips() {
       trip_type: data.trip_type || "regular",
       notes: data.notes || null,
       trip_page_url: data.trip_page_url || null,
-      status: "planning",
-      total_gross_sales: 0,
+          status: "inbound",
+          total_gross_sales: 0,
       total_commissionable_amount: 0,
       total_commission_revenue: 0,
       total_net_sales: 0,
@@ -198,8 +198,8 @@ export function useTrips() {
           trip_type: data.trip_type || "regular",
           notes: data.notes || null,
           trip_page_url: data.trip_page_url || null,
-          status: "planning",
-          parent_trip_id: data.parent_trip_id || null,
+           status: "inbound",
+           parent_trip_id: data.parent_trip_id || null,
         } as any)
         .select(`
           *,
