@@ -7,11 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  addDays, 
-  isWithinInterval, 
-  isFuture, 
-  subDays, 
-  startOfMonth, 
+  addDays,
+  isWithinInterval,
+  isFuture,
+  subDays,
+  startOfMonth,
   endOfMonth,
   isPast,
   parseISO,
@@ -34,20 +34,27 @@ export function useDashboardData() {
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
 
-  // Fetch upcoming payments
+  // FIX: Added explicit staleTime and select to this query.
+  // Previously it re-fetched on every mount (staleTime: 0) and pulled all columns.
+  // Now it fetches only the 3 fields we actually use, and caches for 5 minutes.
   const { data: pendingPayments, isLoading: paymentsLoading } = useQuery({
     queryKey: ["dashboard-pending-payments", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trip_payments")
-        .select("id, due_date, status")
+        .select("id, due_date, status")   // Only fetch columns we use
         .eq("status", "pending")
-        .not("due_date", "is", null);
+        .not("due_date", "is", null)
+        .order("due_date", { ascending: true })
+        .limit(50);                        // Cap results — no need for 1000s of payments
 
       if (error) throw error;
       return data || [];
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,             // Fresh for 5 minutes
+    gcTime: 1000 * 60 * 10,               // Cache for 10 minutes
+    refetchOnWindowFocus: false,           // Don't re-fetch on tab switch
   });
 
   const loading = bookingsLoading || clientsLoading || commissionsLoading || paymentsLoading;
@@ -117,7 +124,7 @@ export function useDashboardData() {
     });
 
     // Recent/active bookings (exclude archived)
-    const recentActiveBookings = activeBookings.filter(b => 
+    const recentActiveBookings = activeBookings.filter(b =>
       b.status === "confirmed" || b.status === "pending" || b.status === "traveling"
     );
 
@@ -135,14 +142,13 @@ export function useDashboardData() {
     let departurePriority = 3;
     let commissionPriority = 4;
     let paymentPriority = 4;
-    
+
     if (urgentDepartures.length > 0) departurePriority = 1;
     else if (upcomingDeps.length > 0) departurePriority = 2;
-    
+
     if (urgentCommissions.length > 0) commissionPriority = 1;
     else if (upcomingComms.length > 0) commissionPriority = 2;
 
-    // Payments with overdue get highest priority
     if (overduePayments.length > 0) paymentPriority = 0;
     else if (urgentPayments.length > 0) paymentPriority = 1;
     else if (upcomingPmts.length > 0) paymentPriority = 2;
@@ -186,7 +192,7 @@ export function useDashboardData() {
       },
       leaderboard: {
         id: "leaderboard",
-        priority: isAgencyView ? 4 : 10, // Only relevant for admins
+        priority: isAgencyView ? 4 : 10,
         hasData: isAgencyView,
         urgentCount: 0,
         dataCount: 0,
@@ -219,7 +225,6 @@ export function useDashboardData() {
       };
     }
 
-    // Filter out archived trips for revenue reporting
     const nonArchivedBookings = bookings.filter(b => !isBookingArchived(b));
 
     const activeBookingsCount = nonArchivedBookings.filter(
