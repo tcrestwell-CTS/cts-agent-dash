@@ -58,9 +58,16 @@ export function PortalAuthProvider({ children }: { children: React.ReactNode }) 
   const [session, setSession] = useState<PortalSession | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for Supabase Auth session on mount
+  // Check for Supabase Auth session on mount — but only on client portal routes
   useEffect(() => {
     let cancelled = false;
+
+    // Skip portal auth entirely when not on a /client/ route
+    const isClientRoute = window.location.pathname.startsWith("/client");
+    if (!isClientRoute) {
+      setLoading(false);
+      return;
+    }
 
     async function init() {
       try {
