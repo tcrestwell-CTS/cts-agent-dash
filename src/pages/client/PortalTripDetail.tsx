@@ -62,6 +62,28 @@ export default function PortalTripDetail() {
     setShowAgreement(true);
   };
 
+  const notifyAgentPaymentMethod = useCallback(async (method: string) => {
+    try {
+      const portalSession = localStorage.getItem("portal_session");
+      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=notify-payment-method`, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-portal-token": portalToken || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tripId,
+          paymentId: selectedPayment?.id,
+          method,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to notify agent of payment method:", err);
+    }
+  }, [tripId, selectedPayment]);
+
   const handleAgreementAccepted = () => {
     setShowAgreement(false);
     setTimeout(() => setShowMethodDialog(true), 150);
