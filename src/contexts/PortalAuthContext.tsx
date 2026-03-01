@@ -148,6 +148,7 @@ export function PortalAuthProvider({ children }: { children: React.ReactNode }) 
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
