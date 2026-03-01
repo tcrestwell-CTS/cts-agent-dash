@@ -92,28 +92,29 @@ export default function PortalTripDetail() {
   const handleStripePayment = async () => {
     if (!selectedPayment) return;
     setPayingId(selectedPayment.id);
-    setShowMethodDialog(false);
-    try {
-      const portalSession = localStorage.getItem("portal_session");
-      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
-        method: "POST",
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "x-portal-token": portalToken || "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin, paymentMethodChoice: "stripe" }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed");
-      if (result.url) window.location.href = result.url;
-    } catch (error) {
-      console.error("Payment error:", error);
-      toast.error("Failed to start payment");
-    } finally {
-      setPayingId(null);
-    }
+      setShowMethodDialog(false);
+      notifyAgentPaymentMethod("stripe");
+      try {
+        const portalSession = localStorage.getItem("portal_session");
+        const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
+          method: "POST",
+          headers: {
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "x-portal-token": portalToken || "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin, paymentMethodChoice: "stripe" }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Failed");
+        if (result.url) window.location.href = result.url;
+      } catch (error) {
+        console.error("Payment error:", error);
+        toast.error("Failed to start payment");
+      } finally {
+        setPayingId(null);
+      }
   };
 
   const handleAffirmPayment = async () => {
