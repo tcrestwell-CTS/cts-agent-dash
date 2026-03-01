@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
+import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardLayoutProps {
@@ -9,6 +10,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
+  useSessionHeartbeat();
 
   return (
     <div className="min-h-screen bg-background">
