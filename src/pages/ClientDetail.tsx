@@ -135,6 +135,35 @@ const ClientDetail = () => {
     }
   };
 
+  const handleSendUpdateLink = async () => {
+    if (!client?.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+    setIsSendingUpdateLink(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-update`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: "send-update-link", clientId: client.id }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to send");
+      toast.success(`Update info link sent to ${client.email}`);
+    } catch {
+      toast.error("Failed to send update link");
+    } finally {
+      setIsSendingUpdateLink(false);
+    }
+  };
+
   useEffect(() => {
     if (client) {
       setFormData({
