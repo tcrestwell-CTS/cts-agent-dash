@@ -92,6 +92,7 @@ const ClientDetail = () => {
   const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+  const [isSendingUpdateLink, setIsSendingUpdateLink] = useState(false);
 
   const { data: hasPortalAccount } = useQuery({
     queryKey: ["portal-session-status", clientId],
