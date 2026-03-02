@@ -679,5 +679,6 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         />
       )}
     </div>
+    </DragDropContext>
   );
 }
