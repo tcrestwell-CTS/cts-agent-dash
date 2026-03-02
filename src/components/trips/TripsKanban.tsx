@@ -17,6 +17,8 @@ import {
 import type { Trip } from "@/hooks/useTrips";
 import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 
+type KanbanTrip = Trip & { kanbanStatus?: string };
+
 export interface KanbanColumn {
   id: string;
   label: string;
@@ -24,7 +26,7 @@ export interface KanbanColumn {
 }
 
 interface TripsKanbanProps {
-  trips: Trip[];
+  trips: KanbanTrip[];
   columns: KanbanColumn[];
   onStatusChange: (tripId: string, newStatus: string, cancellationOptions?: CancellationOptions) => Promise<boolean>;
 }
@@ -45,13 +47,17 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
   });
 
   const tripsByStatus = columns.reduce((acc, col) => {
-    acc[col.id] = trips.filter((t) => t.status === col.id);
+    acc[col.id] = trips.filter((t) => (t.kanbanStatus || t.status) === col.id);
     return acc;
-  }, {} as Record<string, Trip[]>);
+  }, {} as Record<string, KanbanTrip[]>);
 
-  // Also collect trips with statuses not in any column (orphaned)
+  // Also collect trips with statuses not in any column (orphaned) — place in planning
   const knownIds = new Set(columns.map((c) => c.id));
-  const orphanedTrips = trips.filter((t) => !knownIds.has(t.status));
+  const orphanedTrips = trips.filter((t) => !knownIds.has(t.kanbanStatus || t.status));
+  // Merge orphaned trips into the planning column
+  if (orphanedTrips.length > 0 && tripsByStatus["planning"]) {
+    tripsByStatus["planning"] = [...tripsByStatus["planning"], ...orphanedTrips];
+  }
 
   const handleDragEnd = async (result: DropResult) => {
     const { draggableId, destination } = result;
@@ -132,43 +138,7 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
             </Droppable>
           ))}
 
-          {/* Show orphaned trips in an "Other" column if any exist */}
-          {orphanedTrips.length > 0 && (
-            <Droppable droppableId="__orphaned__" isDropDisabled>
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className="flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 border-t-muted bg-muted/20"
-                >
-                  <div className="px-3.5 py-3 flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-muted-foreground">Other</h3>
-                    <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
-                      {orphanedTrips.length}
-                    </span>
-                  </div>
-                  <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
-                    {orphanedTrips.map((trip, index) => (
-                      <Draggable key={trip.id} draggableId={trip.id} index={index} isDragDisabled>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            onClick={() => navigate(`/trips/${trip.id}`)}
-                            className="cursor-pointer"
-                          >
-                            <KanbanTripCard trip={trip} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                </div>
-              )}
-            </Droppable>
-          )}
+
         </div>
       </DragDropContext>
 

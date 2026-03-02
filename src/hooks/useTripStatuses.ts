@@ -18,25 +18,47 @@ const DEFAULT_STATUSES = [
   { name: "Inbound", color: "#f59e0b", sort_order: 0 },
   { name: "Planning", color: "#3b82f6", sort_order: 1 },
   { name: "Proposal Sent", color: "#f97316", sort_order: 2 },
-  { name: "Option Selected", color: "#06b6d4", sort_order: 3 },
-  { name: "Deposit Authorized", color: "#8b5cf6", sort_order: 4 },
-  { name: "Deposit Paid", color: "#10b981", sort_order: 5 },
-  { name: "Final Paid", color: "#059669", sort_order: 6 },
-  { name: "Booked", color: "#22c55e", sort_order: 7 },
-  { name: "Traveling", color: "#a855f7", sort_order: 8 },
-  { name: "Traveled", color: "#6b7280", sort_order: 9 },
-  { name: "Commission Pending", color: "#d97706", sort_order: 10 },
-  { name: "Commission Received", color: "#16a34a", sort_order: 11 },
-  { name: "Cancelled", color: "#ef4444", sort_order: 12 },
-  { name: "Archived", color: "#64748b", sort_order: 13 },
+  { name: "Deposit Authorized", color: "#8b5cf6", sort_order: 3 },
+  { name: "Deposit Paid", color: "#10b981", sort_order: 4 },
+  { name: "Final Paid", color: "#059669", sort_order: 5 },
+  { name: "Booked", color: "#22c55e", sort_order: 6 },
+  { name: "Traveling", color: "#a855f7", sort_order: 7 },
+  { name: "Traveled", color: "#6b7280", sort_order: 8 },
+  { name: "Commission Pending", color: "#d97706", sort_order: 9 },
+  { name: "Commission Received", color: "#16a34a", sort_order: 10 },
+  { name: "Cancelled", color: "#ef4444", sort_order: 11 },
+  { name: "Archived", color: "#64748b", sort_order: 12 },
 ];
+
+// Statuses that map to "planning" on the kanban board
+// These are internal workflow indicators, not separate kanban columns
+const KANBAN_PLANNING_STATUSES = new Set([
+  "proposal_sent",
+  "option_selected",
+  "deposit_authorized",
+  "deposit_paid",
+  "final_paid",
+  "booked",
+]);
+
+// Only these statuses get their own kanban columns
+const KANBAN_COLUMN_SLUGS = new Set([
+  "inbound",
+  "planning",
+  "traveling",
+  "traveled",
+  "commission_pending",
+  "commission_received",
+  "cancelled",
+  "archived",
+]);
 
 // Map old hardcoded status ids to display names for backward compat
 const LEGACY_STATUS_MAP: Record<string, string> = {
   inbound: "Inbound",
   planning: "Planning",
   proposal_sent: "Proposal Sent",
-  option_selected: "Option Selected",
+  option_selected: "Planning",
   deposit_authorized: "Deposit Authorized",
   deposit_paid: "Deposit Paid",
   final_paid: "Final Paid",
@@ -206,13 +228,22 @@ export function useTripStatuses() {
     return found?.color || "#6366f1";
   };
 
-  // Build kanban columns from statuses
-  const kanbanColumns = statuses.map((s) => ({
-    id: statusToSlug(s.name),
-    label: s.name,
-    color: s.color,
-    statusId: s.id,
-  }));
+  // Build kanban columns from statuses — only columns that are kanban-visible
+  const kanbanColumns = statuses
+    .filter((s) => KANBAN_COLUMN_SLUGS.has(statusToSlug(s.name)))
+    .map((s) => ({
+      id: statusToSlug(s.name),
+      label: s.name,
+      color: s.color,
+      statusId: s.id,
+    }));
+
+  // Map any trip status slug to the kanban column it belongs to
+  // Intermediate workflow statuses (proposal_sent → booked) all map to "planning"
+  const getKanbanStatus = (slug: string): string => {
+    if (KANBAN_PLANNING_STATUSES.has(slug)) return "planning";
+    return slug;
+  };
 
   return {
     statuses,
@@ -226,6 +257,7 @@ export function useTripStatuses() {
     statusToSlug,
     getStatusLabel,
     getStatusColor,
+    getKanbanStatus,
     refetch: fetchStatuses,
   };
 }
