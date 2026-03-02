@@ -354,9 +354,9 @@ const handler = async (req: Request): Promise<Response> => {
               ${proposalDestination ? `<p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${proposalDestination}</p>` : ""}
               ${proposalDates ? `<p style="margin: 8px 0; color: #374151;"><strong>Travel Dates:</strong> ${proposalDates}</p>` : ""}
             </div>
-            <p style="color: #4b5563; line-height: 1.6;">Click the button below to view your full itinerary, options, and pricing:</p>
+            <p style="color: #4b5563; line-height: 1.6;">Log in to your client portal to view your full itinerary, options, and pricing:</p>
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${proposalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Review Your Proposal</a>
+              <a href="${proposalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">View My Proposal</a>
             </div>
             <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">If you have any questions or would like to make changes, simply reply to this email or reach out to your advisor directly.</p>
             ${footerHtml}
