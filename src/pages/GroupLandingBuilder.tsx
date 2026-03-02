@@ -104,6 +104,7 @@ const GroupLandingBuilder = () => {
       .update({
         group_landing_headline: landingHeadline || null,
         group_landing_description: landingDescription || null,
+        group_landing_hero_url: heroImageUrl || null,
       } as any)
       .eq("id", tripId!);
 
@@ -113,6 +114,65 @@ const GroupLandingBuilder = () => {
       toast.success("Landing page content saved");
     }
     setSaving(false);
+  };
+
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    setUploadingHero(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${tripId}/landing-hero.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("trip-covers")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("trip-covers")
+        .getPublicUrl(path);
+      setHeroImageUrl(publicUrl);
+      // Auto-save
+      await supabase
+        .from("trips")
+        .update({ group_landing_hero_url: publicUrl } as any)
+        .eq("id", tripId!);
+      toast.success("Hero image uploaded");
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingHero(false);
+      if (heroFileRef.current) heroFileRef.current.value = "";
+    }
+  };
+
+  const handleHeroUrlSubmit = async () => {
+    if (!heroUrlInput.trim()) return;
+    setHeroImageUrl(heroUrlInput.trim());
+    setShowUrlInput(false);
+    await supabase
+      .from("trips")
+      .update({ group_landing_hero_url: heroUrlInput.trim() } as any)
+      .eq("id", tripId!);
+    toast.success("Hero image URL saved");
+    setHeroUrlInput("");
+  };
+
+  const handleRemoveHero = async () => {
+    setHeroImageUrl("");
+    await supabase
+      .from("trips")
+      .update({ group_landing_hero_url: null } as any)
+      .eq("id", tripId!);
+    toast.success("Hero image removed");
   };
 
   const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
