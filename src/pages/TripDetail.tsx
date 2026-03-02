@@ -204,6 +204,7 @@ const TripDetail = () => {
     deposit_override: (trip as any).deposit_override || false,
     payment_mode: (trip as any).payment_mode || "deposit_balance",
     upgrade_notes: (trip as any).upgrade_notes || "",
+    group_landing_enabled: (trip as any).group_landing_enabled || false,
   };
 
   return (
@@ -568,6 +569,8 @@ const TripDetail = () => {
                 agencyName={profile?.agency_name || undefined}
                 tripTotal={trip.total_gross_sales}
                 departDate={trip.depart_date || undefined}
+                tripType={trip.trip_type || undefined}
+                shareToken={(trip as any).share_token || undefined}
                 onSettingsChange={fetchTrip}
               />
               <TripCloseoutChecklist
