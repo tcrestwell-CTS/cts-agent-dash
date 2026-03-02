@@ -222,6 +222,39 @@ const GroupLandingBuilder = () => {
     toast.success("Hero image removed");
   };
 
+  const handleHeroPaste = useCallback(async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          setUploadingHero(true);
+          try {
+            const ext = file.type.split("/")[1] || "png";
+            const path = `${tripId}/hero-${Date.now()}.${ext}`;
+            const { error } = await supabase.storage.from("trip-covers").upload(path, file, { upsert: true });
+            if (error) throw error;
+            const { data: { publicUrl } } = supabase.storage.from("trip-covers").getPublicUrl(path);
+            setHeroImageUrl(publicUrl);
+            await supabase.from("trips").update({ cover_image_url: publicUrl } as any).eq("id", tripId!);
+            toast.success("Hero image pasted");
+          } catch { toast.error("Failed to upload pasted image"); }
+          finally { setUploadingHero(false); }
+          return;
+        }
+      }
+    }
+    // Check for pasted URL text
+    const text = e.clipboardData.getData("text/plain");
+    if (text && (text.startsWith("http://") || text.startsWith("https://")) && /\.(jpg|jpeg|png|gif|webp|svg)/i.test(text)) {
+      e.preventDefault();
+      setHeroImageUrl(text);
+      await supabase.from("trips").update({ cover_image_url: text } as any).eq("id", tripId!);
+      toast.success("Hero image added from clipboard");
+    }
+  }, [tripId]);
+
   // ─── Feature images ───────────────────────────────
   const uploadFeatureImage = async (file: File) => {
     if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
@@ -521,12 +554,23 @@ const GroupLandingBuilder = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                <button onClick={() => heroFileRef.current?.click()} disabled={uploadingHero}
-                  className="w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary">
+                <div
+                  onPaste={handleHeroPaste}
+                  tabIndex={0}
+                  onClick={() => heroFileRef.current?.click()}
+                  className="w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+                >
                   {uploadingHero ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                    <><ImagePlus className="h-6 w-6" /><span className="text-sm font-medium">Upload Hero Image</span><span className="text-xs">JPG, PNG — max 5MB</span></>
+                    <>
+                      <ImagePlus className="h-6 w-6" />
+                      <span className="text-sm font-medium">Upload Hero Image</span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <ClipboardPaste className="h-3.5 w-3.5" />
+                        <span>Paste an image from clipboard (Ctrl+V / Cmd+V)</span>
+                      </div>
+                    </>
                   )}
-                </button>
+                </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground"><div className="flex-1 h-px bg-border" /><span>or</span><div className="flex-1 h-px bg-border" /></div>
                 {showHeroUrlInput ? (
                   <div className="flex gap-2">
