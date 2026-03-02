@@ -53,6 +53,96 @@ const handler = async (req: Request): Promise<Response> => {
         if (client) clientName = client.name;
       }
 
+      // === Create CC Authorization for "Send Card Info to Agent" ===
+      if (action === "create_cc_auth") {
+        const { amount } = body;
+        // Find first booking for this trip
+        const { data: tripBookings } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("trip_id", trip.id)
+          .limit(1);
+
+        const bookingId = tripBookings?.[0]?.id;
+        if (!bookingId) {
+          return new Response(JSON.stringify({ error: "No bookings found for this trip" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check for existing pending CC auth
+        const { data: existingAuth } = await supabase
+          .from("cc_authorizations")
+          .select("id, access_token")
+          .eq("user_id", trip.user_id)
+          .eq("client_id", trip.client_id)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle();
+
+        let ccAccessToken: string;
+        if (existingAuth) {
+          ccAccessToken = existingAuth.access_token;
+        } else {
+          const { data: newAuth, error: authErr } = await supabase
+            .from("cc_authorizations")
+            .insert({
+              booking_id: bookingId,
+              client_id: trip.client_id,
+              user_id: trip.user_id,
+              authorization_amount: amount || trip.total_gross_sales || 0,
+              authorization_description: `Payment for ${trip.trip_name}`,
+              status: "pending",
+            })
+            .select("access_token")
+            .single();
+
+          if (authErr || !newAuth) {
+            console.error("CC auth creation error:", authErr);
+            return new Response(JSON.stringify({ error: "Failed to create authorization" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          ccAccessToken = newAuth.access_token;
+        }
+
+        // Notify agent
+        await supabase.from("agent_notifications").insert({
+          user_id: trip.user_id,
+          type: "payment_method_selected",
+          title: "Payment Method Selected",
+          message: `${clientName} chose "Send Card Info to Agent" for "${trip.trip_name}".`,
+          trip_id: trip.id,
+        });
+
+        // Portal message
+        if (trip.client_id) {
+          await supabase.from("portal_messages").insert({
+            client_id: trip.client_id,
+            agent_user_id: trip.user_id,
+            sender_type: "client",
+            message: `💳 ${clientName} selected "Send Card Info to Agent" for "${trip.trip_name}".`,
+          });
+        }
+
+        // Workflow task
+        await supabase.from("workflow_tasks").insert({
+          trip_id: trip.id,
+          user_id: trip.user_id,
+          title: `CC Authorization from ${clientName}`,
+          description: `${clientName} is submitting their card info for "${trip.trip_name}".`,
+          task_type: "cc_authorization_request",
+          status: "pending",
+        } as any);
+
+        return new Response(JSON.stringify({ success: true, ccAccessToken }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // === Budget Confirmation (e-signature) ===
       if (action === "confirm_budget") {
         const { signature, ip_address, user_agent } = body;
