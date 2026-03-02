@@ -580,7 +580,7 @@ const GroupLandingBuilder = () => {
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" className="w-full" onClick={() => setShowHeroUrlInput(true)}>
-                    <Link className="h-3.5 w-3.5 mr-1.5" /> Paste Image URL
+                    <Link className="h-3.5 w-3.5 mr-1.5" /> Paste Image
                   </Button>
                 )}
               </div>
@@ -692,7 +692,7 @@ const GroupLandingBuilder = () => {
                 </div>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setShowFeatureUrlInput(true)}>
-                  <Link className="h-3.5 w-3.5 mr-1.5" /> Paste Image URL
+                  <Link className="h-3.5 w-3.5 mr-1.5" /> Paste Image
                 </Button>
               )}
             </div>
