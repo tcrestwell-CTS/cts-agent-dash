@@ -15,7 +15,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Lock, Shield, DollarSign, Calendar, Info, Users } from "lucide-react";
+import { Lock, Shield, DollarSign, Calendar, Info, Users, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, subDays, differenceInMonths, addMonths } from "date-fns";
 
@@ -42,6 +42,7 @@ interface TripSettingsSidebarProps {
   tripType?: string;
   shareToken?: string;
   onSettingsChange: () => void;
+  onNavigateToLandingPage?: () => void;
 }
 
 export function TripSettingsSidebar({
@@ -53,6 +54,7 @@ export function TripSettingsSidebar({
   tripType,
   shareToken,
   onSettingsChange,
+  onNavigateToLandingPage,
 }: TripSettingsSidebarProps) {
   const [localSettings, setLocalSettings] = useState<TripSettings>(settings);
   const [tagInput, setTagInput] = useState("");
