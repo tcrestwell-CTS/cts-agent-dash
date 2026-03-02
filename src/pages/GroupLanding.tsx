@@ -20,8 +20,31 @@ import {
   ArrowRight,
   Phone,
   Mail,
+  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
+
+interface FeatureImage {
+  id: string;
+  url: string;
+  caption?: string;
+}
+
+interface AdditionalSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
+interface LandingContent {
+  feature_images?: FeatureImage[];
+  additional_sections?: AdditionalSection[];
+  signup_button_label?: string;
+  signup_enabled?: boolean;
+  cta_enabled?: boolean;
+  cta_button_label?: string;
+  cta_link?: string;
+}
 
 interface GroupLandingData {
   trip: {
@@ -34,6 +57,9 @@ interface GroupLandingData {
     notes: string | null;
     cover_image_url: string | null;
     budget_range: string | null;
+    group_landing_headline: string | null;
+    group_landing_description: string | null;
+    group_landing_content: LandingContent | null;
   };
   branding: {
     agency_name: string | null;
@@ -173,6 +199,20 @@ export default function GroupLanding() {
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
   const accentColor = data.branding?.accent_color || "#d97706";
+  const content = data.trip.group_landing_content || {};
+  const featureImages = content.feature_images || [];
+  const additionalSections = content.additional_sections || [];
+  const signupEnabled = content.signup_enabled !== false;
+  const signupButtonLabel = content.signup_button_label || "Sign Up Now";
+  const ctaEnabled = content.cta_enabled || false;
+  const ctaButtonLabel = content.cta_button_label || "Learn More";
+  const ctaLink = content.cta_link || "";
+
+  // Use builder headline if set, otherwise trip name
+  const headline = data.trip.group_landing_headline || data.trip.trip_name;
+  // Use builder rich description if set, otherwise trip notes
+  const descriptionHtml = data.trip.group_landing_description || null;
+  const descriptionPlain = data.trip.notes || null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -181,7 +221,7 @@ export default function GroupLanding() {
         {data.trip.cover_image_url ? (
           <img
             src={data.trip.cover_image_url}
-            alt={data.trip.trip_name}
+            alt={headline}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
@@ -203,7 +243,7 @@ export default function GroupLanding() {
             />
           )}
           <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg leading-tight">
-            {data.trip.trip_name}
+            {headline}
           </h1>
           <div className="flex flex-wrap items-center gap-5 mt-4 text-white/90">
             {data.trip.destination && (
@@ -242,15 +282,51 @@ export default function GroupLanding() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-10">
-            {/* Trip Description */}
-            {data.trip.notes && (
+            {/* Overview — rich HTML from builder, or plain text fallback */}
+            {descriptionHtml ? (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  About This Trip
+                </h2>
+                <div
+                  className="text-gray-600 leading-relaxed text-lg prose prose-lg max-w-none"
+                  dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                />
+              </div>
+            ) : descriptionPlain ? (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   About This Trip
                 </h2>
                 <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-lg">
-                  {data.trip.notes}
+                  {descriptionPlain}
                 </p>
+              </div>
+            ) : null}
+
+            {/* Feature Images Gallery */}
+            {featureImages.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Gallery
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {featureImages.map((img) => (
+                    <div key={img.id} className="rounded-xl overflow-hidden">
+                      <img
+                        src={img.url}
+                        alt={img.caption || "Trip photo"}
+                        className="w-full h-40 object-cover"
+                        loading="lazy"
+                      />
+                      {img.caption && (
+                        <p className="text-xs text-gray-500 px-2 py-1.5 bg-gray-50">
+                          {img.caption}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -301,6 +377,38 @@ export default function GroupLanding() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Additional Sections from Builder */}
+            {additionalSections.map((section) => (
+              <div key={section.id}>
+                {section.title && (
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    {section.title}
+                  </h2>
+                )}
+                {section.content && (
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-lg">
+                    {section.content}
+                  </p>
+                )}
+              </div>
+            ))}
+
+            {/* CTA Button */}
+            {ctaEnabled && ctaLink && (
+              <div className="pt-2">
+                <a href={ctaLink} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    size="lg"
+                    className="text-base px-8 py-5"
+                    style={{ backgroundColor: accentColor, color: "white" }}
+                  >
+                    {ctaButtonLabel}
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
               </div>
             )}
 
@@ -368,150 +476,152 @@ export default function GroupLanding() {
           {/* Signup Form (Sticky Sidebar) */}
           <div className="lg:col-span-2">
             <div className="lg:sticky lg:top-8">
-              <Card className="shadow-xl border-0 overflow-hidden">
-                <div
-                  className="p-6 text-white"
-                  style={{
-                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
-                  }}
-                >
-                  <h3 className="text-xl font-bold">
-                    {submitted ? "You're In!" : "Reserve Your Spot"}
-                  </h3>
-                  {!submitted && (
-                    <p className="text-sm text-white/80 mt-1">
-                      Fill out the form below and your travel advisor will be in
-                      touch.
-                    </p>
-                  )}
-                </div>
-                <CardContent className="p-6">
-                  {submitted ? (
-                    <div className="text-center py-6 space-y-4">
-                      <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
-                      <div>
-                        <p className="text-lg font-semibold text-gray-900">
-                          Thank you, {form.first_name}!
-                        </p>
-                        <p className="text-gray-500 mt-2">
-                          Your travel advisor will reach out shortly to finalize
-                          the details.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">First Name *</Label>
-                          <Input
-                            required
-                            maxLength={100}
-                            value={form.first_name}
-                            onChange={(e) =>
-                              setForm((f) => ({
-                                ...f,
-                                first_name: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Last Name</Label>
-                          <Input
-                            maxLength={100}
-                            value={form.last_name}
-                            onChange={(e) =>
-                              setForm((f) => ({
-                                ...f,
-                                last_name: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-sm">Email *</Label>
-                        <Input
-                          type="email"
-                          required
-                          maxLength={255}
-                          value={form.email}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, email: e.target.value }))
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-sm">Phone</Label>
-                        <Input
-                          type="tel"
-                          maxLength={20}
-                          value={form.phone}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, phone: e.target.value }))
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-sm">Number of Travelers</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="20"
-                          value={form.number_of_travelers}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              number_of_travelers: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-sm">Notes or Questions</Label>
-                        <Textarea
-                          maxLength={500}
-                          rows={3}
-                          placeholder="Any questions or special requests..."
-                          value={form.notes}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, notes: e.target.value }))
-                          }
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full text-base py-5"
-                        style={{
-                          backgroundColor: primaryColor,
-                          color: "white",
-                        }}
-                      >
-                        {submitting ? (
-                          "Signing up..."
-                        ) : (
-                          <>
-                            Sign Up Now
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </>
-                        )}
-                      </Button>
-
-                      <p className="text-xs text-gray-400 text-center">
-                        No payment required. Your advisor will contact you to
-                        finalize.
+              {signupEnabled && (
+                <Card className="shadow-xl border-0 overflow-hidden">
+                  <div
+                    className="p-6 text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
+                    }}
+                  >
+                    <h3 className="text-xl font-bold">
+                      {submitted ? "You're In!" : "Reserve Your Spot"}
+                    </h3>
+                    {!submitted && (
+                      <p className="text-sm text-white/80 mt-1">
+                        Fill out the form below and your travel advisor will be in
+                        touch.
                       </p>
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
+                    )}
+                  </div>
+                  <CardContent className="p-6">
+                    {submitted ? (
+                      <div className="text-center py-6 space-y-4">
+                        <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900">
+                            Thank you, {form.first_name}!
+                          </p>
+                          <p className="text-gray-500 mt-2">
+                            Your travel advisor will reach out shortly to finalize
+                            the details.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-sm">First Name *</Label>
+                            <Input
+                              required
+                              maxLength={100}
+                              value={form.first_name}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  first_name: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-sm">Last Name</Label>
+                            <Input
+                              maxLength={100}
+                              value={form.last_name}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  last_name: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">Email *</Label>
+                          <Input
+                            type="email"
+                            required
+                            maxLength={255}
+                            value={form.email}
+                            onChange={(e) =>
+                              setForm((f) => ({ ...f, email: e.target.value }))
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">Phone</Label>
+                          <Input
+                            type="tel"
+                            maxLength={20}
+                            value={form.phone}
+                            onChange={(e) =>
+                              setForm((f) => ({ ...f, phone: e.target.value }))
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">Number of Travelers</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={form.number_of_travelers}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                number_of_travelers: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-sm">Notes or Questions</Label>
+                          <Textarea
+                            maxLength={500}
+                            rows={3}
+                            placeholder="Any questions or special requests..."
+                            value={form.notes}
+                            onChange={(e) =>
+                              setForm((f) => ({ ...f, notes: e.target.value }))
+                            }
+                          />
+                        </div>
+
+                        <Button
+                          type="submit"
+                          disabled={submitting}
+                          className="w-full text-base py-5"
+                          style={{
+                            backgroundColor: primaryColor,
+                            color: "white",
+                          }}
+                        >
+                          {submitting ? (
+                            "Signing up..."
+                          ) : (
+                            <>
+                              {signupButtonLabel}
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+
+                        <p className="text-xs text-gray-400 text-center">
+                          No payment required. Your advisor will contact you to
+                          finalize.
+                        </p>
+                      </form>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
