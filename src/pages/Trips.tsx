@@ -446,7 +446,7 @@ const Trips = () => {
   const [searchParams] = useSearchParams();
   const { trips, loading, fetchTrips, updateTrip } = useTrips();
   const { processStatusChange } = useWorkflowAutomation();
-  const { kanbanColumns, getStatusLabel, getStatusColor, loading: statusesLoading } = useTripStatuses();
+  const { kanbanColumns, getStatusLabel, getStatusColor, getKanbanStatus, loading: statusesLoading } = useTripStatuses();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
@@ -614,7 +614,10 @@ const Trips = () => {
                 </Card>
               ) : (
                 <TripsKanban
-                  trips={filteredTrips}
+                  trips={filteredTrips.map(t => ({
+                    ...t,
+                    kanbanStatus: getKanbanStatus(t.status),
+                  }))}
                   columns={kanbanColumns}
                   onStatusChange={async (tripId, newStatus, cancellationOptions) => {
                     const trip = filteredTrips.find(t => t.id === tripId);
