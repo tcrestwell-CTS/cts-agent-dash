@@ -124,8 +124,9 @@ const GroupLandingBuilder = () => {
     setSaving(false);
   };
 
+  const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
   const landingUrl = trip?.share_token
-    ? `${window.location.origin}/group/${trip.share_token}`
+    ? `${PRODUCTION_DOMAIN}/group/${trip.share_token}`
     : null;
 
   const copyUrl = () => {
