@@ -21,6 +21,10 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Globe,
+  Anchor,
+  Compass,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -97,6 +101,8 @@ const categoryIcons: Record<string, typeof Plane> = {
   hotel: Hotel,
   dining: Utensils,
   activity: Camera,
+  cruise: Anchor,
+  transport: Compass,
 };
 
 export default function GroupLanding() {
@@ -182,9 +188,9 @@ export default function GroupLanding() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
-        <Skeleton className="h-[350px] w-full" />
-        <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <div className="min-h-screen bg-background">
+        <Skeleton className="h-[420px] w-full" />
+        <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
           <Skeleton className="h-10 w-80" />
           <Skeleton className="h-6 w-64" />
           <Skeleton className="h-40 w-full" />
@@ -195,10 +201,11 @@ export default function GroupLanding() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md w-full">
           <CardContent className="py-12 text-center">
-            <p className="text-lg font-medium text-gray-500">
+            <Globe className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-medium text-muted-foreground">
               {error || "Trip not found."}
             </p>
           </CardContent>
@@ -213,7 +220,7 @@ export default function GroupLanding() {
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
   const signupEnabled = content.signup_enabled !== false;
-  const signupButtonLabel = content.signup_button_label || "Join Us";
+  const signupButtonLabel = content.signup_button_label || "Join This Trip";
   const ctaEnabled = content.cta_enabled || false;
   const ctaButtonLabel = content.cta_button_label || "Learn More";
   const ctaLink = content.cta_link || "";
@@ -222,45 +229,115 @@ export default function GroupLanding() {
   const descriptionHtml = data.trip.group_landing_description || null;
   const descriptionPlain = data.trip.notes || null;
 
+  const formatDateRange = () => {
+    if (!data.trip.depart_date) return null;
+    const depart = format(new Date(data.trip.depart_date), "MMMM d");
+    const returnStr = data.trip.return_date
+      ? format(new Date(data.trip.return_date), "MMMM d, yyyy")
+      : null;
+    return returnStr ? `${depart} – ${returnStr}` : depart;
+  };
+
+  // Group itinerary items by day
+  const itineraryByDay = data.itineraryHighlights.reduce<
+    Record<number, typeof data.itineraryHighlights>
+  >((acc, item) => {
+    if (!acc[item.day_number]) acc[item.day_number] = [];
+    acc[item.day_number].push(item);
+    return acc;
+  }, {});
+
   return (
     <div className="min-h-screen bg-white">
-      {/* Clean Hero Banner — no text overlay */}
-      {data.trip.cover_image_url && (
-        <div className="w-full max-w-5xl mx-auto px-6 pt-8">
-          <div className="rounded-xl overflow-hidden">
-            <img
-              src={data.trip.cover_image_url}
-              alt={headline}
-              className="w-full h-[300px] md:h-[380px] object-cover"
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Two-column: Content left, Advisor right */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 items-start">
-          {/* ─── LEFT COLUMN: Content ─────────────── */}
-          <div className="space-y-8">
-            {/* Title + Dates */}
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-                {headline}
-              </h1>
-              {(data.trip.depart_date || data.trip.return_date) && (
-                <p className="text-gray-500 mt-2 text-lg">
-                  {data.trip.depart_date &&
-                    format(new Date(data.trip.depart_date), "MMM d")}
-                  {data.trip.return_date &&
-                    ` - ${format(new Date(data.trip.return_date), "d, yyyy")}`}
-                </p>
-              )}
+      {/* ─── HERO SECTION ─────────────────────────── */}
+      <div className="relative w-full">
+        {data.trip.cover_image_url ? (
+          <>
+            <div className="w-full h-[380px] md:h-[480px] relative overflow-hidden">
+              <img
+                src={data.trip.cover_image_url}
+                alt={headline}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
             </div>
+            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+              <div className="max-w-6xl mx-auto">
+                {data.branding?.logo_url && (
+                  <img
+                    src={data.branding.logo_url}
+                    alt={data.branding.agency_name || "Agency"}
+                    className="h-8 mb-4 brightness-0 invert opacity-90"
+                  />
+                )}
+                <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
+                  {headline}
+                </h1>
+                <div className="flex flex-wrap items-center gap-4 mt-3">
+                  {formatDateRange() && (
+                    <span className="inline-flex items-center gap-1.5 text-white/90 text-sm md:text-base font-medium bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      <Calendar className="h-4 w-4" />
+                      {formatDateRange()}
+                    </span>
+                  )}
+                  {data.trip.destination && (
+                    <span className="inline-flex items-center gap-1.5 text-white/90 text-sm md:text-base font-medium bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      <MapPin className="h-4 w-4" />
+                      {data.trip.destination}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div
+            className="w-full h-[280px] md:h-[360px] flex items-end"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}aa)`,
+            }}
+          >
+            <div className="p-6 md:p-10 w-full">
+              <div className="max-w-6xl mx-auto">
+                {data.branding?.logo_url && (
+                  <img
+                    src={data.branding.logo_url}
+                    alt={data.branding.agency_name || "Agency"}
+                    className="h-8 mb-4 brightness-0 invert opacity-90"
+                  />
+                )}
+                <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
+                  {headline}
+                </h1>
+                <div className="flex flex-wrap items-center gap-4 mt-3">
+                  {formatDateRange() && (
+                    <span className="inline-flex items-center gap-1.5 text-white/90 text-sm md:text-base">
+                      <Calendar className="h-4 w-4" />
+                      {formatDateRange()}
+                    </span>
+                  )}
+                  {data.trip.destination && (
+                    <span className="inline-flex items-center gap-1.5 text-white/90 text-sm md:text-base">
+                      <MapPin className="h-4 w-4" />
+                      {data.trip.destination}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
-            {/* Description / Overview */}
+      {/* ─── MAIN CONTENT ─────────────────────────── */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 items-start">
+          {/* ─── LEFT COLUMN ──────────────────────── */}
+          <div className="space-y-10">
+            {/* Overview */}
             {descriptionHtml ? (
               <div
-                className="text-gray-700 leading-relaxed text-[15px] prose prose-lg max-w-none"
+                className="text-gray-700 leading-relaxed prose prose-lg max-w-none"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : descriptionPlain ? (
@@ -269,88 +346,130 @@ export default function GroupLanding() {
               </p>
             ) : null}
 
-            {/* Separator */}
-            {(descriptionHtml || descriptionPlain) && (
-              <hr className="border-gray-200" />
-            )}
-
-            {/* Itinerary Highlights */}
-            {data.itineraryHighlights.length > 0 && (
+            {/* ─── ITINERARY SECTION ──────────────── */}
+            {Object.keys(itineraryByDay).length > 0 && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Itinerary
-                </h2>
-                <div className="space-y-4">
-                  {data.itineraryHighlights.map((item, i) => {
-                    const Icon = categoryIcons[item.category] || Camera;
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/50"
-                      >
-                        <div
-                          className="p-2 rounded-lg shrink-0"
-                          style={{ backgroundColor: `${primaryColor}15` }}
-                        >
-                          <Icon
-                            className="h-5 w-5"
-                            style={{ color: primaryColor }}
-                          />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">
-                              {item.title}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              Day {item.day_number}
-                            </span>
+                <div className="flex items-center gap-3 mb-6">
+                  <div
+                    className="p-2.5 rounded-xl"
+                    style={{ backgroundColor: `${primaryColor}12` }}
+                  >
+                    <Compass className="h-5 w-5" style={{ color: primaryColor }} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Trip Itinerary
+                  </h2>
+                </div>
+
+                <div className="relative">
+                  {/* Timeline line */}
+                  <div
+                    className="absolute left-[18px] top-6 bottom-6 w-[2px] hidden md:block"
+                    style={{ backgroundColor: `${primaryColor}20` }}
+                  />
+
+                  <div className="space-y-6">
+                    {Object.entries(itineraryByDay)
+                      .sort(([a], [b]) => Number(a) - Number(b))
+                      .map(([day, items]) => (
+                        <div key={day} className="relative">
+                          {/* Day marker */}
+                          <div className="flex items-start gap-4">
+                            <div
+                              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md z-10"
+                              style={{ backgroundColor: primaryColor }}
+                            >
+                              {day}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                                style={{ color: primaryColor }}
+                              >
+                                Day {day}
+                              </p>
+                              <div className="space-y-2">
+                                {items.map((item, i) => {
+                                  const Icon =
+                                    categoryIcons[item.category] || Camera;
+                                  return (
+                                    <div
+                                      key={i}
+                                      className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors"
+                                    >
+                                      <div
+                                        className="p-1.5 rounded-lg shrink-0 mt-0.5"
+                                        style={{
+                                          backgroundColor: `${primaryColor}10`,
+                                        }}
+                                      >
+                                        <Icon
+                                          className="h-4 w-4"
+                                          style={{ color: primaryColor }}
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-gray-900 text-[15px]">
+                                          {item.title}
+                                        </p>
+                                        {item.description && (
+                                          <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+                                            {item.description}
+                                          </p>
+                                        )}
+                                        {item.location && (
+                                          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                            <MapPin className="h-3 w-3" />
+                                            {item.location}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
-                          {item.description && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              {item.description}
-                            </p>
-                          )}
-                          {item.location && (
-                            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> {item.location}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Feature Images Gallery */}
+            {/* ─── GALLERY ────────────────────────── */}
             {featureImages.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Gallery
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {featureImages.map((img) => (
-                    <div key={img.id} className="rounded-xl overflow-hidden">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {featureImages.map((img, idx) => (
+                    <div
+                      key={img.id}
+                      className={`rounded-xl overflow-hidden group ${
+                        idx === 0 && featureImages.length >= 3
+                          ? "col-span-2 row-span-2"
+                          : ""
+                      }`}
+                    >
                       <img
                         src={img.url}
                         alt={img.caption || "Trip photo"}
-                        className="w-full h-40 object-cover"
+                        className={`w-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+                          idx === 0 && featureImages.length >= 3
+                            ? "h-64 sm:h-80"
+                            : "h-36 sm:h-40"
+                        }`}
                         loading="lazy"
                       />
-                      {img.caption && (
-                        <p className="text-xs text-gray-500 px-2 py-1.5 bg-gray-50">
-                          {img.caption}
-                        </p>
-                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Additional Sections — collapsible like Tern */}
+            {/* ─── ADDITIONAL SECTIONS (accordion) ── */}
             {additionalSections.length > 0 && (
               <div className="space-y-3">
                 {additionalSections.map((section) => {
@@ -402,43 +521,36 @@ export default function GroupLanding() {
           </div>
 
           {/* ─── RIGHT COLUMN: Advisor Card (sticky) ── */}
-          <div className="lg:sticky lg:top-8">
+          <div className="lg:sticky lg:top-8 space-y-5">
             {/* Advisor Card */}
             {data.advisor && (
-              <Card className="overflow-hidden shadow-lg border-0">
-                {/* Advisor avatar + branding banner */}
+              <Card className="overflow-hidden shadow-xl border-0 rounded-2xl">
+                {/* Banner */}
                 <div
-                  className="relative h-28"
+                  className="relative h-24"
                   style={{
-                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}bb)`,
                   }}
                 >
-                  {data.branding?.logo_url && (
-                    <img
-                      src={data.branding.logo_url}
-                      alt={data.branding.agency_name || "Agency"}
-                      className="absolute top-3 right-3 h-12 brightness-0 invert opacity-80"
-                    />
-                  )}
                   {data.branding?.tagline && (
-                    <p className="absolute bottom-3 right-3 text-xs text-white/70 italic">
+                    <p className="absolute bottom-3 right-4 text-[11px] text-white/60 italic max-w-[180px] text-right">
                       {data.branding.tagline}
                     </p>
                   )}
                 </div>
 
-                {/* Avatar overlapping the banner */}
+                {/* Avatar */}
                 <div className="relative px-5">
-                  <div className="-mt-10 mb-3">
+                  <div className="-mt-10 mb-2">
                     {data.advisor.avatar_url ? (
                       <img
                         src={data.advisor.avatar_url}
                         alt={data.advisor.name || "Advisor"}
-                        className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
+                        className="w-20 h-20 rounded-full object-cover border-[3px] border-white shadow-lg"
                       />
                     ) : (
                       <div
-                        className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-md"
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold border-[3px] border-white shadow-lg"
                         style={{ backgroundColor: primaryColor }}
                       >
                         {(data.advisor.name || "A").charAt(0)}
@@ -447,16 +559,16 @@ export default function GroupLanding() {
                   </div>
                 </div>
 
-                <CardContent className="px-5 pb-5 pt-0 space-y-3">
+                <CardContent className="px-5 pb-5 pt-0 space-y-4">
                   <div>
-                    <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
-                      Your Advisor
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-gray-400 font-semibold">
+                      Your Travel Advisor
                     </p>
-                    <p className="font-bold text-gray-900 text-lg">
+                    <p className="font-bold text-gray-900 text-lg leading-snug mt-0.5">
                       {data.advisor.name}
                     </p>
                     {data.advisor.agency_name && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-500">
                         {data.advisor.agency_name}
                       </p>
                     )}
@@ -467,7 +579,7 @@ export default function GroupLanding() {
                     data.advisor.ccra_number ||
                     data.advisor.asta_number ||
                     data.advisor.embarc_number) && (
-                    <div className="text-xs text-gray-500 space-y-0.5">
+                    <div className="text-[11px] text-gray-400 space-y-0.5 font-medium">
                       {data.advisor.clia_number && (
                         <p>CLIA: {data.advisor.clia_number}</p>
                       )}
@@ -483,14 +595,17 @@ export default function GroupLanding() {
                     </div>
                   )}
 
+                  {/* Divider */}
+                  <hr className="border-gray-100" />
+
                   {/* Contact */}
-                  <div className="space-y-1.5 text-sm">
+                  <div className="space-y-2 text-sm">
                     {data.branding?.email_address && (
                       <a
                         href={`mailto:${data.branding.email_address}`}
-                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                        className="flex items-center gap-2.5 text-gray-600 hover:text-gray-900 transition-colors"
                       >
-                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <Mail className="h-4 w-4 shrink-0 text-gray-400" />
                         <span className="truncate">
                           {data.branding.email_address}
                         </span>
@@ -499,45 +614,34 @@ export default function GroupLanding() {
                     {data.advisor.phone && (
                       <a
                         href={`tel:${data.advisor.phone}`}
-                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                        className="flex items-center gap-2.5 text-gray-600 hover:text-gray-900 transition-colors"
                       >
-                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        <Phone className="h-4 w-4 shrink-0 text-gray-400" />
                         {data.advisor.phone}
                       </a>
                     )}
                   </div>
 
-                  {/* Agency logo small */}
-                  {data.branding?.logo_url && (
-                    <div className="flex justify-end pt-1">
-                      <img
-                        src={data.branding.logo_url}
-                        alt={data.branding.agency_name || "Agency"}
-                        className="h-10 object-contain"
-                      />
-                    </div>
-                  )}
-
-                  {/* Join Us / Signup CTA */}
+                  {/* Signup CTA */}
                   {signupEnabled && (
                     <Button
-                      className="w-full text-base py-5 mt-2"
+                      className="w-full text-base py-5 mt-1 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ backgroundColor: primaryColor, color: "white" }}
                       onClick={() => setShowSignupForm(true)}
                     >
+                      <Users className="mr-2 h-4 w-4" />
                       {signupButtonLabel}
-                      <ExternalLink className="ml-2 h-4 w-4" />
                     </Button>
                   )}
                 </CardContent>
               </Card>
             )}
 
-            {/* If no advisor but signup enabled, still show CTA */}
+            {/* If no advisor but signup enabled */}
             {!data.advisor && signupEnabled && (
-              <Card className="shadow-lg border-0 overflow-hidden">
+              <Card className="shadow-xl border-0 overflow-hidden rounded-2xl">
                 <div
-                  className="p-5 text-white"
+                  className="p-6 text-white"
                   style={{
                     background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
                   }}
@@ -549,12 +653,12 @@ export default function GroupLanding() {
                 </div>
                 <CardContent className="p-5">
                   <Button
-                    className="w-full text-base py-5"
+                    className="w-full text-base py-5 rounded-xl font-semibold"
                     style={{ backgroundColor: primaryColor, color: "white" }}
                     onClick={() => setShowSignupForm(true)}
                   >
+                    <Users className="mr-2 h-4 w-4" />
                     {signupButtonLabel}
-                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
@@ -564,14 +668,14 @@ export default function GroupLanding() {
 
         {/* ─── Mobile sticky CTA ──────────────────── */}
         {signupEnabled && !showSignupForm && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50">
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-sm border-t shadow-lg z-50">
             <Button
-              className="w-full text-base py-5"
+              className="w-full text-base py-5 rounded-xl font-semibold"
               style={{ backgroundColor: primaryColor, color: "white" }}
               onClick={() => setShowSignupForm(true)}
             >
+              <Users className="mr-2 h-4 w-4" />
               {signupButtonLabel}
-              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         )}
@@ -579,12 +683,12 @@ export default function GroupLanding() {
 
       {/* ─── Signup Form Modal ────────────────────── */}
       {showSignupForm && signupEnabled && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md shadow-2xl border-0 overflow-hidden">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0 overflow-hidden rounded-2xl">
             <div
-              className="p-5 text-white"
+              className="p-6 text-white"
               style={{
-                background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
+                background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
               }}
             >
               <h3 className="text-xl font-bold">
@@ -597,7 +701,7 @@ export default function GroupLanding() {
                 </p>
               )}
             </div>
-            <CardContent className="p-5">
+            <CardContent className="p-6">
               {submitted ? (
                 <div className="text-center py-6 space-y-4">
                   <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
@@ -709,7 +813,7 @@ export default function GroupLanding() {
                   <Button
                     type="submit"
                     disabled={submitting}
-                    className="w-full text-base py-5"
+                    className="w-full text-base py-5 rounded-xl font-semibold"
                     style={{
                       backgroundColor: primaryColor,
                       color: "white",
@@ -745,15 +849,15 @@ export default function GroupLanding() {
         </div>
       )}
 
-      {/* Footer */}
+      {/* ─── Footer ───────────────────────────────── */}
       {data.branding && (
-        <div className="border-t bg-gray-50 py-8">
-          <div className="max-w-5xl mx-auto px-6 text-center">
+        <div className="border-t bg-gray-50/80 py-10">
+          <div className="max-w-6xl mx-auto px-6 text-center space-y-3">
             {data.branding.logo_url && (
               <img
                 src={data.branding.logo_url}
                 alt={data.branding.agency_name || "Agency"}
-                className="h-8 mx-auto mb-3"
+                className="h-9 mx-auto"
               />
             )}
             <p className="text-sm text-gray-500">
@@ -765,7 +869,7 @@ export default function GroupLanding() {
                 href={data.branding.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-gray-400 hover:text-gray-600 mt-1 inline-block"
+                className="text-sm text-gray-400 hover:text-gray-600 inline-block"
               >
                 {data.branding.website}
               </a>
