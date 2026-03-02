@@ -90,7 +90,7 @@ export function useWorkflowAutomation() {
 
         // Send proposal email to client
         const clientEmail = trip.clients?.email;
-        const clientName = trip.clients?.name || trip.clients?.first_name || "Traveler";
+        const clientName = trip.clients?.name || "Traveler";
         const clientId = trip.client_id;
         if (clientEmail) {
           const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
