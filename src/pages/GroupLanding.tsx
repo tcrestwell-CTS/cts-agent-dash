@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import crestwellLogo from "@/assets/crestwell-logo.png";
 import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -263,13 +264,11 @@ export default function GroupLanding() {
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
               <div className="max-w-6xl mx-auto">
-                {data.branding?.logo_url && (
                   <img
-                    src={data.branding.logo_url}
-                    alt={data.branding.agency_name || "Agency"}
-                    className="h-12 mb-4 object-contain drop-shadow-lg"
+                    src={crestwellLogo}
+                    alt={data.branding?.agency_name || "Crestwell Travel Services"}
+                    className="h-16 mb-4 object-contain drop-shadow-lg"
                   />
-                )}
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
                   {headline}
                 </h1>
@@ -299,13 +298,11 @@ export default function GroupLanding() {
           >
             <div className="p-6 md:p-10 w-full">
               <div className="max-w-6xl mx-auto">
-                {data.branding?.logo_url && (
                   <img
-                    src={data.branding.logo_url}
-                    alt={data.branding.agency_name || "Agency"}
-                    className="h-12 mb-4 object-contain drop-shadow-lg"
+                    src={crestwellLogo}
+                    alt={data.branding?.agency_name || "Crestwell Travel Services"}
+                    className="h-16 mb-4 object-contain drop-shadow-lg"
                   />
-                )}
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
                   {headline}
                 </h1>
