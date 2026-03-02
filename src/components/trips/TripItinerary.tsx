@@ -7,8 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sparkles, Download, Trash2, Import, Clock, MapPin, Plus,
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, ShoppingBag,
-  Music, Target, Heart, Layers,
+  Music, Target, Heart, Layers, GripVertical,
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
