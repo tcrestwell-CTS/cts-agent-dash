@@ -449,14 +449,15 @@ const GroupLandingBuilder = () => {
       </div>
 
       {/* ─── Two-column layout ────────────────────── */}
-      <div className="flex gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
         {/* ─── LEFT: Main Content ─────────────────── */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Landing Page Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
 
-          {/* Landing Page Details */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Landing Page Details</h2>
-
+            {/* Page Title */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Page Title</Label>
               <Input
@@ -465,7 +466,6 @@ const GroupLandingBuilder = () => {
                 onChange={(e) => setLandingHeadline(e.target.value)}
               />
             </div>
-          </div>
 
           {/* Hero Image */}
           <div className="space-y-3">
@@ -692,98 +692,105 @@ const GroupLandingBuilder = () => {
               <Plus className="h-4 w-4 mr-2" /> Add Section
             </Button>
           </div>
-        </div>
 
-        {/* ─── RIGHT: Settings Sidebar ────────────── */}
-        <div className="w-72 shrink-0 space-y-6 sticky top-8">
-          {/* Settings Header */}
-          <h2 className="text-lg font-semibold">Settings</h2>
+          </CardContent>
+        </Card>
 
-          {/* Enable Landing Page */}
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">Enable landing page</Label>
-            <Switch checked={landingEnabled} onCheckedChange={handleToggle} />
-          </div>
+        <div className="sticky top-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
 
-          {/* Public URL */}
-          {landingUrl && (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Public URL</Label>
-              <div className="flex items-center gap-1.5">
-                <Input readOnly value={landingUrl} className="text-xs font-mono h-8" onClick={(e) => (e.target as HTMLInputElement).select()} />
-                <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={copyUrl}>
-                  <Copy className="h-3 w-3" />
-                </Button>
+              {/* Enable Landing Page */}
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Enable landing page</Label>
+                <Switch checked={landingEnabled} onCheckedChange={handleToggle} />
               </div>
-            </div>
-          )}
 
-          <Separator />
+              {/* Public URL */}
+              {landingUrl && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Public URL</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input readOnly value={landingUrl} className="text-xs font-mono h-8" onClick={(e) => (e.target as HTMLInputElement).select()} />
+                    <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={copyUrl}>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-          {/* Self Service Signup */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Self Service Signup</h3>
-            <p className="text-xs text-muted-foreground">
-              Automatically create sub-trips when a client fills out your signup form. They'll also see their selections and be able to make payments that are made.
-            </p>
+              <Separator />
 
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Button Label</Label>
-              <Input
-                placeholder="Sign Up Now"
-                value={signupButtonLabel}
-                onChange={(e) => setSignupButtonLabel(e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
+              {/* Self Service Signup */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Self Service Signup</h3>
+                <p className="text-xs text-muted-foreground">
+                  Automatically create sub-trips when a client fills out your signup form. They'll also see their selections and be able to make payments that are made.
+                </p>
 
-            <button
-              onClick={() => navigate(`/trips/${tripId}`)}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              Edit Signup Form <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Button Label</Label>
+                  <Input
+                    placeholder="Sign Up Now"
+                    value={signupButtonLabel}
+                    onChange={(e) => setSignupButtonLabel(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
 
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Enable sign up</Label>
-              <Switch checked={signupEnabled} onCheckedChange={setSignupEnabled} />
-            </div>
-          </div>
+                <button
+                  onClick={() => navigate(`/trips/${tripId}`)}
+                  className="flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  Edit Signup Form <ChevronRight className="h-3.5 w-3.5" />
+                </button>
 
-          <Separator />
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Enable sign up</Label>
+                  <Switch checked={signupEnabled} onCheckedChange={setSignupEnabled} />
+                </div>
+              </div>
 
-          {/* Custom Call to Action */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Custom Call to Action</h3>
-            <p className="text-xs text-muted-foreground">
-              Display a custom call to action, separate from self service signup.
-            </p>
+              <Separator />
 
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Button Label</Label>
-              <Input
-                placeholder="Learn More"
-                value={ctaButtonLabel}
-                onChange={(e) => setCtaButtonLabel(e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
+              {/* Custom Call to Action */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Custom Call to Action</h3>
+                <p className="text-xs text-muted-foreground">
+                  Display a custom call to action, separate from self service signup.
+                </p>
 
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Link</Label>
-              <Input
-                placeholder="https://..."
-                value={ctaLink}
-                onChange={(e) => setCtaLink(e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Button Label</Label>
+                  <Input
+                    placeholder="Learn More"
+                    value={ctaButtonLabel}
+                    onChange={(e) => setCtaButtonLabel(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
 
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Enable call to action</Label>
-              <Switch checked={ctaEnabled} onCheckedChange={setCtaEnabled} />
-            </div>
-          </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Link</Label>
+                  <Input
+                    placeholder="https://..."
+                    value={ctaLink}
+                    onChange={(e) => setCtaLink(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Enable call to action</Label>
+                  <Switch checked={ctaEnabled} onCheckedChange={setCtaEnabled} />
+                </div>
+              </div>
+
+            </CardContent>
+          </Card>
         </div>
       </div>
     </DashboardLayout>
