@@ -267,7 +267,7 @@ export default function GroupLanding() {
                   <img
                     src={data.branding.logo_url}
                     alt={data.branding.agency_name || "Agency"}
-                    className="h-8 mb-4 brightness-0 invert opacity-90"
+                    className="h-12 mb-4 object-contain drop-shadow-lg"
                   />
                 )}
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
@@ -303,7 +303,7 @@ export default function GroupLanding() {
                   <img
                     src={data.branding.logo_url}
                     alt={data.branding.agency_name || "Agency"}
-                    className="h-8 mb-4 brightness-0 invert opacity-90"
+                    className="h-12 mb-4 object-contain drop-shadow-lg"
                   />
                 )}
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
