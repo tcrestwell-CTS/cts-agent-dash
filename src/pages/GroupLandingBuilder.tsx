@@ -692,7 +692,9 @@ const GroupLandingBuilder = () => {
               <Plus className="h-4 w-4 mr-2" /> Add Section
             </Button>
           </div>
-        </div>
+
+          </CardContent>
+        </Card>
 
         {/* ─── RIGHT: Settings Sidebar ────────────── */}
         <div className="w-72 shrink-0 space-y-6 sticky top-8">
