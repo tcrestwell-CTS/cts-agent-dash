@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { useSuppliers, CreateSupplierData } from "@/hooks/useSuppliers";
@@ -107,43 +108,67 @@ export function AddSupplierDialog() {
 
           <div className="border-t pt-4">
             <h4 className="font-medium text-sm text-muted-foreground mb-3">Commission Settings</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="commissionable">Commissionable %</Label>
-                <div className="relative">
-                  <Input
-                    id="commissionable"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={formData.commissionable_percentage}
-                    onChange={(e) => setFormData({ ...formData, commissionable_percentage: parseFloat(e.target.value) || 0 })}
-                    className="pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+            {formData.supplier_type === "airline" && (
+              <div className="flex items-center space-x-2 mb-4 p-3 bg-muted/50 rounded-lg">
+                <Checkbox
+                  id="override_commission"
+                  checked={formData.override_commission || false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, override_commission: checked === true })}
+                />
+                <div>
+                  <Label htmlFor="override_commission" className="text-sm font-medium cursor-pointer">
+                    Override default flight commission
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Default: $25 per $500 flat rate. Check to use custom percentage rates instead.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">Portion of booking eligible for commission</p>
               </div>
+            )}
+            {(formData.supplier_type !== "airline" || formData.override_commission) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="commissionable">Commissionable %</Label>
+                  <div className="relative">
+                    <Input
+                      id="commissionable"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={formData.commissionable_percentage}
+                      onChange={(e) => setFormData({ ...formData, commissionable_percentage: parseFloat(e.target.value) || 0 })}
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Portion of booking eligible for commission</p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="rate">Commission Rate</Label>
-                <div className="relative">
-                  <Input
-                    id="rate"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={formData.commission_rate}
-                    onChange={(e) => setFormData({ ...formData, commission_rate: parseFloat(e.target.value) || 0 })}
-                    className="pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                <div className="space-y-2">
+                  <Label htmlFor="rate">Commission Rate</Label>
+                  <div className="relative">
+                    <Input
+                      id="rate"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={formData.commission_rate}
+                      onChange={(e) => setFormData({ ...formData, commission_rate: parseFloat(e.target.value) || 0 })}
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Rate applied to commissionable amount</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Rate applied to commissionable amount</p>
               </div>
-            </div>
+            )}
+            {formData.supplier_type === "airline" && !formData.override_commission && (
+              <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded mt-2">
+                Using flat rate: <strong>$25.00 per $500</strong> of gross sales
+              </p>
+            )}
           </div>
 
           <div className="border-t pt-4">

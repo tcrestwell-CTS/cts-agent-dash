@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DollarSign, Percent, Building2, TrendingUp } from "lucide-react";
-import { useSuppliers, calculateBookingFinancials, Supplier } from "@/hooks/useSuppliers";
+import { useSuppliers, calculateBookingFinancials, Supplier, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
 import { useMemo } from "react";
 
 interface BookingFinancialsProps {
@@ -44,8 +44,25 @@ export function BookingFinancials({
     return activeSuppliers.find((s) => s.id === supplierId) || null;
   }, [supplierId, activeSuppliers]);
 
+  // Check if this is a flat-rate flight supplier
+  const isFlightFlat = isFlightFlatRate(selectedSupplier);
+
   // Calculate financials based on current values
   const financials = useMemo(() => {
+    // If supplier is selected and it's a flat-rate airline
+    if (isFlightFlat && selectedSupplier) {
+      const commissionRevenue = Math.round(((grossSales / FLIGHT_FLAT_PER) * FLIGHT_FLAT_RATE) * 100) / 100;
+      const netSales = grossSales - commissionRevenue;
+      return {
+        commissionableAmount: grossSales,
+        commissionRevenue,
+        netSales,
+        supplierPayout: netSales,
+        effectiveCommissionablePercentage: 100,
+        effectiveCommissionRate: (FLIGHT_FLAT_RATE / FLIGHT_FLAT_PER) * 100,
+      };
+    }
+
     // If supplier is selected, use supplier rates; otherwise use manual rates
     const effectiveCommissionablePercentage = selectedSupplier 
       ? selectedSupplier.commissionable_percentage 
@@ -67,7 +84,7 @@ export function BookingFinancials({
       effectiveCommissionablePercentage,
       effectiveCommissionRate,
     };
-  }, [grossSales, selectedSupplier, commissionablePercentage, commissionRate]);
+  }, [grossSales, selectedSupplier, commissionablePercentage, commissionRate, isFlightFlat]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -181,20 +198,25 @@ export function BookingFinancials({
 
         {/* Calculated Values */}
         <div className="border-t pt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Percent className="h-4 w-4" />
-              Commissionable Amount ({financials.effectiveCommissionablePercentage}%)
+          {!isFlightFlat && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Percent className="h-4 w-4" />
+                Commissionable Amount ({financials.effectiveCommissionablePercentage}%)
+              </div>
+              <span className="font-medium">
+                {formatCurrency(financials.commissionableAmount)}
+              </span>
             </div>
-            <span className="font-medium">
-              {formatCurrency(financials.commissionableAmount)}
-            </span>
-          </div>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-success">
               <TrendingUp className="h-4 w-4" />
-              Commission Revenue ({financials.effectiveCommissionRate}%)
+              {isFlightFlat 
+                ? `Commission ($${FLIGHT_FLAT_RATE}/$${FLIGHT_FLAT_PER})`
+                : `Commission Revenue (${financials.effectiveCommissionRate}%)`
+              }
             </div>
             <span className="font-semibold text-success">
               {formatCurrency(financials.commissionRevenue)}
@@ -226,6 +248,7 @@ export function BookingFinancials({
         {selectedSupplier && (
           <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
             Using rates from: <strong>{selectedSupplier.name}</strong>
+            {isFlightFlat && " (flat rate: $25/$500)"}
           </p>
         )}
       </CardContent>

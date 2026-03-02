@@ -16,6 +16,7 @@ export interface Supplier {
   website: string | null;
   notes: string | null;
   is_active: boolean;
+  override_commission: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +30,18 @@ export interface CreateSupplierData {
   contact_phone?: string;
   website?: string;
   notes?: string;
+}
+
+export interface CreateSupplierData {
+  name: string;
+  supplier_type: string;
+  commissionable_percentage: number;
+  commission_rate: number;
+  contact_email?: string;
+  contact_phone?: string;
+  website?: string;
+  notes?: string;
+  override_commission?: boolean;
 }
 
 export interface UpdateSupplierData extends Partial<CreateSupplierData> {
@@ -136,11 +149,35 @@ export function useSuppliers() {
   };
 }
 
+// Flight flat rate: $25 per $500 of gross sales
+export const FLIGHT_FLAT_RATE = 25;
+export const FLIGHT_FLAT_PER = 500;
+
+export function isFlightFlatRate(supplier?: Supplier | null): boolean {
+  return !!supplier && supplier.supplier_type === "airline" && !supplier.override_commission;
+}
+
 // Helper function to calculate commission values based on supplier
 export function calculateBookingFinancials(
   grossSales: number,
   supplier?: Supplier | null
 ) {
+  // Flight flat rate: $25 per $500
+  if (isFlightFlatRate(supplier)) {
+    const commissionRevenue = Math.round(((grossSales / FLIGHT_FLAT_PER) * FLIGHT_FLAT_RATE) * 100) / 100;
+    const netSales = grossSales - commissionRevenue;
+    return {
+      grossSales,
+      commissionableAmount: grossSales,
+      commissionRevenue,
+      netSales,
+      supplierPayout: netSales,
+      commissionablePercentage: 100,
+      commissionRate: (FLIGHT_FLAT_RATE / FLIGHT_FLAT_PER) * 100,
+      isFlightFlat: true,
+    };
+  }
+
   // Default values if no supplier
   const commissionablePercentage = supplier?.commissionable_percentage ?? 85;
   const commissionRate = supplier?.commission_rate ?? 10;
@@ -148,7 +185,7 @@ export function calculateBookingFinancials(
   const commissionableAmount = grossSales * (commissionablePercentage / 100);
   const commissionRevenue = commissionableAmount * (commissionRate / 100);
   const netSales = grossSales - commissionRevenue;
-  const supplierPayout = netSales; // Could factor in platform fees in the future
+  const supplierPayout = netSales;
 
   return {
     grossSales,
@@ -158,5 +195,6 @@ export function calculateBookingFinancials(
     supplierPayout,
     commissionablePercentage,
     commissionRate,
+    isFlightFlat: false,
   };
 }
