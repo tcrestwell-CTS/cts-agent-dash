@@ -449,14 +449,15 @@ const GroupLandingBuilder = () => {
       </div>
 
       {/* ─── Two-column layout ────────────────────── */}
-      <div className="flex gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
         {/* ─── LEFT: Main Content ─────────────────── */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Landing Page Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
 
-          {/* Landing Page Details */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Landing Page Details</h2>
-
+            {/* Page Title */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Page Title</Label>
               <Input
@@ -465,7 +466,6 @@ const GroupLandingBuilder = () => {
                 onChange={(e) => setLandingHeadline(e.target.value)}
               />
             </div>
-          </div>
 
           {/* Hero Image */}
           <div className="space-y-3">
