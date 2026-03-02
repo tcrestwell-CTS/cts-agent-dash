@@ -39,9 +39,34 @@ const GroupLandingBuilder = () => {
     if (!tripId) return;
     const { data, error } = await supabase
       .from("trips")
-      .select("id, trip_name, destination, depart_date, return_date, trip_type, share_token, group_landing_enabled, group_landing_headline, group_landing_description, status, cover_image_url")
+      .select("id, trip_name, destination, depart_date, return_date, trip_type, share_token, group_landing_enabled, status, cover_image_url")
       .eq("id", tripId)
       .single();
+
+    if (error || !data) {
+      toast.error("Trip not found");
+      navigate("/trips");
+      return;
+    }
+
+    if ((data as any).trip_type !== "group") {
+      toast.error("Landing pages are only available for group trips");
+      navigate(`/trips/${tripId}`);
+      return;
+    }
+
+    // Fetch the new columns separately to avoid type issues
+    const { data: extraData } = await supabase
+      .from("trips")
+      .select("*")
+      .eq("id", tripId)
+      .single();
+
+    setTrip(data);
+    setLandingEnabled((data as any).group_landing_enabled || false);
+    setLandingHeadline((extraData as any)?.group_landing_headline || "");
+    setLandingDescription((extraData as any)?.group_landing_description || "");
+    setLoading(false);
 
     if (error || !data) {
       toast.error("Trip not found");
