@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle, Send, MousePointerClick, Shield, Banknote, CreditCard, BookOpen, Clock, CircleDollarSign, BadgeCheck } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plane, Calendar, CheckCircle2, Archive, XCircle, AlertTriangle, Send, Shield, Banknote, CreditCard, BookOpen, Clock, CircleDollarSign, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
