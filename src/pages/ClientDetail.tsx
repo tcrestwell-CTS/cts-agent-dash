@@ -475,6 +475,19 @@ const ClientDetail = () => {
                     )}
                     Send Portal Link
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleSendUpdateLink}
+                    disabled={isSendingUpdateLink}
+                    className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                  >
+                    {isSendingUpdateLink ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <ClipboardEdit className="mr-2 h-4 w-4" />
+                    )}
+                    Request Info Update
+                  </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => setEmailDialogOpen(true)}
