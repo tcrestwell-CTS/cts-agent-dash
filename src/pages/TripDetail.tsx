@@ -552,7 +552,6 @@ const TripDetail = () => {
           <div className="space-y-4 lg:block">
             <div className="sticky top-6 space-y-4">
               <TripReadinessScore
-                budgetRange={(trip as any).budget_range}
                 departDate={trip.depart_date}
                 returnDate={trip.return_date}
                 hasSupplierBooking={bookings.some((b: any) => b.supplier_id)}

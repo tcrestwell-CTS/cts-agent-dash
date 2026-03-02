@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface TripReadinessScoreProps {
-  budgetRange: string | null;
   departDate: string | null;
   returnDate: string | null;
   hasSupplierBooking: boolean;
@@ -18,18 +17,12 @@ interface ReadinessItem {
 }
 
 export function TripReadinessScore({
-  budgetRange,
   departDate,
   returnDate,
   hasSupplierBooking,
   totalCommissionRevenue,
 }: TripReadinessScoreProps) {
   const items: ReadinessItem[] = [
-    {
-      label: "Budget confirmed",
-      checked: !!budgetRange,
-      description: "Set a budget range for the trip",
-    },
     {
       label: "Dates confirmed",
       checked: !!departDate && !!returnDate,
