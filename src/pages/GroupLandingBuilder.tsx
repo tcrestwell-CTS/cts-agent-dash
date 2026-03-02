@@ -38,6 +38,11 @@ const GroupLandingBuilder = () => {
   const [landingEnabled, setLandingEnabled] = useState(false);
   const [landingHeadline, setLandingHeadline] = useState("");
   const [landingDescription, setLandingDescription] = useState("");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [heroUrlInput, setHeroUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const heroFileRef = useRef<HTMLInputElement>(null);
 
   const fetchTrip = async () => {
     if (!tripId) return;
