@@ -16,7 +16,7 @@ interface Attachment {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "custom";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
   clientId?: string;
@@ -329,6 +329,36 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
             </div>
             <p style="color: #4b5563; line-height: 1.6;">If you have any questions about this invoice, please don't hesitate to reach out.</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "proposal_ready":
+        const proposalTripName = templateData?.tripName || "Your Trip";
+        const proposalDestination = templateData?.destination || "";
+        const proposalDates = templateData?.dates || "";
+        const proposalUrl = templateData?.proposalUrl || "#";
+        const agentName = templateData?.agentName || "Your Travel Advisor";
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <h2 style="color: #1f2937;">Your Travel Proposal is Ready! ✨</h2>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">${agentName} has prepared a personalized travel proposal for you. We'd love for you to review the details and let us know your thoughts!</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Trip:</strong> ${proposalTripName}</p>
+              ${proposalDestination ? `<p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${proposalDestination}</p>` : ""}
+              ${proposalDates ? `<p style="margin: 8px 0; color: #374151;"><strong>Travel Dates:</strong> ${proposalDates}</p>` : ""}
+            </div>
+            <p style="color: #4b5563; line-height: 1.6;">Click the button below to view your full itinerary, options, and pricing:</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${proposalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Review Your Proposal</a>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">If you have any questions or would like to make changes, simply reply to this email or reach out to your advisor directly.</p>
             ${footerHtml}
           </div>
         `;
