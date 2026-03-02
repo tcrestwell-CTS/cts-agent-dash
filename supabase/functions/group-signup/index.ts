@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       const { data: trip, error: tripErr } = await supabaseAdmin
         .from("trips")
         .select(
-          "id, trip_name, destination, depart_date, return_date, status, notes, cover_image_url, total_gross_sales, trip_type, group_landing_enabled, user_id, budget_range"
+          "id, trip_name, destination, depart_date, return_date, status, notes, cover_image_url, total_gross_sales, trip_type, group_landing_enabled, user_id, budget_range, group_landing_headline, group_landing_description, group_landing_content"
         )
         .eq("share_token", token)
         .eq("trip_type", "group")
@@ -91,6 +91,9 @@ Deno.serve(async (req) => {
             notes: trip.notes,
             cover_image_url: trip.cover_image_url,
             budget_range: trip.budget_range,
+            group_landing_headline: trip.group_landing_headline,
+            group_landing_description: trip.group_landing_description,
+            group_landing_content: trip.group_landing_content,
           },
           branding,
           advisor: advisor
