@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,10 @@ import {
   Palette,
   FileText,
   CheckCircle2,
+  ImagePlus,
+  Link,
+  X,
+  Loader2,
 } from "lucide-react";
 
 const GroupLandingBuilder = () => {
