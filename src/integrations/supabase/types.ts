@@ -2259,6 +2259,7 @@ export type Database = {
           deposit_required: boolean | null
           destination: string | null
           follow_up_due_at: string | null
+          group_landing_content: Json | null
           group_landing_description: string | null
           group_landing_enabled: boolean
           group_landing_headline: string | null
@@ -2316,6 +2317,7 @@ export type Database = {
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
+          group_landing_content?: Json | null
           group_landing_description?: string | null
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
@@ -2373,6 +2375,7 @@ export type Database = {
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
+          group_landing_content?: Json | null
           group_landing_description?: string | null
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
