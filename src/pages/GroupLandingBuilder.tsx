@@ -116,7 +116,7 @@ const GroupLandingBuilder = () => {
     setLandingEnabled(d.group_landing_enabled || false);
     setLandingHeadline(d.group_landing_headline || "");
     setLandingDescription(d.group_landing_description || "");
-    setHeroImageUrl(d.group_landing_hero_url || "");
+    setHeroImageUrl(d.cover_image_url || "");
 
     const content: LandingContent = d.group_landing_content || {
       feature_images: [],
@@ -167,7 +167,7 @@ const GroupLandingBuilder = () => {
       .update({
         group_landing_headline: landingHeadline || null,
         group_landing_description: overviewHtml || null,
-        group_landing_hero_url: heroImageUrl || null,
+        cover_image_url: heroImageUrl || null,
         group_landing_content: content,
       } as any)
       .eq("id", tripId!);
@@ -201,7 +201,7 @@ const GroupLandingBuilder = () => {
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("trip-covers").getPublicUrl(path);
       setHeroImageUrl(publicUrl);
-      await supabase.from("trips").update({ group_landing_hero_url: publicUrl } as any).eq("id", tripId!);
+      await supabase.from("trips").update({ cover_image_url: publicUrl } as any).eq("id", tripId!);
       toast.success("Hero image uploaded");
     } catch { toast.error("Failed to upload image"); }
     finally { setUploadingHero(false); if (heroFileRef.current) heroFileRef.current.value = ""; }
@@ -211,14 +211,14 @@ const GroupLandingBuilder = () => {
     if (!heroUrlInput.trim()) return;
     setHeroImageUrl(heroUrlInput.trim());
     setShowHeroUrlInput(false);
-    await supabase.from("trips").update({ group_landing_hero_url: heroUrlInput.trim() } as any).eq("id", tripId!);
+    await supabase.from("trips").update({ cover_image_url: heroUrlInput.trim() } as any).eq("id", tripId!);
     toast.success("Hero image URL saved");
     setHeroUrlInput("");
   };
 
   const handleRemoveHero = async () => {
     setHeroImageUrl("");
-    await supabase.from("trips").update({ group_landing_hero_url: null } as any).eq("id", tripId!);
+    await supabase.from("trips").update({ cover_image_url: null } as any).eq("id", tripId!);
     toast.success("Hero image removed");
   };
 
