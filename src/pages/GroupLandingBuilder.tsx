@@ -292,6 +292,106 @@ const GroupLandingBuilder = () => {
           </CardContent>
         </Card>
 
+        {/* Hero Image */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ImagePlus className="h-4 w-4" />
+              Hero Image
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Upload an image or paste a URL. This displays as the banner on your landing page.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {heroImageUrl ? (
+              <div className="relative group rounded-lg overflow-hidden border">
+                <img
+                  src={heroImageUrl}
+                  alt="Landing page hero"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => heroFileRef.current?.click()}
+                    disabled={uploadingHero}
+                  >
+                    {uploadingHero ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4 mr-1" />}
+                    Replace
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleRemoveHero}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={() => heroFileRef.current?.click()}
+                  disabled={uploadingHero}
+                  className="w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                >
+                  {uploadingHero ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <>
+                      <ImagePlus className="h-6 w-6" />
+                      <span className="text-sm font-medium">Upload Hero Image</span>
+                      <span className="text-xs">JPG, PNG — max 5MB</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex-1 h-px bg-border" />
+                  <span>or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                {showUrlInput ? (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://example.com/image.jpg"
+                      value={heroUrlInput}
+                      onChange={(e) => setHeroUrlInput(e.target.value)}
+                      className="text-sm"
+                    />
+                    <Button size="sm" onClick={handleHeroUrlSubmit} disabled={!heroUrlInput.trim()}>
+                      Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setShowUrlInput(false); setHeroUrlInput(""); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowUrlInput(true)}
+                  >
+                    <Link className="h-3.5 w-3.5 mr-1.5" />
+                    Paste Image URL
+                  </Button>
+                )}
+              </div>
+            )}
+            <input
+              ref={heroFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleHeroUpload}
+            />
+          </CardContent>
+        </Card>
+
         {/* Content Builder */}
         <Card>
           <CardHeader className="pb-3">
