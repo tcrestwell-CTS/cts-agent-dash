@@ -381,8 +381,18 @@ const GroupLandingBuilder = () => {
   };
 
   // ─── URL ──────────────────────────────────────────
-  const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
-  const landingUrl = trip?.share_token ? `${PRODUCTION_DOMAIN}/group/${trip.share_token}` : null;
+  const getPublicBaseUrl = () => {
+    if (trip?.trip_page_url) {
+      try {
+        return new URL(trip.trip_page_url).origin;
+      } catch {
+        // fall through to default
+      }
+    }
+    return "https://cts-agent-dash.lovable.app";
+  };
+
+  const landingUrl = trip?.share_token ? `${getPublicBaseUrl()}/group/${trip.share_token}` : null;
   const copyUrl = () => {
     if (landingUrl) { navigator.clipboard.writeText(landingUrl); toast.success("Link copied!"); }
   };
