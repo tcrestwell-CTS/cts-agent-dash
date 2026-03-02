@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine, Loader2 } from "lucide-react";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine, Loader2, Lock, Wallet } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,8 +10,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SharedTripInvestmentProps {
   trip: {
@@ -44,6 +45,7 @@ export default function SharedTripInvestment({
   const finalBalance = totalCost - depositAmount;
   const [showTerms, setShowTerms] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [accepted, setAccepted] = useState({
     totalCost: false,
     cancellation: false,
@@ -51,6 +53,7 @@ export default function SharedTripInvestment({
   });
   const [signature, setSignature] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ccLoading, setCcLoading] = useState(false);
 
   if (totalCost <= 0) return null;
 
@@ -63,6 +66,7 @@ export default function SharedTripInvestment({
     if (!shareToken) {
       setTermsAccepted(true);
       setShowTerms(false);
+      setTimeout(() => setShowPaymentMethods(true), 150);
       return;
     }
 
@@ -102,6 +106,39 @@ export default function SharedTripInvestment({
       setSubmitting(false);
       setTermsAccepted(true);
       setShowTerms(false);
+      setTimeout(() => setShowPaymentMethods(true), 150);
+    }
+  };
+
+  const handleCCToAgent = async () => {
+    if (!shareToken) return;
+    setCcLoading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/shared-trip`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: shareToken,
+            action: "create_cc_auth",
+            amount: paymentAmount,
+          }),
+        }
+      );
+      const result = await res.json();
+      if (result.ccAccessToken) {
+        setShowPaymentMethods(false);
+        window.location.href = `/authorize/${result.ccAccessToken}`;
+      } else {
+        toast.error(result.error || "Unable to create authorization. Please contact your advisor.");
+      }
+    } catch (err) {
+      console.error("CC auth error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setCcLoading(false);
     }
   };
 
@@ -219,12 +256,23 @@ export default function SharedTripInvestment({
       <div className="rounded-xl border border-gray-200 p-6 text-center space-y-4 bg-gray-50">
         <h3 className="text-lg font-bold text-gray-900">Ready to Book?</h3>
         <p className="text-sm text-gray-500 max-w-md mx-auto">
-          Review and accept the terms below to proceed. Your travel advisor will then coordinate your payment.
+          Review and accept the terms below to proceed with payment.
         </p>
         {termsAccepted ? (
-          <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: primaryColor }}>
-            <CheckCircle2 className="h-5 w-5" />
-            Terms accepted — your advisor will be in touch with payment details.
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: primaryColor }}>
+              <CheckCircle2 className="h-5 w-5" />
+              Terms accepted
+            </div>
+            <Button
+              size="lg"
+              className="text-white"
+              style={{ backgroundColor: primaryColor }}
+              onClick={() => setShowPaymentMethods(true)}
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Choose Payment Method
+            </Button>
           </div>
         ) : (
           <Button
@@ -342,6 +390,42 @@ export default function SharedTripInvestment({
                 {submitting ? "Processing..." : "Accept & Continue"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={showPaymentMethods} onOpenChange={setShowPaymentMethods}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Payment Method</DialogTitle>
+            <DialogDescription>
+              Select how you'd like to pay <strong>{formatCurrency(paymentAmount)}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {/* Send Card Info to Agent */}
+            <button
+              onClick={handleCCToAgent}
+              disabled={ccLoading}
+              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left disabled:opacity-50"
+            >
+              <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                {ccLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                ) : (
+                  <Lock className="h-5 w-5 text-gray-600" />
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Send Card Info to Agent</p>
+                <p className="text-sm text-gray-500 mt-0.5">Securely authorize your credit card and let your advisor process the payment.</p>
+              </div>
+            </button>
+
+            <p className="text-xs text-center text-gray-400 py-1">
+              Your card information is encrypted and transmitted securely.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
