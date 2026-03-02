@@ -253,11 +253,45 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
     }
   }, [onSidebarReady, generating, items.length, unimportedBookings.length, totalDays]);
 
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    if (!result.destination) return;
+    const srcDay = parseInt(result.source.droppableId.replace("day-", ""));
+    const destDay = parseInt(result.destination.droppableId.replace("day-", ""));
+    const srcIndex = result.source.index;
+    const destIndex = result.destination.index;
+
+    // Get source day items
+    const srcItems = [...(dayGroups[srcDay] || [])];
+    const [moved] = srcItems.splice(srcIndex, 1);
+    if (!moved) return;
+
+    if (srcDay === destDay) {
+      // Reorder within same day
+      srcItems.splice(destIndex, 0, moved);
+      const updates = srcItems.map((item, idx) => updateItem(item.id, { sort_order: idx }));
+      await Promise.all(updates);
+    } else {
+      // Move to different day
+      const destItems = [...(dayGroups[destDay] || [])];
+      destItems.splice(destIndex, 0, moved);
+      const updates = [
+        updateItem(moved.id, { day_number: destDay, sort_order: destIndex }),
+        ...srcItems.map((item, idx) => updateItem(item.id, { sort_order: idx })),
+        ...destItems.filter(i => i.id !== moved.id).map((item, idx) => {
+          const newIdx = idx >= destIndex ? idx + 1 : idx;
+          return updateItem(item.id, { sort_order: newIdx });
+        }),
+      ];
+      await Promise.all(updates);
+    }
+  }, [dayGroups, updateItem]);
+
   if (loading) {
     return <div className="space-y-4">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-24" />)}</div>;
   }
 
   return (
+    <DragDropContext onDragEnd={handleDragEnd}>
     <div className="space-y-6">
       {/* Toolbar — hidden when sidebar controls are used */}
       {!hideToolbar && <div className="flex flex-wrap items-center gap-2">
