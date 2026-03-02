@@ -1102,6 +1102,66 @@ export type Database = {
           },
         ]
       }
+      group_signups: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string | null
+          notes: string | null
+          number_of_travelers: number
+          phone: string | null
+          status: string
+          sub_trip_id: string | null
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          number_of_travelers?: number
+          phone?: string | null
+          status?: string
+          sub_trip_id?: string | null
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          number_of_travelers?: number
+          phone?: string | null
+          status?: string
+          sub_trip_id?: string | null
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_signups_sub_trip_id_fkey"
+            columns: ["sub_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_signups_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_logs: {
         Row: {
           completed_at: string | null
@@ -2199,6 +2259,7 @@ export type Database = {
           deposit_required: boolean | null
           destination: string | null
           follow_up_due_at: string | null
+          group_landing_enabled: boolean
           id: string
           itinerary_approved_at: string | null
           itinerary_approved_by_client_id: string | null
@@ -2252,6 +2313,7 @@ export type Database = {
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
+          group_landing_enabled?: boolean
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
@@ -2305,6 +2367,7 @@ export type Database = {
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
+          group_landing_enabled?: boolean
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
