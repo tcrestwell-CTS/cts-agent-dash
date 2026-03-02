@@ -94,9 +94,7 @@ export function useWorkflowAutomation() {
         const clientId = trip.client_id;
         if (clientEmail) {
           const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
-          const proposalUrl = trip.share_token
-            ? `${PRODUCTION_DOMAIN}/shared/${trip.share_token}`
-            : PRODUCTION_DOMAIN;
+          const proposalUrl = `${PRODUCTION_DOMAIN}/client/login`;
 
           // Get agent name for the email
           const { data: agentProfile } = await supabase
