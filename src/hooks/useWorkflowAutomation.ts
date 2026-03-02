@@ -88,6 +88,45 @@ export function useWorkflowAutomation() {
           trip.id
         );
 
+        // Send proposal email to client
+        const clientEmail = trip.clients?.email;
+        const clientName = trip.clients?.name || "Traveler";
+        const clientId = trip.client_id;
+        if (clientEmail) {
+          const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
+          const proposalUrl = trip.share_token
+            ? `${PRODUCTION_DOMAIN}/shared/${trip.share_token}`
+            : PRODUCTION_DOMAIN;
+
+          // Get agent name for the email
+          const { data: agentProfile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", user!.id)
+            .single();
+
+          const dates = trip.depart_date && trip.return_date
+            ? `${trip.depart_date} – ${trip.return_date}`
+            : "";
+
+          await supabase.functions.invoke("send-email", {
+            body: {
+              to: clientEmail,
+              subject: `Your Travel Proposal is Ready – ${trip.trip_name}`,
+              template: "proposal_ready",
+              clientId: clientId || undefined,
+              data: {
+                clientName,
+                tripName: trip.trip_name,
+                destination: trip.destination || "",
+                dates,
+                proposalUrl,
+                agentName: agentProfile?.full_name || "Your Travel Advisor",
+              },
+            },
+          });
+        }
+
         return { allowed: true };
       }
 
