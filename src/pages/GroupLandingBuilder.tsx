@@ -75,23 +75,6 @@ const GroupLandingBuilder = () => {
     setLandingEnabled((data as any).group_landing_enabled || false);
     setLandingHeadline((extraData as any)?.group_landing_headline || "");
     setLandingDescription((extraData as any)?.group_landing_description || "");
-    setHeroImageUrl((extraData as any)?.group_landing_hero_url || "");
-    setLoading(false);
-      toast.error("Trip not found");
-      navigate("/trips");
-      return;
-    }
-
-    if (data.trip_type !== "group") {
-      toast.error("Landing pages are only available for group trips");
-      navigate(`/trips/${tripId}`);
-      return;
-    }
-
-    setTrip(data);
-    setLandingEnabled(data.group_landing_enabled || false);
-    setLandingHeadline((data as any).group_landing_headline || "");
-    setLandingDescription((data as any).group_landing_description || "");
     setLoading(false);
   };
 
