@@ -17,6 +17,8 @@ import {
 import type { Trip } from "@/hooks/useTrips";
 import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 
+type KanbanTrip = Trip & { kanbanStatus?: string };
+
 export interface KanbanColumn {
   id: string;
   label: string;
@@ -24,7 +26,7 @@ export interface KanbanColumn {
 }
 
 interface TripsKanbanProps {
-  trips: Trip[];
+  trips: KanbanTrip[];
   columns: KanbanColumn[];
   onStatusChange: (tripId: string, newStatus: string, cancellationOptions?: CancellationOptions) => Promise<boolean>;
 }
@@ -45,13 +47,17 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
   });
 
   const tripsByStatus = columns.reduce((acc, col) => {
-    acc[col.id] = trips.filter((t) => t.status === col.id);
+    acc[col.id] = trips.filter((t) => (t.kanbanStatus || t.status) === col.id);
     return acc;
-  }, {} as Record<string, Trip[]>);
+  }, {} as Record<string, KanbanTrip[]>);
 
-  // Also collect trips with statuses not in any column (orphaned)
+  // Also collect trips with statuses not in any column (orphaned) — place in planning
   const knownIds = new Set(columns.map((c) => c.id));
-  const orphanedTrips = trips.filter((t) => !knownIds.has(t.status));
+  const orphanedTrips = trips.filter((t) => !knownIds.has(t.kanbanStatus || t.status));
+  // Merge orphaned trips into the planning column
+  if (orphanedTrips.length > 0 && tripsByStatus["planning"]) {
+    tripsByStatus["planning"] = [...tripsByStatus["planning"], ...orphanedTrips];
+  }
 
   const handleDragEnd = async (result: DropResult) => {
     const { draggableId, destination } = result;
