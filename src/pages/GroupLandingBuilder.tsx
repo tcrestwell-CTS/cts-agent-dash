@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,10 @@ import {
   Palette,
   FileText,
   CheckCircle2,
+  ImagePlus,
+  Link,
+  X,
+  Loader2,
 } from "lucide-react";
 
 const GroupLandingBuilder = () => {
@@ -34,6 +38,11 @@ const GroupLandingBuilder = () => {
   const [landingEnabled, setLandingEnabled] = useState(false);
   const [landingHeadline, setLandingHeadline] = useState("");
   const [landingDescription, setLandingDescription] = useState("");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [heroUrlInput, setHeroUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const heroFileRef = useRef<HTMLInputElement>(null);
 
   const fetchTrip = async () => {
     if (!tripId) return;
@@ -67,24 +76,6 @@ const GroupLandingBuilder = () => {
     setLandingHeadline((extraData as any)?.group_landing_headline || "");
     setLandingDescription((extraData as any)?.group_landing_description || "");
     setLoading(false);
-
-    if (error || !data) {
-      toast.error("Trip not found");
-      navigate("/trips");
-      return;
-    }
-
-    if (data.trip_type !== "group") {
-      toast.error("Landing pages are only available for group trips");
-      navigate(`/trips/${tripId}`);
-      return;
-    }
-
-    setTrip(data);
-    setLandingEnabled(data.group_landing_enabled || false);
-    setLandingHeadline((data as any).group_landing_headline || "");
-    setLandingDescription((data as any).group_landing_description || "");
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -113,6 +104,7 @@ const GroupLandingBuilder = () => {
       .update({
         group_landing_headline: landingHeadline || null,
         group_landing_description: landingDescription || null,
+        group_landing_hero_url: heroImageUrl || null,
       } as any)
       .eq("id", tripId!);
 
@@ -122,6 +114,65 @@ const GroupLandingBuilder = () => {
       toast.success("Landing page content saved");
     }
     setSaving(false);
+  };
+
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    setUploadingHero(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${tripId}/landing-hero.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("trip-covers")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("trip-covers")
+        .getPublicUrl(path);
+      setHeroImageUrl(publicUrl);
+      // Auto-save
+      await supabase
+        .from("trips")
+        .update({ group_landing_hero_url: publicUrl } as any)
+        .eq("id", tripId!);
+      toast.success("Hero image uploaded");
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingHero(false);
+      if (heroFileRef.current) heroFileRef.current.value = "";
+    }
+  };
+
+  const handleHeroUrlSubmit = async () => {
+    if (!heroUrlInput.trim()) return;
+    setHeroImageUrl(heroUrlInput.trim());
+    setShowUrlInput(false);
+    await supabase
+      .from("trips")
+      .update({ group_landing_hero_url: heroUrlInput.trim() } as any)
+      .eq("id", tripId!);
+    toast.success("Hero image URL saved");
+    setHeroUrlInput("");
+  };
+
+  const handleRemoveHero = async () => {
+    setHeroImageUrl("");
+    await supabase
+      .from("trips")
+      .update({ group_landing_hero_url: null } as any)
+      .eq("id", tripId!);
+    toast.success("Hero image removed");
   };
 
   const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
@@ -241,6 +292,106 @@ const GroupLandingBuilder = () => {
           </CardContent>
         </Card>
 
+        {/* Hero Image */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ImagePlus className="h-4 w-4" />
+              Hero Image
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Upload an image or paste a URL. This displays as the banner on your landing page.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {heroImageUrl ? (
+              <div className="relative group rounded-lg overflow-hidden border">
+                <img
+                  src={heroImageUrl}
+                  alt="Landing page hero"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => heroFileRef.current?.click()}
+                    disabled={uploadingHero}
+                  >
+                    {uploadingHero ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4 mr-1" />}
+                    Replace
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleRemoveHero}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={() => heroFileRef.current?.click()}
+                  disabled={uploadingHero}
+                  className="w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                >
+                  {uploadingHero ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <>
+                      <ImagePlus className="h-6 w-6" />
+                      <span className="text-sm font-medium">Upload Hero Image</span>
+                      <span className="text-xs">JPG, PNG — max 5MB</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex-1 h-px bg-border" />
+                  <span>or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                {showUrlInput ? (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://example.com/image.jpg"
+                      value={heroUrlInput}
+                      onChange={(e) => setHeroUrlInput(e.target.value)}
+                      className="text-sm"
+                    />
+                    <Button size="sm" onClick={handleHeroUrlSubmit} disabled={!heroUrlInput.trim()}>
+                      Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setShowUrlInput(false); setHeroUrlInput(""); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowUrlInput(true)}
+                  >
+                    <Link className="h-3.5 w-3.5 mr-1.5" />
+                    Paste Image URL
+                  </Button>
+                )}
+              </div>
+            )}
+            <input
+              ref={heroFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleHeroUpload}
+            />
+          </CardContent>
+        </Card>
+
         {/* Content Builder */}
         <Card>
           <CardHeader className="pb-3">
@@ -297,7 +448,7 @@ const GroupLandingBuilder = () => {
             <ul className="space-y-2 text-sm">
               <ChecklistItem done={!!trip?.destination} label="Destination set" />
               <ChecklistItem done={!!trip?.depart_date} label="Travel dates added" />
-              <ChecklistItem done={!!trip?.cover_image_url} label="Cover image uploaded" />
+              <ChecklistItem done={!!heroImageUrl} label="Hero image added" />
               <ChecklistItem done={!!landingHeadline} label="Custom headline written" />
               <ChecklistItem done={!!landingDescription} label="Description added" />
               <ChecklistItem done={landingEnabled} label="Page enabled" />
