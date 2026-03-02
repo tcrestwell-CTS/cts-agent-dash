@@ -42,7 +42,6 @@ interface TripStatusWorkflowProps {
 const WORKFLOW_STATUSES = [
   { key: "planning", label: "Planning", icon: Calendar, description: "Trip is being planned" },
   { key: "proposal_sent", label: "Proposal Sent", icon: Send, description: "Proposal sent to client" },
-  { key: "option_selected", label: "Option Selected", icon: MousePointerClick, description: "Client chose an option" },
   { key: "deposit_authorized", label: "Deposit Auth", icon: Shield, description: "Client authorized deposit" },
   { key: "deposit_paid", label: "Deposit Paid", icon: Banknote, description: "Deposit payment confirmed" },
   { key: "final_paid", label: "Final Paid", icon: CreditCard, description: "Full balance paid" },
