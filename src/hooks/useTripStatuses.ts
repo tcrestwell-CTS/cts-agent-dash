@@ -228,13 +228,22 @@ export function useTripStatuses() {
     return found?.color || "#6366f1";
   };
 
-  // Build kanban columns from statuses
-  const kanbanColumns = statuses.map((s) => ({
-    id: statusToSlug(s.name),
-    label: s.name,
-    color: s.color,
-    statusId: s.id,
-  }));
+  // Build kanban columns from statuses — only columns that are kanban-visible
+  const kanbanColumns = statuses
+    .filter((s) => KANBAN_COLUMN_SLUGS.has(statusToSlug(s.name)))
+    .map((s) => ({
+      id: statusToSlug(s.name),
+      label: s.name,
+      color: s.color,
+      statusId: s.id,
+    }));
+
+  // Map any trip status slug to the kanban column it belongs to
+  // Intermediate workflow statuses (proposal_sent → booked) all map to "planning"
+  const getKanbanStatus = (slug: string): string => {
+    if (KANBAN_PLANNING_STATUSES.has(slug)) return "planning";
+    return slug;
+  };
 
   return {
     statuses,
@@ -248,6 +257,7 @@ export function useTripStatuses() {
     statusToSlug,
     getStatusLabel,
     getStatusColor,
+    getKanbanStatus,
     refetch: fetchStatuses,
   };
 }
