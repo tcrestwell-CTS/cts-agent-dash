@@ -91,7 +91,6 @@ interface Props {
 type Step = "search" | "sailings" | "dates" | "pricing" | "preview" | "importing";
 
 const AVAILABLE_OPERATORS = [
-  { slug: "msc-cruises", label: "MSC Cruises" },
   { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
   { slug: "virgin-voyages", label: "Virgin Voyages" },
 ];
