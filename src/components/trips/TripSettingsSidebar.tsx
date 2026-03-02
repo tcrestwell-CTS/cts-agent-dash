@@ -448,52 +448,6 @@ export function TripSettingsSidebar({
         </CardContent>
       </Card>
 
-      {/* Group Landing Page */}
-      {tripType === "group" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Group Landing Page
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Enable a public signup page for this group trip.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Enable Landing Page</Label>
-              <Switch
-                checked={localSettings.group_landing_enabled || false}
-                onCheckedChange={(v) => updateSetting("group_landing_enabled", v)}
-              />
-            </div>
-            {localSettings.group_landing_enabled && shareToken && (
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Landing Page URL</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    readOnly
-                    value={`${window.location.origin}/group/${shareToken}`}
-                    className="text-xs"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/group/${shareToken}`);
-                      toast.success("Link copied!");
-                    }}
-                  >
-                    Copy
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Agency Sharing */}
       <Card>
