@@ -448,7 +448,7 @@ const GroupLandingBuilder = () => {
             <ul className="space-y-2 text-sm">
               <ChecklistItem done={!!trip?.destination} label="Destination set" />
               <ChecklistItem done={!!trip?.depart_date} label="Travel dates added" />
-              <ChecklistItem done={!!trip?.cover_image_url} label="Cover image uploaded" />
+              <ChecklistItem done={!!heroImageUrl} label="Hero image added" />
               <ChecklistItem done={!!landingHeadline} label="Custom headline written" />
               <ChecklistItem done={!!landingDescription} label="Description added" />
               <ChecklistItem done={landingEnabled} label="Page enabled" />
