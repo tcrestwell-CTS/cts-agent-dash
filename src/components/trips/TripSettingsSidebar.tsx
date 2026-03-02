@@ -451,6 +451,45 @@ export function TripSettingsSidebar({
       </Card>
 
 
+      {/* Group Landing Page */}
+      {tripType === "group" && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Group Landing Page
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Build and manage the public signup page for this group trip.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Status</span>
+              <Badge
+                variant="outline"
+                className={
+                  localSettings.group_landing_enabled
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "bg-muted text-muted-foreground"
+                }
+              >
+                {localSettings.group_landing_enabled ? "Live" : "Draft"}
+              </Badge>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={onNavigateToLandingPage}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-2" />
+              Open Landing Page Builder
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Agency Sharing */}
       <Card>
         <CardHeader className="pb-3">
