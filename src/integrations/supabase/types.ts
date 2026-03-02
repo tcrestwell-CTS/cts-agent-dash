@@ -2262,6 +2262,7 @@ export type Database = {
           group_landing_description: string | null
           group_landing_enabled: boolean
           group_landing_headline: string | null
+          group_landing_hero_url: string | null
           id: string
           itinerary_approved_at: string | null
           itinerary_approved_by_client_id: string | null
@@ -2318,6 +2319,7 @@ export type Database = {
           group_landing_description?: string | null
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
+          group_landing_hero_url?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
@@ -2374,6 +2376,7 @@ export type Database = {
           group_landing_description?: string | null
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
+          group_landing_hero_url?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
