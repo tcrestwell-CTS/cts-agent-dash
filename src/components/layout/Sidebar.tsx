@@ -217,7 +217,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setNotifOpen(!notifOpen)}
+                  onClick={() => { navigate("/notifications"); if (isMobile) setMobileOpen(false); }}
                   className="relative flex items-center justify-center w-full p-2 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
                 >
                   <Bell className="h-5 w-5" />
@@ -233,7 +233,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
           </TooltipProvider>
         ) : (
           <button
-            onClick={() => setNotifOpen(!notifOpen)}
+            onClick={() => { navigate("/notifications"); if (isMobile) setMobileOpen(false); }}
             className="relative flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             <Bell className="h-5 w-5 shrink-0" />
