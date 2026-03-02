@@ -58,7 +58,7 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
   inbound: "Inbound",
   planning: "Planning",
   proposal_sent: "Proposal Sent",
-  option_selected: "Option Selected",
+  option_selected: "Planning",
   deposit_authorized: "Deposit Authorized",
   deposit_paid: "Deposit Paid",
   final_paid: "Final Paid",
