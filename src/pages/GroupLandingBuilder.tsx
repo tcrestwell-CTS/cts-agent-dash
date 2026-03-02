@@ -314,7 +314,7 @@ function ChecklistItem({ done, label }: { done: boolean; label: string }) {
       <div
         className={`h-4 w-4 rounded-full flex items-center justify-center text-xs ${
           done
-            ? "bg-green-100 text-green-700"
+            ? "bg-primary/10 text-primary"
             : "bg-muted text-muted-foreground"
         }`}
       >
