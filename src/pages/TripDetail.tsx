@@ -495,12 +495,7 @@ const TripDetail = () => {
               />
             )}
 
-          {isGroupTrip && (
-            <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/landing-page`)}>
-              <Globe className="h-4 w-4 mr-2" />
-              Landing Page
-            </Button>
-          )}
+
 
 
             {/* Tabs for Bookings and Payments */}
@@ -578,6 +573,7 @@ const TripDetail = () => {
                 tripType={trip.trip_type || undefined}
                 shareToken={(trip as any).share_token || undefined}
                 onSettingsChange={fetchTrip}
+                onNavigateToLandingPage={() => navigate(`/trips/${tripId}/landing-page`)}
               />
               <TripCloseoutChecklist
                 bookings={bookings}
