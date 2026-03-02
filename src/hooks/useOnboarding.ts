@@ -21,8 +21,8 @@ export function useOnboarding() {
   const { data: progress, isLoading } = useQuery({
     queryKey: ["onboarding-progress", user?.id],
     queryFn: async () => {
-      // Try to get existing progress
-      const { data, error } = await supabase
+      // Get or create progress record
+      let { data, error } = await supabase
         .from("agent_onboarding_progress")
         .select("*")
         .eq("user_id", user!.id)
@@ -30,7 +30,6 @@ export function useOnboarding() {
 
       if (error) throw error;
 
-      // If no progress exists, create one
       if (!data) {
         const { data: newProgress, error: insertError } = await supabase
           .from("agent_onboarding_progress")
@@ -39,7 +38,55 @@ export function useOnboarding() {
           .single();
 
         if (insertError) throw insertError;
-        return newProgress as OnboardingProgress;
+        data = newProgress;
+      }
+
+      // Auto-detect completed steps from real data
+      const [profileRes, clientRes, tripRes, bookingRes, brandingRes, trainingRes] =
+        await Promise.all([
+          supabase.from("profiles").select("full_name").eq("user_id", user!.id).maybeSingle(),
+          supabase.from("clients").select("id").eq("user_id", user!.id).limit(1),
+          supabase.from("trips").select("id").eq("user_id", user!.id).limit(1),
+          supabase.from("bookings").select("id").eq("user_id", user!.id).limit(1),
+          supabase.from("branding_settings").select("logo_url, agency_name").eq("user_id", user!.id).maybeSingle(),
+          supabase.from("agent_training_progress").select("id").eq("user_id", user!.id).limit(1),
+        ]);
+
+      const detected = {
+        profile_completed: !!(profileRes.data?.full_name),
+        first_client_added: !!(clientRes.data && clientRes.data.length > 0),
+        first_trip_created: !!(tripRes.data && tripRes.data.length > 0),
+        first_booking_added: !!(bookingRes.data && bookingRes.data.length > 0),
+        branding_configured: !!(brandingRes.data?.logo_url || brandingRes.data?.agency_name),
+        training_started: !!(trainingRes.data && trainingRes.data.length > 0),
+      };
+
+      // Check if any flags need updating
+      const updates: Partial<OnboardingProgress> = {};
+      let needsUpdate = false;
+      for (const key of Object.keys(detected) as (keyof typeof detected)[]) {
+        if (detected[key] && !data[key]) {
+          (updates as any)[key] = true;
+          needsUpdate = true;
+        }
+      }
+
+      // Check if all steps are now complete and mark onboarding done
+      const allComplete = Object.keys(detected).every(
+        (k) => detected[k as keyof typeof detected] || data[k as keyof typeof detected]
+      );
+      if (allComplete && !data.onboarding_completed_at) {
+        updates.onboarding_completed_at = new Date().toISOString();
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await supabase
+          .from("agent_onboarding_progress")
+          .update(updates)
+          .eq("user_id", user!.id);
+
+        return { ...data, ...updates } as OnboardingProgress;
       }
 
       return data as OnboardingProgress;
