@@ -551,16 +551,32 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
                 <p className="text-sm text-muted-foreground italic">No activities planned</p>
               ) : (
-                <div className="space-y-3">
-                  {dayItems.map((item) => {
+                <Droppable droppableId={`day-${day}`}>
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+                  {dayItems.map((item, index) => {
                     const Icon = categoryIcons[item.category] || Target;
                     return (
-                      <div key={item.id} className="flex gap-3 group relative cursor-pointer" onClick={() => setEditingItem(item)}>
+                      <Draggable key={item.id} draggableId={item.id} index={index}>
+                        {(dragProvided, snapshot) => (
+                      <div
+                        ref={dragProvided.innerRef}
+                        {...dragProvided.draggableProps}
+                        className={`flex gap-3 group relative cursor-pointer ${snapshot.isDragging ? "opacity-80 shadow-lg rounded-lg bg-background z-50" : ""}`}
+                        onClick={() => setEditingItem(item)}
+                      >
+                        <div
+                          {...dragProvided.dragHandleProps}
+                          className="flex items-center self-start pt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
                         <div className="flex flex-col items-center">
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${categoryColors[item.category] || categoryColors.activity}`}>
                             <Icon className="h-4 w-4" />
                           </div>
-                          {dayItems.indexOf(item) < dayItems.length - 1 && (
+                          {index < dayItems.length - 1 && (
                             <div className="w-px flex-1 bg-border mt-1" />
                           )}
                         </div>
@@ -612,8 +628,11 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                           </div>
                         </div>
                       </div>
+                        )}
+                      </Draggable>
                     );
                   })}
+                  {provided.placeholder}
 
                   {/* Option blocks for this day */}
                   {(dayBlocks[day] || []).map((block) => (
@@ -628,7 +647,9 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       onDeleteBlock={deleteBlock}
                     />
                   ))}
-                </div>
+                    </div>
+                  )}
+                </Droppable>
               )}
 
               <Button
