@@ -6,12 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   MapPin,
   Calendar,
-  Users,
   CheckCircle2,
   Plane,
   Hotel,
@@ -21,6 +19,8 @@ import {
   Phone,
   Mail,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -77,6 +77,10 @@ interface GroupLandingData {
     agency_name: string | null;
     job_title: string | null;
     phone: string | null;
+    clia_number?: string | null;
+    ccra_number?: string | null;
+    asta_number?: string | null;
+    embarc_number?: string | null;
   } | null;
   signupCount: number;
   itineraryHighlights: {
@@ -102,6 +106,8 @@ export default function GroupLanding() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showSignupForm, setShowSignupForm] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState({
     first_name: "",
@@ -170,10 +176,14 @@ export default function GroupLanding() {
     }
   };
 
+  const toggleSection = (id: string) => {
+    setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <Skeleton className="h-[50vh] w-full" />
+        <Skeleton className="h-[350px] w-full" />
         <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
           <Skeleton className="h-10 w-80" />
           <Skeleton className="h-6 w-64" />
@@ -203,138 +213,72 @@ export default function GroupLanding() {
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
   const signupEnabled = content.signup_enabled !== false;
-  const signupButtonLabel = content.signup_button_label || "Sign Up Now";
+  const signupButtonLabel = content.signup_button_label || "Join Us";
   const ctaEnabled = content.cta_enabled || false;
   const ctaButtonLabel = content.cta_button_label || "Learn More";
   const ctaLink = content.cta_link || "";
 
-  // Use builder headline if set, otherwise trip name
   const headline = data.trip.group_landing_headline || data.trip.trip_name;
-  // Use builder rich description if set, otherwise trip notes
   const descriptionHtml = data.trip.group_landing_description || null;
   const descriptionPlain = data.trip.notes || null;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <div className="relative w-full min-h-[55vh] overflow-hidden flex items-end">
-        {data.trip.cover_image_url ? (
-          <img
-            src={data.trip.cover_image_url}
-            alt={headline}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-            }}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-6 pb-12 pt-20">
-          {data.branding?.logo_url && (
+      {/* Clean Hero Banner — no text overlay */}
+      {data.trip.cover_image_url && (
+        <div className="w-full max-w-5xl mx-auto px-6 pt-8">
+          <div className="rounded-xl overflow-hidden">
             <img
-              src={data.branding.logo_url}
-              alt={data.branding.agency_name || "Agency"}
-              className="h-10 mb-6 brightness-0 invert"
+              src={data.trip.cover_image_url}
+              alt={headline}
+              className="w-full h-[300px] md:h-[380px] object-cover"
             />
-          )}
-          <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg leading-tight">
-            {headline}
-          </h1>
-          <div className="flex flex-wrap items-center gap-5 mt-4 text-white/90">
-            {data.trip.destination && (
-              <span className="flex items-center gap-1.5 text-lg">
-                <MapPin className="h-5 w-5" />
-                {data.trip.destination}
-              </span>
-            )}
-            {data.trip.depart_date && (
-              <span className="flex items-center gap-1.5 text-lg">
-                <Calendar className="h-5 w-5" />
-                {format(new Date(data.trip.depart_date), "MMM d, yyyy")}
-                {data.trip.return_date &&
-                  ` – ${format(new Date(data.trip.return_date), "MMM d, yyyy")}`}
-              </span>
-            )}
-            {data.signupCount > 0 && (
-              <span className="flex items-center gap-1.5 text-lg">
-                <Users className="h-5 w-5" />
-                {data.signupCount} signed up
-              </span>
-            )}
           </div>
-          {data.trip.budget_range && (
-            <Badge
-              className="mt-4 text-sm px-3 py-1"
-              style={{ backgroundColor: accentColor, color: "white", border: "none" }}
-            >
-              Starting from {data.trip.budget_range}
-            </Badge>
-          )}
         </div>
-      </div>
+      )}
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-10">
-            {/* Overview — rich HTML from builder, or plain text fallback */}
-            {descriptionHtml ? (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  About This Trip
-                </h2>
-                <div
-                  className="text-gray-600 leading-relaxed text-lg prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-                />
-              </div>
-            ) : descriptionPlain ? (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  About This Trip
-                </h2>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-lg">
-                  {descriptionPlain}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Two-column: Content left, Advisor right */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10 items-start">
+          {/* ─── LEFT COLUMN: Content ─────────────── */}
+          <div className="space-y-8">
+            {/* Title + Dates */}
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+                {headline}
+              </h1>
+              {(data.trip.depart_date || data.trip.return_date) && (
+                <p className="text-gray-500 mt-2 text-lg">
+                  {data.trip.depart_date &&
+                    format(new Date(data.trip.depart_date), "MMM d")}
+                  {data.trip.return_date &&
+                    ` - ${format(new Date(data.trip.return_date), "d, yyyy")}`}
                 </p>
-              </div>
+              )}
+            </div>
+
+            {/* Description / Overview */}
+            {descriptionHtml ? (
+              <div
+                className="text-gray-700 leading-relaxed text-[15px] prose prose-lg max-w-none"
+                dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+              />
+            ) : descriptionPlain ? (
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
+                {descriptionPlain}
+              </p>
             ) : null}
 
-            {/* Feature Images Gallery */}
-            {featureImages.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Gallery
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {featureImages.map((img) => (
-                    <div key={img.id} className="rounded-xl overflow-hidden">
-                      <img
-                        src={img.url}
-                        alt={img.caption || "Trip photo"}
-                        className="w-full h-40 object-cover"
-                        loading="lazy"
-                      />
-                      {img.caption && (
-                        <p className="text-xs text-gray-500 px-2 py-1.5 bg-gray-50">
-                          {img.caption}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* Separator */}
+            {(descriptionHtml || descriptionPlain) && (
+              <hr className="border-gray-200" />
             )}
 
             {/* Itinerary Highlights */}
             {data.itineraryHighlights.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  What's Included
+                  Itinerary
                 </h2>
                 <div className="space-y-4">
                   {data.itineraryHighlights.map((item, i) => {
@@ -380,21 +324,65 @@ export default function GroupLanding() {
               </div>
             )}
 
-            {/* Additional Sections from Builder */}
-            {additionalSections.map((section) => (
-              <div key={section.id}>
-                {section.title && (
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                    {section.title}
-                  </h2>
-                )}
-                {section.content && (
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-lg">
-                    {section.content}
-                  </p>
-                )}
+            {/* Feature Images Gallery */}
+            {featureImages.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Gallery
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {featureImages.map((img) => (
+                    <div key={img.id} className="rounded-xl overflow-hidden">
+                      <img
+                        src={img.url}
+                        alt={img.caption || "Trip photo"}
+                        className="w-full h-40 object-cover"
+                        loading="lazy"
+                      />
+                      {img.caption && (
+                        <p className="text-xs text-gray-500 px-2 py-1.5 bg-gray-50">
+                          {img.caption}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Additional Sections — collapsible like Tern */}
+            {additionalSections.length > 0 && (
+              <div className="space-y-3">
+                {additionalSections.map((section) => {
+                  const isExpanded = expandedSections[section.id] ?? false;
+                  return (
+                    <div
+                      key={section.id}
+                      className="border border-gray-200 rounded-xl overflow-hidden"
+                    >
+                      <button
+                        onClick={() => toggleSection(section.id)}
+                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {section.title || "Details"}
+                        </h3>
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400 shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400 shrink-0" />
+                        )}
+                      </button>
+                      {isExpanded && section.content && (
+                        <div className="px-4 pb-4 text-gray-600 leading-relaxed whitespace-pre-wrap text-[15px]">
+                          {section.content}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* CTA Button */}
             {ctaEnabled && ctaLink && (
@@ -411,221 +399,351 @@ export default function GroupLanding() {
                 </a>
               </div>
             )}
+          </div>
 
+          {/* ─── RIGHT COLUMN: Advisor Card (sticky) ── */}
+          <div className="lg:sticky lg:top-8">
             {/* Advisor Card */}
             {data.advisor && (
-              <Card className="overflow-hidden">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Your Travel Advisor
-                  </h3>
-                  <div className="flex items-center gap-4">
+              <Card className="overflow-hidden shadow-lg border-0">
+                {/* Advisor avatar + branding banner */}
+                <div
+                  className="relative h-28"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                  }}
+                >
+                  {data.branding?.logo_url && (
+                    <img
+                      src={data.branding.logo_url}
+                      alt={data.branding.agency_name || "Agency"}
+                      className="absolute top-3 right-3 h-12 brightness-0 invert opacity-80"
+                    />
+                  )}
+                  {data.branding?.tagline && (
+                    <p className="absolute bottom-3 right-3 text-xs text-white/70 italic">
+                      {data.branding.tagline}
+                    </p>
+                  )}
+                </div>
+
+                {/* Avatar overlapping the banner */}
+                <div className="relative px-5">
+                  <div className="-mt-10 mb-3">
                     {data.advisor.avatar_url ? (
                       <img
                         src={data.advisor.avatar_url}
                         alt={data.advisor.name || "Advisor"}
-                        className="w-16 h-16 rounded-full object-cover"
+                        className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
                       />
                     ) : (
                       <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-md"
                         style={{ backgroundColor: primaryColor }}
                       >
                         {(data.advisor.name || "A").charAt(0)}
                       </div>
                     )}
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {data.advisor.name}
+                  </div>
+                </div>
+
+                <CardContent className="px-5 pb-5 pt-0 space-y-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
+                      Your Advisor
+                    </p>
+                    <p className="font-bold text-gray-900 text-lg">
+                      {data.advisor.name}
+                    </p>
+                    {data.advisor.agency_name && (
+                      <p className="text-sm text-gray-600">
+                        {data.advisor.agency_name}
                       </p>
-                      {data.advisor.job_title && (
-                        <p className="text-sm text-gray-500">
-                          {data.advisor.job_title}
-                        </p>
+                    )}
+                  </div>
+
+                  {/* Credentials */}
+                  {(data.advisor.clia_number ||
+                    data.advisor.ccra_number ||
+                    data.advisor.asta_number ||
+                    data.advisor.embarc_number) && (
+                    <div className="text-xs text-gray-500 space-y-0.5">
+                      {data.advisor.clia_number && (
+                        <p>CLIA: {data.advisor.clia_number}</p>
                       )}
-                      {data.advisor.agency_name && (
-                        <p className="text-sm text-gray-500">
-                          {data.advisor.agency_name}
-                        </p>
+                      {data.advisor.ccra_number && (
+                        <p>CCRA: {data.advisor.ccra_number}</p>
+                      )}
+                      {data.advisor.asta_number && (
+                        <p>ASTA: {data.advisor.asta_number}</p>
+                      )}
+                      {data.advisor.embarc_number && (
+                        <p>EMBARC: {data.advisor.embarc_number}</p>
                       )}
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    {data.advisor.phone && (
-                      <a
-                        href={`tel:${data.advisor.phone}`}
-                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        <Phone className="h-4 w-4" /> {data.advisor.phone}
-                      </a>
-                    )}
+                  )}
+
+                  {/* Contact */}
+                  <div className="space-y-1.5 text-sm">
                     {data.branding?.email_address && (
                       <a
                         href={`mailto:${data.branding.email_address}`}
-                        className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"
+                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
                       >
-                        <Mail className="h-4 w-4" /> {data.branding.email_address}
+                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {data.branding.email_address}
+                        </span>
+                      </a>
+                    )}
+                    {data.advisor.phone && (
+                      <a
+                        href={`tel:${data.advisor.phone}`}
+                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                      >
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        {data.advisor.phone}
                       </a>
                     )}
                   </div>
+
+                  {/* Agency logo small */}
+                  {data.branding?.logo_url && (
+                    <div className="flex justify-end pt-1">
+                      <img
+                        src={data.branding.logo_url}
+                        alt={data.branding.agency_name || "Agency"}
+                        className="h-10 object-contain"
+                      />
+                    </div>
+                  )}
+
+                  {/* Join Us / Signup CTA */}
+                  {signupEnabled && (
+                    <Button
+                      className="w-full text-base py-5 mt-2"
+                      style={{ backgroundColor: primaryColor, color: "white" }}
+                      onClick={() => setShowSignupForm(true)}
+                    >
+                      {signupButtonLabel}
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* If no advisor but signup enabled, still show CTA */}
+            {!data.advisor && signupEnabled && (
+              <Card className="shadow-lg border-0 overflow-hidden">
+                <div
+                  className="p-5 text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
+                  }}
+                >
+                  <h3 className="text-lg font-bold">Interested?</h3>
+                  <p className="text-sm text-white/80 mt-1">
+                    Sign up to reserve your spot.
+                  </p>
+                </div>
+                <CardContent className="p-5">
+                  <Button
+                    className="w-full text-base py-5"
+                    style={{ backgroundColor: primaryColor, color: "white" }}
+                    onClick={() => setShowSignupForm(true)}
+                  >
+                    {signupButtonLabel}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </CardContent>
               </Card>
             )}
           </div>
+        </div>
 
-          {/* Signup Form (Sticky Sidebar) */}
-          <div className="lg:col-span-2">
-            <div className="lg:sticky lg:top-8">
-              {signupEnabled && (
-                <Card className="shadow-xl border-0 overflow-hidden">
-                  <div
-                    className="p-6 text-white"
-                    style={{
-                      background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
-                    }}
-                  >
-                    <h3 className="text-xl font-bold">
-                      {submitted ? "You're In!" : "Reserve Your Spot"}
-                    </h3>
-                    {!submitted && (
-                      <p className="text-sm text-white/80 mt-1">
-                        Fill out the form below and your travel advisor will be in
-                        touch.
-                      </p>
-                    )}
-                  </div>
-                  <CardContent className="p-6">
-                    {submitted ? (
-                      <div className="text-center py-6 space-y-4">
-                        <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
-                        <div>
-                          <p className="text-lg font-semibold text-gray-900">
-                            Thank you, {form.first_name}!
-                          </p>
-                          <p className="text-gray-500 mt-2">
-                            Your travel advisor will reach out shortly to finalize
-                            the details.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label className="text-sm">First Name *</Label>
-                            <Input
-                              required
-                              maxLength={100}
-                              value={form.first_name}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  first_name: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-sm">Last Name</Label>
-                            <Input
-                              maxLength={100}
-                              value={form.last_name}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  last_name: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
+        {/* ─── Mobile sticky CTA ──────────────────── */}
+        {signupEnabled && !showSignupForm && (
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50">
+            <Button
+              className="w-full text-base py-5"
+              style={{ backgroundColor: primaryColor, color: "white" }}
+              onClick={() => setShowSignupForm(true)}
+            >
+              {signupButtonLabel}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
 
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Email *</Label>
-                          <Input
-                            type="email"
-                            required
-                            maxLength={255}
-                            value={form.email}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, email: e.target.value }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Phone</Label>
-                          <Input
-                            type="tel"
-                            maxLength={20}
-                            value={form.phone}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, phone: e.target.value }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Number of Travelers</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            max="20"
-                            value={form.number_of_travelers}
-                            onChange={(e) =>
-                              setForm((f) => ({
-                                ...f,
-                                number_of_travelers: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Notes or Questions</Label>
-                          <Textarea
-                            maxLength={500}
-                            rows={3}
-                            placeholder="Any questions or special requests..."
-                            value={form.notes}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, notes: e.target.value }))
-                            }
-                          />
-                        </div>
-
-                        <Button
-                          type="submit"
-                          disabled={submitting}
-                          className="w-full text-base py-5"
-                          style={{
-                            backgroundColor: primaryColor,
-                            color: "white",
-                          }}
-                        >
-                          {submitting ? (
-                            "Signing up..."
-                          ) : (
-                            <>
-                              {signupButtonLabel}
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </>
-                          )}
-                        </Button>
-
-                        <p className="text-xs text-gray-400 text-center">
-                          No payment required. Your advisor will contact you to
-                          finalize.
-                        </p>
-                      </form>
-                    )}
-                  </CardContent>
-                </Card>
+      {/* ─── Signup Form Modal ────────────────────── */}
+      {showSignupForm && signupEnabled && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0 overflow-hidden">
+            <div
+              className="p-5 text-white"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
+              }}
+            >
+              <h3 className="text-xl font-bold">
+                {submitted ? "You're In!" : "Reserve Your Spot"}
+              </h3>
+              {!submitted && (
+                <p className="text-sm text-white/80 mt-1">
+                  Fill out the form below and your travel advisor will be in
+                  touch.
+                </p>
               )}
             </div>
-          </div>
+            <CardContent className="p-5">
+              {submitted ? (
+                <div className="text-center py-6 space-y-4">
+                  <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900">
+                      Thank you, {form.first_name}!
+                    </p>
+                    <p className="text-gray-500 mt-2">
+                      Your travel advisor will reach out shortly to finalize the
+                      details.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSignupForm(false);
+                      setSubmitted(false);
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">First Name *</Label>
+                      <Input
+                        required
+                        maxLength={100}
+                        value={form.first_name}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            first_name: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Last Name</Label>
+                      <Input
+                        maxLength={100}
+                        value={form.last_name}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            last_name: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Email *</Label>
+                    <Input
+                      type="email"
+                      required
+                      maxLength={255}
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, email: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Phone</Label>
+                    <Input
+                      type="tel"
+                      maxLength={20}
+                      value={form.phone}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, phone: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Number of Travelers</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={form.number_of_travelers}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          number_of_travelers: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Notes or Questions</Label>
+                    <Textarea
+                      maxLength={500}
+                      rows={3}
+                      placeholder="Any questions or special requests..."
+                      value={form.notes}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, notes: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full text-base py-5"
+                    style={{
+                      backgroundColor: primaryColor,
+                      color: "white",
+                    }}
+                  >
+                    {submitting ? (
+                      "Signing up..."
+                    ) : (
+                      <>
+                        {signupButtonLabel}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-400">
+                      No payment required. Your advisor will contact you.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSignupForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      )}
 
       {/* Footer */}
       {data.branding && (

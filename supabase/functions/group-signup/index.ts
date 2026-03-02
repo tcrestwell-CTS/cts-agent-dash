@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       // Fetch advisor profile
       const { data: advisor } = await supabaseAdmin
         .from("profiles")
-        .select("full_name, avatar_url, agency_name, job_title, phone")
+        .select("full_name, avatar_url, agency_name, job_title, phone, clia_number, ccra_number, asta_number, embarc_number")
         .eq("user_id", trip.user_id)
         .maybeSingle();
 
@@ -103,6 +103,10 @@ Deno.serve(async (req) => {
                 agency_name: advisor.agency_name,
                 job_title: advisor.job_title,
                 phone: advisor.phone,
+                clia_number: advisor.clia_number,
+                ccra_number: advisor.ccra_number,
+                asta_number: advisor.asta_number,
+                embarc_number: advisor.embarc_number,
               }
             : null,
           signupCount: count || 0,
