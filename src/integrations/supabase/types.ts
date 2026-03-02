@@ -2259,7 +2259,9 @@ export type Database = {
           deposit_required: boolean | null
           destination: string | null
           follow_up_due_at: string | null
+          group_landing_description: string | null
           group_landing_enabled: boolean
+          group_landing_headline: string | null
           id: string
           itinerary_approved_at: string | null
           itinerary_approved_by_client_id: string | null
@@ -2313,7 +2315,9 @@ export type Database = {
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
+          group_landing_description?: string | null
           group_landing_enabled?: boolean
+          group_landing_headline?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
@@ -2367,7 +2371,9 @@ export type Database = {
           deposit_required?: boolean | null
           destination?: string | null
           follow_up_due_at?: string | null
+          group_landing_description?: string | null
           group_landing_enabled?: boolean
+          group_landing_headline?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
