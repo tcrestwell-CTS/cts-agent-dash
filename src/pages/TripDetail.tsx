@@ -573,6 +573,7 @@ const TripDetail = () => {
                 tripType={trip.trip_type || undefined}
                 shareToken={(trip as any).share_token || undefined}
                 onSettingsChange={fetchTrip}
+                onNavigateToLandingPage={() => navigate(`/trips/${tripId}/landing-page`)}
               />
               <TripCloseoutChecklist
                 bookings={bookings}
