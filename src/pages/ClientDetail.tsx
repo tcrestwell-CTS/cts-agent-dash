@@ -43,6 +43,7 @@ import {
   UserPlus,
   MoreHorizontal,
   Link2,
+  ClipboardEdit,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { PageBanner } from "@/components/layout/PageBanner";
@@ -91,6 +92,7 @@ const ClientDetail = () => {
   const [editingCompanion, setEditingCompanion] = useState<Companion | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
+  const [isSendingUpdateLink, setIsSendingUpdateLink] = useState(false);
 
   const { data: hasPortalAccount } = useQuery({
     queryKey: ["portal-session-status", clientId],
@@ -130,6 +132,35 @@ const ClientDetail = () => {
       toast.error("Failed to send portal link");
     } finally {
       setIsSendingPortalLink(false);
+    }
+  };
+
+  const handleSendUpdateLink = async () => {
+    if (!client?.email) {
+      toast.error("Client has no email address");
+      return;
+    }
+    setIsSendingUpdateLink(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-update`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: "send-update-link", clientId: client.id }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to send");
+      toast.success(`Update info link sent to ${client.email}`);
+    } catch {
+      toast.error("Failed to send update link");
+    } finally {
+      setIsSendingUpdateLink(false);
     }
   };
 
@@ -443,6 +474,19 @@ const ClientDetail = () => {
                       <Link2 className="mr-2 h-4 w-4" />
                     )}
                     Send Portal Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleSendUpdateLink}
+                    disabled={isSendingUpdateLink}
+                    className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                  >
+                    {isSendingUpdateLink ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <ClipboardEdit className="mr-2 h-4 w-4" />
+                    )}
+                    Request Info Update
                   </Button>
                   <Button 
                     variant="outline" 
