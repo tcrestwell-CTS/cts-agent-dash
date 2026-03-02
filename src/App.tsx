@@ -34,6 +34,7 @@ const ItineraryBuilder    = lazy(() => import("./pages/ItineraryBuilder"));
 const Auth                = lazy(() => import("./pages/Auth"));
 const NotFound            = lazy(() => import("./pages/NotFound"));
 const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
+const GroupLanding        = lazy(() => import("./pages/GroupLanding"));
 const CCAuthorize         = lazy(() => import("./pages/CCAuthorize"));
 const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
 const QBOHealth           = lazy(() => import("./pages/QBOHealth"));
@@ -112,6 +113,7 @@ const App = () => (
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
+                <Route path="/group/:token" element={<GroupLanding />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/update-info/:token" element={<ClientUpdateForm />} />
