@@ -75,9 +75,8 @@ const GroupLandingBuilder = () => {
     setLandingEnabled((data as any).group_landing_enabled || false);
     setLandingHeadline((extraData as any)?.group_landing_headline || "");
     setLandingDescription((extraData as any)?.group_landing_description || "");
+    setHeroImageUrl((extraData as any)?.group_landing_hero_url || "");
     setLoading(false);
-
-    if (error || !data) {
       toast.error("Trip not found");
       navigate("/trips");
       return;
