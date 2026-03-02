@@ -231,7 +231,7 @@ const GroupLandingBuilder = () => {
                   )}
                 </div>
                 {!landingEnabled && (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-destructive/80">
                     Enable the landing page to make this URL accessible to clients.
                   </p>
                 )}
