@@ -43,6 +43,7 @@ const RiskCompliance      = lazy(() => import("./pages/RiskCompliance"));
 const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
 const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
+const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
