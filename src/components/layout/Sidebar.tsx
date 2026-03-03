@@ -53,6 +53,7 @@ const navigation = [
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
+  { name: "Publish Manager", href: "/publish-manager", icon: Globe },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
