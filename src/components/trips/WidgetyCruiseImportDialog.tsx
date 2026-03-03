@@ -91,7 +91,21 @@ interface Props {
 type Step = "search" | "sailings" | "dates" | "pricing" | "preview" | "importing";
 
 const AVAILABLE_OPERATORS = [
+  { slug: "amawaterways", label: "AmaWaterways" },
+  { slug: "avalon-waterways", label: "Avalon Waterways" },
+  { slug: "carnival-cruise-lines-operator", label: "Carnival Cruise Line" },
+  { slug: "celebrity-cruises", label: "Celebrity Cruises" },
+  { slug: "celebrity-river-cruises", label: "Celebrity River Cruises" },
+  { slug: "explora-journeys", label: "Explora Journeys" },
+  { slug: "holland-america-line", label: "Holland America Line" },
+  { slug: "msc-cruises", label: "MSC Cruises" },
   { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
+  { slug: "princess-cruises", label: "Princess Cruises" },
+  { slug: "royal-caribbean-international", label: "Royal Caribbean International" },
+  { slug: "seabourn-cruise-line", label: "Seabourn Cruise Line" },
+  { slug: "silversea-cruises", label: "Silversea Cruises" },
+  { slug: "tauck", label: "Tauck" },
+  { slug: "uniworld-boutique-river-cruises", label: "Uniworld Boutique River Cruises" },
   { slug: "virgin-voyages", label: "Virgin Voyages" },
 ];
 
