@@ -64,6 +64,24 @@ export function FlightSearchDialog({
     item_date: "", description: "", day_number: 1,
   });
 
+  const generateFlightTitle = (form: typeof manualForm) => {
+    const parts: string[] = [];
+    if (form.flight_number) parts.push(form.flight_number.toUpperCase());
+    if (form.departure_city_code && form.arrival_city_code) {
+      parts.push(`${form.departure_city_code} → ${form.arrival_city_code}`);
+    }
+    return parts.join(": ") || "";
+  };
+
+  const updateManualField = (field: string, value: string) => {
+    const updated = { ...manualForm, [field]: value };
+    const autoTitle = generateFlightTitle(updated);
+    if (!manualForm.title || manualForm.title === generateFlightTitle(manualForm)) {
+      updated.title = autoTitle;
+    }
+    setManualForm(updated);
+  };
+
   const handleSearch = () => {
     if (!origin || !dest || !depDate) return;
     const slices = [
@@ -347,7 +365,7 @@ export function FlightSearchDialog({
                 <Label>Flight #</Label>
                 <Input
                   value={manualForm.flight_number}
-                  onChange={(e) => setManualForm({ ...manualForm, flight_number: e.target.value })}
+                  onChange={(e) => updateManualField("flight_number", e.target.value)}
                   placeholder="AA 1234"
                 />
               </div>
@@ -355,7 +373,7 @@ export function FlightSearchDialog({
                 <Label>From</Label>
                 <Input
                   value={manualForm.departure_city_code}
-                  onChange={(e) => setManualForm({ ...manualForm, departure_city_code: e.target.value.toUpperCase() })}
+                  onChange={(e) => updateManualField("departure_city_code", e.target.value.toUpperCase())}
                   placeholder="JFK"
                   maxLength={4}
                   className="uppercase"
@@ -365,7 +383,7 @@ export function FlightSearchDialog({
                 <Label>To</Label>
                 <Input
                   value={manualForm.arrival_city_code}
-                  onChange={(e) => setManualForm({ ...manualForm, arrival_city_code: e.target.value.toUpperCase() })}
+                  onChange={(e) => updateManualField("arrival_city_code", e.target.value.toUpperCase())}
                   placeholder="LAX"
                   maxLength={4}
                   className="uppercase"
