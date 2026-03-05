@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Globe,
+  Plane,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +54,7 @@ const navigation = [
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
+  { name: "Flight Search", href: "/flights", icon: Plane },
   { name: "Publish Manager", href: "/publish-manager", icon: Globe },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
