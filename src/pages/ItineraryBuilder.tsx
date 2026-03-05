@@ -5,7 +5,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2, Plane, Ship } from "lucide-react";
+import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
+import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
+import { useItinerary } from "@/hooks/useItinerary";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
@@ -42,6 +45,9 @@ const ItineraryBuilder = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [editingItinerary, setEditingItinerary] = useState<import("@/hooks/useItineraries").Itinerary | null>(null);
+  const [flightSearchOpen, setFlightSearchOpen] = useState(false);
+  const [cruiseImportOpen, setCruiseImportOpen] = useState(false);
+  const { addItem: addItineraryItem } = useItinerary(tripId);
 
   const activeItinerary = useMemo(
     () => itineraries.find((i) => i.id === activeId),
@@ -116,6 +122,14 @@ const ItineraryBuilder = () => {
 
           <TooltipProvider>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+                <Plane className="h-4 w-4 mr-2" />
+                Search Flights
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setCruiseImportOpen(true)}>
+                <Ship className="h-4 w-4 mr-2" />
+                Cruise Library
+              </Button>
               <PublishTripButton
                 tripId={tripId!}
                 shareToken={trip.share_token}
@@ -343,6 +357,28 @@ const ItineraryBuilder = () => {
           onCreate={createItinerary}
           editingItinerary={editingItinerary}
           onUpdate={updateItinerary}
+        />
+
+        {/* Flight Search Dialog */}
+        <FlightSearchDialog
+          open={flightSearchOpen}
+          onOpenChange={setFlightSearchOpen}
+          tripId={trip.id}
+          tripName={trip.trip_name}
+          destination={trip.destination}
+          departDate={trip.depart_date}
+          returnDate={trip.return_date}
+          onAddFlightToItinerary={async (item) => {
+            await addItineraryItem({ ...item, itinerary_id: activeId || undefined });
+          }}
+        />
+
+        {/* Cruise Import Dialog */}
+        <WidgetyCruiseImportDialog
+          open={cruiseImportOpen}
+          onOpenChange={setCruiseImportOpen}
+          tripId={trip.id}
+          itineraryId={activeId || undefined}
         />
       </div>
     </DashboardLayout>
