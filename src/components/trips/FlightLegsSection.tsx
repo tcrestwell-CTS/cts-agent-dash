@@ -22,6 +22,8 @@ import type { ItineraryItem } from "@/hooks/useItinerary";
 interface FlightLeg {
   id: string;
   flightDate: string;
+  origin: string;
+  destination: string;
   airlineCode: string;
   flightNumber: string;
 }
