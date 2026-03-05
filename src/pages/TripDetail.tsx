@@ -289,7 +289,37 @@ const TripDetail = () => {
             Itinerary Builder
           </Button>
 
+          <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+            <Plane className="h-4 w-4 mr-2" />
+            Search Flights
+          </Button>
 
+          <WidgetyCruiseImportDialog
+            tripId={trip.id}
+            departDate={trip.depart_date}
+            returnDate={trip.return_date}
+            destination={trip.destination}
+            cruiseBookings={bookings.filter((b: any) => b.suppliers?.supplier_type?.toLowerCase() === "cruise")}
+            onImport={async (items) => {
+              let success = true;
+              for (const item of items) {
+                const res = await addItineraryItem({
+                  trip_id: trip.id,
+                  day_number: item.day_number || 1,
+                  title: item.title,
+                  description: item.description || undefined,
+                  category: item.category || "cruise",
+                  location: item.location || undefined,
+                  start_time: item.start_time || undefined,
+                  end_time: item.end_time || undefined,
+                  notes: item.notes || undefined,
+                  sort_order: items.indexOf(item),
+                });
+                if (!res) { success = false; break; }
+              }
+              return success;
+            }}
+          />
           <PublishTripButton
             tripId={trip.id}
             shareToken={(trip as any).share_token}
