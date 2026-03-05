@@ -98,7 +98,9 @@ const TripDetail = () => {
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [flightSearchOpen, setFlightSearchOpen] = useState(false);
   const { processStatusChange } = useWorkflowAutomation();
+  const { addItem: addItineraryItem } = useItinerary(tripId);
 
   const handleWorkflowStatusChange = async (newStatus: string, cancellationOptions?: CancellationOptions) => {
     if (!trip) return false;
