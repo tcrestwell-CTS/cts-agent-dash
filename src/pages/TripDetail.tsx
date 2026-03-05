@@ -26,6 +26,8 @@ import {
   AlertTriangle,
   MessageSquare,
   Globe,
+  Plane,
+  Ship,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -39,7 +41,10 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
+import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
+import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
+import { useItinerary } from "@/hooks/useItinerary";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
@@ -93,7 +98,9 @@ const TripDetail = () => {
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [flightSearchOpen, setFlightSearchOpen] = useState(false);
   const { processStatusChange } = useWorkflowAutomation();
+  const { addItem: addItineraryItem } = useItinerary(tripId);
 
   const handleWorkflowStatusChange = async (newStatus: string, cancellationOptions?: CancellationOptions) => {
     if (!trip) return false;
@@ -282,7 +289,37 @@ const TripDetail = () => {
             Itinerary Builder
           </Button>
 
+          <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+            <Plane className="h-4 w-4 mr-2" />
+            Search Flights
+          </Button>
 
+          <WidgetyCruiseImportDialog
+            tripId={trip.id}
+            departDate={trip.depart_date}
+            returnDate={trip.return_date}
+            destination={trip.destination}
+            cruiseBookings={bookings.filter((b: any) => b.suppliers?.supplier_type?.toLowerCase() === "cruise")}
+            onImport={async (items) => {
+              let success = true;
+              for (const item of items) {
+                const res = await addItineraryItem({
+                  trip_id: trip.id,
+                  day_number: item.day_number || 1,
+                  title: item.title,
+                  description: item.description || undefined,
+                  category: item.category || "cruise",
+                  location: item.location || undefined,
+                  start_time: item.start_time || undefined,
+                  end_time: item.end_time || undefined,
+                  notes: item.notes || undefined,
+                  sort_order: items.indexOf(item),
+                });
+                if (!res) { success = false; break; }
+              }
+              return success;
+            }}
+          />
           <PublishTripButton
             tripId={trip.id}
             shareToken={(trip as any).share_token}
@@ -585,6 +622,18 @@ const TripDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Flight Search Dialog */}
+      <FlightSearchDialog
+        open={flightSearchOpen}
+        onOpenChange={setFlightSearchOpen}
+        tripId={trip.id}
+        tripName={trip.trip_name}
+        destination={trip.destination}
+        departDate={trip.depart_date}
+        returnDate={trip.return_date}
+        onAddFlightToItinerary={addItineraryItem}
+      />
     </DashboardLayout>
   );
 };
