@@ -4,6 +4,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IataCodeInput } from "@/components/trips/IataCodeInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -242,23 +243,19 @@ export function FlightSearchDialog({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">From (IATA Code)</Label>
-                <Input
-                  placeholder="e.g. JFK"
+                <Label className="text-xs font-semibold">From</Label>
+                <IataCodeInput
                   value={origin}
-                  onChange={(e) => setOrigin(e.target.value.toUpperCase())}
-                  maxLength={3}
-                  className="h-9 uppercase"
+                  onChange={setOrigin}
+                  placeholder="City or IATA code"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">To (IATA Code)</Label>
-                <Input
-                  placeholder="e.g. LAX"
+                <Label className="text-xs font-semibold">To</Label>
+                <IataCodeInput
                   value={dest}
-                  onChange={(e) => setDest(e.target.value.toUpperCase())}
-                  maxLength={3}
-                  className="h-9 uppercase"
+                  onChange={setDest}
+                  placeholder="City or IATA code"
                 />
               </div>
               <div className="space-y-2">
@@ -371,22 +368,18 @@ export function FlightSearchDialog({
               </div>
               <div>
                 <Label>From</Label>
-                <Input
+                <IataCodeInput
                   value={manualForm.departure_city_code}
-                  onChange={(e) => updateManualField("departure_city_code", e.target.value.toUpperCase())}
-                  placeholder="JFK"
-                  maxLength={4}
-                  className="uppercase"
+                  onChange={(v) => updateManualField("departure_city_code", v)}
+                  placeholder="City or code"
                 />
               </div>
               <div>
                 <Label>To</Label>
-                <Input
+                <IataCodeInput
                   value={manualForm.arrival_city_code}
-                  onChange={(e) => updateManualField("arrival_city_code", e.target.value.toUpperCase())}
-                  placeholder="LAX"
-                  maxLength={4}
-                  className="uppercase"
+                  onChange={(v) => updateManualField("arrival_city_code", v)}
+                  placeholder="City or code"
                 />
               </div>
             </div>
