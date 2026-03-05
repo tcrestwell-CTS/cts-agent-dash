@@ -80,6 +80,36 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_messages: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          recipient_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
       agent_notifications: {
         Row: {
           created_at: string
