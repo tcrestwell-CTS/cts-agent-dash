@@ -21,6 +21,7 @@ import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
 import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
 import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
+import { FlightLegsSection } from "./FlightLegsSection";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import jsPDF from "jspdf";
