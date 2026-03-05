@@ -64,7 +64,7 @@ export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary,
   });
 
   const addLeg = () => {
-    setLegs([...legs, { id: `leg-${++legCounter}`, flightDate: "", airlineCode: "", flightNumber: "" }]);
+    setLegs([...legs, { id: `leg-${++legCounter}`, flightDate: "", origin: "", destination: "", airlineCode: "", flightNumber: "" }]);
   };
 
   const removeLeg = (id: string) => {
@@ -78,16 +78,14 @@ export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary,
 
   const handleSearch = (legId: string) => {
     const leg = legs.find((l) => l.id === legId);
-    if (!leg || !leg.flightDate) return;
+    if (!leg || !leg.flightDate || !leg.origin || !leg.destination) return;
 
     setActiveLegId(legId);
 
-    // If airline code + flight number provided, search by route
-    // For now we'll do a simple origin/destination search
     const slices = [
       {
-        origin: leg.airlineCode.substring(0, 3).toUpperCase() || "JFK",
-        destination: leg.flightNumber ? "LAX" : "LAX",
+        origin: leg.origin.toUpperCase(),
+        destination: leg.destination.toUpperCase(),
         departure_date: leg.flightDate,
       },
     ];
