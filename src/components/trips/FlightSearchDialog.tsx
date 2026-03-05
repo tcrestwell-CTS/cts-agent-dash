@@ -64,6 +64,24 @@ export function FlightSearchDialog({
     item_date: "", description: "", day_number: 1,
   });
 
+  const generateFlightTitle = (form: typeof manualForm) => {
+    const parts: string[] = [];
+    if (form.flight_number) parts.push(form.flight_number.toUpperCase());
+    if (form.departure_city_code && form.arrival_city_code) {
+      parts.push(`${form.departure_city_code} → ${form.arrival_city_code}`);
+    }
+    return parts.join(": ") || "";
+  };
+
+  const updateManualField = (field: string, value: string) => {
+    const updated = { ...manualForm, [field]: value };
+    const autoTitle = generateFlightTitle(updated);
+    if (!manualForm.title || manualForm.title === generateFlightTitle(manualForm)) {
+      updated.title = autoTitle;
+    }
+    setManualForm(updated);
+  };
+
   const handleSearch = () => {
     if (!origin || !dest || !depDate) return;
     const slices = [
