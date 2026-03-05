@@ -365,7 +365,7 @@ export function FlightSearchDialog({
                 <Label>Flight #</Label>
                 <Input
                   value={manualForm.flight_number}
-                  onChange={(e) => setManualForm({ ...manualForm, flight_number: e.target.value })}
+                  onChange={(e) => updateManualField("flight_number", e.target.value)}
                   placeholder="AA 1234"
                 />
               </div>
@@ -373,7 +373,7 @@ export function FlightSearchDialog({
                 <Label>From</Label>
                 <Input
                   value={manualForm.departure_city_code}
-                  onChange={(e) => setManualForm({ ...manualForm, departure_city_code: e.target.value.toUpperCase() })}
+                  onChange={(e) => updateManualField("departure_city_code", e.target.value.toUpperCase())}
                   placeholder="JFK"
                   maxLength={4}
                   className="uppercase"
@@ -383,7 +383,7 @@ export function FlightSearchDialog({
                 <Label>To</Label>
                 <Input
                   value={manualForm.arrival_city_code}
-                  onChange={(e) => setManualForm({ ...manualForm, arrival_city_code: e.target.value.toUpperCase() })}
+                  onChange={(e) => updateManualField("arrival_city_code", e.target.value.toUpperCase())}
                   placeholder="LAX"
                   maxLength={4}
                   className="uppercase"
