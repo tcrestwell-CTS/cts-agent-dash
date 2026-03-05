@@ -26,6 +26,8 @@ import {
   AlertTriangle,
   MessageSquare,
   Globe,
+  Plane,
+  Ship,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -39,7 +41,10 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
+import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
+import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
+import { useItinerary } from "@/hooks/useItinerary";
 import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
