@@ -21,6 +21,7 @@ import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
 import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
 import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
+import { FlightLegsSection } from "./FlightLegsSection";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import jsPDF from "jspdf";
@@ -379,6 +380,14 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
           </>
         )}
       </div>}
+
+      {/* Flight Legs Section — integrated Duffel search */}
+      <FlightLegsSection
+        tripId={tripId}
+        flightItems={items.filter(i => i.category === "flight")}
+        onAddFlightToItinerary={addItem}
+        onDeleteItem={deleteItem}
+      />
 
       {/* Empty State — also a drop zone */}
       {items.length === 0 && !generating && (
