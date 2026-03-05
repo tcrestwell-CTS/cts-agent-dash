@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Globe,
+  Plane,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
