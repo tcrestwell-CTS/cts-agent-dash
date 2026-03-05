@@ -381,6 +381,14 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
         )}
       </div>}
 
+      {/* Flight Legs Section — integrated Duffel search */}
+      <FlightLegsSection
+        tripId={tripId}
+        flightItems={items.filter(i => i.category === "flight")}
+        onAddFlightToItinerary={addItem}
+        onDeleteItem={deleteItem}
+      />
+
       {/* Empty State — also a drop zone */}
       {items.length === 0 && !generating && (
         <DayDropZone day={1} onDrop={handleDropComponent}>
