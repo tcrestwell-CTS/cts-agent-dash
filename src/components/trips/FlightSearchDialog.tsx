@@ -368,22 +368,18 @@ export function FlightSearchDialog({
               </div>
               <div>
                 <Label>From</Label>
-                <Input
+                <IataCodeInput
                   value={manualForm.departure_city_code}
-                  onChange={(e) => updateManualField("departure_city_code", e.target.value.toUpperCase())}
-                  placeholder="JFK"
-                  maxLength={4}
-                  className="uppercase"
+                  onChange={(v) => updateManualField("departure_city_code", v)}
+                  placeholder="City or code"
                 />
               </div>
               <div>
                 <Label>To</Label>
-                <Input
+                <IataCodeInput
                   value={manualForm.arrival_city_code}
-                  onChange={(e) => updateManualField("arrival_city_code", e.target.value.toUpperCase())}
-                  placeholder="LAX"
-                  maxLength={4}
-                  className="uppercase"
+                  onChange={(v) => updateManualField("arrival_city_code", v)}
+                  placeholder="City or code"
                 />
               </div>
             </div>
