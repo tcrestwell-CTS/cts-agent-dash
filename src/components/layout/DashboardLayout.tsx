@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
 import { useIsMobile } from "@/hooks/use-mobile";
-
+import { AgentChatWidget } from "@/components/chat/AgentChatWidget";
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
