@@ -250,7 +250,27 @@ export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary,
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
+                <div className="space-y-1">
+                  <Label className="text-xs text-primary font-semibold">From (IATA)</Label>
+                  <Input
+                    value={leg.origin}
+                    onChange={(e) => updateLeg(leg.id, "origin", e.target.value.toUpperCase())}
+                    placeholder="e.g. JFK"
+                    className="h-9 text-sm uppercase"
+                    maxLength={3}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-primary font-semibold">To (IATA)</Label>
+                  <Input
+                    value={leg.destination}
+                    onChange={(e) => updateLeg(leg.id, "destination", e.target.value.toUpperCase())}
+                    placeholder="e.g. LAX"
+                    className="h-9 text-sm uppercase"
+                    maxLength={3}
+                  />
+                </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-primary font-semibold">Flight Date</Label>
                   <Input
@@ -258,23 +278,17 @@ export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary,
                     value={leg.flightDate}
                     onChange={(e) => updateLeg(leg.id, "flightDate", e.target.value)}
                     className="h-9 text-sm"
-                    placeholder="MM-DD-YYYY"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-primary font-semibold">Airline / Airline Code</Label>
-                  <div className="flex gap-1">
-                    <Input
-                      value={leg.airlineCode}
-                      onChange={(e) => updateLeg(leg.id, "airlineCode", e.target.value.toUpperCase())}
-                      placeholder="e.g. AA"
-                      className="h-9 text-sm uppercase"
-                      maxLength={3}
-                    />
-                    <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0 text-muted-foreground">
-                      <Search className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Label className="text-xs text-primary font-semibold">Airline Code</Label>
+                  <Input
+                    value={leg.airlineCode}
+                    onChange={(e) => updateLeg(leg.id, "airlineCode", e.target.value.toUpperCase())}
+                    placeholder="e.g. AA"
+                    className="h-9 text-sm uppercase"
+                    maxLength={3}
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-primary font-semibold">Flight Number</Label>
@@ -288,7 +302,7 @@ export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary,
                 <div>
                   <Button
                     onClick={() => handleSearch(leg.id)}
-                    disabled={loading || !leg.flightDate}
+                    disabled={loading || !leg.flightDate || !leg.origin || !leg.destination}
                     className="w-full h-9 gap-2"
                     size="sm"
                   >
