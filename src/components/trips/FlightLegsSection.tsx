@@ -48,7 +48,7 @@ let legCounter = 0;
 export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary, onDeleteItem }: Props) {
   const { offers, loading, searchFlights } = useFlightSearch();
   const [legs, setLegs] = useState<FlightLeg[]>([
-    { id: `leg-${++legCounter}`, flightDate: "", airlineCode: "", flightNumber: "" },
+    { id: `leg-${++legCounter}`, flightDate: "", origin: "", destination: "", airlineCode: "", flightNumber: "" },
   ]);
   const [expanded, setExpanded] = useState(true);
   const [manualOpen, setManualOpen] = useState<string | null>(null);
