@@ -55,6 +55,7 @@ const navigation = [
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Email & Branding", href: "/branding", icon: Mail },
   { name: "Flight Search", href: "/flights", icon: Plane },
+  { name: "Hotel Search", href: "/hotels", icon: Building2 },
   { name: "Publish Manager", href: "/publish-manager", icon: Globe },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
