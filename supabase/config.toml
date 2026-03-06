@@ -45,3 +45,5 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.group-signup]
     verify_jwt = false
+  [functions.hotelbeds]
+    verify_jwt = false
