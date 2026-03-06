@@ -317,7 +317,7 @@ export default function HotelSearch() {
                                       {rate.children > 0 && ` · ${rate.children} child${rate.children > 1 ? "ren" : ""}`}
                                     </span>
                                     {rate.rateType === "RECHECK" && (
-                                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">
+                                      <Badge variant="outline" className="text-xs border-destructive/50 text-destructive">
                                         Rate check required
                                       </Badge>
                                     )}
@@ -329,7 +329,7 @@ export default function HotelSearch() {
                                     </p>
                                   )}
                                   {rate.discount && parseFloat(rate.discount) > 0 && (
-                                    <p className="text-xs text-green-600 font-medium">
+                                    <p className="text-xs text-primary font-medium">
                                       {rate.discountPCT}% discount — save {hotel.currency} {rate.discount}
                                     </p>
                                   )}
@@ -398,8 +398,8 @@ export default function HotelSearch() {
                     Verifying latest rate...
                   </div>
                 ) : checkedRate ? (
-                  <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 p-3">
-                    <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-1">
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                    <p className="text-sm text-primary flex items-center gap-1">
                       <CheckCircle2 className="h-4 w-4" />
                       Rate verified — {selectedRate.hotel.currency} {selectedRate.rate.net}
                     </p>
