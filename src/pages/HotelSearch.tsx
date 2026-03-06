@@ -70,13 +70,14 @@ export default function HotelSearch() {
   const [expandedHotels, setExpandedHotels] = useState<Set<number>>(new Set());
 
   const handleSearch = () => {
-    if (!destination || !checkIn || !checkOut) {
+    const dest = destination.trim().toUpperCase();
+    if (!dest || dest.length > 3 || !checkIn || !checkOut) {
       return;
     }
     searchHotels({
       checkIn,
       checkOut,
-      destination: destination.toUpperCase(),
+      destination: dest,
       occupancies: [{ rooms, adults, children }],
     });
   };
@@ -157,7 +158,8 @@ export default function HotelSearch() {
                 <Input
                   placeholder="e.g. MAD, PMI, LON"
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
+                  onChange={(e) => setDestination(e.target.value.slice(0, 3))}
+                  maxLength={3}
                 />
               </div>
               <div className="space-y-2">
