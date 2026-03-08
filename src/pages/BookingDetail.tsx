@@ -162,7 +162,7 @@ const BookingDetail = () => {
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
   const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
-  const [customRate, setCustomRate] = useState<string>("");
+  
   const { user } = useAuth();
 
   const handleDelete = async () => {
