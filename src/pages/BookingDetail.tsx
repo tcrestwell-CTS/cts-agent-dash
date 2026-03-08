@@ -134,9 +134,6 @@ const BookingDetail = () => {
   }, [booking, selectedSupplier]);
 
   const isMultiLineSupplier = selectedSupplier?.multi_line_commission === true;
-  const { lines: commissionLines, totalCommission: linesTotalCommission } = useBookingCommissionLines(
-    isMultiLineSupplier ? booking?.id : undefined
-  );
 
   const { data: client } = useClient(booking?.client_id || "");
 
