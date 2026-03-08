@@ -12,12 +12,10 @@ interface TripCoverImageProps {
 
 export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverImageProps) {
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -29,7 +27,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const ext = file.name?.split(".").pop() || (file.type === "image/png" ? "png" : "jpg");
       const path = `${tripId}/cover.${ext}`;
 
       const { error: uploadError } = await supabase.storage
@@ -58,6 +56,31 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) uploadFile(file);
+        return;
+      }
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
   };
 
   const handleRemove = async () => {
