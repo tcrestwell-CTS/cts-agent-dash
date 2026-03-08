@@ -102,9 +102,16 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
   };
 
   return (
-    <div className="relative group">
+    <div
+      className="relative group outline-none"
+      tabIndex={0}
+      onPaste={handlePaste}
+      onDrop={handleDrop}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+    >
       {coverImageUrl ? (
-        <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+        <div className={`relative w-full h-48 rounded-lg overflow-hidden border ${dragOver ? "ring-2 ring-primary" : ""}`}>
           <img
             src={coverImageUrl}
             alt="Trip cover"
@@ -134,7 +141,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+          className={`w-full h-36 rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"}`}
         >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -142,7 +149,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
             <>
               <ImagePlus className="h-6 w-6" />
               <span className="text-sm font-medium">Add Cover Image</span>
-              <span className="text-xs">Displays on the shared trip page</span>
+              <span className="text-xs">Paste, drop, or click to upload</span>
             </>
           )}
         </button>
