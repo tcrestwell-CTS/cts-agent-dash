@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { LocalCommissionLinesEditor, LocalCommissionLine } from "@/components/bookings/CommissionLinesEditor";
 
 // Booking types with their icons and supplier type mappings
 const BOOKING_TYPES = [
