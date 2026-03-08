@@ -9,17 +9,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DollarSign, Percent, Building2, TrendingUp } from "lucide-react";
-import { useSuppliers, calculateBookingFinancials, Supplier, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
+import { useSuppliers, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
 import { useMemo } from "react";
 
 interface BookingFinancialsProps {
   grossSales: number;
+  supplierCost: number;
   supplierId?: string | null;
-  commissionablePercentage?: number;
   commissionRate?: number;
   onGrossSalesChange: (value: number) => void;
+  onSupplierCostChange: (value: number) => void;
   onSupplierChange?: (supplierId: string | null) => void;
-  onCommissionablePercentageChange?: (value: number) => void;
   onCommissionRateChange?: (value: number) => void;
   readOnly?: boolean;
   showSupplierSelect?: boolean;
@@ -27,12 +27,12 @@ interface BookingFinancialsProps {
 
 export function BookingFinancials({
   grossSales,
+  supplierCost,
   supplierId,
-  commissionablePercentage = 85,
   commissionRate = 10,
   onGrossSalesChange,
+  onSupplierCostChange,
   onSupplierChange,
-  onCommissionablePercentageChange,
   onCommissionRateChange,
   readOnly = false,
   showSupplierSelect = true,
@@ -44,47 +44,33 @@ export function BookingFinancials({
     return activeSuppliers.find((s) => s.id === supplierId) || null;
   }, [supplierId, activeSuppliers]);
 
-  // Check if this is a flat-rate flight supplier
   const isFlightFlat = isFlightFlatRate(selectedSupplier);
 
-  // Calculate financials based on current values
+  // Calculate financials: netSales = gross - supplierCost, commission = netSales * rate
   const financials = useMemo(() => {
-    // If supplier is selected and it's a flat-rate airline
-    if (isFlightFlat && selectedSupplier) {
+    const netSales = grossSales - supplierCost;
+
+    if (isFlightFlat) {
       const commissionRevenue = Math.round(((grossSales / FLIGHT_FLAT_PER) * FLIGHT_FLAT_RATE) * 100) / 100;
-      const netSales = grossSales - commissionRevenue;
       return {
-        commissionableAmount: grossSales,
-        commissionRevenue,
         netSales,
-        supplierPayout: netSales,
-        effectiveCommissionablePercentage: 100,
+        commissionRevenue,
         effectiveCommissionRate: (FLIGHT_FLAT_RATE / FLIGHT_FLAT_PER) * 100,
       };
     }
 
-    // If supplier is selected, use supplier rates; otherwise use manual rates
-    const effectiveCommissionablePercentage = selectedSupplier 
-      ? selectedSupplier.commissionable_percentage 
-      : commissionablePercentage;
-    const effectiveCommissionRate = selectedSupplier 
-      ? selectedSupplier.commission_rate 
+    const effectiveCommissionRate = selectedSupplier
+      ? selectedSupplier.commission_rate
       : commissionRate;
 
-    const commissionableAmount = grossSales * (effectiveCommissionablePercentage / 100);
-    const commissionRevenue = commissionableAmount * (effectiveCommissionRate / 100);
-    const netSales = grossSales - commissionRevenue;
-    const supplierPayout = netSales;
+    const commissionRevenue = netSales * (effectiveCommissionRate / 100);
 
     return {
-      commissionableAmount,
-      commissionRevenue,
       netSales,
-      supplierPayout,
-      effectiveCommissionablePercentage,
+      commissionRevenue,
       effectiveCommissionRate,
     };
-  }, [grossSales, selectedSupplier, commissionablePercentage, commissionRate, isFlightFlat]);
+  }, [grossSales, supplierCost, selectedSupplier, commissionRate, isFlightFlat]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -96,15 +82,13 @@ export function BookingFinancials({
 
   const handleSupplierChange = (value: string) => {
     if (!onSupplierChange) return;
-    
+
     if (value === "none") {
       onSupplierChange(null);
     } else {
       onSupplierChange(value);
-      // When supplier changes, update the percentage and rate
       const supplier = activeSuppliers.find((s) => s.id === value);
       if (supplier) {
-        onCommissionablePercentageChange?.(supplier.commissionable_percentage);
         onCommissionRateChange?.(supplier.commission_rate);
       }
     }
@@ -135,13 +119,13 @@ export function BookingFinancials({
                 <SelectItem value="none">No supplier (manual rates)</SelectItem>
                 {activeSuppliers.map((supplier) => (
                   <SelectItem key={supplier.id} value={supplier.id}>
-                    {supplier.name} ({supplier.commissionable_percentage}% @ {supplier.commission_rate}%)
+                    {supplier.name} ({supplier.commission_rate}%)
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Selecting a supplier will use their commission rules
+              Selecting a supplier will use their commission rate
             </p>
           </div>
         )}
@@ -160,62 +144,62 @@ export function BookingFinancials({
             className="text-lg font-semibold"
           />
           <p className="text-xs text-muted-foreground">
-            Total amount the guest pays including taxes and fees
+            Total amount charged to the client
           </p>
         </div>
 
-        {/* Commission Rates (editable if no supplier) */}
+        {/* Supplier Cost */}
+        <div className="space-y-2">
+          <Label htmlFor="supplier_cost">Supplier Cost ($)</Label>
+          <Input
+            id="supplier_cost"
+            type="number"
+            min="0"
+            step="0.01"
+            value={supplierCost}
+            onChange={(e) => onSupplierCostChange(parseFloat(e.target.value) || 0)}
+            disabled={readOnly}
+          />
+          <p className="text-xs text-muted-foreground">
+            Net rate charged by supplier (what you pay to the supplier)
+          </p>
+        </div>
+
+        {/* Commission Rate (editable if no supplier) */}
         {!selectedSupplier && !readOnly && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="commissionable_pct">Commissionable %</Label>
-              <Input
-                id="commissionable_pct"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                value={commissionablePercentage}
-                onChange={(e) => onCommissionablePercentageChange?.(parseFloat(e.target.value) || 85)}
-                disabled={readOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="commission_rate">Commission Rate %</Label>
-              <Input
-                id="commission_rate"
-                type="number"
-                min="0"
-                max="100"
-                step="0.5"
-                value={commissionRate}
-                onChange={(e) => onCommissionRateChange?.(parseFloat(e.target.value) || 10)}
-                disabled={readOnly}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="commission_rate">Commission Rate %</Label>
+            <Input
+              id="commission_rate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={commissionRate}
+              onChange={(e) => onCommissionRateChange?.(parseFloat(e.target.value) || 10)}
+              disabled={readOnly}
+            />
           </div>
         )}
 
         {/* Calculated Values */}
         <div className="border-t pt-4 space-y-3">
-          {!isFlightFlat && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Percent className="h-4 w-4" />
-                Commissionable Amount ({financials.effectiveCommissionablePercentage}%)
-              </div>
-              <span className="font-medium">
-                {formatCurrency(financials.commissionableAmount)}
-              </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <DollarSign className="h-4 w-4" />
+              Net Sales (Gross − Supplier Cost)
             </div>
-          )}
+            <span className="font-medium">
+              {formatCurrency(financials.netSales)}
+            </span>
+          </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-success">
               <TrendingUp className="h-4 w-4" />
-              {isFlightFlat 
+              {isFlightFlat
                 ? `Commission ($${FLIGHT_FLAT_RATE}/$${FLIGHT_FLAT_PER})`
-                : `Commission Revenue (${financials.effectiveCommissionRate}%)`
+                : `Commission (${financials.effectiveCommissionRate}%)`
               }
             </div>
             <span className="font-semibold text-success">
@@ -223,23 +207,13 @@ export function BookingFinancials({
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
-              Net Booking Sales
-            </div>
-            <span className="font-medium">
-              {formatCurrency(financials.netSales)}
-            </span>
-          </div>
-
           <div className="flex items-center justify-between border-t pt-3">
             <div className="flex items-center gap-2 text-sm">
               <Building2 className="h-4 w-4" />
-              Net Payout to Supplier
+              Supplier Payout
             </div>
             <span className="font-semibold">
-              {formatCurrency(financials.supplierPayout)}
+              {formatCurrency(supplierCost)}
             </span>
           </div>
         </div>
@@ -282,11 +256,8 @@ export function BookingFinancialsDisplay({
     }).format(value);
   };
 
-  const commissionablePercentage = grossSales > 0 
-    ? ((commissionableAmount / grossSales) * 100).toFixed(0) 
-    : "0";
-  const commissionRate = commissionableAmount > 0 
-    ? ((commissionRevenue / commissionableAmount) * 100).toFixed(1) 
+  const commissionRate = netSales > 0
+    ? ((commissionRevenue / netSales) * 100).toFixed(1)
     : "0";
 
   return (
@@ -307,29 +278,24 @@ export function BookingFinancialsDisplay({
 
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Supplier Payout</span>
+            <span className="font-medium">{formatCurrency(supplierPayout)}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              Commissionable ({commissionablePercentage}%)
+              Net Sales
             </span>
-            <span className="font-medium">{formatCurrency(commissionableAmount)}</span>
+            <span className="font-medium">{formatCurrency(netSales)}</span>
           </div>
 
           <div className="flex items-center justify-between bg-success/10 p-2 rounded">
             <span className="text-sm text-success font-medium">
-              Commission Revenue ({commissionRate}%)
+              Commission ({commissionRate}%)
             </span>
             <span className="font-semibold text-success">
               {formatCurrency(commissionRevenue)}
             </span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Net Booking Sales</span>
-            <span className="font-medium">{formatCurrency(netSales)}</span>
-          </div>
-
-          <div className="flex items-center justify-between border-t pt-3">
-            <span className="text-sm">Supplier Payout</span>
-            <span className="font-semibold">{formatCurrency(supplierPayout)}</span>
           </div>
         </div>
 

@@ -130,7 +130,7 @@ const BookingDetail = () => {
 
   const tripFinancials = useMemo(() => {
     if (!booking) return null;
-    return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier);
+    return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier, booking.supplier_payout);
   }, [booking, selectedSupplier]);
 
   const { data: client } = useClient(booking?.client_id || "");
@@ -630,10 +630,10 @@ const BookingDetail = () => {
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Commissionable Amount ({tripFinancials?.commissionablePercentage || 85}%)
+                    Net Sales (Gross − Supplier Cost)
                   </span>
                   <span className="font-medium">
-                    {formatCurrency(tripFinancials?.commissionableAmount || booking.total_amount * 0.85)}
+                    {formatCurrency(tripFinancials?.commissionableAmount || booking.commissionable_amount)}
                   </span>
                 </div>
 

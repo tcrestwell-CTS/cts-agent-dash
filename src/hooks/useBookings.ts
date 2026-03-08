@@ -159,8 +159,10 @@ export interface CreateBookingData {
   // Financial fields
   supplier_id?: string;
   gross_sales?: number;
-  commissionable_percentage?: number;
+  supplier_payout?: number;
   commission_rate?: number;
+  // Legacy field (no longer used in calculation but kept for compat)
+  commissionable_percentage?: number;
   // Commission override fields
   commission_override_amount?: number;
   override_notes?: string;
@@ -267,13 +269,13 @@ export function useBookings() {
       const approvalThreshold = agencySettings?.approval_threshold ?? 10000;
       
       // Calculate financial fields
+      // New formula: netSales = gross - supplierCost, commission = netSales * rate
       const grossSales = data.gross_sales ?? data.total_amount;
-      const commissionablePercentage = data.commissionable_percentage ?? 85;
+      const supplierPayout = data.supplier_payout ?? 0;
       const commissionRate = data.commission_rate ?? 10;
-      const commissionableAmount = grossSales * (commissionablePercentage / 100);
-      const commissionRevenue = commissionableAmount * (commissionRate / 100);
-      const netSales = grossSales - commissionRevenue;
-      const supplierPayout = netSales;
+      const netSales = grossSales - supplierPayout;
+      const commissionableAmount = netSales;
+      const commissionRevenue = netSales * (commissionRate / 100);
 
       // Determine if override requires approval (only if override is higher than calculated)
       const hasOverride = data.commission_override_amount !== undefined && data.commission_override_amount !== null;

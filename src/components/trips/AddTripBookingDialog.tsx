@@ -79,7 +79,7 @@ export function AddTripBookingDialog({
     booking_reference: "",
     travelers: 1,
     gross_sales: 0,
-    commissionable_percentage: 85,
+    supplier_payout: 0,
     commission_rate: 10,
     supplier_id: "",
     trip_name: "",
@@ -97,7 +97,7 @@ export function AddTripBookingDialog({
         booking_reference: "",
         travelers: 1,
         gross_sales: 0,
-        commissionable_percentage: 85,
+        supplier_payout: 0,
         commission_rate: 10,
         supplier_id: "",
         trip_name: "",
@@ -125,13 +125,12 @@ export function AddTripBookingDialog({
     return matchingTypes.includes(supplier.supplier_type.toLowerCase());
   });
 
-  // Calculate financials
+  // Calculate financials: netSales = gross - supplierCost, commission = netSales * rate
   const calculatedFinancials = (() => {
     const gross = formData.gross_sales;
-    const commissionableAmount = gross * (formData.commissionable_percentage / 100);
-    const commissionRevenue = commissionableAmount * (formData.commission_rate / 100);
-    const netSales = gross - commissionRevenue;
-    return { commissionableAmount, commissionRevenue, netSales };
+    const netSales = gross - formData.supplier_payout;
+    const commissionRevenue = netSales * (formData.commission_rate / 100);
+    return { commissionableAmount: netSales, commissionRevenue, netSales };
   })();
 
   const handleSupplierChange = (supplierId: string) => {
@@ -139,7 +138,6 @@ export function AddTripBookingDialog({
       setFormData((prev) => ({
         ...prev,
         supplier_id: "",
-        commissionable_percentage: 85,
         commission_rate: 10,
       }));
     } else {
@@ -148,7 +146,6 @@ export function AddTripBookingDialog({
         setFormData((prev) => ({
           ...prev,
           supplier_id: supplierId,
-          commissionable_percentage: supplier.commissionable_percentage,
           commission_rate: supplier.commission_rate,
         }));
       }
@@ -176,9 +173,8 @@ export function AddTripBookingDialog({
     setCreating(true);
 
     try {
-      const commissionableAmount = formData.gross_sales * (formData.commissionable_percentage / 100);
-      const commissionRevenue = commissionableAmount * (formData.commission_rate / 100);
-      const netSales = formData.gross_sales - commissionRevenue;
+      const netSales = formData.gross_sales - formData.supplier_payout;
+      const commissionRevenue = netSales * (formData.commission_rate / 100);
 
       const bookingData = {
         user_id: user.id,
@@ -192,10 +188,10 @@ export function AddTripBookingDialog({
         travelers: formData.travelers,
         gross_sales: formData.gross_sales,
         total_amount: formData.gross_sales,
-        commissionable_amount: commissionableAmount,
+        commissionable_amount: netSales,
         commission_revenue: commissionRevenue,
         net_sales: netSales,
-        supplier_payout: formData.gross_sales - commissionRevenue,
+        supplier_payout: formData.supplier_payout,
         supplier_id: formData.supplier_id || null,
         trip_name: formData.trip_name || `${formData.booking_type.charAt(0).toUpperCase() + formData.booking_type.slice(1)} - ${formData.destination}`,
         notes: formData.notes || null,
@@ -373,6 +369,21 @@ export function AddTripBookingDialog({
             />
           </div>
 
+          {/* Supplier Cost */}
+          <div className="space-y-2">
+            <Label htmlFor="supplier_cost">Supplier Cost ($)</Label>
+            <Input
+              id="supplier_cost"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.supplier_payout || ""}
+              onChange={(e) => setFormData((prev) => ({ ...prev, supplier_payout: parseFloat(e.target.value) || 0 }))}
+              placeholder="0.00"
+            />
+            <p className="text-xs text-muted-foreground">What you pay to the supplier</p>
+          </div>
+
           {/* Commission Details Collapsible */}
           <Collapsible open={showFinancials} onOpenChange={setShowFinancials}>
             <CollapsibleTrigger asChild>
@@ -401,65 +412,43 @@ export function AddTripBookingDialog({
                     <SelectItem value="none">No supplier (manual rates)</SelectItem>
                     {filteredSuppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name} ({supplier.commissionable_percentage}% @ {supplier.commission_rate}%)
+                        {supplier.name} ({supplier.commission_rate}%)
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Manual Rates */}
+              {/* Manual Rate */}
               {!formData.supplier_id && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="commissionable_pct">Commissionable %</Label>
-                    <Input
-                      id="commissionable_pct"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.commissionable_percentage}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          commissionable_percentage: parseFloat(e.target.value) || 85,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="commission_rate">Commission Rate %</Label>
-                    <Input
-                      id="commission_rate"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={formData.commission_rate}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          commission_rate: parseFloat(e.target.value) || 10,
-                        }))
-                      }
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="commission_rate">Commission Rate %</Label>
+                  <Input
+                    id="commission_rate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={formData.commission_rate}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        commission_rate: parseFloat(e.target.value) || 10,
+                      }))
+                    }
+                  />
                 </div>
               )}
 
               {/* Calculated Values */}
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Commissionable Amount</span>
-                  <span>{formatCurrency(calculatedFinancials.commissionableAmount)}</span>
+                  <span className="text-muted-foreground">Net Sales</span>
+                  <span>{formatCurrency(calculatedFinancials.netSales)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Commission Revenue</span>
                   <span className="font-medium text-primary">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
-                </div>
-                <div className="flex justify-between text-sm border-t pt-2">
-                  <span className="text-muted-foreground">Net Booking Sales</span>
-                  <span className="font-medium">{formatCurrency(calculatedFinancials.netSales)}</span>
                 </div>
               </div>
             </CollapsibleContent>

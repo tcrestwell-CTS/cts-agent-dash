@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -494,23 +494,59 @@ const TripDetail = () => {
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Commissionable</span>
-                    <span className="font-medium">
-                      {formatCurrency(trip.total_commissionable_amount)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Commission Revenue</span>
-                    <span className="font-semibold text-primary">
-                      {formatCurrency(trip.total_commission_revenue)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-muted-foreground">Supplier Payout</span>
+                    <span className="text-sm text-muted-foreground">Supplier Payout</span>
                     <span className="font-medium">
                       {formatCurrency(trip.total_supplier_payout)}
                     </span>
                   </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Net Sales</span>
+                    <span className="font-medium">
+                      {formatCurrency(trip.total_net_sales)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Total Commission</span>
+                    <span className="font-semibold text-primary">
+                      {formatCurrency(trip.total_commission_revenue)}
+                    </span>
+                  </div>
+
+                  {/* Agent Commission Split */}
+                  {trip.total_commission_revenue > 0 && profile && (() => {
+                    const tierKey = profile.commission_tier || "tier_1";
+                    const tierConfig = {
+                      none: { label: "None", agentSplit: 0, agencySplit: 100 },
+                      tier_1: { label: "Tier 1", agentSplit: 70, agencySplit: 30 },
+                      tier_2: { label: "Tier 2", agentSplit: 80, agencySplit: 20 },
+                      tier_3: { label: "Tier 3", agentSplit: 95, agencySplit: 5 },
+                    }[tierKey] || { label: "Tier 1", agentSplit: 70, agencySplit: 30 };
+
+                    const agentCommissionBase = trip.total_commission_revenue;
+                    const advisorPayout = agentCommissionBase * (tierConfig.agentSplit / 100);
+                    const agencyRetained = agentCommissionBase * (tierConfig.agencySplit / 100);
+
+                    return (
+                      <div className="pt-2 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Commission Split ({tierConfig.label}: {tierConfig.agentSplit}/{tierConfig.agencySplit})
+                        </p>
+                        <div className="flex justify-between items-center py-1">
+                          <span className="text-sm text-muted-foreground">Advisor Payout</span>
+                          <span className="font-semibold text-success">
+                            {formatCurrency(advisorPayout)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center py-1">
+                          <span className="text-sm text-muted-foreground">Agency Retains</span>
+                          <span className="font-medium">
+                            {formatCurrency(agencyRetained)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {trip.total_gross_sales > 0 && (
                     <div className="flex justify-between items-center py-2 border-t">
                       <span className="text-sm text-muted-foreground">Margin %</span>
