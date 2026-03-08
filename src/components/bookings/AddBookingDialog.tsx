@@ -56,7 +56,7 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
     travelers: 1,
     total_amount: 0,
     gross_sales: 0,
-    commissionable_percentage: 85,
+    supplier_payout: 0,
     commission_rate: 10,
     supplier_id: "",
     trip_name: "",
