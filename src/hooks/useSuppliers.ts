@@ -43,6 +43,7 @@ export interface CreateSupplierData {
   website?: string;
   notes?: string;
   override_commission?: boolean;
+  multi_line_commission?: boolean;
 }
 
 export interface UpdateSupplierData extends Partial<CreateSupplierData> {
