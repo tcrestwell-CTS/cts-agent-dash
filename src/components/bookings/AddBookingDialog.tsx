@@ -146,10 +146,9 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
   // Calculate financials when gross sales or rates change
   const calculatedFinancials = (() => {
     const gross = formData.gross_sales || formData.total_amount;
-    const commissionableAmount = gross * (formData.commissionable_percentage / 100);
-    const commissionRevenue = commissionableAmount * (formData.commission_rate / 100);
-    const netSales = gross - commissionRevenue;
-    return { commissionableAmount, commissionRevenue, netSales };
+    const netSales = gross - formData.supplier_payout;
+    const commissionRevenue = netSales * (formData.commission_rate / 100);
+    return { commissionableAmount: netSales, commissionRevenue, netSales };
   })();
 
   // Check if override requires approval
