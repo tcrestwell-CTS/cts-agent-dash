@@ -130,7 +130,7 @@ const BookingDetail = () => {
 
   const tripFinancials = useMemo(() => {
     if (!booking) return null;
-    return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier);
+    return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier, booking.supplier_payout);
   }, [booking, selectedSupplier]);
 
   const { data: client } = useClient(booking?.client_id || "");
