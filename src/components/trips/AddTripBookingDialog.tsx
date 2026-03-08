@@ -138,7 +138,6 @@ export function AddTripBookingDialog({
       setFormData((prev) => ({
         ...prev,
         supplier_id: "",
-        commissionable_percentage: 85,
         commission_rate: 10,
       }));
     } else {
@@ -147,7 +146,6 @@ export function AddTripBookingDialog({
         setFormData((prev) => ({
           ...prev,
           supplier_id: supplierId,
-          commissionable_percentage: supplier.commissionable_percentage,
           commission_rate: supplier.commission_rate,
         }));
       }
