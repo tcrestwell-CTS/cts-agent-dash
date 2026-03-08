@@ -125,13 +125,12 @@ export function AddTripBookingDialog({
     return matchingTypes.includes(supplier.supplier_type.toLowerCase());
   });
 
-  // Calculate financials
+  // Calculate financials: netSales = gross - supplierCost, commission = netSales * rate
   const calculatedFinancials = (() => {
     const gross = formData.gross_sales;
-    const commissionableAmount = gross * (formData.commissionable_percentage / 100);
-    const commissionRevenue = commissionableAmount * (formData.commission_rate / 100);
-    const netSales = gross - commissionRevenue;
-    return { commissionableAmount, commissionRevenue, netSales };
+    const netSales = gross - formData.supplier_payout;
+    const commissionRevenue = netSales * (formData.commission_rate / 100);
+    return { commissionableAmount: netSales, commissionRevenue, netSales };
   })();
 
   const handleSupplierChange = (supplierId: string) => {
