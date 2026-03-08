@@ -158,42 +158,39 @@ export function isFlightFlatRate(supplier?: Supplier | null): boolean {
 }
 
 // Helper function to calculate commission values based on supplier
+// New formula: netSales = grossSales - supplierCost, commission = netSales * commissionRate
 export function calculateBookingFinancials(
   grossSales: number,
-  supplier?: Supplier | null
+  supplier?: Supplier | null,
+  supplierCost?: number
 ) {
+  const cost = supplierCost ?? 0;
+
   // Flight flat rate: $25 per $500
   if (isFlightFlatRate(supplier)) {
     const commissionRevenue = Math.round(((grossSales / FLIGHT_FLAT_PER) * FLIGHT_FLAT_RATE) * 100) / 100;
-    const netSales = grossSales - commissionRevenue;
+    const netSales = grossSales - cost;
     return {
       grossSales,
       commissionableAmount: grossSales,
       commissionRevenue,
       netSales,
-      supplierPayout: netSales,
-      commissionablePercentage: 100,
+      supplierPayout: cost,
       commissionRate: (FLIGHT_FLAT_RATE / FLIGHT_FLAT_PER) * 100,
       isFlightFlat: true,
     };
   }
 
-  // Default values if no supplier
-  const commissionablePercentage = supplier?.commissionable_percentage ?? 85;
   const commissionRate = supplier?.commission_rate ?? 10;
-
-  const commissionableAmount = grossSales * (commissionablePercentage / 100);
-  const commissionRevenue = commissionableAmount * (commissionRate / 100);
-  const netSales = grossSales - commissionRevenue;
-  const supplierPayout = netSales;
+  const netSales = grossSales - cost;
+  const commissionRevenue = netSales * (commissionRate / 100);
 
   return {
     grossSales,
-    commissionableAmount,
+    commissionableAmount: netSales,
     commissionRevenue,
     netSales,
-    supplierPayout,
-    commissionablePercentage,
+    supplierPayout: cost,
     commissionRate,
     isFlightFlat: false,
   };
