@@ -135,6 +135,11 @@ const BookingDetail = () => {
     return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier, booking.supplier_payout);
   }, [booking, selectedSupplier]);
 
+  const isMultiLineSupplier = selectedSupplier?.multi_line_commission === true;
+  const { lines: commissionLines, totalCommission: linesTotalCommission } = useBookingCommissionLines(
+    isMultiLineSupplier ? booking?.id : undefined
+  );
+
   const { data: client } = useClient(booking?.client_id || "");
 
   // Check if payments are logged against this booking
