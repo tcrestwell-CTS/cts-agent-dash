@@ -622,7 +622,7 @@ const BookingDetail = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
                 <p className="text-2xl font-semibold text-foreground">
-                  {formatCurrency(tripFinancials?.grossSales || booking.total_amount)}
+                  {formatCurrency(booking.gross_sales || booking.total_amount)}
                 </p>
               </div>
 
@@ -632,47 +632,61 @@ const BookingDetail = () => {
                     Net Sales (Gross − Supplier Cost)
                   </span>
                   <span className="font-medium">
-                    {formatCurrency(tripFinancials?.commissionableAmount || booking.commissionable_amount)}
+                    {formatCurrency(booking.net_sales || booking.commissionable_amount)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between bg-success/10 p-2 rounded">
-                  <span className="text-sm text-success font-medium">
-                    Commission Revenue ({tripFinancials?.commissionRate || 10}%)
-                  </span>
-                  <span className="font-semibold text-success">
-                    {formatCurrency(tripFinancials?.commissionRevenue || booking.total_amount * 0.085)}
-                  </span>
-                </div>
+                {(() => {
+                  const grossSales = booking.gross_sales || booking.total_amount;
+                  const commissionRevenue = booking.commission_revenue || 0;
+                  const commissionPct = grossSales > 0
+                    ? Math.round((commissionRevenue / (booking.net_sales || grossSales)) * 100)
+                    : 0;
+                  const agentSplit = userTier ? getTierConfig(userTier).agentSplit : 70;
+                  const agencySplit = userTier ? getTierConfig(userTier).agencySplit : 30;
+                  const agentAmount = commissionRevenue * (agentSplit / 100);
+                  const agencyAmount = commissionRevenue * (agencySplit / 100);
 
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Net Booking Sales</span>
-                  <span className="font-medium">
-                    {formatCurrency(tripFinancials?.netSales || booking.total_amount * 0.915)}
-                  </span>
-                </div>
+                  return (
+                    <>
+                      <div className="flex items-center justify-between bg-success/10 p-2 rounded">
+                        <span className="text-sm text-success font-medium">
+                          Commission Revenue ({commissionPct}%)
+                        </span>
+                        <span className="font-semibold text-success">
+                          {formatCurrency(commissionRevenue)}
+                        </span>
+                      </div>
 
-                <div className="flex items-center justify-between border-t pt-3 bg-primary/10 p-2 rounded">
-                  <span className="text-sm font-medium text-primary">
-                    Agent Commission ({userTier ? getTierConfig(userTier).agentSplit : 70}%)
-                  </span>
-                  <span className="font-semibold text-primary">
-                    {formatCurrency((tripFinancials?.commissionRevenue || 0) * (userTier ? getTierConfig(userTier).agentSplit / 100 : 0.7))}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Agency receives ({userTier ? getTierConfig(userTier).agencySplit : 30}%)</span>
-                  <span>
-                    {formatCurrency((tripFinancials?.commissionRevenue || 0) * (userTier ? getTierConfig(userTier).agencySplit / 100 : 0.3))}
-                  </span>
-                </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Net Booking Sales</span>
+                        <span className="font-medium">
+                          {formatCurrency(booking.net_sales || 0)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t pt-3 bg-primary/10 p-2 rounded">
+                        <span className="text-sm font-medium text-primary">
+                          Agent Commission ({agentSplit}%)
+                        </span>
+                        <span className="font-semibold text-primary">
+                          {formatCurrency(agentAmount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Agency receives ({agencySplit}%)</span>
+                        <span>{formatCurrency(agencyAmount)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {booking.travelers > 1 && (
                 <div className="border-t pt-3">
                   <p className="text-sm text-muted-foreground">Per Traveler</p>
                   <p className="font-medium text-foreground">
-                    {formatCurrency((tripFinancials?.grossSales || booking.total_amount) / booking.travelers)}
+                    {formatCurrency((booking.gross_sales || booking.total_amount) / booking.travelers)}
                   </p>
                 </div>
               )}
