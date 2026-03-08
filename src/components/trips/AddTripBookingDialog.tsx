@@ -128,8 +128,17 @@ export function AddTripBookingDialog({
     return matchingTypes.includes(supplier.supplier_type.toLowerCase());
   });
 
+  // Check if selected supplier uses multi-line commission
+  const selectedSupplier = activeSuppliers.find(s => s.id === formData.supplier_id);
+  const isMultiLine = selectedSupplier?.multi_line_commission === true;
+
   // Calculate financials: netSales = gross - supplierCost, commission = netSales * rate
   const calculatedFinancials = (() => {
+    if (isMultiLine) {
+      const totalLineCommission = commissionLines.reduce((s, l) => s + l.commission_amount, 0);
+      const netSales = formData.gross_sales - formData.supplier_payout;
+      return { commissionableAmount: formData.gross_sales, commissionRevenue: totalLineCommission, netSales };
+    }
     const gross = formData.gross_sales;
     const netSales = gross - formData.supplier_payout;
     const commissionRevenue = netSales * (formData.commission_rate / 100);
