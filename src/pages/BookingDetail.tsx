@@ -60,8 +60,6 @@ import {
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
-import { CommissionLinesEditor } from "@/components/bookings/CommissionLinesEditor";
-import { useBookingCommissionLines } from "@/hooks/useBookingCommissionLines";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
