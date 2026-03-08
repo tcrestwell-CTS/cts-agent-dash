@@ -159,8 +159,10 @@ export interface CreateBookingData {
   // Financial fields
   supplier_id?: string;
   gross_sales?: number;
-  commissionable_percentage?: number;
+  supplier_payout?: number;
   commission_rate?: number;
+  // Legacy field (no longer used in calculation but kept for compat)
+  commissionable_percentage?: number;
   // Commission override fields
   commission_override_amount?: number;
   override_notes?: string;
