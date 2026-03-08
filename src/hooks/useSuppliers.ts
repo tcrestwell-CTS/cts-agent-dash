@@ -31,17 +31,6 @@ export interface CreateSupplierData {
   contact_phone?: string;
   website?: string;
   notes?: string;
-}
-
-export interface CreateSupplierData {
-  name: string;
-  supplier_type: string;
-  commissionable_percentage: number;
-  commission_rate: number;
-  contact_email?: string;
-  contact_phone?: string;
-  website?: string;
-  notes?: string;
   override_commission?: boolean;
   multi_line_commission?: boolean;
 }
