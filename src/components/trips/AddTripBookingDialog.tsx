@@ -447,38 +447,45 @@ export function AddTripBookingDialog({
                 </Select>
               </div>
 
-              {/* Manual Rate */}
-              {!formData.supplier_id && (
-                <div className="space-y-2">
-                  <Label htmlFor="commission_rate">Commission Rate %</Label>
-                  <Input
-                    id="commission_rate"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.5"
-                    value={formData.commission_rate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        commission_rate: parseFloat(e.target.value) || 10,
-                      }))
-                    }
-                  />
-                </div>
-              )}
+              {/* Multi-line commission editor */}
+              {isMultiLine ? (
+                <LocalCommissionLinesEditor lines={commissionLines} onChange={setCommissionLines} />
+              ) : (
+                <>
+                  {/* Manual Rate */}
+                  {!formData.supplier_id && (
+                    <div className="space-y-2">
+                      <Label htmlFor="commission_rate">Commission Rate %</Label>
+                      <Input
+                        id="commission_rate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={formData.commission_rate}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            commission_rate: parseFloat(e.target.value) || 10,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
 
-              {/* Calculated Values */}
-              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Net Sales</span>
-                  <span>{formatCurrency(calculatedFinancials.netSales)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Commission Revenue</span>
-                  <span className="font-medium text-primary">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
-                </div>
-              </div>
+                  {/* Calculated Values */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Net Sales</span>
+                      <span>{formatCurrency(calculatedFinancials.netSales)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Commission Revenue</span>
+                      <span className="font-medium text-primary">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </CollapsibleContent>
           </Collapsible>
 
