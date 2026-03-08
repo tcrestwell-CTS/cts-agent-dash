@@ -17,6 +17,7 @@ export interface Supplier {
   notes: string | null;
   is_active: boolean;
   override_commission: boolean;
+  multi_line_commission: boolean;
   created_at: string;
   updated_at: string;
 }
