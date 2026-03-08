@@ -286,8 +286,21 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
               />
             </div>
           </div>
+          {/* Supplier Cost */}
+          <div className="space-y-2">
+            <Label htmlFor="supplier_cost">Supplier Cost ($)</Label>
+            <Input
+              id="supplier_cost"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.supplier_payout}
+              onChange={(e) => setFormData(prev => ({ ...prev, supplier_payout: parseFloat(e.target.value) || 0 }))}
+            />
+            <p className="text-xs text-muted-foreground">What you pay to the supplier</p>
+          </div>
 
-          {/* Financial Details Collapsible */}
+
           <Collapsible open={showFinancials} onOpenChange={setShowFinancials}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full justify-between p-3 h-auto bg-muted/50 hover:bg-muted">
