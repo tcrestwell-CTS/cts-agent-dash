@@ -106,6 +106,7 @@ export function AddTripBookingDialog({
         notes: "",
       });
       setShowFinancials(false);
+      setCommissionLines([]);
     }
   }, [open, destination, departDate, returnDate]);
 
