@@ -186,7 +186,9 @@ export function AddTripBookingDialog({
 
     try {
       const netSales = formData.gross_sales - formData.supplier_payout;
-      const commissionRevenue = netSales * (formData.commission_rate / 100);
+      const commissionRevenue = isMultiLine
+        ? commissionLines.reduce((s, l) => s + l.commission_amount, 0)
+        : netSales * (formData.commission_rate / 100);
 
       const bookingData = {
         user_id: user.id,
@@ -200,8 +202,8 @@ export function AddTripBookingDialog({
         travelers: formData.travelers,
         gross_sales: formData.gross_sales,
         total_amount: formData.gross_sales,
-        commissionable_amount: netSales,
-        commission_revenue: commissionRevenue,
+        commissionable_amount: isMultiLine ? formData.gross_sales : netSales,
+        commission_revenue: Math.round(commissionRevenue * 100) / 100,
         net_sales: netSales,
         supplier_payout: formData.supplier_payout,
         supplier_id: formData.supplier_id || null,
@@ -210,9 +212,23 @@ export function AddTripBookingDialog({
         status: "pending",
       };
 
-      const { error } = await supabase.from("bookings").insert(bookingData);
+      const { data: newBooking, error } = await supabase.from("bookings").insert(bookingData).select().single();
 
       if (error) throw error;
+
+      // Save commission lines if multi-line supplier
+      if (isMultiLine && commissionLines.length > 0 && newBooking) {
+        const lineInserts = commissionLines.map((line, idx) => ({
+          booking_id: newBooking.id,
+          user_id: user.id,
+          description: line.description,
+          amount: line.amount,
+          commission_rate: line.commission_rate,
+          commission_amount: line.commission_amount,
+          sort_order: idx,
+        }));
+        await supabase.from("booking_commission_lines").insert(lineInserts);
+      }
 
       toast.success("Booking added to trip");
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
