@@ -111,13 +111,10 @@ const BookingDetail = () => {
   const navigate = useNavigate();
   const { booking, loading, error, refetch } = useBooking(bookingId);
   const { updateBooking, updateBookingStatus, deleteBooking, updating, updatingStatusId } = useBookings();
-  const { data: commission, isLoading: commissionLoading } = useBookingCommission(bookingId);
   const { data: userCommissionRate } = useUserCommissionRate();
   const { data: userTier } = useUserCommissionTier();
   const { data: travelers = [], isLoading: travelersLoading } = useBookingTravelers(bookingId);
   const removeBookingTraveler = useRemoveBookingTraveler();
-  const createCommission = useCreateCommission();
-  const updateCommission = useUpdateCommission();
   const { suppliers } = useSuppliers();
   const { settings: branding } = useBrandingSettings();
   const { createInvoice, creating: creatingInvoice } = useInvoices();
