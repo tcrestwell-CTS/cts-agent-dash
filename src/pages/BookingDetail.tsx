@@ -60,6 +60,8 @@ import {
 import { useBookingCommission, useCreateCommission, useUpdateCommission, useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommissions";
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
+import { CommissionLinesEditor } from "@/components/bookings/CommissionLinesEditor";
+import { useBookingCommissionLines } from "@/hooks/useBookingCommissionLines";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { getTierConfig } from "@/lib/commissionTiers";
@@ -132,6 +134,11 @@ const BookingDetail = () => {
     if (!booking) return null;
     return calculateBookingFinancials(booking.gross_sales || booking.total_amount, selectedSupplier, booking.supplier_payout);
   }, [booking, selectedSupplier]);
+
+  const isMultiLineSupplier = selectedSupplier?.multi_line_commission === true;
+  const { lines: commissionLines, totalCommission: linesTotalCommission } = useBookingCommissionLines(
+    isMultiLineSupplier ? booking?.id : undefined
+  );
 
   const { data: client } = useClient(booking?.client_id || "");
 
@@ -685,6 +692,21 @@ const BookingDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Multi-line Commission Lines */}
+          {isMultiLineSupplier && booking && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Commission Line Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CommissionLinesEditor bookingId={booking.id} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Commission */}
           <Card>

@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { LocalCommissionLinesEditor, LocalCommissionLine } from "@/components/bookings/CommissionLinesEditor";
 
 // Booking types with their icons and supplier type mappings
 const BOOKING_TYPES = [
@@ -68,6 +69,7 @@ export function AddTripBookingDialog({
   const [creating, setCreating] = useState(false);
   const [showFinancials, setShowFinancials] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [commissionLines, setCommissionLines] = useState<LocalCommissionLine[]>([]);
 
   const effectiveClientId = clientId || selectedClientId;
 
@@ -104,6 +106,7 @@ export function AddTripBookingDialog({
         notes: "",
       });
       setShowFinancials(false);
+      setCommissionLines([]);
     }
   }, [open, destination, departDate, returnDate]);
 
@@ -125,8 +128,17 @@ export function AddTripBookingDialog({
     return matchingTypes.includes(supplier.supplier_type.toLowerCase());
   });
 
+  // Check if selected supplier uses multi-line commission
+  const selectedSupplier = activeSuppliers.find(s => s.id === formData.supplier_id);
+  const isMultiLine = selectedSupplier?.multi_line_commission === true;
+
   // Calculate financials: netSales = gross - supplierCost, commission = netSales * rate
   const calculatedFinancials = (() => {
+    if (isMultiLine) {
+      const totalLineCommission = commissionLines.reduce((s, l) => s + l.commission_amount, 0);
+      const netSales = formData.gross_sales - formData.supplier_payout;
+      return { commissionableAmount: formData.gross_sales, commissionRevenue: totalLineCommission, netSales };
+    }
     const gross = formData.gross_sales;
     const netSales = gross - formData.supplier_payout;
     const commissionRevenue = netSales * (formData.commission_rate / 100);
@@ -174,7 +186,9 @@ export function AddTripBookingDialog({
 
     try {
       const netSales = formData.gross_sales - formData.supplier_payout;
-      const commissionRevenue = netSales * (formData.commission_rate / 100);
+      const commissionRevenue = isMultiLine
+        ? commissionLines.reduce((s, l) => s + l.commission_amount, 0)
+        : netSales * (formData.commission_rate / 100);
 
       const bookingData = {
         user_id: user.id,
@@ -188,8 +202,8 @@ export function AddTripBookingDialog({
         travelers: formData.travelers,
         gross_sales: formData.gross_sales,
         total_amount: formData.gross_sales,
-        commissionable_amount: netSales,
-        commission_revenue: commissionRevenue,
+        commissionable_amount: isMultiLine ? formData.gross_sales : netSales,
+        commission_revenue: Math.round(commissionRevenue * 100) / 100,
         net_sales: netSales,
         supplier_payout: formData.supplier_payout,
         supplier_id: formData.supplier_id || null,
@@ -198,9 +212,23 @@ export function AddTripBookingDialog({
         status: "pending",
       };
 
-      const { error } = await supabase.from("bookings").insert(bookingData);
+      const { data: newBooking, error } = await supabase.from("bookings").insert(bookingData).select().single();
 
       if (error) throw error;
+
+      // Save commission lines if multi-line supplier
+      if (isMultiLine && commissionLines.length > 0 && newBooking) {
+        const lineInserts = commissionLines.map((line, idx) => ({
+          booking_id: newBooking.id,
+          user_id: user.id,
+          description: line.description,
+          amount: line.amount,
+          commission_rate: line.commission_rate,
+          commission_amount: line.commission_amount,
+          sort_order: idx,
+        }));
+        await supabase.from("booking_commission_lines").insert(lineInserts);
+      }
 
       toast.success("Booking added to trip");
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
@@ -419,38 +447,45 @@ export function AddTripBookingDialog({
                 </Select>
               </div>
 
-              {/* Manual Rate */}
-              {!formData.supplier_id && (
-                <div className="space-y-2">
-                  <Label htmlFor="commission_rate">Commission Rate %</Label>
-                  <Input
-                    id="commission_rate"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.5"
-                    value={formData.commission_rate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        commission_rate: parseFloat(e.target.value) || 10,
-                      }))
-                    }
-                  />
-                </div>
-              )}
+              {/* Multi-line commission editor */}
+              {isMultiLine ? (
+                <LocalCommissionLinesEditor lines={commissionLines} onChange={setCommissionLines} />
+              ) : (
+                <>
+                  {/* Manual Rate */}
+                  {!formData.supplier_id && (
+                    <div className="space-y-2">
+                      <Label htmlFor="commission_rate">Commission Rate %</Label>
+                      <Input
+                        id="commission_rate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={formData.commission_rate}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            commission_rate: parseFloat(e.target.value) || 10,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
 
-              {/* Calculated Values */}
-              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Net Sales</span>
-                  <span>{formatCurrency(calculatedFinancials.netSales)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Commission Revenue</span>
-                  <span className="font-medium text-primary">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
-                </div>
-              </div>
+                  {/* Calculated Values */}
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Net Sales</span>
+                      <span>{formatCurrency(calculatedFinancials.netSales)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Commission Revenue</span>
+                      <span className="font-medium text-primary">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </CollapsibleContent>
           </Collapsible>
 

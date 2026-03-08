@@ -247,6 +247,53 @@ export type Database = {
           },
         ]
       }
+      booking_commission_lines: {
+        Row: {
+          amount: number
+          booking_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          description: string
+          id: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          booking_id: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          description: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          description?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_commission_lines_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_travelers: {
         Row: {
           booking_id: string
@@ -1953,6 +2000,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          multi_line_commission: boolean
           name: string
           notes: string | null
           override_commission: boolean
@@ -1969,6 +2017,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          multi_line_commission?: boolean
           name: string
           notes?: string | null
           override_commission?: boolean
@@ -1985,6 +2034,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          multi_line_commission?: boolean
           name?: string
           notes?: string | null
           override_commission?: boolean
