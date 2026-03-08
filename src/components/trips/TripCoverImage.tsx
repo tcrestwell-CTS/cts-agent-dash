@@ -12,12 +12,10 @@ interface TripCoverImageProps {
 
 export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverImageProps) {
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -29,7 +27,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const ext = file.name?.split(".").pop() || (file.type === "image/png" ? "png" : "jpg");
       const path = `${tripId}/cover.${ext}`;
 
       const { error: uploadError } = await supabase.storage
@@ -60,6 +58,31 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
     }
   };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) uploadFile(file);
+        return;
+      }
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
+  };
+
   const handleRemove = async () => {
     setUploading(true);
     try {
@@ -79,9 +102,16 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
   };
 
   return (
-    <div className="relative group">
+    <div
+      className="relative group outline-none"
+      tabIndex={0}
+      onPaste={handlePaste}
+      onDrop={handleDrop}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+    >
       {coverImageUrl ? (
-        <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+        <div className={`relative w-full h-48 rounded-lg overflow-hidden border ${dragOver ? "ring-2 ring-primary" : ""}`}>
           <img
             src={coverImageUrl}
             alt="Trip cover"
@@ -111,7 +141,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="w-full h-36 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+          className={`w-full h-36 rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"}`}
         >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -119,7 +149,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
             <>
               <ImagePlus className="h-6 w-6" />
               <span className="text-sm font-medium">Add Cover Image</span>
-              <span className="text-xs">Displays on the shared trip page</span>
+              <span className="text-xs">Paste, drop, or click to upload</span>
             </>
           )}
         </button>
