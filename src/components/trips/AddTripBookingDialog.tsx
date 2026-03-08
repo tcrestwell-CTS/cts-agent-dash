@@ -69,6 +69,7 @@ export function AddTripBookingDialog({
   const [creating, setCreating] = useState(false);
   const [showFinancials, setShowFinancials] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [commissionLines, setCommissionLines] = useState<LocalCommissionLine[]>([]);
 
   const effectiveClientId = clientId || selectedClientId;
 
