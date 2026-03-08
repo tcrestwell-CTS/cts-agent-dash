@@ -162,14 +162,13 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
 
   const handleSupplierChange = (supplierId: string) => {
     if (supplierId === "none") {
-      setFormData(prev => ({ ...prev, supplier_id: "", commissionable_percentage: 85, commission_rate: 10 }));
+      setFormData(prev => ({ ...prev, supplier_id: "", commission_rate: 10 }));
     } else {
       const supplier = activeSuppliers.find(s => s.id === supplierId);
       if (supplier) {
         setFormData(prev => ({
           ...prev,
           supplier_id: supplierId,
-          commissionable_percentage: supplier.commissionable_percentage,
           commission_rate: supplier.commission_rate,
         }));
       }
