@@ -693,6 +693,21 @@ const BookingDetail = () => {
             </CardContent>
           </Card>
 
+          {/* Multi-line Commission Lines */}
+          {isMultiLineSupplier && booking && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Commission Line Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CommissionLinesEditor bookingId={booking.id} />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Commission */}
           <Card>
             <CardHeader>
