@@ -173,9 +173,8 @@ export function AddTripBookingDialog({
     setCreating(true);
 
     try {
-      const commissionableAmount = formData.gross_sales * (formData.commissionable_percentage / 100);
-      const commissionRevenue = commissionableAmount * (formData.commission_rate / 100);
-      const netSales = formData.gross_sales - commissionRevenue;
+      const netSales = formData.gross_sales - formData.supplier_payout;
+      const commissionRevenue = netSales * (formData.commission_rate / 100);
 
       const bookingData = {
         user_id: user.id,
@@ -189,10 +188,10 @@ export function AddTripBookingDialog({
         travelers: formData.travelers,
         gross_sales: formData.gross_sales,
         total_amount: formData.gross_sales,
-        commissionable_amount: commissionableAmount,
+        commissionable_amount: netSales,
         commission_revenue: commissionRevenue,
         net_sales: netSales,
-        supplier_payout: formData.gross_sales - commissionRevenue,
+        supplier_payout: formData.supplier_payout,
         supplier_id: formData.supplier_id || null,
         trip_name: formData.trip_name || `${formData.booking_type.charAt(0).toUpperCase() + formData.booking_type.slice(1)} - ${formData.destination}`,
         notes: formData.notes || null,
