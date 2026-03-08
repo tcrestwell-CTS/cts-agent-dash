@@ -43,6 +43,7 @@ export function EditSupplierDialog({ supplier, open, onOpenChange }: EditSupplie
         notes: supplier.notes || "",
         is_active: supplier.is_active,
         override_commission: supplier.override_commission,
+        multi_line_commission: supplier.multi_line_commission,
       });
     }
   }, [supplier]);
