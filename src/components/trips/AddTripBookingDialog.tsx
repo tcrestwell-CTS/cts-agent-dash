@@ -79,7 +79,7 @@ export function AddTripBookingDialog({
     booking_reference: "",
     travelers: 1,
     gross_sales: 0,
-    commissionable_percentage: 85,
+    supplier_payout: 0,
     commission_rate: 10,
     supplier_id: "",
     trip_name: "",
