@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { CommissionLinesEditor } from "@/components/bookings/CommissionLinesEditor";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -698,6 +699,21 @@ const BookingDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Commission Line Items (for multi-line suppliers) */}
+          {isMultiLineSupplier && booking && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                  Commission Line Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CommissionLinesEditor bookingId={booking.id} />
+              </CardContent>
+            </Card>
+          )}
 
 
           {/* Client Info */}
