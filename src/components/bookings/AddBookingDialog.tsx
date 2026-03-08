@@ -331,55 +331,38 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
                     <SelectItem value="none">No supplier (manual rates)</SelectItem>
                     {activeSuppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name} ({supplier.commissionable_percentage}% @ {supplier.commission_rate}%)
+                        {supplier.name} ({supplier.commission_rate}%)
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Manual Rates (if no supplier) */}
+              {/* Manual Rate (if no supplier) */}
               {!formData.supplier_id && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="commissionable_pct">Commissionable %</Label>
-                    <Input
-                      id="commissionable_pct"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.commissionable_percentage}
-                      onChange={(e) => setFormData(prev => ({ ...prev, commissionable_percentage: parseFloat(e.target.value) || 85 }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="commission_rate">Commission Rate %</Label>
-                    <Input
-                      id="commission_rate"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={formData.commission_rate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, commission_rate: parseFloat(e.target.value) || 10 }))}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="commission_rate">Commission Rate %</Label>
+                  <Input
+                    id="commission_rate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={formData.commission_rate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, commission_rate: parseFloat(e.target.value) || 10 }))}
+                  />
                 </div>
               )}
 
               {/* Calculated Values */}
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Commissionable Amount</span>
-                  <span>{formatCurrency(calculatedFinancials.commissionableAmount)}</span>
+                  <span className="text-muted-foreground">Net Sales</span>
+                  <span>{formatCurrency(calculatedFinancials.netSales)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Calculated Commission</span>
                   <span className="font-medium">{formatCurrency(calculatedFinancials.commissionRevenue)}</span>
-                </div>
-                <div className="flex justify-between text-sm border-t pt-2">
-                  <span className="text-muted-foreground">Net Booking Sales</span>
-                  <span className="font-medium">{formatCurrency(calculatedFinancials.netSales)}</span>
                 </div>
               </div>
 
