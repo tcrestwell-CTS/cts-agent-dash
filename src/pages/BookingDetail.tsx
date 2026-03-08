@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { CommissionLinesEditor } from "@/components/bookings/CommissionLinesEditor";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
