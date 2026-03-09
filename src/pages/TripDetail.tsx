@@ -28,6 +28,7 @@ import {
   Globe,
   Plane,
   Ship,
+  ShieldCheck,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
