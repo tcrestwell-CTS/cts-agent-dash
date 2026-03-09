@@ -2087,6 +2087,173 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_insurance_quotes: {
+        Row: {
+          coverage_amount: number | null
+          coverage_details: string | null
+          created_at: string
+          id: string
+          is_recommended: boolean | null
+          plan_name: string | null
+          premium_amount: number
+          provider_name: string
+          quote_url: string | null
+          sort_order: number | null
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coverage_amount?: number | null
+          coverage_details?: string | null
+          created_at?: string
+          id?: string
+          is_recommended?: boolean | null
+          plan_name?: string | null
+          premium_amount?: number
+          provider_name: string
+          quote_url?: string | null
+          sort_order?: number | null
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coverage_amount?: number | null
+          coverage_details?: string | null
+          created_at?: string
+          id?: string
+          is_recommended?: boolean | null
+          plan_name?: string | null
+          premium_amount?: number
+          provider_name?: string
+          quote_url?: string | null
+          sort_order?: number | null
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_insurance_quotes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_insurance_responses: {
+        Row: {
+          acknowledgment_text: string | null
+          client_id: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          responded_at: string
+          response_type: string
+          selected_quote_id: string | null
+          trip_id: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          acknowledgment_text?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          responded_at?: string
+          response_type: string
+          selected_quote_id?: string | null
+          trip_id: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          acknowledgment_text?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          responded_at?: string
+          response_type?: string
+          selected_quote_id?: string | null
+          trip_id?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_insurance_responses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_insurance_responses_selected_quote_id_fkey"
+            columns: ["selected_quote_id"]
+            isOneToOne: false
+            referencedRelation: "trip_insurance_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_insurance_responses_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_insurance_settings: {
+        Row: {
+          agency_disclaimer: string | null
+          allow_skip_selection: boolean | null
+          amount_to_insure: number | null
+          created_at: string
+          id: string
+          ready_for_client_review: boolean | null
+          trip_id: string
+          updated_at: string
+          use_full_trip_cost: boolean | null
+          user_id: string
+        }
+        Insert: {
+          agency_disclaimer?: string | null
+          allow_skip_selection?: boolean | null
+          amount_to_insure?: number | null
+          created_at?: string
+          id?: string
+          ready_for_client_review?: boolean | null
+          trip_id: string
+          updated_at?: string
+          use_full_trip_cost?: boolean | null
+          user_id: string
+        }
+        Update: {
+          agency_disclaimer?: string | null
+          allow_skip_selection?: boolean | null
+          amount_to_insure?: number | null
+          created_at?: string
+          id?: string
+          ready_for_client_review?: boolean | null
+          trip_id?: string
+          updated_at?: string
+          use_full_trip_cost?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_insurance_settings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_payments: {
         Row: {
           acceptance_signature: string | null

@@ -28,6 +28,7 @@ import {
   Globe,
   Plane,
   Ship,
+  ShieldCheck,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -287,6 +288,11 @@ const TripDetail = () => {
           <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
             <Map className="h-4 w-4 mr-2" />
             Itinerary Builder
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
+            <ShieldCheck className="h-4 w-4 mr-2" />
+            Insurance
           </Button>
 
           <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
