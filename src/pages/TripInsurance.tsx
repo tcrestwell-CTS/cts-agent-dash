@@ -268,7 +268,7 @@ export default function TripInsurance() {
               <Card>
                 <CardContent className="pt-5 space-y-1">
                   <h4 className="font-semibold">No, I'm choosing not to insure my trip</h4>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 italic">
+                  <p className="text-xs text-muted-foreground italic">
                     {DECLINE_NO_INSURANCE_TEXT}
                   </p>
                 </CardContent>
