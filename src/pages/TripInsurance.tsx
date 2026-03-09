@@ -48,10 +48,11 @@ const DECLINE_BUYING_ELSEWHERE_TEXT =
 
 export default function TripInsurance() {
   const { tripId } = useParams<{ tripId: string }>();
-  const { trip, isLoading: tripLoading } = useTrip(tripId);
+  const { trip, bookings, loading: tripLoading } = useTrip(tripId);
   const { settings, quotes, responses, isLoading, upsertSettings, addQuote, updateQuote, deleteQuote } =
     useTripInsurance(tripId);
-  const { travelers } = useTripTravelers(tripId);
+  const travelersQuery = useTripTravelers(tripId);
+  const travelers = travelersQuery.data || [];
 
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [editingQuote, setEditingQuote] = useState<InsuranceQuote | null>(null);
