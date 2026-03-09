@@ -258,133 +258,169 @@ const TripDetail = () => {
           </div>
         </div>
 
-        {/* Unified Action Bar */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+        {/* Mobile Action Bar */}
+        <div className="lg:hidden flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
           {trip.client_id && (
             <Button variant="outline" size="sm" asChild>
               <Link to={`/contacts/${trip.client_id}`}>
                 <Users className="h-4 w-4 mr-2" />
-                Client Profile
+                Client
               </Link>
             </Button>
           )}
-
-          {trip.clients?.email && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSendPortalLink}
-              disabled={isSendingPortalLink}
-            >
-              {isSendingPortalLink ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Link2 className="mr-2 h-4 w-4" />
-              )}
-              Send Portal Link
-            </Button>
-          )}
-
           <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
             <Map className="h-4 w-4 mr-2" />
-            Itinerary Builder
+            Itinerary
           </Button>
-
           <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
             <ShieldCheck className="h-4 w-4 mr-2" />
             Insurance
           </Button>
-
           <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
             <Plane className="h-4 w-4 mr-2" />
-            Search Flights
+            Flights
           </Button>
-
-          <WidgetyCruiseImportDialog
-            tripId={trip.id}
-            departDate={trip.depart_date}
-            returnDate={trip.return_date}
-            destination={trip.destination}
-            cruiseBookings={bookings.filter((b: any) => b.suppliers?.supplier_type?.toLowerCase() === "cruise")}
-            onImport={async (items) => {
-              let success = true;
-              for (const item of items) {
-                const res = await addItineraryItem({
-                  trip_id: trip.id,
-                  day_number: item.day_number || 1,
-                  title: item.title,
-                  description: item.description || undefined,
-                  category: item.category || "cruise",
-                  location: item.location || undefined,
-                  start_time: item.start_time || undefined,
-                  end_time: item.end_time || undefined,
-                  notes: item.notes || undefined,
-                  sort_order: items.indexOf(item),
-                });
-                if (!res) { success = false; break; }
-              }
-              return success;
-            }}
-          />
-          <PublishTripButton
-            tripId={trip.id}
-            shareToken={(trip as any).share_token}
-            publishedAt={(trip as any).published_at}
-            updatedAt={trip.updated_at}
-            onPublished={fetchTrip}
-          />
-
-          <div className="flex-1" />
-
-          {trip.status === "cancelled" || trip.status === "archived" ? (
-            hasPayments ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button variant="outline" size="sm" className="text-muted-foreground" disabled>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Remove all payments before deleting this trip</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Trip?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete this trip. Bookings will be
-                      unlinked but not deleted. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )
-          ) : null}
         </div>
 
-        {/* Main content */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px] items-start">
-          {/* Left / main content */}
+        {/* Main content with left sidebar */}
+        <div className="grid gap-6 lg:grid-cols-[200px_1fr_280px] items-start">
+          {/* Left Action Sidebar */}
+          <nav className="hidden lg:block sticky top-6">
+            <div className="rounded-lg border bg-card p-3 space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Actions</p>
+
+              {trip.client_id && (
+                <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
+                  <Link to={`/contacts/${trip.client_id}`}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Client Profile
+                  </Link>
+                </Button>
+              )}
+
+              {trip.clients?.email && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={handleSendPortalLink}
+                  disabled={isSendingPortalLink}
+                >
+                  {isSendingPortalLink ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Link2 className="mr-2 h-4 w-4" />
+                  )}
+                  Portal Link
+                </Button>
+              )}
+
+              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
+                <Map className="h-4 w-4 mr-2" />
+                Itinerary
+              </Button>
+
+              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Insurance
+              </Button>
+
+              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => setFlightSearchOpen(true)}>
+                <Plane className="h-4 w-4 mr-2" />
+                Flights
+              </Button>
+
+              <div className="py-1">
+                <WidgetyCruiseImportDialog
+                  tripId={trip.id}
+                  departDate={trip.depart_date}
+                  returnDate={trip.return_date}
+                  destination={trip.destination}
+                  cruiseBookings={bookings.filter((b: any) => b.suppliers?.supplier_type?.toLowerCase() === "cruise")}
+                  onImport={async (items) => {
+                    let success = true;
+                    for (const item of items) {
+                      const res = await addItineraryItem({
+                        trip_id: trip.id,
+                        day_number: item.day_number || 1,
+                        title: item.title,
+                        description: item.description || undefined,
+                        category: item.category || "cruise",
+                        location: item.location || undefined,
+                        start_time: item.start_time || undefined,
+                        end_time: item.end_time || undefined,
+                        notes: item.notes || undefined,
+                        sort_order: items.indexOf(item),
+                      });
+                      if (!res) { success = false; break; }
+                    }
+                    return success;
+                  }}
+                />
+              </div>
+
+              <div className="py-1">
+                <PublishTripButton
+                  tripId={trip.id}
+                  shareToken={(trip as any).share_token}
+                  publishedAt={(trip as any).published_at}
+                  updatedAt={trip.updated_at}
+                  onPublished={fetchTrip}
+                />
+              </div>
+
+              {(trip.status === "cancelled" || trip.status === "archived") && (
+                <div className="pt-2 border-t mt-2">
+                  {hasPayments ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="w-full">
+                            <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" disabled>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Trip
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Remove all payments before deleting</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-full justify-start text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Trip
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Trip?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this trip. Bookings will be unlinked but not deleted.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              )}
+            </div>
+          </nav>
+
+
+          {/* Center / main content */}
           <div className="space-y-6">
             {/* Status Workflow */}
             <TripStatusWorkflow
