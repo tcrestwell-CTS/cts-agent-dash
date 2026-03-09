@@ -361,17 +361,47 @@ export default function TripInsurance() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="ready-review" className="text-sm">
-                    Ready for client review
-                  </Label>
-                  <Switch
-                    id="ready-review"
-                    checked={settings?.ready_for_client_review || false}
-                    onCheckedChange={(val) =>
-                      upsertSettings.mutate({ ready_for_client_review: val })
-                    }
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="ready-review" className="text-sm">
+                      Ready for client review
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Switch
+                              id="ready-review"
+                              checked={settings?.ready_for_client_review || false}
+                              disabled={!canToggleReady && !(settings?.ready_for_client_review)}
+                              onCheckedChange={(val) => {
+                                if (val && !canToggleReady) return;
+                                upsertSettings.mutate({ ready_for_client_review: val });
+                              }}
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        {!canToggleReady && !(settings?.ready_for_client_review) && (
+                          <TooltipContent side="left" className="max-w-[220px]">
+                            <p className="text-xs">Missing required client info: {missingClientFields.join(", ")}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  {!canToggleReady && !(settings?.ready_for_client_review) && (
+                    <div className="flex items-start gap-1.5 text-xs text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        Client is missing: {missingClientFields.join(", ")}. 
+                        {clientId && (
+                          <Link to={`/contacts/${clientId}`} className="underline ml-1 font-medium">
+                            Update client profile →
+                          </Link>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="allow-skip" className="text-sm">
