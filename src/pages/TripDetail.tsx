@@ -258,6 +258,30 @@ const TripDetail = () => {
           </div>
         </div>
 
+        {/* Mobile Action Bar */}
+        <div className="lg:hidden flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+          {trip.client_id && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/contacts/${trip.client_id}`}>
+                <Users className="h-4 w-4 mr-2" />
+                Client
+              </Link>
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
+            <Map className="h-4 w-4 mr-2" />
+            Itinerary
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
+            <ShieldCheck className="h-4 w-4 mr-2" />
+            Insurance
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+            <Plane className="h-4 w-4 mr-2" />
+            Flights
+          </Button>
+        </div>
+
         {/* Main content with left sidebar */}
         <div className="grid gap-6 lg:grid-cols-[200px_1fr_280px] items-start">
           {/* Left Action Sidebar */}
