@@ -366,8 +366,8 @@ const ItineraryBuilder = () => {
             />
           )}
         </div>
-
-        {/* Delete confirmation */}
+          </div>
+        </div>
         <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
