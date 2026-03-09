@@ -41,6 +41,7 @@ import {
 import { useTrip } from "@/hooks/useTrips";
 import { useTripInsurance, InsuranceQuote } from "@/hooks/useTripInsurance";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
+import { TripSidebar } from "@/components/trips/TripSidebar";
 import { format } from "date-fns";
 
 const DECLINE_NO_INSURANCE_TEXT =
