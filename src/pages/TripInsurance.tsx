@@ -41,6 +41,7 @@ import {
 import { useTrip } from "@/hooks/useTrips";
 import { useTripInsurance, InsuranceQuote } from "@/hooks/useTripInsurance";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
+import { TripSidebar } from "@/components/trips/TripSidebar";
 import { format } from "date-fns";
 
 const DECLINE_NO_INSURANCE_TEXT =
@@ -174,11 +175,13 @@ export default function TripInsurance() {
       <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Link to={`/trips/${tripId}`}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <div className="lg:hidden">
+            <Link to={`/trips/${tripId}`}>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
           <div>
             <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
             <p className="text-sm text-muted-foreground">
@@ -187,9 +190,20 @@ export default function TripInsurance() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* ─── Main Content (2 cols) ─── */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main content with left sidebar */}
+        <div className="grid gap-6 lg:grid-cols-[200px_1fr] items-start">
+          <TripSidebar
+            tripId={tripId!}
+            parentTripId={(trip as any).parent_trip_id}
+            clientId={trip.client_id}
+            clientEmail={(trip as any).clients?.email}
+            tripStatus={trip.status}
+            hasPayments={false}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* ─── Main Content (2 cols) ─── */}
+            <div className="lg:col-span-2 space-y-6">
             {/* Agency Disclaimer */}
             <Card className="border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800">
               <CardContent className="flex gap-3 pt-5">
@@ -519,6 +533,7 @@ export default function TripInsurance() {
                 )}
               </CardContent>
             </Card>
+          </div>
           </div>
         </div>
       </div>

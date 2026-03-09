@@ -44,6 +44,7 @@ import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
 import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
+import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useItinerary } from "@/hooks/useItinerary";
 import { useTrip, useTrips } from "@/hooks/useTrips";
@@ -319,138 +320,18 @@ const TripDetail = () => {
 
         {/* Main content with left sidebar */}
         <div className="grid gap-6 lg:grid-cols-[200px_1fr_280px] items-start">
-          {/* Left Action Sidebar */}
-          <nav className="hidden lg:block sticky top-6">
-            <div className="rounded-lg border bg-card p-3 space-y-4">
-              {/* Back to Trips */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-muted-foreground"
-                onClick={() => navigate(trip.parent_trip_id ? `/trips/${trip.parent_trip_id}` : "/trips")}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Trips
-              </Button>
-
-              {/* General Section */}
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">General</p>
-                <Button variant="ghost" size="sm" className="w-full justify-start bg-muted" disabled>
-                  <Map className="h-4 w-4 mr-2" />
-                  Overview
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
-                  <Map className="h-4 w-4 mr-2" />
-                  Itinerary
-                </Button>
-              </div>
-
-              {/* Finances Section */}
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Finances</p>
-                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}?tab=bookings`)}>
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Bookings
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}?tab=payments`)}>
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Payments
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
-                  <ShieldCheck className="h-4 w-4 mr-2" />
-                  Insurance
-                </Button>
-              </div>
-
-              {/* Communication Section */}
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Communication</p>
-                {trip.client_id && (
-                  <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
-                    <Link to={`/contacts/${trip.client_id}`}>
-                      <Users className="h-4 w-4 mr-2" />
-                      Client Profile
-                    </Link>
-                  </Button>
-                )}
-                {trip.clients?.email && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={handleSendPortalLink}
-                    disabled={isSendingPortalLink}
-                  >
-                    {isSendingPortalLink ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Link2 className="mr-2 h-4 w-4" />
-                    )}
-                    Portal Link
-                  </Button>
-                )}
-              </div>
-
-              {/* Advisor Tools Section */}
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Advisor Tools</p>
-                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => setFlightSearchOpen(true)}>
-                  <Plane className="h-4 w-4 mr-2" />
-                  Flights
-                </Button>
-              </div>
-
-              {/* Delete Trip */}
-              {(trip.status === "cancelled" || trip.status === "archived") && (
-                <div className="pt-2 border-t">
-                  {hasPayments ? (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="w-full">
-                            <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" disabled>
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Trip
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Remove all payments before deleting</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ) : (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="w-full justify-start text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Trip
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Trip?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete this trip. Bookings will be unlinked but not deleted.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleDelete}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              )}
-            </div>
-          </nav>
+          <TripSidebar
+            tripId={tripId!}
+            parentTripId={trip.parent_trip_id}
+            clientId={trip.client_id}
+            clientEmail={trip.clients?.email}
+            tripStatus={trip.status}
+            hasPayments={hasPayments}
+            isSendingPortalLink={isSendingPortalLink}
+            onSendPortalLink={handleSendPortalLink}
+            onFlightSearch={() => setFlightSearchOpen(true)}
+            onDelete={handleDelete}
+          />
 
 
           {/* Center / main content */}
