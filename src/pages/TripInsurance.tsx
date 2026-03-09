@@ -157,12 +157,12 @@ export default function TripInsurance() {
             {/* Agency Disclaimer */}
             <Card className="border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800">
               <CardContent className="flex gap-3 pt-5">
-                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm text-amber-900 dark:text-amber-200">
+                  <p className="font-semibold text-sm">
                     You are responsible for knowing travel insurance rules and regulations
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {settings?.agency_disclaimer ||
                       "This is the technology platform used by agents to book trips and is not responsible for knowing travel insurance rules and regulations."}
                   </p>
