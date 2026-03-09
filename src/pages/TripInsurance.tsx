@@ -108,7 +108,7 @@ export default function TripInsurance() {
     resetForm();
   };
 
-  const tripCost = trip?.total_cost || 0;
+  const tripCost = bookings.reduce((sum: number, b: any) => sum + (b.gross_sales || 0), 0);
   const amountToInsure = settings?.use_full_trip_cost !== false ? tripCost : (settings?.amount_to_insure || 0);
 
   const fmt = (n: number) =>
