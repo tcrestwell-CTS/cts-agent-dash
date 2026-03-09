@@ -13,6 +13,7 @@ import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trip
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
 import { CreateItinerarySheet } from "@/components/trips/CreateItinerarySheet";
+import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useTrip } from "@/hooks/useTrips";
 import { useItineraries } from "@/hooks/useItineraries";
 import {
