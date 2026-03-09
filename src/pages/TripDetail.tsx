@@ -289,6 +289,11 @@ const TripDetail = () => {
             Itinerary Builder
           </Button>
 
+          <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
+            <ShieldCheck className="h-4 w-4 mr-2" />
+            Insurance
+          </Button>
+
           <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
             <Plane className="h-4 w-4 mr-2" />
             Search Flights
