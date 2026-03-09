@@ -57,6 +57,39 @@ export default function TripInsurance() {
   const travelersQuery = useTripTravelers(tripId);
   const travelers = travelersQuery.data || [];
 
+  // Fetch full client record for insurance readiness validation
+  const clientId = trip?.client_id;
+  const clientQuery = useQuery({
+    queryKey: ["client-insurance-check", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name, first_name, last_name, birthday, address_line_1, address_city, address_state, address_zip_code")
+        .eq("id", clientId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+  const client = clientQuery.data;
+
+  const missingClientFields = useMemo(() => {
+    const missing: string[] = [];
+    if (!client) {
+      if (clientId) missing.push("Client data not loaded");
+      return missing;
+    }
+    const hasName = !!(client.first_name && client.last_name) || !!client.name;
+    if (!hasName) missing.push("Full Name");
+    if (!client.birthday) missing.push("Date of Birth");
+    const hasAddress = !!(client.address_line_1 && client.address_city && client.address_state && client.address_zip_code);
+    if (!hasAddress) missing.push("Address");
+    return missing;
+  }, [client, clientId]);
+
+  const canToggleReady = missingClientFields.length === 0 && !!clientId;
+
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [editingQuote, setEditingQuote] = useState<InsuranceQuote | null>(null);
 
