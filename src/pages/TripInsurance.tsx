@@ -1,5 +1,13 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -173,6 +181,27 @@ export default function TripInsurance() {
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Breadcrumb */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/trips">Trips</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to={`/trips/${tripId}`}>{trip.trip_name}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Insurance</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="lg:hidden">
@@ -183,7 +212,7 @@ export default function TripInsurance() {
             </Link>
           </div>
           <div>
-            <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
+            <h1 className="text-2xl font-bold">Travel Insurance</h1>
             <p className="text-sm text-muted-foreground">
               Provide your clients insurance options for the trip here.
             </p>

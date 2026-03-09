@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -103,6 +105,52 @@ const TripDetail = () => {
   const [flightSearchOpen, setFlightSearchOpen] = useState(false);
   const { processStatusChange } = useWorkflowAutomation();
   const { addItem: addItineraryItem } = useItinerary(tripId);
+
+  // Fetch insurance data for financials display
+  const { data: insuranceData } = useQuery({
+    queryKey: ["trip-insurance-financials", tripId],
+    queryFn: async () => {
+      // Get responses
+      const { data: responses } = await supabase
+        .from("trip_insurance_responses")
+        .select("*")
+        .eq("trip_id", tripId!)
+        .eq("response_type", "accepted");
+      
+      if (!responses || responses.length === 0) {
+        // Check if there are quotes (pending)
+        const { data: quotes } = await supabase
+          .from("trip_insurance_quotes")
+          .select("id, premium_amount, is_recommended")
+          .eq("trip_id", tripId!);
+        
+        const recommendedQuote = quotes?.find((q: any) => q.is_recommended) || quotes?.[0];
+        return {
+          status: quotes && quotes.length > 0 ? "pending" as const : "none" as const,
+          premium: recommendedQuote?.premium_amount || 0,
+          quoteCount: quotes?.length || 0,
+        };
+      }
+      
+      // Client accepted - get the selected quote
+      const acceptedResponse = responses[0];
+      if (acceptedResponse.selected_quote_id) {
+        const { data: quote } = await supabase
+          .from("trip_insurance_quotes")
+          .select("premium_amount, provider_name, plan_name")
+          .eq("id", acceptedResponse.selected_quote_id)
+          .single();
+        return {
+          status: "accepted" as const,
+          premium: quote?.premium_amount || 0,
+          providerName: quote?.provider_name,
+          planName: quote?.plan_name,
+        };
+      }
+      return { status: "accepted" as const, premium: 0 };
+    },
+    enabled: !!tripId,
+  });
 
   const handleWorkflowStatusChange = async (newStatus: string, cancellationOptions?: CancellationOptions) => {
     if (!trip) return false;
@@ -468,7 +516,45 @@ const TripDetail = () => {
                     </span>
                   </div>
 
-                  {/* Agent Commission Split */}
+                  {/* Insurance Premium */}
+                  {insuranceData && insuranceData.status !== "none" && (
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Insurance
+                          {insuranceData.status === "accepted" && insuranceData.providerName && (
+                            <span className="text-xs ml-1">({insuranceData.providerName})</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {formatCurrency(insuranceData.premium)}
+                        </span>
+                        {insuranceData.status === "accepted" ? (
+                          <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
+                            Approved
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total with Insurance */}
+                  {insuranceData?.status === "accepted" && insuranceData.premium > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm font-medium">Total incl. Insurance</span>
+                      <span className="font-bold">
+                        {formatCurrency(trip.total_gross_sales + insuranceData.premium)}
+                      </span>
+                    </div>
+                  )}
+
                   {trip.total_commission_revenue > 0 && profile && (() => {
                     const tierKey = profile.commission_tier || "tier_1";
                     const tierConfig = {
