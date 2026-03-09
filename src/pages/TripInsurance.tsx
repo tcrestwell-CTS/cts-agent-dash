@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +56,39 @@ export default function TripInsurance() {
     useTripInsurance(tripId);
   const travelersQuery = useTripTravelers(tripId);
   const travelers = travelersQuery.data || [];
+
+  // Fetch full client record for insurance readiness validation
+  const clientId = trip?.client_id;
+  const clientQuery = useQuery({
+    queryKey: ["client-insurance-check", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name, first_name, last_name, birthday, address_line_1, address_city, address_state, address_zip_code")
+        .eq("id", clientId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+  const client = clientQuery.data;
+
+  const missingClientFields = useMemo(() => {
+    const missing: string[] = [];
+    if (!client) {
+      if (clientId) missing.push("Client data not loaded");
+      return missing;
+    }
+    const hasName = !!(client.first_name && client.last_name) || !!client.name;
+    if (!hasName) missing.push("Full Name");
+    if (!client.birthday) missing.push("Date of Birth");
+    const hasAddress = !!(client.address_line_1 && client.address_city && client.address_state && client.address_zip_code);
+    if (!hasAddress) missing.push("Address");
+    return missing;
+  }, [client, clientId]);
+
+  const canToggleReady = missingClientFields.length === 0 && !!clientId;
 
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [editingQuote, setEditingQuote] = useState<InsuranceQuote | null>(null);
@@ -325,17 +361,47 @@ export default function TripInsurance() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="ready-review" className="text-sm">
-                    Ready for client review
-                  </Label>
-                  <Switch
-                    id="ready-review"
-                    checked={settings?.ready_for_client_review || false}
-                    onCheckedChange={(val) =>
-                      upsertSettings.mutate({ ready_for_client_review: val })
-                    }
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="ready-review" className="text-sm">
+                      Ready for client review
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Switch
+                              id="ready-review"
+                              checked={settings?.ready_for_client_review || false}
+                              disabled={!canToggleReady && !(settings?.ready_for_client_review)}
+                              onCheckedChange={(val) => {
+                                if (val && !canToggleReady) return;
+                                upsertSettings.mutate({ ready_for_client_review: val });
+                              }}
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        {!canToggleReady && !(settings?.ready_for_client_review) && (
+                          <TooltipContent side="left" className="max-w-[220px]">
+                            <p className="text-xs">Missing required client info: {missingClientFields.join(", ")}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  {!canToggleReady && !(settings?.ready_for_client_review) && (
+                    <div className="flex items-start gap-1.5 text-xs text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        Client is missing: {missingClientFields.join(", ")}. 
+                        {clientId && (
+                          <Link to={`/contacts/${clientId}`} className="underline ml-1 font-medium">
+                            Update client profile →
+                          </Link>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="allow-skip" className="text-sm">
