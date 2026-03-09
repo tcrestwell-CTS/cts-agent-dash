@@ -294,7 +294,7 @@ export default function TripInsurance() {
                     <Card key={r.id}>
                       <CardContent className="flex items-center gap-3 pt-4 pb-4">
                         {r.response_type === "accepted" ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                          <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                         ) : (
                           <XCircle className="h-5 w-5 text-destructive shrink-0" />
                         )}
