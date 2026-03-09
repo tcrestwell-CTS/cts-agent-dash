@@ -535,9 +535,9 @@ export default function TripInsurance() {
             </Card>
           </div>
         </div>
+          </div>
+        </div>
       </div>
-
-      {/* Add / Edit Quote Dialog */}
       <Dialog
         open={showAddQuote || !!editingQuote}
         onOpenChange={(open) => {
