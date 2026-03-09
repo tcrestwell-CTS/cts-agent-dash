@@ -115,6 +115,7 @@ const App = () => (
                 <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
                 <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
+                <Route path="/trips/:tripId/insurance" element={<ProtectedRoute><TripInsurance /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/landing-page" element={<ProtectedRoute><GroupLandingBuilder /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/publish-manager" element={<ProtectedRoute><TripPublishManager /></ProtectedRoute>} />
