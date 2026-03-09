@@ -109,9 +109,11 @@ const ItineraryBuilder = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/trips/${tripId}`)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+            <div className="lg:hidden">
+              <Button variant="ghost" size="icon" onClick={() => navigate(`/trips/${tripId}`)}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </div>
             <div>
               <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
               <p className="text-muted-foreground text-sm">
@@ -205,6 +207,20 @@ const ItineraryBuilder = () => {
             </div>
           </TooltipProvider>
         </div>
+
+        {/* Main content with left sidebar */}
+        <div className="grid gap-6 lg:grid-cols-[200px_1fr] items-start">
+          <TripSidebar
+            tripId={tripId!}
+            parentTripId={trip.parent_trip_id}
+            clientId={trip.client_id}
+            clientEmail={trip.clients?.email}
+            tripStatus={trip.status}
+            hasPayments={false}
+            onFlightSearch={() => setFlightSearchOpen(true)}
+          />
+
+          <div className="space-y-4">
 
         {/* Itinerary Tabs */}
         <div className="flex items-center gap-1 border-b">
