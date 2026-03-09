@@ -321,53 +321,89 @@ const TripDetail = () => {
         <div className="grid gap-6 lg:grid-cols-[200px_1fr_280px] items-start">
           {/* Left Action Sidebar */}
           <nav className="hidden lg:block sticky top-6">
-            <div className="rounded-lg border bg-card p-3 space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Actions</p>
+            <div className="rounded-lg border bg-card p-3 space-y-4">
+              {/* Back to Trips */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-muted-foreground"
+                onClick={() => navigate(trip.parent_trip_id ? `/trips/${trip.parent_trip_id}` : "/trips")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Trips
+              </Button>
 
-              {trip.client_id && (
-                <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
-                  <Link to={`/contacts/${trip.client_id}`}>
-                    <Users className="h-4 w-4 mr-2" />
-                    Client Profile
-                  </Link>
+              {/* General Section */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">General</p>
+                <Button variant="ghost" size="sm" className="w-full justify-start bg-muted" disabled>
+                  <Map className="h-4 w-4 mr-2" />
+                  Overview
                 </Button>
-              )}
-
-              {trip.clients?.email && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={handleSendPortalLink}
-                  disabled={isSendingPortalLink}
-                >
-                  {isSendingPortalLink ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Link2 className="mr-2 h-4 w-4" />
-                  )}
-                  Portal Link
+                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
+                  <Map className="h-4 w-4 mr-2" />
+                  Itinerary
                 </Button>
-              )}
+              </div>
 
-              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/itinerary`)}>
-                <Map className="h-4 w-4 mr-2" />
-                Itinerary
-              </Button>
+              {/* Finances Section */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Finances</p>
+                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}?tab=bookings`)}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Bookings
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}?tab=payments`)}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Payments
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  Insurance
+                </Button>
+              </div>
 
-              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate(`/trips/${tripId}/insurance`)}>
-                <ShieldCheck className="h-4 w-4 mr-2" />
-                Insurance
-              </Button>
+              {/* Communication Section */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Communication</p>
+                {trip.client_id && (
+                  <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
+                    <Link to={`/contacts/${trip.client_id}`}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Client Profile
+                    </Link>
+                  </Button>
+                )}
+                {trip.clients?.email && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={handleSendPortalLink}
+                    disabled={isSendingPortalLink}
+                  >
+                    {isSendingPortalLink ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link2 className="mr-2 h-4 w-4" />
+                    )}
+                    Portal Link
+                  </Button>
+                )}
+              </div>
 
-              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => setFlightSearchOpen(true)}>
-                <Plane className="h-4 w-4 mr-2" />
-                Flights
-              </Button>
+              {/* Advisor Tools Section */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 mb-2">Advisor Tools</p>
+                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => setFlightSearchOpen(true)}>
+                  <Plane className="h-4 w-4 mr-2" />
+                  Flights
+                </Button>
+              </div>
 
-
+              {/* Delete Trip */}
               {(trip.status === "cancelled" || trip.status === "archived") && (
-                <div className="pt-2 border-t mt-2">
+                <div className="pt-2 border-t">
                   {hasPayments ? (
                     <TooltipProvider>
                       <Tooltip>
