@@ -516,7 +516,45 @@ const TripDetail = () => {
                     </span>
                   </div>
 
-                  {/* Agent Commission Split */}
+                  {/* Insurance Premium */}
+                  {insuranceData && insuranceData.status !== "none" && (
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Insurance
+                          {insuranceData.status === "accepted" && insuranceData.providerName && (
+                            <span className="text-xs ml-1">({insuranceData.providerName})</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {formatCurrency(insuranceData.premium)}
+                        </span>
+                        {insuranceData.status === "accepted" ? (
+                          <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">
+                            Approved
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total with Insurance */}
+                  {insuranceData?.status === "accepted" && insuranceData.premium > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm font-medium">Total incl. Insurance</span>
+                      <span className="font-bold">
+                        {formatCurrency(trip.total_gross_sales + insuranceData.premium)}
+                      </span>
+                    </div>
+                  )}
+
                   {trip.total_commission_revenue > 0 && profile && (() => {
                     const tierKey = profile.commission_tier || "tier_1";
                     const tierConfig = {
