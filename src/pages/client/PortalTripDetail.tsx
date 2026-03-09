@@ -309,6 +309,12 @@ export default function PortalTripDetail() {
                   {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
                 </span>
               )}
+              {totalCost > 0 && (
+                <span className="flex items-center gap-1 font-semibold text-primary">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(totalCost)}
+                </span>
+              )}
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
