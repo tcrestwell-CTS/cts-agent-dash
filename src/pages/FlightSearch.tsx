@@ -119,6 +119,8 @@ export default function FlightSearch() {
         <div className="max-w-3xl mx-auto">
           <FlightBookingCheckout
             offer={checkoutOffer}
+            seatMaps={checkoutSeatMaps}
+            baggageServices={checkoutBaggage}
             loading={bookingLoading}
             onBack={() => setCheckoutOffer(null)}
             onConfirm={handleConfirmBooking}
