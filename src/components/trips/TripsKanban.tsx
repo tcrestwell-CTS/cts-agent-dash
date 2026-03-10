@@ -51,12 +51,11 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
     return acc;
   }, {} as Record<string, KanbanTrip[]>);
 
-  // Also collect trips with statuses not in any column (orphaned) — place in planning
+  // Also collect trips with statuses not in any column (orphaned) — place in lead
   const knownIds = new Set(columns.map((c) => c.id));
   const orphanedTrips = trips.filter((t) => !knownIds.has(t.kanbanStatus || t.status));
-  // Merge orphaned trips into the planning column
-  if (orphanedTrips.length > 0 && tripsByStatus["planning"]) {
-    tripsByStatus["planning"] = [...tripsByStatus["planning"], ...orphanedTrips];
+  if (orphanedTrips.length > 0 && tripsByStatus["lead"]) {
+    tripsByStatus["lead"] = [...tripsByStatus["lead"], ...orphanedTrips];
   }
 
   const handleDragEnd = async (result: DropResult) => {
