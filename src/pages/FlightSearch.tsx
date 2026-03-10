@@ -493,7 +493,7 @@ export default function FlightSearch() {
                     <CardContent className="py-3 px-4">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-3">
-                          <Badge className="bg-green-600 text-white">✓ Outbound</Badge>
+                          <Badge className="bg-accent text-accent-foreground">✓ Outbound</Badge>
                           <SliceInline slice={offersMatchingOutbound[0].slices[0]} />
                         </div>
                         <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleBackToOutbound}>
