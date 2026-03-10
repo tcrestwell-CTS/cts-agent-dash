@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Plane, Search, Clock, ArrowRight, Users, Loader2, CreditCard } from "lucide-react";
+import { IataCodeInput } from "@/components/trips/IataCodeInput";
 import { useFlightSearch, FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection } from "@/hooks/useFlightSearch";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
