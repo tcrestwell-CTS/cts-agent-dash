@@ -733,12 +733,6 @@ const BookingDetail = () => {
                   >
                     {booking.clients.name}
                   </Link>
-                  <Badge
-                    variant="outline"
-                    className="ml-2 text-xs capitalize"
-                  >
-                    {booking.clients.status}
-                  </Badge>
                 </div>
                 {booking.clients.email && (
                   <div className="flex items-center gap-2 text-sm">
@@ -749,23 +743,6 @@ const BookingDetail = () => {
                     >
                       {booking.clients.email}
                     </a>
-                  </div>
-                )}
-                {booking.clients.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <a
-                      href={`tel:${booking.clients.phone}`}
-                      className="text-foreground hover:text-primary"
-                    >
-                      {booking.clients.phone}
-                    </a>
-                  </div>
-                )}
-                {booking.clients.location && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">{booking.clients.location}</span>
                   </div>
                 )}
                 <Button variant="outline" size="sm" className="w-full mt-2" asChild>
