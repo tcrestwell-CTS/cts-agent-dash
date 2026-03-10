@@ -369,7 +369,7 @@ const TripDetail = () => {
             hasPayments={hasPayments}
             isSendingPortalLink={isSendingPortalLink}
             onSendPortalLink={handleSendPortalLink}
-            onFlightSearch={() => setFlightSearchOpen(true)}
+            onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}
             onDelete={handleDelete}
           />
 
