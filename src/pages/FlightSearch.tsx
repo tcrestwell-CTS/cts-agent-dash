@@ -64,22 +64,50 @@ export default function FlightSearch() {
   };
 
   const handleBookOffer = async (offerId: string) => {
-    const freshOffer = await getOffer(offerId);
+    const [freshOffer, seatMaps] = await Promise.all([
+      getOffer(offerId, true),
+      getSeatMaps(offerId),
+    ]);
     if (freshOffer) {
       setCheckoutOffer(freshOffer);
+      setCheckoutSeatMaps(seatMaps);
+      setCheckoutBaggage(
+        (freshOffer.available_services || []).filter((s) => s.type === "baggage")
+      );
     }
   };
 
-  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash") => {
+  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[]) => {
     if (!checkoutOffer) return;
+    const baseCost = parseFloat(checkoutOffer.total_amount);
+    const ancillaryCost = services.reduce((sum, svc) => {
+      for (const sm of checkoutSeatMaps) {
+        for (const cabin of sm.cabins) {
+          for (const row of cabin.rows) {
+            for (const section of row.sections) {
+              for (const el of section.elements) {
+                const found = el.available_services?.find((s) => s.id === svc.id);
+                if (found) return sum + parseFloat(found.total_amount) * svc.quantity;
+              }
+            }
+          }
+        }
+      }
+      const bagSvc = checkoutBaggage.find((b) => b.id === svc.id);
+      if (bagSvc) return sum + parseFloat(bagSvc.total_amount) * svc.quantity;
+      return sum;
+    }, 0);
+    const totalAmount = (baseCost + ancillaryCost).toFixed(2);
+
     await createOrder({
       selected_offers: [checkoutOffer.id],
       passengers,
       payments: [{
         type: paymentType,
         currency: checkoutOffer.total_currency,
-        amount: checkoutOffer.total_amount,
+        amount: totalAmount,
       }],
+      services: services.length > 0 ? services : undefined,
     });
     setCheckoutOffer(null);
   };
