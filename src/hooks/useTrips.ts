@@ -48,16 +48,13 @@ export interface Trip {
 
 export interface TripBooking {
   id: string;
-  booking_reference: string;
-  destination: string;
-  depart_date: string;
-  return_date: string;
-  travelers: number;
+  confirmation_number: string;
   status: string;
-  trip_name: string | null;
+  total_price: number;
   gross_sales: number;
   commissionable_amount: number;
   commission_revenue: number;
+  commission_estimate: number;
   supplier_id: string | null;
   suppliers?: {
     id: string;
