@@ -110,42 +110,33 @@ export interface Booking {
     supplier_type: string;
   } | null;
 
-  // ── Backward-compat aliases (derived from trips relation) ──
-  /** @deprecated Use confirmation_number */
-  booking_reference: string;
-  /** @deprecated Use total_price */
-  total_amount: number;
-  /** @deprecated Use trips?.destination */
-  destination: string;
-  /** @deprecated Use trips?.depart_date */
-  depart_date: string;
-  /** @deprecated Use trips?.return_date */
-  return_date: string;
-  /** @deprecated Use trips?.trip_name */
-  trip_name: string | null;
-  /** @deprecated Use trips?.client_id */
-  client_id: string;
-  /** @deprecated Use trips?.clients */
+  // ── Backward-compat aliases (all optional, derived from trips relation) ──
+  booking_reference?: string;
+  total_amount?: number;
+  destination?: string;
+  depart_date?: string;
+  return_date?: string;
+  trip_name?: string | null;
+  client_id?: string;
   clients?: { name: string; email: string | null } | null;
-  /** Placeholder for removed field */
-  booking_type: string;
-  travelers: number;
-  notes: string | null;
-  owner_agent: string | null;
-  trip_page_url: string | null;
-  override_pending_approval: boolean;
-  approval_required: boolean;
-  supplier_payout: number;
-  commission_override_amount: number | null;
-  override_approved: boolean;
-  override_approved_by: string | null;
-  override_approved_at: string | null;
-  override_notes: string | null;
-  cancelled_at: string | null;
-  cancellation_penalty: number;
-  cancellation_refund_amount: number;
-  cancellation_reason: string | null;
-  approval_type: string | null;
+  booking_type?: string;
+  travelers?: number;
+  notes?: string | null;
+  owner_agent?: string | null;
+  trip_page_url?: string | null;
+  override_pending_approval?: boolean;
+  approval_required?: boolean;
+  supplier_payout?: number;
+  commission_override_amount?: number | null;
+  override_approved?: boolean;
+  override_approved_by?: string | null;
+  override_approved_at?: string | null;
+  override_notes?: string | null;
+  cancelled_at?: string | null;
+  cancellation_penalty?: number;
+  cancellation_refund_amount?: number;
+  cancellation_reason?: string | null;
+  approval_type?: string | null;
 }
 
 // Helper to check if a booking should be excluded from reporting
