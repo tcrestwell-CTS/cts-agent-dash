@@ -217,7 +217,7 @@ const ItineraryBuilder = () => {
             clientEmail={trip.clients?.email}
             tripStatus={trip.status}
             hasPayments={false}
-            onFlightSearch={() => setFlightSearchOpen(true)}
+            onFlightSearch={() => navigate(`/flights?tripId=${trip.id}`)}
           />
 
           <div className="space-y-4">
