@@ -6,18 +6,12 @@ import { toast } from "sonner";
 export interface Quote {
   id: string;
   user_id: string;
-  client_id: string | null;
   trip_id: string | null;
-  quote_number: string;
-  title: string;
-  description: string | null;
-  total_amount: number;
+  supplier_id: string | null;
+  price: number;
+  currency: string;
   status: string;
-  valid_until: string | null;
   sent_at: string | null;
-  accepted_at: string | null;
-  declined_at: string | null;
-  notes: string | null;
   created_at: string;
   updated_at: string;
 }

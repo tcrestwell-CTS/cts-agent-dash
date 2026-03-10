@@ -2030,65 +2030,47 @@ export type Database = {
       }
       quotes: {
         Row: {
-          accepted_at: string | null
-          client_id: string | null
           created_at: string
-          declined_at: string | null
-          description: string | null
+          currency: string
           id: string
-          notes: string | null
-          quote_number: string
+          price: number
           sent_at: string | null
           status: string
-          title: string
-          total_amount: number
+          supplier_id: string | null
           trip_id: string | null
           updated_at: string
           user_id: string
-          valid_until: string | null
         }
         Insert: {
-          accepted_at?: string | null
-          client_id?: string | null
           created_at?: string
-          declined_at?: string | null
-          description?: string | null
+          currency?: string
           id?: string
-          notes?: string | null
-          quote_number: string
+          price?: number
           sent_at?: string | null
           status?: string
-          title: string
-          total_amount?: number
+          supplier_id?: string | null
           trip_id?: string | null
           updated_at?: string
           user_id: string
-          valid_until?: string | null
         }
         Update: {
-          accepted_at?: string | null
-          client_id?: string | null
           created_at?: string
-          declined_at?: string | null
-          description?: string | null
+          currency?: string
           id?: string
-          notes?: string | null
-          quote_number?: string
+          price?: number
           sent_at?: string | null
           status?: string
-          title?: string
-          total_amount?: number
+          supplier_id?: string | null
           trip_id?: string | null
           updated_at?: string
           user_id?: string
-          valid_until?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "quotes_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
           {
