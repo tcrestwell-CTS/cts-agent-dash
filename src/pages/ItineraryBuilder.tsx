@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2, Plane } from "lucide-react";
-import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
+
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
 import { useItinerary } from "@/hooks/useItinerary";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";

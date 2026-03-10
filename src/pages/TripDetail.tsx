@@ -44,7 +44,7 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
-import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
+
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
 import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
