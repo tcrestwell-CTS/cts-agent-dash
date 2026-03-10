@@ -70,6 +70,8 @@ function groupSlices(offers: FlightOffer[], sliceIndex: number): SliceGroup[] {
 type SelectionStep = "all" | "outbound" | "return";
 
 export default function FlightSearch() {
+  const [searchParams] = useSearchParams();
+  const tripIdFromQuery = searchParams.get("tripId") || undefined;
   const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
