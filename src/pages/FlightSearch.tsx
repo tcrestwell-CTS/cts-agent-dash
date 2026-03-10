@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Plane, Search, Clock, ArrowRight, Users, Loader2, CreditCard } from "lucide-react";
+import { IataCodeInput } from "@/components/trips/IataCodeInput";
 import { useFlightSearch, FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection } from "@/hooks/useFlightSearch";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
@@ -281,11 +282,11 @@ export default function FlightSearch() {
                     <span className="text-xs font-medium text-muted-foreground w-6 pb-2.5">{idx + 1}.</span>
                     <div className="flex-1 min-w-[120px] space-y-1">
                       <Label className="text-xs text-muted-foreground">From</Label>
-                      <Input placeholder="e.g. JFK" value={leg.origin} onChange={(e) => updateMultiCityLeg(idx, "origin", e.target.value)} maxLength={3} className="uppercase h-10" />
+                      <IataCodeInput placeholder="e.g. JFK" value={leg.origin} onChange={(code) => updateMultiCityLeg(idx, "origin", code)} className="h-10" />
                     </div>
                     <div className="flex-1 min-w-[120px] space-y-1">
                       <Label className="text-xs text-muted-foreground">To</Label>
-                      <Input placeholder="e.g. LAX" value={leg.destination} onChange={(e) => updateMultiCityLeg(idx, "destination", e.target.value)} maxLength={3} className="uppercase h-10" />
+                      <IataCodeInput placeholder="e.g. LAX" value={leg.destination} onChange={(code) => updateMultiCityLeg(idx, "destination", code)} className="h-10" />
                     </div>
                     <div className="flex-1 min-w-[140px] space-y-1">
                       <Label className="text-xs text-muted-foreground">Date</Label>
@@ -315,11 +316,11 @@ export default function FlightSearch() {
               <div className="flex items-end gap-2 flex-wrap">
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Where from?</Label>
-                  <Input placeholder="e.g. JFK" value={origin} onChange={(e) => setOrigin(e.target.value)} maxLength={3} className="uppercase h-10" />
+                  <IataCodeInput placeholder="e.g. JFK" value={origin} onChange={setOrigin} className="h-10" />
                 </div>
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Where to?</Label>
-                  <Input placeholder="e.g. LAX" value={destination} onChange={(e) => setDestination(e.target.value)} maxLength={3} className="uppercase h-10" />
+                  <IataCodeInput placeholder="e.g. LAX" value={destination} onChange={setDestination} className="h-10" />
                 </div>
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Departure</Label>
