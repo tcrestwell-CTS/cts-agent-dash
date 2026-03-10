@@ -108,6 +108,23 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
+  const bulkUpdateItems = async (updates: Array<{ id: string; data: Partial<CreateItineraryItemData> }>) => {
+    if (!user) return false;
+    try {
+      await Promise.all(
+        updates.map(({ id, data }) =>
+          supabase.from("itinerary_items").update(data as any).eq("id", id)
+        )
+      );
+      await fetchItems();
+      return true;
+    } catch (error) {
+      console.error("Error bulk updating itinerary items:", error);
+      toast.error("Failed to reorder items");
+      return false;
+    }
+  };
+
   const deleteItem = async (itemId: string) => {
     if (!user) return false;
     try {
@@ -232,7 +249,7 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
-  return { items, loading, generating, fetchItems, addItem, updateItem, deleteItem, generateWithAI, clearAll, importFromBookings };
+  return { items, loading, generating, fetchItems, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings };
 }
 
 function mapSupplierType(type?: string): string {
