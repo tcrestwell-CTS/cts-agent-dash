@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
 import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput";
+import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { format } from "date-fns";
 
 function getStars(categoryName: string): number {
