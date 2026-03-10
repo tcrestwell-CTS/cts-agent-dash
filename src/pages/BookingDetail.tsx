@@ -790,7 +790,6 @@ const BookingDetail = () => {
           }
           return success;
         }}
-        updating={updating}
       />
 
       {/* Delete Confirmation */}

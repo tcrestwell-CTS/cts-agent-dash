@@ -192,23 +192,15 @@ export function AddTripBookingDialog({
 
       const bookingData = {
         user_id: user.id,
-        client_id: effectiveClientId,
         trip_id: tripId,
-        booking_type: formData.booking_type,
-        destination: formData.destination,
-        depart_date: formData.depart_date,
-        return_date: formData.return_date,
-        booking_reference: formData.booking_reference || `BK-${Date.now()}`,
-        travelers: formData.travelers,
+        confirmation_number: formData.booking_reference || `BK-${Date.now()}`,
         gross_sales: formData.gross_sales,
-        total_amount: formData.gross_sales,
+        total_price: formData.gross_sales,
         commissionable_amount: isMultiLine ? formData.gross_sales : netSales,
         commission_revenue: Math.round(commissionRevenue * 100) / 100,
         net_sales: netSales,
-        supplier_payout: formData.supplier_payout,
+        commission_estimate: formData.commission_rate || 0,
         supplier_id: formData.supplier_id || null,
-        trip_name: formData.trip_name || `${formData.booking_type.charAt(0).toUpperCase() + formData.booking_type.slice(1)} - ${formData.destination}`,
-        notes: formData.notes || null,
         status: "pending",
       };
 

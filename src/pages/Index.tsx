@@ -86,7 +86,7 @@ const Index = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, booking_reference, status, created_at, updated_at, trip_name, destination, clients(name)")
+        .select("id, confirmation_number, status, created_at, updated_at, trip_id, supplier_id, trips(trip_name, destination, client_id, clients!trips_client_id_fkey(name))")
         .order("updated_at", { ascending: false })
         .limit(5);
       if (error) throw error;

@@ -705,7 +705,6 @@ const Bookings = () => {
         open={!!editingBooking}
         onOpenChange={(open) => !open && setEditingBooking(null)}
         onSubmit={updateBooking}
-        updating={updating}
       />
 
       <AlertDialog open={!!deletingBooking} onOpenChange={(open) => !open && setDeletingBooking(null)}>

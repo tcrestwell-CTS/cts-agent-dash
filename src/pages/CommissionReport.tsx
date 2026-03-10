@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileSpreadsheet, DollarSign, TrendingUp, Users, Percent } from "lucide-react";
-import { useCommissionReport, useAgentList } from "@/hooks/useCommissionReport";
+import { useCommissionReport } from "@/hooks/useCommissionReport";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { CommissionReportFilters } from "@/components/reports/CommissionReportFilters";
