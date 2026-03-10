@@ -75,6 +75,7 @@ export default function FlightSearch() {
     setChildAges((prev) => prev.map((a, i) => (i === idx ? age : a)));
 
   const handleSearch = () => {
+    const today = new Date().toISOString().split("T")[0];
     let slices: { origin: string; destination: string; departure_date: string }[];
 
     if (tripType === "multicity") {
@@ -93,6 +94,13 @@ export default function FlightSearch() {
           departure_date: returnDate,
         });
       }
+    }
+
+    // Validate all dates are today or in the future
+    const invalidSlice = slices.find((s) => s.departure_date < today);
+    if (invalidSlice) {
+      toast.error("All departure dates must be today or later.");
+      return;
     }
 
     const passengers = [
