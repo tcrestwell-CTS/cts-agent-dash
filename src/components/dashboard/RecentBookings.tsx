@@ -1,26 +1,27 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, User, Loader2, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, User, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
 
-interface Booking {
+interface RecentBooking {
   id: string;
-  trip_name: string | null;
-  destination: string;
-  depart_date: string;
-  return_date: string;
+  confirmation_number: string;
+  total_price: number;
   status: string;
-  total_amount: number;
-  trip_page_url: string | null;
-  clients: {
-    name: string;
+  trips: {
+    trip_name: string | null;
+    destination: string | null;
+    depart_date: string | null;
+    return_date: string | null;
+    clients: {
+      name: string;
+    } | null;
   } | null;
 }
 
 export function RecentBookings() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,22 +34,24 @@ export function RecentBookings() {
         .from("bookings")
         .select(`
           id,
-          trip_name,
-          destination,
-          depart_date,
-          return_date,
+          confirmation_number,
+          total_price,
           status,
-          total_amount,
-          trip_page_url,
-          clients (
-            name
+          trips (
+            trip_name,
+            destination,
+            depart_date,
+            return_date,
+            clients!trips_client_id_fkey (
+              name
+            )
           )
         `)
-        .order("depart_date", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(5);
 
       if (error) throw error;
-      setBookings(data || []);
+      setBookings((data as any) || []);
     } catch (error) {
       console.error("Error fetching recent bookings:", error);
     } finally {
@@ -64,8 +67,9 @@ export function RecentBookings() {
     }).format(amount);
   };
 
-  const formatDateRange = (start: string, end: string) => {
+  const formatDateRange = (start: string | null, end: string | null) => {
     try {
+      if (!start || !end) return "Dates TBD";
       const startDate = format(new Date(start), "MMM d");
       const endDate = format(new Date(end), "MMM d, yyyy");
       return `${startDate} - ${endDate}`;
@@ -120,35 +124,17 @@ export function RecentBookings() {
                     <User className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-card-foreground">
-                        {booking.clients?.name || "Unknown Client"}
-                      </p>
-                      {booking.trip_page_url && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
-                          asChild
-                        >
-                          <a
-                            href={booking.trip_page_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      )}
-                    </div>
+                    <p className="font-medium text-card-foreground">
+                      {booking.trips?.clients?.name || "Unknown Client"}
+                    </p>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3.5 w-3.5" />
-                        {booking.trip_name || booking.destination}
+                        {booking.trips?.trip_name || booking.trips?.destination || "—"}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
-                        {formatDateRange(booking.depart_date, booking.return_date)}
+                        {formatDateRange(booking.trips?.depart_date ?? null, booking.trips?.return_date ?? null)}
                       </span>
                     </div>
                   </div>
@@ -161,7 +147,7 @@ export function RecentBookings() {
                     {booking.status}
                   </Badge>
                   <span className="font-semibold text-card-foreground min-w-[80px] text-right">
-                    {formatCurrency(booking.total_amount)}
+                    {formatCurrency(booking.total_price)}
                   </span>
                 </div>
               </div>
