@@ -179,9 +179,29 @@ export default function FlightSearch() {
         {/* Results */}
         {offers.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-foreground">
-              {offers.length} flight{offers.length !== 1 ? "s" : ""} found
-            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h2 className="text-lg font-semibold text-foreground">
+                {offers.length} flight{offers.length !== 1 ? "s" : ""} found
+              </h2>
+              {selectedOffer && (
+                <AddToTripSelector
+                  label="Add to Trip"
+                  items={selectedOffer.slices.map((slice, idx) => ({
+                    day_number: idx + 1,
+                    title: `${slice.segments[0]?.operating_carrier?.name || "Flight"} ${slice.segments[0]?.operating_carrier_flight_number || ""}: ${slice.origin.iata_code} → ${slice.destination.iata_code}`,
+                    description: `${format(parseISO(slice.segments[0].departing_at), "MMM d, HH:mm")} – ${format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm")} • ${formatDuration(slice.duration)}${slice.segments.length > 1 ? ` • ${slice.segments.length - 1} stop${slice.segments.length > 2 ? "s" : ""}` : " • Direct"}`,
+                    category: "flight",
+                    location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
+                    start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
+                    end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
+                    flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
+                    departure_city_code: slice.origin.iata_code,
+                    arrival_city_code: slice.destination.iata_code,
+                    notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
+                  }))}
+                />
+              )}
+            </div>
 
             {offers
               .sort((a, b) => parseFloat(a.total_amount) - parseFloat(b.total_amount))

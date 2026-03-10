@@ -564,7 +564,24 @@ export default function CruiseSearch() {
                     )}
                   </div>
                   <Separator className="my-4" />
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <AddToTripSelector
+                      label="Add to Trip"
+                      items={previewItems.map((item) => ({
+                        day_number: item.day_number,
+                        title: item.title,
+                        description: item.description || undefined,
+                        category: item.category || "cruise",
+                        location: item.location || undefined,
+                        start_time: item.start_time || undefined,
+                        end_time: item.end_time || undefined,
+                        notes: [
+                          item.notes,
+                          selectedCabin ? `Cabin: ${selectedCabin.room_type} ${selectedCabin.cabin.grade_code} — ${fmt(parseFloat(selectedCabin.cabin.double_price_pp))} pp` : null,
+                          meta.ship_title ? `Ship: ${meta.ship_title}` : null,
+                        ].filter(Boolean).join(" • ") || undefined,
+                      }))}
+                    />
                     <Button variant="outline" onClick={resetSearch}>
                       <Search className="h-4 w-4 mr-2" /> New Search
                     </Button>
