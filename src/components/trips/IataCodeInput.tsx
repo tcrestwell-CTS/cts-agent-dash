@@ -194,7 +194,7 @@ export function IataCodeInput({ value, onChange, placeholder = "City or code", c
         ref={inputRef}
         value={query}
         onChange={(e) => handleInputChange(e.target.value)}
-        onFocus={() => query.length >= 1 && setShowDropdown(true)}
+        onFocus={handleFocus}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         maxLength={30}
