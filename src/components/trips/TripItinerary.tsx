@@ -260,31 +260,30 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
     const srcIndex = result.source.index;
     const destIndex = result.destination.index;
 
-    // Get source day items
     const srcItems = [...(dayGroups[srcDay] || [])];
     const [moved] = srcItems.splice(srcIndex, 1);
     if (!moved) return;
 
+    let updates: Array<{ id: string; data: Partial<{ day_number: number; sort_order: number }> }> = [];
+
     if (srcDay === destDay) {
-      // Reorder within same day
       srcItems.splice(destIndex, 0, moved);
-      const updates = srcItems.map((item, idx) => updateItem(item.id, { sort_order: idx }));
-      await Promise.all(updates);
+      updates = srcItems.map((item, idx) => ({ id: item.id, data: { sort_order: idx } }));
     } else {
-      // Move to different day
       const destItems = [...(dayGroups[destDay] || [])];
       destItems.splice(destIndex, 0, moved);
-      const updates = [
-        updateItem(moved.id, { day_number: destDay, sort_order: destIndex }),
-        ...srcItems.map((item, idx) => updateItem(item.id, { sort_order: idx })),
-        ...destItems.filter(i => i.id !== moved.id).map((item, idx) => {
-          const newIdx = idx >= destIndex ? idx + 1 : idx;
-          return updateItem(item.id, { sort_order: newIdx });
-        }),
+      updates = [
+        { id: moved.id, data: { day_number: destDay, sort_order: destIndex } },
+        ...srcItems.map((item, idx) => ({ id: item.id, data: { sort_order: idx } })),
+        ...destItems.filter(i => i.id !== moved.id).map((item, idx) => ({
+          id: item.id,
+          data: { sort_order: idx >= destIndex ? idx + 1 : idx },
+        })),
       ];
-      await Promise.all(updates);
     }
-  }, [dayGroups, updateItem]);
+
+    await bulkUpdateItems(updates);
+  }, [dayGroups, bulkUpdateItems]);
 
   if (loading) {
     return <div className="space-y-4">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-24" />)}</div>;
