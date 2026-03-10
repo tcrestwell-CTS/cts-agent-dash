@@ -32,7 +32,11 @@ export default function FlightSearch() {
   const [adults, setAdults] = useState(1);
   const [childAges, setChildAges] = useState<number[]>([]);
   const [infants, setInfants] = useState(0);
-  const [tripType, setTripType] = useState<"roundtrip" | "oneway">("roundtrip");
+  const [tripType, setTripType] = useState<"roundtrip" | "oneway" | "multicity">("roundtrip");
+  const [multiCityLegs, setMultiCityLegs] = useState([
+    { origin: "", destination: "", date: "" },
+    { origin: "", destination: "", date: "" },
+  ]);
   const [selectedOffer, setSelectedOffer] = useState<FlightOffer | null>(null);
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
   const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
@@ -60,19 +64,34 @@ export default function FlightSearch() {
 
   const addChild = () => setChildAges((prev) => [...prev, 10]);
   const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
+  const updateMultiCityLeg = (idx: number, field: string, value: string) => {
+    setMultiCityLegs((prev) => prev.map((leg, i) => (i === idx ? { ...leg, [field]: value } : leg)));
+  };
+  const addMultiCityLeg = () => setMultiCityLegs((prev) => [...prev, { origin: "", destination: "", date: "" }]);
+  const removeMultiCityLeg = (idx: number) => setMultiCityLegs((prev) => prev.filter((_, i) => i !== idx));
+
   const updateChildAge = (idx: number, age: number) =>
     setChildAges((prev) => prev.map((a, i) => (i === idx ? age : a)));
 
   const handleSearch = () => {
-    const slices = [
-      { origin: origin.toUpperCase(), destination: destination.toUpperCase(), departure_date: departDate },
-    ];
-    if (tripType === "roundtrip" && returnDate) {
-      slices.push({
-        origin: destination.toUpperCase(),
-        destination: origin.toUpperCase(),
-        departure_date: returnDate,
-      });
+    let slices: { origin: string; destination: string; departure_date: string }[];
+
+    if (tripType === "multicity") {
+      slices = multiCityLegs
+        .filter((l) => l.origin && l.destination && l.date)
+        .map((l) => ({ origin: l.origin.toUpperCase(), destination: l.destination.toUpperCase(), departure_date: l.date }));
+      if (slices.length < 2) return;
+    } else {
+      slices = [
+        { origin: origin.toUpperCase(), destination: destination.toUpperCase(), departure_date: departDate },
+      ];
+      if (tripType === "roundtrip" && returnDate) {
+        slices.push({
+          origin: destination.toUpperCase(),
+          destination: origin.toUpperCase(),
+          departure_date: returnDate,
+        });
+      }
     }
 
     const passengers = [
@@ -174,6 +193,7 @@ export default function FlightSearch() {
                 {[
                   { value: "roundtrip" as const, label: "Round trip" },
                   { value: "oneway" as const, label: "One way" },
+                  { value: "multicity" as const, label: "Multi-city" },
                 ].map(({ value, label }) => (
                   <button
                     key={value}
@@ -254,51 +274,74 @@ export default function FlightSearch() {
             )}
 
             {/* Row 2: Origin, Destination, Dates, Search */}
-            <div className="flex items-end gap-2 flex-wrap">
-              <div className="flex-1 min-w-[140px] space-y-1">
-                <Label className="text-xs text-muted-foreground">Where from?</Label>
-                <Input
-                  placeholder="e.g. JFK"
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  maxLength={3}
-                  className="uppercase h-10"
-                />
-              </div>
-
-              <div className="flex-1 min-w-[140px] space-y-1">
-                <Label className="text-xs text-muted-foreground">Where to?</Label>
-                <Input
-                  placeholder="e.g. LAX"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  maxLength={3}
-                  className="uppercase h-10"
-                />
-              </div>
-
-              <div className="flex-1 min-w-[140px] space-y-1">
-                <Label className="text-xs text-muted-foreground">Departure</Label>
-                <Input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} className="h-10" />
-              </div>
-
-              {tripType === "roundtrip" && (
-                <div className="flex-1 min-w-[140px] space-y-1">
-                  <Label className="text-xs text-muted-foreground">Return</Label>
-                  <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} className="h-10" />
+            {tripType === "multicity" ? (
+              <div className="space-y-2">
+                {multiCityLegs.map((leg, idx) => (
+                  <div key={idx} className="flex items-end gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-muted-foreground w-6 pb-2.5">{idx + 1}.</span>
+                    <div className="flex-1 min-w-[120px] space-y-1">
+                      <Label className="text-xs text-muted-foreground">From</Label>
+                      <Input placeholder="e.g. JFK" value={leg.origin} onChange={(e) => updateMultiCityLeg(idx, "origin", e.target.value)} maxLength={3} className="uppercase h-10" />
+                    </div>
+                    <div className="flex-1 min-w-[120px] space-y-1">
+                      <Label className="text-xs text-muted-foreground">To</Label>
+                      <Input placeholder="e.g. LAX" value={leg.destination} onChange={(e) => updateMultiCityLeg(idx, "destination", e.target.value)} maxLength={3} className="uppercase h-10" />
+                    </div>
+                    <div className="flex-1 min-w-[140px] space-y-1">
+                      <Label className="text-xs text-muted-foreground">Date</Label>
+                      <Input type="date" value={leg.date} onChange={(e) => updateMultiCityLeg(idx, "date", e.target.value)} className="h-10" />
+                    </div>
+                    {multiCityLegs.length > 2 && (
+                      <Button variant="ghost" size="sm" className="h-10 px-2 text-muted-foreground hover:text-destructive" onClick={() => removeMultiCityLeg(idx)}>×</Button>
+                    )}
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-1">
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={addMultiCityLeg}>
+                    + Add flight
+                  </Button>
+                  <Button
+                    onClick={handleSearch}
+                    disabled={loading || multiCityLegs.filter((l) => l.origin && l.destination && l.date).length < 2}
+                    size="lg"
+                    className="gap-2 h-10 px-6 rounded-full"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    {loading ? "Searching..." : "Search"}
+                  </Button>
                 </div>
-              )}
-
-              <Button
-                onClick={handleSearch}
-                disabled={loading || !origin || !destination || !departDate || (tripType === "roundtrip" && !returnDate)}
-                size="lg"
-                className="gap-2 h-10 px-6 rounded-full"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {loading ? "Searching..." : "Search"}
-              </Button>
-            </div>
+              </div>
+            ) : (
+              <div className="flex items-end gap-2 flex-wrap">
+                <div className="flex-1 min-w-[140px] space-y-1">
+                  <Label className="text-xs text-muted-foreground">Where from?</Label>
+                  <Input placeholder="e.g. JFK" value={origin} onChange={(e) => setOrigin(e.target.value)} maxLength={3} className="uppercase h-10" />
+                </div>
+                <div className="flex-1 min-w-[140px] space-y-1">
+                  <Label className="text-xs text-muted-foreground">Where to?</Label>
+                  <Input placeholder="e.g. LAX" value={destination} onChange={(e) => setDestination(e.target.value)} maxLength={3} className="uppercase h-10" />
+                </div>
+                <div className="flex-1 min-w-[140px] space-y-1">
+                  <Label className="text-xs text-muted-foreground">Departure</Label>
+                  <Input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} className="h-10" />
+                </div>
+                {tripType === "roundtrip" && (
+                  <div className="flex-1 min-w-[140px] space-y-1">
+                    <Label className="text-xs text-muted-foreground">Return</Label>
+                    <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} className="h-10" />
+                  </div>
+                )}
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading || !origin || !destination || !departDate || (tripType === "roundtrip" && !returnDate)}
+                  size="lg"
+                  className="gap-2 h-10 px-6 rounded-full"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  {loading ? "Searching..." : "Search"}
+                </Button>
+              </div>
+            )}
 
             {/* Row 3: Stop filters */}
             <div className="flex items-center gap-5 pt-1 flex-wrap">
