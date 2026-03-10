@@ -631,7 +631,7 @@ const TripDetail = () => {
                   onDataChange={fetchTrip}
                 />
                 <SupplierPaymentStatus
-                  bookings={bookings}
+                  bookings={bookings as any}
                   payments={payments}
                 />
               </TabsContent>

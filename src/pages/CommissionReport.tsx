@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileSpreadsheet, DollarSign, TrendingUp, Users, Percent } from "lucide-react";
-import { useCommissionReport, useAgentList } from "@/hooks/useCommissionReport";
+import { useCommissionReport } from "@/hooks/useCommissionReport";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { CommissionReportFilters } from "@/components/reports/CommissionReportFilters";
@@ -18,12 +18,11 @@ import { DateRange } from "react-day-picker";
 export default function CommissionReport() {
   const { data: reportData, isLoading: reportLoading } = useCommissionReport();
   const { suppliers, isLoading: suppliersLoading } = useSuppliers();
-  const { data: agents, isLoading: agentsLoading } = useAgentList();
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
 
   const canViewAll = isAdmin || isOfficeAdmin;
-  const loading = reportLoading || suppliersLoading || agentsLoading;
+  const loading = reportLoading || suppliersLoading;
 
   // Filter states
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -245,7 +244,7 @@ export default function CommissionReport() {
           selectedStatus={selectedStatus}
           setSelectedStatus={setSelectedStatus}
           suppliers={suppliers}
-          agents={agents || []}
+          agents={[]}
           showAgentFilter={canViewAll || false}
           onClearFilters={clearFilters}
         />

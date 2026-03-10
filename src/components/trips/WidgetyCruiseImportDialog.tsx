@@ -79,10 +79,10 @@ interface Props {
   destination: string | null;
   cruiseBookings: Array<{
     id: string;
-    trip_name: string | null;
-    destination: string;
-    depart_date: string;
-    return_date: string;
+    trip_name?: string | null;
+    destination?: string;
+    depart_date?: string;
+    return_date?: string;
     suppliers?: { name: string; supplier_type: string } | null;
   }>;
   onImport: (items: WidgetyItineraryItem[]) => Promise<boolean>;

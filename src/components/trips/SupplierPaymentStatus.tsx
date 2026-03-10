@@ -6,9 +6,10 @@ import { Link } from "react-router-dom";
 
 interface Booking {
   id: string;
-  booking_reference: string;
+  confirmation_number?: string;
+  booking_reference?: string;
   supplier_id?: string | null;
-  supplier_invoice_url?: string | null;
+  total_price?: number;
   total_amount?: number;
   status: string;
   suppliers?: { name: string } | null;
@@ -73,7 +74,7 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
         {bookings.map((booking) => {
           const payment = getBookingPaymentInfo(booking.id);
           const vcStatus = getVirtualCardStatus(payment);
-          const hasInvoice = !!booking.supplier_invoice_url;
+          const hasInvoice = false;
           const supplierName = (booking as any).suppliers?.name || "No supplier";
           const rowColor = getRowColor(vcStatus, payment?.status || "pending");
 
@@ -90,13 +91,13 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Link to={`/bookings/${booking.id}`} className="text-sm font-medium truncate text-primary hover:underline">
-                    {booking.booking_reference}
+                    {booking.confirmation_number || booking.booking_reference || booking.id.slice(0, 8)}
                   </Link>
                   <span className="text-xs text-muted-foreground">•</span>
                   <p className="text-xs text-muted-foreground truncate">{supplierName}</p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatCurrency(booking.total_amount)}
+                  {formatCurrency(booking.total_price || booking.total_amount || 0)}
                 </p>
               </div>
 
