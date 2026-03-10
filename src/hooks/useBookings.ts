@@ -160,6 +160,20 @@ export interface CreateBookingData {
   gross_sales?: number;
   commission_rate?: number;
   commission_estimate?: number;
+  // Legacy fields kept for backward compat with existing dialogs
+  client_id?: string;
+  destination?: string;
+  depart_date?: string;
+  return_date?: string;
+  travelers?: number;
+  total_amount?: number;
+  trip_name?: string;
+  notes?: string;
+  send_confirmation_email?: boolean;
+  supplier_payout?: number;
+  commissionable_percentage?: number;
+  commission_override_amount?: number;
+  override_notes?: string;
 }
 
 export interface UpdateBookingData {
