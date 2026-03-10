@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ship, Search, ChevronRight, Loader2, MapPin, Calendar, DollarSign, Check } from "lucide-react";
+import { Ship, Search, ChevronRight, Loader2, MapPin, Calendar, DollarSign, Check, Eye, Plus, ArrowLeft, Filter, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
@@ -19,6 +18,11 @@ interface WidgetySailing {
   name: string;
   operator_title: string;
   holiday: string;
+  ship_title?: string;
+  image_url?: string;
+  date_from?: string;
+  date_to?: string;
+  nights?: number;
 }
 
 interface WidgetyCabinPrice {
@@ -120,6 +124,11 @@ export default function CruiseSearch() {
   };
 
   const formatDate = (d: string) => {
+    try { return format(parseISO(d), "MM/dd/yyyy"); }
+    catch { return d; }
+  };
+
+  const formatDateLong = (d: string) => {
     try { return format(parseISO(d), "MMM d, yyyy"); }
     catch { return d; }
   };
@@ -132,7 +141,7 @@ export default function CruiseSearch() {
     setLoading(true);
     setStep("sailings");
     try {
-      const params: Record<string, any> = { action: "search", market: "us", limit: 25 };
+      const params: Record<string, any> = { action: "search", market: "us", limit: 50 };
       if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
@@ -211,102 +220,161 @@ export default function CruiseSearch() {
     setMeta({});
   };
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setDateFrom("");
+    setDateTo("");
+  };
+
   const fmt = (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+  const getOperatorLabel = (slug: string) => {
+    const op = AVAILABLE_OPERATORS.find((o) => o.slug === slug);
+    return op?.label || slug;
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cruise Search</h1>
-          <p className="text-muted-foreground">Search and browse cruise itineraries from 16+ cruise lines</p>
+        {/* Header with Back button on sub-steps */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {step !== "search" && step !== "sailings" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (step === "dates") setStep("sailings");
+                  else if (step === "pricing") setStep("dates");
+                  else if (step === "itinerary") setStep("pricing");
+                }}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Find a Cruise</h1>
+              {step === "dates" && selectedHoliday && (
+                <p className="text-muted-foreground text-sm">{selectedHoliday.name}</p>
+              )}
+              {step === "pricing" && selectedHoliday && (
+                <p className="text-muted-foreground text-sm">{selectedHoliday.name} — Select cabin</p>
+              )}
+              {step === "itinerary" && (
+                <p className="text-muted-foreground text-sm">Itinerary Preview</p>
+              )}
+            </div>
+          </div>
+          {step === "sailings" && (
+            <Button variant="ghost" size="sm" onClick={resetSearch}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+          )}
         </div>
 
-        {/* Search Form */}
-        {step === "search" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Ship className="h-5 w-5" /> Cruise Library
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Cruise Line</Label>
-                <Select value={searchQuery} onValueChange={setSearchQuery}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All available cruise lines" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Cruise Lines</SelectItem>
-                    {AVAILABLE_OPERATORS.map((op) => (
-                      <SelectItem key={op.slug} value={op.slug}>{op.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Date From</Label>
-                  <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-                </div>
-                <div>
-                  <Label>Date To</Label>
-                  <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleSearch} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Search Cruises
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Inline Search Bar — visible on search + sailings */}
+        {(step === "search" || step === "sailings") && (
+          <div className="flex flex-col sm:flex-row items-end gap-3">
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground">Search</Label>
+              <Select value={searchQuery} onValueChange={setSearchQuery}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All cruise lines" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cruise Lines</SelectItem>
+                  {AVAILABLE_OPERATORS.map((op) => (
+                    <SelectItem key={op.slug} value={op.slug}>{op.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-44">
+              <Label className="text-xs text-muted-foreground">Min Date</Label>
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-background" />
+            </div>
+            <div className="w-full sm:w-44">
+              <Label className="text-xs text-muted-foreground">Max Date</Label>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-background" />
+            </div>
+            <Button onClick={handleSearch} disabled={loading} className="shrink-0">
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
+              Filter
+            </Button>
+            {(searchQuery || dateFrom || dateTo) && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
+                Clear Filters
+              </Button>
+            )}
+          </div>
         )}
 
-        {/* Sailings Results */}
+        {/* Sailings Results — Card Grid */}
         {step === "sailings" && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Ship className="h-5 w-5" /> Select a Cruise
-                </CardTitle>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">{totalResults} results</span>
-                  <Button variant="ghost" size="sm" onClick={resetSearch}>← New Search</Button>
-                </div>
+          <>
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-2">
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">{totalResults} cruises found</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {sailings.map((s) => (
-                    <button
-                      key={s.holiday_ref}
-                      onClick={() => handleSelectHoliday(s)}
-                      className="w-full text-left p-4 rounded-lg border hover:bg-accent/50 transition-colors group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{s.name}</p>
-                          <p className="text-sm text-muted-foreground">{s.operator_title}</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
+                    <Card key={s.holiday_ref} className="overflow-hidden group hover:shadow-md transition-shadow">
+                      {/* Cruise image placeholder */}
+                      <div className="relative h-44 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
+                        {s.image_url ? (
+                          <img src={s.image_url} alt={s.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Ship className="h-16 w-16 text-primary/20" />
+                        )}
                       </div>
-                    </button>
+                      <CardContent className="p-4 space-y-2">
+                        <h3 className="font-semibold text-sm leading-snug line-clamp-2">{s.name}</h3>
+                        {s.ship_title && (
+                          <p className="text-sm text-muted-foreground italic">{s.ship_title}</p>
+                        )}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Ship className="h-3 w-3" />
+                          <span>{s.operator_title}</span>
+                        </div>
+                        {s.date_from && s.date_to && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{formatDate(s.date_from)} - {formatDate(s.date_to)}</span>
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1.5 pt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={() => handleSelectHoliday(s)}
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1.5" />
+                            Preview Sailings
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-primary"
+                            onClick={() => handleSelectHoliday(s)}
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1.5" />
+                            Add to Itinerary
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
-                  {sailings.length === 0 && (
-                    <p className="text-muted-foreground text-center py-8">No cruises found</p>
-                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {sailings.length === 0 && (
+                  <p className="text-muted-foreground text-center py-12">No cruises found. Try adjusting your filters.</p>
+                )}
+              </>
+            )}
+          </>
         )}
 
         {/* Date Selection */}
@@ -315,12 +383,9 @@ export default function CruiseSearch() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" /> Sailing Dates — {selectedHoliday?.name}
+                  <Calendar className="h-5 w-5" /> Sailing Dates
                 </CardTitle>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">{dates.length} departures</span>
-                  <Button variant="ghost" size="sm" onClick={() => setStep("sailings")}>← Back</Button>
-                </div>
+                <span className="text-sm text-muted-foreground">{dates.length} departures</span>
               </div>
             </CardHeader>
             <CardContent>
@@ -350,7 +415,7 @@ export default function CruiseSearch() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="font-medium">{formatDate(d.date_from)} — {formatDate(d.date_to)}</span>
+                              <span className="font-medium">{formatDateLong(d.date_from)} — {formatDateLong(d.date_to)}</span>
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                               {d.ship_title && <span>🚢 {d.ship_title}</span>}
@@ -404,14 +469,13 @@ export default function CruiseSearch() {
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" /> Cabin Pricing
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setStep("dates")}>← Back</Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="mb-4 p-3 bg-accent/30 rounded-md">
                 <p className="font-medium">{selectedHoliday?.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDate(selectedDate.date_from)} — {formatDate(selectedDate.date_to)}
+                  {formatDateLong(selectedDate.date_from)} — {formatDateLong(selectedDate.date_to)}
                   {selectedDate.ship_title && ` • 🚢 ${selectedDate.ship_title}`}
                   {selectedDate.starts_at && ` • ${selectedDate.starts_at.name} → ${selectedDate.ends_at?.name || ""}`}
                 </p>
@@ -524,7 +588,6 @@ export default function CruiseSearch() {
                 <CardTitle className="flex items-center gap-2">
                   <Ship className="h-5 w-5" /> Itinerary Preview
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setStep("pricing")}>← Back to Pricing</Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -594,6 +657,21 @@ export default function CruiseSearch() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Initial search prompt */}
+        {step === "search" && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Ship className="h-16 w-16 text-muted-foreground/30 mb-4" />
+            <h2 className="text-lg font-semibold text-muted-foreground">Search Cruise Itineraries</h2>
+            <p className="text-sm text-muted-foreground/70 max-w-md mt-1">
+              Select a cruise line and date range above, then click Filter to browse available sailings from 16+ operators.
+            </p>
+            <Button onClick={handleSearch} className="mt-6" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+              Search All Cruises
+            </Button>
+          </div>
         )}
       </div>
     </DashboardLayout>
