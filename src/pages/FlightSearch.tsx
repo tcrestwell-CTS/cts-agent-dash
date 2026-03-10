@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plane, Search, Clock, ArrowRight, Users, Loader2 } from "lucide-react";
-import { useFlightSearch, FlightOffer } from "@/hooks/useFlightSearch";
+import { Plane, Search, Clock, ArrowRight, Users, Loader2, CreditCard } from "lucide-react";
+import { useFlightSearch, FlightOffer, OrderPassenger } from "@/hooks/useFlightSearch";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
+import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
 import { format, parseISO } from "date-fns";
 
 function formatDuration(iso: string) {
@@ -21,16 +22,23 @@ function formatDuration(iso: string) {
 }
 
 export default function FlightSearch() {
-  const { offers, loading, searchFlights } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, createOrder } = useFlightSearch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [departDate, setDepartDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [cabinClass, setCabinClass] = useState("economy");
   const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
+  const [childAges, setChildAges] = useState<number[]>([]);
+  const [infants, setInfants] = useState(0);
   const [tripType, setTripType] = useState<"roundtrip" | "oneway">("roundtrip");
   const [selectedOffer, setSelectedOffer] = useState<FlightOffer | null>(null);
+  const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
+
+  const addChild = () => setChildAges((prev) => [...prev, 10]);
+  const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
+  const updateChildAge = (idx: number, age: number) =>
+    setChildAges((prev) => prev.map((a, i) => (i === idx ? age : a)));
 
   const handleSearch = () => {
     const slices = [
@@ -46,11 +54,49 @@ export default function FlightSearch() {
 
     const passengers = [
       ...Array(adults).fill({ type: "adult" as const }),
-      ...Array(children).fill({ type: "child" as const, age: 10 }),
+      ...childAges.map((age) => ({ type: "child" as const, age })),
+      ...Array(infants).fill({ type: "infant_without_seat" as const, age: 0 }),
     ];
 
     searchFlights({ slices, passengers, cabin_class: cabinClass });
   };
+
+  const handleBookOffer = async (offerId: string) => {
+    const freshOffer = await getOffer(offerId);
+    if (freshOffer) {
+      setCheckoutOffer(freshOffer);
+    }
+  };
+
+  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash") => {
+    if (!checkoutOffer) return;
+    await createOrder({
+      selected_offers: [checkoutOffer.id],
+      passengers,
+      payments: [{
+        type: paymentType,
+        currency: checkoutOffer.total_currency,
+        amount: checkoutOffer.total_amount,
+      }],
+    });
+    setCheckoutOffer(null);
+  };
+
+  // Show checkout if an offer is being booked
+  if (checkoutOffer) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto">
+          <FlightBookingCheckout
+            offer={checkoutOffer}
+            loading={bookingLoading}
+            onBack={() => setCheckoutOffer(null)}
+            onConfirm={handleConfirmBooking}
+          />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -62,7 +108,7 @@ export default function FlightSearch() {
             Flight Search
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Search and compare flights powered by Duffel
+            Search, compare, and book flights powered by Duffel
           </p>
         </div>
 
@@ -70,7 +116,6 @@ export default function FlightSearch() {
         <Card>
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Trip Type */}
               <div className="space-y-2">
                 <Label>Trip Type</Label>
                 <Select value={tripType} onValueChange={(v: "roundtrip" | "oneway") => setTripType(v)}>
@@ -82,7 +127,6 @@ export default function FlightSearch() {
                 </Select>
               </div>
 
-              {/* Cabin Class */}
               <div className="space-y-2">
                 <Label>Cabin Class</Label>
                 <Select value={cabinClass} onValueChange={setCabinClass}>
@@ -96,7 +140,6 @@ export default function FlightSearch() {
                 </Select>
               </div>
 
-              {/* Adults */}
               <div className="space-y-2">
                 <Label>Adults</Label>
                 <Select value={String(adults)} onValueChange={(v) => setAdults(Number(v))}>
@@ -109,13 +152,12 @@ export default function FlightSearch() {
                 </Select>
               </div>
 
-              {/* Children */}
               <div className="space-y-2">
-                <Label>Children</Label>
-                <Select value={String(children)} onValueChange={(v) => setChildren(Number(v))}>
+                <Label>Infants (lap)</Label>
+                <Select value={String(infants)} onValueChange={(v) => setInfants(Number(v))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[0, 1, 2, 3, 4].map((n) => (
+                    {[0, 1, 2, 3].map((n) => (
                       <SelectItem key={n} value={String(n)}>{n}</SelectItem>
                     ))}
                   </SelectContent>
@@ -123,8 +165,37 @@ export default function FlightSearch() {
               </div>
             </div>
 
+            {/* Children with individual ages */}
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Children (2-17)</Label>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={addChild}>
+                  + Add Child
+                </Button>
+              </div>
+              {childAges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {childAges.map((age, idx) => (
+                    <div key={idx} className="flex items-center gap-1 border rounded-md px-2 py-1">
+                      <span className="text-xs text-muted-foreground">Age:</span>
+                      <Select value={String(age)} onValueChange={(v) => updateChildAge(idx, Number(v))}>
+                        <SelectTrigger className="h-6 w-14 text-xs border-0 p-0"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 16 }, (_, i) => i + 2).map(a => (
+                            <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => removeChild(idx)}>
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-              {/* Origin */}
               <div className="space-y-2">
                 <Label>From (IATA Code)</Label>
                 <Input
@@ -136,7 +207,6 @@ export default function FlightSearch() {
                 />
               </div>
 
-              {/* Destination */}
               <div className="space-y-2">
                 <Label>To (IATA Code)</Label>
                 <Input
@@ -148,13 +218,11 @@ export default function FlightSearch() {
                 />
               </div>
 
-              {/* Depart Date */}
               <div className="space-y-2">
                 <Label>Departure Date</Label>
                 <Input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} />
               </div>
 
-              {/* Return Date */}
               {tripType === "roundtrip" && (
                 <div className="space-y-2">
                   <Label>Return Date</Label>
@@ -184,22 +252,31 @@ export default function FlightSearch() {
                 {offers.length} flight{offers.length !== 1 ? "s" : ""} found
               </h2>
               {selectedOffer && (
-                <AddToTripSelector
-                  label="Add to Trip"
-                  items={selectedOffer.slices.map((slice, idx) => ({
-                    day_number: idx + 1,
-                    title: `${slice.segments[0]?.operating_carrier?.name || "Flight"} ${slice.segments[0]?.operating_carrier_flight_number || ""}: ${slice.origin.iata_code} → ${slice.destination.iata_code}`,
-                    description: `${format(parseISO(slice.segments[0].departing_at), "MMM d, HH:mm")} – ${format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm")} • ${formatDuration(slice.duration)}${slice.segments.length > 1 ? ` • ${slice.segments.length - 1} stop${slice.segments.length > 2 ? "s" : ""}` : " • Direct"}`,
-                    category: "flight",
-                    location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
-                    start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
-                    end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
-                    flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
-                    departure_city_code: slice.origin.iata_code,
-                    arrival_city_code: slice.destination.iata_code,
-                    notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
-                  }))}
-                />
+                <div className="flex gap-2">
+                  <AddToTripSelector
+                    label="Add to Trip"
+                    items={selectedOffer.slices.map((slice, idx) => ({
+                      day_number: idx + 1,
+                      title: `${slice.segments[0]?.operating_carrier?.name || "Flight"} ${slice.segments[0]?.operating_carrier_flight_number || ""}: ${slice.origin.iata_code} → ${slice.destination.iata_code}`,
+                      description: `${format(parseISO(slice.segments[0].departing_at), "MMM d, HH:mm")} – ${format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm")} • ${formatDuration(slice.duration)}${slice.segments.length > 1 ? ` • ${slice.segments.length - 1} stop${slice.segments.length > 2 ? "s" : ""}` : " • Direct"}`,
+                      category: "flight",
+                      location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
+                      start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
+                      end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
+                      flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
+                      departure_city_code: slice.origin.iata_code,
+                      arrival_city_code: slice.destination.iata_code,
+                      notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
+                    }))}
+                  />
+                  <Button
+                    onClick={() => handleBookOffer(selectedOffer.id)}
+                    className="gap-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Book This Flight
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -247,13 +324,11 @@ function OfferCard({
     >
       <CardContent className="py-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Slices */}
           <div className="flex-1 space-y-3">
             {offer.slices.map((slice, idx) => (
               <div key={slice.id}>
                 {idx > 0 && <Separator className="my-2" />}
                 <div className="flex items-center gap-4 flex-wrap">
-                  {/* Airline logo */}
                   <div className="flex items-center gap-2 min-w-[120px]">
                     {slice.segments[0]?.operating_carrier?.logo_symbol_url ? (
                       <img
@@ -269,7 +344,6 @@ function OfferCard({
                     </span>
                   </div>
 
-                  {/* Times */}
                   <div className="flex items-center gap-3">
                     <div className="text-center">
                       <p className="font-semibold text-foreground">
@@ -295,7 +369,7 @@ function OfferCard({
                         </Badge>
                       )}
                       {slice.segments.length === 1 && (
-                        <span className="text-[10px] text-success font-medium">Direct</span>
+                        <span className="text-[10px] text-green-600 font-medium">Direct</span>
                       )}
                     </div>
 
@@ -316,7 +390,6 @@ function OfferCard({
             ))}
           </div>
 
-          {/* Price & Passengers */}
           <div className="flex flex-col items-end gap-1 min-w-[120px]">
             <p className="text-2xl font-bold text-foreground">
               ${parseFloat(offer.total_amount).toLocaleString(undefined, {
