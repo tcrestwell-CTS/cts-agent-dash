@@ -18,11 +18,15 @@ export interface CommissionReportItem {
   booking: {
     id: string;
     confirmation_number: string;
+    booking_reference?: string;
+    destination?: string;
     total_price: number;
+    total_amount?: number;
     gross_sales: number;
     commission_revenue: number;
     supplier_id: string | null;
     trip_id: string | null;
+    client?: { id: string; name: string } | null;
     supplier: { id: string; name: string } | null;
     trip: { id: string; status: string; destination: string | null; depart_date: string | null } | null;
   } | null;
