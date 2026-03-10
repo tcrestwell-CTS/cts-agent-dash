@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
 import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput";
+import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { format } from "date-fns";
 
 function getStars(categoryName: string): number {
@@ -348,15 +349,25 @@ export default function HotelSearch() {
                                     </p>
                                     <p className="text-[10px] text-muted-foreground">net rate</p>
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSelectRate(hotel, rate, room.name);
-                                    }}
-                                  >
-                                    Select
-                                  </Button>
+                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <AddToTripSelector
+                                      label="Add"
+                                      items={[{
+                                        day_number: 1,
+                                        title: `${hotel.name} — ${room.name}`,
+                                        description: `${rate.boardName} • ${rate.rooms} room${rate.rooms > 1 ? "s" : ""} • ${rate.adults} adult${rate.adults > 1 ? "s" : ""}${rate.children > 0 ? ` • ${rate.children} child${rate.children > 1 ? "ren" : ""}` : ""}`,
+                                        category: "hotel",
+                                        location: `${hotel.destinationName}, ${hotel.zoneName}`,
+                                        notes: `Net rate: ${hotel.currency} ${rate.net}${rate.cancellationPolicies?.[0] ? ` • Cancel by ${format(new Date(rate.cancellationPolicies[0].from), "MMM d, yyyy")}` : ""}`,
+                                      }]}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSelectRate(hotel, rate, room.name)}
+                                    >
+                                      Book
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             ))}
