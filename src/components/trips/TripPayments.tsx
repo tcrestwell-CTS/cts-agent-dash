@@ -281,9 +281,9 @@ export function TripPayments({
   const getPaymentLabel = (payment: TripPayment) => {
     if (payment.bookings) {
       const supplier = payment.bookings.suppliers?.name || "";
-      const destination = payment.bookings.destination || "";
-      const tripName = payment.bookings.trip_name || "";
-      return tripName || `${supplier} - ${destination}`.trim() || payment.bookings.booking_reference;
+      const destination = (payment.bookings as any).destination || "";
+      const tripName = (payment.bookings as any).trip_name || "";
+      return tripName || `${supplier} - ${destination}`.trim() || payment.bookings.confirmation_number;
     }
     return "Trip Payment";
   };

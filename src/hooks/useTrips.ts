@@ -48,22 +48,26 @@ export interface Trip {
 
 export interface TripBooking {
   id: string;
-  booking_reference: string;
-  destination: string;
-  depart_date: string;
-  return_date: string;
-  travelers: number;
+  confirmation_number: string;
   status: string;
-  trip_name: string | null;
+  total_price: number;
   gross_sales: number;
   commissionable_amount: number;
   commission_revenue: number;
+  commission_estimate: number;
   supplier_id: string | null;
   suppliers?: {
     id: string;
     name: string;
     supplier_type: string;
   } | null;
+  // Backward-compat aliases (optional)
+  booking_reference?: string;
+  destination?: string;
+  depart_date?: string;
+  return_date?: string;
+  travelers?: number;
+  trip_name?: string | null;
 }
 
 export interface CreateTripData {
@@ -389,16 +393,13 @@ export function useTrip(tripId: string | undefined) {
         .from("bookings")
         .select(`
           id,
-          booking_reference,
-          destination,
-          depart_date,
-          return_date,
-          travelers,
+          confirmation_number,
           status,
-          trip_name,
+          total_price,
           gross_sales,
           commissionable_amount,
           commission_revenue,
+          commission_estimate,
           supplier_id,
           suppliers (
             id,
@@ -407,7 +408,7 @@ export function useTrip(tripId: string | undefined) {
           )
         `)
         .eq("trip_id", tripId)
-        .order("depart_date", { ascending: true });
+        .order("created_at", { ascending: true });
 
       if (bookingsError) throw bookingsError;
 
