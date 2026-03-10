@@ -22,7 +22,7 @@ function formatDuration(iso: string) {
 }
 
 export default function FlightSearch() {
-  const { offers, loading, bookingLoading, searchFlights, getOffer, createOrder } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [departDate, setDepartDate] = useState("");
@@ -34,6 +34,8 @@ export default function FlightSearch() {
   const [tripType, setTripType] = useState<"roundtrip" | "oneway">("roundtrip");
   const [selectedOffer, setSelectedOffer] = useState<FlightOffer | null>(null);
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
+  const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
+  const [checkoutBaggage, setCheckoutBaggage] = useState<AvailableService[]>([]);
 
   const addChild = () => setChildAges((prev) => [...prev, 10]);
   const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
