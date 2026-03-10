@@ -41,6 +41,61 @@ export interface FlightOffer {
     }>;
   }>;
   passengers: Array<{ id: string; type: string }>;
+  available_services?: AvailableService[];
+}
+
+// ── Ancillary types ──
+
+export interface AvailableService {
+  id: string;
+  type: "baggage" | "seat";
+  total_amount: string;
+  total_currency: string;
+  maximum_quantity: number;
+  passenger_ids: string[];
+  segment_ids: string[];
+  metadata?: {
+    maximum_weight_kg?: number;
+    maximum_length_cm?: number;
+    maximum_height_cm?: number;
+    maximum_depth_cm?: number;
+    type?: string;
+  };
+}
+
+export interface SeatMapCabin {
+  aisles: number;
+  cabin_class: string;
+  deck: number;
+  rows: SeatMapRow[];
+}
+
+export interface SeatMapRow {
+  sections: SeatMapSection[];
+}
+
+export interface SeatMapSection {
+  elements: SeatMapElement[];
+}
+
+export interface SeatMapElement {
+  type: "seat" | "exit_row" | "lavatory" | "galley" | "closet" | "stairs" | "bassinet";
+  designator?: string;
+  name?: string;
+  disclosures?: string[];
+  available_services?: Array<{
+    id: string;
+    passenger_id: string;
+    total_amount: string;
+    total_currency: string;
+  }>;
+}
+
+export interface SeatMap {
+  cabins: SeatMapCabin[];
+  id: string;
+  segment_id: string;
+  slice_id: string;
 }
 
 export interface OrderPassenger {
@@ -55,6 +110,11 @@ export interface OrderPassenger {
   infant_passenger_id?: string;
 }
 
+export interface ServiceSelection {
+  id: string;
+  quantity: number;
+}
+
 export interface CreateOrderParams {
   selected_offers: string[];
   passengers: OrderPassenger[];
@@ -63,6 +123,7 @@ export interface CreateOrderParams {
     currency: string;
     amount: string;
   }>;
+  services?: ServiceSelection[];
 }
 
 export function useFlightSearch() {
@@ -93,10 +154,10 @@ export function useFlightSearch() {
     }
   };
 
-  const getOffer = async (offerId: string): Promise<FlightOffer | null> => {
+  const getOffer = async (offerId: string, returnAvailableServices = false): Promise<FlightOffer | null> => {
     try {
       const { data, error } = await supabase.functions.invoke("duffel-flights", {
-        body: { action: "get_offer", offer_id: offerId },
+        body: { action: "get_offer", offer_id: offerId, return_available_services: returnAvailableServices },
       });
       if (error) throw error;
       return data?.data ?? null;
@@ -104,6 +165,20 @@ export function useFlightSearch() {
       console.error("Get offer error:", err);
       toast.error(err.message || "Failed to retrieve offer details");
       return null;
+    }
+  };
+
+  const getSeatMaps = async (offerId: string): Promise<SeatMap[]> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "get_seat_maps", offer_id: offerId },
+      });
+      if (error) throw error;
+      return data?.data ?? [];
+    } catch (err: any) {
+      console.error("Get seat maps error:", err);
+      toast.error(err.message || "Failed to retrieve seat maps");
+      return [];
     }
   };
 
@@ -128,5 +203,5 @@ export function useFlightSearch() {
     }
   };
 
-  return { offers, loading, bookingLoading, searchFlights, getOffer, createOrder, offerRequestId };
+  return { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, offerRequestId };
 }
