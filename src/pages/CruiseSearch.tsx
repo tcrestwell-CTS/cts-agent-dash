@@ -125,6 +125,10 @@ export default function CruiseSearch() {
   };
 
   const handleSearch = async () => {
+    if (dateFrom && dateTo && dateTo < dateFrom) {
+      toast.error("'Date To' cannot be before 'Date From'.");
+      return;
+    }
     setLoading(true);
     setStep("sailings");
     try {
