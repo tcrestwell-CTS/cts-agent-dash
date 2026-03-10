@@ -37,6 +37,26 @@ export default function FlightSearch() {
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
   const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
   const [checkoutBaggage, setCheckoutBaggage] = useState<AvailableService[]>([]);
+  const [stopFilters, setStopFilters] = useState<Set<number>>(new Set([0, 1, 2]));
+
+  const toggleStopFilter = (stops: number) => {
+    setStopFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(stops)) next.delete(stops);
+      else next.add(stops);
+      return next;
+    });
+  };
+
+  const getOfferMaxStops = (offer: FlightOffer) =>
+    Math.max(...offer.slices.map((s) => s.segments.length - 1));
+
+  const filteredOffers = offers.filter((offer) => {
+    const maxStops = getOfferMaxStops(offer);
+    if (stopFilters.size === 0) return true;
+    if (maxStops >= 2) return stopFilters.has(2);
+    return stopFilters.has(maxStops);
+  });
 
   const addChild = () => setChildAges((prev) => [...prev, 10]);
   const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
