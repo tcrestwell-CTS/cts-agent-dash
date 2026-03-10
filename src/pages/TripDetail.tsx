@@ -692,18 +692,6 @@ const TripDetail = () => {
           </div>
         </div>
       </div>
-
-      {/* Flight Search Dialog */}
-      <FlightSearchDialog
-        open={flightSearchOpen}
-        onOpenChange={setFlightSearchOpen}
-        tripId={trip.id}
-        tripName={trip.trip_name}
-        destination={trip.destination}
-        departDate={trip.depart_date}
-        returnDate={trip.return_date}
-        onAddFlightToItinerary={addItineraryItem}
-      />
     </DashboardLayout>
   );
 };
