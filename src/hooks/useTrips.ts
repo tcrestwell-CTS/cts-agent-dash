@@ -198,7 +198,7 @@ export function useTrips() {
           trip_type: data.trip_type || "regular",
           notes: data.notes || null,
           trip_page_url: data.trip_page_url || null,
-           status: "inbound",
+           status: "lead",
            parent_trip_id: data.parent_trip_id || null,
         } as any)
         .select(`

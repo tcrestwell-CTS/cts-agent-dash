@@ -107,9 +107,9 @@ const Index = () => {
     const activeBookings = (bookings || []).filter((b) => !isBookingArchived(b));
 
     // TODAY counters
-    // Follow Ups: proposals sent > 3 days ago
+    // Follow Ups: quotes sent > 3 days ago
     const followUps = (trips || []).filter((t) => {
-      if (t.status !== "proposal_sent" || !t.proposal_sent_at) return false;
+      if (t.status !== "quoted" || !t.proposal_sent_at) return false;
       return differenceInDays(now, parseISO(t.proposal_sent_at)) > 3;
     }).length;
 
@@ -128,7 +128,7 @@ const Index = () => {
     }).length;
 
     // SALES PIPELINE
-    const quotesSent = (trips || []).filter((t) => t.status === "proposal_sent").length;
+    const quotesSent = (trips || []).filter((t) => t.status === "quoted").length;
     const pendingBookingsCount = activeBookings.filter((b) => b.status === "pending").length;
     const confirmedTrips = (trips || []).filter((t) => t.status === "booked" || t.status === "confirmed").length;
 
