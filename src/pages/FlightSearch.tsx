@@ -32,7 +32,11 @@ export default function FlightSearch() {
   const [adults, setAdults] = useState(1);
   const [childAges, setChildAges] = useState<number[]>([]);
   const [infants, setInfants] = useState(0);
-  const [tripType, setTripType] = useState<"roundtrip" | "oneway">("roundtrip");
+  const [tripType, setTripType] = useState<"roundtrip" | "oneway" | "multicity">("roundtrip");
+  const [multiCityLegs, setMultiCityLegs] = useState([
+    { origin: "", destination: "", date: "" },
+    { origin: "", destination: "", date: "" },
+  ]);
   const [selectedOffer, setSelectedOffer] = useState<FlightOffer | null>(null);
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
   const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
