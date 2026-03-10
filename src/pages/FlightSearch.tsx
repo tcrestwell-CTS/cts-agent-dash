@@ -504,6 +504,7 @@ export default function FlightSearch() {
                         </div>
                         <div className="flex gap-2">
                           <AddToTripSelector
+                            defaultTripId={tripIdFromQuery}
                             label="Add to Trip"
                             items={selectedOffer.slices.map((slice, idx) => ({
                               day_number: idx + 1,
