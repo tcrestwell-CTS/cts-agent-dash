@@ -1023,6 +1023,7 @@ export type Database = {
           address_line_2: string | null
           address_state: string | null
           address_zip_code: string | null
+          advisor_id: string | null
           anniversary: string | null
           birthday: string | null
           created_at: string
@@ -1063,6 +1064,7 @@ export type Database = {
           address_line_2?: string | null
           address_state?: string | null
           address_zip_code?: string | null
+          advisor_id?: string | null
           anniversary?: string | null
           birthday?: string | null
           created_at?: string
@@ -1103,6 +1105,7 @@ export type Database = {
           address_line_2?: string | null
           address_state?: string | null
           address_zip_code?: string | null
+          advisor_id?: string | null
           anniversary?: string | null
           birthday?: string | null
           created_at?: string
