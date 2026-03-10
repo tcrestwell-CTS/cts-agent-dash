@@ -178,7 +178,7 @@ const Index = () => {
 
   // Activity item description
   const getActivityLabel = (item: any) => {
-    const clientName = item.clients?.name || "Client";
+    const clientName = item.trips?.clients?.name || "Client";
     switch (item.status) {
       case "confirmed":
         return { icon: CheckCircle2, text: `Booking Confirmed → ${clientName}`, color: "text-success" };
