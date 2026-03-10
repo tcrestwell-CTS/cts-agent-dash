@@ -286,7 +286,7 @@ export default function FlightSearch() {
                     </div>
                     <div className="flex-1 min-w-[120px] space-y-1">
                       <Label className="text-xs text-muted-foreground">To</Label>
-                      <Input placeholder="e.g. LAX" value={leg.destination} onChange={(e) => updateMultiCityLeg(idx, "destination", e.target.value)} maxLength={3} className="uppercase h-10" />
+                      <IataCodeInput placeholder="e.g. LAX" value={leg.destination} onChange={(code) => updateMultiCityLeg(idx, "destination", code)} className="h-10" />
                     </div>
                     <div className="flex-1 min-w-[140px] space-y-1">
                       <Label className="text-xs text-muted-foreground">Date</Label>
