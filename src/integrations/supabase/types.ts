@@ -41,6 +41,99 @@ export type Database = {
         }
         Relationships: []
       }
+      activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agencies: {
+        Row: {
+          accent_color: string | null
+          address: string | null
+          asta_number: string | null
+          clia_number: string | null
+          created_at: string
+          email: string | null
+          iata_number: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          owner_user_id: string
+          phone: string | null
+          primary_color: string | null
+          tagline: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          address?: string | null
+          asta_number?: string | null
+          clia_number?: string | null
+          created_at?: string
+          email?: string | null
+          iata_number?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          owner_user_id: string
+          phone?: string | null
+          primary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          address?: string | null
+          asta_number?: string | null
+          clia_number?: string | null
+          created_at?: string
+          email?: string | null
+          iata_number?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          owner_user_id?: string
+          phone?: string | null
+          primary_color?: string | null
+          tagline?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       agency_settings: {
         Row: {
           approval_threshold: number
@@ -150,6 +243,13 @@ export type Database = {
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_notifications_trip_payment_id_fkey"
+            columns: ["trip_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
             referencedColumns: ["id"]
           },
           {
@@ -1925,6 +2025,78 @@ export type Database = {
         }
         Relationships: []
       }
+      quotes: {
+        Row: {
+          accepted_at: string | null
+          client_id: string | null
+          created_at: string
+          declined_at: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          quote_number: string
+          sent_at: string | null
+          status: string
+          title: string
+          total_amount: number
+          trip_id: string | null
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          client_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          quote_number: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          total_amount?: number
+          trip_id?: string | null
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          client_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          quote_number?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          total_amount?: number
+          trip_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signup_verification_codes: {
         Row: {
           code: string
@@ -2861,7 +3033,143 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          acceptance_signature: string | null
+          amount: number | null
+          booking_id: string | null
+          created_at: string | null
+          details: string | null
+          due_date: string | null
+          id: string | null
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_method_choice: string | null
+          payment_type: string | null
+          status: string | null
+          stripe_payment_url: string | null
+          stripe_receipt_url: string | null
+          stripe_session_id: string | null
+          terms_accepted_at: string | null
+          trip_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          virtual_card_id: string | null
+          virtual_card_status: string | null
+        }
+        Insert: {
+          acceptance_signature?: string | null
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string | null
+          details?: string | null
+          due_date?: string | null
+          id?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_method_choice?: string | null
+          payment_type?: string | null
+          status?: string | null
+          stripe_payment_url?: string | null
+          stripe_receipt_url?: string | null
+          stripe_session_id?: string | null
+          terms_accepted_at?: string | null
+          trip_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          virtual_card_id?: string | null
+          virtual_card_status?: string | null
+        }
+        Update: {
+          acceptance_signature?: string | null
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string | null
+          details?: string | null
+          due_date?: string | null
+          id?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_method_choice?: string | null
+          payment_type?: string | null
+          status?: string | null
+          stripe_payment_url?: string | null
+          stripe_receipt_url?: string | null
+          stripe_session_id?: string | null
+          terms_accepted_at?: string | null
+          trip_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          virtual_card_id?: string | null
+          virtual_card_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_payments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          due_at: string | null
+          id: string | null
+          status: string | null
+          task_type: string | null
+          title: string | null
+          trip_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string | null
+          status?: string | null
+          task_type?: string | null
+          title?: string | null
+          trip_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string | null
+          status?: string | null
+          task_type?: string | null
+          title?: string | null
+          trip_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_tasks_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invitation: {
