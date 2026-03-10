@@ -165,134 +165,146 @@ export default function FlightSearch() {
           </p>
         </div>
 
-        {/* Search Form */}
+        {/* Search Form – Google Flights style */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Trip Type</Label>
-                <Select value={tripType} onValueChange={(v: "roundtrip" | "oneway") => setTripType(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="roundtrip">Round Trip</SelectItem>
-                    <SelectItem value="oneway">One Way</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <CardContent className="pt-6 space-y-4">
+            {/* Row 1: Trip type, Passengers, Cabin class */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <Select value={tripType} onValueChange={(v: "roundtrip" | "oneway") => setTripType(v)}>
+                <SelectTrigger className="w-[140px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="roundtrip">Round trip</SelectItem>
+                  <SelectItem value="oneway">One way</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <div className="space-y-2">
-                <Label>Cabin Class</Label>
-                <Select value={cabinClass} onValueChange={setCabinClass}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="economy">Economy</SelectItem>
-                    <SelectItem value="premium_economy">Premium Economy</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="first">First</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Adults</Label>
-                <Select value={String(adults)} onValueChange={(v) => setAdults(Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Infants (lap)</Label>
-                <Select value={String(infants)} onValueChange={(v) => setInfants(Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[0, 1, 2, 3].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Children with individual ages */}
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Children (2-17)</Label>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={addChild}>
-                  + Add Child
-                </Button>
-              </div>
-              {childAges.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {childAges.map((age, idx) => (
-                    <div key={idx} className="flex items-center gap-1 border rounded-md px-2 py-1">
-                      <span className="text-xs text-muted-foreground">Age:</span>
-                      <Select value={String(age)} onValueChange={(v) => updateChildAge(idx, Number(v))}>
-                        <SelectTrigger className="h-6 w-14 text-xs border-0 p-0"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 16 }, (_, i) => i + 2).map(a => (
-                            <SelectItem key={a} value={String(a)}>{a}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => removeChild(idx)}>
-                        ×
-                      </Button>
-                    </div>
+              <Select value={String(adults)} onValueChange={(v) => setAdults(Number(v))}>
+                <SelectTrigger className="w-[130px] h-9 text-sm">
+                  <Users className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="1 passenger" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} passenger{n > 1 ? "s" : ""}</SelectItem>
                   ))}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
+
+              <Select value={cabinClass} onValueChange={setCabinClass}>
+                <SelectTrigger className="w-[160px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="economy">Economy</SelectItem>
+                  <SelectItem value="premium_economy">Premium Economy</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="first">First</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Infants */}
+              <Select value={String(infants)} onValueChange={(v) => setInfants(Number(v))}>
+                <SelectTrigger className="w-[120px] h-9 text-sm">
+                  <SelectValue placeholder="Infants" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0, 1, 2, 3].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} infant{n !== 1 ? "s" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button variant="outline" size="sm" className="h-9 text-xs" onClick={addChild}>
+                + Child
+              </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-              <div className="space-y-2">
-                <Label>From (IATA Code)</Label>
+            {/* Children ages inline */}
+            {childAges.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {childAges.map((age, idx) => (
+                  <div key={idx} className="flex items-center gap-1 border rounded-md px-2 py-1 bg-muted/50">
+                    <span className="text-xs text-muted-foreground">Child {idx + 1} age:</span>
+                    <Select value={String(age)} onValueChange={(v) => updateChildAge(idx, Number(v))}>
+                      <SelectTrigger className="h-6 w-14 text-xs border-0 p-0"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 16 }, (_, i) => i + 2).map(a => (
+                          <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeChild(idx)}>
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Row 2: Origin, Destination, Dates, Search */}
+            <div className="flex items-end gap-2 flex-wrap">
+              <div className="flex-1 min-w-[140px] space-y-1">
+                <Label className="text-xs text-muted-foreground">Where from?</Label>
                 <Input
                   placeholder="e.g. JFK"
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
                   maxLength={3}
-                  className="uppercase"
+                  className="uppercase h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>To (IATA Code)</Label>
+              <div className="flex-1 min-w-[140px] space-y-1">
+                <Label className="text-xs text-muted-foreground">Where to?</Label>
                 <Input
                   placeholder="e.g. LAX"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   maxLength={3}
-                  className="uppercase"
+                  className="uppercase h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Departure Date</Label>
-                <Input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} />
+              <div className="flex-1 min-w-[140px] space-y-1">
+                <Label className="text-xs text-muted-foreground">Departure</Label>
+                <Input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} className="h-10" />
               </div>
 
               {tripType === "roundtrip" && (
-                <div className="space-y-2">
-                  <Label>Return Date</Label>
-                  <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
+                <div className="flex-1 min-w-[140px] space-y-1">
+                  <Label className="text-xs text-muted-foreground">Return</Label>
+                  <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} className="h-10" />
                 </div>
               )}
-            </div>
 
-            <div className="mt-6 flex justify-end">
               <Button
                 onClick={handleSearch}
                 disabled={loading || !origin || !destination || !departDate || (tripType === "roundtrip" && !returnDate)}
-                className="gap-2"
+                size="lg"
+                className="gap-2 h-10 px-6 rounded-full"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {loading ? "Searching..." : "Search Flights"}
+                {loading ? "Searching..." : "Search"}
               </Button>
+            </div>
+
+            {/* Row 3: Stop filters */}
+            <div className="flex items-center gap-5 pt-1 flex-wrap">
+              {[
+                { value: 0, label: "Non-stop" },
+                { value: 1, label: "1 stop" },
+                { value: 2, label: "2+ stops" },
+              ].map(({ value, label }) => (
+                <label key={value} className="flex items-center gap-1.5 cursor-pointer">
+                  <Checkbox
+                    checked={stopFilters.has(value)}
+                    onCheckedChange={() => toggleStopFilter(value)}
+                  />
+                  <span className="text-sm text-foreground">{label}</span>
+                </label>
+              ))}
             </div>
           </CardContent>
         </Card>
