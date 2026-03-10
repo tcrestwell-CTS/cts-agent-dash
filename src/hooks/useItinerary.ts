@@ -249,7 +249,7 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
-  return { items, loading, generating, fetchItems, addItem, updateItem, deleteItem, generateWithAI, clearAll, importFromBookings };
+  return { items, loading, generating, fetchItems, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings };
 }
 
 function mapSupplierType(type?: string): string {
