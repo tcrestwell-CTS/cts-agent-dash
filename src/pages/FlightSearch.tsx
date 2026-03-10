@@ -316,7 +316,7 @@ export default function FlightSearch() {
               <div className="flex items-end gap-2 flex-wrap">
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Where from?</Label>
-                  <Input placeholder="e.g. JFK" value={origin} onChange={(e) => setOrigin(e.target.value)} maxLength={3} className="uppercase h-10" />
+                  <IataCodeInput placeholder="e.g. JFK" value={origin} onChange={setOrigin} className="h-10" />
                 </div>
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Where to?</Label>
