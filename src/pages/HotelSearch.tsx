@@ -155,12 +155,11 @@ export default function HotelSearch() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="space-y-2 lg:col-span-2">
-                <Label>Destination Code</Label>
-                <Input
-                  placeholder="e.g. MAD, PMI, LON"
+                <Label>Destination</Label>
+                <HotelDestinationInput
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value.slice(0, 3))}
-                  maxLength={3}
+                  onChange={setDestination}
+                  placeholder="Search city or code..."
                 />
               </div>
               <div className="space-y-2">
