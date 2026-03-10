@@ -45,10 +45,12 @@ export function FlightSearchDialog({
   destination, departDate, returnDate,
   onAddFlightToItinerary,
 }: Props) {
-  const { offers, loading, bookingLoading, searchFlights, getOffer, createOrder } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
   const [step, setStep] = useState<Step>("search");
   const [selectedOffers, setSelectedOffers] = useState<Set<string>>(new Set());
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
+  const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
+  const [checkoutBaggage, setCheckoutBaggage] = useState<AvailableService[]>([]);
 
   // Search form
   const [origin, setOrigin] = useState("");
