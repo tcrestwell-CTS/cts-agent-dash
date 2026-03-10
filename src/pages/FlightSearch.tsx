@@ -342,7 +342,6 @@ export default function FlightSearch() {
                 </Button>
               </div>
             )}
-            </div>
 
             {/* Row 3: Stop filters */}
             <div className="flex items-center gap-5 pt-1 flex-wrap">
