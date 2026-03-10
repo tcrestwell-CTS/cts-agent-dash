@@ -43,9 +43,32 @@ export interface FlightOffer {
   passengers: Array<{ id: string; type: string }>;
 }
 
+export interface OrderPassenger {
+  id: string;
+  given_name: string;
+  family_name: string;
+  born_on: string;
+  gender: "m" | "f";
+  title: string;
+  email: string;
+  phone_number: string;
+  infant_passenger_id?: string;
+}
+
+export interface CreateOrderParams {
+  selected_offers: string[];
+  passengers: OrderPassenger[];
+  payments: Array<{
+    type: "balance" | "arc_bsp_cash";
+    currency: string;
+    amount: string;
+  }>;
+}
+
 export function useFlightSearch() {
   const [offers, setOffers] = useState<FlightOffer[]>([]);
   const [loading, setLoading] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [offerRequestId, setOfferRequestId] = useState<string | null>(null);
 
   const searchFlights = async (params: FlightSearchParams) => {
@@ -70,13 +93,40 @@ export function useFlightSearch() {
     }
   };
 
-  const getOffer = async (offerId: string) => {
-    const { data, error } = await supabase.functions.invoke("duffel-flights", {
-      body: { action: "get_offer", offer_id: offerId },
-    });
-    if (error) throw error;
-    return data?.data;
+  const getOffer = async (offerId: string): Promise<FlightOffer | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "get_offer", offer_id: offerId },
+      });
+      if (error) throw error;
+      return data?.data ?? null;
+    } catch (err: any) {
+      console.error("Get offer error:", err);
+      toast.error(err.message || "Failed to retrieve offer details");
+      return null;
+    }
   };
 
-  return { offers, loading, searchFlights, getOffer, offerRequestId };
+  const createOrder = async (params: CreateOrderParams) => {
+    setBookingLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "create_order", ...params },
+      });
+      if (error) throw error;
+      const order = data?.data;
+      if (order?.booking_reference) {
+        toast.success(`Booking confirmed! Reference: ${order.booking_reference}`);
+      }
+      return order;
+    } catch (err: any) {
+      console.error("Create order error:", err);
+      toast.error(err.message || "Failed to create booking");
+      return null;
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  return { offers, loading, bookingLoading, searchFlights, getOffer, createOrder, offerRequestId };
 }
