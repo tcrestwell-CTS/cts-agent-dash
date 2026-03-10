@@ -6,9 +6,10 @@ import { Link } from "react-router-dom";
 
 interface Booking {
   id: string;
-  booking_reference: string;
+  confirmation_number?: string;
+  booking_reference?: string;
   supplier_id?: string | null;
-  supplier_invoice_url?: string | null;
+  total_price?: number;
   total_amount?: number;
   status: string;
   suppliers?: { name: string } | null;

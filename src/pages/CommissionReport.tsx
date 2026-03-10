@@ -18,12 +18,11 @@ import { DateRange } from "react-day-picker";
 export default function CommissionReport() {
   const { data: reportData, isLoading: reportLoading } = useCommissionReport();
   const { suppliers, isLoading: suppliersLoading } = useSuppliers();
-  const { data: agents, isLoading: agentsLoading } = useAgentList();
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
 
   const canViewAll = isAdmin || isOfficeAdmin;
-  const loading = reportLoading || suppliersLoading || agentsLoading;
+  const loading = reportLoading || suppliersLoading;
 
   // Filter states
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
