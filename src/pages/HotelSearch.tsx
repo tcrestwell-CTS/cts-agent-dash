@@ -29,6 +29,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
+import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput";
 import { format } from "date-fns";
 
 function getStars(categoryName: string): number {
