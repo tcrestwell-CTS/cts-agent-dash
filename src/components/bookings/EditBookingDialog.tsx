@@ -91,10 +91,10 @@ export function EditBookingDialog({
 
           <div>
             <Label>Supplier</Label>
-            <SupplierManagement
-              selectedSupplierId={formData.supplier_id || undefined}
-              onSelect={(id) => setFormData({ ...formData, supplier_id: id || "" })}
-              variant="compact"
+            <Input
+              value={formData.supplier_id}
+              onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+              placeholder="Supplier ID (optional)"
             />
           </div>
 

@@ -61,13 +61,13 @@ export interface TripBooking {
     name: string;
     supplier_type: string;
   } | null;
-  // Backward-compat aliases
-  booking_reference: string;
-  destination: string;
-  depart_date: string;
-  return_date: string;
-  travelers: number;
-  trip_name: string | null;
+  // Backward-compat aliases (optional)
+  booking_reference?: string;
+  destination?: string;
+  depart_date?: string;
+  return_date?: string;
+  travelers?: number;
+  trip_name?: string | null;
 }
 
 export interface CreateTripData {
