@@ -193,6 +193,7 @@ export default function FlightSearch() {
                 {[
                   { value: "roundtrip" as const, label: "Round trip" },
                   { value: "oneway" as const, label: "One way" },
+                  { value: "multicity" as const, label: "Multi-city" },
                 ].map(({ value, label }) => (
                   <button
                     key={value}
