@@ -352,7 +352,7 @@ const TripDetail = () => {
             <ShieldCheck className="h-4 w-4 mr-2" />
             Insurance
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/flights?tripId=${tripId}`)}>
             <Plane className="h-4 w-4 mr-2" />
             Flights
           </Button>
