@@ -107,9 +107,9 @@ const Index = () => {
     const activeBookings = (bookings || []).filter((b) => !isBookingArchived(b));
 
     // TODAY counters
-    // Follow Ups: proposals sent > 3 days ago
+    // Follow Ups: quotes sent > 3 days ago
     const followUps = (trips || []).filter((t) => {
-      if (t.status !== "proposal_sent" || !t.proposal_sent_at) return false;
+      if (t.status !== "quoted" || !t.proposal_sent_at) return false;
       return differenceInDays(now, parseISO(t.proposal_sent_at)) > 3;
     }).length;
 
@@ -128,14 +128,14 @@ const Index = () => {
     }).length;
 
     // SALES PIPELINE
-    const quotesSent = (trips || []).filter((t) => t.status === "proposal_sent").length;
+    const quotesSent = (trips || []).filter((t) => t.status === "quoted").length;
     const pendingBookingsCount = activeBookings.filter((b) => b.status === "pending").length;
     const confirmedTrips = (trips || []).filter((t) => t.status === "booked" || t.status === "confirmed").length;
 
     // UPCOMING TRIPS
     const upcomingTrips = (trips || [])
       .filter((t) => {
-        if (!t.depart_date || t.status === "cancelled" || t.status === "archived") return false;
+        if (!t.depart_date || t.status === "cancelled" || t.status === "completed") return false;
         const d = new Date(t.depart_date);
         return isFuture(d) && isWithinInterval(d, { start: now, end: thirtyDays });
       })

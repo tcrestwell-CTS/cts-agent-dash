@@ -73,20 +73,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const statusColors: Record<string, string> = {
-  planning: "bg-blue-100 text-blue-700 border-blue-200",
-  proposal_sent: "bg-orange-100 text-orange-700 border-orange-200",
-  option_selected: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  deposit_authorized: "bg-violet-100 text-violet-700 border-violet-200",
-  deposit_paid: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  final_paid: "bg-green-100 text-green-800 border-green-300",
-  booked: "bg-green-100 text-green-700 border-green-200",
-  traveling: "bg-purple-100 text-purple-700 border-purple-200",
-  traveled: "bg-gray-100 text-gray-700 border-gray-200",
+  lead: "bg-amber-100 text-amber-700 border-amber-200",
+  quoted: "bg-orange-100 text-orange-700 border-orange-200",
+  booked: "bg-blue-100 text-blue-700 border-blue-200",
+  confirmed: "bg-green-100 text-green-700 border-green-200",
   completed: "bg-gray-100 text-gray-700 border-gray-200",
-  commission_pending: "bg-amber-100 text-amber-700 border-amber-200",
-  commission_received: "bg-green-100 text-green-800 border-green-300",
   cancelled: "bg-red-100 text-red-700 border-red-200",
-  archived: "bg-slate-100 text-slate-500 border-slate-200",
 };
 
 const TripDetail = () => {
