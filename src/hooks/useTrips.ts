@@ -386,16 +386,13 @@ export function useTrip(tripId: string | undefined) {
         .from("bookings")
         .select(`
           id,
-          booking_reference,
-          destination,
-          depart_date,
-          return_date,
-          travelers,
+          confirmation_number,
           status,
-          trip_name,
+          total_price,
           gross_sales,
           commissionable_amount,
           commission_revenue,
+          commission_estimate,
           supplier_id,
           suppliers (
             id,
@@ -404,7 +401,7 @@ export function useTrip(tripId: string | undefined) {
           )
         `)
         .eq("trip_id", tripId)
-        .order("depart_date", { ascending: true });
+        .order("created_at", { ascending: true });
 
       if (bookingsError) throw bookingsError;
 

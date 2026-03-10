@@ -57,22 +57,45 @@ export function useClientWithBookings() {
 
       if (clientsError) throw clientsError;
 
-      // Fetch booking stats for each client
-      const { data: bookings, error: bookingsError } = await supabase
-        .from("bookings")
-        .select("client_id, total_amount");
-
-      if (bookingsError) throw bookingsError;
-
-      // Calculate totals per client
-      const bookingStats = bookings?.reduce((acc, booking) => {
-        if (!acc[booking.client_id]) {
-          acc[booking.client_id] = { count: 0, total: 0 };
+      // Fetch booking stats via trips
+      const { data: trips, error: tripsError } = await supabase
+        .from("trips")
+        .select("id, client_id");
+      
+      if (tripsError) throw tripsError;
+      
+      const tripsByClient = (trips || []).reduce((acc: Record<string, string[]>, t: any) => {
+        if (t.client_id) {
+          if (!acc[t.client_id]) acc[t.client_id] = [];
+          acc[t.client_id].push(t.id);
         }
-        acc[booking.client_id].count += 1;
-        acc[booking.client_id].total += Number(booking.total_amount) || 0;
         return acc;
-      }, {} as Record<string, { count: number; total: number }>);
+      }, {});
+
+      const allTripIds = (trips || []).map((t: any) => t.id);
+      
+      let bookingStats: Record<string, { count: number; total: number }> = {};
+      
+      if (allTripIds.length > 0) {
+        const { data: bookings, error: bookingsError } = await supabase
+          .from("bookings")
+          .select("trip_id, total_price")
+          .in("trip_id", allTripIds);
+
+        if (bookingsError) throw bookingsError;
+
+        // Map bookings back to clients via trip_id
+        bookingStats = (bookings || []).reduce((acc: Record<string, { count: number; total: number }>, booking: any) => {
+          // Find which client owns this trip
+          const clientId = Object.keys(tripsByClient).find(cid => tripsByClient[cid].includes(booking.trip_id));
+          if (clientId) {
+            if (!acc[clientId]) acc[clientId] = { count: 0, total: 0 };
+            acc[clientId].count += 1;
+            acc[clientId].total += Number(booking.total_price) || 0;
+          }
+          return acc;
+        }, {});
+      }
 
       return (clients || []).map((client) => ({
         ...client,

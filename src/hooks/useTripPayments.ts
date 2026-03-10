@@ -78,9 +78,7 @@ export function useTripPayments(tripId: string | undefined) {
           *,
           bookings (
             id,
-            booking_reference,
-            destination,
-            trip_name,
+            confirmation_number,
             suppliers (
               name,
               supplier_type
