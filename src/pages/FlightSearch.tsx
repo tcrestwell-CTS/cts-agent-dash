@@ -170,15 +170,25 @@ export default function FlightSearch() {
           <CardContent className="pt-6 space-y-4">
             {/* Row 1: Trip type, Passengers, Cabin class */}
             <div className="flex items-center gap-3 flex-wrap">
-              <Select value={tripType} onValueChange={(v: "roundtrip" | "oneway") => setTripType(v)}>
-                <SelectTrigger className="w-[140px] h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="roundtrip">Round trip</SelectItem>
-                  <SelectItem value="oneway">One way</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                {[
+                  { value: "roundtrip" as const, label: "Round trip" },
+                  { value: "oneway" as const, label: "One way" },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTripType(value)}
+                    className={`px-4 h-9 text-sm font-medium transition-colors ${
+                      tripType === value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
               <Select value={String(adults)} onValueChange={(v) => setAdults(Number(v))}>
                 <SelectTrigger className="w-[130px] h-9 text-sm">
