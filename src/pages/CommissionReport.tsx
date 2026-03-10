@@ -244,7 +244,7 @@ export default function CommissionReport() {
           selectedStatus={selectedStatus}
           setSelectedStatus={setSelectedStatus}
           suppliers={suppliers}
-          agents={agents || []}
+          agents={[]}
           showAgentFilter={canViewAll || false}
           onClearFilters={clearFilters}
         />

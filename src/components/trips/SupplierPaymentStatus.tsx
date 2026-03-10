@@ -97,7 +97,7 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
                   <p className="text-xs text-muted-foreground truncate">{supplierName}</p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatCurrency(booking.total_amount)}
+                  {formatCurrency(booking.total_price || booking.total_amount || 0)}
                 </p>
               </div>
 
