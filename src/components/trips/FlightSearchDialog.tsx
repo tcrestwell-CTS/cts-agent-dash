@@ -12,9 +12,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Plane, Search, Loader2, Clock, ArrowRight, Users, Check, PenLine, Plus, Trash2,
+  Plane, Search, Loader2, Clock, ArrowRight, Users, Check, PenLine, Plus, CreditCard,
 } from "lucide-react";
-import { useFlightSearch, type FlightOffer } from "@/hooks/useFlightSearch";
+import { useFlightSearch, type FlightOffer, type OrderPassenger } from "@/hooks/useFlightSearch";
+import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
@@ -37,16 +38,17 @@ function formatDuration(iso: string) {
   return `${h}${m}`.trim();
 }
 
-type Step = "search" | "results" | "manual";
+type Step = "search" | "results" | "manual" | "checkout";
 
 export function FlightSearchDialog({
   open, onOpenChange, tripId, tripName,
   destination, departDate, returnDate,
   onAddFlightToItinerary,
 }: Props) {
-  const { offers, loading, searchFlights } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, createOrder } = useFlightSearch();
   const [step, setStep] = useState<Step>("search");
   const [selectedOffers, setSelectedOffers] = useState<Set<string>>(new Set());
+  const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
 
   // Search form
   const [origin, setOrigin] = useState("");
@@ -55,7 +57,8 @@ export function FlightSearchDialog({
   const [retDate, setRetDate] = useState(returnDate || "");
   const [cabinClass, setCabinClass] = useState("economy");
   const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
+  const [childAges, setChildAges] = useState<number[]>([]);
+  const [infants, setInfants] = useState(0);
   const [tripType, setTripType] = useState<"roundtrip" | "oneway">("roundtrip");
 
   // Manual form
@@ -83,6 +86,11 @@ export function FlightSearchDialog({
     setManualForm(updated);
   };
 
+  const addChild = () => setChildAges((prev) => [...prev, 10]);
+  const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
+  const updateChildAge = (idx: number, age: number) =>
+    setChildAges((prev) => prev.map((a, i) => (i === idx ? age : a)));
+
   const handleSearch = () => {
     if (!origin || !dest || !depDate) return;
     const slices = [
@@ -97,7 +105,8 @@ export function FlightSearchDialog({
     }
     const passengers = [
       ...Array(adults).fill({ type: "adult" as const }),
-      ...Array(children).fill({ type: "child" as const, age: 10 }),
+      ...childAges.map((age) => ({ type: "child" as const, age })),
+      ...Array(infants).fill({ type: "infant_without_seat" as const, age: 0 }),
     ];
     searchFlights({ slices, passengers, cabin_class: cabinClass });
     setStep("results");
@@ -143,6 +152,53 @@ export function FlightSearchDialog({
     }
   };
 
+  const handleBookOffer = async (offerId: string) => {
+    // Refresh offer to get latest price per Duffel guidelines
+    const freshOffer = await getOffer(offerId);
+    if (freshOffer) {
+      setCheckoutOffer(freshOffer);
+      setStep("checkout");
+    }
+  };
+
+  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash") => {
+    if (!checkoutOffer) return;
+    const order = await createOrder({
+      selected_offers: [checkoutOffer.id],
+      passengers,
+      payments: [{
+        type: paymentType,
+        currency: checkoutOffer.total_currency,
+        amount: checkoutOffer.total_amount,
+      }],
+    });
+    if (order) {
+      // Also add to itinerary
+      for (const slice of checkoutOffer.slices) {
+        const seg = slice.segments[0];
+        const lastSeg = slice.segments[slice.segments.length - 1];
+        await onAddFlightToItinerary({
+          trip_id: tripId,
+          day_number: 1,
+          title: `${seg.operating_carrier.name} ${seg.operating_carrier_flight_number}`,
+          description: `Booking ref: ${order.booking_reference || "N/A"} • ${slice.origin.city_name} → ${slice.destination.city_name} • ${formatDuration(slice.duration)}`,
+          category: "flight",
+          location: `${slice.origin.iata_code} → ${slice.destination.iata_code}`,
+          start_time: format(parseISO(seg.departing_at), "HH:mm"),
+          end_time: format(parseISO(lastSeg.arriving_at), "HH:mm"),
+          item_date: format(parseISO(seg.departing_at), "yyyy-MM-dd"),
+          flight_number: seg.operating_carrier_flight_number,
+          departure_city_code: slice.origin.iata_code,
+          arrival_city_code: slice.destination.iata_code,
+          notes: `Duffel Order: ${order.id} | Ref: ${order.booking_reference}`,
+        });
+      }
+      onOpenChange(false);
+      setStep("search");
+      setCheckoutOffer(null);
+    }
+  };
+
   const handleManualSubmit = async () => {
     if (!manualForm.title.trim()) return;
     const success = await onAddFlightToItinerary({
@@ -174,6 +230,7 @@ export function FlightSearchDialog({
     if (!o) {
       setStep("search");
       setSelectedOffers(new Set());
+      setCheckoutOffer(null);
     }
     onOpenChange(o);
   };
@@ -189,6 +246,7 @@ export function FlightSearchDialog({
             {step === "search" && "Search Flights"}
             {step === "results" && "Flight Results"}
             {step === "manual" && "Add Flight Manually"}
+            {step === "checkout" && "Book Flight"}
             <span className="text-sm font-normal text-muted-foreground ml-2">
               — {tripName}
             </span>
@@ -231,32 +289,54 @@ export function FlightSearchDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">Children</Label>
-                <Select value={String(children)} onValueChange={(v) => setChildren(Number(v))}>
+                <Label className="text-xs font-semibold">Infants (lap)</Label>
+                <Select value={String(infants)} onValueChange={(v) => setInfants(Number(v))}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[0, 1, 2, 3, 4].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                    {[0, 1, 2, 3].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
+            {/* Children with individual ages */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">Children (2-17)</Label>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={addChild}>
+                  + Add Child
+                </Button>
+              </div>
+              {childAges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {childAges.map((age, idx) => (
+                    <div key={idx} className="flex items-center gap-1 border rounded-md px-2 py-1">
+                      <span className="text-xs text-muted-foreground">Age:</span>
+                      <Select value={String(age)} onValueChange={(v) => updateChildAge(idx, Number(v))}>
+                        <SelectTrigger className="h-6 w-14 text-xs border-0 p-0"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 16 }, (_, i) => i + 2).map(a => (
+                            <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => removeChild(idx)}>
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">From</Label>
-                <IataCodeInput
-                  value={origin}
-                  onChange={setOrigin}
-                  placeholder="City or IATA code"
-                />
+                <IataCodeInput value={origin} onChange={setOrigin} placeholder="City or IATA code" />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">To</Label>
-                <IataCodeInput
-                  value={dest}
-                  onChange={setDest}
-                  placeholder="City or IATA code"
-                />
+                <IataCodeInput value={dest} onChange={setDest} placeholder="City or IATA code" />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Departure Date</Label>
@@ -272,8 +352,7 @@ export function FlightSearchDialog({
 
             <div className="flex items-center justify-between pt-2">
               <Button
-                variant="ghost"
-                size="sm"
+                variant="ghost" size="sm"
                 className="text-muted-foreground gap-1.5"
                 onClick={() => setStep("manual")}
               >
@@ -305,10 +384,18 @@ export function FlightSearchDialog({
                 </span>
               </div>
               {selectedOffers.size > 0 && (
-                <Button onClick={handleAddSelected} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add {selectedOffers.size} to Itinerary
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleAddSelected} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add to Itinerary
+                  </Button>
+                  {selectedOffers.size === 1 && (
+                    <Button onClick={() => handleBookOffer(Array.from(selectedOffers)[0])} className="gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Book Now
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -336,11 +423,22 @@ export function FlightSearchDialog({
                       offer={offer}
                       isSelected={selectedOffers.has(offer.id)}
                       onToggle={() => toggleOffer(offer.id)}
+                      onBook={() => handleBookOffer(offer.id)}
                     />
                   ))}
               </div>
             )}
           </div>
+        )}
+
+        {/* CHECKOUT STEP */}
+        {step === "checkout" && checkoutOffer && (
+          <FlightBookingCheckout
+            offer={checkoutOffer}
+            loading={bookingLoading}
+            onBack={() => setStep("results")}
+            onConfirm={handleConfirmBooking}
+          />
         )}
 
         {/* MANUAL STEP */}
@@ -431,13 +529,12 @@ export function FlightSearchDialog({
 }
 
 function FlightOfferCard({
-  offer,
-  isSelected,
-  onToggle,
+  offer, isSelected, onToggle, onBook,
 }: {
   offer: FlightOffer;
   isSelected: boolean;
   onToggle: () => void;
+  onBook: () => void;
 }) {
   return (
     <div
@@ -505,7 +602,6 @@ function FlightOfferCard({
                   </div>
                 </div>
 
-                {/* Per-slice flight numbers */}
                 <div className="text-[10px] text-muted-foreground">
                   {slice.segments.map(s => `${s.operating_carrier.iata_code}${s.operating_carrier_flight_number}`).join(" / ")}
                 </div>
@@ -514,7 +610,7 @@ function FlightOfferCard({
           ))}
         </div>
 
-        {/* Price + selection */}
+        {/* Price + actions */}
         <div className="flex flex-col items-end gap-1 min-w-[120px]">
           <p className="text-xl font-bold">
             ${parseFloat(offer.total_amount).toLocaleString(undefined, {
@@ -532,10 +628,22 @@ function FlightOfferCard({
             <Users className="h-2.5 w-2.5" />
             {offer.passengers.length} pax
           </div>
-          <div className={`mt-1 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
-          }`}>
-            {isSelected && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
+          <div className="flex items-center gap-2 mt-1">
+            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+            }`}>
+              {isSelected && <Check className="h-3.5 w-3.5 text-primary-foreground" />}
+            </div>
+            {isSelected && (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-6 text-xs gap-1"
+                onClick={(e) => { e.stopPropagation(); onBook(); }}
+              >
+                <CreditCard className="h-3 w-3" /> Book
+              </Button>
+            )}
           </div>
         </div>
       </div>
