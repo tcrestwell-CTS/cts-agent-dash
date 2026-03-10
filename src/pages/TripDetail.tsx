@@ -44,7 +44,7 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
-import { FlightSearchDialog } from "@/components/trips/FlightSearchDialog";
+
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
 import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
@@ -94,7 +94,7 @@ const TripDetail = () => {
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
-  const [flightSearchOpen, setFlightSearchOpen] = useState(false);
+  
   const { processStatusChange } = useWorkflowAutomation();
   const { addItem: addItineraryItem } = useItinerary(tripId);
 
@@ -352,7 +352,7 @@ const TripDetail = () => {
             <ShieldCheck className="h-4 w-4 mr-2" />
             Insurance
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/flights?tripId=${tripId}`)}>
             <Plane className="h-4 w-4 mr-2" />
             Flights
           </Button>
@@ -369,7 +369,7 @@ const TripDetail = () => {
             hasPayments={hasPayments}
             isSendingPortalLink={isSendingPortalLink}
             onSendPortalLink={handleSendPortalLink}
-            onFlightSearch={() => setFlightSearchOpen(true)}
+            onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}
             onDelete={handleDelete}
           />
 
@@ -692,18 +692,6 @@ const TripDetail = () => {
           </div>
         </div>
       </div>
-
-      {/* Flight Search Dialog */}
-      <FlightSearchDialog
-        open={flightSearchOpen}
-        onOpenChange={setFlightSearchOpen}
-        tripId={trip.id}
-        tripName={trip.trip_name}
-        destination={trip.destination}
-        departDate={trip.depart_date}
-        returnDate={trip.return_date}
-        onAddFlightToItinerary={addItineraryItem}
-      />
     </DashboardLayout>
   );
 };

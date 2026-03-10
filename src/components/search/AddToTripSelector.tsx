@@ -33,13 +33,14 @@ interface AddToTripSelectorProps {
   items: ItineraryItemData[];
   disabled?: boolean;
   label?: string;
+  defaultTripId?: string;
 }
 
-export function AddToTripSelector({ items, disabled, label = "Add to Trip" }: AddToTripSelectorProps) {
+export function AddToTripSelector({ items, disabled, label = "Add to Trip", defaultTripId }: AddToTripSelectorProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [trips, setTrips] = useState<TripOption[]>([]);
-  const [selectedTripId, setSelectedTripId] = useState<string>("");
+  const [selectedTripId, setSelectedTripId] = useState<string>(defaultTripId || "");
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
 

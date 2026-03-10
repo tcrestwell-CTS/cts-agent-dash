@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,6 +70,8 @@ function groupSlices(offers: FlightOffer[], sliceIndex: number): SliceGroup[] {
 type SelectionStep = "all" | "outbound" | "return";
 
 export default function FlightSearch() {
+  const [searchParams] = useSearchParams();
+  const tripIdFromQuery = searchParams.get("tripId") || undefined;
   const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -501,6 +504,7 @@ export default function FlightSearch() {
                         </div>
                         <div className="flex gap-2">
                           <AddToTripSelector
+                            defaultTripId={tripIdFromQuery}
                             label="Add to Trip"
                             items={selectedOffer.slices.map((slice, idx) => ({
                               day_number: idx + 1,
@@ -591,6 +595,7 @@ export default function FlightSearch() {
                         </div>
                         <div className="flex gap-2">
                           <AddToTripSelector
+                            defaultTripId={tripIdFromQuery}
                             label="Add to Trip"
                             items={selectedOffer.slices.map((slice, idx) => ({
                               day_number: idx + 1,
