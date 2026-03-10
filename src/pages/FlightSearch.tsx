@@ -312,23 +312,6 @@ export default function FlightSearch() {
         {/* Results */}
         {offers.length > 0 && (
           <div className="space-y-3">
-            {/* Stop Filters */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-sm font-medium text-foreground">Stops:</span>
-              {[
-                { value: 0, label: "Non-stop" },
-                { value: 1, label: "1 Stop" },
-                { value: 2, label: "2+ Stops" },
-              ].map(({ value, label }) => (
-                <label key={value} className="flex items-center gap-1.5 cursor-pointer">
-                  <Checkbox
-                    checked={stopFilters.has(value)}
-                    onCheckedChange={() => toggleStopFilter(value)}
-                  />
-                  <span className="text-sm text-foreground">{label}</span>
-                </label>
-              ))}
-            </div>
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <h2 className="text-lg font-semibold text-foreground">
