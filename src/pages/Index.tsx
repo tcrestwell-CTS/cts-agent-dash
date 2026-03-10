@@ -135,7 +135,7 @@ const Index = () => {
     // UPCOMING TRIPS
     const upcomingTrips = (trips || [])
       .filter((t) => {
-        if (!t.depart_date || t.status === "cancelled" || t.status === "archived") return false;
+        if (!t.depart_date || t.status === "cancelled" || t.status === "completed") return false;
         const d = new Date(t.depart_date);
         return isFuture(d) && isWithinInterval(d, { start: now, end: thirtyDays });
       })
