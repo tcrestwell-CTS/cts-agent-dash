@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plane, Search, Clock, ArrowRight, Users, Loader2 } from "lucide-react";
 import { useFlightSearch, FlightOffer } from "@/hooks/useFlightSearch";
+import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { format, parseISO } from "date-fns";
 
 function formatDuration(iso: string) {
