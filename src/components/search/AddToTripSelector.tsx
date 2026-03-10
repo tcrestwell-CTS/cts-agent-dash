@@ -107,8 +107,8 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip" }: Ad
     }
   };
 
-  if (loading) return null;
-  if (trips.length === 0) return null;
+  if (loading) return <p className="text-sm text-muted-foreground">Loading trips…</p>;
+  if (trips.length === 0) return <p className="text-sm text-muted-foreground">No active trips found. Create a trip first to add items.</p>;
 
   return (
     <div className="flex items-center gap-2">
