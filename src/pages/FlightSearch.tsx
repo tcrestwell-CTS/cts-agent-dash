@@ -282,7 +282,7 @@ export default function FlightSearch() {
                     <span className="text-xs font-medium text-muted-foreground w-6 pb-2.5">{idx + 1}.</span>
                     <div className="flex-1 min-w-[120px] space-y-1">
                       <Label className="text-xs text-muted-foreground">From</Label>
-                      <Input placeholder="e.g. JFK" value={leg.origin} onChange={(e) => updateMultiCityLeg(idx, "origin", e.target.value)} maxLength={3} className="uppercase h-10" />
+                      <IataCodeInput placeholder="e.g. JFK" value={leg.origin} onChange={(code) => updateMultiCityLeg(idx, "origin", code)} className="h-10" />
                     </div>
                     <div className="flex-1 min-w-[120px] space-y-1">
                       <Label className="text-xs text-muted-foreground">To</Label>
