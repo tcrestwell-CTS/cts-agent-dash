@@ -435,139 +435,57 @@ export type Database = {
       }
       bookings: {
         Row: {
-          approval_required: boolean | null
-          approval_type: string | null
-          booking_reference: string
-          booking_type: string
           calculated_commission: number | null
-          cancellation_penalty: number | null
-          cancellation_reason: string | null
-          cancellation_refund_amount: number | null
-          cancellation_terms: string | null
-          cancelled_at: string | null
-          client_id: string
-          commission_override_amount: number | null
+          commission_estimate: number | null
           commission_revenue: number
           commissionable_amount: number
+          confirmation_number: string
           created_at: string
-          depart_date: string
-          destination: string
           gross_sales: number
           id: string
           net_sales: number
-          notes: string | null
-          override_approved: boolean | null
-          override_approved_at: string | null
-          override_approved_by: string | null
-          override_notes: string | null
-          override_pending_approval: boolean | null
-          owner_agent: string | null
-          payment_deadline: string | null
-          return_date: string
           status: string
           supplier_id: string | null
-          supplier_invoice_url: string | null
-          supplier_payout: number
-          total_amount: number
-          travelers: number
+          total_price: number
           trip_id: string | null
-          trip_name: string | null
-          trip_page_url: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          approval_required?: boolean | null
-          approval_type?: string | null
-          booking_reference: string
-          booking_type?: string
           calculated_commission?: number | null
-          cancellation_penalty?: number | null
-          cancellation_reason?: string | null
-          cancellation_refund_amount?: number | null
-          cancellation_terms?: string | null
-          cancelled_at?: string | null
-          client_id: string
-          commission_override_amount?: number | null
+          commission_estimate?: number | null
           commission_revenue?: number
           commissionable_amount?: number
+          confirmation_number: string
           created_at?: string
-          depart_date: string
-          destination: string
           gross_sales?: number
           id?: string
           net_sales?: number
-          notes?: string | null
-          override_approved?: boolean | null
-          override_approved_at?: string | null
-          override_approved_by?: string | null
-          override_notes?: string | null
-          override_pending_approval?: boolean | null
-          owner_agent?: string | null
-          payment_deadline?: string | null
-          return_date: string
           status?: string
           supplier_id?: string | null
-          supplier_invoice_url?: string | null
-          supplier_payout?: number
-          total_amount?: number
-          travelers?: number
+          total_price?: number
           trip_id?: string | null
-          trip_name?: string | null
-          trip_page_url?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          approval_required?: boolean | null
-          approval_type?: string | null
-          booking_reference?: string
-          booking_type?: string
           calculated_commission?: number | null
-          cancellation_penalty?: number | null
-          cancellation_reason?: string | null
-          cancellation_refund_amount?: number | null
-          cancellation_terms?: string | null
-          cancelled_at?: string | null
-          client_id?: string
-          commission_override_amount?: number | null
+          commission_estimate?: number | null
           commission_revenue?: number
           commissionable_amount?: number
+          confirmation_number?: string
           created_at?: string
-          depart_date?: string
-          destination?: string
           gross_sales?: number
           id?: string
           net_sales?: number
-          notes?: string | null
-          override_approved?: boolean | null
-          override_approved_at?: string | null
-          override_approved_by?: string | null
-          override_notes?: string | null
-          override_pending_approval?: boolean | null
-          owner_agent?: string | null
-          payment_deadline?: string | null
-          return_date?: string
           status?: string
           supplier_id?: string | null
-          supplier_invoice_url?: string | null
-          supplier_payout?: number
-          total_amount?: number
-          travelers?: number
+          total_price?: number
           trip_id?: string | null
-          trip_name?: string | null
-          trip_page_url?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "bookings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "bookings_supplier_id_fkey"
             columns: ["supplier_id"]
