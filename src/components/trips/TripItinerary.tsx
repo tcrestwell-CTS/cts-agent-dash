@@ -568,12 +568,18 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               </div>
             </CardHeader>
             <CardContent>
-              {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
-                <p className="text-sm text-muted-foreground italic">No activities planned</p>
-              ) : (
-                <Droppable droppableId={`day-${day}`}>
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+              <Droppable droppableId={`day-${day}`}>
+                {(provided, dropSnapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`space-y-3 min-h-[40px] rounded-md transition-colors ${dropSnapshot.isDraggingOver ? "bg-primary/5 ring-1 ring-primary/20" : ""}`}
+                  >
+              {dayItems.length === 0 && !dropSnapshot.isDraggingOver && !(dayBlocks[day]?.length) ? (
+                <p className="text-sm text-muted-foreground italic py-2">No activities planned</p>
+              ) : null}
+              {dayItems.length > 0 && (
+                <>
                   {dayItems.map((item, index) => {
                     const Icon = categoryIcons[item.category] || Target;
                     return (
