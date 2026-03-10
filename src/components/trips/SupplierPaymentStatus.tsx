@@ -74,7 +74,7 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
         {bookings.map((booking) => {
           const payment = getBookingPaymentInfo(booking.id);
           const vcStatus = getVirtualCardStatus(payment);
-          const hasInvoice = !!booking.supplier_invoice_url;
+          const hasInvoice = false;
           const supplierName = (booking as any).suppliers?.name || "No supplier";
           const rowColor = getRowColor(vcStatus, payment?.status || "pending");
 
