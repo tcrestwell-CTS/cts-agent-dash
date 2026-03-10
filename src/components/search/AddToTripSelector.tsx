@@ -62,6 +62,16 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip" }: Ad
     if (!selectedTripId || !user || items.length === 0) return;
     setAdding(true);
     try {
+      // Get the first itinerary for this trip so items appear in the builder
+      const { data: itineraries } = await supabase
+        .from("itineraries")
+        .select("id")
+        .eq("trip_id", selectedTripId)
+        .order("sort_order", { ascending: true })
+        .limit(1);
+      
+      const itineraryId = itineraries?.[0]?.id || null;
+
       // Get max sort_order for the trip
       const { data: existing } = await supabase
         .from("itinerary_items")
