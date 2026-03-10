@@ -2658,6 +2658,7 @@ export type Database = {
       }
       trips: {
         Row: {
+          advisor_id: string | null
           allow_pdf_downloads: boolean
           approved_itinerary_id: string | null
           budget_change_request_message: string | null
@@ -2676,6 +2677,7 @@ export type Database = {
           created_at: string
           currency: string
           depart_date: string | null
+          departure_date: string | null
           deposit_amount: number | null
           deposit_override: boolean
           deposit_required: boolean | null
@@ -2703,6 +2705,7 @@ export type Database = {
           share_token: string
           status: string
           tags: string[] | null
+          title: string | null
           total_commission_revenue: number
           total_commissionable_amount: number
           total_gross_sales: number
@@ -2716,6 +2719,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          advisor_id?: string | null
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
           budget_change_request_message?: string | null
@@ -2734,6 +2738,7 @@ export type Database = {
           created_at?: string
           currency?: string
           depart_date?: string | null
+          departure_date?: string | null
           deposit_amount?: number | null
           deposit_override?: boolean
           deposit_required?: boolean | null
@@ -2761,6 +2766,7 @@ export type Database = {
           share_token?: string
           status?: string
           tags?: string[] | null
+          title?: string | null
           total_commission_revenue?: number
           total_commissionable_amount?: number
           total_gross_sales?: number
@@ -2774,6 +2780,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          advisor_id?: string | null
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
           budget_change_request_message?: string | null
@@ -2792,6 +2799,7 @@ export type Database = {
           created_at?: string
           currency?: string
           depart_date?: string | null
+          departure_date?: string | null
           deposit_amount?: number | null
           deposit_override?: boolean
           deposit_required?: boolean | null
@@ -2819,6 +2827,7 @@ export type Database = {
           share_token?: string
           status?: string
           tags?: string[] | null
+          title?: string | null
           total_commission_revenue?: number
           total_commissionable_amount?: number
           total_gross_sales?: number
