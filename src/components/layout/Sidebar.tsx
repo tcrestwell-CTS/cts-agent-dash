@@ -29,6 +29,7 @@ import {
   FileText,
   Hotel,
   Wrench,
+  Ship,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,6 +92,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Flight Search", href: "/flights", icon: Plane },
       { name: "Hotel Search", href: "/hotels", icon: Hotel },
+      { name: "Cruise Search", href: "/cruises", icon: Ship },
       { name: "Training", href: "/training", icon: GraduationCap },
     ],
   },
