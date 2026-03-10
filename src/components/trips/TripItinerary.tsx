@@ -657,7 +657,9 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                         )}
                       </Draggable>
                     );
-                  })}
+                   })}
+                </>
+              )}
                   {provided.placeholder}
 
                   {/* Option blocks for this day */}
@@ -673,10 +675,9 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       onDeleteBlock={deleteBlock}
                     />
                   ))}
-                    </div>
-                  )}
-                </Droppable>
-              )}
+                  </div>
+                )}
+              </Droppable>
 
               <Button
                 variant="ghost"
