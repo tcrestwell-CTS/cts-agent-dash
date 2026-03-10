@@ -294,26 +294,14 @@ const Index = () => {
             {/* SALES PIPELINE */}
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Sales Pipeline</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <CounterCard
-                  label="Quotes Sent"
-                  count={loading ? null : computed.quotesSent}
-                  icon={Send}
-                  onClick={() => navigate("/trips")}
-                />
-                <CounterCard
-                  label="Pending Bookings"
-                  count={loading ? null : computed.pendingBookingsCount}
-                  icon={Calendar}
-                  onClick={() => navigate("/bookings")}
-                />
-                <CounterCard
-                  label="Confirmed Trips"
-                  count={loading ? null : computed.confirmedTrips}
-                  icon={CheckCircle2}
-                  onClick={() => navigate("/trips")}
-                />
-              </div>
+              <PipelineCards
+                loading={loading}
+                data={{
+                  quotes: computed.quotesSent,
+                  pending: computed.pendingBookingsCount,
+                  confirmed: computed.confirmedTrips,
+                }}
+              />
             </div>
 
             {/* Two-column: Upcoming Trips + Right sidebar */}
