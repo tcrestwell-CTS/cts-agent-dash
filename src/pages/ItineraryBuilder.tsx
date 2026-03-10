@@ -46,7 +46,7 @@ const ItineraryBuilder = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [editingItinerary, setEditingItinerary] = useState<import("@/hooks/useItineraries").Itinerary | null>(null);
-  const [flightSearchOpen, setFlightSearchOpen] = useState(false);
+  
   
   const { addItem: addItineraryItem } = useItinerary(tripId);
 
