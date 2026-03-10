@@ -487,54 +487,7 @@ export default function FlightSearch() {
 
             {isRoundTrip && selectionStep === "return" && (
               <>
-                {/* Selected outbound summary */}
-                {selectedOutboundKey && offersMatchingOutbound[0] && (
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                          <Badge className="bg-accent text-accent-foreground">✓ Outbound</Badge>
-                          <SliceInline slice={offersMatchingOutbound[0].slices[0]} />
-                        </div>
-                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleBackToOutbound}>
-                          Change
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <Badge className="bg-primary text-primary-foreground">Step 2</Badge>
-                      Select Return Flight
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {destination.toUpperCase()} → {origin.toUpperCase()} · {returnGroups.length} option{returnGroups.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-
-                {returnGroups.map((group) => {
-                  // Find the actual offer that matches this return slice
-                  const matchingOffer = offersMatchingOutbound.find(
-                    (o) => sliceKey(o.slices[1]) === group.key
-                  );
-                  return (
-                    <SliceCard
-                      key={group.key}
-                      slice={group.slice}
-                      priceLabel={`$${group.minPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total`}
-                      currency={group.currency}
-                      isSelected={selectedOffer ? sliceKey(selectedOffer.slices[1]) === group.key : false}
-                      onSelect={() => matchingOffer && handleSelectReturn(matchingOffer)}
-                      buttonLabel="Select Return"
-                    />
-                  );
-                })}
-
-                {/* Booking actions when return is selected */}
+                {/* Booking actions when return is selected — at top */}
                 {selectedOffer && (
                   <Card className="bg-muted/30 border-primary/30">
                     <CardContent className="py-4 px-4">
@@ -572,40 +525,101 @@ export default function FlightSearch() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Selected outbound summary */}
+                {selectedOutboundKey && offersMatchingOutbound[0] && (
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="py-3 px-4">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <Badge className="bg-accent text-accent-foreground">✓ Outbound</Badge>
+                          <SliceInline slice={offersMatchingOutbound[0].slices[0]} />
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleBackToOutbound}>
+                          Change
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                      <Badge className="bg-primary text-primary-foreground">Step 2</Badge>
+                      Select Return Flight
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {destination.toUpperCase()} → {origin.toUpperCase()} · {returnGroups.length} option{returnGroups.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {returnGroups.map((group) => {
+                  const matchingOffer = offersMatchingOutbound.find(
+                    (o) => sliceKey(o.slices[1]) === group.key
+                  );
+                  return (
+                    <SliceCard
+                      key={group.key}
+                      slice={group.slice}
+                      priceLabel={`$${group.minPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total`}
+                      currency={group.currency}
+                      isSelected={selectedOffer ? sliceKey(selectedOffer.slices[1]) === group.key : false}
+                      onSelect={() => matchingOffer && handleSelectReturn(matchingOffer)}
+                      buttonLabel="Select Return"
+                    />
+                  );
+                })}
               </>
             )}
 
             {/* ── Non-round-trip: standard list ── */}
             {(!isRoundTrip || selectionStep === "all") && (
               <>
+                {/* Booking card at top */}
+                {selectedOffer && (
+                  <Card className="bg-muted/30 border-primary/30">
+                    <CardContent className="py-4 px-4">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Flight selected</p>
+                          <p className="text-2xl font-bold text-foreground mt-1">
+                            ${parseFloat(selectedOffer.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <span className="text-sm font-normal text-muted-foreground ml-2">{selectedOffer.total_currency} total</span>
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <AddToTripSelector
+                            label="Add to Trip"
+                            items={selectedOffer.slices.map((slice, idx) => ({
+                              day_number: idx + 1,
+                              title: `${slice.segments[0]?.operating_carrier?.name || "Flight"} ${slice.segments[0]?.operating_carrier_flight_number || ""}: ${slice.origin.iata_code} → ${slice.destination.iata_code}`,
+                              description: `${format(parseISO(slice.segments[0].departing_at), "MMM d, HH:mm")} – ${format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm")} • ${formatDuration(slice.duration)}${slice.segments.length > 1 ? ` • ${slice.segments.length - 1} stop${slice.segments.length > 2 ? "s" : ""}` : " • Direct"}`,
+                              category: "flight",
+                              location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
+                              start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
+                              end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
+                              flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
+                              departure_city_code: slice.origin.iata_code,
+                              arrival_city_code: slice.destination.iata_code,
+                              notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
+                            }))}
+                          />
+                          <Button onClick={() => handleBookOffer(selectedOffer.id)} className="gap-2">
+                            <CreditCard className="h-4 w-4" />
+                            Book This Flight
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <h2 className="text-lg font-semibold text-foreground">
                     {filteredOffers.length} of {offers.length} flight{offers.length !== 1 ? "s" : ""}
                   </h2>
-                  {selectedOffer && (
-                    <div className="flex gap-2">
-                      <AddToTripSelector
-                        label="Add to Trip"
-                        items={selectedOffer.slices.map((slice, idx) => ({
-                          day_number: idx + 1,
-                          title: `${slice.segments[0]?.operating_carrier?.name || "Flight"} ${slice.segments[0]?.operating_carrier_flight_number || ""}: ${slice.origin.iata_code} → ${slice.destination.iata_code}`,
-                          description: `${format(parseISO(slice.segments[0].departing_at), "MMM d, HH:mm")} – ${format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm")} • ${formatDuration(slice.duration)}${slice.segments.length > 1 ? ` • ${slice.segments.length - 1} stop${slice.segments.length > 2 ? "s" : ""}` : " • Direct"}`,
-                          category: "flight",
-                          location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
-                          start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
-                          end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
-                          flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
-                          departure_city_code: slice.origin.iata_code,
-                          arrival_city_code: slice.destination.iata_code,
-                          notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
-                        }))}
-                      />
-                      <Button onClick={() => handleBookOffer(selectedOffer.id)} className="gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        Book This Flight
-                      </Button>
-                    </div>
-                  )}
                 </div>
 
                 {filteredOffers
