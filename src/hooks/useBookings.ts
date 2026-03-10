@@ -145,9 +145,9 @@ export function isBookingArchived(booking: Booking): boolean {
 }
 
 export interface CreateBookingData {
-  trip_id: string;
+  trip_id?: string;
   supplier_id?: string;
-  total_price: number;
+  total_price?: number;
   gross_sales?: number;
   commission_rate?: number;
   commission_estimate?: number;
