@@ -18,6 +18,7 @@ import {
   HeartPulse,
   ShieldAlert,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   Bell,
   CreditCard,
@@ -25,6 +26,9 @@ import {
   ExternalLink,
   Globe,
   Plane,
+  FileText,
+  Hotel,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,24 +47,67 @@ import { useNavigate } from "react-router-dom";
 export const SidebarCollapsedContext = createContext<boolean>(false);
 export const useSidebarCollapsed = () => useContext(SidebarCollapsedContext);
 
-const navigation = [
+type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }> };
+
+interface NavGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+}
+
+const topLevelNav: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Trips", href: "/trips", icon: Compass },
-  { name: "Contacts", href: "/contacts", icon: Users },
-  { name: "Bookings", href: "/bookings", icon: Calendar },
-  { name: "Suppliers", href: "/suppliers", icon: Building2 },
-  { name: "Commissions", href: "/commissions", icon: DollarSign },
-  { name: "Commission Report", href: "/commission-report", icon: FileSpreadsheet },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Training", href: "/training", icon: GraduationCap },
-  { name: "Email & Branding", href: "/branding", icon: Mail },
-  { name: "Flight Search", href: "/flights", icon: Plane },
-  { name: "Hotel Search", href: "/hotels", icon: Building2 },
-  { name: "Publish Manager", href: "/publish-manager", icon: Globe },
+];
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Sales",
+    icon: DollarSign,
+    items: [
+      { name: "Trips", href: "/trips", icon: Compass },
+      { name: "Quotes", href: "/commission-report", icon: FileText },
+      { name: "Clients", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    label: "Bookings",
+    icon: Calendar,
+    items: [
+      { name: "Suppliers", href: "/suppliers", icon: Building2 },
+      { name: "Commissions", href: "/commissions", icon: DollarSign },
+    ],
+  },
+  {
+    label: "Marketing",
+    icon: Mail,
+    items: [
+      { name: "Email & Branding", href: "/branding", icon: Mail },
+      { name: "Publish Manager", href: "/publish-manager", icon: Globe },
+    ],
+  },
+  {
+    label: "Tools",
+    icon: Wrench,
+    items: [
+      { name: "Flight Search", href: "/flights", icon: Plane },
+      { name: "Hotel Search", href: "/hotels", icon: Hotel },
+      { name: "Training", href: "/training", icon: GraduationCap },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: BarChart3,
+    items: [
+      { name: "Analytics", href: "/analytics", icon: BarChart3 },
+    ],
+  },
+];
+
+const bottomNav: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-const adminNavigation = [
+const adminNavigation: NavItem[] = [
   { name: "Team Management", href: "/team", icon: UserPlus },
   { name: "Reconciliation", href: "/reconciliation", icon: FileSpreadsheet },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
