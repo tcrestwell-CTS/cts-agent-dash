@@ -445,12 +445,18 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                       {dateStr && <p className="text-xs text-muted-foreground mt-1">{dateStr}</p>}
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {dayItems.length === 0 && !(dayBlocks[day]?.length) ? (
-                        <p className="text-sm text-muted-foreground italic">No activities planned</p>
-                      ) : (
-                        <Droppable droppableId={`day-${day}`}>
-                          {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-2">
+                      <Droppable droppableId={`day-${day}`}>
+                          {(provided, dropSnapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className={`space-y-2 min-h-[32px] rounded-md transition-colors ${dropSnapshot.isDraggingOver ? "bg-primary/5 ring-1 ring-primary/20" : ""}`}
+                            >
+                        {dayItems.length === 0 && !dropSnapshot.isDraggingOver && !(dayBlocks[day]?.length) ? (
+                          <p className="text-sm text-muted-foreground italic">No activities planned</p>
+                        ) : null}
+                        {dayItems.length > 0 && (
+                          <>
                           {dayItems.map((item, index) => {
                             const Icon = categoryIcons[item.category] || Target;
                             return (
@@ -513,6 +519,8 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                               </Draggable>
                             );
                           })}
+                          </>
+                        )}
                           {provided.placeholder}
 
                           {/* Option blocks for this day */}
@@ -531,7 +539,6 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
                             </div>
                           )}
                         </Droppable>
-                      )}
 
                       <Button
                         variant="ghost"
