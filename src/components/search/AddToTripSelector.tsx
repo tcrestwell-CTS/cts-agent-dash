@@ -85,6 +85,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip" }: Ad
       const inserts = items.map((item, idx) => ({
         trip_id: selectedTripId,
         user_id: user.id,
+        itinerary_id: itineraryId,
         day_number: item.day_number,
         title: item.title,
         description: item.description || null,
