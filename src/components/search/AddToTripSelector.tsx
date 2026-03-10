@@ -49,7 +49,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip" }: Ad
     supabase
       .from("trips")
       .select("id, trip_name, destination, status, clients!trips_client_id_fkey(name)")
-      .in("status", ["planning", "quoting", "booked", "active"])
+      .in("status", ["lead", "planning", "quoting", "booked", "active"])
       .order("updated_at", { ascending: false })
       .limit(50)
       .then(({ data, error }) => {
