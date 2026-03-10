@@ -106,7 +106,10 @@ interface IataCodeInputProps {
 }
 
 export function IataCodeInput({ value, onChange, placeholder = "City or code", className }: IataCodeInputProps) {
-  const [query, setQuery] = useState(value);
+  const [query, setQuery] = useState(() => {
+    const match = AIRPORTS.find(([c]) => c === value);
+    return match ? `${match[0]} – ${match[1]}` : value;
+  });
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -114,33 +117,48 @@ export function IataCodeInput({ value, onChange, placeholder = "City or code", c
 
   // Sync external value changes
   useEffect(() => {
-    setQuery(value);
-  }, [value]);
+    if (!showDropdown) {
+      const match = AIRPORTS.find(([c]) => c === value);
+      setQuery(match ? `${match[0]} – ${match[1]}` : value);
+    }
+  }, [value, showDropdown]);
 
-  const matches = query.length >= 1
+  const searchQuery = query.replace(/^[A-Z]{3}\s–\s.*$/, "").length === 0 ? "" : query;
+  const matches = searchQuery.length >= 1
     ? AIRPORTS.filter(([code, city]) => {
-        const q = query.toLowerCase();
+        const q = searchQuery.toLowerCase();
         return code.toLowerCase().startsWith(q) || city.toLowerCase().includes(q);
       }).slice(0, 8)
     : [];
 
   const handleSelect = (code: string) => {
-    setQuery(code);
+    const match = AIRPORTS.find(([c]) => c === code);
+    setQuery(match ? `${match[0]} – ${match[1]}` : code);
     onChange(code);
     setShowDropdown(false);
   };
 
   const handleInputChange = (val: string) => {
-    setQuery(val.toUpperCase());
+    setQuery(val);
     setHighlightIndex(0);
     setShowDropdown(true);
     // If it's exactly a 3-letter code that matches, auto-select
-    const exactMatch = AIRPORTS.find(([c]) => c === val.toUpperCase());
+    const upper = val.toUpperCase();
+    const exactMatch = AIRPORTS.find(([c]) => c === upper);
     if (exactMatch && val.length === 3) {
-      onChange(val.toUpperCase());
+      onChange(upper);
     } else if (val.length < 3) {
-      onChange(val.toUpperCase());
+      onChange(upper);
     }
+  };
+
+  const handleFocus = () => {
+    // Clear display to allow fresh typing
+    const match = AIRPORTS.find(([c]) => c === value);
+    if (match && query === `${match[0]} – ${match[1]}`) {
+      setQuery("");
+    }
+    setShowDropdown(true);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
