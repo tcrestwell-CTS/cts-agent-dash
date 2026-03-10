@@ -399,20 +399,6 @@ const ItineraryBuilder = () => {
           onUpdate={updateItinerary}
         />
 
-        {/* Flight Search Dialog */}
-        <FlightSearchDialog
-          open={flightSearchOpen}
-          onOpenChange={setFlightSearchOpen}
-          tripId={trip.id}
-          tripName={trip.trip_name}
-          destination={trip.destination}
-          departDate={trip.depart_date}
-          returnDate={trip.return_date}
-          onAddFlightToItinerary={async (item) => {
-            const res = await addItineraryItem({ ...item, itinerary_id: activeId || undefined });
-            return !!res;
-          }}
-        />
       </div>
     </DashboardLayout>
   );
