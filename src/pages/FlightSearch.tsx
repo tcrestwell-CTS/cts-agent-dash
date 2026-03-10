@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plane, Search, Clock, ArrowRight, Users, Loader2, CreditCard } from "lucide-react";
-import { useFlightSearch, FlightOffer, OrderPassenger } from "@/hooks/useFlightSearch";
+import { useFlightSearch, FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection } from "@/hooks/useFlightSearch";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
 import { format, parseISO } from "date-fns";
