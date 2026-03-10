@@ -46,6 +46,7 @@ const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
 const HotelSearch         = lazy(() => import("./pages/HotelSearch"));
+const CruiseSearch        = lazy(() => import("./pages/CruiseSearch"));
 const TripInsurance       = lazy(() => import("./pages/TripInsurance"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
