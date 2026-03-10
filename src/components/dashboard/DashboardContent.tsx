@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
@@ -18,13 +18,15 @@ import { UpcomingTrips } from "@/components/dashboard/UpcomingTrips";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BusinessSnapshot } from "@/components/dashboard/BusinessSnapshot";
 import { TopBar } from "@/components/dashboard/TopBar";
-
-import { useState } from "react";
+import { NextActions } from "@/components/dashboard/NextActions";
+import { AdvisorAssistant } from "@/components/dashboard/AdvisorAssistant";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"my" | "agency">("my");
   const { canView: canViewAgencyMetrics } = useCanViewTeam();
+  const { isComplete: onboardingComplete, isLoading: onboardingLoading } = useOnboarding();
 
   const firstName =
     user?.user_metadata?.full_name?.split(" ")[0] ||
@@ -120,16 +122,28 @@ export function DashboardContent() {
     return { followUps, paymentsDue, departuresSoon, quotesSent, pendingBookingsCount, confirmedTrips, upcomingTrips, revenueMTD, totalClients, conversionRate };
   }, [bookings, clients, trips, pendingPayments]);
 
+  const showOnboarding = !onboardingLoading && !onboardingComplete;
+
   return (
     <div className="space-y-6">
-      {/* Greeting */}
-      <div>
+      {/* Row 1: Greeting + inline stats */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {firstName}
         </h1>
+        <BusinessSnapshot
+          revenueMTD={computed.revenueMTD}
+          totalClients={computed.totalClients}
+          conversionRate={computed.conversionRate}
+          loading={loading}
+        />
       </div>
 
-      <TopBar />
+      {/* Row 2: Actions + Search */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <QuickActions />
+        <TopBar />
+      </div>
 
       {/* Dashboard Tabs */}
       <div className="border-b border-border">
@@ -161,9 +175,10 @@ export function DashboardContent() {
         <AgencyMetrics />
       ) : (
         <>
-          <OnboardingWizard />
-          <QuickActions />
+          {/* Onboarding (only shown until setup complete) */}
+          {showOnboarding && <OnboardingWizard />}
 
+          {/* Today panel */}
           <TodayPanel
             followUps={computed.followUps}
             paymentsDue={computed.paymentsDue}
@@ -171,6 +186,7 @@ export function DashboardContent() {
             loading={loading}
           />
 
+          {/* Sales Pipeline */}
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Sales Pipeline</h2>
             <PipelineCards
@@ -183,16 +199,28 @@ export function DashboardContent() {
             />
           </div>
 
+          {/* Main content grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <UpcomingTrips trips={computed.upcomingTrips} loading={loading} />
+            {/* Left: Upcoming Trips (2 cols) */}
+            <div className="lg:col-span-2">
+              <UpcomingTrips trips={computed.upcomingTrips} loading={loading} />
+            </div>
 
-            <div className="space-y-6">
+            {/* Right: Next Actions + Activity + Assistant */}
+            <div className="space-y-5">
+              {!showOnboarding && (
+                <NextActions
+                  followUps={computed.followUps}
+                  paymentsDue={computed.paymentsDue}
+                  departuresSoon={computed.departuresSoon}
+                  loading={loading}
+                />
+              )}
               <ActivityFeed items={(recentActivity || []) as any} />
-              <BusinessSnapshot
-                revenueMTD={computed.revenueMTD}
-                totalClients={computed.totalClients}
-                conversionRate={computed.conversionRate}
-                loading={loading}
+              <AdvisorAssistant
+                followUps={computed.followUps}
+                paymentsDue={computed.paymentsDue}
+                confirmedTrips={computed.confirmedTrips}
               />
             </div>
           </div>
