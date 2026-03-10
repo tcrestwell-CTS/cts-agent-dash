@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Plane, Search, Clock, ArrowRight, Users, Loader2, CreditCard } from "lucide-react";
 import { useFlightSearch, FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection } from "@/hooks/useFlightSearch";
@@ -36,6 +37,26 @@ export default function FlightSearch() {
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
   const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
   const [checkoutBaggage, setCheckoutBaggage] = useState<AvailableService[]>([]);
+  const [stopFilters, setStopFilters] = useState<Set<number>>(new Set([0, 1, 2]));
+
+  const toggleStopFilter = (stops: number) => {
+    setStopFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(stops)) next.delete(stops);
+      else next.add(stops);
+      return next;
+    });
+  };
+
+  const getOfferMaxStops = (offer: FlightOffer) =>
+    Math.max(...offer.slices.map((s) => s.segments.length - 1));
+
+  const filteredOffers = offers.filter((offer) => {
+    const maxStops = getOfferMaxStops(offer);
+    if (stopFilters.size === 0) return true;
+    if (maxStops >= 2) return stopFilters.has(2);
+    return stopFilters.has(maxStops);
+  });
 
   const addChild = () => setChildAges((prev) => [...prev, 10]);
   const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
@@ -279,9 +300,27 @@ export default function FlightSearch() {
         {/* Results */}
         {offers.length > 0 && (
           <div className="space-y-3">
+            {/* Stop Filters */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-sm font-medium text-foreground">Stops:</span>
+              {[
+                { value: 0, label: "Non-stop" },
+                { value: 1, label: "1 Stop" },
+                { value: 2, label: "2+ Stops" },
+              ].map(({ value, label }) => (
+                <label key={value} className="flex items-center gap-1.5 cursor-pointer">
+                  <Checkbox
+                    checked={stopFilters.has(value)}
+                    onCheckedChange={() => toggleStopFilter(value)}
+                  />
+                  <span className="text-sm text-foreground">{label}</span>
+                </label>
+              ))}
+            </div>
+
             <div className="flex items-center justify-between flex-wrap gap-3">
               <h2 className="text-lg font-semibold text-foreground">
-                {offers.length} flight{offers.length !== 1 ? "s" : ""} found
+                {filteredOffers.length} of {offers.length} flight{offers.length !== 1 ? "s" : ""}
               </h2>
               {selectedOffer && (
                 <div className="flex gap-2">
@@ -312,7 +351,7 @@ export default function FlightSearch() {
               )}
             </div>
 
-            {offers
+            {filteredOffers
               .sort((a, b) => parseFloat(a.total_amount) - parseFloat(b.total_amount))
               .map((offer) => (
                 <OfferCard
