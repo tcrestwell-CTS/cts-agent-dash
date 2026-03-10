@@ -64,19 +64,34 @@ export default function FlightSearch() {
 
   const addChild = () => setChildAges((prev) => [...prev, 10]);
   const removeChild = (idx: number) => setChildAges((prev) => prev.filter((_, i) => i !== idx));
+  const updateMultiCityLeg = (idx: number, field: string, value: string) => {
+    setMultiCityLegs((prev) => prev.map((leg, i) => (i === idx ? { ...leg, [field]: value } : leg)));
+  };
+  const addMultiCityLeg = () => setMultiCityLegs((prev) => [...prev, { origin: "", destination: "", date: "" }]);
+  const removeMultiCityLeg = (idx: number) => setMultiCityLegs((prev) => prev.filter((_, i) => i !== idx));
+
   const updateChildAge = (idx: number, age: number) =>
     setChildAges((prev) => prev.map((a, i) => (i === idx ? age : a)));
 
   const handleSearch = () => {
-    const slices = [
-      { origin: origin.toUpperCase(), destination: destination.toUpperCase(), departure_date: departDate },
-    ];
-    if (tripType === "roundtrip" && returnDate) {
-      slices.push({
-        origin: destination.toUpperCase(),
-        destination: origin.toUpperCase(),
-        departure_date: returnDate,
-      });
+    let slices: { origin: string; destination: string; departure_date: string }[];
+
+    if (tripType === "multicity") {
+      slices = multiCityLegs
+        .filter((l) => l.origin && l.destination && l.date)
+        .map((l) => ({ origin: l.origin.toUpperCase(), destination: l.destination.toUpperCase(), departure_date: l.date }));
+      if (slices.length < 2) return;
+    } else {
+      slices = [
+        { origin: origin.toUpperCase(), destination: destination.toUpperCase(), departure_date: departDate },
+      ];
+      if (tripType === "roundtrip" && returnDate) {
+        slices.push({
+          origin: destination.toUpperCase(),
+          destination: origin.toUpperCase(),
+          departure_date: returnDate,
+        });
+      }
     }
 
     const passengers = [
