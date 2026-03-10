@@ -125,7 +125,7 @@ const ItineraryBuilder = () => {
 
           <TooltipProvider>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setFlightSearchOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/flights?tripId=${trip.id}`)}>
                 <Plane className="h-4 w-4 mr-2" />
                 Search Flights
               </Button>
