@@ -91,7 +91,7 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Link to={`/bookings/${booking.id}`} className="text-sm font-medium truncate text-primary hover:underline">
-                    {booking.booking_reference}
+                    {booking.confirmation_number || booking.booking_reference || booking.id.slice(0, 8)}
                   </Link>
                   <span className="text-xs text-muted-foreground">•</span>
                   <p className="text-xs text-muted-foreground truncate">{supplierName}</p>
