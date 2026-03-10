@@ -320,7 +320,7 @@ export default function FlightSearch() {
                 </div>
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Where to?</Label>
-                  <Input placeholder="e.g. LAX" value={destination} onChange={(e) => setDestination(e.target.value)} maxLength={3} className="uppercase h-10" />
+                  <IataCodeInput placeholder="e.g. LAX" value={destination} onChange={setDestination} className="h-10" />
                 </div>
                 <div className="flex-1 min-w-[140px] space-y-1">
                   <Label className="text-xs text-muted-foreground">Departure</Label>
