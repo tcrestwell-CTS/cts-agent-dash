@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, TrendingUp } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface BusinessSnapshotProps {
   revenueMTD: number;
@@ -11,45 +11,32 @@ interface BusinessSnapshotProps {
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
 
+const stats = [
+  { key: "revenue" as const, label: "Revenue MTD", icon: DollarSign },
+  { key: "clients" as const, label: "Clients", icon: Users },
+  { key: "conversion" as const, label: "Conversion", icon: TrendingUp },
+];
+
 export function BusinessSnapshot({ revenueMTD, totalClients, conversionRate, loading }: BusinessSnapshotProps) {
+  const values = {
+    revenue: formatCurrency(revenueMTD),
+    clients: String(totalClients),
+    conversion: `${conversionRate}%`,
+  };
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Business Snapshot
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
-              Revenue (MTD)
-            </div>
-            <span className="text-lg font-semibold text-foreground">
-              {loading ? "..." : formatCurrency(revenueMTD)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              Clients
-            </div>
-            <span className="text-lg font-semibold text-foreground">
-              {loading ? "..." : totalClients}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <TrendingUp className="h-4 w-4" />
-              Conversion
-            </div>
-            <span className="text-lg font-semibold text-foreground">
-              {loading ? "..." : `${conversionRate}%`}
-            </span>
-          </div>
+    <div className="flex items-center gap-6 flex-wrap">
+      {stats.map(({ key, label, icon: Icon }) => (
+        <div key={key} className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">{label}</span>
+          {loading ? (
+            <Skeleton className="h-5 w-10" />
+          ) : (
+            <span className="text-sm font-semibold text-foreground">{values[key]}</span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 }
