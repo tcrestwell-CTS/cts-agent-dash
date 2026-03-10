@@ -32,6 +32,7 @@ import { useClients } from "@/hooks/useClients";
 import { useTrips } from "@/hooks/useTrips";
 import { useCanViewTeam } from "@/hooks/useAdmin";
 import { cn } from "@/lib/utils";
+import PipelineCards from "@/components/dashboard/PipelineCards";
 import {
   format,
   addDays,
