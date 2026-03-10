@@ -18,6 +18,7 @@ import {
   HeartPulse,
   ShieldAlert,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   Bell,
   CreditCard,
@@ -25,6 +26,9 @@ import {
   ExternalLink,
   Globe,
   Plane,
+  FileText,
+  Hotel,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,24 +47,67 @@ import { useNavigate } from "react-router-dom";
 export const SidebarCollapsedContext = createContext<boolean>(false);
 export const useSidebarCollapsed = () => useContext(SidebarCollapsedContext);
 
-const navigation = [
+type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }> };
+
+interface NavGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+}
+
+const topLevelNav: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Trips", href: "/trips", icon: Compass },
-  { name: "Contacts", href: "/contacts", icon: Users },
-  { name: "Bookings", href: "/bookings", icon: Calendar },
-  { name: "Suppliers", href: "/suppliers", icon: Building2 },
-  { name: "Commissions", href: "/commissions", icon: DollarSign },
-  { name: "Commission Report", href: "/commission-report", icon: FileSpreadsheet },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Training", href: "/training", icon: GraduationCap },
-  { name: "Email & Branding", href: "/branding", icon: Mail },
-  { name: "Flight Search", href: "/flights", icon: Plane },
-  { name: "Hotel Search", href: "/hotels", icon: Building2 },
-  { name: "Publish Manager", href: "/publish-manager", icon: Globe },
+];
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Sales",
+    icon: DollarSign,
+    items: [
+      { name: "Trips", href: "/trips", icon: Compass },
+      { name: "Quotes", href: "/commission-report", icon: FileText },
+      { name: "Clients", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    label: "Bookings",
+    icon: Calendar,
+    items: [
+      { name: "Suppliers", href: "/suppliers", icon: Building2 },
+      { name: "Commissions", href: "/commissions", icon: DollarSign },
+    ],
+  },
+  {
+    label: "Marketing",
+    icon: Mail,
+    items: [
+      { name: "Email & Branding", href: "/branding", icon: Mail },
+      { name: "Publish Manager", href: "/publish-manager", icon: Globe },
+    ],
+  },
+  {
+    label: "Tools",
+    icon: Wrench,
+    items: [
+      { name: "Flight Search", href: "/flights", icon: Plane },
+      { name: "Hotel Search", href: "/hotels", icon: Hotel },
+      { name: "Training", href: "/training", icon: GraduationCap },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: BarChart3,
+    items: [
+      { name: "Analytics", href: "/analytics", icon: BarChart3 },
+    ],
+  },
+];
+
+const bottomNav: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-const adminNavigation = [
+const adminNavigation: NavItem[] = [
   { name: "Team Management", href: "/team", icon: UserPlus },
   { name: "Reconciliation", href: "/reconciliation", icon: FileSpreadsheet },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
@@ -119,13 +166,28 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
     }
   };
 
-  const NavItem = ({ item }: { item: typeof navigation[0] }) => {
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    // Auto-open the group containing the current route
+    const initial: Record<string, boolean> = {};
+    navGroups.forEach((g) => {
+      if (g.items.some((i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/"))) {
+        initial[g.label] = true;
+      }
+    });
+    return initial;
+  });
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const NavItemLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href;
     const link = (
       <Link
         to={item.href}
         className={cn(
-          "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
           collapsed && !isMobile ? "justify-center px-2" : "",
           isActive
             ? "bg-sidebar-accent text-sidebar-primary"
@@ -134,7 +196,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       >
         <item.icon
           className={cn(
-            "h-5 w-5 shrink-0 transition-colors",
+            "h-4.5 w-4.5 shrink-0 transition-colors",
             isActive
               ? "text-sidebar-primary"
               : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
@@ -153,6 +215,58 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       );
     }
     return link;
+  };
+
+  const NavGroupSection = ({ group }: { group: NavGroup }) => {
+    const isOpen = openGroups[group.label] ?? false;
+    const hasActiveChild = group.items.some(
+      (i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/")
+    );
+
+    if (collapsed && !isMobile) {
+      // In collapsed mode, show group items as individual icon-only links
+      return (
+        <>
+          <div className="pt-2 pb-1">
+            <hr className="border-sidebar-border" />
+          </div>
+          {group.items.map((item) => (
+            <NavItemLink key={item.name} item={item} />
+          ))}
+        </>
+      );
+    }
+
+    return (
+      <div className="pt-2">
+        <button
+          onClick={() => toggleGroup(group.label)}
+          className={cn(
+            "flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors",
+            hasActiveChild
+              ? "text-sidebar-foreground/80"
+              : "text-sidebar-foreground/50 hover:text-sidebar-foreground/70"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <group.icon className="h-4 w-4" />
+            <span>{group.label}</span>
+          </div>
+          {isOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+        {isOpen && (
+          <div className="ml-2 mt-0.5 space-y-0.5">
+            {group.items.map((item) => (
+              <NavItemLink key={item.name} item={item} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const sidebarContent = (
@@ -193,12 +307,27 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
         <TooltipProvider delayDuration={0}>
-          {navigation.map((item) => (
-            <NavItem key={item.name} item={item} />
+          {/* Top-level items (Dashboard) */}
+          {topLevelNav.map((item) => (
+            <NavItemLink key={item.name} item={item} />
           ))}
 
+          {/* Grouped nav sections */}
+          {navGroups.map((group) => (
+            <NavGroupSection key={group.label} group={group} />
+          ))}
+
+          {/* Settings at the bottom of nav */}
+          <div className="pt-2">
+            <hr className="border-sidebar-border mb-2" />
+            {bottomNav.map((item) => (
+              <NavItemLink key={item.name} item={item} />
+            ))}
+          </div>
+
+          {/* Admin section */}
           {canViewTeam && (
             <>
               {(!collapsed || isMobile) && (
@@ -208,7 +337,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
               )}
               {collapsed && !isMobile && <div className="pt-4 pb-2"><hr className="border-sidebar-border" /></div>}
               {adminNavigation.map((item) => (
-                <NavItem key={item.name} item={item} />
+                <NavItemLink key={item.name} item={item} />
               ))}
             </>
           )}
