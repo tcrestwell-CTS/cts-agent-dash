@@ -1,35 +1,23 @@
 import { useState, useEffect } from "react";
-import { format, parseISO } from "date-fns";
-import { DateRange } from "react-day-picker";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
 import { Booking, UpdateBookingData } from "@/hooks/useBookings";
-import { useSuppliers } from "@/hooks/useSuppliers";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { SupplierManagement } from "@/components/suppliers/SupplierManagement";
 
 interface EditBookingDialogProps {
   booking: Booking | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (id: string, data: UpdateBookingData) => Promise<boolean>;
-  updating: boolean;
+  onSubmit: (bookingId: string, data: UpdateBookingData) => Promise<boolean>;
 }
 
 export function EditBookingDialog({
@@ -37,51 +25,31 @@ export function EditBookingDialog({
   open,
   onOpenChange,
   onSubmit,
-  updating,
 }: EditBookingDialogProps) {
-  const { activeSuppliers } = useSuppliers();
   const [formData, setFormData] = useState({
-    destination: "",
-    depart_date: "",
-    return_date: "",
-    travelers: 1,
-    total_amount: 0,
-    trip_name: "",
-    notes: "",
+    total_price: 0,
     supplier_id: "",
+    commission_estimate: 0,
   });
 
-  // Populate form when booking changes
   useEffect(() => {
     if (booking) {
       setFormData({
-        destination: booking.destination || "",
-        depart_date: booking.depart_date || "",
-        return_date: booking.return_date || "",
-        travelers: booking.travelers || 1,
-        total_amount: booking.total_amount || 0,
-        trip_name: booking.trip_name || "",
-        notes: booking.notes || "",
+        total_price: booking.total_price || 0,
         supplier_id: booking.supplier_id || "",
+        commission_estimate: booking.commission_estimate || 0,
       });
     }
   }, [booking]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!booking || !formData.destination || !formData.depart_date || !formData.return_date) {
-      return;
-    }
-
-    // Validate that return date is after departure date
-    if (formData.return_date < formData.depart_date) {
-      return;
-    }
+    if (!booking) return;
 
     const success = await onSubmit(booking.id, {
-      ...formData,
+      total_price: formData.total_price,
       supplier_id: formData.supplier_id || null,
+      commission_estimate: formData.commission_estimate,
     });
     if (success) {
       onOpenChange(false);
@@ -94,120 +62,48 @@ export function EditBookingDialog({
         <DialogHeader>
           <DialogTitle>Edit Booking</DialogTitle>
           <DialogDescription>
-            {booking?.booking_reference} • {booking?.clients?.name}
+            {booking?.confirmation_number}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit_trip_name">Trip Name</Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="total_price">Total Price</Label>
             <Input
-              id="edit_trip_name"
-              value={formData.trip_name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, trip_name: e.target.value }))}
-              placeholder="e.g., European Adventure"
+              id="total_price"
+              type="number"
+              step="0.01"
+              value={formData.total_price}
+              onChange={(e) => setFormData({ ...formData, total_price: parseFloat(e.target.value) || 0 })}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit_supplier">Supplier</Label>
-            <Select
-              value={formData.supplier_id}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, supplier_id: value === "none" ? "" : value }))}
-            >
-              <SelectTrigger id="edit_supplier">
-                <SelectValue placeholder="Select a supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Supplier</SelectItem>
-                {activeSuppliers.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit_destination">Destination *</Label>
+          <div>
+            <Label htmlFor="commission_estimate">Commission Estimate</Label>
             <Input
-              id="edit_destination"
-              value={formData.destination}
-              onChange={(e) => setFormData((prev) => ({ ...prev, destination: e.target.value }))}
-              placeholder="e.g., Paris, France"
-              required
+              id="commission_estimate"
+              type="number"
+              step="0.01"
+              value={formData.commission_estimate}
+              onChange={(e) => setFormData({ ...formData, commission_estimate: parseFloat(e.target.value) || 0 })}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Trip Dates *</Label>
-            <DateRangePicker
-              dateRange={
-                formData.depart_date && formData.return_date
-                  ? { from: parseISO(formData.depart_date), to: parseISO(formData.return_date) }
-                  : formData.depart_date
-                  ? { from: parseISO(formData.depart_date), to: undefined }
-                  : undefined
-              }
-              onDateRangeChange={(range) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  depart_date: range?.from ? format(range.from, "yyyy-MM-dd") : "",
-                  return_date: range?.to ? format(range.to, "yyyy-MM-dd") : "",
-                }));
-              }}
+          <div>
+            <Label>Supplier</Label>
+            <SupplierManagement
+              selectedSupplierId={formData.supplier_id || undefined}
+              onSelect={(id) => setFormData({ ...formData, supplier_id: id || "" })}
+              variant="compact"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit_travelers">Travelers</Label>
-              <Input
-                id="edit_travelers"
-                type="number"
-                min="1"
-                value={formData.travelers}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, travelers: parseInt(e.target.value) || 1 }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_total_amount">Total Amount ($)</Label>
-              <Input
-                id="edit_total_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.total_amount}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, total_amount: parseFloat(e.target.value) || 0 }))
-                }
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit_notes">Notes</Label>
-            <Textarea
-              id="edit_notes"
-              value={formData.notes}
-              onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-              placeholder="Additional booking notes..."
-              rows={3}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={updating}>
-              {updating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
-            </Button>
-          </div>
+            <Button type="submit">Save Changes</Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
