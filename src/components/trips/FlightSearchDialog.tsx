@@ -14,7 +14,7 @@ import {
 import {
   Plane, Search, Loader2, Clock, ArrowRight, Users, Check, PenLine, Plus, CreditCard,
 } from "lucide-react";
-import { useFlightSearch, type FlightOffer, type OrderPassenger } from "@/hooks/useFlightSearch";
+import { useFlightSearch, type FlightOffer, type OrderPassenger, type SeatMap, type AvailableService, type ServiceSelection } from "@/hooks/useFlightSearch";
 import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
