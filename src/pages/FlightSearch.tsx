@@ -487,54 +487,7 @@ export default function FlightSearch() {
 
             {isRoundTrip && selectionStep === "return" && (
               <>
-                {/* Selected outbound summary */}
-                {selectedOutboundKey && offersMatchingOutbound[0] && (
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                          <Badge className="bg-accent text-accent-foreground">✓ Outbound</Badge>
-                          <SliceInline slice={offersMatchingOutbound[0].slices[0]} />
-                        </div>
-                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleBackToOutbound}>
-                          Change
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                      <Badge className="bg-primary text-primary-foreground">Step 2</Badge>
-                      Select Return Flight
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {destination.toUpperCase()} → {origin.toUpperCase()} · {returnGroups.length} option{returnGroups.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-
-                {returnGroups.map((group) => {
-                  // Find the actual offer that matches this return slice
-                  const matchingOffer = offersMatchingOutbound.find(
-                    (o) => sliceKey(o.slices[1]) === group.key
-                  );
-                  return (
-                    <SliceCard
-                      key={group.key}
-                      slice={group.slice}
-                      priceLabel={`$${group.minPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total`}
-                      currency={group.currency}
-                      isSelected={selectedOffer ? sliceKey(selectedOffer.slices[1]) === group.key : false}
-                      onSelect={() => matchingOffer && handleSelectReturn(matchingOffer)}
-                      buttonLabel="Select Return"
-                    />
-                  );
-                })}
-
-                {/* Booking actions when return is selected */}
+                {/* Booking actions when return is selected — at top */}
                 {selectedOffer && (
                   <Card className="bg-muted/30 border-primary/30">
                     <CardContent className="py-4 px-4">
@@ -572,6 +525,52 @@ export default function FlightSearch() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Selected outbound summary */}
+                {selectedOutboundKey && offersMatchingOutbound[0] && (
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="py-3 px-4">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-3">
+                          <Badge className="bg-accent text-accent-foreground">✓ Outbound</Badge>
+                          <SliceInline slice={offersMatchingOutbound[0].slices[0]} />
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleBackToOutbound}>
+                          Change
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                      <Badge className="bg-primary text-primary-foreground">Step 2</Badge>
+                      Select Return Flight
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {destination.toUpperCase()} → {origin.toUpperCase()} · {returnGroups.length} option{returnGroups.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {returnGroups.map((group) => {
+                  const matchingOffer = offersMatchingOutbound.find(
+                    (o) => sliceKey(o.slices[1]) === group.key
+                  );
+                  return (
+                    <SliceCard
+                      key={group.key}
+                      slice={group.slice}
+                      priceLabel={`$${group.minPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total`}
+                      currency={group.currency}
+                      isSelected={selectedOffer ? sliceKey(selectedOffer.slices[1]) === group.key : false}
+                      onSelect={() => matchingOffer && handleSelectReturn(matchingOffer)}
+                      buttonLabel="Select Return"
+                    />
+                  );
+                })}
               </>
             )}
 
