@@ -467,6 +467,8 @@ export function FlightSearchDialog({
         {step === "checkout" && checkoutOffer && (
           <FlightBookingCheckout
             offer={checkoutOffer}
+            seatMaps={checkoutSeatMaps}
+            baggageServices={checkoutBaggage}
             loading={bookingLoading}
             onBack={() => setStep("results")}
             onConfirm={handleConfirmBooking}
