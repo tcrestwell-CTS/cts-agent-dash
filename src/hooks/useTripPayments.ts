@@ -26,9 +26,7 @@ export interface TripPayment {
   virtual_card_id: string | null;
   bookings?: {
     id: string;
-    booking_reference: string;
-    destination: string;
-    trip_name: string | null;
+    confirmation_number: string;
     suppliers?: {
       name: string;
       supplier_type: string;
