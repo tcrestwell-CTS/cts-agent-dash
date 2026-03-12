@@ -194,18 +194,30 @@ export function TripBookings({
   const getCommissionStatus = (booking: TripBooking) => {
     const commission = getBookingCommission(booking.id);
     const today = new Date();
-    
+    const rawDepartDate = booking.depart_date ?? departDate;
+
+    const hasValidDepartDate =
+      typeof rawDepartDate === "string" && rawDepartDate.trim().length > 0;
+
+    const expectedDate = hasValidDepartDate
+      ? subDays(parseISO(rawDepartDate), 30)
+      : null;
+
     // If we have a commission record, use its status
     if (commission) {
       if (commission.status === "paid") {
         return <span className="text-primary font-medium">Paid</span>;
       }
+
       if (commission.status === "pending") {
-        // Check if it's available (30 days before depart_date)
-        const expectedDate = subDays(parseISO(booking.depart_date), 30);
+        if (!expectedDate || Number.isNaN(expectedDate.getTime())) {
+          return <span className="text-muted-foreground">Pending</span>;
+        }
+
         if (today >= expectedDate) {
           return <span className="text-primary font-medium">Available</span>;
         }
+
         const daysUntil = differenceInDays(expectedDate, today);
         return (
           <span className="text-muted-foreground">
@@ -214,21 +226,21 @@ export function TripBookings({
         );
       }
     }
-    
-    // No commission record - calculate expected date
-    const expectedDate = subDays(parseISO(booking.depart_date), 30);
-    
-    // If booking is completed
+
+    // If booking is completed, commission is available
     if (booking.status === "completed") {
       return <span className="text-primary font-medium">Available</span>;
     }
-    
-    // If expected date has passed
+
+    // No valid depart date to estimate against
+    if (!expectedDate || Number.isNaN(expectedDate.getTime())) {
+      return <span className="text-muted-foreground">Pending</span>;
+    }
+
     if (today >= expectedDate) {
       return <span className="text-primary font-medium">Available</span>;
     }
-    
-    // Calculate days until expected
+
     const daysUntil = differenceInDays(expectedDate, today);
     return (
       <span className="text-muted-foreground">
