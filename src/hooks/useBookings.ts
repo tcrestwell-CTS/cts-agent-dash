@@ -255,6 +255,7 @@ export function useBookings() {
           net_sales: netSales,
           calculated_commission: commissionRevenue,
           commission_estimate: data.commission_estimate ?? 0,
+          supplier_payout: data.supplier_payout ?? 0,
           commission_override_amount: hasOverride ? data.commission_override_amount : null,
           override_notes: data.override_notes || null,
           override_pending_approval: overridePending,
