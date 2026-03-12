@@ -452,6 +452,7 @@ export type Database = {
           override_pending_approval: boolean | null
           status: string
           supplier_id: string | null
+          supplier_payout: number | null
           total_price: number
           trip_id: string | null
           updated_at: string
@@ -475,6 +476,7 @@ export type Database = {
           override_pending_approval?: boolean | null
           status?: string
           supplier_id?: string | null
+          supplier_payout?: number | null
           total_price?: number
           trip_id?: string | null
           updated_at?: string
@@ -498,6 +500,7 @@ export type Database = {
           override_pending_approval?: boolean | null
           status?: string
           supplier_id?: string | null
+          supplier_payout?: number | null
           total_price?: number
           trip_id?: string | null
           updated_at?: string
