@@ -59,8 +59,18 @@ export function TripSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+  const currentSearch = location.search;
+  const fullPath = currentPath + currentSearch;
 
-  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + "?");
+  const isActive = (path: string) => {
+    // For paths with query params (e.g., /trips/xxx?tab=bookings)
+    if (path.includes("?")) {
+      return fullPath === path || fullPath.startsWith(path + "&");
+    }
+    // For plain paths, match exactly but NOT if there's a tab param
+    // (so Overview doesn't highlight when on ?tab=payments)
+    return currentPath === path && !currentSearch.includes("tab=");
+  };
 
   const navItem = (path: string, icon: React.ReactNode, label: string) => (
     <Button
