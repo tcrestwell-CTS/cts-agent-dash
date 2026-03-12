@@ -390,9 +390,35 @@ export default function PortalPayments() {
 
             {/* CC Authorization — send card info to agent */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowMethodDialog(false);
-                toast.info("Your advisor will send you a secure card authorization form shortly. Please check back soon or contact your agent.");
+                toast.info("Preparing your authorization form...");
+                try {
+                  const portalSession = localStorage.getItem("portal_session");
+                  const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+                  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=notify-payment-method`, {
+                    method: "POST",
+                    headers: {
+                      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                      "x-portal-token": portalToken || "",
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      tripId: selectedPayment?.trip_id,
+                      paymentId: selectedPayment?.id,
+                      method: "cc_to_agent",
+                    }),
+                  });
+                  const result = await res.json();
+                  if (result.ccAccessToken) {
+                    window.location.href = `/authorize/${result.ccAccessToken}`;
+                  } else {
+                    toast.info("Your advisor will send you a secure card authorization form shortly.");
+                  }
+                } catch (err) {
+                  console.error("Error:", err);
+                  toast.error("Something went wrong. Please try again.");
+                }
               }}
               className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
             >
