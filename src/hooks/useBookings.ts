@@ -237,6 +237,9 @@ export function useBookings() {
       const commissionableAmount = netSales;
       const commissionRevenue = netSales * (commissionRate / 100);
 
+      const hasOverride = data.commission_override_amount !== undefined && data.commission_override_amount !== null;
+      const overridePending = hasOverride && data.commission_override_amount! > commissionRevenue;
+
       const { data: newBooking, error } = await supabase
         .from("bookings")
         .insert({
@@ -248,10 +251,13 @@ export function useBookings() {
           supplier_id: data.supplier_id || null,
           gross_sales: grossSales,
           commissionable_amount: commissionableAmount,
-          commission_revenue: commissionRevenue,
+          commission_revenue: hasOverride ? data.commission_override_amount! : commissionRevenue,
           net_sales: netSales,
           calculated_commission: commissionRevenue,
           commission_estimate: data.commission_estimate ?? 0,
+          commission_override_amount: hasOverride ? data.commission_override_amount : null,
+          override_notes: data.override_notes || null,
+          override_pending_approval: overridePending,
         } as any)
         .select("*")
         .single();
