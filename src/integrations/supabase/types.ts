@@ -437,6 +437,7 @@ export type Database = {
         Row: {
           calculated_commission: number | null
           commission_estimate: number | null
+          commission_override_amount: number | null
           commission_revenue: number
           commissionable_amount: number
           confirmation_number: string
@@ -444,6 +445,11 @@ export type Database = {
           gross_sales: number
           id: string
           net_sales: number
+          override_approved: boolean | null
+          override_approved_at: string | null
+          override_approved_by: string | null
+          override_notes: string | null
+          override_pending_approval: boolean | null
           status: string
           supplier_id: string | null
           total_price: number
@@ -454,6 +460,7 @@ export type Database = {
         Insert: {
           calculated_commission?: number | null
           commission_estimate?: number | null
+          commission_override_amount?: number | null
           commission_revenue?: number
           commissionable_amount?: number
           confirmation_number: string
@@ -461,6 +468,11 @@ export type Database = {
           gross_sales?: number
           id?: string
           net_sales?: number
+          override_approved?: boolean | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_notes?: string | null
+          override_pending_approval?: boolean | null
           status?: string
           supplier_id?: string | null
           total_price?: number
@@ -471,6 +483,7 @@ export type Database = {
         Update: {
           calculated_commission?: number | null
           commission_estimate?: number | null
+          commission_override_amount?: number | null
           commission_revenue?: number
           commissionable_amount?: number
           confirmation_number?: string
@@ -478,6 +491,11 @@ export type Database = {
           gross_sales?: number
           id?: string
           net_sales?: number
+          override_approved?: boolean | null
+          override_approved_at?: string | null
+          override_approved_by?: string | null
+          override_notes?: string | null
+          override_pending_approval?: boolean | null
           status?: string
           supplier_id?: string | null
           total_price?: number
