@@ -1256,47 +1256,44 @@ export type Database = {
       }
       featured_trips: {
         Row: {
-          budget_range: string | null
           cover_image_url: string | null
           created_at: string | null
-          depart_date: string | null
-          deposit_amount: number | null
+          description: string | null
           destination: string
+          duration: string | null
+          highlights: string[] | null
           id: string
-          notes: string | null
+          popular: boolean | null
           published: boolean | null
-          return_date: string | null
-          tags: string[] | null
+          starting_from: string | null
           trip_name: string
           trip_type: string | null
         }
         Insert: {
-          budget_range?: string | null
           cover_image_url?: string | null
           created_at?: string | null
-          depart_date?: string | null
-          deposit_amount?: number | null
+          description?: string | null
           destination: string
+          duration?: string | null
+          highlights?: string[] | null
           id?: string
-          notes?: string | null
+          popular?: boolean | null
           published?: boolean | null
-          return_date?: string | null
-          tags?: string[] | null
+          starting_from?: string | null
           trip_name: string
           trip_type?: string | null
         }
         Update: {
-          budget_range?: string | null
           cover_image_url?: string | null
           created_at?: string | null
-          depart_date?: string | null
-          deposit_amount?: number | null
+          description?: string | null
           destination?: string
+          duration?: string | null
+          highlights?: string[] | null
           id?: string
-          notes?: string | null
+          popular?: boolean | null
           published?: boolean | null
-          return_date?: string | null
-          tags?: string[] | null
+          starting_from?: string | null
           trip_name?: string
           trip_type?: string | null
         }

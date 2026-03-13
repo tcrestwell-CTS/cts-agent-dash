@@ -3,13 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -21,9 +18,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, CalendarIcon, Star } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Plus, Pencil, Trash2, Star, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const TRIP_TYPES = [
@@ -41,13 +36,12 @@ type FeaturedTrip = {
   trip_name: string;
   destination: string;
   trip_type: string | null;
-  depart_date: string | null;
-  return_date: string | null;
-  budget_range: string | null;
-  deposit_amount: number | null;
+  duration: string | null;
+  starting_from: string | null;
+  highlights: string[] | null;
+  description: string | null;
+  popular: boolean | null;
   cover_image_url: string | null;
-  tags: string[] | null;
-  notes: string | null;
   published: boolean | null;
 };
 
@@ -55,13 +49,12 @@ const emptyForm = {
   trip_name: "",
   destination: "",
   trip_type: "",
-  depart_date: undefined as Date | undefined,
-  return_date: undefined as Date | undefined,
-  budget_range: "",
-  deposit_amount: "",
+  duration: "",
+  starting_from: "",
+  highlights: "",
+  description: "",
+  popular: false,
   cover_image_url: "",
-  tags: "",
-  notes: "",
   published: false,
 };
 
@@ -90,13 +83,14 @@ export default function FeaturedTrips() {
         trip_name: values.trip_name,
         destination: values.destination,
         trip_type: values.trip_type || null,
-        depart_date: values.depart_date ? format(values.depart_date, "yyyy-MM-dd") : null,
-        return_date: values.return_date ? format(values.return_date, "yyyy-MM-dd") : null,
-        budget_range: values.budget_range || null,
-        deposit_amount: values.deposit_amount ? Number(values.deposit_amount) : null,
+        duration: values.duration || null,
+        starting_from: values.starting_from || null,
+        highlights: values.highlights
+          ? values.highlights.split(",").map((t: string) => t.trim()).filter(Boolean)
+          : null,
+        description: values.description || null,
+        popular: values.popular,
         cover_image_url: values.cover_image_url || null,
-        tags: values.tags ? values.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : null,
-        notes: values.notes || null,
         published: values.published,
       };
       if (values.id) payload.id = values.id;
@@ -148,13 +142,12 @@ export default function FeaturedTrips() {
       trip_name: trip.trip_name,
       destination: trip.destination,
       trip_type: trip.trip_type || "",
-      depart_date: trip.depart_date ? new Date(trip.depart_date + "T00:00:00") : undefined,
-      return_date: trip.return_date ? new Date(trip.return_date + "T00:00:00") : undefined,
-      budget_range: trip.budget_range || "",
-      deposit_amount: trip.deposit_amount?.toString() || "",
+      duration: trip.duration || "",
+      starting_from: trip.starting_from || "",
+      highlights: trip.highlights?.join(", ") || "",
+      description: trip.description || "",
+      popular: trip.popular ?? false,
       cover_image_url: trip.cover_image_url || "",
-      tags: trip.tags?.join(", ") || "",
-      notes: trip.notes || "",
       published: trip.published ?? false,
     });
     setFormOpen(true);
@@ -204,8 +197,9 @@ export default function FeaturedTrips() {
                   <TableHead>Trip Name</TableHead>
                   <TableHead>Destination</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Depart Date</TableHead>
-                  <TableHead>Budget</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Starting From</TableHead>
+                  <TableHead>Popular</TableHead>
                   <TableHead>Published</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -227,10 +221,15 @@ export default function FeaturedTrips() {
                     <TableCell className="font-medium">{trip.trip_name}</TableCell>
                     <TableCell>{trip.destination}</TableCell>
                     <TableCell>{trip.trip_type || "—"}</TableCell>
+                    <TableCell>{trip.duration || "—"}</TableCell>
+                    <TableCell>{trip.starting_from || "—"}</TableCell>
                     <TableCell>
-                      {trip.depart_date ? format(new Date(trip.depart_date + "T00:00:00"), "MMM d, yyyy") : "—"}
+                      {trip.popular ? (
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </TableCell>
-                    <TableCell>{trip.budget_range || "—"}</TableCell>
                     <TableCell>
                       <Switch
                         checked={trip.published ?? false}
@@ -286,50 +285,19 @@ export default function FeaturedTrips() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Budget Range</Label>
-                <Input placeholder='e.g. "From $699/person"' value={form.budget_range} onChange={(e) => setForm({ ...form, budget_range: e.target.value })} />
+                <Label>Duration</Label>
+                <Input placeholder='e.g. "7 nights"' value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Depart Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !form.depart_date && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.depart_date ? format(form.depart_date, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={form.depart_date} onSelect={(d) => setForm({ ...form, depart_date: d ?? undefined })} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
+                <Label>Starting From</Label>
+                <Input placeholder='e.g. "$699/person"' value={form.starting_from} onChange={(e) => setForm({ ...form, starting_from: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Return Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !form.return_date && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.return_date ? format(form.return_date, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={form.return_date} onSelect={(d) => setForm({ ...form, return_date: d ?? undefined })} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Deposit Amount</Label>
-                <Input type="number" placeholder="0.00" value={form.deposit_amount} onChange={(e) => setForm({ ...form, deposit_amount: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tags</Label>
-                <Input placeholder="beach, family, summer" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+                <Label>Highlights</Label>
+                <Input placeholder="beach, spa, dining" value={form.highlights} onChange={(e) => setForm({ ...form, highlights: e.target.value })} />
               </div>
             </div>
 
@@ -342,13 +310,19 @@ export default function FeaturedTrips() {
             </div>
 
             <div className="space-y-2">
-              <Label>Description / Notes</Label>
-              <Textarea rows={4} placeholder="Trip description shown on public website…" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <Label>Description</Label>
+              <Textarea rows={4} placeholder="Trip description shown on public website…" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
 
-            <div className="flex items-center gap-3">
-              <Switch checked={form.published} onCheckedChange={(v) => setForm({ ...form, published: v })} />
-              <Label>Published — visible on public website</Label>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <Switch checked={form.popular} onCheckedChange={(v) => setForm({ ...form, popular: v })} />
+                <Label>Popular trip</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch checked={form.published} onCheckedChange={(v) => setForm({ ...form, published: v })} />
+                <Label>Published — visible on public website</Label>
+              </div>
             </div>
           </div>
 
