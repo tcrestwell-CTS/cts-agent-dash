@@ -30,6 +30,7 @@ import {
   Hotel,
   Wrench,
   Ship,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,6 +85,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Email & Branding", href: "/branding", icon: Mail },
       { name: "Publish Manager", href: "/publish-manager", icon: Globe },
+      { name: "Featured Trips", href: "/featured-trips", icon: Star },
     ],
   },
   {

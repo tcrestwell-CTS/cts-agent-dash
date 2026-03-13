@@ -48,6 +48,7 @@ const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
 const HotelSearch         = lazy(() => import("./pages/HotelSearch"));
 const CruiseSearch        = lazy(() => import("./pages/CruiseSearch"));
 const TripInsurance       = lazy(() => import("./pages/TripInsurance"));
+const FeaturedTrips       = lazy(() => import("./pages/FeaturedTrips"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
@@ -123,6 +124,7 @@ const App = () => (
                 <Route path="/flights" element={<ProtectedRoute><FlightSearch /></ProtectedRoute>} />
                 <Route path="/hotels" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
                 <Route path="/cruises" element={<ProtectedRoute><CruiseSearch /></ProtectedRoute>} />
+                <Route path="/featured-trips" element={<ProtectedRoute><FeaturedTrips /></ProtectedRoute>} />
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
