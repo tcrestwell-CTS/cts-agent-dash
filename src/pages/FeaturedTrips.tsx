@@ -22,12 +22,14 @@ import { Plus, Pencil, Trash2, Star, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const TRIP_TYPES = [
-  "Cruise Vacation",
-  "All-Inclusive Resort",
-  "Family Vacation",
-  "Group Trip",
-  "Luxury Travel",
-  "Honeymoon",
+  "Caribbean",
+  "Mediterranean",
+  "Alaska",
+  "All-Inclusive",
+  "Family",
+  "Europe",
+  "Mexico",
+  "North America",
 ];
 
 type FeaturedTrip = {
@@ -51,7 +53,9 @@ const emptyForm = {
   trip_type: "",
   duration: "",
   starting_from: "",
-  highlights: "",
+  highlight_1: "",
+  highlight_2: "",
+  highlight_3: "",
   description: "",
   popular: false,
   cover_image_url: "",
