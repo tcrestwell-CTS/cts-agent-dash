@@ -124,6 +124,7 @@ const App = () => (
                 <Route path="/flights" element={<ProtectedRoute><FlightSearch /></ProtectedRoute>} />
                 <Route path="/hotels" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
                 <Route path="/cruises" element={<ProtectedRoute><CruiseSearch /></ProtectedRoute>} />
+                <Route path="/featured-trips" element={<ProtectedRoute><FeaturedTrips /></ProtectedRoute>} />
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />

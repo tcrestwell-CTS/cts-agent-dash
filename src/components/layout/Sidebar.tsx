@@ -84,6 +84,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Email & Branding", href: "/branding", icon: Mail },
       { name: "Publish Manager", href: "/publish-manager", icon: Globe },
+      { name: "Featured Trips", href: "/featured-trips", icon: Star },
     ],
   },
   {
