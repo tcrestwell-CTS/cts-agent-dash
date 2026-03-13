@@ -22,12 +22,14 @@ import { Plus, Pencil, Trash2, Star, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const TRIP_TYPES = [
-  "Cruise Vacation",
-  "All-Inclusive Resort",
-  "Family Vacation",
-  "Group Trip",
-  "Luxury Travel",
-  "Honeymoon",
+  "Caribbean",
+  "Mediterranean",
+  "Alaska",
+  "All-Inclusive",
+  "Family",
+  "Europe",
+  "Mexico",
+  "North America",
 ];
 
 type FeaturedTrip = {
@@ -51,7 +53,9 @@ const emptyForm = {
   trip_type: "",
   duration: "",
   starting_from: "",
-  highlights: "",
+  highlight_1: "",
+  highlight_2: "",
+  highlight_3: "",
   description: "",
   popular: false,
   cover_image_url: "",
@@ -79,15 +83,17 @@ export default function FeaturedTrips() {
 
   const upsertMutation = useMutation({
     mutationFn: async (values: typeof form & { id?: string }) => {
+      const highlights = [values.highlight_1, values.highlight_2, values.highlight_3]
+        .map((h) => h.trim())
+        .filter(Boolean);
+
       const payload: Record<string, unknown> = {
         trip_name: values.trip_name,
         destination: values.destination,
         trip_type: values.trip_type || null,
         duration: values.duration || null,
         starting_from: values.starting_from || null,
-        highlights: values.highlights
-          ? values.highlights.split(",").map((t: string) => t.trim()).filter(Boolean)
-          : null,
+        highlights: highlights.length > 0 ? highlights : null,
         description: values.description || null,
         popular: values.popular,
         cover_image_url: values.cover_image_url || null,
@@ -144,7 +150,9 @@ export default function FeaturedTrips() {
       trip_type: trip.trip_type || "",
       duration: trip.duration || "",
       starting_from: trip.starting_from || "",
-      highlights: trip.highlights?.join(", ") || "",
+      highlight_1: trip.highlights?.[0] || "",
+      highlight_2: trip.highlights?.[1] || "",
+      highlight_3: trip.highlights?.[2] || "",
       description: trip.description || "",
       popular: trip.popular ?? false,
       cover_image_url: trip.cover_image_url || "",
@@ -266,11 +274,11 @@ export default function FeaturedTrips() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Trip Name *</Label>
-                <Input value={form.trip_name} onChange={(e) => setForm({ ...form, trip_name: e.target.value })} />
+                <Input value={form.trip_name} onChange={(e) => setForm({ ...form, trip_name: e.target.value })} placeholder="e.g. Western Caribbean Cruise" />
               </div>
               <div className="space-y-2">
                 <Label>Destination *</Label>
-                <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} />
+                <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="e.g. Caribbean" />
               </div>
             </div>
 
@@ -286,24 +294,28 @@ export default function FeaturedTrips() {
               </div>
               <div className="space-y-2">
                 <Label>Duration</Label>
-                <Input placeholder='e.g. "7 nights"' value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
+                <Input placeholder='e.g. "7–10 nights"' value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Starting From</Label>
-                <Input placeholder='e.g. "$699/person"' value={form.starting_from} onChange={(e) => setForm({ ...form, starting_from: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Highlights</Label>
-                <Input placeholder="beach, spa, dining" value={form.highlights} onChange={(e) => setForm({ ...form, highlights: e.target.value })} />
+            <div className="space-y-2">
+              <Label>Starting From</Label>
+              <Input placeholder='e.g. "$699"' value={form.starting_from} onChange={(e) => setForm({ ...form, starting_from: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Displays as "From $699 / person" on the card</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Highlights (up to 3 port/feature tags)</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <Input placeholder="e.g. Cozumel" value={form.highlight_1} onChange={(e) => setForm({ ...form, highlight_1: e.target.value })} />
+                <Input placeholder="e.g. Belize City" value={form.highlight_2} onChange={(e) => setForm({ ...form, highlight_2: e.target.value })} />
+                <Input placeholder="e.g. Roatan" value={form.highlight_3} onChange={(e) => setForm({ ...form, highlight_3: e.target.value })} />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Cover Image URL</Label>
-              <Input placeholder="https://..." value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} />
+              <Input placeholder="https://images.unsplash.com/..." value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} />
               {form.cover_image_url && (
                 <img src={form.cover_image_url} alt="Preview" className="mt-2 rounded-lg max-h-40 object-cover w-full" onError={(e) => (e.currentTarget.style.display = "none")} />
               )}
@@ -311,13 +323,13 @@ export default function FeaturedTrips() {
 
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea rows={4} placeholder="Trip description shown on public website…" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <Textarea rows={4} placeholder="Card body text shown on the public website…" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
 
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
                 <Switch checked={form.popular} onCheckedChange={(v) => setForm({ ...form, popular: v })} />
-                <Label>Popular trip</Label>
+                <Label>Popular — shows gold badge on card</Label>
               </div>
               <div className="flex items-center gap-3">
                 <Switch checked={form.published} onCheckedChange={(v) => setForm({ ...form, published: v })} />
