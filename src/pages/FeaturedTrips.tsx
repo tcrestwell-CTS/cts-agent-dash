@@ -32,20 +32,6 @@ const TRIP_TYPES = [
   "North America",
 ];
 
-type FeaturedTrip = {
-  id: string;
-  created_at: string | null;
-  trip_name: string;
-  destination: string;
-  trip_type: string | null;
-  duration: string | null;
-  starting_from: string | null;
-  highlights: string[] | null;
-  description: string | null;
-  popular: boolean | null;
-  cover_image_url: string | null;
-  published: boolean | null;
-};
 
 const emptyForm = {
   trip_name: "",
