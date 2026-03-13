@@ -1177,6 +1177,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          status?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           client_id: string
@@ -1639,6 +1672,30 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_subscribers: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          email: string
+          id: string
+          source: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          email: string
+          id?: string
+          source?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           client_messages: boolean
@@ -1964,6 +2021,60 @@ export type Database = {
           status?: string
           sync_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      quote_requests: {
+        Row: {
+          budget: string | null
+          created_at: string | null
+          departure_date: string | null
+          destination: string | null
+          email: string
+          first_name: string
+          flexibility: string | null
+          id: string
+          last_name: string
+          message: string | null
+          phone: string | null
+          status: string | null
+          travelers_adults: number
+          travelers_children: number
+          trip_type: string
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          destination?: string | null
+          email: string
+          first_name: string
+          flexibility?: string | null
+          id?: string
+          last_name: string
+          message?: string | null
+          phone?: string | null
+          status?: string | null
+          travelers_adults?: number
+          travelers_children?: number
+          trip_type: string
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          destination?: string | null
+          email?: string
+          first_name?: string
+          flexibility?: string | null
+          id?: string
+          last_name?: string
+          message?: string | null
+          phone?: string | null
+          status?: string | null
+          travelers_adults?: number
+          travelers_children?: number
+          trip_type?: string
         }
         Relationships: []
       }
