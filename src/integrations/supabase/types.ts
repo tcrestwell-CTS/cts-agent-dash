@@ -1254,6 +1254,54 @@ export type Database = {
           },
         ]
       }
+      featured_trips: {
+        Row: {
+          budget_range: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          depart_date: string | null
+          deposit_amount: number | null
+          destination: string
+          id: string
+          notes: string | null
+          published: boolean | null
+          return_date: string | null
+          tags: string[] | null
+          trip_name: string
+          trip_type: string | null
+        }
+        Insert: {
+          budget_range?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          depart_date?: string | null
+          deposit_amount?: number | null
+          destination: string
+          id?: string
+          notes?: string | null
+          published?: boolean | null
+          return_date?: string | null
+          tags?: string[] | null
+          trip_name: string
+          trip_type?: string | null
+        }
+        Update: {
+          budget_range?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          depart_date?: string | null
+          deposit_amount?: number | null
+          destination?: string
+          id?: string
+          notes?: string | null
+          published?: boolean | null
+          return_date?: string | null
+          tags?: string[] | null
+          trip_name?: string
+          trip_type?: string | null
+        }
+        Relationships: []
+      }
       group_signups: {
         Row: {
           created_at: string
