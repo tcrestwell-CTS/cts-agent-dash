@@ -1260,12 +1260,23 @@ export type Database = {
           created_at: string | null
           description: string | null
           destination: string
+          difficulty: string | null
           duration: string | null
+          excluded: string[] | null
+          gallery_images: string[] | null
+          group_size: string | null
           highlights: string[] | null
           id: string
+          included: string[] | null
+          itinerary: Json | null
+          overview: string | null
           popular: boolean | null
           published: boolean | null
+          rating: number | null
+          review_count: number | null
+          slug: string | null
           starting_from: string | null
+          tagline: string | null
           trip_name: string
           trip_type: string | null
         }
@@ -1274,12 +1285,23 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           destination: string
+          difficulty?: string | null
           duration?: string | null
+          excluded?: string[] | null
+          gallery_images?: string[] | null
+          group_size?: string | null
           highlights?: string[] | null
           id?: string
+          included?: string[] | null
+          itinerary?: Json | null
+          overview?: string | null
           popular?: boolean | null
           published?: boolean | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string | null
           starting_from?: string | null
+          tagline?: string | null
           trip_name: string
           trip_type?: string | null
         }
@@ -1288,12 +1310,23 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           destination?: string
+          difficulty?: string | null
           duration?: string | null
+          excluded?: string[] | null
+          gallery_images?: string[] | null
+          group_size?: string | null
           highlights?: string[] | null
           id?: string
+          included?: string[] | null
+          itinerary?: Json | null
+          overview?: string | null
           popular?: boolean | null
           published?: boolean | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string | null
           starting_from?: string | null
+          tagline?: string | null
           trip_name?: string
           trip_type?: string | null
         }
