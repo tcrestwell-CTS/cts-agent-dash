@@ -45,6 +45,7 @@ type FeaturedTrip = {
   popular: boolean | null;
   cover_image_url: string | null;
   published: boolean | null;
+  slug: string | null;
 };
 
 const emptyForm = {
