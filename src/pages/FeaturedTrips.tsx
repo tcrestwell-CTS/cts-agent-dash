@@ -160,6 +160,7 @@ export default function FeaturedTrips() {
       popular: trip.popular ?? false,
       cover_image_url: trip.cover_image_url || "",
       published: trip.published ?? false,
+      slug: trip.slug || "",
     });
     setFormOpen(true);
   };
