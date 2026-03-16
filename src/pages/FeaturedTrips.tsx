@@ -286,6 +286,12 @@ export default function FeaturedTrips() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>URL Slug</Label>
+              <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })} placeholder="e.g. western-caribbean-cruise" />
+              <p className="text-xs text-muted-foreground">Used in the trip detail page URL. Auto-generated from trip name if left blank.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Trip Type</Label>
