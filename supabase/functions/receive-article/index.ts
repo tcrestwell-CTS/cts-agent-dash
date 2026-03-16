@@ -32,24 +32,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Debug: Log all headers
-  const headers: Record<string, string> = {};
-  req.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-  console.log('Incoming headers:', JSON.stringify(headers));
-
   // Verify Authorization header
   const authHeader = req.headers.get('Authorization') || '';
   const token = authHeader.replace('Bearer ', '').trim();
   
-  console.log('Auth header:', authHeader);
-  console.log('Token extracted:', token);
-  console.log('Expected token:', WEBHOOK_TOKEN);
-  console.log('Match:', token === WEBHOOK_TOKEN);
-  
   if (token !== WEBHOOK_TOKEN) {
-    return new Response(JSON.stringify({ error: 'Unauthorized', received: token }), {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
