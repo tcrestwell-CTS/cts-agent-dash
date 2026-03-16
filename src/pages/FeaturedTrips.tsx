@@ -45,6 +45,7 @@ type FeaturedTrip = {
   popular: boolean | null;
   cover_image_url: string | null;
   published: boolean | null;
+  slug: string | null;
 };
 
 const emptyForm = {
@@ -60,6 +61,7 @@ const emptyForm = {
   popular: false,
   cover_image_url: "",
   published: false,
+  slug: "",
 };
 
 export default function FeaturedTrips() {
@@ -98,6 +100,7 @@ export default function FeaturedTrips() {
         popular: values.popular,
         cover_image_url: values.cover_image_url || null,
         published: values.published,
+        slug: values.slug || null,
       };
       if (values.id) payload.id = values.id;
 
@@ -157,6 +160,7 @@ export default function FeaturedTrips() {
       popular: trip.popular ?? false,
       cover_image_url: trip.cover_image_url || "",
       published: trip.published ?? false,
+      slug: trip.slug || "",
     });
     setFormOpen(true);
   };
@@ -280,6 +284,12 @@ export default function FeaturedTrips() {
                 <Label>Destination *</Label>
                 <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} placeholder="e.g. Caribbean" />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>URL Slug</Label>
+              <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') })} placeholder="e.g. western-caribbean-cruise" />
+              <p className="text-xs text-muted-foreground">Used in the trip detail page URL. Auto-generated from trip name if left blank.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
