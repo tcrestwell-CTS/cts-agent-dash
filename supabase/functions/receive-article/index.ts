@@ -21,6 +21,7 @@ function calcReadingTime(html: string): number {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,8 +32,10 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Verify Authorization header
   const authHeader = req.headers.get('Authorization') || '';
   const token = authHeader.replace('Bearer ', '').trim();
+  
   if (token !== WEBHOOK_TOKEN) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
