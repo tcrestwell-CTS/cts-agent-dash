@@ -61,6 +61,7 @@ const emptyForm = {
   popular: false,
   cover_image_url: "",
   published: false,
+  slug: "",
 };
 
 export default function FeaturedTrips() {
