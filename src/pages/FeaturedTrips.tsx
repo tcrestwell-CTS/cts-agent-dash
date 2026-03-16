@@ -100,6 +100,7 @@ export default function FeaturedTrips() {
         popular: values.popular,
         cover_image_url: values.cover_image_url || null,
         published: values.published,
+        slug: values.slug || null,
       };
       if (values.id) payload.id = values.id;
 
