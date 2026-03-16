@@ -347,6 +347,69 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          content_html: string | null
+          content_markdown: string | null
+          created_at: string | null
+          faq_schema: Json | null
+          hero_image_alt: string | null
+          hero_image_url: string | null
+          id: number
+          infographic_url: string | null
+          language: string | null
+          meta_description: string | null
+          meta_keywords: string | null
+          published_at: string | null
+          reading_time: number | null
+          received_at: string | null
+          slug: string
+          tags: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_html?: string | null
+          content_markdown?: string | null
+          created_at?: string | null
+          faq_schema?: Json | null
+          hero_image_alt?: string | null
+          hero_image_url?: string | null
+          id: number
+          infographic_url?: string | null
+          language?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          published_at?: string | null
+          reading_time?: number | null
+          received_at?: string | null
+          slug: string
+          tags?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_html?: string | null
+          content_markdown?: string | null
+          created_at?: string | null
+          faq_schema?: Json | null
+          hero_image_alt?: string | null
+          hero_image_url?: string | null
+          id?: number
+          infographic_url?: string | null
+          language?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          published_at?: string | null
+          reading_time?: number | null
+          received_at?: string | null
+          slug?: string
+          tags?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       booking_commission_lines: {
         Row: {
           amount: number
