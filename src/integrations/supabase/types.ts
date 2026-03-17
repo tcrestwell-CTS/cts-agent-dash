@@ -733,6 +733,69 @@ export type Database = {
           },
         ]
       }
+      checkout_payments: {
+        Row: {
+          affirm_charge_id: string | null
+          amount_cents: number
+          booking_ref: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          payment_method: string
+          payment_type: string | null
+          status: string | null
+          stripe_client_secret: string | null
+          stripe_payment_intent_id: string | null
+          trip_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          affirm_charge_id?: string | null
+          amount_cents: number
+          booking_ref?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          payment_method: string
+          payment_type?: string | null
+          status?: string | null
+          stripe_client_secret?: string | null
+          stripe_payment_intent_id?: string | null
+          trip_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          affirm_charge_id?: string | null
+          amount_cents?: number
+          booking_ref?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          payment_method?: string
+          payment_type?: string | null
+          status?: string | null
+          stripe_client_secret?: string | null
+          stripe_payment_intent_id?: string | null
+          trip_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       client_companions: {
         Row: {
           birthday: string | null
