@@ -156,7 +156,6 @@ export function TripSidebar({
             </Button>
           )}
           <SendInviteLinkDialog
-            defaultClientName={clientName || ""}
             defaultClientEmail={clientEmail || ""}
             defaultTripName={tripName || ""}
             tripTotalAmount={tripTotalAmount}
