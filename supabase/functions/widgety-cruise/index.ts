@@ -120,6 +120,42 @@ serve(async (req: Request) => {
         });
       }
 
+      // If date-filtered search returned 0 results, retry without dates
+      if ((params.date_from || params.date_to) && data.total === 0) {
+        console.log("Date-filtered search returned 0 results, retrying without date filters");
+        const noDateParams = new URLSearchParams({
+          app_id: WIDGETY_APP_ID,
+          token: WIDGETY_TOKEN,
+          market: params.market || "us",
+        });
+        if (params.operators) noDateParams.set("operators", params.operators);
+        if (params.locations) noDateParams.set("locations", params.locations);
+        if (params.regions) noDateParams.set("regions", params.regions);
+        if (params.page) noDateParams.set("page", String(params.page));
+        noDateParams.set("limit", String(params.limit || 25));
+
+        const noDateUrl = `${WIDGETY_BASE}/holidays.json?${noDateParams.toString()}`;
+        const noDateResp = await fetch(noDateUrl);
+        if (noDateResp.ok) {
+          const noDateData = await noDateResp.json();
+          if (noDateData.holidays) {
+            for (const h of noDateData.holidays) {
+              const opMatch = h.operator?.match(/operators\/([^.]+)\.json/);
+              const opSlug = opMatch?.[1];
+              h.image_url = (opSlug && operatorImages[opSlug]) || operatorImages[h.operator_title] || null;
+            }
+          }
+          if (noDateData.total > 0) {
+            noDateData._date_filter_removed = true;
+            return new Response(JSON.stringify(noDateData), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          await noDateResp.text();
+        }
+      }
+
       // Fallback: try V2 Cruises API (/cruises.json)
       const v2Params = new URLSearchParams({
         app_id: WIDGETY_APP_ID,
