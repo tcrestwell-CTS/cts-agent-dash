@@ -364,7 +364,9 @@ const TripDetail = () => {
             tripId={tripId!}
             parentTripId={trip.parent_trip_id}
             clientId={trip.client_id}
+            clientName={trip.clients?.name}
             clientEmail={trip.clients?.email}
+            tripName={trip.trip_name}
             tripStatus={trip.status}
             hasPayments={hasPayments}
             isSendingPortalLink={isSendingPortalLink}
