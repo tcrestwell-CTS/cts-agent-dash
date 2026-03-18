@@ -314,6 +314,125 @@ export default function QBOHealth() {
           </Card>
         )}
 
+        {/* Stripe Payouts (from Stripe API) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Landmark className="h-5 w-5" />
+                  Stripe Deposits & Payouts
+                </CardTitle>
+                <CardDescription>Real-time payout data pulled from your Stripe account</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={loadStripePayouts} disabled={loadingPayouts}>
+                {loadingPayouts ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                {stripePayouts ? "Refresh" : "Load Payouts"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingPayouts ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : !stripePayouts ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Landmark className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Loading Stripe payout data...</p>
+              </div>
+            ) : stripePayouts.error ? (
+              <div className="text-center py-8 text-destructive">
+                <AlertTriangle className="h-10 w-10 mx-auto mb-3 opacity-60" />
+                <p className="text-sm font-medium">{stripePayouts.error}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Balance Summary */}
+                {stripePayouts.balance && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Available</p>
+                      <p className="text-lg font-bold text-emerald-600">
+                        ${stripePayouts.balance.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Pending</p>
+                      <p className="text-lg font-bold text-foreground">
+                        ${stripePayouts.balance.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Incoming (Recent)</p>
+                      <p className="text-lg font-bold text-foreground">
+                        ${stripePayouts.summary?.incoming?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Processing Fees</p>
+                      <p className="text-lg font-bold text-destructive">
+                        ${stripePayouts.summary?.fees?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payouts Table */}
+                {stripePayouts.payouts?.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Destination</TableHead>
+                          <TableHead>Arrive By</TableHead>
+                          <TableHead>Method</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {stripePayouts.payouts.map((payout: any) => (
+                          <TableRow key={payout.id}>
+                            <TableCell className="font-mono font-semibold text-sm">
+                              ${payout.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={payout.status === "paid" ? "default" : payout.status === "in_transit" ? "secondary" : "outline"}
+                                className="capitalize text-[10px]"
+                              >
+                                {payout.status === "in_transit" ? "In Transit" : payout.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {payout.destination || "—"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {format(new Date(payout.arrival_date + "T12:00:00"), "MMM d, yyyy")}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground capitalize">
+                              {payout.method || "standard"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p className="text-sm">No payouts found</p>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground text-right">
+                  {stripePayouts.payouts?.length || 0} payout(s) shown
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Stripe Reconciliation Report */}
         {status.connected && (
           <Card>
