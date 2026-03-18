@@ -63,17 +63,54 @@ serve(async (req: Request) => {
       if (params.page) searchParams.set("page", String(params.page));
       searchParams.set("limit", String(params.limit || 25));
 
-      // Try V3 Holidays API first (without cruise type filter since some operators aren't tagged)
+      // Fetch operators for images (in parallel with search)
+      const operatorsParams = new URLSearchParams({
+        app_id: WIDGETY_APP_ID,
+        token: WIDGETY_TOKEN,
+      });
+      const operatorsUrl = `${WIDGETY_BASE}/operators.json?${operatorsParams.toString()}`;
+
+      // Try V3 Holidays API
       const url = `${WIDGETY_BASE}/holidays.json?${searchParams.toString()}`;
       console.log("Widgety search URL:", url.replace(WIDGETY_TOKEN, "***"));
 
-      const resp = await fetch(url);
+      const [resp, opsResp] = await Promise.all([
+        fetch(url),
+        fetch(operatorsUrl),
+      ]);
+
       if (!resp.ok) {
         const text = await resp.text();
         console.error("Widgety search error:", resp.status, text);
         throw new Error(`Widgety API error: ${resp.status} - ${text}`);
       }
       const data = await resp.json();
+
+      // Build operator slug -> image map
+      const operatorImages: Record<string, string> = {};
+      if (opsResp.ok) {
+        const opsData = await opsResp.json();
+        for (const op of opsData.operators || []) {
+          if (op.slug && op.cover_image_href) {
+            operatorImages[op.slug] = op.cover_image_href;
+          }
+          if (op.slug && op.title) {
+            operatorImages[op.title] = op.cover_image_href || "";
+          }
+        }
+      } else {
+        await opsResp.text(); // consume body
+      }
+
+      // Enrich holidays with operator images
+      if (data.holidays) {
+        for (const h of data.holidays) {
+          // Extract operator slug from operator URL
+          const opMatch = h.operator?.match(/operators\/([^.]+)\.json/);
+          const opSlug = opMatch?.[1];
+          h.image_url = (opSlug && operatorImages[opSlug]) || operatorImages[h.operator_title] || null;
+        }
+      }
 
       // If V3 returned results, use them
       if (data.total > 0) {
@@ -99,7 +136,14 @@ serve(async (req: Request) => {
       const v2Resp = await fetch(v2Url);
       if (v2Resp.ok) {
         const v2Data = await v2Resp.json();
-        // Normalize V2 response to V3-like format if needed
+        // Enrich V2 results too
+        if (v2Data.holidays) {
+          for (const h of v2Data.holidays) {
+            const opMatch = h.operator?.match(/operators\/([^.]+)\.json/);
+            const opSlug = opMatch?.[1];
+            h.image_url = (opSlug && operatorImages[opSlug]) || operatorImages[h.operator_title] || null;
+          }
+        }
         return new Response(JSON.stringify(v2Data), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
