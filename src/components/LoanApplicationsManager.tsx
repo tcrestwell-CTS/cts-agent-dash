@@ -167,6 +167,7 @@ export default function LoanApplicationsManager() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [notes, setNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [approvedAmount, setApprovedAmount] = useState("");
