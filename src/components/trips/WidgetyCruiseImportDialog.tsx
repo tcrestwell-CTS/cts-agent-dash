@@ -164,8 +164,10 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         limit: 25,
       });
 
+      if (data._date_filter_removed) {
+        toast.info("No cruises found for those dates. Showing all available sailings instead.");
+      }
       setSailings(data.holidays || []);
-      setTotalResults(data.total || 0);
 
       if ((data.holidays || []).length === 0) {
         toast.info("No auto-match found. Try searching manually.");
@@ -197,6 +199,9 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
       if (dateTo) params.date_to = dateTo;
 
       const data = await callWidgety(params);
+      if (data._date_filter_removed) {
+        toast.info("No cruises found for those dates. Showing all available sailings instead.");
+      }
       setSailings(data.holidays || []);
       setTotalResults(data.total || 0);
 
