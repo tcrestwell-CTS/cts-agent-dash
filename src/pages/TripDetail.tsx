@@ -95,6 +95,7 @@ const TripDetail = () => {
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   const { processStatusChange } = useWorkflowAutomation();
   const { addItem: addItineraryItem } = useItinerary(tripId);
