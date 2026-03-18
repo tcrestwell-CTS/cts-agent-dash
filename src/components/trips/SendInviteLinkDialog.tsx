@@ -106,6 +106,7 @@ export function SendInviteLinkDialog({
           },
           body: JSON.stringify({
             link_type: linkType,
+            client_name: clientName.trim(),
             client_email: clientEmail.trim(),
             booking_ref: bookingRef.trim() || undefined,
             trip_name: tripName.trim() || undefined,
