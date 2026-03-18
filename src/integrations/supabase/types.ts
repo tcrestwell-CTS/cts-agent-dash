@@ -1843,6 +1843,189 @@ export type Database = {
           },
         ]
       }
+      loan_applications: {
+        Row: {
+          address_line1: string
+          address_line2: string | null
+          agent_notes: string | null
+          alt_phone: string | null
+          application_number: string | null
+          approved_amount: number | null
+          approved_rate: number | null
+          approved_term_months: number | null
+          assigned_to: string | null
+          bankruptcy_details: string | null
+          bankruptcy_history: boolean | null
+          checking_account: boolean | null
+          city: string
+          consent_credit_check: boolean
+          consent_terms: boolean
+          created_at: string | null
+          date_of_birth: string
+          decision_date: string | null
+          decision_notes: string | null
+          down_payment: number | null
+          email: string
+          employer_name: string | null
+          employment_status: string
+          esignature: string | null
+          first_name: string
+          housing_status: string | null
+          id: string
+          ip_address: string | null
+          job_title: string | null
+          last_name: string
+          loan_amount_requested: number
+          loan_purpose: string | null
+          monthly_car_payment: number | null
+          monthly_income: number | null
+          monthly_other_debt: number | null
+          monthly_rent_mortgage: number | null
+          other_income: number | null
+          other_income_source: string | null
+          phone: string
+          preferred_term_months: number | null
+          reference1_name: string | null
+          reference1_phone: string | null
+          reference1_relation: string | null
+          reference2_name: string | null
+          reference2_phone: string | null
+          reference2_relation: string | null
+          savings_account: boolean | null
+          signed_at: string | null
+          ssn_last_four: string | null
+          state: string
+          status: string | null
+          travel_date: string | null
+          trip_description: string | null
+          updated_at: string | null
+          user_agent: string | null
+          years_at_address: string | null
+          years_employed: string | null
+          zip_code: string
+        }
+        Insert: {
+          address_line1: string
+          address_line2?: string | null
+          agent_notes?: string | null
+          alt_phone?: string | null
+          application_number?: string | null
+          approved_amount?: number | null
+          approved_rate?: number | null
+          approved_term_months?: number | null
+          assigned_to?: string | null
+          bankruptcy_details?: string | null
+          bankruptcy_history?: boolean | null
+          checking_account?: boolean | null
+          city: string
+          consent_credit_check?: boolean
+          consent_terms?: boolean
+          created_at?: string | null
+          date_of_birth: string
+          decision_date?: string | null
+          decision_notes?: string | null
+          down_payment?: number | null
+          email: string
+          employer_name?: string | null
+          employment_status: string
+          esignature?: string | null
+          first_name: string
+          housing_status?: string | null
+          id?: string
+          ip_address?: string | null
+          job_title?: string | null
+          last_name: string
+          loan_amount_requested: number
+          loan_purpose?: string | null
+          monthly_car_payment?: number | null
+          monthly_income?: number | null
+          monthly_other_debt?: number | null
+          monthly_rent_mortgage?: number | null
+          other_income?: number | null
+          other_income_source?: string | null
+          phone: string
+          preferred_term_months?: number | null
+          reference1_name?: string | null
+          reference1_phone?: string | null
+          reference1_relation?: string | null
+          reference2_name?: string | null
+          reference2_phone?: string | null
+          reference2_relation?: string | null
+          savings_account?: boolean | null
+          signed_at?: string | null
+          ssn_last_four?: string | null
+          state: string
+          status?: string | null
+          travel_date?: string | null
+          trip_description?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          years_at_address?: string | null
+          years_employed?: string | null
+          zip_code: string
+        }
+        Update: {
+          address_line1?: string
+          address_line2?: string | null
+          agent_notes?: string | null
+          alt_phone?: string | null
+          application_number?: string | null
+          approved_amount?: number | null
+          approved_rate?: number | null
+          approved_term_months?: number | null
+          assigned_to?: string | null
+          bankruptcy_details?: string | null
+          bankruptcy_history?: boolean | null
+          checking_account?: boolean | null
+          city?: string
+          consent_credit_check?: boolean
+          consent_terms?: boolean
+          created_at?: string | null
+          date_of_birth?: string
+          decision_date?: string | null
+          decision_notes?: string | null
+          down_payment?: number | null
+          email?: string
+          employer_name?: string | null
+          employment_status?: string
+          esignature?: string | null
+          first_name?: string
+          housing_status?: string | null
+          id?: string
+          ip_address?: string | null
+          job_title?: string | null
+          last_name?: string
+          loan_amount_requested?: number
+          loan_purpose?: string | null
+          monthly_car_payment?: number | null
+          monthly_income?: number | null
+          monthly_other_debt?: number | null
+          monthly_rent_mortgage?: number | null
+          other_income?: number | null
+          other_income_source?: string | null
+          phone?: string
+          preferred_term_months?: number | null
+          reference1_name?: string | null
+          reference1_phone?: string | null
+          reference1_relation?: string | null
+          reference2_name?: string | null
+          reference2_phone?: string | null
+          reference2_relation?: string | null
+          savings_account?: boolean | null
+          signed_at?: string | null
+          ssn_last_four?: string | null
+          state?: string
+          status?: string | null
+          travel_date?: string | null
+          trip_description?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          years_at_address?: string | null
+          years_employed?: string | null
+          zip_code?: string
+        }
+        Relationships: []
+      }
       mentor_assignments: {
         Row: {
           assigned_by: string
