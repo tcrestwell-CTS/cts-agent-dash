@@ -197,6 +197,9 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
       if (dateTo) params.date_to = dateTo;
 
       const data = await callWidgety(params);
+      if (data._date_filter_removed) {
+        toast.info("No cruises found for those dates. Showing all available sailings instead.");
+      }
       setSailings(data.holidays || []);
       setTotalResults(data.total || 0);
 
