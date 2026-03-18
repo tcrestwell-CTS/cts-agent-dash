@@ -829,14 +829,25 @@ serve(async (req) => {
     // Looks for trip_payments where: payment_method = 'stripe', status = 'completed',
     // and no matching qbo_sync_log entry with sync_type = 'auto-deposit-posted'.
     if (urlPath === "sync-stripe-deposits" && req.method === "POST") {
-      // Fetch all completed Stripe deposits for this user
-      const { data: deposits, error: depErr } = await supabaseAdmin
+      // Fetch all completed Stripe/payment-related deposits for this user
+      // Broadened filter: match any completed payment that came through Stripe
+      // (stripe_session_id set, or payment_method/payment_method_choice indicates stripe)
+      const { data: allCompleted, error: depErr } = await supabaseAdmin
         .from("trip_payments")
         .select("*, trips(client_id, trip_name)")
         .eq("user_id", userId)
-        .eq("status", "completed")
-        .eq("payment_type", "deposit")
-        .not("stripe_session_id", "is", null);
+        .eq("status", "completed");
+
+      if (depErr) throw new Error(`Failed to fetch deposits: ${depErr.message}`);
+      
+      // Filter to Stripe-related payments (has stripe_session_id, or payment method is stripe)
+      const deposits = (allCompleted || []).filter((p: any) =>
+        p.stripe_session_id ||
+        p.payment_method_choice === "stripe" ||
+        p.payment_method === "stripe" ||
+        p.payment_method === "credit_card" ||
+        p.payment_type === "deposit"
+      );
 
       if (depErr) throw new Error(`Failed to fetch deposits: ${depErr.message}`);
       if (!deposits || deposits.length === 0) {
