@@ -46,6 +46,7 @@ import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
 
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
+import { EditTripDialog } from "@/components/trips/EditTripDialog";
 import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useItinerary } from "@/hooks/useItinerary";
@@ -94,6 +95,7 @@ const TripDetail = () => {
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   const { processStatusChange } = useWorkflowAutomation();
   const { addItem: addItineraryItem } = useItinerary(tripId);
@@ -412,8 +414,12 @@ const TripDetail = () => {
             {/* Trip Details & Financials */}
             <div className={isGroupTrip ? "grid gap-6 md:grid-cols-2" : "grid gap-6 lg:grid-cols-3"}>
               <Card className={isGroupTrip ? "" : "lg:col-span-2"}>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Trip Details</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setEditDialogOpen(true)}>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -697,6 +703,13 @@ const TripDetail = () => {
           </div>
         </div>
       </div>
+
+      <EditTripDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        trip={trip}
+        onUpdated={fetchTrip}
+      />
     </DashboardLayout>
   );
 };
