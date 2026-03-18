@@ -46,6 +46,7 @@ import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
 
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
+import { EditTripDialog } from "@/components/trips/EditTripDialog";
 import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useItinerary } from "@/hooks/useItinerary";
