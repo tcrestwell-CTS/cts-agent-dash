@@ -34,6 +34,7 @@ interface SendInviteLinkDialogProps {
 }
 
 export function SendInviteLinkDialog({
+  defaultClientName = "",
   defaultClientEmail = "",
   defaultTripName = "",
   defaultBookingRef = "",
@@ -45,6 +46,7 @@ export function SendInviteLinkDialog({
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
 
+  const [clientName, setClientName] = useState(defaultClientName);
   const [clientEmail, setClientEmail] = useState(defaultClientEmail);
   const [linkType, setLinkType] = useState<string>("payment");
   const [bookingRef, setBookingRef] = useState(defaultBookingRef);
