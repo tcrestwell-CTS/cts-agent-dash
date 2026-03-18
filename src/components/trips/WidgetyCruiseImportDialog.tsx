@@ -118,6 +118,8 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFrom, setDateFrom] = useState(departDate || "");
   const [dateTo, setDateTo] = useState(returnDate || "");
+  const [sailingYearFilter, setSailingYearFilter] = useState<string>("all");
+  const [sailingMonthFilter, setSailingMonthFilter] = useState<string>("all");
 
   // Results
   const [sailings, setSailings] = useState<WidgetySailing[]>([]);
