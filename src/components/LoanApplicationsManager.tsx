@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Eye } from "lucide-react";
+import { ArrowLeft, RefreshCw, Eye, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 type LoanApplication = {
@@ -167,6 +167,7 @@ export default function LoanApplicationsManager() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [notes, setNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [approvedAmount, setApprovedAmount] = useState("");
@@ -227,6 +228,41 @@ export default function LoanApplicationsManager() {
     await fetchApplications();
     setSelected((prev) => (prev ? ({ ...prev, ...update } as LoanApplication) : prev));
     setSaving(false);
+  };
+
+  const sendApprovalEmail = async () => {
+    if (!selected || selected.status !== "approved") return;
+    if (!selected.approved_amount || !selected.approved_term_months) {
+      toast.error("Please save approved amount and term before sending email");
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: selected.email,
+          subject: `🎉 Your Travel Financing Has Been Approved! — ${selected.application_number}`,
+          template: "loan_approval",
+          data: {
+            clientName: `${selected.first_name} ${selected.last_name}`,
+            applicationNumber: selected.application_number,
+            approvedAmount: selected.approved_amount.toString(),
+            approvedRate: (selected.approved_rate || 4.7).toString(),
+            approvedTermMonths: selected.approved_term_months.toString(),
+            tripDescription: selected.trip_description || "",
+            decisionNotes: selected.decision_notes || "",
+          },
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to send");
+      toast.success("Approval email sent to " + selected.email);
+    } catch (err) {
+      console.error("Error sending approval email:", err);
+      toast.error("Failed to send approval email");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const filtered = applications.filter((a) => {
@@ -439,6 +475,18 @@ export default function LoanApplicationsManager() {
                 <Button onClick={saveDecision} disabled={saving} className="w-full">
                   {saving ? "Saving..." : "Save Decision"}
                 </Button>
+
+                {selected.status === "approved" && selected.approved_amount && selected.approved_term_months && (
+                  <Button
+                    onClick={sendApprovalEmail}
+                    disabled={sendingEmail}
+                    variant="outline"
+                    className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <Mail className="h-4 w-4 mr-1.5" />
+                    {sendingEmail ? "Sending..." : "Send Approval Email"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
 

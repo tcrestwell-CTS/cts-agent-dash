@@ -16,7 +16,7 @@ interface Attachment {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "custom";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "loan_approval" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
   clientId?: string;
@@ -359,6 +359,123 @@ const handler = async (req: Request): Promise<Response> => {
               <a href="${proposalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Review Your Proposal</a>
             </div>
             <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">If you have any questions or would like to make changes, simply reply to this email or reach out to your advisor directly.</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "loan_approval":
+        const loanClientName = templateData?.clientName || "Valued Customer";
+        const loanAppNumber = templateData?.applicationNumber || "N/A";
+        const loanApprovedAmount = parseFloat(templateData?.approvedAmount || "0");
+        const loanRate = parseFloat(templateData?.approvedRate || "4.7");
+        const loanTermMonths = parseInt(templateData?.approvedTermMonths || "24");
+        const loanTripDescription = templateData?.tripDescription || "";
+        const loanDecisionNotes = templateData?.decisionNotes || "";
+
+        // Calculate monthly payment using standard amortization formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+        const monthlyRate = (loanRate / 100) / 12;
+        const numPayments = loanTermMonths;
+        const monthlyPayment = monthlyRate > 0
+          ? loanApprovedAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
+          : loanApprovedAmount / numPayments;
+        const totalPayment = monthlyPayment * numPayments;
+        const totalInterest = totalPayment - loanApprovedAmount;
+
+        // Build amortization schedule rows (show first 6 months, then summary)
+        let scheduleHtml = "";
+        let balance = loanApprovedAmount;
+        const maxRows = Math.min(numPayments, 6);
+        for (let i = 1; i <= maxRows; i++) {
+          const interestPortion = balance * monthlyRate;
+          const principalPortion = monthlyPayment - interestPortion;
+          balance -= principalPortion;
+          scheduleHtml += `
+            <tr>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center; font-size: 13px; color: #374151;">${i}</td>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">$${monthlyPayment.toFixed(2)}</td>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">$${principalPortion.toFixed(2)}</td>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">$${interestPortion.toFixed(2)}</td>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">$${Math.max(balance, 0).toFixed(2)}</td>
+            </tr>`;
+        }
+        if (numPayments > 6) {
+          scheduleHtml += `
+            <tr>
+              <td colspan="5" style="padding: 10px 12px; text-align: center; font-size: 12px; color: #6b7280; font-style: italic;">
+                ... ${numPayments - 6} more payments of $${monthlyPayment.toFixed(2)}/mo until paid in full
+              </td>
+            </tr>`;
+        }
+
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              ${logoHtml}
+              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
+            </div>
+            <div style="text-align: center; margin-bottom: 24px;">
+              <span style="display: inline-block; background-color: #dcfce7; color: #166534; padding: 8px 24px; border-radius: 24px; font-weight: 600; font-size: 15px;">✅ Financing Approved!</span>
+            </div>
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${loanClientName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Great news! Your travel financing application <strong>(${loanAppNumber})</strong> has been <strong style="color: #166534;">approved</strong>. Below are the details of your financing plan:</p>
+            
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #166534; font-size: 15px;">Financing Summary</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Approved Amount</td>
+                  <td style="padding: 6px 0; text-align: right; color: #166534; font-size: 18px; font-weight: 700;">$${loanApprovedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Annual Rate (APR)</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${loanRate}%</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Loan Term</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${loanTermMonths} months</td>
+                </tr>
+                <tr style="border-top: 2px solid #86efac;">
+                  <td style="padding: 10px 0 6px; color: ${primaryColor}; font-size: 14px; font-weight: 600;">Monthly Payment</td>
+                  <td style="padding: 10px 0 6px; text-align: right; color: ${primaryColor}; font-size: 20px; font-weight: 700;">$${monthlyPayment.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 4px 0; color: #6b7280; font-size: 13px;">Total Interest</td>
+                  <td style="padding: 4px 0; text-align: right; color: #6b7280; font-size: 13px;">$${totalInterest.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 4px 0; color: #6b7280; font-size: 13px;">Total Repayment</td>
+                  <td style="padding: 4px 0; text-align: right; color: #6b7280; font-size: 13px;">$${totalPayment.toFixed(2)}</td>
+                </tr>
+              </table>
+            </div>
+
+            <h3 style="color: #1f2937; font-size: 15px; margin: 28px 0 12px;">Payment Schedule</h3>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <thead>
+                  <tr style="background-color: #f9fafb;">
+                    <th style="padding: 10px 12px; text-align: center; font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em;">Month</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em;">Payment</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em;">Principal</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em;">Interest</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em;">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${scheduleHtml}
+                </tbody>
+              </table>
+            </div>
+
+            ${loanTripDescription ? `<p style="color: #4b5563; line-height: 1.6; margin-top: 24px;"><strong>Trip:</strong> ${loanTripDescription}</p>` : ""}
+            ${loanDecisionNotes ? `<p style="color: #4b5563; line-height: 1.6;"><strong>Note from your advisor:</strong> ${loanDecisionNotes}</p>` : ""}
+            
+            <p style="color: #4b5563; line-height: 1.6; margin-top: 24px;">To finalize your financing and proceed with booking, please contact your travel advisor or reply to this email.</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${clientPortalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Access Your Portal</a>
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin-top: 24px;">This financing offer is subject to the terms and conditions outlined in your agreement. The APR of ${loanRate}% is fixed for the duration of the loan term. Payments are due monthly from the date of financing activation.</p>
             ${footerHtml}
           </div>
         `;
