@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       valid: true,
       link_type: normalizeLinkType(link.link_type),
+      payment_type: link.payment_type || 'custom',
       client_name: link.client_name,
       client_email: link.client_email,
       booking_ref: link.booking_ref,
