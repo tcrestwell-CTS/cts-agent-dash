@@ -2519,6 +2519,63 @@ export type Database = {
           },
         ]
       }
+      secure_links: {
+        Row: {
+          active: boolean | null
+          amount: number | null
+          booking_ref: string | null
+          client_email: string
+          client_name: string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          link_type: string
+          notes: string | null
+          single_use: boolean | null
+          token: string
+          trip_name: string | null
+          used_at: string | null
+          used_ip: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          amount?: number | null
+          booking_ref?: string | null
+          client_email: string
+          client_name: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          link_type: string
+          notes?: string | null
+          single_use?: boolean | null
+          token: string
+          trip_name?: string | null
+          used_at?: string | null
+          used_ip?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          amount?: number | null
+          booking_ref?: string | null
+          client_email?: string
+          client_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          link_type?: string
+          notes?: string | null
+          single_use?: boolean | null
+          token?: string
+          trip_name?: string | null
+          used_at?: string | null
+          used_ip?: string | null
+        }
+        Relationships: []
+      }
       signup_verification_codes: {
         Row: {
           code: string
