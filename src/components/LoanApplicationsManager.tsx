@@ -478,17 +478,23 @@ export default function LoanApplicationsManager() {
 
                 {(newStatus === "approved" || selected.status === "approved") && (
                   <Button
-                    onClick={sendApprovalEmail}
-                    disabled={sendingEmail || !approvedAmount || !approvedTerm || selected.status !== "approved"}
+                    onClick={async () => {
+                      if (selected.status !== "approved") {
+                        toast.error("Please save the decision first");
+                        return;
+                      }
+                      if (!approvedAmount || !approvedTerm) {
+                        toast.error("Please fill in approved amount and term, then save");
+                        return;
+                      }
+                      await sendApprovalEmail();
+                    }}
+                    disabled={sendingEmail}
                     variant="outline"
                     className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                   >
                     <Mail className="h-4 w-4 mr-1.5" />
-                    {selected.status !== "approved"
-                      ? "Save Decision First"
-                      : sendingEmail
-                        ? "Sending..."
-                        : "Send Approval Email"}
+                    {sendingEmail ? "Sending..." : "Send Approval Email"}
                   </Button>
                 )}
               </CardContent>
