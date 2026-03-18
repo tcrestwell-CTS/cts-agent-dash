@@ -8,10 +8,12 @@ import {
   Loader2,
   Map,
   Plane,
+  Send,
   ShieldCheck,
   Trash2,
   Users,
 } from "lucide-react";
+import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
 import {
   Tooltip,
   TooltipContent,
@@ -35,7 +37,9 @@ interface TripSidebarProps {
   tripId: string;
   parentTripId?: string | null;
   clientId?: string | null;
+  clientName?: string | null;
   clientEmail?: string | null;
+  tripName?: string | null;
   tripStatus: string;
   hasPayments: boolean;
   isSendingPortalLink?: boolean;
@@ -48,7 +52,9 @@ export function TripSidebar({
   tripId,
   parentTripId,
   clientId,
+  clientName,
   clientEmail,
+  tripName,
   tripStatus,
   hasPayments,
   isSendingPortalLink = false,
@@ -143,6 +149,11 @@ export function TripSidebar({
               Portal Link
             </Button>
           )}
+          <SendInviteLinkDialog
+            defaultClientName={clientName || ""}
+            defaultClientEmail={clientEmail || ""}
+            defaultTripName={tripName || ""}
+          />
         </div>
 
         {/* Advisor Tools Section */}
