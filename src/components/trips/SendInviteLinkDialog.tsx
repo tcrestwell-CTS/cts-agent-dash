@@ -178,12 +178,13 @@ export function SendInviteLinkDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="linkType">Link Type</Label>
-              <Select value={linkType} onValueChange={setLinkType}>
+              <Select value={linkType} onValueChange={handleLinkTypeChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="payment">Payment</SelectItem>
+                  <SelectItem value="payment">Full Payment</SelectItem>
+                  <SelectItem value="deposit">Deposit</SelectItem>
                   <SelectItem value="financing">Financing</SelectItem>
                 </SelectContent>
               </Select>
