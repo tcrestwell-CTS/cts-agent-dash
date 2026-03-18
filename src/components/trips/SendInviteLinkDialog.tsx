@@ -34,7 +34,6 @@ interface SendInviteLinkDialogProps {
 
 export function SendInviteLinkDialog({
   defaultClientEmail = "",
-  defaultClientEmail = "",
   defaultTripName = "",
   defaultBookingRef = "",
   tripTotalAmount = 0,
