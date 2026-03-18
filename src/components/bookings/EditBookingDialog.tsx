@@ -10,8 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Booking, UpdateBookingData } from "@/hooks/useBookings";
-import { SupplierManagement } from "@/components/suppliers/SupplierManagement";
+import { useSuppliers } from "@/hooks/useSuppliers";
 
 interface EditBookingDialogProps {
   booking: Booking | null;
@@ -26,6 +33,7 @@ export function EditBookingDialog({
   onOpenChange,
   onSubmit,
 }: EditBookingDialogProps) {
+  const { suppliers } = useSuppliers();
   const [formData, setFormData] = useState({
     total_price: 0,
     supplier_id: "",
@@ -55,6 +63,8 @@ export function EditBookingDialog({
       onOpenChange(false);
     }
   };
+
+  const activeSuppliers = (suppliers || []).filter((s) => s.is_active);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,11 +101,22 @@ export function EditBookingDialog({
 
           <div>
             <Label>Supplier</Label>
-            <Input
-              value={formData.supplier_id}
-              onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-              placeholder="Supplier ID (optional)"
-            />
+            <Select
+              value={formData.supplier_id || "none"}
+              onValueChange={(val) => setFormData({ ...formData, supplier_id: val === "none" ? "" : val })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No supplier</SelectItem>
+                {activeSuppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter>
