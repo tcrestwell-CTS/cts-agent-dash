@@ -476,15 +476,19 @@ export default function LoanApplicationsManager() {
                   {saving ? "Saving..." : "Save Decision"}
                 </Button>
 
-                {selected.status === "approved" && selected.approved_amount && selected.approved_term_months && (
+                {(newStatus === "approved" || selected.status === "approved") && (
                   <Button
                     onClick={sendApprovalEmail}
-                    disabled={sendingEmail}
+                    disabled={sendingEmail || !approvedAmount || !approvedTerm || selected.status !== "approved"}
                     variant="outline"
                     className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                   >
                     <Mail className="h-4 w-4 mr-1.5" />
-                    {sendingEmail ? "Sending..." : "Send Approval Email"}
+                    {selected.status !== "approved"
+                      ? "Save Decision First"
+                      : sendingEmail
+                        ? "Sending..."
+                        : "Send Approval Email"}
                   </Button>
                 )}
               </CardContent>
