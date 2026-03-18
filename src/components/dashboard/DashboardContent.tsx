@@ -24,7 +24,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"my" | "agency">("my");
+  const [activeTab, setActiveTab] = useState<"my" | "agency">("agency");
   const { canView: canViewAgencyMetrics } = useCanViewTeam();
   const { isComplete: onboardingComplete, isLoading: onboardingLoading } = useOnboarding();
 
