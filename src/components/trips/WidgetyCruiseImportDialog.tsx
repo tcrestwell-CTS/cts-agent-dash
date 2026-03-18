@@ -315,7 +315,88 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     setSelectedCabin(null);
     setMeta({});
     setSearchQuery("");
+    setSailingYearFilter("all");
+    setSailingMonthFilter("all");
   };
+
+  const parseSailingDate = (holidayRef: string): Date | null => {
+    const match = holidayRef.match(/(\d{6})/);
+    if (!match) return null;
+
+    const compactDate = match[1];
+    const year = 2000 + Number(compactDate.slice(0, 2));
+    const month = Number(compactDate.slice(2, 4));
+    const day = Number(compactDate.slice(4, 6));
+
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (
+      parsed.getUTCFullYear() !== year ||
+      parsed.getUTCMonth() !== month - 1 ||
+      parsed.getUTCDate() !== day
+    ) {
+      return null;
+    }
+
+    return parsed;
+  };
+
+  const formatSailingDate = (holidayRef: string) => {
+    const parsed = parseSailingDate(holidayRef);
+    return parsed ? format(parsed, "MMM d, yyyy") : null;
+  };
+
+  const sailingYearOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        sailings
+          .map((s) => parseSailingDate(s.holiday_ref)?.getUTCFullYear())
+          .filter((year): year is number => typeof year === "number")
+      )
+    ).sort((a, b) => a - b);
+  }, [sailings]);
+
+  const sailingMonthOptions = useMemo(() => {
+    const months = new Set<string>();
+
+    for (const sailing of sailings) {
+      const sailingDate = parseSailingDate(sailing.holiday_ref);
+      if (!sailingDate) continue;
+
+      if (sailingYearFilter !== "all" && String(sailingDate.getUTCFullYear()) !== sailingYearFilter) {
+        continue;
+      }
+
+      months.add(String(sailingDate.getUTCMonth() + 1).padStart(2, "0"));
+    }
+
+    return Array.from(months).sort();
+  }, [sailings, sailingYearFilter]);
+
+  const filteredSailings = useMemo(() => {
+    return sailings.filter((sailing) => {
+      const sailingDate = parseSailingDate(sailing.holiday_ref);
+
+      if (sailingYearFilter !== "all") {
+        if (!sailingDate || String(sailingDate.getUTCFullYear()) !== sailingYearFilter) return false;
+      }
+
+      if (sailingMonthFilter !== "all") {
+        const monthValue = String((sailingDate?.getUTCMonth() ?? -1) + 1).padStart(2, "0");
+        if (!sailingDate || monthValue !== sailingMonthFilter) return false;
+      }
+
+      return true;
+    });
+  }, [sailings, sailingYearFilter, sailingMonthFilter]);
+
+  useEffect(() => {
+    if (sailingMonthFilter !== "all" && !sailingMonthOptions.includes(sailingMonthFilter)) {
+      setSailingMonthFilter("all");
+    }
+  }, [sailingMonthFilter, sailingMonthOptions]);
 
   const formatDate = (d: string) => {
     try { return format(parseISO(d), "MMM d, yyyy"); }
