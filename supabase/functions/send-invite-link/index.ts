@@ -44,9 +44,13 @@ Deno.serve(async (req) => {
     const token = generateToken();
     const expires_at = new Date(Date.now() + expires_hours * 60 * 60 * 1000).toISOString();
 
+    const requestedLinkType = String(link_type).toLowerCase();
+    const isFinancing = requestedLinkType === 'financing';
+    const normalizedLinkType = isFinancing ? 'financing' : 'payment';
+
     const { error: dbError } = await supabase.from('secure_links').insert({
       token,
-      link_type,
+      link_type: normalizedLinkType,
       client_name,
       client_email,
       booking_ref: booking_ref || null,
@@ -60,7 +64,6 @@ Deno.serve(async (req) => {
 
     if (dbError) throw new Error(dbError.message);
 
-    const isFinancing = link_type === 'financing';
     const pageUrl = isFinancing ? '/financing' : '/payment';
     const secureUrl = `${SITE_URL}${pageUrl}?token=${token}`;
 

@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+function normalizeLinkType(value: unknown): 'payment' | 'financing' {
+  const normalized = String(value ?? '').toLowerCase();
+  return normalized === 'financing' ? 'financing' : 'payment';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -53,10 +58,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (link_type && link.link_type !== link_type) {
-      return new Response(JSON.stringify({ valid: false, reason: 'Invalid link type' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (link_type) {
+      const requestedType = normalizeLinkType(link_type);
+      const storedType = normalizeLinkType(link.link_type);
+
+      if (storedType !== requestedType) {
+        return new Response(JSON.stringify({ valid: false, reason: 'Invalid link type' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (mark_used && !link.used_at) {
@@ -69,7 +79,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       valid: true,
-      link_type: link.link_type,
+      link_type: normalizeLinkType(link.link_type),
       client_name: link.client_name,
       client_email: link.client_email,
       booking_ref: link.booking_ref,
