@@ -216,9 +216,24 @@ serve(async (req: Request) => {
       if (params.date_to) searchParams.set("date_to", params.date_to);
 
       const url = `${WIDGETY_BASE}/holidays/${encodeURIComponent(holidayRef)}.json?${searchParams.toString()}`;
-      const resp = await fetch(url, {
+      let resp = await fetch(url, {
         headers: { Accept: "application/json; api_version=2" },
       });
+
+      // If date-filtered request returns 400 (no dates match), retry without date filters
+      if (resp.status === 400 && (params.date_from || params.date_to)) {
+        console.log("Holiday date-filtered request returned 400, retrying without date filters");
+        const fallbackParams = new URLSearchParams({
+          app_id: WIDGETY_APP_ID,
+          token: WIDGETY_TOKEN,
+          market: params.market || "us",
+        });
+        const fallbackUrl = `${WIDGETY_BASE}/holidays/${encodeURIComponent(holidayRef)}.json?${fallbackParams.toString()}`;
+        resp = await fetch(fallbackUrl, {
+          headers: { Accept: "application/json; api_version=2" },
+        });
+      }
+
       if (!resp.ok) {
         const text = await resp.text();
         console.error("Widgety holiday error:", resp.status, text);
