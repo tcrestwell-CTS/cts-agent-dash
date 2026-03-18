@@ -42,6 +42,9 @@ interface TripSidebarProps {
   tripName?: string | null;
   tripStatus: string;
   hasPayments: boolean;
+  tripTotalAmount?: number;
+  depositRequired?: boolean;
+  depositAmount?: number;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
@@ -57,6 +60,9 @@ export function TripSidebar({
   tripName,
   tripStatus,
   hasPayments,
+  tripTotalAmount,
+  depositRequired,
+  depositAmount,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
@@ -153,6 +159,9 @@ export function TripSidebar({
             defaultClientName={clientName || ""}
             defaultClientEmail={clientEmail || ""}
             defaultTripName={tripName || ""}
+            tripTotalAmount={tripTotalAmount}
+            depositRequired={depositRequired}
+            depositAmount={depositAmount}
           />
         </div>
 

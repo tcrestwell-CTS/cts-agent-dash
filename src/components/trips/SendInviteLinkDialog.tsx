@@ -27,6 +27,9 @@ interface SendInviteLinkDialogProps {
   defaultClientEmail?: string;
   defaultTripName?: string;
   defaultBookingRef?: string;
+  tripTotalAmount?: number;
+  depositRequired?: boolean;
+  depositAmount?: number;
   trigger?: React.ReactNode;
 }
 
@@ -35,6 +38,9 @@ export function SendInviteLinkDialog({
   defaultClientEmail = "",
   defaultTripName = "",
   defaultBookingRef = "",
+  tripTotalAmount = 0,
+  depositRequired = false,
+  depositAmount = 0,
   trigger,
 }: SendInviteLinkDialogProps) {
   const [open, setOpen] = useState(false);
@@ -49,6 +55,16 @@ export function SendInviteLinkDialog({
   const [expiresHours, setExpiresHours] = useState("72");
   const [notes, setNotes] = useState("");
 
+  const getDefaultAmount = (type: string): string => {
+    if (type === "deposit" && depositRequired && depositAmount > 0) {
+      return depositAmount.toFixed(2);
+    }
+    if (type === "payment" && tripTotalAmount > 0) {
+      return tripTotalAmount.toFixed(2);
+    }
+    return "";
+  };
+
   // Reset form with defaults when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
@@ -56,12 +72,18 @@ export function SendInviteLinkDialog({
       setClientEmail(defaultClientEmail);
       setTripName(defaultTripName);
       setBookingRef(defaultBookingRef);
-      setLinkType("payment");
-      setAmount("");
+      const defaultType = depositRequired ? "deposit" : "payment";
+      setLinkType(defaultType);
+      setAmount(getDefaultAmount(defaultType));
       setExpiresHours("72");
       setNotes("");
     }
     setOpen(isOpen);
+  };
+
+  const handleLinkTypeChange = (type: string) => {
+    setLinkType(type);
+    setAmount(getDefaultAmount(type));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,7 +123,8 @@ export function SendInviteLinkDialog({
         throw new Error(data.error || "Failed to send invite link");
       }
 
-      toast.success(`${linkType === "payment" ? "Payment" : "Financing"} link sent to ${clientEmail}`);
+      const typeLabel = linkType === "financing" ? "Financing" : linkType === "deposit" ? "Deposit" : "Payment";
+      toast.success(`${typeLabel} link sent to ${clientEmail}`);
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to send invite link");
@@ -155,12 +178,13 @@ export function SendInviteLinkDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="linkType">Link Type</Label>
-              <Select value={linkType} onValueChange={setLinkType}>
+              <Select value={linkType} onValueChange={handleLinkTypeChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="payment">Payment</SelectItem>
+                  <SelectItem value="payment">Full Payment</SelectItem>
+                  <SelectItem value="deposit">Deposit</SelectItem>
                   <SelectItem value="financing">Financing</SelectItem>
                 </SelectContent>
               </Select>
