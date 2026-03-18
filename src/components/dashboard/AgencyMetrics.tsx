@@ -107,7 +107,9 @@ export function AgencyMetrics() {
     const activeBookings = bookings.filter((b) => b.status !== "cancelled" && !isBookingArchived(b));
 
     activeBookings.forEach((b) => {
-      const key = format(parseISO(b.depart_date), "yyyy-MM");
+      const departDate = (b as any).depart_date || (b as any).trips?.depart_date;
+      if (!departDate) return;
+      const key = format(parseISO(departDate), "yyyy-MM");
       if (commMap[key] !== undefined) {
         commMap[key] += b.commission_revenue || 0;
         agencyMap[key] += getAgencyShare(b.commission_revenue || 0, b.user_id);
