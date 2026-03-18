@@ -16,7 +16,7 @@ interface Attachment {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "custom";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "loan_approval" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
   clientId?: string;
