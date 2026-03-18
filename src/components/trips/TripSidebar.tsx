@@ -149,6 +149,11 @@ export function TripSidebar({
               Portal Link
             </Button>
           )}
+          <SendInviteLinkDialog
+            defaultClientName={clientName || ""}
+            defaultClientEmail={clientEmail || ""}
+            defaultTripName={tripName || ""}
+          />
         </div>
 
         {/* Advisor Tools Section */}
