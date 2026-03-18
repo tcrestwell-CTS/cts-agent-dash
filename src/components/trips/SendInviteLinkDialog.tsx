@@ -87,8 +87,8 @@ export function SendInviteLinkDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientName.trim() || !clientEmail.trim()) {
-      toast.error("Client name and email are required");
+    if (!clientEmail.trim()) {
+      toast.error("Client email is required");
       return;
     }
 
