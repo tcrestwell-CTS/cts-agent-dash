@@ -224,7 +224,11 @@ export function AddTripBookingDialog({
       onOpenChange(false);
       onBookingCreated?.();
     } catch (error: any) {
-      toast.error("Failed to create booking: " + error.message);
+      if (error?.code === "23505" || error?.message?.includes("unique constraint")) {
+        toast.error("A booking with that confirmation number already exists. Please use a different one.");
+      } else {
+        toast.error("Failed to create booking: " + error.message);
+      }
     } finally {
       setCreating(false);
     }
