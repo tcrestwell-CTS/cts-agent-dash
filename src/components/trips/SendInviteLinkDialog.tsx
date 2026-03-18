@@ -23,6 +23,7 @@ import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface SendInviteLinkDialogProps {
+  defaultClientName?: string;
   defaultClientEmail?: string;
   defaultTripName?: string;
   defaultBookingRef?: string;
