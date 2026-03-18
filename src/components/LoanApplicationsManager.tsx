@@ -475,6 +475,18 @@ export default function LoanApplicationsManager() {
                 <Button onClick={saveDecision} disabled={saving} className="w-full">
                   {saving ? "Saving..." : "Save Decision"}
                 </Button>
+
+                {selected.status === "approved" && selected.approved_amount && selected.approved_term_months && (
+                  <Button
+                    onClick={sendApprovalEmail}
+                    disabled={sendingEmail}
+                    variant="outline"
+                    className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <Mail className="h-4 w-4 mr-1.5" />
+                    {sendingEmail ? "Sending..." : "Send Approval Email"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
