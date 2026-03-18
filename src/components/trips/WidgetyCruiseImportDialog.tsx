@@ -479,27 +479,83 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                   <Button variant="ghost" size="sm" onClick={() => setStep("search")}>
                     ← Back to Search
                   </Button>
-                  <span className="text-xs text-muted-foreground">{totalResults} results</span>
+                  <span className="text-xs text-muted-foreground">
+                    {filteredSailings.length}{filteredSailings.length !== totalResults ? ` of ${totalResults}` : ""} results
+                  </span>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Year</Label>
+                    <Select
+                      value={sailingYearFilter}
+                      onValueChange={(value) => {
+                        setSailingYearFilter(value);
+                        setSailingMonthFilter("all");
+                      }}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="All years" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All years</SelectItem>
+                        {sailingYearOptions.map((year) => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Month</Label>
+                    <Select
+                      value={sailingMonthFilter}
+                      onValueChange={setSailingMonthFilter}
+                      disabled={sailingMonthOptions.length === 0}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="All months" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All months</SelectItem>
+                        {sailingMonthOptions.map((month) => (
+                          <SelectItem key={month} value={month}>
+                            {format(new Date(2000, Number(month) - 1, 1), "MMMM")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-3">
-                    {sailings.map((s) => (
-                      <button
-                        key={s.holiday_ref}
-                        onClick={() => handleSelectHoliday(s)}
-                        className="w-full text-left p-3 rounded-lg border hover:bg-accent/50 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{s.name}</p>
-                            <p className="text-xs text-muted-foreground">{s.operator_title}</p>
+                    {filteredSailings.map((s) => {
+                      const sailingDate = formatSailingDate(s.holiday_ref);
+                      return (
+                        <button
+                          key={s.holiday_ref}
+                          onClick={() => handleSelectHoliday(s)}
+                          className="w-full text-left p-3 rounded-lg border hover:bg-accent/50 transition-colors group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{s.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {s.operator_title}
+                                {sailingDate ? ` • ${sailingDate}` : ""}
+                              </p>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
-                        </div>
-                      </button>
-                    ))}
-                    {sailings.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-8">No cruises found</p>
+                        </button>
+                      );
+                    })}
+                    {filteredSailings.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {sailings.length > 0 ? "No cruises match the selected date filters" : "No cruises found"}
+                      </p>
                     )}
                   </div>
                 </ScrollArea>
