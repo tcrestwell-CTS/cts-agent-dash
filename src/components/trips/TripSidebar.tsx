@@ -8,10 +8,12 @@ import {
   Loader2,
   Map,
   Plane,
+  Send,
   ShieldCheck,
   Trash2,
   Users,
 } from "lucide-react";
+import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
 import {
   Tooltip,
   TooltipContent,
