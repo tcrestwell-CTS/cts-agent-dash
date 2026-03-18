@@ -37,7 +37,9 @@ interface TripSidebarProps {
   tripId: string;
   parentTripId?: string | null;
   clientId?: string | null;
+  clientName?: string | null;
   clientEmail?: string | null;
+  tripName?: string | null;
   tripStatus: string;
   hasPayments: boolean;
   isSendingPortalLink?: boolean;
