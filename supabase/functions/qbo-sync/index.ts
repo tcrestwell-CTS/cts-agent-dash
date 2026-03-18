@@ -1121,6 +1121,85 @@ serve(async (req) => {
       );
     }
 
+    // ── GET ?action=stripe-payouts ────────────────────────────────────
+    // Fetch real Stripe payouts from the Stripe API
+    if (urlPath === "stripe-payouts" && req.method === "GET") {
+      const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!STRIPE_SECRET_KEY) {
+        return new Response(
+          JSON.stringify({ error: "STRIPE_SECRET_KEY not configured" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fetch recent payouts from Stripe
+      const payoutsResp = await fetch("https://api.stripe.com/v1/payouts?limit=25", {
+        headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+      });
+
+      if (!payoutsResp.ok) {
+        const errText = await payoutsResp.text();
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch Stripe payouts", details: errText }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const payoutsData = await payoutsResp.json();
+      const payouts = (payoutsData.data || []).map((p: any) => ({
+        id: p.id,
+        amount: p.amount / 100, // Convert from cents
+        currency: p.currency,
+        status: p.status,
+        arrival_date: new Date(p.arrival_date * 1000).toISOString().split("T")[0],
+        created: new Date(p.created * 1000).toISOString(),
+        description: p.description || "",
+        destination: p.destination ? `••••${String(p.destination).slice(-4)}` : null,
+        method: p.method,
+      }));
+
+      // Fetch balance
+      const balanceResp = await fetch("https://api.stripe.com/v1/balance", {
+        headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+      });
+      let balance = null;
+      if (balanceResp.ok) {
+        const balData = await balanceResp.json();
+        const available = (balData.available || []).reduce((s: number, b: any) => s + b.amount, 0) / 100;
+        const pending = (balData.pending || []).reduce((s: number, b: any) => s + b.amount, 0) / 100;
+        balance = { available, pending, total: available + pending };
+      }
+
+      // Fetch balance transactions summary for incoming total
+      const txnResp = await fetch("https://api.stripe.com/v1/balance_transactions?limit=100&type=charge", {
+        headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+      });
+      let incomingTotal = 0;
+      let totalFees = 0;
+      if (txnResp.ok) {
+        const txnData = await txnResp.json();
+        for (const t of txnData.data || []) {
+          incomingTotal += t.amount / 100;
+          totalFees += t.fee / 100;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          payouts,
+          balance,
+          summary: {
+            incoming: Math.round(incomingTotal * 100) / 100,
+            fees: Math.round(totalFees * 100) / 100,
+            net: Math.round((incomingTotal - totalFees) * 100) / 100,
+            payout_count: payouts.length,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
