@@ -60,10 +60,11 @@ Deno.serve(async (req) => {
 
     if (dbError) throw new Error(dbError.message);
 
-    const pageUrl = link_type === 'payment' ? '/payment' : '/financing';
+    const isFinancing = link_type === 'financing';
+    const pageUrl = isFinancing ? '/financing' : '/payment';
     const secureUrl = `${SITE_URL}${pageUrl}?token=${token}`;
 
-    const isPayment = link_type === 'payment';
+    const isPayment = !isFinancing;
     const pageLabel = isPayment ? 'Secure Payment' : 'Financing Application';
     const actionLabel = isPayment ? 'Make Your Payment' : 'Start Your Application';
 
