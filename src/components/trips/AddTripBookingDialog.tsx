@@ -256,25 +256,6 @@ export function AddTripBookingDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Client Picker — only shown when trip has no assigned client */}
-          {!clientId && (
-            <div className="space-y-2">
-              <Label>Client *</Label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a client for this booking..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {/* Booking Type Selection */}
           <div className="space-y-2">
             <Label>Booking Type *</Label>
