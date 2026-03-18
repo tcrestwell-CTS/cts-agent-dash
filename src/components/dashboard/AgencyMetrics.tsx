@@ -25,6 +25,7 @@ import {
   endOfYear,
   subMonths,
   isWithinInterval,
+  isValid,
 } from "date-fns";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
@@ -32,6 +33,16 @@ import { Badge } from "@/components/ui/badge";
 import { OpsAlerts } from "@/components/dashboard/OpsAlerts";
 
 type DateRange = "mtd" | "ytd";
+
+const getBookingDepartDate = (booking: any): string | null => {
+  return booking?.depart_date ?? booking?.trips?.depart_date ?? null;
+};
+
+const parseSafeISO = (dateValue: string | null | undefined): Date | null => {
+  if (!dateValue) return null;
+  const parsed = parseISO(dateValue);
+  return isValid(parsed) ? parsed : null;
+};
 
 export function AgencyMetrics() {
   const [range, setRange] = useState<DateRange>("ytd");
@@ -69,10 +80,9 @@ export function AgencyMetrics() {
     if (!bookings) return [];
     return bookings.filter((b) => {
       if (b.status === "cancelled" || isBookingArchived(b)) return false;
-      const departDate = (b as any).depart_date || (b as any).trips?.depart_date;
-      if (!departDate) return false;
-      const d = parseISO(departDate);
-      return isWithinInterval(d, interval);
+      const parsedDepartDate = parseSafeISO(getBookingDepartDate(b));
+      if (!parsedDepartDate) return false;
+      return isWithinInterval(parsedDepartDate, interval);
     });
   }, [bookings, interval]);
 
@@ -107,9 +117,10 @@ export function AgencyMetrics() {
     const activeBookings = bookings.filter((b) => b.status !== "cancelled" && !isBookingArchived(b));
 
     activeBookings.forEach((b) => {
-      const departDate = (b as any).depart_date || (b as any).trips?.depart_date;
-      if (!departDate) return;
-      const key = format(parseISO(departDate), "yyyy-MM");
+      const parsedDepartDate = parseSafeISO(getBookingDepartDate(b));
+      if (!parsedDepartDate) return;
+
+      const key = format(parsedDepartDate, "yyyy-MM");
       if (commMap[key] !== undefined) {
         commMap[key] += b.commission_revenue || 0;
         agencyMap[key] += getAgencyShare(b.commission_revenue || 0, b.user_id);
@@ -281,21 +292,36 @@ function ActiveAuthorizations({
     const clientMap = new Map(clients.map((c: any) => [c.id, c.name]));
 
     return bookings
-      .filter((b) => {
-        if (b.status === "cancelled" || isBookingArchived(b)) return false;
-        const depart = parseISO(b.depart_date);
-        return depart >= now && (b.status === "confirmed" || b.status === "booked");
+      .map((b) => {
+        const departDateRaw = getBookingDepartDate(b);
+        const departDate = parseSafeISO(departDateRaw);
+
+        return {
+          booking: b,
+          departDateRaw,
+          departDate,
+        };
       })
-      .sort((a, b) => parseISO(a.depart_date).getTime() - parseISO(b.depart_date).getTime())
+      .filter(({ booking, departDate }) => {
+        if (booking.status === "cancelled" || isBookingArchived(booking)) return false;
+        if (!departDate) return false;
+        return departDate >= now && (booking.status === "confirmed" || booking.status === "booked");
+      })
+      .sort(
+        (a, b) =>
+          (a.departDate?.getTime() ?? Number.POSITIVE_INFINITY) -
+          (b.departDate?.getTime() ?? Number.POSITIVE_INFINITY)
+      )
       .slice(0, 8)
-      .map((b) => ({
-        id: b.id,
-        tripId: b.trip_id,
-        client: clientMap.get(b.client_id) || "Unknown Client",
-        destination: b.destination,
-        departDate: b.depart_date,
-        amount: b.total_amount || 0,
-        status: b.status,
+      .map(({ booking, departDateRaw, departDate }) => ({
+        id: booking.id,
+        tripId: booking.trip_id,
+        client: clientMap.get(booking.client_id) || "Unknown Client",
+        destination: booking.destination,
+        departDate: departDateRaw,
+        departDateLabel: departDate ? format(departDate, "MMM d, yyyy") : "TBD",
+        amount: booking.total_amount || 0,
+        status: booking.status,
       }));
   }, [bookings, clients]);
 
@@ -330,7 +356,7 @@ function ActiveAuthorizations({
                 </div>
                 <div className="text-right space-y-0.5">
                   <p className="text-sm font-semibold text-foreground">{fmt(item.amount)}</p>
-                  <p className="text-xs text-muted-foreground">{format(parseISO(item.departDate), "MMM d, yyyy")}</p>
+                  <p className="text-xs text-muted-foreground">{item.departDateLabel}</p>
                 </div>
               </div>
             ))}
