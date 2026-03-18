@@ -452,6 +452,23 @@ export function useQBOConnection() {
     }
   };
 
+  const getStripePayouts = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=stripe-payouts`,
+        { headers },
+        showReconnectToast
+      );
+      if (!resp.ok) throw new Error("Failed to fetch Stripe payouts");
+      return await resp.json();
+    } catch (err) {
+      console.error("Stripe payouts error:", err);
+      toast.error("Failed to fetch Stripe payouts");
+      return null;
+    }
+  };
+
   return {
     status,
     loading,
@@ -466,6 +483,7 @@ export function useQBOConnection() {
     getFinancialSummary,
     getStripeReconReport,
     getFinancialLifecycle,
+    getStripePayouts,
     refreshStatus: fetchStatus,
   };
 }
