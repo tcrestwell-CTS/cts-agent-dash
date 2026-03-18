@@ -170,6 +170,9 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         toast.info("No cruises found for those dates. Showing all available sailings instead.");
       }
       setSailings(data.holidays || []);
+      setTotalResults(data.total || 0);
+      setSailingYearFilter("all");
+      setSailingMonthFilter("all");
 
       if ((data.holidays || []).length === 0) {
         toast.info("No auto-match found. Try searching manually.");
