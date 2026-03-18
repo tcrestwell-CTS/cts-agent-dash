@@ -23,6 +23,7 @@ import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface SendInviteLinkDialogProps {
+  defaultClientName?: string;
   defaultClientEmail?: string;
   defaultTripName?: string;
   defaultBookingRef?: string;
@@ -33,6 +34,7 @@ interface SendInviteLinkDialogProps {
 }
 
 export function SendInviteLinkDialog({
+  defaultClientName = "",
   defaultClientEmail = "",
   defaultTripName = "",
   defaultBookingRef = "",
@@ -44,6 +46,7 @@ export function SendInviteLinkDialog({
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
 
+  const [clientName, setClientName] = useState(defaultClientName);
   const [clientEmail, setClientEmail] = useState(defaultClientEmail);
   const [linkType, setLinkType] = useState<string>("payment");
   const [bookingRef, setBookingRef] = useState(defaultBookingRef);
@@ -65,7 +68,7 @@ export function SendInviteLinkDialog({
   // Reset form with defaults when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
-      setClientEmail(defaultClientEmail);
+      setClientName(defaultClientName);
       setClientEmail(defaultClientEmail);
       setTripName(defaultTripName);
       setBookingRef(defaultBookingRef);
@@ -86,8 +89,8 @@ export function SendInviteLinkDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientEmail.trim()) {
-      toast.error("Client email is required");
+    if (!clientName.trim() || !clientEmail.trim()) {
+      toast.error("Client name and email are required");
       return;
     }
 
@@ -103,6 +106,7 @@ export function SendInviteLinkDialog({
           },
           body: JSON.stringify({
             link_type: linkType,
+            client_name: clientName.trim(),
             client_email: clientEmail.trim(),
             booking_ref: bookingRef.trim() || undefined,
             trip_name: tripName.trim() || undefined,
@@ -148,7 +152,17 @@ export function SendInviteLinkDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="clientName">Client Name *</Label>
+              <Input
+                id="clientName"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="clientEmail">Client Email *</Label>
               <Input
                 id="clientEmail"
