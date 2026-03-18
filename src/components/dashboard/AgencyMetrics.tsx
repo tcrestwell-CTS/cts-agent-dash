@@ -69,6 +69,7 @@ export function AgencyMetrics() {
     if (!bookings) return [];
     return bookings.filter((b) => {
       if (b.status === "cancelled" || isBookingArchived(b)) return false;
+      if (!b.depart_date) return false;
       const d = parseISO(b.depart_date);
       return isWithinInterval(d, interval);
     });
