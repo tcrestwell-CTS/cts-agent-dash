@@ -91,11 +91,12 @@ serve(async (req: Request) => {
       if (opsResp.ok) {
         const opsData = await opsResp.json();
         for (const op of opsData.operators || []) {
-          if (op.slug && op.cover_image_href) {
-            operatorImages[op.slug] = op.cover_image_href;
+          const slug = op.id || op.slug;
+          if (slug && op.cover_image_href) {
+            operatorImages[slug] = op.cover_image_href;
           }
-          if (op.slug && op.title) {
-            operatorImages[op.title] = op.cover_image_href || "";
+          if (op.title && op.cover_image_href) {
+            operatorImages[op.title] = op.cover_image_href;
           }
         }
       } else {
