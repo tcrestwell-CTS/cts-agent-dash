@@ -2532,6 +2532,7 @@ export type Database = {
           id: string
           link_type: string
           notes: string | null
+          payment_type: string | null
           single_use: boolean | null
           token: string
           trip_name: string | null
@@ -2550,6 +2551,7 @@ export type Database = {
           id?: string
           link_type: string
           notes?: string | null
+          payment_type?: string | null
           single_use?: boolean | null
           token: string
           trip_name?: string | null
@@ -2568,6 +2570,7 @@ export type Database = {
           id?: string
           link_type?: string
           notes?: string | null
+          payment_type?: string | null
           single_use?: boolean | null
           token?: string
           trip_name?: string | null
