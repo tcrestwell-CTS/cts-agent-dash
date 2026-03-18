@@ -159,6 +159,9 @@ export function TripSidebar({
             defaultClientName={clientName || ""}
             defaultClientEmail={clientEmail || ""}
             defaultTripName={tripName || ""}
+            tripTotalAmount={tripTotalAmount}
+            depositRequired={depositRequired}
+            depositAmount={depositAmount}
           />
         </div>
 
