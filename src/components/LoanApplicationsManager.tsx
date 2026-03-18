@@ -230,6 +230,41 @@ export default function LoanApplicationsManager() {
     setSaving(false);
   };
 
+  const sendApprovalEmail = async () => {
+    if (!selected || selected.status !== "approved") return;
+    if (!selected.approved_amount || !selected.approved_term_months) {
+      toast.error("Please save approved amount and term before sending email");
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: selected.email,
+          subject: `🎉 Your Travel Financing Has Been Approved! — ${selected.application_number}`,
+          template: "loan_approval",
+          data: {
+            clientName: `${selected.first_name} ${selected.last_name}`,
+            applicationNumber: selected.application_number,
+            approvedAmount: selected.approved_amount.toString(),
+            approvedRate: (selected.approved_rate || 4.7).toString(),
+            approvedTermMonths: selected.approved_term_months.toString(),
+            tripDescription: selected.trip_description || "",
+            decisionNotes: selected.decision_notes || "",
+          },
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to send");
+      toast.success("Approval email sent to " + selected.email);
+    } catch (err) {
+      console.error("Error sending approval email:", err);
+      toast.error("Failed to send approval email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const filtered = applications.filter((a) => {
     const matchStatus = filter === "all" || a.status === filter;
     const matchSearch =
