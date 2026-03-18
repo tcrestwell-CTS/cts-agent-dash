@@ -703,6 +703,13 @@ const TripDetail = () => {
           </div>
         </div>
       </div>
+
+      <EditTripDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        trip={trip}
+        onUpdated={fetchTrip}
+      />
     </DashboardLayout>
   );
 };
