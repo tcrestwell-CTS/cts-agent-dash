@@ -61,7 +61,15 @@ export default function QBOHealth() {
 
   useEffect(() => {
     loadLifecycle();
+    loadStripePayouts();
   }, []);
+
+  const loadStripePayouts = async () => {
+    setLoadingPayouts(true);
+    const data = await getStripePayouts();
+    setStripePayouts(data);
+    setLoadingPayouts(false);
+  };
 
   if (adminLoading) {
     return (
