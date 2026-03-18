@@ -27,7 +27,7 @@ type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getStripeReconReport, getFinancialLifecycle } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getStripeReconReport, getFinancialLifecycle, getStripePayouts } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
@@ -36,6 +36,8 @@ export default function QBOHealth() {
   const [loadingRecon, setLoadingRecon] = useState(false);
   const [lifecycle, setLifecycle] = useState<any[] | null>(null);
   const [loadingLifecycle, setLoadingLifecycle] = useState(false);
+  const [stripePayouts, setStripePayouts] = useState<any>(null);
+  const [loadingPayouts, setLoadingPayouts] = useState(false);
 
   const loadFinancials = async () => {
     setLoadingFinancials(true);
