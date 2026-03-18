@@ -66,7 +66,7 @@ export function SendInviteLinkDialog({
   // Reset form with defaults when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
-      setClientName(defaultClientName);
+      setClientEmail(defaultClientEmail);
       setClientEmail(defaultClientEmail);
       setTripName(defaultTripName);
       setBookingRef(defaultBookingRef);
