@@ -119,13 +119,21 @@ Deno.serve(async (req) => {
               ${booking_ref ? `
               <p style="font-size:14px;color:#6b7280;margin:0 0 24px;">Booking Reference: <strong>${booking_ref}</strong></p>` : ''}
 
-              <!-- CTA Button -->
+              <!-- CTA Button (Outlook-safe) -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding:8px 0 28px;">
-                    <a href="${secureUrl}" style="display:inline-block;background:linear-gradient(135deg,#173b75 0%,#1b5fb0 100%);color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:16px 36px;border-radius:12px;">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${secureUrl}" style="height:52px;v-text-anchor:middle;width:260px;" arcsize="23%" strokecolor="#173b75" fillcolor="#173b75">
+                      <w:anchorlock/>
+                      <center style="color:#ffffff;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:600;">${actionLabel}</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-->
+                    <a href="${secureUrl}" style="display:inline-block;background-color:#173b75;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:16px 36px;border-radius:12px;mso-hide:all;">
                       ${actionLabel}
                     </a>
+                    <!--<![endif]-->
                   </td>
                 </tr>
               </table>
