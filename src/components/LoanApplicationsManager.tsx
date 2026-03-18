@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Eye } from "lucide-react";
+import { ArrowLeft, RefreshCw, Eye, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 type LoanApplication = {
