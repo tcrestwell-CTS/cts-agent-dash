@@ -172,10 +172,6 @@ export function AddTripBookingDialog({
       return;
     }
 
-    if (!effectiveClientId) {
-      toast.error("Please select a client for this booking.");
-      return;
-    }
 
     if (formData.return_date < formData.depart_date) {
       toast.error("Return date must be after departure date");
