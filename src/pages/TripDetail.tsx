@@ -414,8 +414,12 @@ const TripDetail = () => {
             {/* Trip Details & Financials */}
             <div className={isGroupTrip ? "grid gap-6 md:grid-cols-2" : "grid gap-6 lg:grid-cols-3"}>
               <Card className={isGroupTrip ? "" : "lg:col-span-2"}>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Trip Details</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setEditDialogOpen(true)}>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
