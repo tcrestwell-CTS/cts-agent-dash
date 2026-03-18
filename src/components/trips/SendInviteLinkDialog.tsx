@@ -123,7 +123,8 @@ export function SendInviteLinkDialog({
         throw new Error(data.error || "Failed to send invite link");
       }
 
-      toast.success(`${linkType === "payment" ? "Payment" : "Financing"} link sent to ${clientEmail}`);
+      const typeLabel = linkType === "financing" ? "Financing" : linkType === "deposit" ? "Deposit" : "Payment";
+      toast.success(`${typeLabel} link sent to ${clientEmail}`);
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to send invite link");
