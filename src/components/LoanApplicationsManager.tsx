@@ -194,6 +194,109 @@ export default function LoanApplicationsManager() {
     setLoading(false);
   };
 
+  const fetchPaymentSchedule = async (loanId: string) => {
+    const { data } = await supabase
+      .from("loan_payment_schedules")
+      .select("*")
+      .eq("loan_application_id", loanId)
+      .order("payment_number", { ascending: true });
+    setPaymentSchedule(data || []);
+  };
+
+  const syncToQBO = async () => {
+    if (!selected) return;
+    setSyncingQBO(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-sync", {
+        body: { loan_application_id: selected.id },
+        headers: { "x-action": "sync-loan-financing" },
+      });
+      // The qbo-sync function uses query params, so let's call it properly
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/qbo-sync?action=sync-loan-financing`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ loan_application_id: selected.id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Sync failed");
+      toast.success(`Synced to QuickBooks: ${result.invoices_created} invoices created`);
+      await fetchPaymentSchedule(selected.id);
+    } catch (err: any) {
+      console.error("QBO sync error:", err);
+      toast.error(err.message || "Failed to sync to QuickBooks");
+    } finally {
+      setSyncingQBO(false);
+    }
+  };
+
+  const syncPaymentStatus = async () => {
+    if (!selected) return;
+    setSyncingPaymentStatus(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/qbo-sync?action=loan-payment-status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ loan_application_id: selected.id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Sync failed");
+      toast.success(`Updated ${result.updated} payment(s) from QuickBooks`);
+      await fetchPaymentSchedule(selected.id);
+    } catch (err: any) {
+      console.error("Payment status sync error:", err);
+      toast.error(err.message || "Failed to sync payment status");
+    } finally {
+      setSyncingPaymentStatus(false);
+    }
+  };
+
+  const markPaymentPaid = async (scheduleId: string) => {
+    setMarkingPaid(scheduleId);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/qbo-sync?action=sync-loan-payment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ schedule_id: scheduleId }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Failed");
+      toast.success("Payment recorded & synced to QuickBooks");
+      if (selected) await fetchPaymentSchedule(selected.id);
+    } catch (err: any) {
+      console.error("Mark paid error:", err);
+      toast.error(err.message || "Failed to record payment");
+    } finally {
+      setMarkingPaid(null);
+    }
+  };
+
   useEffect(() => {
     fetchApplications();
   }, []);
