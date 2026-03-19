@@ -21,8 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Eye, Mail } from "lucide-react";
+import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 type LoanApplication = {
   id: string;
@@ -168,6 +169,10 @@ export default function LoanApplicationsManager() {
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [syncingQBO, setSyncingQBO] = useState(false);
+  const [syncingPaymentStatus, setSyncingPaymentStatus] = useState(false);
+  const [paymentSchedule, setPaymentSchedule] = useState<any[]>([]);
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [approvedAmount, setApprovedAmount] = useState("");
@@ -189,6 +194,109 @@ export default function LoanApplicationsManager() {
     setLoading(false);
   };
 
+  const fetchPaymentSchedule = async (loanId: string) => {
+    const { data } = await supabase
+      .from("loan_payment_schedules")
+      .select("*")
+      .eq("loan_application_id", loanId)
+      .order("payment_number", { ascending: true });
+    setPaymentSchedule(data || []);
+  };
+
+  const syncToQBO = async () => {
+    if (!selected) return;
+    setSyncingQBO(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-sync", {
+        body: { loan_application_id: selected.id },
+        headers: { "x-action": "sync-loan-financing" },
+      });
+      // The qbo-sync function uses query params, so let's call it properly
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/qbo-sync?action=sync-loan-financing`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ loan_application_id: selected.id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Sync failed");
+      toast.success(`Synced to QuickBooks: ${result.invoices_created} invoices created`);
+      await fetchPaymentSchedule(selected.id);
+    } catch (err: any) {
+      console.error("QBO sync error:", err);
+      toast.error(err.message || "Failed to sync to QuickBooks");
+    } finally {
+      setSyncingQBO(false);
+    }
+  };
+
+  const syncPaymentStatus = async () => {
+    if (!selected) return;
+    setSyncingPaymentStatus(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/qbo-sync?action=loan-payment-status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ loan_application_id: selected.id }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Sync failed");
+      toast.success(`Updated ${result.updated} payment(s) from QuickBooks`);
+      await fetchPaymentSchedule(selected.id);
+    } catch (err: any) {
+      console.error("Payment status sync error:", err);
+      toast.error(err.message || "Failed to sync payment status");
+    } finally {
+      setSyncingPaymentStatus(false);
+    }
+  };
+
+  const markPaymentPaid = async (scheduleId: string) => {
+    setMarkingPaid(scheduleId);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/qbo-sync?action=sync-loan-payment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ schedule_id: scheduleId }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Failed");
+      toast.success("Payment recorded & synced to QuickBooks");
+      if (selected) await fetchPaymentSchedule(selected.id);
+    } catch (err: any) {
+      console.error("Mark paid error:", err);
+      toast.error(err.message || "Failed to record payment");
+    } finally {
+      setMarkingPaid(null);
+    }
+  };
+
   useEffect(() => {
     fetchApplications();
   }, []);
@@ -201,6 +309,9 @@ export default function LoanApplicationsManager() {
       setApprovedRate(selected.approved_rate?.toString() || "");
       setApprovedTerm(selected.approved_term_months?.toString() || "");
       setDecisionNotes(selected.decision_notes || "");
+      fetchPaymentSchedule(selected.id);
+    } else {
+      setPaymentSchedule([]);
     }
   }, [selected]);
 
@@ -497,6 +608,19 @@ export default function LoanApplicationsManager() {
                     {sendingEmail ? "Sending..." : "Send Approval Email"}
                   </Button>
                 )}
+
+                {/* QBO Sync Button */}
+                {selected.status === "approved" && (
+                  <Button
+                    onClick={syncToQBO}
+                    disabled={syncingQBO}
+                    variant="outline"
+                    className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <BookOpen className="h-4 w-4 mr-1.5" />
+                    {syncingQBO ? "Syncing..." : paymentSchedule.length > 0 ? "Re-sync to QuickBooks" : "Sync Financing to QuickBooks"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -526,6 +650,130 @@ export default function LoanApplicationsManager() {
             </Card>
           </div>
         </div>
+
+        {/* Payment Schedule Section */}
+        {paymentSchedule.length > 0 && (
+          <Card className="mt-5">
+            <CardHeader className="py-3 px-4 bg-muted/50 border-b flex-row items-center justify-between">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Repayment Schedule ({paymentSchedule.length} payments)
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={syncPaymentStatus}
+                  disabled={syncingPaymentStatus}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1 ${syncingPaymentStatus ? "animate-spin" : ""}`} />
+                  {syncingPaymentStatus ? "Syncing..." : "Sync from QBO"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {/* Summary */}
+              {(() => {
+                const paid = paymentSchedule.filter((p: any) => p.status === "paid");
+                const totalPaid = paid.reduce((s: number, p: any) => s + Number(p.total_payment), 0);
+                const totalDue = paymentSchedule.reduce((s: number, p: any) => s + Number(p.total_payment), 0);
+                const pctPaid = totalDue > 0 ? (totalPaid / totalDue) * 100 : 0;
+                return (
+                  <div className="mb-4 space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {paid.length} of {paymentSchedule.length} payments complete
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {fmt$(totalPaid)} / {fmt$(totalDue)}
+                      </span>
+                    </div>
+                    <Progress value={pctPaid} className="h-2" />
+                  </div>
+                );
+              })()}
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs w-12">#</TableHead>
+                    <TableHead className="text-xs">Due Date</TableHead>
+                    <TableHead className="text-xs text-right">Principal</TableHead>
+                    <TableHead className="text-xs text-right">Interest</TableHead>
+                    <TableHead className="text-xs text-right">Total</TableHead>
+                    <TableHead className="text-xs text-center">Status</TableHead>
+                    <TableHead className="text-xs text-center">QBO</TableHead>
+                    <TableHead className="text-xs text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentSchedule.map((pmt: any) => (
+                    <TableRow key={pmt.id}>
+                      <TableCell className="text-xs font-mono text-muted-foreground">
+                        {pmt.payment_number}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {fmtDate(pmt.due_date)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-medium">
+                        {fmt$(pmt.principal_amount)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right text-muted-foreground">
+                        {fmt$(pmt.interest_amount)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-semibold">
+                        {fmt$(pmt.total_payment)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {pmt.status === "paid" ? (
+                          <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-300 text-[10px]">
+                            <CheckCircle className="h-3 w-3 mr-0.5" />
+                            Paid
+                          </Badge>
+                        ) : new Date(pmt.due_date) < new Date() ? (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Overdue
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">
+                            <Clock className="h-3 w-3 mr-0.5" />
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {pmt.qbo_invoice_id ? (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Synced
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {pmt.status !== "paid" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => markPaymentPaid(pmt.id)}
+                            disabled={markingPaid === pmt.id}
+                          >
+                            <DollarSign className="h-3.5 w-3.5 mr-0.5" />
+                            {markingPaid === pmt.id ? "..." : "Mark Paid"}
+                          </Button>
+                        )}
+                        {pmt.status === "paid" && pmt.paid_date && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {fmtDate(pmt.paid_date)}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
