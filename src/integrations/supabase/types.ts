@@ -1885,6 +1885,8 @@ export type Database = {
           other_income_source: string | null
           phone: string
           preferred_term_months: number | null
+          qbo_customer_id: string | null
+          qbo_synced_at: string | null
           reference1_name: string | null
           reference1_phone: string | null
           reference1_relation: string | null
@@ -1945,6 +1947,8 @@ export type Database = {
           other_income_source?: string | null
           phone: string
           preferred_term_months?: number | null
+          qbo_customer_id?: string | null
+          qbo_synced_at?: string | null
           reference1_name?: string | null
           reference1_phone?: string | null
           reference1_relation?: string | null
@@ -2005,6 +2009,8 @@ export type Database = {
           other_income_source?: string | null
           phone?: string
           preferred_term_months?: number | null
+          qbo_customer_id?: string | null
+          qbo_synced_at?: string | null
           reference1_name?: string | null
           reference1_phone?: string | null
           reference1_relation?: string | null
@@ -2025,6 +2031,65 @@ export type Database = {
           zip_code?: string
         }
         Relationships: []
+      }
+      loan_payment_schedules: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          interest_amount: number
+          loan_application_id: string
+          paid_date: string | null
+          payment_number: number
+          principal_amount: number
+          qbo_invoice_id: string | null
+          qbo_synced_at: string | null
+          status: string
+          total_payment: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          interest_amount?: number
+          loan_application_id: string
+          paid_date?: string | null
+          payment_number: number
+          principal_amount?: number
+          qbo_invoice_id?: string | null
+          qbo_synced_at?: string | null
+          status?: string
+          total_payment?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          interest_amount?: number
+          loan_application_id?: string
+          paid_date?: string | null
+          payment_number?: number
+          principal_amount?: number
+          qbo_invoice_id?: string | null
+          qbo_synced_at?: string | null
+          status?: string
+          total_payment?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_payment_schedules_loan_application_id_fkey"
+            columns: ["loan_application_id"]
+            isOneToOne: false
+            referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mentor_assignments: {
         Row: {
