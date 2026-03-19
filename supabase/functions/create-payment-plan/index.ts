@@ -137,6 +137,12 @@ Deno.serve(async (req) => {
       notes: notes || null,
       status: 'active',
       stripe_payment_intent_id: subscription.latest_invoice || null,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customer.id,
+      travel_date: travel_date,
+      total_months: months,
+      months_paid: 0,
+      missed_payments: 0,
     });
 
     return new Response(JSON.stringify({
