@@ -86,13 +86,19 @@ Deno.serve(async (req) => {
       'metadata[travel_date]': travel_date,
     }, STRIPE_SECRET_KEY);
 
-    // ── Step 4: Calculate cancel_at (90 days before travel) ──────────────────
+    // ── Step 4: Configure Stripe account retry settings ─────────────────────────
+    // NOTE: Also configure in Stripe Dashboard → Settings → Subscriptions & emails:
+    // - Set "Retry schedule" to: Day 1, Day 3, Day 5 after failure (5-day grace)
+    // - Set "If all retries fail" to: Cancel subscription (webhook tracks missed count)
+    // - Enable "Failed payment emails" to notify customer on failure
+
+    // ── Step 5: Calculate cancel_at (90 days before travel) ──────────────────
     const travelTs = new Date(travel_date).getTime();
     const finalPaymentTs = travelTs - (90 * 24 * 60 * 60 * 1000); // 90 days before
     // Cancel subscription 1 day after final payment
     const cancelAt = Math.floor(finalPaymentTs / 1000) + (31 * 24 * 60 * 60);
 
-    // ── Step 5: Create Subscription ───────────────────────────────────────────
+    // ── Step 6: Create Subscription ───────────────────────────────────────────
     // Anchor billing to today so first payment is immediate
     const billingAnchor = Math.floor(Date.now() / 1000);
 
@@ -104,14 +110,20 @@ Deno.serve(async (req) => {
       'proration_behavior': 'none',
       'cancel_at': String(cancelAt),
       collection_method: 'charge_automatically',
+      'payment_settings[payment_method_types][0]': 'card',
+      'payment_settings[save_default_payment_method]': 'on_subscription',
       'metadata[loan_id]': booking_ref || '',
       'metadata[trip_name]': trip_name || '',
       'metadata[travel_date]': travel_date,
       'metadata[total_months]': String(months),
       'metadata[total_amount_cents]': String(amount_cents),
+      'metadata[missed_payments]': '0',
+      'metadata[late_fee_cents]': '2500',
+      'metadata[grace_period_days]': '5',
+      'metadata[max_missed_payments]': '2',
     }, STRIPE_SECRET_KEY);
 
-    // ── Step 6: Record in Supabase ────────────────────────────────────────────
+    // ── Step 7: Record in Supabase ────────────────────────────────────────────
     await supabase.from('checkout_payments').insert({
       customer_name,
       customer_email,
@@ -124,7 +136,7 @@ Deno.serve(async (req) => {
       trip_name: trip_name || null,
       notes: notes || null,
       status: 'active',
-      stripe_payment_intent_id: subscription.id, // store sub ID here for reference
+      stripe_payment_intent_id: subscription.latest_invoice || null,
     });
 
     return new Response(JSON.stringify({
