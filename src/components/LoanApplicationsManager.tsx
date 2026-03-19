@@ -98,6 +98,16 @@ type LoanApplication = {
   approved_amount: number;
   approved_rate: number;
   approved_term_months: number;
+  // Autopay fields
+  autopay_method: string | null;
+  consent_autopay: boolean | null;
+  autopay_esignature: string | null;
+  autopay_signed_at: string | null;
+  autopay_active: boolean | null;
+  autopay_start_date: string | null;
+  stripe_payment_method_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
