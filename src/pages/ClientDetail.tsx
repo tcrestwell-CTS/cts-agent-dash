@@ -498,6 +498,19 @@ const ClientDetail = () => {
                     <Mail className="mr-2 h-4 w-4" />
                     Send Email
                   </Button>
+                  <SendInviteLinkDialog
+                    defaultClientName={client.name}
+                    defaultClientEmail={client.email}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Invite Link
+                      </Button>
+                    }
+                  />
                 </>
               )}
               <Button onClick={() => setIsEditing(true)} className="bg-white/20 text-white hover:bg-white/30 border-white/30">
