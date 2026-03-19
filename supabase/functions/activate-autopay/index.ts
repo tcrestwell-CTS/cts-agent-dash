@@ -90,27 +90,46 @@ Deno.serve(async (req) => {
     if (loan.status !== 'approved') throw new Error('Loan must be approved before activating autopay');
     if (loan.autopay_active) throw new Error('Autopay is already active for this loan');
 
-    // ── Step 1: Create Stripe Customer ────────────────────────────────────────
-    const customer = await stripePost('/customers', {
-      name: customer_name || `${loan.first_name} ${loan.last_name}`,
-      email: customer_email || loan.email,
-      'metadata[loan_id]': loan_id,
-      'metadata[source]': 'crestwell_travel_financing',
-    }, STRIPE_SECRET_KEY);
+    // ── Step 1: Retrieve PM to check if already attached ─────────────────────
+    const pm = await stripeGet(`/payment_methods/${stripe_payment_method_id}`, STRIPE_SECRET_KEY);
 
-    console.log(`Created Stripe customer: ${customer.id}`);
+    let customerId: string;
 
-    // ── Step 2: Attach payment method to customer ─────────────────────────────
-    await stripePost(`/payment_methods/${stripe_payment_method_id}/attach`, {
-      customer: customer.id,
-    }, STRIPE_SECRET_KEY);
+    if (pm.customer) {
+      // PM is already attached — reuse that customer
+      customerId = pm.customer;
+      console.log(`PM already attached to customer: ${customerId}, reusing`);
+
+      // Update customer metadata
+      await stripePost(`/customers/${customerId}`, {
+        name: customer_name || `${loan.first_name} ${loan.last_name}`,
+        email: customer_email || loan.email,
+        'metadata[loan_id]': loan_id,
+        'metadata[source]': 'crestwell_travel_financing',
+      }, STRIPE_SECRET_KEY);
+    } else {
+      // Create new customer and attach
+      const customer = await stripePost('/customers', {
+        name: customer_name || `${loan.first_name} ${loan.last_name}`,
+        email: customer_email || loan.email,
+        'metadata[loan_id]': loan_id,
+        'metadata[source]': 'crestwell_travel_financing',
+      }, STRIPE_SECRET_KEY);
+      customerId = customer.id;
+      console.log(`Created Stripe customer: ${customerId}`);
+
+      // Attach payment method
+      await stripePost(`/payment_methods/${stripe_payment_method_id}/attach`, {
+        customer: customerId,
+      }, STRIPE_SECRET_KEY);
+    }
 
     // Set as default payment method
-    await stripePost(`/customers/${customer.id}`, {
+    await stripePost(`/customers/${customerId}`, {
       'invoice_settings[default_payment_method]': stripe_payment_method_id,
     }, STRIPE_SECRET_KEY);
 
-    console.log(`Attached PM ${stripe_payment_method_id} to customer ${customer.id}`);
+    console.log(`PM ${stripe_payment_method_id} ready on customer ${customerId}`);
 
     // ── Step 3: Create Stripe Price (one-time recurring amount) ───────────────
     const monthlyAmountCents = calcMonthlyPayment(
