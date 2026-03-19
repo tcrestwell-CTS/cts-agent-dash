@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,7 @@ import {
   MoreHorizontal,
   Link2,
   ClipboardEdit,
+  Send,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { PageBanner } from "@/components/layout/PageBanner";
@@ -496,6 +498,19 @@ const ClientDetail = () => {
                     <Mail className="mr-2 h-4 w-4" />
                     Send Email
                   </Button>
+                  <SendInviteLinkDialog
+                    defaultClientName={client.name}
+                    defaultClientEmail={client.email}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Invite Link
+                      </Button>
+                    }
+                  />
                 </>
               )}
               <Button onClick={() => setIsEditing(true)} className="bg-white/20 text-white hover:bg-white/30 border-white/30">
