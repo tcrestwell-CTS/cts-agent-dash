@@ -53,3 +53,5 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.submit-loan-application]
     verify_jwt = false
+  [functions.activate-autopay]
+    verify_jwt = false
