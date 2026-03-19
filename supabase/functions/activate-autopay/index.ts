@@ -155,12 +155,12 @@ Deno.serve(async (req) => {
       : Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000); // 30 days from now
 
     const subscriptionData: Record<string, string> = {
-      customer: customer.id,
+      customer: customerId,
       'items[0][price]': price.id,
       'default_payment_method': stripe_payment_method_id,
       'billing_cycle_anchor': String(startDate),
       'proration_behavior': 'none',
-      'cancel_at': String(startDate + (approved_term_months * 30 * 24 * 60 * 60)), // auto-cancel after term
+      'cancel_at': String(startDate + (approved_term_months * 30 * 24 * 60 * 60)),
       'metadata[loan_id]': loan_id,
       'metadata[approved_amount]': String(approved_amount),
       'metadata[approved_term_months]': String(approved_term_months),
@@ -176,11 +176,11 @@ Deno.serve(async (req) => {
       .from('loan_applications')
       .update({
         autopay_active: true,
-        stripe_customer_id: customer.id,
+        stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
         autopay_start_date: autopay_start_date || new Date(startDate * 1000).toISOString().split('T')[0],
         updated_at: new Date().toISOString(),
-        agent_notes: `Autopay activated. Stripe customer: ${customer.id}. Subscription: ${subscription.id}. Monthly payment: $${(monthlyAmountCents / 100).toFixed(2)}. First payment: ${autopay_start_date || 'in 30 days'}.`,
+        agent_notes: `Autopay activated. Stripe customer: ${customerId}. Subscription: ${subscription.id}. Monthly payment: $${(monthlyAmountCents / 100).toFixed(2)}. First payment: ${autopay_start_date || 'in 30 days'}.`,
       })
       .eq('id', loan_id);
 
@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      stripe_customer_id: customer.id,
+      stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       monthly_payment_cents: monthlyAmountCents,
       monthly_payment_dollars: (monthlyAmountCents / 100).toFixed(2),
