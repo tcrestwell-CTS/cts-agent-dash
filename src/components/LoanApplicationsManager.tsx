@@ -206,6 +206,9 @@ export default function LoanApplicationsManager() {
       setApprovedRate(selected.approved_rate?.toString() || "");
       setApprovedTerm(selected.approved_term_months?.toString() || "");
       setDecisionNotes(selected.decision_notes || "");
+      fetchPaymentSchedule(selected.id);
+    } else {
+      setPaymentSchedule([]);
     }
   }, [selected]);
 
