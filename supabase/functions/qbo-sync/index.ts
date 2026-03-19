@@ -1200,6 +1200,378 @@ serve(async (req) => {
       );
     }
 
+    // ── POST ?action=sync-loan-financing ──────────────────────────
+    // Creates a QBO Customer from loan applicant + generates recurring invoices
+    // for the full amortization schedule with staggered due dates.
+    if (urlPath === "sync-loan-financing" && req.method === "POST") {
+      const { loan_application_id } = await req.json();
+      if (!loan_application_id) {
+        return new Response(JSON.stringify({ error: "loan_application_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch the loan application
+      const { data: loan, error: loanErr } = await supabaseAdmin
+        .from("loan_applications")
+        .select("*")
+        .eq("id", loan_application_id)
+        .single();
+
+      if (loanErr || !loan) {
+        return new Response(JSON.stringify({ error: "Loan application not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (loan.status !== "approved") {
+        return new Response(JSON.stringify({ error: "Loan must be approved before syncing" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const approvedAmount = loan.approved_amount || 0;
+      const annualRate = loan.approved_rate || 4.7;
+      const termMonths = loan.approved_term_months || 12;
+      const monthlyRate = annualRate / 100 / 12;
+
+      // Calculate monthly payment using standard amortization formula
+      const monthlyPayment = monthlyRate > 0
+        ? (approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
+          (Math.pow(1 + monthlyRate, termMonths) - 1)
+        : approvedAmount / termMonths;
+
+      // 1. Create or find QBO Customer from loan applicant
+      const displayName = `${loan.first_name} ${loan.last_name}`.trim();
+      const displayNameEscaped = displayName.replace(/'/g, "\\'");
+
+      let qboCustomerId: string | null = null;
+
+      // Check existing
+      const searchResp = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Customer WHERE DisplayName = '${displayNameEscaped}'`)}`,
+        { headers: qboHeaders }
+      );
+      if (searchResp.ok) {
+        const searchData = await searchResp.json();
+        const matches = searchData.QueryResponse?.Customer || [];
+        if (matches.length > 0) qboCustomerId = matches[0].Id;
+      }
+
+      if (!qboCustomerId) {
+        const customerData: any = {
+          DisplayName: displayName.substring(0, 100),
+          GivenName: (loan.first_name || "").substring(0, 25),
+          FamilyName: (loan.last_name || "").substring(0, 25),
+        };
+        if (loan.email) customerData.PrimaryEmailAddr = { Address: loan.email.substring(0, 100) };
+        if (loan.phone) customerData.PrimaryPhone = { FreeFormNumber: loan.phone.substring(0, 30) };
+        if (loan.address_line1) {
+          customerData.BillAddr = {
+            Line1: loan.address_line1,
+            Line2: loan.address_line2 || undefined,
+            City: loan.city,
+            CountrySubDivisionCode: loan.state,
+            PostalCode: loan.zip_code,
+          };
+        }
+
+        const createResp = await fetch(`${qboBase}/customer`, {
+          method: "POST", headers: qboHeaders, body: JSON.stringify(customerData),
+        });
+        if (!createResp.ok) {
+          const errText = await createResp.text();
+          throw new Error(`Failed to create QBO Customer: ${errText}`);
+        }
+        const result = await createResp.json();
+        qboCustomerId = result.Customer.Id;
+      }
+
+      // Save QBO customer ID back to loan application
+      await supabaseAdmin.from("loan_applications").update({
+        qbo_customer_id: qboCustomerId,
+        qbo_synced_at: new Date().toISOString(),
+      }).eq("id", loan_application_id);
+
+      // 2. Generate amortization schedule and create QBO invoices
+      let balance = approvedAmount;
+      const scheduleRows: any[] = [];
+      const qboInvoiceIds: string[] = [];
+      const today = new Date();
+
+      // Auto-provision a "Travel Financing" income account
+      const financingIncomeId = await ensureQBOAccount(
+        qboBase, qboHeaders, "Travel Financing Income", "Income", "ServiceFeeIncome"
+      );
+      // Auto-provision a "Loan Interest Income" account
+      const interestIncomeId = await ensureQBOAccount(
+        qboBase, qboHeaders, "Loan Interest Income", "Income", "OtherPrimaryIncome"
+      );
+
+      for (let i = 1; i <= termMonths; i++) {
+        const interestPayment = Math.round(balance * monthlyRate * 100) / 100;
+        const principalPayment = Math.round((monthlyPayment - interestPayment) * 100) / 100;
+        balance = Math.max(0, Math.round((balance - principalPayment) * 100) / 100);
+
+        // Due date: i months from today
+        const dueDate = new Date(today);
+        dueDate.setMonth(dueDate.getMonth() + i);
+        const dueDateStr = dueDate.toISOString().split("T")[0];
+
+        const totalPmt = Math.round((principalPayment + interestPayment) * 100) / 100;
+
+        // Create QBO Invoice for this payment
+        const invoiceData: any = {
+          CustomerRef: { value: qboCustomerId },
+          DueDate: dueDateStr,
+          TxnDate: dueDateStr,
+          DocNumber: `${loan.application_number}-${String(i).padStart(2, "0")}`.substring(0, 21),
+          PrivateNote: `Travel financing payment ${i}/${termMonths} — ${loan.application_number}`,
+          Line: [
+            {
+              Amount: principalPayment,
+              DetailType: "SalesItemLineDetail",
+              SalesItemLineDetail: {
+                ItemRef: { value: "1", name: "Services" },
+              },
+              Description: `Principal payment ${i}/${termMonths} — Travel Financing`,
+            },
+            {
+              Amount: interestPayment,
+              DetailType: "SalesItemLineDetail",
+              SalesItemLineDetail: {
+                ItemRef: { value: "1", name: "Services" },
+              },
+              Description: `Interest payment ${i}/${termMonths} — ${annualRate}% APR`,
+            },
+          ],
+        };
+
+        // Set the email for auto-send
+        if (loan.email) {
+          invoiceData.BillEmail = { Address: loan.email };
+        }
+
+        const invResp = await fetch(`${qboBase}/invoice`, {
+          method: "POST", headers: qboHeaders, body: JSON.stringify(invoiceData),
+        });
+
+        let qboInvoiceId: string | null = null;
+        if (invResp.ok) {
+          const invResult = await invResp.json();
+          qboInvoiceId = invResult.Invoice.Id;
+          qboInvoiceIds.push(qboInvoiceId!);
+        } else {
+          const errText = await invResp.text();
+          console.error(`Failed to create QBO invoice ${i}/${termMonths}:`, errText);
+        }
+
+        scheduleRows.push({
+          loan_application_id,
+          user_id: userId,
+          payment_number: i,
+          due_date: dueDateStr,
+          principal_amount: principalPayment,
+          interest_amount: interestPayment,
+          total_payment: totalPmt,
+          status: "pending",
+          qbo_invoice_id: qboInvoiceId,
+          qbo_synced_at: qboInvoiceId ? new Date().toISOString() : null,
+        });
+      }
+
+      // 3. Insert payment schedule into database
+      // Delete any existing schedule for this loan first
+      await supabaseAdmin
+        .from("loan_payment_schedules")
+        .delete()
+        .eq("loan_application_id", loan_application_id);
+
+      const { error: insertErr } = await supabaseAdmin
+        .from("loan_payment_schedules")
+        .insert(scheduleRows);
+
+      if (insertErr) {
+        console.error("Failed to insert payment schedules:", insertErr);
+      }
+
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId,
+        sync_type: "loan_financing",
+        direction: "push",
+        status: "success",
+        records_processed: qboInvoiceIds.length,
+        details: {
+          loan_application_id,
+          application_number: loan.application_number,
+          qbo_customer_id: qboCustomerId,
+          approved_amount: approvedAmount,
+          annual_rate: annualRate,
+          term_months: termMonths,
+          monthly_payment: Math.round(monthlyPayment * 100) / 100,
+          invoices_created: qboInvoiceIds.length,
+          total_interest: Math.round(
+            scheduleRows.reduce((s: number, r: any) => s + r.interest_amount, 0) * 100
+          ) / 100,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          qbo_customer_id: qboCustomerId,
+          invoices_created: qboInvoiceIds.length,
+          monthly_payment: Math.round(monthlyPayment * 100) / 100,
+          schedule: scheduleRows.map((r) => ({
+            payment_number: r.payment_number,
+            due_date: r.due_date,
+            principal: r.principal_amount,
+            interest: r.interest_amount,
+            total: r.total_payment,
+            qbo_invoice_id: r.qbo_invoice_id,
+          })),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── POST ?action=sync-loan-payment ────────────────────────────────
+    // Record a payment against a loan schedule item and mark QBO invoice as paid
+    if (urlPath === "sync-loan-payment" && req.method === "POST") {
+      const { schedule_id, paid_date } = await req.json();
+      if (!schedule_id) {
+        return new Response(JSON.stringify({ error: "schedule_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: schedule, error: schedErr } = await supabaseAdmin
+        .from("loan_payment_schedules")
+        .select("*")
+        .eq("id", schedule_id)
+        .single();
+
+      if (schedErr || !schedule) {
+        return new Response(JSON.stringify({ error: "Schedule item not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const payDate = paid_date || new Date().toISOString().split("T")[0];
+
+      // Update local status
+      await supabaseAdmin.from("loan_payment_schedules").update({
+        status: "paid",
+        paid_date: payDate,
+        updated_at: new Date().toISOString(),
+      }).eq("id", schedule_id);
+
+      // If there's a QBO invoice, record payment in QBO
+      if (schedule.qbo_invoice_id) {
+        // Get the invoice to find SyncToken
+        const invResp = await fetch(`${qboBase}/invoice/${schedule.qbo_invoice_id}`, {
+          headers: qboHeaders,
+        });
+
+        if (invResp.ok) {
+          const invData = await invResp.json();
+          const invoice = invData.Invoice;
+
+          // Create a QBO Payment against this invoice
+          const paymentData = {
+            TotalAmt: schedule.total_payment,
+            TxnDate: payDate,
+            Line: [{
+              Amount: schedule.total_payment,
+              LinkedTxn: [{
+                TxnId: schedule.qbo_invoice_id,
+                TxnType: "Invoice",
+              }],
+            }],
+            CustomerRef: invoice.CustomerRef,
+          };
+
+          const payResp = await fetch(`${qboBase}/payment`, {
+            method: "POST",
+            headers: qboHeaders,
+            body: JSON.stringify(paymentData),
+          });
+
+          if (!payResp.ok) {
+            const errText = await payResp.text();
+            console.error("Failed to create QBO payment:", errText);
+          }
+        }
+      }
+
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId,
+        sync_type: "loan_payment",
+        direction: "push",
+        status: "success",
+        records_processed: 1,
+        details: { schedule_id, paid_date: payDate, qbo_invoice_id: schedule.qbo_invoice_id },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── GET ?action=loan-payment-status ──────────────────────────────
+    // Pull payment status from QBO for loan invoices and sync back
+    if (urlPath === "loan-payment-status" && req.method === "POST") {
+      const { loan_application_id } = await req.json();
+      if (!loan_application_id) {
+        return new Response(JSON.stringify({ error: "loan_application_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: schedules } = await supabaseAdmin
+        .from("loan_payment_schedules")
+        .select("*")
+        .eq("loan_application_id", loan_application_id)
+        .order("payment_number", { ascending: true });
+
+      if (!schedules?.length) {
+        return new Response(JSON.stringify({ success: true, updated: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let updated = 0;
+      for (const schedule of schedules) {
+        if (!schedule.qbo_invoice_id || schedule.status === "paid") continue;
+
+        const invResp = await fetch(`${qboBase}/invoice/${schedule.qbo_invoice_id}`, {
+          headers: qboHeaders,
+        });
+
+        if (invResp.ok) {
+          const invData = await invResp.json();
+          const invoice = invData.Invoice;
+          const balance = parseFloat(invoice.Balance || "0");
+
+          if (balance === 0 && invoice.Balance !== undefined) {
+            // Invoice is fully paid in QBO
+            await supabaseAdmin.from("loan_payment_schedules").update({
+              status: "paid",
+              paid_date: invoice.MetaData?.LastUpdatedTime?.split("T")[0] || new Date().toISOString().split("T")[0],
+              updated_at: new Date().toISOString(),
+            }).eq("id", schedule.id);
+            updated++;
+          }
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, updated }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
