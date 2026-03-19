@@ -344,6 +344,48 @@ export default function LoanApplicationsManager() {
     }
   }, [selected]);
 
+  const activateAutopay = async () => {
+    if (!selected) return;
+    setActivatingAutopay(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/activate-autopay`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            loan_id: selected.id,
+            stripe_payment_method_id: selected.stripe_payment_method_id,
+            approved_amount: selected.approved_amount,
+            approved_rate: selected.approved_rate || 0,
+            approved_term_months: selected.approved_term_months,
+            autopay_start_date: autopayStartDate ? format(autopayStartDate, "yyyy-MM-dd") : undefined,
+            customer_name: `${selected.first_name} ${selected.last_name}`,
+            customer_email: selected.email,
+          }),
+        }
+      );
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Activation failed");
+      toast.success(`Auto-payment activated! Monthly: $${result.monthly_payment_dollars}`);
+      setShowAutopayModal(false);
+      // Refresh the selected record
+      const { data } = await supabase
+        .from("loan_applications")
+        .select("*")
+        .eq("id", selected.id)
+        .single();
+      if (data) setSelected(data as LoanApplication);
+      await fetchApplications();
+    } catch (err: any) {
+      console.error("Activate autopay error:", err);
+      toast.error(err.message || "Failed to activate auto-payment");
+    } finally {
+      setActivatingAutopay(false);
+    }
+  };
+
   const saveDecision = async () => {
     if (!selected) return;
     setSaving(true);
