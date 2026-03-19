@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,7 @@ const passwordSchema = z.string().min(8, "Password must be at least 8 characters
 
 const Auth = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const redirectTo = (location.state as any)?.from?.pathname || "/";
   const { user, loading, signOut } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
