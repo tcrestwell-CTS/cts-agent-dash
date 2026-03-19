@@ -719,6 +719,176 @@ export default function LoanApplicationsManager() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* ── Autopay Panel ─────────────────────────────────────── */}
+            {selected.status === "approved" && selected.consent_autopay && selected.stripe_payment_method_id && (
+              <Card className={selected.autopay_active ? "border-emerald-300" : "border-amber-300"}>
+                <CardHeader className="py-3 px-4 bg-muted/50 border-b">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Auto-Payment
+                    </CardTitle>
+                    {selected.autopay_active ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 text-[10px]">
+                        <CheckCircle className="h-3 w-3 mr-0.5" />
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-[10px]">
+                        <XCircle className="h-3 w-3 mr-0.5" />
+                        Inactive
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-0">
+                  {selected.autopay_active ? (
+                    <>
+                      <Row
+                        label="Stripe Customer"
+                        value={selected.stripe_customer_id ? selected.stripe_customer_id.slice(0, 8) + "..." : "—"}
+                      />
+                      <Row
+                        label="Subscription"
+                        value={selected.stripe_subscription_id ? selected.stripe_subscription_id.slice(0, 8) + "..." : "—"}
+                      />
+                      <Row
+                        label="First Payment"
+                        value={fmtDate(selected.autopay_start_date)}
+                      />
+                      <Row
+                        label="Monthly Payment"
+                        value={selected.approved_amount && selected.approved_term_months
+                          ? fmt$(Math.ceil(selected.approved_amount / selected.approved_term_months))
+                          : "—"}
+                      />
+                      <Row
+                        label="Active Since"
+                        value={fmtDate(selected.autopay_signed_at)}
+                      />
+                      <Row
+                        label="Payment Method"
+                        value={selected.autopay_method === "bank" ? "Bank Account" : "Card"}
+                      />
+                      <div className="pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs border-destructive/30 text-destructive hover:bg-destructive/5"
+                          onClick={() => toast.info("Contact Stripe dashboard to cancel the subscription.")}
+                        >
+                          Cancel Auto-Payment
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Row
+                        label="Payment Method"
+                        value={selected.autopay_method === "bank" ? "Bank Account" : "Card"}
+                      />
+                      <Row
+                        label="Stripe PM Token"
+                        value={selected.stripe_payment_method_id.slice(0, 8) + "..."}
+                      />
+                      <Row
+                        label="Applicant Signed"
+                        value={fmtDate(selected.autopay_signed_at)}
+                      />
+                      <div className="pt-3">
+                        <Button
+                          className="w-full"
+                          size="sm"
+                          onClick={() => {
+                            setAutopayStartDate(addDays(new Date(), 30));
+                            setShowAutopayModal(true);
+                          }}
+                        >
+                          <Zap className="h-3.5 w-3.5 mr-1.5" />
+                          Activate Auto-Payment
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Autopay Activation Modal */}
+            <Dialog open={showAutopayModal} onOpenChange={setShowAutopayModal}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Activate Auto-Payment
+                  </DialogTitle>
+                  <DialogDescription>
+                    Review the details below and select a start date for automatic payments.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3 py-2">
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-0">
+                    <Row label="Applicant" value={`${selected.first_name} ${selected.last_name}`} />
+                    <Row label="Approved Amount" value={fmt$(selected.approved_amount)} />
+                    <Row label="Interest Rate" value={selected.approved_rate ? `${selected.approved_rate}%` : "0%"} />
+                    <Row label="Term" value={selected.approved_term_months ? `${selected.approved_term_months} months` : "—"} />
+                    <Row
+                      label="Est. Monthly Payment"
+                      value={selected.approved_amount && selected.approved_term_months
+                        ? fmt$(Math.ceil(selected.approved_amount / selected.approved_term_months))
+                        : "—"}
+                    />
+                    <Row label="Payment Method" value={selected.autopay_method === "bank" ? "Bank Account" : "Card"} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">First Payment Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !autopayStartDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {autopayStartDate ? format(autopayStartDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={autopayStartDate}
+                          onSelect={setAutopayStartDate}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                    <p className="text-xs text-amber-800">
+                      <strong>⚠️ Warning:</strong> This will immediately create a Stripe Customer and Subscription.
+                      The applicant's payment method will be charged on the selected start date.
+                    </p>
+                  </div>
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setShowAutopayModal(false)} disabled={activatingAutopay}>
+                    Cancel
+                  </Button>
+                  <Button onClick={activateAutopay} disabled={activatingAutopay || !autopayStartDate}>
+                    {activatingAutopay ? "Activating..." : "Confirm & Activate"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
