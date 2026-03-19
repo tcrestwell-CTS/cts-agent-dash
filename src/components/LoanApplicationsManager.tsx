@@ -608,6 +608,19 @@ export default function LoanApplicationsManager() {
                     {sendingEmail ? "Sending..." : "Send Approval Email"}
                   </Button>
                 )}
+
+                {/* QBO Sync Button */}
+                {selected.status === "approved" && (
+                  <Button
+                    onClick={syncToQBO}
+                    disabled={syncingQBO}
+                    variant="outline"
+                    className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <BookOpen className="h-4 w-4 mr-1.5" />
+                    {syncingQBO ? "Syncing..." : paymentSchedule.length > 0 ? "Re-sync to QuickBooks" : "Sync Financing to QuickBooks"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -637,6 +650,130 @@ export default function LoanApplicationsManager() {
             </Card>
           </div>
         </div>
+
+        {/* Payment Schedule Section */}
+        {paymentSchedule.length > 0 && (
+          <Card className="mt-5">
+            <CardHeader className="py-3 px-4 bg-muted/50 border-b flex-row items-center justify-between">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Repayment Schedule ({paymentSchedule.length} payments)
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={syncPaymentStatus}
+                  disabled={syncingPaymentStatus}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1 ${syncingPaymentStatus ? "animate-spin" : ""}`} />
+                  {syncingPaymentStatus ? "Syncing..." : "Sync from QBO"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {/* Summary */}
+              {(() => {
+                const paid = paymentSchedule.filter((p: any) => p.status === "paid");
+                const totalPaid = paid.reduce((s: number, p: any) => s + Number(p.total_payment), 0);
+                const totalDue = paymentSchedule.reduce((s: number, p: any) => s + Number(p.total_payment), 0);
+                const pctPaid = totalDue > 0 ? (totalPaid / totalDue) * 100 : 0;
+                return (
+                  <div className="mb-4 space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {paid.length} of {paymentSchedule.length} payments complete
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {fmt$(totalPaid)} / {fmt$(totalDue)}
+                      </span>
+                    </div>
+                    <Progress value={pctPaid} className="h-2" />
+                  </div>
+                );
+              })()}
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs w-12">#</TableHead>
+                    <TableHead className="text-xs">Due Date</TableHead>
+                    <TableHead className="text-xs text-right">Principal</TableHead>
+                    <TableHead className="text-xs text-right">Interest</TableHead>
+                    <TableHead className="text-xs text-right">Total</TableHead>
+                    <TableHead className="text-xs text-center">Status</TableHead>
+                    <TableHead className="text-xs text-center">QBO</TableHead>
+                    <TableHead className="text-xs text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentSchedule.map((pmt: any) => (
+                    <TableRow key={pmt.id}>
+                      <TableCell className="text-xs font-mono text-muted-foreground">
+                        {pmt.payment_number}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {fmtDate(pmt.due_date)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-medium">
+                        {fmt$(pmt.principal_amount)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right text-muted-foreground">
+                        {fmt$(pmt.interest_amount)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-semibold">
+                        {fmt$(pmt.total_payment)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {pmt.status === "paid" ? (
+                          <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-300 text-[10px]">
+                            <CheckCircle className="h-3 w-3 mr-0.5" />
+                            Paid
+                          </Badge>
+                        ) : new Date(pmt.due_date) < new Date() ? (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Overdue
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">
+                            <Clock className="h-3 w-3 mr-0.5" />
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {pmt.qbo_invoice_id ? (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Synced
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {pmt.status !== "paid" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => markPaymentPaid(pmt.id)}
+                            disabled={markingPaid === pmt.id}
+                          >
+                            <DollarSign className="h-3.5 w-3.5 mr-0.5" />
+                            {markingPaid === pmt.id ? "..." : "Mark Paid"}
+                          </Button>
+                        )}
+                        {pmt.status === "paid" && pmt.paid_date && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {fmtDate(pmt.paid_date)}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
