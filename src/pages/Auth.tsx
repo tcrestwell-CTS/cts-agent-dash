@@ -90,125 +90,13 @@ const Auth = () => {
         });
 
         if (existingProfile) {
-          devLog("[Auth] User has existing profile, redirecting to home");
-          navigate(redirectTo, { replace: true });
+          devLog("[Auth] User has existing profile, redirecting to agent dashboard");
+          navigate("/", { replace: true });
           return;
         }
-
-        // New user - check for valid invitation
-        let hasValidInvitation = false;
-
-        // First try: Check by invite token in URL
-        if (inviteToken) {
-          devLog("[Auth] Checking invitation by token");
-          const { data: tokenInvite, error: tokenError } = await supabase
-            .from("invitations")
-            .select("id, email, status, expires_at")
-            .eq("token", inviteToken)
-            .eq("status", "pending")
-            .maybeSingle();
-
-          devLog("[Auth] Token invitation lookup result", {
-            found: !!tokenInvite,
-            inviteEmail: tokenInvite?.email,
-            status: tokenInvite?.status,
-            expiresAt: tokenInvite?.expires_at,
-            isExpired: tokenInvite ? new Date(tokenInvite.expires_at) <= new Date() : null,
-            emailMatch: tokenInvite?.email === userEmail,
-            error: tokenError?.message,
-          });
-
-          if (tokenInvite && new Date(tokenInvite.expires_at) > new Date()) {
-            if (tokenInvite.email === userEmail) {
-              hasValidInvitation = true;
-              devLog("[Auth] Token matches, accepting invitation via RPC");
-              const { data, error } = await supabase.rpc("accept_invitation", {
-                invitation_token: inviteToken,
-                accepting_user_id: user.id,
-              });
-
-              devLog("[Auth] accept_invitation RPC result (token)", {
-                success: data,
-                error: error?.message,
-                errorCode: error?.code,
-                errorDetails: error?.details,
-              });
-
-              if (error) {
-                devError("[Auth] Error accepting invitation via token:", error);
-                toast.error("Failed to accept invitation. Please try again.");
-              } else if (data) {
-                toast.success("Welcome! Your account has been set up.");
-              }
-            } else {
-              devLog("[Auth] Email mismatch - invitation email does not match user email");
-              toast.error("This invitation was sent to a different email address.");
-              await signOut();
-              setIsValidating(false);
-              return;
-            }
-          } else {
-            devLog("[Auth] Token invitation invalid or expired");
-          }
-        }
-
-        // Second try: Fallback to email-based lookup
-        if (!hasValidInvitation && userEmail) {
-          devLog("[Auth] Falling back to email-based invitation lookup", { userEmail });
-          const { data: emailInvite, error: emailError } = await supabase
-            .from("invitations")
-            .select("id, token, status, expires_at")
-            .eq("email", userEmail)
-            .eq("status", "pending")
-            .maybeSingle();
-
-          devLog("[Auth] Email invitation lookup result", {
-            found: !!emailInvite,
-            inviteId: emailInvite?.id,
-            status: emailInvite?.status,
-            expiresAt: emailInvite?.expires_at,
-            isExpired: emailInvite ? new Date(emailInvite.expires_at) <= new Date() : null,
-            error: emailError?.message,
-          });
-
-          if (emailInvite && new Date(emailInvite.expires_at) > new Date()) {
-            hasValidInvitation = true;
-            devLog("[Auth] Email invitation valid, accepting via RPC");
-            const { data, error } = await supabase.rpc("accept_invitation", {
-              invitation_token: emailInvite.token,
-              accepting_user_id: user.id,
-            });
-
-            devLog("[Auth] accept_invitation RPC result (email)", {
-              success: data,
-              error: error?.message,
-              errorCode: error?.code,
-              errorDetails: error?.details,
-            });
-
-            if (error) {
-              devError("[Auth] Error accepting invitation via email:", error);
-              toast.error("Failed to accept invitation. Please try again.");
-            } else if (data) {
-              toast.success("Welcome! Your account has been set up.");
-            }
-          } else {
-            devLog("[Auth] No valid email-based invitation found");
-          }
-        }
-
-        devLog("[Auth] Final invitation status", { hasValidInvitation });
-
-        if (!hasValidInvitation) {
-          devLog("[Auth] Access denied - no valid invitation found, signing out");
-          toast.error("Access denied. You must be a registered user. If not, please contact the administrator.");
-          await signOut();
-          setIsValidating(false);
-          return;
-        }
-
-        devLog("[Auth] Invitation accepted successfully, redirecting to home");
-        navigate(redirectTo, { replace: true });
+...
+        devLog("[Auth] Invitation accepted successfully, redirecting to agent dashboard");
+        navigate("/", { replace: true });
       } catch (err) {
         devError("[Auth] Unexpected error during validation:", err);
         toast.error("An error occurred while validating your access.");
