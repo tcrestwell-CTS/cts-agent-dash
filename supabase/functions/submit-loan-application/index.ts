@@ -1,3 +1,7 @@
+// supabase/functions/submit-loan-application/index.ts
+// Uses service role key to write to loan_applications table
+// RLS stays ENABLED on the table — anon key never writes directly
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -15,6 +19,21 @@ Deno.serve(async (req) => {
     // Basic required field validation
     if (!body.first_name || !body.last_name || !body.email) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate autopay consent
+    if (!body.consent_autopay) {
+      return new Response(JSON.stringify({ error: 'Auto-payment authorization required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate autopay e-signature
+    const expectedAutoPay = `${body.first_name} ${body.last_name}`.toLowerCase().trim();
+    if (!body.autopay_esignature || body.autopay_esignature.toLowerCase().trim() !== expectedAutoPay) {
+      return new Response(JSON.stringify({ error: 'Auto-payment signature must match full name' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -65,8 +84,14 @@ Deno.serve(async (req) => {
         monthly_rent_mortgage: body.monthly_rent_mortgage ? parseFloat(body.monthly_rent_mortgage) : null,
         monthly_car_payment:   body.monthly_car_payment   ? parseFloat(body.monthly_car_payment)   : null,
         monthly_other_debt:    body.monthly_other_debt    ? parseFloat(body.monthly_other_debt)     : null,
-        date_of_birth:         body.date_of_birth         || null,
-        travel_date:           body.travel_date           || null,
+        date_of_birth:              body.date_of_birth              || null,
+        travel_date:                body.travel_date                || null,
+        autopay_method:             body.autopay_method             || null,
+        consent_autopay:            body.consent_autopay            || false,
+        autopay_esignature:         body.autopay_esignature         || null,
+        autopay_signed_at:          body.consent_autopay ? new Date().toISOString() : null,
+        stripe_payment_method_id:   body.stripe_payment_method_id   || null,
+        autopay_active:             false,  // Never active until manually approved
       })
       .select('application_number')
       .single();
