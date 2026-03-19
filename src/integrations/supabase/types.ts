@@ -1854,10 +1854,16 @@ export type Database = {
           approved_rate: number | null
           approved_term_months: number | null
           assigned_to: string | null
+          autopay_active: boolean | null
+          autopay_esignature: string | null
+          autopay_method: string | null
+          autopay_signed_at: string | null
+          autopay_start_date: string | null
           bankruptcy_details: string | null
           bankruptcy_history: boolean | null
           checking_account: boolean | null
           city: string
+          consent_autopay: boolean | null
           consent_credit_check: boolean
           consent_terms: boolean
           created_at: string | null
@@ -1898,6 +1904,9 @@ export type Database = {
           ssn_last_four: string | null
           state: string
           status: string | null
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          stripe_subscription_id: string | null
           travel_date: string | null
           trip_description: string | null
           updated_at: string | null
@@ -1916,10 +1925,16 @@ export type Database = {
           approved_rate?: number | null
           approved_term_months?: number | null
           assigned_to?: string | null
+          autopay_active?: boolean | null
+          autopay_esignature?: string | null
+          autopay_method?: string | null
+          autopay_signed_at?: string | null
+          autopay_start_date?: string | null
           bankruptcy_details?: string | null
           bankruptcy_history?: boolean | null
           checking_account?: boolean | null
           city: string
+          consent_autopay?: boolean | null
           consent_credit_check?: boolean
           consent_terms?: boolean
           created_at?: string | null
@@ -1960,6 +1975,9 @@ export type Database = {
           ssn_last_four?: string | null
           state: string
           status?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_subscription_id?: string | null
           travel_date?: string | null
           trip_description?: string | null
           updated_at?: string | null
@@ -1978,10 +1996,16 @@ export type Database = {
           approved_rate?: number | null
           approved_term_months?: number | null
           assigned_to?: string | null
+          autopay_active?: boolean | null
+          autopay_esignature?: string | null
+          autopay_method?: string | null
+          autopay_signed_at?: string | null
+          autopay_start_date?: string | null
           bankruptcy_details?: string | null
           bankruptcy_history?: boolean | null
           checking_account?: boolean | null
           city?: string
+          consent_autopay?: boolean | null
           consent_credit_check?: boolean
           consent_terms?: boolean
           created_at?: string | null
@@ -2022,6 +2046,9 @@ export type Database = {
           ssn_last_four?: string | null
           state?: string
           status?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_subscription_id?: string | null
           travel_date?: string | null
           trip_description?: string | null
           updated_at?: string | null
