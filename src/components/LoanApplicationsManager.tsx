@@ -37,7 +37,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
-import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign, CreditCard, CalendarIcon, Shield, Zap, XCircle } from "lucide-react";
+import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign, CreditCard, CalendarIcon, Shield, Zap, XCircle, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
