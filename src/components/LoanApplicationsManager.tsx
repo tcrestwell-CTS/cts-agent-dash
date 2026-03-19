@@ -487,6 +487,39 @@ export default function LoanApplicationsManager() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pdfLoading}
+              onClick={async () => {
+                setPdfLoading(true);
+                try {
+                  const res = await fetch(
+                    `https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/export-loan-pdf`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(selected),
+                    }
+                  );
+                  if (!res.ok) throw new Error('PDF generation failed');
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${selected.application_number}.pdf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (e: any) {
+                  toast.error(e.message || 'Failed to download PDF');
+                } finally {
+                  setPdfLoading(false);
+                }
+              }}
+            >
+              {pdfLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+              {pdfLoading ? 'Generating…' : '⬇ Download PDF'}
+            </Button>
             <div>
               <h2 className="text-lg font-bold text-foreground">
                 {selected.first_name} {selected.last_name}
