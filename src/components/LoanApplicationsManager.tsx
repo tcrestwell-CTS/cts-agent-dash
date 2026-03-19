@@ -37,7 +37,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
-import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign, CreditCard, CalendarIcon, Shield, Zap, XCircle } from "lucide-react";
+import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign, CreditCard, CalendarIcon, Shield, Zap, XCircle, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
@@ -208,6 +208,7 @@ export default function LoanApplicationsManager() {
   const [showAutopayModal, setShowAutopayModal] = useState(false);
   const [autopayStartDate, setAutopayStartDate] = useState<Date | undefined>(addDays(new Date(), 30));
   const [activatingAutopay, setActivatingAutopay] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -486,6 +487,39 @@ export default function LoanApplicationsManager() {
             <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pdfLoading}
+              onClick={async () => {
+                setPdfLoading(true);
+                try {
+                  const res = await fetch(
+                    `https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/export-loan-pdf`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(selected),
+                    }
+                  );
+                  if (!res.ok) throw new Error('PDF generation failed');
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${selected.application_number}.pdf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (e: any) {
+                  toast.error(e.message || 'Failed to download PDF');
+                } finally {
+                  setPdfLoading(false);
+                }
+              }}
+            >
+              {pdfLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+              {pdfLoading ? 'Generating…' : '⬇ Download PDF'}
             </Button>
             <div>
               <h2 className="text-lg font-bold text-foreground">
