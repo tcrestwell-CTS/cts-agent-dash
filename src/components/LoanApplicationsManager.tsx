@@ -208,6 +208,7 @@ export default function LoanApplicationsManager() {
   const [showAutopayModal, setShowAutopayModal] = useState(false);
   const [autopayStartDate, setAutopayStartDate] = useState<Date | undefined>(addDays(new Date(), 30));
   const [activatingAutopay, setActivatingAutopay] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
