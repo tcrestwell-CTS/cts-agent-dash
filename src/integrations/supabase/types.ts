@@ -746,18 +746,24 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           id: string
+          late_fees_applied: number | null
           late_fees_charged: number | null
           metadata: Json | null
           missed_payments: number | null
+          months_paid: number | null
           notes: string | null
           payment_method: string
           payment_type: string | null
+          plan_cancelled: boolean | null
+          plan_cancelled_at: string | null
+          plan_cancelled_reason: string | null
           plan_months: number | null
           status: string | null
           stripe_client_secret: string | null
           stripe_customer_id: string | null
           stripe_payment_intent_id: string | null
           stripe_subscription_id: string | null
+          total_months: number | null
           travel_date: string | null
           trip_name: string | null
           updated_at: string | null
@@ -774,18 +780,24 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           id?: string
+          late_fees_applied?: number | null
           late_fees_charged?: number | null
           metadata?: Json | null
           missed_payments?: number | null
+          months_paid?: number | null
           notes?: string | null
           payment_method: string
           payment_type?: string | null
+          plan_cancelled?: boolean | null
+          plan_cancelled_at?: string | null
+          plan_cancelled_reason?: string | null
           plan_months?: number | null
           status?: string | null
           stripe_client_secret?: string | null
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          total_months?: number | null
           travel_date?: string | null
           trip_name?: string | null
           updated_at?: string | null
@@ -802,18 +814,24 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           id?: string
+          late_fees_applied?: number | null
           late_fees_charged?: number | null
           metadata?: Json | null
           missed_payments?: number | null
+          months_paid?: number | null
           notes?: string | null
           payment_method?: string
           payment_type?: string | null
+          plan_cancelled?: boolean | null
+          plan_cancelled_at?: string | null
+          plan_cancelled_reason?: string | null
           plan_months?: number | null
           status?: string | null
           stripe_client_secret?: string | null
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
+          total_months?: number | null
           travel_date?: string | null
           trip_name?: string | null
           updated_at?: string | null
