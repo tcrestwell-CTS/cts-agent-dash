@@ -21,7 +21,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format, addDays } from "date-fns";
+import { ArrowLeft, RefreshCw, Eye, Mail, BookOpen, CheckCircle, Clock, DollarSign, CreditCard, CalendarIcon, Shield, Zap, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
