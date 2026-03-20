@@ -810,7 +810,29 @@ export default function LoanApplicationsManager() {
                           variant="outline"
                           size="sm"
                           className="w-full text-xs border-destructive/30 text-destructive hover:bg-destructive/5"
-                          onClick={() => toast.info("Contact Stripe dashboard to cancel the subscription.")}
+                          onClick={async () => {
+                            if (!selected.stripe_subscription_id) {
+                              toast.error("No subscription ID found for this application.");
+                              return;
+                            }
+                            const confirmed = window.confirm("Are you sure you want to cancel this auto-payment? This will immediately stop all future charges.");
+                            if (!confirmed) return;
+                            try {
+                              toast.loading("Cancelling auto-payment...", { id: "cancel-autopay" });
+                              const { data, error } = await supabase.functions.invoke("cancel-autopay", {
+                                body: {
+                                  subscription_id: selected.stripe_subscription_id,
+                                  application_id: selected.id,
+                                },
+                              });
+                              if (error) throw error;
+                              if (data?.error) throw new Error(data.error);
+                              toast.success("Auto-payment cancelled successfully.", { id: "cancel-autopay" });
+                              fetchApplications();
+                            } catch (err: any) {
+                              toast.error(err.message || "Failed to cancel auto-payment.", { id: "cancel-autopay" });
+                            }
+                          }}
                         >
                           Cancel Auto-Payment
                         </Button>
