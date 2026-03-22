@@ -356,7 +356,7 @@ export default function CruiseSearch() {
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
               Filter
             </Button>
-            {(searchQuery || destination || dateFrom || dateTo) && (
+            {(searchQuery || destination || cruiseType || dateFrom || dateTo) && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
                 Clear Filters
               </Button>
