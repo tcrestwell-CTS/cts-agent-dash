@@ -79,16 +79,20 @@ interface WidgetyItineraryItem {
 }
 
 const AVAILABLE_OPERATORS = [
+  { slug: "american-cruise-lines", label: "American Cruise Lines" },
   { slug: "amawaterways", label: "AmaWaterways" },
   { slug: "avalon-waterways", label: "Avalon Waterways" },
   { slug: "carnival-cruise-lines-operator", label: "Carnival Cruise Line" },
   { slug: "celebrity-cruises", label: "Celebrity Cruises" },
   { slug: "celebrity-river-cruises", label: "Celebrity River Cruises" },
+  { slug: "cunard-line", label: "Cunard Line" },
+  { slug: "disney-cruise-line", label: "Disney Cruise Line" },
   { slug: "explora-journeys", label: "Explora Journeys" },
   { slug: "holland-america-line", label: "Holland America Line" },
   { slug: "msc-cruises", label: "MSC Cruises" },
   { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
   { slug: "princess-cruises", label: "Princess Cruises" },
+  { slug: "ritz-carlton-yacht-collection", label: "Ritz-Carlton Yacht Collection" },
   { slug: "royal-caribbean-international", label: "Royal Caribbean International" },
   { slug: "seabourn-cruise-line", label: "Seabourn Cruise Line" },
   { slug: "silversea-cruises", label: "Silversea Cruises" },
