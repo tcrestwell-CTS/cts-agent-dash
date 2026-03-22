@@ -169,8 +169,17 @@ export default function CruiseSearch() {
     try {
       const params: Record<string, any> = { action: "search", market: "us", limit: 50 };
       if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
-      if (destination && destination !== "all") params.regions = destination;
-      if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType;
+
+      const normalizedDestination = destination?.trim().toLowerCase();
+      if (
+        normalizedDestination &&
+        normalizedDestination !== "all" &&
+        AVAILABLE_DESTINATIONS.some((d) => d.value === normalizedDestination)
+      ) {
+        params.regions = normalizedDestination;
+      }
+
+      if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType.toLowerCase();
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const data = await callWidgety(params);
