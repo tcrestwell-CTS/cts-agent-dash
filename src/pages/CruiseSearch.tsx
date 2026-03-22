@@ -242,6 +242,7 @@ export default function CruiseSearch() {
 
   const clearFilters = () => {
     setSearchQuery("");
+    setDestination("");
     setDateFrom("");
     setDateTo("");
   };
