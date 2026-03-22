@@ -331,6 +331,19 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full sm:w-36">
+              <Label className="text-xs text-muted-foreground">Cruise Type</Label>
+              <Select value={cruiseType} onValueChange={setCruiseType}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="ocean">Ocean</SelectItem>
+                  <SelectItem value="river">River</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="w-full sm:w-40">
               <Label className="text-xs text-muted-foreground">Min Date</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-background" />
