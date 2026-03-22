@@ -97,6 +97,24 @@ const AVAILABLE_OPERATORS = [
   { slug: "virgin-voyages", label: "Virgin Voyages" },
 ];
 
+const AVAILABLE_DESTINATIONS = [
+  { value: "Caribbean", label: "Caribbean" },
+  { value: "Mediterranean", label: "Mediterranean" },
+  { value: "Alaska", label: "Alaska" },
+  { value: "Bahamas", label: "Bahamas" },
+  { value: "Bermuda", label: "Bermuda" },
+  { value: "Mexico", label: "Mexico" },
+  { value: "Norway", label: "Norway" },
+  { value: "Hawaii", label: "Hawaii" },
+  { value: "New England", label: "New England" },
+  { value: "Europe", label: "Europe" },
+  { value: "Asia", label: "Asia" },
+  { value: "South America", label: "South America" },
+  { value: "Australia", label: "Australia" },
+  { value: "Africa", label: "Africa" },
+  { value: "Transatlantic", label: "Transatlantic" },
+  { value: "World", label: "World Cruise" },
+];
 type Step = "search" | "sailings" | "dates" | "pricing" | "itinerary";
 
 export default function CruiseSearch() {
