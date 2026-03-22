@@ -295,9 +295,9 @@ export default function CruiseSearch() {
 
         {/* Inline Search Bar — visible on search + sailings */}
         {(step === "search" || step === "sailings") && (
-          <div className="flex flex-col sm:flex-row items-end gap-3">
+          <div className="flex flex-col sm:flex-row items-end gap-3 flex-wrap">
             <div className="flex-1 min-w-0">
-              <Label className="text-xs text-muted-foreground">Search</Label>
+              <Label className="text-xs text-muted-foreground">Cruise Line</Label>
               <Select value={searchQuery} onValueChange={setSearchQuery}>
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="All cruise lines" />
@@ -310,11 +310,25 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-full sm:w-44">
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground">Destination</Label>
+              <Select value={destination} onValueChange={setDestination}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All destinations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Destinations</SelectItem>
+                  {AVAILABLE_DESTINATIONS.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-40">
               <Label className="text-xs text-muted-foreground">Min Date</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-background" />
             </div>
-            <div className="w-full sm:w-44">
+            <div className="w-full sm:w-40">
               <Label className="text-xs text-muted-foreground">Max Date</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-background" />
             </div>
@@ -322,7 +336,7 @@ export default function CruiseSearch() {
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
               Filter
             </Button>
-            {(searchQuery || dateFrom || dateTo) && (
+            {(searchQuery || destination || dateFrom || dateTo) && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
                 Clear Filters
               </Button>
