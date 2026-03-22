@@ -102,22 +102,22 @@ const AVAILABLE_OPERATORS = [
 ];
 
 const AVAILABLE_DESTINATIONS = [
-  { value: "Caribbean", label: "Caribbean" },
-  { value: "Mediterranean", label: "Mediterranean" },
-  { value: "Alaska", label: "Alaska" },
-  { value: "Bahamas", label: "Bahamas" },
-  { value: "Bermuda", label: "Bermuda" },
-  { value: "Mexico", label: "Mexico" },
-  { value: "Norway", label: "Norway" },
-  { value: "Hawaii", label: "Hawaii" },
-  { value: "New England", label: "New England" },
-  { value: "Europe", label: "Europe" },
-  { value: "Asia", label: "Asia" },
-  { value: "South America", label: "South America" },
-  { value: "Australia", label: "Australia" },
-  { value: "Africa", label: "Africa" },
-  { value: "Transatlantic", label: "Transatlantic" },
-  { value: "World", label: "World Cruise" },
+  { value: "caribbean", label: "Caribbean" },
+  { value: "mediterranean", label: "Mediterranean" },
+  { value: "alaska", label: "Alaska" },
+  { value: "bahamas", label: "Bahamas" },
+  { value: "bermuda", label: "Bermuda" },
+  { value: "mexico", label: "Mexico" },
+  { value: "norway", label: "Norway" },
+  { value: "hawaii", label: "Hawaii" },
+  { value: "new-england", label: "New England" },
+  { value: "europe", label: "Europe" },
+  { value: "asia", label: "Asia" },
+  { value: "south-america", label: "South America" },
+  { value: "australia", label: "Australia" },
+  { value: "africa", label: "Africa" },
+  { value: "transatlantic", label: "Transatlantic" },
+  { value: "world", label: "World Cruise" },
 ];
 type Step = "search" | "sailings" | "dates" | "pricing" | "itinerary";
 
