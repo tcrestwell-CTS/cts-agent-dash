@@ -127,6 +127,7 @@ export default function CruiseSearch() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [destination, setDestination] = useState("");
+  const [cruiseType, setCruiseType] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -167,6 +168,7 @@ export default function CruiseSearch() {
       const params: Record<string, any> = { action: "search", market: "us", limit: 50 };
       if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
       if (destination && destination !== "all") params.regions = destination;
+      if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const data = await callWidgety(params);
@@ -247,6 +249,7 @@ export default function CruiseSearch() {
   const clearFilters = () => {
     setSearchQuery("");
     setDestination("");
+    setCruiseType("");
     setDateFrom("");
     setDateTo("");
   };
@@ -328,6 +331,19 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full sm:w-36">
+              <Label className="text-xs text-muted-foreground">Cruise Type</Label>
+              <Select value={cruiseType} onValueChange={setCruiseType}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="ocean">Ocean</SelectItem>
+                  <SelectItem value="river">River</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="w-full sm:w-40">
               <Label className="text-xs text-muted-foreground">Min Date</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-background" />
@@ -340,7 +356,7 @@ export default function CruiseSearch() {
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
               Filter
             </Button>
-            {(searchQuery || destination || dateFrom || dateTo) && (
+            {(searchQuery || destination || cruiseType || dateFrom || dateTo) && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
                 Clear Filters
               </Button>
