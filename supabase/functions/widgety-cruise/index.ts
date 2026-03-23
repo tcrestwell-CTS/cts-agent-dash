@@ -217,23 +217,40 @@ serve(async (req: Request) => {
     }
 
     if (action === "ships") {
-      // List available ships
-      const searchParams = new URLSearchParams({
-        app_id: WIDGETY_APP_ID,
-        token: WIDGETY_TOKEN,
-      });
-      if (params.operators) searchParams.set("operators", params.operators);
-      const url = `${WIDGETY_BASE}/ships.json?${searchParams.toString()}`;
-      console.log("Widgety ships URL:", url.replace(WIDGETY_TOKEN, "***"));
-
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        const text = await resp.text();
-        console.error("Widgety ships error:", resp.status, text);
-        throw new Error(`Widgety API error: ${resp.status}`);
+      // List available ships - paginate through all pages
+      const allShips: any[] = [];
+      let page = 1;
+      let totalPages = 1;
+      
+      while (page <= totalPages) {
+        const searchParams = new URLSearchParams({
+          app_id: WIDGETY_APP_ID,
+          token: WIDGETY_TOKEN,
+          page: String(page),
+        });
+        if (params.operators) searchParams.set("operators", params.operators);
+        const url = `${WIDGETY_BASE}/ships.json?${searchParams.toString()}`;
+        
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          const text = await resp.text();
+          console.error("Widgety ships error:", resp.status, text);
+          throw new Error(`Widgety API error: ${resp.status}`);
+        }
+        const data = await resp.json();
+        allShips.push(...(data.ships || []));
+        
+        // Calculate total pages from first response
+        if (page === 1 && data.total && data.count) {
+          totalPages = Math.ceil(data.total / data.count);
+        }
+        page++;
       }
-      const data = await resp.json();
-      return new Response(JSON.stringify(data), {
+      
+      // Return simplified ship list sorted alphabetically
+      allShips.sort((a: any, b: any) => (a.title || "").localeCompare(b.title || ""));
+      
+      return new Response(JSON.stringify({ ships: allShips, total: allShips.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
