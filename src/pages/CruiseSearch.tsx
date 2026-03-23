@@ -152,28 +152,37 @@ export default function CruiseSearch() {
     return data;
   };
 
-  // Fetch ships when operator changes
+  // Fetch ships only when a specific operator is selected
   useEffect(() => {
+    if (!searchQuery || searchQuery === "all") {
+      setAvailableShips([]);
+      setShipFilter("");
+      setShipsLoading(false);
+      return;
+    }
+    let cancelled = false;
     const fetchShips = async () => {
       setShipsLoading(true);
       setShipFilter("");
       try {
-        const params: Record<string, any> = { action: "ships" };
-        if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
-        const data = await callWidgety(params);
+        const data = await callWidgety({ action: "ships", operators: searchQuery });
+        if (cancelled) return;
         const ships = (data.ships || []).map((s: any) => ({
           title: s.title || s.name || "",
           slug: s.title || s.name || "",
         })).filter((s: any) => s.title);
         setAvailableShips(ships);
       } catch (err) {
-        console.error("Failed to fetch ships:", err);
-        setAvailableShips([]);
+        if (!cancelled) {
+          console.error("Failed to fetch ships:", err);
+          setAvailableShips([]);
+        }
       } finally {
-        setShipsLoading(false);
+        if (!cancelled) setShipsLoading(false);
       }
     };
     fetchShips();
+    return () => { cancelled = true; };
   }, [searchQuery]);
 
   const formatDate = (d: string) => {
@@ -379,9 +388,19 @@ export default function CruiseSearch() {
             </div>
             <div className="flex-1 min-w-0">
               <Label className="text-xs text-muted-foreground">Ship</Label>
-              <Select value={shipFilter} onValueChange={setShipFilter} disabled={shipsLoading}>
+              <Select
+                value={shipFilter}
+                onValueChange={setShipFilter}
+                disabled={shipsLoading || (!searchQuery || searchQuery === "all")}
+              >
                 <SelectTrigger className="bg-background">
-                  <SelectValue placeholder={shipsLoading ? "Loading ships…" : "All ships"} />
+                  <SelectValue placeholder={
+                    !searchQuery || searchQuery === "all"
+                      ? "Select cruise line first"
+                      : shipsLoading
+                        ? "Loading ships…"
+                        : "All ships"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Ships</SelectItem>
