@@ -56,8 +56,6 @@ serve(async (req: Request) => {
         market: params.market || "us",
       });
       if (params.operators) searchParams.set("operators", params.operators);
-      if (params.ships) searchParams.set("ships", params.ships);
-      if (params.ship) searchParams.set("ship", params.ship);
       if (params.date_from) searchParams.set("date_from", params.date_from);
       if (params.date_to) searchParams.set("date_to", params.date_to);
       if (params.locations) searchParams.set("locations", params.locations);
@@ -131,8 +129,6 @@ serve(async (req: Request) => {
           market: params.market || "us",
         });
         if (params.operators) noDateParams.set("operators", params.operators);
-        if (params.ships) noDateParams.set("ships", params.ships);
-        if (params.ship) noDateParams.set("ship", params.ship);
         if (params.locations) noDateParams.set("locations", params.locations);
         if (params.regions) noDateParams.set("regions", params.regions);
         if (params.page) noDateParams.set("page", String(params.page));
@@ -166,8 +162,6 @@ serve(async (req: Request) => {
         token: WIDGETY_TOKEN,
       });
       if (params.operators) v2Params.set("operators", params.operators);
-      if (params.ships) v2Params.set("ships", params.ships);
-      if (params.ship) v2Params.set("ship", params.ship);
       if (params.date_from) v2Params.set("date_from", params.date_from);
       if (params.date_to) v2Params.set("date_to", params.date_to);
       if (params.page) v2Params.set("page", String(params.page));
