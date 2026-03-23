@@ -221,6 +221,7 @@ serve(async (req: Request) => {
       const allShips: any[] = [];
       let page = 1;
       let totalPages = 1;
+      const operatorFilter = params.operator || params.operators;
       
       while (page <= totalPages) {
         const searchParams = new URLSearchParams({
@@ -228,7 +229,7 @@ serve(async (req: Request) => {
           token: WIDGETY_TOKEN,
           page: String(page),
         });
-        if (params.operators) searchParams.set("operators", params.operators);
+        if (operatorFilter) searchParams.set("operator", operatorFilter);
         const url = `${WIDGETY_BASE}/ships.json?${searchParams.toString()}`;
         
         const resp = await fetch(url);
