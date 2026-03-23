@@ -232,11 +232,31 @@ export default function CruiseSearch() {
       if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType.toLowerCase();
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
-      if (shipFilter && shipFilter !== "all") params.ships = shipFilter;
       const data = await callWidgety(params);
-      const results = data.holidays || [];
+      let results: WidgetySailing[] = data.holidays || [];
+      if (shipFilter && shipFilter !== "all" && results.length) {
+        const filtered = await Promise.all(
+          results.map(async (holiday) => {
+            try {
+              const details = await callWidgety({
+                action: "holiday",
+                holiday_ref: holiday.holiday_ref,
+                market: "us",
+              });
+              const seasonDates = (details.operating_seasons || []).flatMap((season: any) => season.dates || []);
+              const matchesShip = seasonDates.some((d: any) =>
+                typeof d.ship === "string" && d.ship.includes(`/ships/${shipFilter}.json`),
+              );
+              return matchesShip ? holiday : null;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        results = filtered.filter((holiday): holiday is WidgetySailing => holiday !== null);
+      }
       setSailings(results);
-      setTotalResults(data.total || results.length);
+      setTotalResults(shipFilter && shipFilter !== "all" ? results.length : (data.total || results.length));
       if (!results.length) toast.info("No cruises found. Try adjusting your search.");
     } catch (err) {
       console.error("Search error:", err);
