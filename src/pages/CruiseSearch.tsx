@@ -152,6 +152,30 @@ export default function CruiseSearch() {
     return data;
   };
 
+  // Fetch ships when operator changes
+  useEffect(() => {
+    const fetchShips = async () => {
+      setShipsLoading(true);
+      setShipFilter("");
+      try {
+        const params: Record<string, any> = { action: "ships" };
+        if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
+        const data = await callWidgety(params);
+        const ships = (data.ships || []).map((s: any) => ({
+          title: s.title || s.name || "",
+          slug: s.title || s.name || "",
+        })).filter((s: any) => s.title);
+        setAvailableShips(ships);
+      } catch (err) {
+        console.error("Failed to fetch ships:", err);
+        setAvailableShips([]);
+      } finally {
+        setShipsLoading(false);
+      }
+    };
+    fetchShips();
+  }, [searchQuery]);
+
   const formatDate = (d: string) => {
     try { return format(parseISO(d), "MM/dd/yyyy"); }
     catch { return d; }
