@@ -182,7 +182,9 @@ export default function CruiseSearch() {
             slug: extractShipSlug(s),
           }))
           .filter((s: any) => s.title && s.slug);
-        const uniqueShips = Array.from(new Map(ships.map((s: any) => [s.slug, s])).values());
+        const uniqueShips: { title: string; slug: string }[] = Array.from(
+          new Map<string, { title: string; slug: string }>(ships.map((s: { title: string; slug: string }) => [s.slug, s])).values(),
+        );
         setAvailableShips(uniqueShips);
       } catch (err) {
         if (!cancelled) {
