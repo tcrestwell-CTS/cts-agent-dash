@@ -56,6 +56,8 @@ serve(async (req: Request) => {
         market: params.market || "us",
       });
       if (params.operators) searchParams.set("operators", params.operators);
+      if (params.ships) searchParams.set("ships", params.ships);
+      if (params.ship) searchParams.set("ship", params.ship);
       if (params.date_from) searchParams.set("date_from", params.date_from);
       if (params.date_to) searchParams.set("date_to", params.date_to);
       if (params.locations) searchParams.set("locations", params.locations);
@@ -129,6 +131,8 @@ serve(async (req: Request) => {
           market: params.market || "us",
         });
         if (params.operators) noDateParams.set("operators", params.operators);
+        if (params.ships) noDateParams.set("ships", params.ships);
+        if (params.ship) noDateParams.set("ship", params.ship);
         if (params.locations) noDateParams.set("locations", params.locations);
         if (params.regions) noDateParams.set("regions", params.regions);
         if (params.page) noDateParams.set("page", String(params.page));
@@ -162,6 +166,8 @@ serve(async (req: Request) => {
         token: WIDGETY_TOKEN,
       });
       if (params.operators) v2Params.set("operators", params.operators);
+      if (params.ships) v2Params.set("ships", params.ships);
+      if (params.ship) v2Params.set("ship", params.ship);
       if (params.date_from) v2Params.set("date_from", params.date_from);
       if (params.date_to) v2Params.set("date_to", params.date_to);
       if (params.page) v2Params.set("page", String(params.page));
@@ -239,7 +245,12 @@ serve(async (req: Request) => {
           throw new Error(`Widgety API error: ${resp.status}`);
         }
         const data = await resp.json();
-        allShips.push(...(data.ships || []));
+        const pageShips = (data.ships || []).map((ship: any) => ({
+          id: ship.id,
+          title: ship.title || ship.name || "",
+          href: ship.href || ship.ship || ship._links?.self?.href || null,
+        })).filter((ship: any) => ship.title && ship.href);
+        allShips.push(...pageShips);
         
         // Calculate total pages from first response
         if (page === 1 && data.total && data.count) {
@@ -248,10 +259,14 @@ serve(async (req: Request) => {
         page++;
       }
       
+      const uniqueShips = Array.from(
+        new Map(allShips.map((ship: any) => [ship.href, ship])).values()
+      );
+
       // Return simplified ship list sorted alphabetically
-      allShips.sort((a: any, b: any) => (a.title || "").localeCompare(b.title || ""));
+      uniqueShips.sort((a: any, b: any) => (a.title || "").localeCompare(b.title || ""));
       
-      return new Response(JSON.stringify({ ships: allShips, total: allShips.length }), {
+      return new Response(JSON.stringify({ ships: uniqueShips, total: uniqueShips.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
