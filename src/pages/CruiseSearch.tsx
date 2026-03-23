@@ -130,6 +130,9 @@ export default function CruiseSearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [destination, setDestination] = useState("");
   const [cruiseType, setCruiseType] = useState("");
+  const [shipFilter, setShipFilter] = useState("");
+  const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
+  const [shipsLoading, setShipsLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
