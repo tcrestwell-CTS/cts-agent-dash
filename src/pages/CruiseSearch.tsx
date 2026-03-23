@@ -152,6 +152,15 @@ export default function CruiseSearch() {
     return data;
   };
 
+  const extractShipSlug = (ship: any) => {
+    const href = ship?.href || ship?.ship || ship?.url || ship?._links?.self?.href;
+    if (typeof href === "string") {
+      const match = href.match(/\/ships\/([^.\/?]+)\.json/i);
+      if (match?.[1]) return match[1];
+    }
+    return ship?.slug || "";
+  };
+
   // Fetch ships only when a specific operator is selected
   useEffect(() => {
     if (!searchQuery || searchQuery === "all") {
@@ -167,11 +176,14 @@ export default function CruiseSearch() {
       try {
         const data = await callWidgety({ action: "ships", operator: searchQuery });
         if (cancelled) return;
-        const ships = (data.ships || []).map((s: any) => ({
-          title: s.title || s.name || "",
-          slug: s.title || s.name || "",
-        })).filter((s: any) => s.title);
-        setAvailableShips(ships);
+        const ships = (data.ships || [])
+          .map((s: any) => ({
+            title: s.title || s.name || "",
+            slug: extractShipSlug(s),
+          }))
+          .filter((s: any) => s.title && s.slug);
+        const uniqueShips = Array.from(new Map(ships.map((s: any) => [s.slug, s])).values());
+        setAvailableShips(uniqueShips);
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to fetch ships:", err);
@@ -218,16 +230,11 @@ export default function CruiseSearch() {
       if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType.toLowerCase();
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
+      if (shipFilter && shipFilter !== "all") params.ships = shipFilter;
       const data = await callWidgety(params);
-      let results = data.holidays || [];
-      // Client-side ship filter
-      if (shipFilter && shipFilter !== "all") {
-        results = results.filter((h: any) =>
-          (h.ship_title || "").toLowerCase() === shipFilter.toLowerCase()
-        );
-      }
+      const results = data.holidays || [];
       setSailings(results);
-      setTotalResults(shipFilter && shipFilter !== "all" ? results.length : (data.total || 0));
+      setTotalResults(data.total || results.length);
       if (!results.length) toast.info("No cruises found. Try adjusting your search.");
     } catch (err) {
       console.error("Search error:", err);
@@ -405,7 +412,7 @@ export default function CruiseSearch() {
                 <SelectContent>
                   <SelectItem value="all">All Ships</SelectItem>
                   {availableShips.map((s) => (
-                    <SelectItem key={s.slug} value={s.title}>{s.title}</SelectItem>
+                    <SelectItem key={s.slug} value={s.slug}>{s.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
