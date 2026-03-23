@@ -388,9 +388,19 @@ export default function CruiseSearch() {
             </div>
             <div className="flex-1 min-w-0">
               <Label className="text-xs text-muted-foreground">Ship</Label>
-              <Select value={shipFilter} onValueChange={setShipFilter} disabled={shipsLoading}>
+              <Select
+                value={shipFilter}
+                onValueChange={setShipFilter}
+                disabled={shipsLoading || (!searchQuery || searchQuery === "all")}
+              >
                 <SelectTrigger className="bg-background">
-                  <SelectValue placeholder={shipsLoading ? "Loading ships…" : "All ships"} />
+                  <SelectValue placeholder={
+                    !searchQuery || searchQuery === "all"
+                      ? "Select cruise line first"
+                      : shipsLoading
+                        ? "Loading ships…"
+                        : "All ships"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Ships</SelectItem>
