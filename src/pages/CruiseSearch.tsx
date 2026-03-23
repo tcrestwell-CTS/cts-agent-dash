@@ -377,6 +377,20 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground">Ship</Label>
+              <Select value={shipFilter} onValueChange={setShipFilter} disabled={shipsLoading}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder={shipsLoading ? "Loading ships…" : "All ships"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ships</SelectItem>
+                  {availableShips.map((s) => (
+                    <SelectItem key={s.slug} value={s.title}>{s.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="w-full sm:w-36">
               <Label className="text-xs text-muted-foreground">Cruise Type</Label>
               <Select value={cruiseType} onValueChange={setCruiseType}>
