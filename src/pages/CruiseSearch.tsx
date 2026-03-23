@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,9 @@ export default function CruiseSearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [destination, setDestination] = useState("");
   const [cruiseType, setCruiseType] = useState("");
+  const [shipFilter, setShipFilter] = useState("");
+  const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
+  const [shipsLoading, setShipsLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -148,6 +151,30 @@ export default function CruiseSearch() {
     if (data?.error) throw new Error(data.error);
     return data;
   };
+
+  // Fetch ships when operator changes
+  useEffect(() => {
+    const fetchShips = async () => {
+      setShipsLoading(true);
+      setShipFilter("");
+      try {
+        const params: Record<string, any> = { action: "ships" };
+        if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
+        const data = await callWidgety(params);
+        const ships = (data.ships || []).map((s: any) => ({
+          title: s.title || s.name || "",
+          slug: s.title || s.name || "",
+        })).filter((s: any) => s.title);
+        setAvailableShips(ships);
+      } catch (err) {
+        console.error("Failed to fetch ships:", err);
+        setAvailableShips([]);
+      } finally {
+        setShipsLoading(false);
+      }
+    };
+    fetchShips();
+  }, [searchQuery]);
 
   const formatDate = (d: string) => {
     try { return format(parseISO(d), "MM/dd/yyyy"); }
@@ -183,9 +210,16 @@ export default function CruiseSearch() {
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const data = await callWidgety(params);
-      setSailings(data.holidays || []);
-      setTotalResults(data.total || 0);
-      if (!(data.holidays || []).length) toast.info("No cruises found. Try adjusting your search.");
+      let results = data.holidays || [];
+      // Client-side ship filter
+      if (shipFilter && shipFilter !== "all") {
+        results = results.filter((h: any) =>
+          (h.ship_title || "").toLowerCase() === shipFilter.toLowerCase()
+        );
+      }
+      setSailings(results);
+      setTotalResults(shipFilter && shipFilter !== "all" ? results.length : (data.total || 0));
+      if (!results.length) toast.info("No cruises found. Try adjusting your search.");
     } catch (err) {
       console.error("Search error:", err);
       toast.error("Search failed: " + (err instanceof Error ? err.message : "Unknown error"));
@@ -261,6 +295,7 @@ export default function CruiseSearch() {
     setSearchQuery("");
     setDestination("");
     setCruiseType("");
+    setShipFilter("");
     setDateFrom("");
     setDateTo("");
   };
@@ -342,6 +377,20 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground">Ship</Label>
+              <Select value={shipFilter} onValueChange={setShipFilter} disabled={shipsLoading}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder={shipsLoading ? "Loading ships…" : "All ships"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ships</SelectItem>
+                  {availableShips.map((s) => (
+                    <SelectItem key={s.slug} value={s.title}>{s.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="w-full sm:w-36">
               <Label className="text-xs text-muted-foreground">Cruise Type</Label>
               <Select value={cruiseType} onValueChange={setCruiseType}>
@@ -367,7 +416,7 @@ export default function CruiseSearch() {
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
               Filter
             </Button>
-            {(searchQuery || destination || cruiseType || dateFrom || dateTo) && (
+            {(searchQuery || destination || cruiseType || shipFilter || dateFrom || dateTo) && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
                 Clear Filters
               </Button>
