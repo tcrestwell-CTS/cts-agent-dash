@@ -165,7 +165,7 @@ export default function CruiseSearch() {
       setShipsLoading(true);
       setShipFilter("");
       try {
-        const data = await callWidgety({ action: "ships", operators: searchQuery });
+        const data = await callWidgety({ action: "ships", operator: searchQuery });
         if (cancelled) return;
         const ships = (data.ships || []).map((s: any) => ({
           title: s.title || s.name || "",
