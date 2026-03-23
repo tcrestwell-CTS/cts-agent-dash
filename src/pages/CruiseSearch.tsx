@@ -210,9 +210,16 @@ export default function CruiseSearch() {
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const data = await callWidgety(params);
-      setSailings(data.holidays || []);
-      setTotalResults(data.total || 0);
-      if (!(data.holidays || []).length) toast.info("No cruises found. Try adjusting your search.");
+      let results = data.holidays || [];
+      // Client-side ship filter
+      if (shipFilter && shipFilter !== "all") {
+        results = results.filter((h: any) =>
+          (h.ship_title || "").toLowerCase() === shipFilter.toLowerCase()
+        );
+      }
+      setSailings(results);
+      setTotalResults(shipFilter && shipFilter !== "all" ? results.length : (data.total || 0));
+      if (!results.length) toast.info("No cruises found. Try adjusting your search.");
     } catch (err) {
       console.error("Search error:", err);
       toast.error("Search failed: " + (err instanceof Error ? err.message : "Unknown error"));
