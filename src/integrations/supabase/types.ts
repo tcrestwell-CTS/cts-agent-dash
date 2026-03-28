@@ -2547,6 +2547,12 @@ export type Database = {
       }
       quote_requests: {
         Row: {
+          ai_next_action: string | null
+          ai_processed_at: string | null
+          ai_score: number | null
+          ai_stage: string | null
+          ai_summary: string | null
+          ai_tags: string[] | null
           budget: string | null
           created_at: string | null
           departure_date: string | null
@@ -2554,6 +2560,7 @@ export type Database = {
           email: string
           first_name: string
           flexibility: string | null
+          group_type: string | null
           id: string
           last_name: string
           message: string | null
@@ -2562,8 +2569,15 @@ export type Database = {
           travelers_adults: number
           travelers_children: number
           trip_type: string
+          wants_financing: boolean | null
         }
         Insert: {
+          ai_next_action?: string | null
+          ai_processed_at?: string | null
+          ai_score?: number | null
+          ai_stage?: string | null
+          ai_summary?: string | null
+          ai_tags?: string[] | null
           budget?: string | null
           created_at?: string | null
           departure_date?: string | null
@@ -2571,6 +2585,7 @@ export type Database = {
           email: string
           first_name: string
           flexibility?: string | null
+          group_type?: string | null
           id?: string
           last_name: string
           message?: string | null
@@ -2579,8 +2594,15 @@ export type Database = {
           travelers_adults?: number
           travelers_children?: number
           trip_type: string
+          wants_financing?: boolean | null
         }
         Update: {
+          ai_next_action?: string | null
+          ai_processed_at?: string | null
+          ai_score?: number | null
+          ai_stage?: string | null
+          ai_summary?: string | null
+          ai_tags?: string[] | null
           budget?: string | null
           created_at?: string | null
           departure_date?: string | null
@@ -2588,6 +2610,7 @@ export type Database = {
           email?: string
           first_name?: string
           flexibility?: string | null
+          group_type?: string | null
           id?: string
           last_name?: string
           message?: string | null
@@ -2596,6 +2619,7 @@ export type Database = {
           travelers_adults?: number
           travelers_children?: number
           trip_type?: string
+          wants_financing?: boolean | null
         }
         Relationships: []
       }
