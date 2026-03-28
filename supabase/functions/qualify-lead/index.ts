@@ -95,7 +95,7 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
   if (!aiRes.ok) {
     const errText = await aiRes.text();
     console.error('Anthropic API error:', aiRes.status, errText);
-    return new Response(JSON.stringify({ error: 'AI qualification failed' }), { status: 502 });
+    return new Response(JSON.stringify({ error: 'AI qualification failed' }), { status: 502, headers: corsHeaders });
   }
 
   const aiData = await aiRes.json();
