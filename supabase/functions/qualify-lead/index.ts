@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   const { lead_id } = await req.json();
-  if (!lead_id) return new Response('lead_id required', { status: 400 });
+  if (!lead_id) return new Response('lead_id required', { status: 400, headers: corsHeaders });
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
