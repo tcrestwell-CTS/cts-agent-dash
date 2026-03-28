@@ -66,6 +66,7 @@ const navGroups: NavGroup[] = [
     label: "Sales",
     icon: DollarSign,
     items: [
+      { name: "Leads", href: "/leads", icon: UserPlus },
       { name: "Trips", href: "/trips", icon: Compass },
       { name: "Quotes", href: "/commission-report", icon: FileText },
       { name: "Clients", href: "/contacts", icon: Users },
