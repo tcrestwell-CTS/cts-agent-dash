@@ -61,3 +61,5 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.export-loan-pdf]
     verify_jwt = false
+  [functions.qualify-lead]
+    verify_jwt = false
