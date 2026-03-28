@@ -33,7 +33,7 @@ serve(async (req) => {
     .single();
 
   if (error || !lead) {
-    return new Response(JSON.stringify({ error: 'Lead not found' }), { status: 404 });
+    return new Response(JSON.stringify({ error: 'Lead not found' }), { status: 404, headers: corsHeaders });
   }
 
   // 2. Call Claude to qualify
