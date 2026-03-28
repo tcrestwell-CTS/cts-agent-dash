@@ -6,13 +6,22 @@ const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY       = Deno.env.get('RESEND_API_KEY')!;
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
   const { lead_id } = await req.json();
-  if (!lead_id) return new Response('lead_id required', { status: 400 });
+  if (!lead_id) return new Response('lead_id required', { status: 400, headers: corsHeaders });
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -24,7 +33,7 @@ serve(async (req) => {
     .single();
 
   if (error || !lead) {
-    return new Response(JSON.stringify({ error: 'Lead not found' }), { status: 404 });
+    return new Response(JSON.stringify({ error: 'Lead not found' }), { status: 404, headers: corsHeaders });
   }
 
   // 2. Call Claude to qualify
@@ -86,7 +95,7 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
   if (!aiRes.ok) {
     const errText = await aiRes.text();
     console.error('Anthropic API error:', aiRes.status, errText);
-    return new Response(JSON.stringify({ error: 'AI qualification failed' }), { status: 502 });
+    return new Response(JSON.stringify({ error: 'AI qualification failed' }), { status: 502, headers: corsHeaders });
   }
 
   const aiData = await aiRes.json();
@@ -224,6 +233,6 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
     tags,
     wants_financing,
   }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });
