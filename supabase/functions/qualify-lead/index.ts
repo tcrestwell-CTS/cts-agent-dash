@@ -233,6 +233,6 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
     tags,
     wants_financing,
   }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });
