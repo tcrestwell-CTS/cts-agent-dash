@@ -1885,6 +1885,47 @@ export type Database = {
           },
         ]
       }
+      lead_followups: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          resend_id: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          step: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          resend_id?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          step?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          resend_id?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_followups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_applications: {
         Row: {
           address_line1: string
@@ -2565,6 +2606,8 @@ export type Database = {
           last_name: string
           message: string | null
           phone: string | null
+          sequence_paused: boolean | null
+          sequence_started: boolean | null
           status: string | null
           travelers_adults: number
           travelers_children: number
@@ -2590,6 +2633,8 @@ export type Database = {
           last_name: string
           message?: string | null
           phone?: string | null
+          sequence_paused?: boolean | null
+          sequence_started?: boolean | null
           status?: string | null
           travelers_adults?: number
           travelers_children?: number
@@ -2615,6 +2660,8 @@ export type Database = {
           last_name?: string
           message?: string | null
           phone?: string | null
+          sequence_paused?: boolean | null
+          sequence_started?: boolean | null
           status?: string | null
           travelers_adults?: number
           travelers_children?: number
