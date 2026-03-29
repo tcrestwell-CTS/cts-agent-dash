@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus } from "lucide-react";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -64,6 +64,7 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
+  const [requalifyingId, setRequalifyingId] = useState<string | null>(null);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
     queryKey: ["leads-quote-requests"],
@@ -79,6 +80,7 @@ export default function Leads() {
   });
 
   const requalify = async (leadId: string) => {
+    setRequalifyingId(leadId);
     try {
       const res = await supabase.functions.invoke("qualify-lead", {
         body: { lead_id: leadId },
@@ -88,6 +90,8 @@ export default function Leads() {
       refetch();
     } catch {
       toast.error("Failed to qualify lead");
+    } finally {
+      setRequalifyingId(null);
     }
   };
 
@@ -308,8 +312,18 @@ export default function Leads() {
                             )}
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => requalify(lead.id)}>
-                                  <Brain className="h-3.5 w-3.5" />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={requalifyingId === lead.id}
+                                  onClick={() => requalify(lead.id)}
+                                >
+                                  {requalifyingId === lead.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Brain className="h-3.5 w-3.5" />
+                                  )}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Re-qualify with AI</TooltipContent>
