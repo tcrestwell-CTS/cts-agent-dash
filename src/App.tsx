@@ -41,6 +41,7 @@ const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
 const QBOHealth           = lazy(() => import("./pages/QBOHealth"));
 const RiskCompliance      = lazy(() => import("./pages/RiskCompliance"));
 const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
+const Kandi               = lazy(() => import("./pages/Kandi"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
 const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
@@ -114,6 +115,7 @@ const App = () => (
                 <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
                 <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
                 <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
+                <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
                 <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
                 <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
