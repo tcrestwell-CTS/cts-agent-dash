@@ -3163,6 +3163,50 @@ export type Database = {
           },
         ]
       }
+      trip_nurture_steps: {
+        Row: {
+          created_at: string
+          id: string
+          resend_id: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          step: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resend_id?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          step: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resend_id?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          step?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_nurture_steps_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_payments: {
         Row: {
           acceptance_signature: string | null
@@ -3427,6 +3471,8 @@ export type Database = {
           itinerary_approved_by_client_id: string | null
           itinerary_style: string
           notes: string | null
+          nurture_paused: boolean | null
+          nurture_started: boolean | null
           parent_trip_id: string | null
           payment_mode: string
           post_trip_email_sent: boolean | null
@@ -3488,6 +3534,8 @@ export type Database = {
           itinerary_approved_by_client_id?: string | null
           itinerary_style?: string
           notes?: string | null
+          nurture_paused?: boolean | null
+          nurture_started?: boolean | null
           parent_trip_id?: string | null
           payment_mode?: string
           post_trip_email_sent?: boolean | null
@@ -3549,6 +3597,8 @@ export type Database = {
           itinerary_approved_by_client_id?: string | null
           itinerary_style?: string
           notes?: string | null
+          nurture_paused?: boolean | null
+          nurture_started?: boolean | null
           parent_trip_id?: string | null
           payment_mode?: string
           post_trip_email_sent?: boolean | null
