@@ -3119,6 +3119,50 @@ export type Database = {
           },
         ]
       }
+      trip_nurture_log: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          lead_id: string
+          resend_id: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          step: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          lead_id: string
+          resend_id?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          step: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          lead_id?: string
+          resend_id?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_nurture_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_payments: {
         Row: {
           acceptance_signature: string | null
