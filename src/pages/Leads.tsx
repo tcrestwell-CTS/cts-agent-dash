@@ -82,14 +82,21 @@ export default function Leads() {
   const requalify = async (leadId: string) => {
     setRequalifyingId(leadId);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await supabase.functions.invoke("qualify-lead", {
         body: { lead_id: leadId },
       });
+      clearTimeout(timeout);
       if (res.error) throw res.error;
       toast.success("Lead re-qualified successfully");
       refetch();
-    } catch {
-      toast.error("Failed to qualify lead");
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        toast.error("Qualification timed out — try again");
+      } else {
+        toast.error("Failed to qualify lead");
+      }
     } finally {
       setRequalifyingId(null);
     }
