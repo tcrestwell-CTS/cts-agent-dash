@@ -91,6 +91,33 @@ export default function Leads() {
     }
   };
 
+  const addToClients = async (lead: QuoteRequest) => {
+    if (!user) return;
+    try {
+      const name = `${lead.first_name} ${lead.last_name}`.trim();
+      const { error } = await supabase.from("clients").insert({
+        user_id: user.id,
+        name,
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        email: lead.email,
+        phone: lead.phone,
+        lead_source: "Website",
+        status: "lead",
+        notes: [
+          lead.ai_summary,
+          lead.destination ? `Destination: ${lead.destination}` : null,
+          lead.trip_type ? `Trip type: ${lead.trip_type}` : null,
+          lead.budget ? `Budget: ${lead.budget}` : null,
+        ].filter(Boolean).join("\n"),
+      });
+      if (error) throw error;
+      toast.success(`${name} added to Contacts`);
+    } catch {
+      toast.error("Failed to add client");
+    }
+  };
+
   const filtered = leads
     .filter((l) => {
       if (stageFilter !== "all") {
