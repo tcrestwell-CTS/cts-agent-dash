@@ -314,6 +314,14 @@ export default function Leads() {
                               </TooltipTrigger>
                               <TooltipContent>Re-qualify with AI</TooltipContent>
                             </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => addToClients(lead)}>
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add to Contacts</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
