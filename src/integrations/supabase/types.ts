@@ -2606,6 +2606,8 @@ export type Database = {
           last_name: string
           message: string | null
           phone: string | null
+          proposal_draft: string | null
+          proposal_status: string | null
           sequence_paused: boolean | null
           sequence_started: boolean | null
           status: string | null
@@ -2633,6 +2635,8 @@ export type Database = {
           last_name: string
           message?: string | null
           phone?: string | null
+          proposal_draft?: string | null
+          proposal_status?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
           status?: string | null
@@ -2660,6 +2664,8 @@ export type Database = {
           last_name?: string
           message?: string | null
           phone?: string | null
+          proposal_draft?: string | null
+          proposal_status?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
           status?: string | null
