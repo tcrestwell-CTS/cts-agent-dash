@@ -64,6 +64,7 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
+  const [requalifyingId, setRequalifyingId] = useState<string | null>(null);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
     queryKey: ["leads-quote-requests"],
