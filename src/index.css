@@ -2,32 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Crestwell Travel Services — Design System
+   Palette derived from crestwellgetaways.com
+   Navy / Gold / Cream with Playfair Display + Montserrat
+   All colors HSL.
 */
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 60% 10%;
+    --background: 216 30% 96%;
+    --foreground: 213 53% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 60% 10%;
+    --card-foreground: 213 53% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 60% 10%;
+    --popover-foreground: 213 53% 11%;
 
-    --primary: 220 70% 30%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 213 53% 11%;
+    --primary-foreground: 43 30% 90%;
 
-    --secondary: 210 25% 93%;
-    --secondary-foreground: 220 60% 10%;
+    --secondary: 210 20% 92%;
+    --secondary-foreground: 213 53% 11%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 220 15% 35%;
+    --muted: 210 18% 94%;
+    --muted-foreground: 213 20% 40%;
 
-    --accent: 28 95% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 43 50% 54%;
+    --accent-foreground: 213 53% 11%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -38,51 +40,51 @@ All colors MUST be HSL.
     --info: 210 90% 50%;
     --info-foreground: 0 0% 100%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 220 70% 30%;
+    --border: 213 20% 85%;
+    --input: 213 20% 85%;
+    --ring: 43 50% 54%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 220 60% 12%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 28 95% 55%;
+    --sidebar-background: 213 53% 11%;
+    --sidebar-foreground: 43 30% 90%;
+    --sidebar-primary: 43 50% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 50% 18%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 50% 20%;
-    --sidebar-ring: 28 95% 55%;
+    --sidebar-accent: 213 45% 16%;
+    --sidebar-accent-foreground: 43 30% 95%;
+    --sidebar-border: 213 40% 18%;
+    --sidebar-ring: 43 50% 54%;
 
-    --gradient-ocean: linear-gradient(135deg, hsl(220 70% 30%) 0%, hsl(220 60% 20%) 100%);
-    --gradient-coral: linear-gradient(135deg, hsl(28 95% 55%) 0%, hsl(35 90% 50%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 25% 97%) 100%);
+    --gradient-ocean: linear-gradient(135deg, hsl(213 53% 11%) 0%, hsl(213 45% 18%) 100%);
+    --gradient-coral: linear-gradient(135deg, hsl(43 50% 54%) 0%, hsl(43 60% 62%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 20% 97%) 100%);
 
-    --shadow-sm: 0 1px 2px 0 hsl(220 60% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 60% 15% / 0.08), 0 2px 4px -2px hsl(220 60% 15% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(220 60% 15% / 0.08), 0 4px 6px -4px hsl(220 60% 15% / 0.05);
-    --shadow-card: 0 1px 3px hsl(220 60% 15% / 0.06), 0 4px 12px hsl(220 60% 15% / 0.04);
+    --shadow-sm: 0 1px 2px 0 hsl(213 53% 11% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(213 53% 11% / 0.08), 0 2px 4px -2px hsl(213 53% 11% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(213 53% 11% / 0.08), 0 4px 6px -4px hsl(213 53% 11% / 0.05);
+    --shadow-card: 0 1px 3px hsl(213 53% 11% / 0.06), 0 4px 12px hsl(213 53% 11% / 0.04);
   }
 
   .dark {
-    --background: 220 50% 6%;
-    --foreground: 210 20% 95%;
+    --background: 213 53% 6%;
+    --foreground: 43 20% 92%;
 
-    --card: 220 45% 10%;
-    --card-foreground: 210 20% 95%;
+    --card: 213 48% 10%;
+    --card-foreground: 43 20% 92%;
 
-    --popover: 220 45% 10%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 213 48% 10%;
+    --popover-foreground: 43 20% 92%;
 
-    --primary: 28 95% 55%;
+    --primary: 43 50% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 40% 15%;
-    --secondary-foreground: 210 20% 95%;
+    --secondary: 213 40% 15%;
+    --secondary-foreground: 43 20% 92%;
 
-    --muted: 220 35% 18%;
+    --muted: 213 35% 18%;
     --muted-foreground: 210 15% 60%;
 
-    --accent: 28 85% 50%;
+    --accent: 43 45% 48%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 65% 45%;
@@ -94,18 +96,18 @@ All colors MUST be HSL.
     --info: 210 85% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 35% 20%;
-    --input: 220 35% 20%;
-    --ring: 28 95% 55%;
+    --border: 213 35% 20%;
+    --input: 213 35% 20%;
+    --ring: 43 50% 54%;
 
-    --sidebar-background: 220 50% 5%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 28 95% 55%;
+    --sidebar-background: 213 53% 5%;
+    --sidebar-foreground: 43 20% 90%;
+    --sidebar-primary: 43 50% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 40% 12%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 40% 15%;
-    --sidebar-ring: 28 95% 55%;
+    --sidebar-accent: 213 40% 12%;
+    --sidebar-accent-foreground: 43 20% 95%;
+    --sidebar-border: 213 40% 15%;
+    --sidebar-ring: 43 50% 54%;
   }
 }
 
