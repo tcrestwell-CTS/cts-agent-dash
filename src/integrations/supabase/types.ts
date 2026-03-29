@@ -2730,6 +2730,57 @@ export type Database = {
           },
         ]
       }
+      reconciliation_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       secure_links: {
         Row: {
           active: boolean | null

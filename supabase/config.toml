@@ -65,3 +65,5 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.lead-followup]
     verify_jwt = false
+  [functions.kandi]
+    verify_jwt = false
