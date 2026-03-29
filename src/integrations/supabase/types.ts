@@ -2601,9 +2601,11 @@ export type Database = {
           email: string
           first_name: string
           flexibility: string | null
+          gclid: string | null
           group_type: string | null
           id: string
           last_name: string
+          lead_source: string | null
           message: string | null
           phone: string | null
           proposal_draft: string | null
@@ -2614,6 +2616,11 @@ export type Database = {
           travelers_adults: number
           travelers_children: number
           trip_type: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           wants_financing: boolean | null
         }
         Insert: {
@@ -2630,9 +2637,11 @@ export type Database = {
           email: string
           first_name: string
           flexibility?: string | null
+          gclid?: string | null
           group_type?: string | null
           id?: string
           last_name: string
+          lead_source?: string | null
           message?: string | null
           phone?: string | null
           proposal_draft?: string | null
@@ -2643,6 +2652,11 @@ export type Database = {
           travelers_adults?: number
           travelers_children?: number
           trip_type: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           wants_financing?: boolean | null
         }
         Update: {
@@ -2659,9 +2673,11 @@ export type Database = {
           email?: string
           first_name?: string
           flexibility?: string | null
+          gclid?: string | null
           group_type?: string | null
           id?: string
           last_name?: string
+          lead_source?: string | null
           message?: string | null
           phone?: string | null
           proposal_draft?: string | null
@@ -2672,6 +2688,11 @@ export type Database = {
           travelers_adults?: number
           travelers_children?: number
           trip_type?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           wants_financing?: boolean | null
         }
         Relationships: []
