@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown } from "lucide-react";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -59,6 +60,7 @@ function ScoreBar({ score }: { score: number | null }) {
 }
 
 export default function Leads() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
@@ -86,6 +88,33 @@ export default function Leads() {
       refetch();
     } catch {
       toast.error("Failed to qualify lead");
+    }
+  };
+
+  const addToClients = async (lead: QuoteRequest) => {
+    if (!user) return;
+    try {
+      const name = `${lead.first_name} ${lead.last_name}`.trim();
+      const { error } = await supabase.from("clients").insert({
+        user_id: user.id,
+        name,
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        email: lead.email,
+        phone: lead.phone,
+        lead_source: "Website",
+        status: "lead",
+        notes: [
+          lead.ai_summary,
+          lead.destination ? `Destination: ${lead.destination}` : null,
+          lead.trip_type ? `Trip type: ${lead.trip_type}` : null,
+          lead.budget ? `Budget: ${lead.budget}` : null,
+        ].filter(Boolean).join("\n"),
+      });
+      if (error) throw error;
+      toast.success(`${name} added to Contacts`);
+    } catch {
+      toast.error("Failed to add client");
     }
   };
 
@@ -284,6 +313,14 @@ export default function Leads() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Re-qualify with AI</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => addToClients(lead)}>
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add to Contacts</TooltipContent>
                             </Tooltip>
                           </div>
                         </TableCell>
