@@ -60,6 +60,7 @@ function ScoreBar({ score }: { score: number | null }) {
 }
 
 export default function Leads() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
