@@ -312,8 +312,18 @@ export default function Leads() {
                             )}
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => requalify(lead.id)}>
-                                  <Brain className="h-3.5 w-3.5" />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={requalifyingId === lead.id}
+                                  onClick={() => requalify(lead.id)}
+                                >
+                                  {requalifyingId === lead.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Brain className="h-3.5 w-3.5" />
+                                  )}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Re-qualify with AI</TooltipContent>
