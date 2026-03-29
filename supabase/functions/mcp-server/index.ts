@@ -253,10 +253,9 @@ mcp.tool("get_dashboard_stats", {
 // ── TRANSPORT ───────────────────────────────────────────────────
 
 const transport = new StreamableHttpTransport();
+const handler = transport.bind(mcp);
 const app = new Hono();
 
-app.all("/*", async (c) => {
-  return await transport.handleRequest(c.req.raw, mcp);
-});
+app.all("/*", (c) => handler(c.req.raw));
 
 Deno.serve(app.fetch);
