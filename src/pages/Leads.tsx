@@ -80,6 +80,7 @@ export default function Leads() {
   });
 
   const requalify = async (leadId: string) => {
+    setRequalifyingId(leadId);
     try {
       const res = await supabase.functions.invoke("qualify-lead", {
         body: { lead_id: leadId },
@@ -89,6 +90,8 @@ export default function Leads() {
       refetch();
     } catch {
       toast.error("Failed to qualify lead");
+    } finally {
+      setRequalifyingId(null);
     }
   };
 
