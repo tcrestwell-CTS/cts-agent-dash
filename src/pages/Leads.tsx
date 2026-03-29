@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus } from "lucide-react";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
