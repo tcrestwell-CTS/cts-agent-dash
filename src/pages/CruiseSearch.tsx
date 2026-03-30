@@ -131,6 +131,7 @@ export default function CruiseSearch() {
   const [destination, setDestination] = useState("");
   const [cruiseType, setCruiseType] = useState("");
   const [shipFilter, setShipFilter] = useState("");
+  const [departurePort, setDeparturePort] = useState("");
   const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
   const [shipsLoading, setShipsLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
@@ -230,6 +231,7 @@ export default function CruiseSearch() {
       }
 
       if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType.toLowerCase();
+      if (departurePort) params.locations = departurePort;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const data = await callWidgety(params);
@@ -334,6 +336,7 @@ export default function CruiseSearch() {
     setDestination("");
     setCruiseType("");
     setShipFilter("");
+    setDeparturePort("");
     setDateFrom("");
     setDateTo("");
   };
@@ -439,6 +442,15 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground">Departure Port</Label>
+              <Input
+                placeholder="e.g. Miami, Fort Lauderdale"
+                value={departurePort}
+                onChange={(e) => setDeparturePort(e.target.value)}
+                className="bg-background"
+              />
+            </div>
             <div className="w-full sm:w-36">
               <Label className="text-xs text-muted-foreground">Cruise Type</Label>
               <Select value={cruiseType} onValueChange={setCruiseType}>
@@ -464,7 +476,7 @@ export default function CruiseSearch() {
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
               Filter
             </Button>
-            {(searchQuery || destination || cruiseType || shipFilter || dateFrom || dateTo) && (
+            {(searchQuery || destination || cruiseType || shipFilter || departurePort || dateFrom || dateTo) && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
                 Clear Filters
               </Button>
