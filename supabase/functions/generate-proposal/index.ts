@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,20 +93,19 @@ INSTRUCTIONS:
 Format the proposal in clean markdown.
 `.trim();
 
-    // Call Lovable AI Gateway
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call Claude (Anthropic)
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: 'You are Terrance, a travel proposal specialist. Write compelling, personalized travel proposals. Output clean markdown only — no preamble or explanation.',
         messages: [
-          {
-            role: 'system',
-            content: 'You are Terrance, a travel proposal specialist. Write compelling, personalized travel proposals. Output clean markdown only — no preamble or explanation.',
-          },
           { role: 'user', content: prompt },
         ],
       }),
@@ -139,7 +138,7 @@ Format the proposal in clean markdown.
     }
 
     const aiData = await aiRes.json();
-    const proposalDraft = aiData.choices?.[0]?.message?.content || '';
+    const proposalDraft = aiData.content?.[0]?.text || '';
 
     if (!proposalDraft) {
       await supabase.from('quote_requests').update({ proposal_status: null }).eq('id', lead_id);
