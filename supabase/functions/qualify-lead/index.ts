@@ -82,7 +82,6 @@ SERVICE AREA RULES — CRITICAL:
 
 3. OUT-OF-SERVICE-AREA (auto-Unqualified, score 10-20):
    - Land-based / resort / tour requests to: Asia, Europe, Africa, Middle East, South America, Australia/New Zealand, Antarctica
-   - River cruises (Danube, Rhine, Mekong, etc.)
    - Expedition/adventure cruises (Galapagos, Arctic)
    
    If out of service area, set stage to "Unqualified", add tag "out-of-service-area", score 10-20, and suggest referring to a specialist agency.
