@@ -131,6 +131,7 @@ export default function CruiseSearch() {
   const [destination, setDestination] = useState("");
   const [cruiseType, setCruiseType] = useState("");
   const [shipFilter, setShipFilter] = useState("");
+  const [departurePort, setDeparturePort] = useState("");
   const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
   const [shipsLoading, setShipsLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
