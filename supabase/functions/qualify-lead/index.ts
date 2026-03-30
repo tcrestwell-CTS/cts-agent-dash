@@ -44,20 +44,42 @@ A new travel inquiry has come in. Analyze it and return a JSON object with these
 
 {
   "score": <integer 1-100, lead quality score>,
-  "stage": <"Qualified" | "Quote Needed" | "Call Needed">,
+  "stage": <"Qualified" | "Quote Needed" | "Call Needed" | "Unqualified">,
   "summary": <one sentence describing the lead for Tim's dashboard>,
-  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international"]>,
+  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area"]>,
   "next_action": <one specific sentence telling Tim exactly what to do next>,
   "wants_financing": <boolean>
 }
 
-SCORING GUIDE:
+SERVICE AREA — CRITICAL:
+Crestwell Travel Services ONLY books the following destinations/trip types:
+- Caribbean cruises and island resorts
+- Mexico all-inclusive resorts
+- Domestic US group travel
+- Bahamas
+- Jamaica, Dominican Republic, Cancun, Punta Cana, Aruba, etc.
+- Standard cruise lines departing from US ports (Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, etc.)
+
+OUT-OF-SERVICE-AREA destinations (auto-Unqualified, score 1-20):
+- Asia (Japan, China, Thailand, Vietnam, Bali, etc.)
+- Europe (France, Italy, Greece, UK, Spain, etc.)
+- Africa (Safari, Morocco, Egypt, etc.)
+- Middle East (Dubai, Israel, etc.)
+- South America (Brazil, Peru, Argentina, etc.)
+- Australia / New Zealand
+- Antarctica
+- River cruises (Danube, Rhine, Mekong, etc.)
+- Expedition/adventure cruises (Galapagos, Arctic, etc.)
+
+If the destination is out of service area, set stage to "Unqualified", add tag "out-of-service-area", set score to 10-20, and set next_action to suggest referring the client to a specialist agency.
+
+SCORING GUIDE (for in-service-area leads only):
 - 80-100: Has destination + budget $3k+ + dates + traveler count + clear trip type → ready to quote now
 - 60-79: Has most details but missing 1-2 things → worth a quick email to fill gaps
 - 40-59: Vague (no budget, no dates, just exploring) → nurture, low priority
 - 1-39: Incomplete contact info, spam-like, or clearly not serious
 
-STAGE GUIDE:
+STAGE GUIDE (for in-service-area leads only):
 - "Qualified": Score 70+, has enough info to build a real quote
 - "Quote Needed": Score 50-69, missing some details but can start quote with clarification
 - "Call Needed": Group of 10+, OR luxury ($10k+), OR financing interest, OR complex multi-destination
