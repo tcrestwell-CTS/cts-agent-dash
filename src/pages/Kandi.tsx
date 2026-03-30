@@ -172,8 +172,8 @@ export default function Kandi() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Kandi — Reconciliation</h1>
-            <p className="text-sm text-muted-foreground">Revenue & admin sync checker</p>
+            <h1 className="text-2xl font-bold text-foreground">AI Agents Health</h1>
+            <p className="text-sm text-muted-foreground">Agent monitoring & reconciliation dashboard</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <Button onClick={runSweep} disabled={sweeping || cooldown} size="sm">
@@ -219,7 +219,7 @@ export default function Kandi() {
                   <ShieldCheck className="h-12 w-12 text-primary mb-3" />
                   <p className="text-lg font-semibold text-foreground">No open alerts</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Everything looks clean. Kandi is watching.
+                    Everything looks clean. All agents are monitoring.
                   </p>
                 </CardContent>
               </Card>
