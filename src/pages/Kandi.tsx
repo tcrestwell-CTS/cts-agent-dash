@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import AgentHealthPanel from "@/components/AgentHealthPanel";
 
 type AlertType = "missing_invoice" | "unpaid_balance" | "deposit_overdue" | "status_mismatch" | "commission_variance" | "qbo_desync";
 
