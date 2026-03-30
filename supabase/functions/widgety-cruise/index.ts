@@ -265,6 +265,26 @@ serve(async (req: Request) => {
       });
     }
 
+    if (action === "ports") {
+      // List available ports
+      const searchParams = new URLSearchParams({
+        app_id: WIDGETY_APP_ID,
+        token: WIDGETY_TOKEN,
+        market: params.market || "us",
+      });
+      const url = `${WIDGETY_BASE}/ports.json?${searchParams.toString()}`;
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        const text = await resp.text();
+        console.error("Widgety ports error:", resp.status, text);
+        throw new Error(`Widgety API error: ${resp.status}`);
+      }
+      const data = await resp.json();
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "holiday") {
       // Get holiday details (includes dates with itinerary_code)
       const holidayRef = params.holiday_ref;
