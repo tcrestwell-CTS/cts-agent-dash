@@ -53,35 +53,39 @@ A new travel inquiry has come in. Analyze it and return a JSON object with these
 
 RECOGNIZED TRIP TYPES (use for tagging and scoring context):
 - Caribbean (cruises & resorts)
-- Mediterranean (cruise only — see service area rules)
-- Alaska (cruise only — departing from US ports)
+- Mediterranean (cruise)
+- Alaska (cruise)
 - All-Inclusive (resorts in Mexico, Jamaica, DR, Cancun, Punta Cana, Aruba, etc.)
 - Family (family vacation packages)
 - Mexico (all-inclusive resorts, Cancun, Riviera Maya, Cabo, etc.)
 - North America (domestic US travel)
 - Group (church groups, corporate retreats, family reunions, etc.)
 - Honeymoon (romantic getaways)
-- Cruise (ocean cruises from US ports)
+- Cruise (ocean cruises)
+- Europe (cruise)
+- Asia (cruise)
+- Africa (cruise)
+- South America (cruise)
 
-RECOGNIZED CRUISE DESTINATIONS (from our booking system):
-IN SERVICE AREA:
-- Caribbean, Bahamas, Bermuda, Alaska, Hawaii, New England, North America, Central America, Transatlantic
-- These are bookable — score normally
+RECOGNIZED CRUISE DESTINATIONS (ALL are in service area for CRUISES):
+Caribbean, Bahamas, Bermuda, Alaska, Hawaii, New England, North America, Central America, Transatlantic, Mediterranean, Europe, Asia, Africa, South America, Middle East, Scandinavia, Pacific, Indian Ocean
 
-OUT OF SERVICE AREA (auto-Unqualified):
-- Mediterranean, Europe, Asia, Africa, South America, Middle East, Scandinavia, Pacific, Indian Ocean
-- River cruises (Danube, Rhine, Mekong, etc.)
-- Expedition/adventure cruises (Galapagos, Arctic, Antarctica)
-- Australia / New Zealand
+SERVICE AREA RULES — CRITICAL:
+1. CRUISES: ALL destinations worldwide are in service area. Crestwell works with cruise lines that sail everywhere — Caribbean, Mediterranean, Alaska, Asia, Europe, Africa, South America, etc.
+   Cruise lines include: Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, Disney, Holland America, Princess, Ritz-Carlton Yacht Collection, and others.
 
-SERVICE AREA — CRITICAL:
-Crestwell Travel Services ONLY books the following:
-- Ocean cruises departing from US ports to: Caribbean, Bahamas, Bermuda, Alaska, Hawaii, New England, Central America, Transatlantic
-- All-inclusive resorts: Mexico, Jamaica, Dominican Republic, Cancun, Punta Cana, Aruba, Turks & Caicos
-- Domestic US group travel
-- Standard cruise lines: Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, Disney, Holland America, Princess
+2. RESORTS / ALL-INCLUSIVE / LAND-BASED: Only the following regions are in service area:
+   - Caribbean islands (Jamaica, DR, Aruba, Turks & Caicos, St. Lucia, etc.)
+   - Mexico (Cancun, Riviera Maya, Cabo, Puerto Vallarta, etc.)
+   - Bahamas
+   - Domestic US (group travel, family trips)
 
-If the destination is out of service area, set stage to "Unqualified", add tag "out-of-service-area", set score to 10-20, and set next_action to suggest referring the client to a specialist agency.
+3. OUT-OF-SERVICE-AREA (auto-Unqualified, score 10-20):
+   - Land-based / resort / tour requests to: Asia, Europe, Africa, Middle East, South America, Australia/New Zealand, Antarctica
+   - River cruises (Danube, Rhine, Mekong, etc.)
+   - Expedition/adventure cruises (Galapagos, Arctic)
+   
+   If out of service area, set stage to "Unqualified", add tag "out-of-service-area", score 10-20, and suggest referring to a specialist agency.
 
 SCORING GUIDE (for in-service-area leads only):
 - 80-100: Has destination + budget $3k+ + dates + traveler count + clear trip type → ready to quote now
