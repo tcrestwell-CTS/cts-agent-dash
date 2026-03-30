@@ -336,6 +336,7 @@ export default function CruiseSearch() {
     setDestination("");
     setCruiseType("");
     setShipFilter("");
+    setDeparturePort("");
     setDateFrom("");
     setDateTo("");
   };
