@@ -231,6 +231,7 @@ export default function CruiseSearch() {
       }
 
       if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType.toLowerCase();
+      if (departurePort) params.locations = departurePort;
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const data = await callWidgety(params);
