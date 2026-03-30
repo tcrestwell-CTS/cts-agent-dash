@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AgentHealthPanel from "@/components/AgentHealthPanel";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip } from "recharts";
 import { Bot, Zap, Brain, Heart, Shield, Megaphone, Database } from "lucide-react";
 
 const AGENTS = [
@@ -78,11 +78,11 @@ const AGENTS = [
   },
 ];
 
-const STATUS_CHART_DATA = AGENTS.map((a) => ({
+const STATUS_CHART_DATA = AGENTS.map((a, i) => ({
   name: a.name,
   value: 100,
-  color: a.color,
-}));
+  fill: a.color,
+})).reverse();
 
 export default function Kandi() {
   return (
