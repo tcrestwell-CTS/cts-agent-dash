@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AgentHealthPanel from "@/components/AgentHealthPanel";
-import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip } from "recharts";
+import { RadialBarChart, RadialBar, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Bot, Zap, Brain, Heart, Shield, Megaphone, Database } from "lucide-react";
 
 const AGENTS = [
@@ -93,10 +93,14 @@ export default function Kandi() {
           <p className="text-sm text-muted-foreground">Agent monitoring dashboard — all 7 agents at a glance</p>
         </div>
 
-        {/* Agent Cards Grid */}
+        {/* Agent Cards Grid with Individual Gauges */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {AGENTS.map((agent) => {
             const Icon = agent.icon;
+            const gaugeData = [
+              { value: 100, fill: agent.color },
+              { value: 0, fill: "transparent" },
+            ];
             return (
               <Card key={agent.name} className="relative overflow-hidden border-border/50 hover:border-border transition-colors">
                 <div
@@ -128,63 +132,50 @@ export default function Kandi() {
                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                     {agent.description}
                   </p>
-                  <div className="flex items-center gap-1.5">
-                    <Zap className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-[0.68rem] text-muted-foreground font-medium">
-                      Trigger: {agent.trigger}
-                    </span>
+
+                  {/* Individual circular gauge */}
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-16 h-16 shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={gaugeData}
+                            dataKey="value"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="70%"
+                            outerRadius="100%"
+                            startAngle={90}
+                            endAngle={-270}
+                            strokeWidth={0}
+                          >
+                            {gaugeData.map((entry, i) => (
+                              <Cell key={i} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-foreground">100%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[0.68rem] text-muted-foreground">
+                        <span className="font-medium text-foreground">Status:</span> Online
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[0.68rem] text-muted-foreground font-medium">
+                          {agent.trigger}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
-
-        {/* Status Overview Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Agent Status Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="20%"
-                  outerRadius="90%"
-                  data={STATUS_CHART_DATA}
-                  startAngle={180}
-                  endAngle={-180}
-                  barSize={12}
-                >
-                  <RadialBar
-                    dataKey="value"
-                    cornerRadius={6}
-                    background={{ fill: "hsl(var(--muted) / 0.3)" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                    formatter={(value: number) => [`${value}%`, "Uptime"]}
-                  />
-                </RadialBarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap justify-center gap-3 mt-2">
-              {AGENTS.map((a) => (
-                <div key={a.name} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: a.color }} />
-                  <span className="text-xs text-muted-foreground">{a.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Live Health Panel */}
         <AgentHealthPanel />
