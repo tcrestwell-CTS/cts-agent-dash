@@ -153,6 +153,14 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
     wants_financing = false,
   } = qualification;
 
+  // 3. Map AI stage to lead status
+  const stageToStatus: Record<string, string> = {
+    'Qualified':    'qualified',
+    'Quote Needed': 'contacted',
+    'Call Needed':  'contacted',
+    'Unqualified':  'closed',
+  };
+
   // 3. Write qualification back to Supabase
   await supabase.from('quote_requests').update({
     ai_score:        score,
@@ -162,7 +170,7 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
     ai_next_action:  next_action,
     ai_processed_at: new Date().toISOString(),
     wants_financing,
-    status:          stage === 'Qualified' ? 'qualified' : 'new',
+    status:          stageToStatus[stage] || 'new',
   }).eq('id', lead_id);
 
   // 4. Send notification email
