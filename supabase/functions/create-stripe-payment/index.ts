@@ -140,7 +140,7 @@ serve(async (req) => {
     } else {
       // Hosted redirect mode (portal clients or fallback)
       const successUrl = isPortal
-        ? `${origin}/client?payment=success`
+        ? `${origin}/client?payment=success&session_id={CHECKOUT_SESSION_ID}`
         : `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`;
       const cancelUrl = isPortal
         ? `${origin}/client?payment=cancelled`
