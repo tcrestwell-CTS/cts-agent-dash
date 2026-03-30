@@ -450,34 +450,34 @@ export default function CruiseSearch() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Ports</SelectItem>
-                  <SelectItem value="miami">Miami, FL</SelectItem>
-                  <SelectItem value="fort-lauderdale">Fort Lauderdale, FL</SelectItem>
-                  <SelectItem value="port-canaveral">Port Canaveral, FL</SelectItem>
-                  <SelectItem value="tampa">Tampa, FL</SelectItem>
-                  <SelectItem value="jacksonville">Jacksonville, FL</SelectItem>
-                  <SelectItem value="new-york">New York, NY</SelectItem>
-                  <SelectItem value="bayonne">Bayonne, NJ</SelectItem>
-                  <SelectItem value="baltimore">Baltimore, MD</SelectItem>
-                  <SelectItem value="boston">Boston, MA</SelectItem>
-                  <SelectItem value="charleston">Charleston, SC</SelectItem>
-                  <SelectItem value="galveston">Galveston, TX</SelectItem>
-                  <SelectItem value="houston">Houston, TX</SelectItem>
-                  <SelectItem value="new-orleans">New Orleans, LA</SelectItem>
-                  <SelectItem value="los-angeles">Los Angeles, CA</SelectItem>
-                  <SelectItem value="san-francisco">San Francisco, CA</SelectItem>
-                  <SelectItem value="san-diego">San Diego, CA</SelectItem>
-                  <SelectItem value="seattle">Seattle, WA</SelectItem>
-                  <SelectItem value="honolulu">Honolulu, HI</SelectItem>
-                  <SelectItem value="san-juan">San Juan, PR</SelectItem>
-                  <SelectItem value="barcelona">Barcelona, Spain</SelectItem>
-                  <SelectItem value="rome">Rome (Civitavecchia), Italy</SelectItem>
-                  <SelectItem value="venice">Venice, Italy</SelectItem>
-                  <SelectItem value="athens">Athens (Piraeus), Greece</SelectItem>
-                  <SelectItem value="southampton">Southampton, UK</SelectItem>
-                  <SelectItem value="amsterdam">Amsterdam, Netherlands</SelectItem>
-                  <SelectItem value="copenhagen">Copenhagen, Denmark</SelectItem>
-                  <SelectItem value="singapore">Singapore</SelectItem>
-                  <SelectItem value="sydney">Sydney, Australia</SelectItem>
+                  <SelectItem value="USMIA">Miami, FL</SelectItem>
+                  <SelectItem value="USFLL">Fort Lauderdale, FL</SelectItem>
+                  <SelectItem value="USPCV">Port Canaveral, FL</SelectItem>
+                  <SelectItem value="USTPA">Tampa, FL</SelectItem>
+                  <SelectItem value="USJAX">Jacksonville, FL</SelectItem>
+                  <SelectItem value="USNYC">New York, NY</SelectItem>
+                  <SelectItem value="FRBAY">Bayonne, NJ</SelectItem>
+                  <SelectItem value="USBAL">Baltimore, MD</SelectItem>
+                  <SelectItem value="USBOS">Boston, MA</SelectItem>
+                  <SelectItem value="USCHS">Charleston, SC</SelectItem>
+                  <SelectItem value="USGLS">Galveston, TX</SelectItem>
+                  <SelectItem value="USHOU">Houston, TX</SelectItem>
+                  <SelectItem value="USMSY">New Orleans, LA</SelectItem>
+                  <SelectItem value="USLAX">Los Angeles, CA</SelectItem>
+                  <SelectItem value="USSFO">San Francisco, CA</SelectItem>
+                  <SelectItem value="USSAN">San Diego, CA</SelectItem>
+                  <SelectItem value="USSEA">Seattle, WA</SelectItem>
+                  <SelectItem value="USHNL">Honolulu, HI</SelectItem>
+                  <SelectItem value="PRSJU">San Juan, PR</SelectItem>
+                  <SelectItem value="ESBCN">Barcelona, Spain</SelectItem>
+                  <SelectItem value="ITROM">Rome (Civitavecchia), Italy</SelectItem>
+                  <SelectItem value="ITVCE">Venice, Italy</SelectItem>
+                  <SelectItem value="GRPIR">Athens (Piraeus), Greece</SelectItem>
+                  <SelectItem value="GBSOU">Southampton, UK</SelectItem>
+                  <SelectItem value="NLAMS">Amsterdam, Netherlands</SelectItem>
+                  <SelectItem value="DKCPH">Copenhagen, Denmark</SelectItem>
+                  <SelectItem value="SGSIN">Singapore</SelectItem>
+                  <SelectItem value="AUSYD">Sydney, Australia</SelectItem>
                 </SelectContent>
               </Select>
             </div>
