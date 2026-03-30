@@ -307,7 +307,7 @@ export default function CruiseSearch() {
     setLoading(true);
     setStep("itinerary");
     try {
-      const data = await callWidgety({ action: "itinerary", date_ref: selectedDate.date_ref, market: "us" });
+      const data = await callWidgety({ action: "itinerary", date_ref: selectedDate.date_ref, itinerary_code: selectedDate.itinerary_code, market: "us" });
       setPreviewItems(data.items || []);
       setMeta({ ship_title: data.ship_title, operator_title: data.operator_title, holiday_name: data.holiday_name });
       if (!(data.items || []).length) toast.info("No itinerary data available for this sailing.");

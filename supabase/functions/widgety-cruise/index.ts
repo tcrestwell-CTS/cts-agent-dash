@@ -331,27 +331,53 @@ serve(async (req: Request) => {
     if (action === "itinerary") {
       // Get full date details including day-by-day itinerary
       const dateRef = params.date_ref;
-      if (!dateRef) throw new Error("date_ref is required");
+      const itineraryCode = params.itinerary_code;
+      if (!dateRef && !itineraryCode) throw new Error("date_ref or itinerary_code is required");
 
-      const searchParams = new URLSearchParams({
+      const authParams = new URLSearchParams({
         app_id: WIDGETY_APP_ID,
         token: WIDGETY_TOKEN,
         market: params.market || "us",
       });
 
-      const url = `${WIDGETY_BASE}/holidays/dates/${encodeURIComponent(dateRef)}.json?${searchParams.toString()}`;
-      const resp = await fetch(url, {
-        headers: { Accept: "application/json;api_version=2" },
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        console.error("Widgety itinerary error:", resp.status, text);
-        throw new Error(`Widgety API error: ${resp.status}`);
-      }
-      const data = await resp.json();
+      let data: any = null;
 
-      // Transform the itinerary days into our format
-      const items = (data.itinerary?.days || []).map((day: any, idx: number) => {
+      // Strategy 1: Try dedicated itinerary endpoint if itinerary_code is available
+      if (itineraryCode) {
+        const itinUrl = `${WIDGETY_BASE}/itineraries/${encodeURIComponent(itineraryCode)}.json?${authParams.toString()}`;
+        console.log("Trying itinerary endpoint:", itinUrl.replace(WIDGETY_TOKEN, "***"));
+        const itinResp = await fetch(itinUrl, {
+          headers: { Accept: "application/json;api_version=2" },
+        });
+        if (itinResp.ok) {
+          data = await itinResp.json();
+          console.log("Itinerary endpoint returned days:", data.days?.length || data.itinerary?.days?.length || 0);
+        } else {
+          const text = await itinResp.text();
+          console.log("Itinerary endpoint failed:", itinResp.status, text);
+        }
+      }
+
+      // Strategy 2: Fall back to date details endpoint
+      if (!data || (!data.days?.length && !data.itinerary?.days?.length)) {
+        const dateUrl = `${WIDGETY_BASE}/holidays/dates/${encodeURIComponent(dateRef || itineraryCode)}.json?${authParams.toString()}`;
+        console.log("Trying date details endpoint:", dateUrl.replace(WIDGETY_TOKEN, "***"));
+        const dateResp = await fetch(dateUrl, {
+          headers: { Accept: "application/json;api_version=2" },
+        });
+        if (dateResp.ok) {
+          data = await dateResp.json();
+          console.log("Date details returned itinerary days:", data.itinerary?.days?.length || 0);
+        } else {
+          const text = await dateResp.text();
+          console.error("Date details endpoint failed:", dateResp.status, text);
+          throw new Error(`Widgety API error: ${dateResp.status}`);
+        }
+      }
+
+      // Transform the itinerary days into our format (handle both response shapes)
+      const rawDays = data.days || data.itinerary?.days || [];
+      const items = rawDays.map((day: any, idx: number) => {
         const location = day.locations?.[0];
         const locationName = location?.name || day.day_name || "";
         const country = location?.country || "";
