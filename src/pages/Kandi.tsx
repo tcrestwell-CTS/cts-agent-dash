@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AgentHealthPanel from "@/components/AgentHealthPanel";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip } from "recharts";
 import { Bot, Zap, Brain, Heart, Shield, Megaphone, Database } from "lucide-react";
 
 const AGENTS = [
@@ -78,11 +78,11 @@ const AGENTS = [
   },
 ];
 
-const STATUS_CHART_DATA = AGENTS.map((a) => ({
+const STATUS_CHART_DATA = AGENTS.map((a, i) => ({
   name: a.name,
   value: 100,
-  color: a.color,
-}));
+  fill: a.color,
+})).reverse();
 
 export default function Kandi() {
   return (
@@ -146,17 +146,22 @@ export default function Kandi() {
             <CardTitle className="text-base">Agent Status Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-48">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={STATUS_CHART_DATA} layout="vertical" margin={{ left: 0, right: 20 }}>
-                  <XAxis type="number" domain={[0, 100]} hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={90}
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                    axisLine={false}
-                    tickLine={false}
+                <RadialBarChart
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="20%"
+                  outerRadius="90%"
+                  data={STATUS_CHART_DATA}
+                  startAngle={180}
+                  endAngle={-180}
+                  barSize={12}
+                >
+                  <RadialBar
+                    dataKey="value"
+                    cornerRadius={6}
+                    background={{ fill: "hsl(var(--muted) / 0.3)" }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -167,13 +172,16 @@ export default function Kandi() {
                     }}
                     formatter={(value: number) => [`${value}%`, "Uptime"]}
                   />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={16}>
-                    {STATUS_CHART_DATA.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} fillOpacity={0.8} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                </RadialBarChart>
               </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 mt-2">
+              {AGENTS.map((a) => (
+                <div key={a.name} className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: a.color }} />
+                  <span className="text-xs text-muted-foreground">{a.name}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
