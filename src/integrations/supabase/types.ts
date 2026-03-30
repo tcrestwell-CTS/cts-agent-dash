@@ -2345,6 +2345,44 @@ export type Database = {
           },
         ]
       }
+      portal_client_settings: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          portal_enabled: boolean
+          updated_at: string
+          user_id: string
+          visible_sections: string[]
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          portal_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          visible_sections?: string[]
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          portal_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          visible_sections?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_client_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_messages: {
         Row: {
           agent_user_id: string

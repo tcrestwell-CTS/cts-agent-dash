@@ -119,6 +119,7 @@ const adminNavigation: NavItem[] = [
   { name: "AI Agents Health", href: "/kandi", icon: BarChart3 },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
   { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
+  { name: "Portal Management", href: "/portal-management", icon: Globe },
 ];
 
 interface SidebarProps {
