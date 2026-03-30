@@ -190,6 +190,9 @@ export default function Kandi() {
           </div>
         </div>
 
+        {/* Agent Health */}
+        <AgentHealthPanel />
+
         {/* Tabs */}
         <Tabs defaultValue="open">
           <TabsList>
