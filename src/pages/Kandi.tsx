@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import AgentHealthPanel from "@/components/AgentHealthPanel";
-import { RadialBarChart, RadialBar, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Bot, Zap, Brain, Heart, Shield, Megaphone, Database } from "lucide-react";
 
 const AGENTS = [
