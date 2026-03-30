@@ -52,6 +52,7 @@ const TripInsurance       = lazy(() => import("./pages/TripInsurance"));
 const FeaturedTrips       = lazy(() => import("./pages/FeaturedTrips"));
 const LoanApplications   = lazy(() => import("./pages/LoanApplications"));
 const Leads              = lazy(() => import("./pages/Leads"));
+const PortalManagement   = lazy(() => import("./pages/PortalManagement"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
