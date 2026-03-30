@@ -444,12 +444,42 @@ export default function CruiseSearch() {
             </div>
             <div className="flex-1 min-w-0">
               <Label className="text-xs text-muted-foreground">Departure Port</Label>
-              <Input
-                placeholder="e.g. Miami, Fort Lauderdale"
-                value={departurePort}
-                onChange={(e) => setDeparturePort(e.target.value)}
-                className="bg-background"
-              />
+              <Select value={departurePort} onValueChange={setDeparturePort}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All ports" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ports</SelectItem>
+                  <SelectItem value="miami">Miami, FL</SelectItem>
+                  <SelectItem value="fort-lauderdale">Fort Lauderdale, FL</SelectItem>
+                  <SelectItem value="port-canaveral">Port Canaveral, FL</SelectItem>
+                  <SelectItem value="tampa">Tampa, FL</SelectItem>
+                  <SelectItem value="jacksonville">Jacksonville, FL</SelectItem>
+                  <SelectItem value="new-york">New York, NY</SelectItem>
+                  <SelectItem value="bayonne">Bayonne, NJ</SelectItem>
+                  <SelectItem value="baltimore">Baltimore, MD</SelectItem>
+                  <SelectItem value="boston">Boston, MA</SelectItem>
+                  <SelectItem value="charleston">Charleston, SC</SelectItem>
+                  <SelectItem value="galveston">Galveston, TX</SelectItem>
+                  <SelectItem value="houston">Houston, TX</SelectItem>
+                  <SelectItem value="new-orleans">New Orleans, LA</SelectItem>
+                  <SelectItem value="los-angeles">Los Angeles, CA</SelectItem>
+                  <SelectItem value="san-francisco">San Francisco, CA</SelectItem>
+                  <SelectItem value="san-diego">San Diego, CA</SelectItem>
+                  <SelectItem value="seattle">Seattle, WA</SelectItem>
+                  <SelectItem value="honolulu">Honolulu, HI</SelectItem>
+                  <SelectItem value="san-juan">San Juan, PR</SelectItem>
+                  <SelectItem value="barcelona">Barcelona, Spain</SelectItem>
+                  <SelectItem value="rome">Rome (Civitavecchia), Italy</SelectItem>
+                  <SelectItem value="venice">Venice, Italy</SelectItem>
+                  <SelectItem value="athens">Athens (Piraeus), Greece</SelectItem>
+                  <SelectItem value="southampton">Southampton, UK</SelectItem>
+                  <SelectItem value="amsterdam">Amsterdam, Netherlands</SelectItem>
+                  <SelectItem value="copenhagen">Copenhagen, Denmark</SelectItem>
+                  <SelectItem value="singapore">Singapore</SelectItem>
+                  <SelectItem value="sydney">Sydney, Australia</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="w-full sm:w-36">
               <Label className="text-xs text-muted-foreground">Cruise Type</Label>
