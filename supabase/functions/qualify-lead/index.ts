@@ -46,30 +46,40 @@ A new travel inquiry has come in. Analyze it and return a JSON object with these
   "score": <integer 1-100, lead quality score>,
   "stage": <"Qualified" | "Quote Needed" | "Call Needed" | "Unqualified">,
   "summary": <one sentence describing the lead for Tim's dashboard>,
-  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area"]>,
+  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area", "cruise", "all-inclusive", "resort", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
   "next_action": <one specific sentence telling Tim exactly what to do next>,
   "wants_financing": <boolean>
 }
 
-SERVICE AREA — CRITICAL:
-Crestwell Travel Services ONLY books the following destinations/trip types:
-- Caribbean cruises and island resorts
-- Mexico all-inclusive resorts
-- Domestic US group travel
-- Bahamas
-- Jamaica, Dominican Republic, Cancun, Punta Cana, Aruba, etc.
-- Standard cruise lines departing from US ports (Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, etc.)
+RECOGNIZED TRIP TYPES (use for tagging and scoring context):
+- Caribbean (cruises & resorts)
+- Mediterranean (cruise only — see service area rules)
+- Alaska (cruise only — departing from US ports)
+- All-Inclusive (resorts in Mexico, Jamaica, DR, Cancun, Punta Cana, Aruba, etc.)
+- Family (family vacation packages)
+- Mexico (all-inclusive resorts, Cancun, Riviera Maya, Cabo, etc.)
+- North America (domestic US travel)
+- Group (church groups, corporate retreats, family reunions, etc.)
+- Honeymoon (romantic getaways)
+- Cruise (ocean cruises from US ports)
 
-OUT-OF-SERVICE-AREA destinations (auto-Unqualified, score 1-20):
-- Asia (Japan, China, Thailand, Vietnam, Bali, etc.)
-- Europe (France, Italy, Greece, UK, Spain, etc.)
-- Africa (Safari, Morocco, Egypt, etc.)
-- Middle East (Dubai, Israel, etc.)
-- South America (Brazil, Peru, Argentina, etc.)
-- Australia / New Zealand
-- Antarctica
+RECOGNIZED CRUISE DESTINATIONS (from our booking system):
+IN SERVICE AREA:
+- Caribbean, Bahamas, Bermuda, Alaska, Hawaii, New England, North America, Central America, Transatlantic
+- These are bookable — score normally
+
+OUT OF SERVICE AREA (auto-Unqualified):
+- Mediterranean, Europe, Asia, Africa, South America, Middle East, Scandinavia, Pacific, Indian Ocean
 - River cruises (Danube, Rhine, Mekong, etc.)
-- Expedition/adventure cruises (Galapagos, Arctic, etc.)
+- Expedition/adventure cruises (Galapagos, Arctic, Antarctica)
+- Australia / New Zealand
+
+SERVICE AREA — CRITICAL:
+Crestwell Travel Services ONLY books the following:
+- Ocean cruises departing from US ports to: Caribbean, Bahamas, Bermuda, Alaska, Hawaii, New England, Central America, Transatlantic
+- All-inclusive resorts: Mexico, Jamaica, Dominican Republic, Cancun, Punta Cana, Aruba, Turks & Caicos
+- Domestic US group travel
+- Standard cruise lines: Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, Disney, Holland America, Princess
 
 If the destination is out of service area, set stage to "Unqualified", add tag "out-of-service-area", set score to 10-20, and set next_action to suggest referring the client to a specialist agency.
 
