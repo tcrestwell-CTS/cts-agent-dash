@@ -93,20 +93,19 @@ INSTRUCTIONS:
 Format the proposal in clean markdown.
 `.trim();
 
-    // Call Lovable AI Gateway
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call Claude (Anthropic)
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: 'You are Terrance, a travel proposal specialist. Write compelling, personalized travel proposals. Output clean markdown only — no preamble or explanation.',
         messages: [
-          {
-            role: 'system',
-            content: 'You are Terrance, a travel proposal specialist. Write compelling, personalized travel proposals. Output clean markdown only — no preamble or explanation.',
-          },
           { role: 'user', content: prompt },
         ],
       }),
