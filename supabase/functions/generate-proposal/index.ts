@@ -138,7 +138,7 @@ Format the proposal in clean markdown.
     }
 
     const aiData = await aiRes.json();
-    const proposalDraft = aiData.choices?.[0]?.message?.content || '';
+    const proposalDraft = aiData.content?.[0]?.text || '';
 
     if (!proposalDraft) {
       await supabase.from('quote_requests').update({ proposal_status: null }).eq('id', lead_id);
