@@ -291,6 +291,11 @@ const MonthlyReconciliation = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Kandi AI Agent Reconcile */}
+      <div className="mt-8">
+        <KandiReconcilePanel />
+      </div>
     </DashboardLayout>
   );
 };
