@@ -442,6 +442,15 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground">Departure Port</Label>
+              <Input
+                placeholder="e.g. Miami, Fort Lauderdale"
+                value={departurePort}
+                onChange={(e) => setDeparturePort(e.target.value)}
+                className="bg-background"
+              />
+            </div>
             <div className="w-full sm:w-36">
               <Label className="text-xs text-muted-foreground">Cruise Type</Label>
               <Select value={cruiseType} onValueChange={setCruiseType}>
