@@ -1,0 +1,15 @@
+{
+  "name": "hotelbeds-mtls-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "upload-cert": "echo 'Run: wrangler mtls-certificate upload --cert cert.pem --key key.pem --name hotelbeds-mtls'"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
