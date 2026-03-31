@@ -551,7 +551,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-3">
                     {filteredSailings.map((s) => {
-                      const sailingDate = formatSailingDate(s.holiday_ref);
+                      const sailingDate = formatSailingDate(s);
                       return (
                         <button
                           key={s.holiday_ref}
