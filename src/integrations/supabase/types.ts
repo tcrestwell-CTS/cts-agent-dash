@@ -1378,6 +1378,135 @@ export type Database = {
         }
         Relationships: []
       }
+      cruise_ships: {
+        Row: {
+          cover_image: string | null
+          id: string
+          operator: string | null
+          profile_image: string | null
+          ship_class: string | null
+          size: string | null
+          synced_at: string
+          title: string
+          widgety_slug: string
+        }
+        Insert: {
+          cover_image?: string | null
+          id?: string
+          operator?: string | null
+          profile_image?: string | null
+          ship_class?: string | null
+          size?: string | null
+          synced_at?: string
+          title: string
+          widgety_slug: string
+        }
+        Update: {
+          cover_image?: string | null
+          id?: string
+          operator?: string | null
+          profile_image?: string | null
+          ship_class?: string | null
+          size?: string | null
+          synced_at?: string
+          title?: string
+          widgety_slug?: string
+        }
+        Relationships: []
+      }
+      cruises: {
+        Row: {
+          active: boolean
+          created_at: string
+          cruise_nights: number | null
+          cruise_theme: string | null
+          cruise_type: string[] | null
+          description: string | null
+          ends_at: string | null
+          ends_on: string | null
+          id: string
+          image_url: string | null
+          name: string
+          official_link: string | null
+          operator: string | null
+          operator_title: string | null
+          price_currency: string | null
+          price_from: number | null
+          price_pp: boolean | null
+          rating: string | null
+          regions: string[] | null
+          ship: string | null
+          ship_title: string | null
+          starts_at: string | null
+          starts_on: string | null
+          synced_at: string
+          updated_at: string
+          vacation_days: number | null
+          vendor_id: string | null
+          widgety_ref: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          cruise_nights?: number | null
+          cruise_theme?: string | null
+          cruise_type?: string[] | null
+          description?: string | null
+          ends_at?: string | null
+          ends_on?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          official_link?: string | null
+          operator?: string | null
+          operator_title?: string | null
+          price_currency?: string | null
+          price_from?: number | null
+          price_pp?: boolean | null
+          rating?: string | null
+          regions?: string[] | null
+          ship?: string | null
+          ship_title?: string | null
+          starts_at?: string | null
+          starts_on?: string | null
+          synced_at?: string
+          updated_at?: string
+          vacation_days?: number | null
+          vendor_id?: string | null
+          widgety_ref: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          cruise_nights?: number | null
+          cruise_theme?: string | null
+          cruise_type?: string[] | null
+          description?: string | null
+          ends_at?: string | null
+          ends_on?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          official_link?: string | null
+          operator?: string | null
+          operator_title?: string | null
+          price_currency?: string | null
+          price_from?: number | null
+          price_pp?: boolean | null
+          rating?: string | null
+          regions?: string[] | null
+          ship?: string | null
+          ship_title?: string | null
+          starts_at?: string | null
+          starts_on?: string | null
+          synced_at?: string
+          updated_at?: string
+          vacation_days?: number | null
+          vendor_id?: string | null
+          widgety_ref?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           client_id: string
