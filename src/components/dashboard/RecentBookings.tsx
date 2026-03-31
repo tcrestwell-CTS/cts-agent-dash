@@ -119,7 +119,7 @@ export function RecentBookings() {
                   </div>
                   <div>
                     <p className="font-medium text-card-foreground">
-                      {booking.trips?.clients?.name || "Unknown Client"}
+                      {booking.trips?.trip_name || booking.trips?.destination || "Untitled Trip"}
                     </p>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">

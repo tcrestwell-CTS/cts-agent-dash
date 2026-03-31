@@ -385,16 +385,13 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
               <div>
                 <p className="font-medium text-sm">Send Confirmation Email</p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedClientEmail 
-                    ? `Email will be sent to ${selectedClientEmail}`
-                    : "Select a client with email to enable"}
+                  Confirmation will be sent to the trip's client
                 </p>
               </div>
             </div>
             <Switch
-              checked={formData.send_confirmation_email && !!selectedClientEmail}
+              checked={formData.send_confirmation_email}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, send_confirmation_email: checked }))}
-              disabled={!selectedClientEmail}
             />
           </div>
 
