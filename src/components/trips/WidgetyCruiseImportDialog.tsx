@@ -396,7 +396,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
 
   const filteredSailings = useMemo(() => {
     return sailings.filter((sailing) => {
-      const sailingDate = parseSailingDate(sailing.holiday_ref);
+      const sailingDate = parseSailingDate(sailing);
 
       if (sailingYearFilter !== "all") {
         if (!sailingDate || String(sailingDate.getUTCFullYear()) !== sailingYearFilter) return false;
