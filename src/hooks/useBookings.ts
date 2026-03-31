@@ -195,6 +195,7 @@ export interface UpdateBookingData {
   supplier_id?: string | null;
   total_price?: number;
   gross_sales?: number;
+  supplier_payout?: number;
   commissionable_amount?: number;
   commission_revenue?: number;
   net_sales?: number;
@@ -358,6 +359,7 @@ export function useBookings() {
       if (data.total_price !== undefined) updatePayload.total_price = data.total_price;
       if (data.supplier_id !== undefined) updatePayload.supplier_id = data.supplier_id;
       if (data.gross_sales !== undefined) updatePayload.gross_sales = data.gross_sales;
+      if (data.supplier_payout !== undefined) updatePayload.supplier_payout = data.supplier_payout;
       if (data.commissionable_amount !== undefined) updatePayload.commissionable_amount = data.commissionable_amount;
       if (data.commission_revenue !== undefined) updatePayload.commission_revenue = data.commission_revenue;
       if (data.net_sales !== undefined) updatePayload.net_sales = data.net_sales;
@@ -377,12 +379,12 @@ export function useBookings() {
       toast.success("Booking updated successfully");
 
       // Recalculate margin if financials changed
-      const financialsChanged = "gross_sales" in data || "supplier_id" in data || "total_price" in data;
+      const financialsChanged = "gross_sales" in data || "supplier_payout" in data || "supplier_id" in data || "total_price" in data;
       if (financialsChanged) {
         const current = bookings.find(b => b.id === bookingId);
         if (current) {
           const gs = (data as any).gross_sales ?? current.gross_sales ?? 0;
-          const sp = current.supplier_payout ?? 0;
+          const sp = (data as any).supplier_payout ?? current.supplier_payout ?? 0;
           await recalculateMargin(bookingId, user.id, gs, sp);
         }
       }

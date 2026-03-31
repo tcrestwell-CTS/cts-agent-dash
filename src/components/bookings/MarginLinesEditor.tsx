@@ -18,7 +18,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { MarginLineType, MarginLineSource, BookingMarginLine } from "@/types/margin";
+import type { MarginLineType, MarginLineSource, BookingMarginLine, AgencyMarginRule } from "@/types/margin";
+import { findApplicableRule, applySuggestedMarkup } from "@/types/margin";
 
 // ── Local line type for pre-save editing ────────────────────────────────
 export interface LocalMarginLine {
@@ -92,9 +93,11 @@ interface MarginLinesEditorProps {
   lines: LocalMarginLine[];
   onChange: (lines: LocalMarginLine[]) => void;
   readOnly?: boolean;
+  rules?: AgencyMarginRule[];
+  supplierId?: string | null;
 }
 
-export function MarginLinesEditor({ lines, onChange, readOnly = false }: MarginLinesEditorProps) {
+export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null }: MarginLinesEditorProps) {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
 
@@ -186,7 +189,7 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false }: MarginL
             type="number"
             min="1"
             value={line.quantity}
-            onChange={(e) => updateLine(line.id, { quantity: parseInt(e.target.value) || 1 })}
+            onChange={(e) => updateLine(line.id, { quantity: parseFloat(e.target.value) || 1 })}
             disabled={readOnly}
             className="h-8 text-sm"
           />
@@ -202,16 +205,35 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false }: MarginL
             className="h-8 text-sm"
           />
 
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            value={line.unit_sell || ""}
-            onChange={(e) => updateLine(line.id, { unit_sell: parseFloat(e.target.value) || 0 })}
-            disabled={readOnly}
-            placeholder="0.00"
-            className="h-8 text-sm"
-          />
+          {/* Unit sell with optional rule suggestion */}
+          <div className="relative col-span-1">
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={line.unit_sell || ""}
+              onChange={(e) => updateLine(line.id, { unit_sell: parseFloat(e.target.value) || 0 })}
+              disabled={readOnly}
+              placeholder="0.00"
+              className="h-8 text-sm"
+            />
+            {(() => {
+              if (readOnly || !rules.length || line.unit_cost <= 0 || line.unit_sell > 0) return null;
+              const rule = findApplicableRule(rules, line.line_type, supplierId, "markup_pct") ||
+                           findApplicableRule(rules, line.line_type, supplierId, "markup_flat");
+              const suggested = applySuggestedMarkup(line.unit_cost, rule);
+              if (!suggested) return null;
+              return (
+                <button
+                  type="button"
+                  className="absolute -bottom-5 left-0 text-[10px] text-blue-500 hover:text-blue-700 whitespace-nowrap"
+                  onClick={() => updateLine(line.id, { unit_sell: suggested })}
+                >
+                  Suggest: ${suggested.toFixed(2)}
+                </button>
+              );
+            })()}
+          </div>
 
           <span className="text-xs font-medium px-1 text-muted-foreground">
             {formatCurrency(line._preview_total_cost)}

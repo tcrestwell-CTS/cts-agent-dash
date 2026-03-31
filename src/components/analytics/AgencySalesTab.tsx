@@ -164,6 +164,21 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
       }
     });
 
+    // Margin engine totals
+    const totalGrossMargin = activeBookings.reduce(
+      (sum, b) => sum + ((b as any).agency_gross_margin || 0), 0
+    );
+    const totalAdvisorPayouts = activeBookings.reduce(
+      (sum, b) => sum + ((b as any).advisor_margin_amount || 0), 0
+    );
+    const totalAgencyRetained = activeBookings.reduce(
+      (sum, b) => sum + ((b as any).agency_margin_amount || 0), 0
+    );
+    const engineCoverage = activeBookings.filter(
+      b => ((b as any).margin_version || 1) > 1
+    ).length;
+    const marginPct = grossSales > 0 ? (totalGrossMargin / grossSales) * 100 : 0;
+
     return {
       totalBookings,
       grossSales,
@@ -171,6 +186,11 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
       expectedAgencyIncome,
       receivedCommission,
       receivedAgencyIncome,
+      totalGrossMargin,
+      totalAdvisorPayouts,
+      totalAgencyRetained,
+      engineCoverage,
+      marginPct,
     };
   }, [filteredBookings, commissions, teamProfiles]);
 
