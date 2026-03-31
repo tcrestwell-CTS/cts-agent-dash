@@ -654,7 +654,7 @@ export function useBookingMarginLines(bookingId: string | undefined) {
     queryKey: ["booking-margin-lines", bookingId],
     queryFn: async () => {
       if (!bookingId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("booking_margin_lines")
         .select("*")
         .eq("booking_id", bookingId)
