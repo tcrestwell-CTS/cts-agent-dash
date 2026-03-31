@@ -106,9 +106,16 @@ const handler = async (req: Request): Promise<Response> => {
     const hasClientPath = new URL(portalUrlBase).pathname.includes("/client");
     const clientPortalUrl = hasClientPath ? portalUrlBase : `${portalUrlBase}/client`;
 
-    const logoHtml = logoUrl 
-      ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
+    const bannerLogoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 50px; margin-bottom: 8px;" />`
       : "";
+
+    const buildBannerHtml = (purposeTitle: string) => `
+      <div style="background-color: #0D1B2A; padding: 24px 24px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        ${bannerLogoHtml}
+        <h1 style="color: #C9A84C; margin: ${logoUrl ? '8px' : '0px'} 0 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px;">${purposeTitle}</h1>
+      </div>
+    `;
 
     const footerHtml = `
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
