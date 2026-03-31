@@ -368,48 +368,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Travel Companions Selection */}
-          {formData.client_id && companions.length > 0 && (
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Travel Companions
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Select companions who will be traveling on this trip
-              </p>
-              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
-                {companionsLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading companions...</p>
-                ) : (
-                  companions.map((companion) => (
-                    <div key={companion.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`companion-${companion.id}`}
-                        checked={selectedCompanionIds.includes(companion.id)}
-                        onCheckedChange={() => toggleCompanion(companion.id)}
-                      />
-                      <label
-                        htmlFor={`companion-${companion.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {companion.first_name} {companion.last_name}
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          ({companion.relationship})
-                        </span>
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
-              {selectedCompanionIds.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {selectedCompanionIds.length} companion{selectedCompanionIds.length > 1 ? 's' : ''} selected
-                </p>
-              )}
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
