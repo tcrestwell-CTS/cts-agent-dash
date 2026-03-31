@@ -115,7 +115,7 @@ const MonthlyReconciliation = () => {
       client: b.clientName,
       destination: b.destination,
       gross_sales: formatCurrencyForExport(b.gross_sales),
-      commission: formatCurrencyForExport(b.commission_revenue),
+      margin: formatCurrencyForExport(b.agency_gross_margin || b.commission_revenue),
       status: b.status,
       date: formatDateForExport(b.created_at),
     }));
