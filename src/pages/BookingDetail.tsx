@@ -133,6 +133,8 @@ const BookingDetail = () => {
 
   const isMultiLineSupplier = selectedSupplier?.multi_line_commission === true;
 
+  const { lines: marginLines, isLoading: marginLinesLoading } = useBookingMarginLines(bookingId);
+
   const { data: client } = useClient(booking?.client_id || "");
 
   // Check if payments are logged against this booking
