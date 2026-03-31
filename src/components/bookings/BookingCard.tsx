@@ -75,7 +75,6 @@ export function BookingCard({
   const destination = booking.trips?.destination;
   const departDate = booking.trips?.depart_date;
   const returnDate = booking.trips?.return_date;
-  const clientName = booking.trips?.clients?.name || "No client";
 
   return (
     <Card 
