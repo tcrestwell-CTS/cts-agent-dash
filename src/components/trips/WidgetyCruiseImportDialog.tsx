@@ -17,6 +17,8 @@ interface WidgetySailing {
   name: string;
   operator_title: string;
   holiday: string;
+  date_from?: string;
+  date_to?: string;
 }
 
 interface WidgetyCabinPrice {
