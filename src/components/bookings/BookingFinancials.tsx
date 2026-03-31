@@ -256,6 +256,7 @@ interface BookingFinancialsDisplayProps {
   marginVersion?: number;
   pricingMode?: string;
   commissionTier?: string | null;
+  marginWarnings?: MarginWarning[];
 }
 
 export function BookingFinancialsDisplay({
