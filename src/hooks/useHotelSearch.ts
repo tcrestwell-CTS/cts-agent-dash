@@ -81,16 +81,18 @@ export function useHotelSearch() {
   const [booking, setBooking] = useState(false);
   const [checkedRate, setCheckedRate] = useState<any>(null);
 
+  const invoke = async (body: any) => {
+    const { data, error } = await supabase.functions.invoke("hotelbeds", { body });
+    if (error) throw error;
+    return data?.data;
+  };
+
   const searchHotels = async (params: HotelSearchParams) => {
     setLoading(true);
     setHotels([]);
     setCheckedRate(null);
     try {
-      const { data, error } = await supabase.functions.invoke("hotelbeds", {
-        body: { action: "search", ...params },
-      });
-      if (error) throw error;
-      const result = data?.data;
+      const result = await invoke({ action: "search", ...params });
       setHotels(result?.hotels?.hotels ?? []);
       if (!result?.hotels?.hotels?.length) {
         toast.info("No hotels found for those criteria.");
@@ -107,15 +109,12 @@ export function useHotelSearch() {
     setCheckingRate(true);
     setCheckedRate(null);
     try {
-      const { data, error } = await supabase.functions.invoke("hotelbeds", {
-        body: {
-          action: "checkrate",
-          rooms: rateKeys.map((rateKey) => ({ rateKey })),
-        },
+      const result = await invoke({
+        action: "checkrate",
+        rooms: rateKeys.map((rateKey) => ({ rateKey })),
       });
-      if (error) throw error;
-      setCheckedRate(data?.data);
-      return data?.data;
+      setCheckedRate(result);
+      return result;
     } catch (err: any) {
       console.error("Check rate error:", err);
       toast.error(err.message || "Failed to check rate");
@@ -133,18 +132,53 @@ export function useHotelSearch() {
   }) => {
     setBooking(true);
     try {
-      const { data, error } = await supabase.functions.invoke("hotelbeds", {
-        body: { action: "book", ...params },
-      });
-      if (error) throw error;
+      const result = await invoke({ action: "book", ...params });
       toast.success("Hotel booking confirmed!");
-      return data?.data;
+      return result;
     } catch (err: any) {
       console.error("Booking error:", err);
       toast.error(err.message || "Failed to confirm booking");
       return null;
     } finally {
       setBooking(false);
+    }
+  };
+
+  const getBooking = async (bookingId: string) => {
+    try {
+      return await invoke({ action: "get_booking", bookingId });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to retrieve booking");
+      return null;
+    }
+  };
+
+  const cancelBooking = async (bookingId: string) => {
+    try {
+      const result = await invoke({ action: "cancel", bookingId });
+      toast.success("Booking cancelled");
+      return result;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel booking");
+      return null;
+    }
+  };
+
+  const getHotelDetails = async (hotelCodes: number | number[], language?: string) => {
+    try {
+      return await invoke({ action: "hotel_details", hotelCodes, language });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to get hotel details");
+      return null;
+    }
+  };
+
+  const getVoucher = async (bookingId: string) => {
+    try {
+      return await invoke({ action: "voucher", bookingId });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to get voucher");
+      return null;
     }
   };
 
@@ -157,5 +191,9 @@ export function useHotelSearch() {
     checkedRate,
     confirmBooking,
     booking,
+    getBooking,
+    cancelBooking,
+    getHotelDetails,
+    getVoucher,
   };
 }
