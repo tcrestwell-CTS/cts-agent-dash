@@ -267,7 +267,7 @@ const MonthlyReconciliation = () => {
                   <TableHead>Client</TableHead>
                   <TableHead>Destination</TableHead>
                   <TableHead className="text-right">Gross Sales</TableHead>
-                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Gross Margin</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -278,7 +278,7 @@ const MonthlyReconciliation = () => {
                     <TableCell>{b.clientName}</TableCell>
                     <TableCell>{b.destination}</TableCell>
                     <TableCell className="text-right">{fmt(b.gross_sales)}</TableCell>
-                    <TableCell className="text-right text-success">{fmt(b.commission_revenue)}</TableCell>
+                    <TableCell className="text-right text-success">{fmt(b.agency_gross_margin || b.commission_revenue)}</TableCell>
                     <TableCell>
                       <Badge variant={b.status === "confirmed" ? "default" : "secondary"}>
                         {b.status}
