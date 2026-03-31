@@ -371,7 +371,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     return Array.from(
       new Set(
         sailings
-          .map((s) => parseSailingDate(s.holiday_ref)?.getUTCFullYear())
+          .map((s) => parseSailingDate(s)?.getUTCFullYear())
           .filter((year): year is number => typeof year === "number")
       )
     ).sort((a, b) => a - b);
