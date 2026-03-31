@@ -486,7 +486,18 @@ async function handleTripCompleted(
   const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiability");
   const commissionRevenueId = await ensureQBOAccount(qboBase, qboHeaders, "Commission Revenue", "Income", "ServiceFeeIncome");
 
-  const amount = trip.total_commission_revenue || 0;
+  // Phase 4: Prefer agency_gross_margin (margin engine) over legacy commission_revenue
+  // Fetch summed margin from bookings to get the true agency gross margin
+  const { data: tripBookings } = await supabase
+    .from("bookings")
+    .select("agency_gross_margin, commission_revenue")
+    .eq("trip_id", trip.id);
+
+  const amount = tripBookings?.reduce(
+    (sum: number, b: any) => sum + (b.agency_gross_margin || b.commission_revenue || 0),
+    0
+  ) || trip.total_commission_revenue || 0;
+
   const txnDate = new Date().toISOString().split("T")[0];
   const memo = `Revenue recognition – Trip "${trip.trip_name}" completed`;
 
