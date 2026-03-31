@@ -212,3 +212,124 @@ export function buildSyntheticMarginLine(
     sort_order: 0,
   };
 }
+
+// =============================================================================
+// Phase 2 + 3 additions
+// =============================================================================
+
+export type MarginRuleType = "markup_pct" | "markup_flat" | "min_margin_pct";
+
+export interface AgencyMarginRule {
+  id: string;
+  name: string;
+  line_type: MarginLineType | null;
+  supplier_id: string | null;
+  rule_type: MarginRuleType;
+  rule_value: number;
+  is_active: boolean;
+  priority: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AgencyMarginRuleInsert = Pick<
+  AgencyMarginRule,
+  "name" | "rule_type" | "rule_value" | "is_active" | "priority"
+> & {
+  line_type?: MarginLineType | null;
+  supplier_id?: string | null;
+  notes?: string | null;
+};
+
+export interface BookingMarginAudit {
+  id: string;
+  booking_id: string;
+  calculated_by: string | null;
+  margin_version: number;
+  total_sell: number;
+  total_cost: number;
+  agency_gross_margin: number;
+  advisor_split_pct: number;
+  agency_split_pct: number;
+  advisor_margin_amount: number;
+  agency_margin_amount: number;
+  pricing_mode: string;
+  source: string;
+  triggered_by: "create" | "update" | "manual" | "backfill" | "api";
+  created_at: string;
+}
+
+// Phase 3: margin rule warning returned by RPC
+export interface MarginRuleWarning {
+  rule_id: string;
+  rule_name: string;
+  rule_type: MarginRuleType;
+  required_value: number;
+  actual_value: number;
+  message: string;
+}
+
+export const RULE_TYPE_LABELS: Record<MarginRuleType, string> = {
+  markup_pct:     "% Markup on Cost",
+  markup_flat:    "Flat $ Markup",
+  min_margin_pct: "Minimum Margin %",
+};
+
+export const LINE_TYPE_LABELS: Record<MarginLineType, string> = {
+  hotel:       "Hotel",
+  flight:      "Flight",
+  transfer:    "Transfer",
+  cruise:      "Cruise",
+  insurance:   "Insurance",
+  service_fee: "Service Fee",
+  package:     "Package",
+  excursion:   "Excursion",
+  other:       "Other",
+};
+
+/**
+ * Given a line type and supplier, find the best matching active rule.
+ * Supplier-specific rules beat type-only rules; higher priority wins ties.
+ */
+export function findApplicableRule(
+  rules: AgencyMarginRule[],
+  lineType: MarginLineType,
+  supplierId: string | null,
+  ruleType?: MarginRuleType
+): AgencyMarginRule | null {
+  const active = rules.filter(r =>
+    r.is_active &&
+    (ruleType ? r.rule_type === ruleType : true) &&
+    (r.line_type === null || r.line_type === lineType) &&
+    (r.supplier_id === null || r.supplier_id === supplierId)
+  );
+
+  if (active.length === 0) return null;
+
+  // Sort: supplier-specific first, then by priority desc
+  return active.sort((a, b) => {
+    const aSpecific = a.supplier_id !== null ? 1 : 0;
+    const bSpecific = b.supplier_id !== null ? 1 : 0;
+    if (bSpecific !== aSpecific) return bSpecific - aSpecific;
+    return b.priority - a.priority;
+  })[0];
+}
+
+/**
+ * Calculate suggested sell price for a line based on cost and applicable rules.
+ */
+export function applySuggestedMarkup(
+  unitCost: number,
+  rule: AgencyMarginRule | null
+): number | null {
+  if (!rule) return null;
+  if (rule.rule_type === "markup_pct") {
+    return Math.round(unitCost * (1 + rule.rule_value / 100) * 100) / 100;
+  }
+  if (rule.rule_type === "markup_flat") {
+    return Math.round((unitCost + rule.rule_value) * 100) / 100;
+  }
+  return null; // min_margin_pct doesn't suggest a price
+}
