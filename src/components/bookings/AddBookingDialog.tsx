@@ -67,7 +67,7 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.client_id || !formData.destination || !formData.depart_date || !formData.return_date) {
+    if (!formData.destination || !formData.depart_date || !formData.return_date) {
       return;
     }
 
