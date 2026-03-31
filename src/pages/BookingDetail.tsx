@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { CommissionLinesEditor } from "@/components/bookings/CommissionLinesEditor";
+import { MarginLinesDisplay } from "@/components/bookings/MarginLinesEditor";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ import {
   Ban,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
-import { useBooking, useBookings } from "@/hooks/useBookings";
+import { useBooking, useBookings, useBookingMarginLines } from "@/hooks/useBookings";
 import {
   Tooltip,
   TooltipContent,
@@ -131,6 +132,8 @@ const BookingDetail = () => {
   }, [booking, selectedSupplier]);
 
   const isMultiLineSupplier = selectedSupplier?.multi_line_commission === true;
+
+  const { lines: marginLines, isLoading: marginLinesLoading } = useBookingMarginLines(bookingId);
 
   const { data: client } = useClient(booking?.client_id || "");
 
@@ -650,6 +653,21 @@ const BookingDetail = () => {
               </CardHeader>
               <CardContent>
                 <CommissionLinesEditor bookingId={booking.id} />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Margin Line Items (from margin engine) */}
+          {!marginLinesLoading && marginLines.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                  Booking Line Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MarginLinesDisplay lines={marginLines} />
               </CardContent>
             </Card>
           )}

@@ -14,6 +14,7 @@ import { getTierConfig } from "@/lib/commissionTiers";
 import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
 import { StripeConnectCard } from "@/components/settings/StripeConnectCard";
 import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
+import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings";
 import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -571,7 +572,10 @@ const Settings = () => {
 
         {isAdmin && (
           <TabsContent value="agency">
-            <AgencySettingsTab />
+            <div className="space-y-8">
+              <AgencySettingsTab />
+              <MarginEngineSettings />
+            </div>
           </TabsContent>
         )}
       </Tabs>

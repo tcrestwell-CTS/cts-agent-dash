@@ -457,6 +457,74 @@ export type Database = {
           },
         ]
       }
+      booking_margin_lines: {
+        Row: {
+          booking_id: string
+          created_at: string
+          description: string
+          id: string
+          is_pass_through: boolean
+          line_type: string
+          margin_amount: number | null
+          margin_rule_id: string | null
+          quantity: number
+          sort_order: number
+          source: string
+          total_cost: number | null
+          total_sell: number | null
+          unit_cost: number
+          unit_sell: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_pass_through?: boolean
+          line_type?: string
+          margin_amount?: number | null
+          margin_rule_id?: string | null
+          quantity?: number
+          sort_order?: number
+          source?: string
+          total_cost?: number | null
+          total_sell?: number | null
+          unit_cost?: number
+          unit_sell?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_pass_through?: boolean
+          line_type?: string
+          margin_amount?: number | null
+          margin_rule_id?: string | null
+          quantity?: number
+          sort_order?: number
+          source?: string
+          total_cost?: number | null
+          total_sell?: number | null
+          unit_cost?: number
+          unit_sell?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_margin_lines_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_travelers: {
         Row: {
           booking_id: string
@@ -498,6 +566,11 @@ export type Database = {
       }
       bookings: {
         Row: {
+          advisor_margin_amount: number
+          advisor_split_pct: number
+          agency_gross_margin: number
+          agency_margin_amount: number
+          agency_split_pct: number
           calculated_commission: number | null
           commission_estimate: number | null
           commission_override_amount: number | null
@@ -507,12 +580,15 @@ export type Database = {
           created_at: string
           gross_sales: number
           id: string
+          margin_locked: boolean
+          margin_version: number
           net_sales: number
           override_approved: boolean | null
           override_approved_at: string | null
           override_approved_by: string | null
           override_notes: string | null
           override_pending_approval: boolean | null
+          pricing_mode: string
           status: string
           supplier_id: string | null
           supplier_payout: number | null
@@ -522,6 +598,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          advisor_margin_amount?: number
+          advisor_split_pct?: number
+          agency_gross_margin?: number
+          agency_margin_amount?: number
+          agency_split_pct?: number
           calculated_commission?: number | null
           commission_estimate?: number | null
           commission_override_amount?: number | null
@@ -531,12 +612,15 @@ export type Database = {
           created_at?: string
           gross_sales?: number
           id?: string
+          margin_locked?: boolean
+          margin_version?: number
           net_sales?: number
           override_approved?: boolean | null
           override_approved_at?: string | null
           override_approved_by?: string | null
           override_notes?: string | null
           override_pending_approval?: boolean | null
+          pricing_mode?: string
           status?: string
           supplier_id?: string | null
           supplier_payout?: number | null
@@ -546,6 +630,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          advisor_margin_amount?: number
+          advisor_split_pct?: number
+          agency_gross_margin?: number
+          agency_margin_amount?: number
+          agency_split_pct?: number
           calculated_commission?: number | null
           commission_estimate?: number | null
           commission_override_amount?: number | null
@@ -555,12 +644,15 @@ export type Database = {
           created_at?: string
           gross_sales?: number
           id?: string
+          margin_locked?: boolean
+          margin_version?: number
           net_sales?: number
           override_approved?: boolean | null
           override_approved_at?: string | null
           override_approved_by?: string | null
           override_notes?: string | null
           override_pending_approval?: boolean | null
+          pricing_mode?: string
           status?: string
           supplier_id?: string | null
           supplier_payout?: number | null
@@ -4301,7 +4393,16 @@ export type Database = {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
       }
+      calculate_booking_margin: {
+        Args: {
+          p_advisor_split?: number
+          p_booking_id: string
+          p_force_recalc?: boolean
+        }
+        Returns: Json
+      }
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
+      get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {

@@ -588,7 +588,7 @@ export async function recalculateMargin(
 ): Promise<MarginCalculationResult | null> {
   try {
     // Delete existing synthetic line(s) (manual lines are preserved)
-    await supabase
+    await (supabase as any)
       .from("booking_margin_lines")
       .delete()
       .eq("booking_id", bookingId)
@@ -596,7 +596,7 @@ export async function recalculateMargin(
 
     // Insert fresh synthetic line (do NOT include generated columns)
     const line = buildSyntheticMarginLine(bookingId, userId, grossSales, supplierPayout);
-    const { error: lineError } = await supabase
+    const { error: lineError } = await (supabase as any)
       .from("booking_margin_lines")
       .insert({
         booking_id:      line.booking_id,
@@ -617,7 +617,7 @@ export async function recalculateMargin(
     }
 
     // Call the server-side margin calculation
-    const { data, error: rpcError } = await supabase.rpc(
+    const { data, error: rpcError } = await (supabase as any).rpc(
       "calculate_booking_margin",
       {
         p_booking_id:    bookingId,
@@ -631,7 +631,7 @@ export async function recalculateMargin(
       return null;
     }
 
-    const result = data as MarginCalculationResult;
+    const result = data as unknown as MarginCalculationResult;
     if (result.status === "error") {
       console.error("[recalculateMargin] Calc error:", result.error);
       return null;
@@ -654,7 +654,7 @@ export function useBookingMarginLines(bookingId: string | undefined) {
     queryKey: ["booking-margin-lines", bookingId],
     queryFn: async () => {
       if (!bookingId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("booking_margin_lines")
         .select("*")
         .eq("booking_id", bookingId)
