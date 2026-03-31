@@ -124,6 +124,20 @@ export interface CreateOrderParams {
     amount: string;
   }>;
   services?: ServiceSelection[];
+  trip_id?: string;
+}
+
+export interface DuffelOrder {
+  id: string;
+  booking_reference: string;
+  total_amount: string;
+  total_currency: string;
+  created_at: string;
+  synced_at: string;
+  live_mode: boolean;
+  passengers: Array<{ id: string; given_name: string; family_name: string; type: string }>;
+  slices: FlightOffer["slices"];
+  cancellation?: { refund_amount: string; refund_currency: string };
 }
 
 export function useFlightSearch() {
@@ -203,5 +217,63 @@ export function useFlightSearch() {
     }
   };
 
-  return { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, offerRequestId };
+  const getOrder = async (orderId: string): Promise<DuffelOrder | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "get_order", order_id: orderId },
+      });
+      if (error) throw error;
+      return data?.data ?? null;
+    } catch (err: any) {
+      console.error("Get order error:", err);
+      toast.error(err.message || "Failed to retrieve order");
+      return null;
+    }
+  };
+
+  const cancelOrder = async (orderId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "cancel_order", order_id: orderId },
+      });
+      if (error) throw error;
+      toast.success("Order cancelled successfully");
+      return true;
+    } catch (err: any) {
+      console.error("Cancel order error:", err);
+      toast.error(err.message || "Failed to cancel order");
+      return false;
+    }
+  };
+
+  const createOrderChange = async (orderId: string, slices: any[]) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "create_order_change", order_id: orderId, slices },
+      });
+      if (error) throw error;
+      return data?.data ?? null;
+    } catch (err: any) {
+      console.error("Create order change error:", err);
+      toast.error(err.message || "Failed to create change request");
+      return null;
+    }
+  };
+
+  const confirmOrderChange = async (orderChangeId: string, payment?: { type: string; currency: string; amount: string }) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "confirm_order_change", order_change_id: orderChangeId, payment },
+      });
+      if (error) throw error;
+      toast.success("Order change confirmed");
+      return data?.data ?? null;
+    } catch (err: any) {
+      console.error("Confirm order change error:", err);
+      toast.error(err.message || "Failed to confirm change");
+      return null;
+    }
+  };
+
+  return { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, getOrder, cancelOrder, createOrderChange, confirmOrderChange, offerRequestId };
 }

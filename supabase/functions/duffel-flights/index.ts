@@ -119,14 +119,13 @@ serve(async (req) => {
 
     // ── Create order (with optional services for seats & bags) ──
     if (action === "create_order") {
-      const { selected_offers, passengers, payments, services } = body;
+      const { selected_offers, passengers, payments, services, trip_id, supplier_name } = body;
       const orderPayload: Record<string, unknown> = {
         type: "instant",
         selected_offers,
         passengers,
         payments,
       };
-      // Append ancillary services (seats + bags) if provided
       if (services && services.length > 0) {
         orderPayload.services = services;
       }
@@ -142,6 +141,117 @@ serve(async (req) => {
         throw new Error(`Duffel order failed [${response.status}]: ${JSON.stringify(data)}`);
       }
 
+      // Auto-create booking record for commission tracking
+      const order = data?.data;
+      if (order && trip_id) {
+        const serviceSupabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const totalAmount = parseFloat(order.total_amount || "0");
+        await serviceSupabase.from("bookings").insert({
+          user_id: user.id,
+          trip_id,
+          confirmation_number: order.booking_reference || order.id,
+          status: "confirmed",
+          gross_sales: totalAmount,
+          total_price: totalAmount,
+          net_sales: totalAmount,
+          commissionable_amount: totalAmount,
+        });
+      }
+
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Get order ──
+    if (action === "get_order") {
+      const { order_id } = body;
+      const response = await fetch(`${DUFFEL_BASE}/air/orders/${order_id}`, {
+        headers: duffelHeaders,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Duffel get order failed [${response.status}]: ${JSON.stringify(data)}`);
+      }
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Create order cancellation ──
+    if (action === "cancel_order") {
+      const { order_id } = body;
+      // Step 1: Create cancellation request
+      const cancelResponse = await fetch(`${DUFFEL_BASE}/air/order_cancellations`, {
+        method: "POST",
+        headers: duffelHeaders,
+        body: JSON.stringify({ data: { order_id } }),
+      });
+      const cancelData = await cancelResponse.json();
+      if (!cancelResponse.ok) {
+        throw new Error(`Duffel cancel request failed [${cancelResponse.status}]: ${JSON.stringify(cancelData)}`);
+      }
+
+      // Step 2: Confirm the cancellation
+      const cancellationId = cancelData?.data?.id;
+      if (cancellationId) {
+        const confirmResponse = await fetch(
+          `${DUFFEL_BASE}/air/order_cancellations/${cancellationId}/actions/confirm`,
+          { method: "POST", headers: duffelHeaders }
+        );
+        const confirmData = await confirmResponse.json();
+        if (!confirmResponse.ok) {
+          throw new Error(`Duffel cancel confirm failed [${confirmResponse.status}]: ${JSON.stringify(confirmData)}`);
+        }
+        return new Response(JSON.stringify(confirmData), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify(cancelData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Create order change ──
+    if (action === "create_order_change") {
+      const { order_id, slices } = body;
+      // Step 1: Create change request
+      const changeReqResponse = await fetch(`${DUFFEL_BASE}/air/order_change_requests`, {
+        method: "POST",
+        headers: duffelHeaders,
+        body: JSON.stringify({ data: { order_id, slices } }),
+      });
+      const changeReqData = await changeReqResponse.json();
+      if (!changeReqResponse.ok) {
+        throw new Error(`Duffel change request failed [${changeReqResponse.status}]: ${JSON.stringify(changeReqData)}`);
+      }
+      return new Response(JSON.stringify(changeReqData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Confirm order change ──
+    if (action === "confirm_order_change") {
+      const { order_change_id, payment } = body;
+      const confirmPayload: Record<string, unknown> = { };
+      if (payment) confirmPayload.payment = payment;
+
+      const response = await fetch(
+        `${DUFFEL_BASE}/air/order_changes/${order_change_id}/actions/confirm`,
+        {
+          method: "POST",
+          headers: duffelHeaders,
+          body: JSON.stringify({ data: confirmPayload }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Duffel change confirm failed [${response.status}]: ${JSON.stringify(data)}`);
+      }
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

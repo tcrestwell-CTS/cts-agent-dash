@@ -203,6 +203,7 @@ export function FlightSearchDialog({
         amount: totalAmount,
       }],
       services: services.length > 0 ? services : undefined,
+      trip_id: tripId,
     });
     if (order) {
       // Also add to itinerary
