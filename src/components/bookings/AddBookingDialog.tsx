@@ -88,7 +88,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
 
       setOpen(false);
       setFormData({
-        client_id: "",
         destination: "",
         depart_date: "",
         return_date: "",
