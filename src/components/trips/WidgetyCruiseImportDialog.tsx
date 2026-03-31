@@ -381,7 +381,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     const months = new Set<string>();
 
     for (const sailing of sailings) {
-      const sailingDate = parseSailingDate(sailing.holiday_ref);
+      const sailingDate = parseSailingDate(sailing);
       if (!sailingDate) continue;
 
       if (sailingYearFilter !== "all" && String(sailingDate.getUTCFullYear()) !== sailingYearFilter) {
