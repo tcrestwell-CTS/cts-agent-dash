@@ -52,6 +52,8 @@ import {
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
 import { useBooking, useBookings, useBookingMarginLines } from "@/hooks/useBookings";
+import { useBookingMarginAudit } from "@/hooks/useAgencyMarginRules";
+import { ConfirmationImporter } from "@/components/bookings/ConfirmationImporter";
 import {
   Tooltip,
   TooltipContent,
