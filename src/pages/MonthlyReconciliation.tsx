@@ -124,7 +124,7 @@ const MonthlyReconciliation = () => {
       { key: "client", header: "Client" },
       { key: "destination", header: "Destination" },
       { key: "gross_sales", header: "Gross Sales" },
-      { key: "commission", header: "Commission" },
+      { key: "margin", header: "Gross Margin" },
       { key: "status", header: "Status" },
       { key: "date", header: "Date" },
     ]);
