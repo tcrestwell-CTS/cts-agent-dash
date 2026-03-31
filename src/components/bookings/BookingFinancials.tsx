@@ -275,6 +275,7 @@ export function BookingFinancialsDisplay({
   marginVersion,
   pricingMode,
   commissionTier,
+  marginWarnings = [],
 }: BookingFinancialsDisplayProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
