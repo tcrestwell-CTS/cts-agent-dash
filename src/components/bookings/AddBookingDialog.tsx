@@ -64,36 +64,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
 
   const [selectedCompanionIds, setSelectedCompanionIds] = useState<string[]>([]);
 
-  // Fetch companions for the selected client
-  const { data: companions = [], isLoading: companionsLoading } = useCompanions(
-    formData.client_id || undefined
-  );
-
-  const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
-
-  // Update selected client email when client changes
-  // Reset selected companions when client changes
-  useEffect(() => {
-    setSelectedCompanionIds([]);
-  }, [formData.client_id]);
-
-  useEffect(() => {
-    if (formData.client_id) {
-      const client = clients.find(c => c.id === formData.client_id);
-      setSelectedClientEmail(client?.email || null);
-    } else {
-      setSelectedClientEmail(null);
-    }
-  }, [formData.client_id, clients]);
-
-  const toggleCompanion = (companionId: string) => {
-    setSelectedCompanionIds(prev =>
-      prev.includes(companionId)
-        ? prev.filter(id => id !== companionId)
-        : [...prev, companionId]
-    );
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
