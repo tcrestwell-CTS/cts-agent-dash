@@ -264,11 +264,8 @@ const handler = async (req: Request): Promise<Response> => {
         const approvalUrl = templateData?.approvalUrl || "#";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">⚠️ Commission Override Requires Approval</h2>
+            ${buildBannerHtml("⚠️ Commission Override Approval")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">A commission override has been submitted that requires your approval:</p>
             <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 24px 0;">
               <p style="margin: 8px 0; color: #374151;"><strong>Agent:</strong> ${agentNameOverride}</p>
