@@ -134,6 +134,59 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_margin_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          line_type: string | null
+          name: string
+          notes: string | null
+          priority: number
+          rule_type: string
+          rule_value: number
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          line_type?: string | null
+          name: string
+          notes?: string | null
+          priority?: number
+          rule_type?: string
+          rule_value?: number
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          line_type?: string | null
+          name?: string
+          notes?: string | null
+          priority?: number
+          rule_type?: string
+          rule_value?: number
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_margin_rules_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_settings: {
         Row: {
           approval_threshold: number
@@ -450,6 +503,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "booking_commission_lines_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_margin_audit: {
+        Row: {
+          advisor_margin_amount: number
+          advisor_split_pct: number
+          agency_gross_margin: number
+          agency_margin_amount: number
+          agency_split_pct: number
+          booking_id: string
+          calculated_by: string | null
+          created_at: string
+          id: string
+          margin_version: number
+          pricing_mode: string
+          source: string
+          total_cost: number
+          total_sell: number
+          triggered_by: string
+        }
+        Insert: {
+          advisor_margin_amount?: number
+          advisor_split_pct?: number
+          agency_gross_margin?: number
+          agency_margin_amount?: number
+          agency_split_pct?: number
+          booking_id: string
+          calculated_by?: string | null
+          created_at?: string
+          id?: string
+          margin_version: number
+          pricing_mode?: string
+          source?: string
+          total_cost?: number
+          total_sell?: number
+          triggered_by?: string
+        }
+        Update: {
+          advisor_margin_amount?: number
+          advisor_split_pct?: number
+          agency_gross_margin?: number
+          agency_margin_amount?: number
+          agency_split_pct?: number
+          booking_id?: string
+          calculated_by?: string | null
+          created_at?: string
+          id?: string
+          margin_version?: number
+          pricing_mode?: string
+          source?: string
+          total_cost?: number
+          total_sell?: number
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_margin_audit_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
@@ -4393,14 +4508,24 @@ export type Database = {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
       }
-      calculate_booking_margin: {
-        Args: {
-          p_advisor_split?: number
-          p_booking_id: string
-          p_force_recalc?: boolean
-        }
-        Returns: Json
-      }
+      calculate_booking_margin:
+        | {
+            Args: {
+              p_advisor_split?: number
+              p_booking_id: string
+              p_force_recalc?: boolean
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_advisor_split?: number
+              p_booking_id: string
+              p_force_recalc?: boolean
+              p_triggered_by?: string
+            }
+            Returns: Json
+          }
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }

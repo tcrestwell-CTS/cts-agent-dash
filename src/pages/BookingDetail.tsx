@@ -63,6 +63,7 @@ import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookin
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { BookingFinancialsDisplay } from "@/components/bookings/BookingFinancials";
+import { useMarginWarnings } from "@/hooks/useMarginWarnings";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "@/components/trips/InvoicePreviewDialog";
@@ -119,6 +120,12 @@ const BookingDetail = () => {
   const { suppliers } = useSuppliers();
   const { settings: branding } = useBrandingSettings();
   const { createInvoice, creating: creatingInvoice } = useInvoices();
+  const { data: marginWarnings = [] } = useMarginWarnings(
+    bookingId,
+    booking?.supplier_id,
+    booking?.gross_sales || booking?.total_price || 0,
+    booking?.agency_gross_margin
+  );
   
   // Get the supplier for this booking and calculate financials dynamically
   const selectedSupplier = useMemo(() => {
@@ -630,6 +637,7 @@ const BookingDetail = () => {
             marginVersion={booking.margin_version}
             pricingMode={booking.pricing_mode}
             commissionTier={userTier ?? undefined}
+            marginWarnings={marginWarnings}
           />
           {booking.travelers > 1 && (
             <Card>

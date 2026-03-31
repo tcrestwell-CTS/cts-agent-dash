@@ -8,9 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, Percent, Building2, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DollarSign, Percent, Building2, TrendingUp, AlertTriangle } from "lucide-react";
 import { useSuppliers, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
 import { useMemo } from "react";
+import type { MarginWarning } from "@/hooks/useMarginWarnings";
 
 interface BookingFinancialsProps {
   grossSales: number;
@@ -248,6 +256,7 @@ interface BookingFinancialsDisplayProps {
   marginVersion?: number;
   pricingMode?: string;
   commissionTier?: string | null;
+  marginWarnings?: MarginWarning[];
 }
 
 export function BookingFinancialsDisplay({
@@ -266,6 +275,7 @@ export function BookingFinancialsDisplay({
   marginVersion,
   pricingMode,
   commissionTier,
+  marginWarnings = [],
 }: BookingFinancialsDisplayProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -376,6 +386,32 @@ export function BookingFinancialsDisplay({
                 {formatCurrency(agencyMarginAmount ?? 0)}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Margin Warnings */}
+        {marginWarnings.length > 0 && (
+          <div className="border-t pt-3 space-y-2">
+            {marginWarnings.map((w) => (
+              <TooltipProvider key={w.rule_id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 bg-destructive/10 text-destructive p-2 rounded cursor-help">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span className="text-xs font-medium">
+                        Below min margin ({w.actual_value}% / {w.required_value}%)
+                      </span>
+                      <Badge variant="destructive" className="ml-auto text-[10px] px-1.5 py-0">
+                        {w.rule_name}
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    <p className="text-xs">{w.message}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
           </div>
         )}
 
