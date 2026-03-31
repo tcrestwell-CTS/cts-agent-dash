@@ -657,6 +657,21 @@ const BookingDetail = () => {
             </Card>
           )}
 
+          {/* Margin Line Items (from margin engine) */}
+          {!marginLinesLoading && marginLines.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                  Booking Line Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MarginLinesDisplay lines={marginLines} />
+              </CardContent>
+            </Card>
+          )}
+
 
           {/* Client Info */}
           {booking.clients && (
