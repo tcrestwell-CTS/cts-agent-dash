@@ -390,10 +390,8 @@ const handler = async (req: Request): Promise<Response> => {
 
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
+            ${buildBannerHtml("✅ Financing Approved!")}
+            <div style="padding: 24px;">
             <div style="text-align: center; margin-bottom: 24px;">
               <span style="display: inline-block; background-color: #dcfce7; color: #166534; padding: 8px 24px; border-radius: 24px; font-weight: 600; font-size: 15px;">✅ Financing Approved!</span>
             </div>
