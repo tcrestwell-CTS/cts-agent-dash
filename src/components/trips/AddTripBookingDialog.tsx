@@ -218,6 +218,29 @@ export function AddTripBookingDialog({
         await supabase.from("booking_commission_lines").insert(lineInserts);
       }
 
+      // Phase 4: Create margin line + trigger engine calculation
+      if (newBooking) {
+        await (supabase as any).from("booking_margin_lines").insert({
+          booking_id: newBooking.id,
+          user_id: user.id,
+          line_type: "package",
+          description: formData.booking_reference || "Full booking package",
+          source: "manual",
+          quantity: 1,
+          unit_cost: formData.supplier_payout,
+          unit_sell: formData.gross_sales,
+          is_pass_through: false,
+          sort_order: 0,
+        });
+
+        // Fire-and-forget margin calculation
+        (supabase as any).rpc("calculate_booking_margin", {
+          p_booking_id: newBooking.id,
+          p_advisor_split: null,
+          p_force_recalc: false,
+        }).then(() => {}).catch((e: any) => console.error("[AddBooking] margin calc error:", e));
+      }
+
       toast.success("Booking added to trip");
       queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });

@@ -151,7 +151,7 @@ serve(async (req) => {
         const totalAmount = parseFloat(order.total_amount || "0");
 
         if (trip_id) {
-          await serviceSupabase.from("bookings").insert({
+          const { data: newBooking } = await serviceSupabase.from("bookings").insert({
             user_id: user.id,
             trip_id,
             confirmation_number: order.booking_reference || order.id,
@@ -160,7 +160,30 @@ serve(async (req) => {
             total_price: totalAmount,
             net_sales: totalAmount,
             commissionable_amount: totalAmount,
-          });
+          }).select("id").single();
+
+          // Phase 4: auto-create margin line with source "duffel"
+          if (newBooking) {
+            await serviceSupabase.from("booking_margin_lines").insert({
+              booking_id: newBooking.id,
+              user_id: user.id,
+              line_type: "flight",
+              description: `${order.owner?.name || "Flight"} — ${order.booking_reference || order.id}`,
+              source: "duffel",
+              quantity: 1,
+              unit_cost: totalAmount,
+              unit_sell: totalAmount,
+              is_pass_through: false,
+              sort_order: 0,
+            });
+
+            // Trigger server-side margin calculation
+            await serviceSupabase.rpc("calculate_booking_margin", {
+              p_booking_id: newBooking.id,
+              p_advisor_split: null,
+              p_force_recalc: false,
+            });
+          }
         }
 
         // Save to flight_orders for monitoring

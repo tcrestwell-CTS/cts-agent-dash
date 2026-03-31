@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,7 @@ export default function HotelSearch() {
     booking,
     lastBookingResult,
   } = useHotelSearch();
+  const { user } = useAuth();
 
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -137,7 +140,53 @@ export default function HotelSearch() {
       remark: remark || undefined,
     });
 
-    if (result) {
+    if (result && user) {
+      // Phase 4: Persist Hotelbeds booking to bookings table + auto-create margin line
+      const bk = result?.booking;
+      const ref = bk?.reference || bk?.clientReference || `HB-${Date.now()}`;
+      const netRate = parseFloat(selectedRate.rate.net || "0");
+      const sellRate = parseFloat(selectedRate.rate.sellingRate || selectedRate.rate.net || "0");
+
+      try {
+        const { data: newBooking } = await (supabase as any)
+          .from("bookings")
+          .insert({
+            user_id: user.id,
+            confirmation_number: ref,
+            status: "confirmed",
+            gross_sales: sellRate,
+            total_price: sellRate,
+            supplier_payout: netRate,
+            net_sales: sellRate - netRate,
+            commissionable_amount: sellRate,
+          })
+          .select("id")
+          .single();
+
+        if (newBooking) {
+          await (supabase as any).from("booking_margin_lines").insert({
+            booking_id: newBooking.id,
+            user_id: user.id,
+            line_type: "hotel",
+            description: `${selectedRate.hotel.name} — ${selectedRate.roomName}`,
+            source: "hotelbeds",
+            quantity: 1,
+            unit_cost: netRate,
+            unit_sell: sellRate,
+            is_pass_through: false,
+            sort_order: 0,
+          });
+
+          (supabase as any).rpc("calculate_booking_margin", {
+            p_booking_id: newBooking.id,
+            p_advisor_split: null,
+            p_force_recalc: false,
+          }).catch((e: any) => console.error("[HotelSearch] margin calc error:", e));
+        }
+      } catch (e) {
+        console.error("[HotelSearch] Failed to persist booking:", e);
+      }
+
       setBookingDialogOpen(false);
       setVoucherOpen(true);
     }
