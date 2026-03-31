@@ -28,6 +28,10 @@ async function generateSignature(apiKey: string, secret: string): Promise<string
     .join("");
 }
 
+// mTLS proxy URL for production (Cloudflare Worker)
+const MTLS_PROXY_URL = Deno.env.get("HOTELBEDS_MTLS_PROXY_URL"); // e.g. https://hotelbeds-mtls-proxy.your-domain.workers.dev
+const MTLS_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN");
+
 async function hbFetch(basePath: string, path: string, method: string, body?: any) {
   const apiKey = Deno.env.get("HOTELBEDS_API_KEY");
   const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET");
@@ -37,16 +41,44 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
 
   const signature = await generateSignature(apiKey, apiSecret);
 
-  const headers: Record<string, string> = {
+  const hbHeaders: Record<string, string> = {
     "Api-key": apiKey,
     "X-Signature": signature,
     Accept: "application/json",
-    "Accept-Encoding": "gzip", // Required by Hotelbeds certification
+    "Accept-Encoding": "gzip",
     "Content-Type": "application/json",
   };
 
+  // In production with mTLS proxy, route through Cloudflare Worker
+  if (HB_ENV === "live" && MTLS_PROXY_URL && MTLS_PROXY_TOKEN) {
+    const proxyBody = {
+      targetUrl: path,
+      method,
+      apiBase: basePath === HB_CONTENT_BASE ? "content" : "booking",
+      headers: hbHeaders,
+      body: body || undefined,
+    };
+
+    const proxyResponse = await fetch(MTLS_PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-proxy-token": MTLS_PROXY_TOKEN,
+      },
+      body: JSON.stringify(proxyBody),
+    });
+
+    const data = await proxyResponse.json();
+    if (!proxyResponse.ok) {
+      const errorMsg = data?.error?.message || data?.error || `HotelBeds API error [${proxyResponse.status}]`;
+      throw new Error(errorMsg);
+    }
+    return data;
+  }
+
+  // Direct call for test environment (no mTLS required)
   const url = `${basePath}${path}`;
-  const options: RequestInit = { method, headers };
+  const options: RequestInit = { method, headers: hbHeaders };
   if (body && method !== "GET") {
     options.body = JSON.stringify(body);
   }
