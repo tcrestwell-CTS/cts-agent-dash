@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,11 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Rate limit: 3 OTP requests per minute per IP
+  const ip = getClientIP(req);
+  const rl = checkRateLimit(`signup-otp:${ip}`, 3, 60);
+  if (rl) return rateLimitResponse(rl.retryAfter, corsHeaders);
 
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");

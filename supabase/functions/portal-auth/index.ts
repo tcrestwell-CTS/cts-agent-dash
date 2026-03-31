@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@4.0.0";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
 
 // ── Allowed origins for CORS ─────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
@@ -208,6 +209,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ── Send magic link (NO caller-controlled origin) ────────────────────────
     if (action === "send-magic-link") {
+      // Rate limit: 3 magic link requests per minute per IP
+      const ip = getClientIP(req);
+      const rl = checkRateLimit(`portal-magic:${ip}`, 3, 60);
+      if (rl) return rateLimitResponse(rl.retryAfter, headers);
+
       const { email } = body;
       // SECURITY FIX: origin is NO LONGER accepted from request body
       if (!email) {
