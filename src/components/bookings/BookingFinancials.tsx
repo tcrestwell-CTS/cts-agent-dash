@@ -19,8 +19,6 @@ import { DollarSign, Percent, Building2, TrendingUp, AlertTriangle } from "lucid
 import { useSuppliers, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
 import { useMemo } from "react";
 import type { MarginWarning } from "@/hooks/useMarginWarnings";
-import { useSuppliers, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
-import { useMemo } from "react";
 
 interface BookingFinancialsProps {
   grossSales: number;
