@@ -43,6 +43,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   confirmed: { label: "Confirmed", variant: "default", icon: CheckCircle2 },
   schedule_changed: { label: "Schedule Changed", variant: "secondary", icon: AlertTriangle },
   cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle },
+  failed: { label: "Failed", variant: "destructive", icon: XCircle },
   pending: { label: "Pending", variant: "outline", icon: Clock },
 };
 
