@@ -120,6 +120,12 @@ const BookingDetail = () => {
   const { suppliers } = useSuppliers();
   const { settings: branding } = useBrandingSettings();
   const { createInvoice, creating: creatingInvoice } = useInvoices();
+  const { data: marginWarnings = [] } = useMarginWarnings(
+    bookingId,
+    booking?.supplier_id,
+    booking?.gross_sales || booking?.total_price || 0,
+    booking?.agency_gross_margin
+  );
   
   // Get the supplier for this booking and calculate financials dynamically
   const selectedSupplier = useMemo(() => {
