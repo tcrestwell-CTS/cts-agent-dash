@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,10 @@ export default function HotelSearch() {
   const handleSearch = () => {
     const dest = destination.trim().toUpperCase();
     if (!dest || dest.length > 3 || !checkIn || !checkOut) {
+      return;
+    }
+    if (checkOut <= checkIn) {
+      toast.error("Check-out date must be after check-in date.");
       return;
     }
     searchHotels({
