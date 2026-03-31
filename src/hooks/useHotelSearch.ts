@@ -25,7 +25,7 @@ export interface HotelSearchParams {
 export interface HotelRate {
   rateKey: string;
   rateClass: string;
-  rateType: string;
+  rateType: string; // "BOOKABLE" or "RECHECK"
   net: string;
   sellingRate?: string;
   discount?: string;
@@ -37,6 +37,10 @@ export interface HotelRate {
   rooms: number;
   adults: number;
   children: number;
+  packaging?: boolean;
+  rateCommentsId?: string;
+  rateComments?: string;
+  promotions?: { code: string; name: string }[];
   cancellationPolicies?: { amount: string; from: string }[];
 }
 
@@ -63,6 +67,35 @@ export interface HotelResult {
   currency: string;
 }
 
+export interface HotelBookingResult {
+  booking?: {
+    reference: string;
+    clientReference: string;
+    status: string;
+    creationDate: string;
+    holder: { name: string; surname: string };
+    hotel: {
+      code: number;
+      name: string;
+      categoryName: string;
+      destinationName: string;
+      checkIn: string;
+      checkOut: string;
+      rooms: {
+        code: string;
+        name: string;
+        status: string;
+        paxes: { roomId: number; type: string; name: string; surname: string; age?: number }[];
+        rates: HotelRate[];
+      }[];
+      supplier?: { name: string; vatNumber: string };
+    };
+    remark?: string;
+    totalNet: string;
+    currency: string;
+  };
+}
+
 export interface CheckRateResult {
   hotel: {
     code: number;
@@ -74,23 +107,39 @@ export interface CheckRateResult {
   };
 }
 
+// Booking confirmation timeout must be >= 60 seconds per Hotelbeds certification (3.11)
+const BOOKING_TIMEOUT_MS = 65000;
+
 export function useHotelSearch() {
   const [hotels, setHotels] = useState<HotelResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [checkingRate, setCheckingRate] = useState(false);
   const [booking, setBooking] = useState(false);
   const [checkedRate, setCheckedRate] = useState<any>(null);
+  const [lastBookingResult, setLastBookingResult] = useState<HotelBookingResult | null>(null);
 
-  const invoke = async (body: any) => {
-    const { data, error } = await supabase.functions.invoke("hotelbeds", { body });
-    if (error) throw error;
-    return data?.data;
+  const invoke = async (body: any, timeoutMs?: number) => {
+    const controller = new AbortController();
+    const timeout = timeoutMs
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : undefined;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("hotelbeds", {
+        body,
+      });
+      if (error) throw error;
+      return data?.data;
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
   };
 
   const searchHotels = async (params: HotelSearchParams) => {
     setLoading(true);
     setHotels([]);
     setCheckedRate(null);
+    setLastBookingResult(null);
     try {
       const result = await invoke({ action: "search", ...params });
       setHotels(result?.hotels?.hotels ?? []);
@@ -105,6 +154,11 @@ export function useHotelSearch() {
     }
   };
 
+  /**
+   * CheckRate — per Hotelbeds certification (2.5):
+   * ONLY call when rateType === "RECHECK".
+   * For "BOOKABLE" rates, skip CheckRate and go directly to booking.
+   */
   const checkRate = async (rateKeys: string[]) => {
     setCheckingRate(true);
     setCheckedRate(null);
@@ -124,15 +178,22 @@ export function useHotelSearch() {
     }
   };
 
+  /**
+   * Confirm booking with >= 60s timeout per certification requirement (3.11)
+   */
   const confirmBooking = async (params: {
     holder: { name: string; surname: string };
-    rooms: { rateKey: string; paxes: { roomId: number; type: string; name: string; surname: string }[] }[];
+    rooms: { rateKey: string; paxes: { roomId: number; type: string; name: string; surname: string; age?: number }[] }[];
     clientReference?: string;
     remark?: string;
   }) => {
     setBooking(true);
     try {
-      const result = await invoke({ action: "book", ...params });
+      const result = await invoke(
+        { action: "book", ...params },
+        BOOKING_TIMEOUT_MS
+      );
+      setLastBookingResult(result);
       toast.success("Hotel booking confirmed!");
       return result;
     } catch (err: any) {
@@ -191,6 +252,7 @@ export function useHotelSearch() {
     checkedRate,
     confirmBooking,
     booking,
+    lastBookingResult,
     getBooking,
     cancelBooking,
     getHotelDetails,

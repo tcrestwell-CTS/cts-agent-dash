@@ -27,10 +27,12 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Gift,
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
 import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
+import { HotelBookingVoucher } from "@/components/hotels/HotelBookingVoucher";
 import { format } from "date-fns";
 
 function getStars(categoryName: string): number {
@@ -48,6 +50,7 @@ export default function HotelSearch() {
     checkedRate,
     confirmBooking,
     booking,
+    lastBookingResult,
   } = useHotelSearch();
 
   const [destination, setDestination] = useState("");
@@ -68,6 +71,9 @@ export default function HotelSearch() {
   const [holderSurname, setHolderSurname] = useState("");
   const [remark, setRemark] = useState("");
 
+  // Voucher dialog
+  const [voucherOpen, setVoucherOpen] = useState(false);
+
   // Expanded hotels
   const [expandedHotels, setExpandedHotels] = useState<Set<number>>(new Set());
 
@@ -84,10 +90,17 @@ export default function HotelSearch() {
     });
   };
 
+  /**
+   * Certification 2.5: Only call CheckRate if rateType === "RECHECK".
+   * For "BOOKABLE" rates, skip CheckRate entirely.
+   */
   const handleSelectRate = async (hotel: HotelResult, rate: HotelRate, roomName: string) => {
     setSelectedRate({ hotel, rate, roomName });
     setBookingDialogOpen(true);
-    await checkRate([rate.rateKey]);
+
+    if (rate.rateType === "RECHECK") {
+      await checkRate([rate.rateKey]);
+    }
   };
 
   const handleConfirmBooking = async () => {
@@ -121,10 +134,7 @@ export default function HotelSearch() {
 
     if (result) {
       setBookingDialogOpen(false);
-      setSelectedRate(null);
-      setHolderName("");
-      setHolderSurname("");
-      setRemark("");
+      setVoucherOpen(true);
     }
   };
 
@@ -311,7 +321,7 @@ export default function HotelSearch() {
                                 className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/30 transition-colors"
                               >
                                 <div className="space-y-1">
-                                  <div className="flex items-center gap-2 text-sm">
+                                  <div className="flex items-center gap-2 text-sm flex-wrap">
                                     <Badge variant="secondary" className="text-xs">
                                       {rate.boardName}
                                     </Badge>
@@ -324,11 +334,35 @@ export default function HotelSearch() {
                                         Rate check required
                                       </Badge>
                                     )}
+                                    {rate.rateType === "BOOKABLE" && (
+                                      <Badge variant="outline" className="text-xs border-primary/50 text-primary">
+                                        Instant book
+                                      </Badge>
+                                    )}
+                                    {rate.packaging && (
+                                      <Badge variant="outline" className="text-xs">
+                                        Package only
+                                      </Badge>
+                                    )}
                                   </div>
+                                  {/* Promotions — certification 2.7 */}
+                                  {rate.promotions && rate.promotions.length > 0 && (
+                                    <div className="flex items-center gap-1 text-xs text-primary">
+                                      <Gift className="h-3 w-3" />
+                                      {rate.promotions.map(p => p.name).join(", ")}
+                                    </div>
+                                  )}
+                                  {/* Cancellation policies — certification 3.8 */}
                                   {rate.cancellationPolicies && rate.cancellationPolicies.length > 0 && (
                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                                       <AlertCircle className="h-3 w-3" />
-                                      Cancel by {format(new Date(rate.cancellationPolicies[0].from), "MMM d, yyyy")} — {hotel.currency} {rate.cancellationPolicies[0].amount} penalty
+                                      Cancel by {format(new Date(rate.cancellationPolicies[0].from), "MMM d, yyyy HH:mm")} (destination time) — {hotel.currency} {rate.cancellationPolicies[0].amount} penalty
+                                    </p>
+                                  )}
+                                  {/* Rate comments indicator — certification 3.9 */}
+                                  {rate.rateCommentsId && (
+                                    <p className="text-xs text-muted-foreground italic">
+                                      ⓘ Rate comments apply — shown before confirmation
                                     </p>
                                   )}
                                   {rate.discount && parseFloat(rate.discount) > 0 && (
@@ -339,9 +373,10 @@ export default function HotelSearch() {
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="text-right">
+                                    {/* Selling rate display — certification 3.12 */}
                                     {rate.sellingRate && rate.sellingRate !== rate.net && (
-                                      <p className="text-xs text-muted-foreground line-through">
-                                        {hotel.currency} {rate.sellingRate}
+                                      <p className="text-xs text-muted-foreground">
+                                        Selling: {hotel.currency} {rate.sellingRate}
                                       </p>
                                     )}
                                     <p className="text-base font-bold text-foreground">
@@ -364,6 +399,7 @@ export default function HotelSearch() {
                                     <Button
                                       size="sm"
                                       onClick={() => handleSelectRate(hotel, rate, room.name)}
+                                      disabled={rate.packaging === true}
                                     >
                                       Book
                                     </Button>
@@ -404,20 +440,50 @@ export default function HotelSearch() {
                   </div>
                 </div>
 
-                {/* Rate check status */}
-                {checkingRate ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Verifying latest rate...
-                  </div>
-                ) : checkedRate ? (
+                {/* Rate check status — only shown for RECHECK rates */}
+                {selectedRate.rate.rateType === "RECHECK" ? (
+                  checkingRate ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Verifying latest rate...
+                    </div>
+                  ) : checkedRate ? (
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                      <p className="text-sm text-primary flex items-center gap-1">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Rate verified — {selectedRate.hotel.currency} {selectedRate.rate.net}
+                      </p>
+                    </div>
+                  ) : null
+                ) : (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
                     <p className="text-sm text-primary flex items-center gap-1">
                       <CheckCircle2 className="h-4 w-4" />
-                      Rate verified — {selectedRate.hotel.currency} {selectedRate.rate.net}
+                      Instant booking — rate is confirmed
                     </p>
                   </div>
-                ) : null}
+                )}
+
+                {/* Rate comments — must be shown before confirmation (3.9) */}
+                {selectedRate.rate.rateComments && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/10 p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Rate Comments</p>
+                    <p className="text-sm text-foreground">{selectedRate.rate.rateComments}</p>
+                  </div>
+                )}
+
+                {/* Cancellation policy — shown before confirmation (3.8) */}
+                {selectedRate.rate.cancellationPolicies && selectedRate.rate.cancellationPolicies.length > 0 && (
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Cancellation Policy</p>
+                    {selectedRate.rate.cancellationPolicies.map((cp, i) => (
+                      <p key={i} className="text-sm text-foreground">
+                        {selectedRate.hotel.currency} {cp.amount} penalty from{" "}
+                        {format(new Date(cp.from), "MMM d, yyyy HH:mm")} (destination time)
+                      </p>
+                    ))}
+                  </div>
+                )}
 
                 <Separator />
 
@@ -457,7 +523,12 @@ export default function HotelSearch() {
               </Button>
               <Button
                 onClick={handleConfirmBooking}
-                disabled={booking || !holderName || !holderSurname || checkingRate}
+                disabled={
+                  booking ||
+                  !holderName ||
+                  !holderSurname ||
+                  (selectedRate?.rate.rateType === "RECHECK" && checkingRate)
+                }
               >
                 {booking ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -467,6 +538,24 @@ export default function HotelSearch() {
                 Confirm Booking
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Voucher Dialog */}
+        <Dialog open={voucherOpen} onOpenChange={setVoucherOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            {lastBookingResult?.booking && (
+              <HotelBookingVoucher
+                booking={lastBookingResult.booking}
+                onClose={() => {
+                  setVoucherOpen(false);
+                  setSelectedRate(null);
+                  setHolderName("");
+                  setHolderSurname("");
+                  setRemark("");
+                }}
+              />
+            )}
           </DialogContent>
         </Dialog>
       </div>
