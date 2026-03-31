@@ -42,9 +42,6 @@ export function RecentBookings() {
             destination,
             depart_date,
             return_date,
-            clients!trips_client_id_fkey (
-              name
-            )
           )
         `)
         .order("created_at", { ascending: false })
