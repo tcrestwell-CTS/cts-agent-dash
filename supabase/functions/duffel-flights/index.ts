@@ -119,7 +119,7 @@ serve(async (req) => {
 
     // ── Create order (with optional services for seats & bags) ──
     if (action === "create_order") {
-      const { selected_offers, passengers, payments, services, trip_id, supplier_name } = body;
+      const { selected_offers, passengers, payments, services, trip_id, supplier_name, client_id } = body;
       const orderPayload: Record<string, unknown> = {
         type: "instant",
         selected_offers,
@@ -141,23 +141,55 @@ serve(async (req) => {
         throw new Error(`Duffel order failed [${response.status}]: ${JSON.stringify(data)}`);
       }
 
-      // Auto-create booking record for commission tracking
+      // Auto-create booking + flight_orders record for commission tracking & monitoring
       const order = data?.data;
-      if (order && trip_id) {
+      if (order) {
         const serviceSupabase = createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
         const totalAmount = parseFloat(order.total_amount || "0");
-        await serviceSupabase.from("bookings").insert({
+
+        if (trip_id) {
+          await serviceSupabase.from("bookings").insert({
+            user_id: user.id,
+            trip_id,
+            confirmation_number: order.booking_reference || order.id,
+            status: "confirmed",
+            gross_sales: totalAmount,
+            total_price: totalAmount,
+            net_sales: totalAmount,
+            commissionable_amount: totalAmount,
+          });
+        }
+
+        // Save to flight_orders for monitoring
+        const slices = order.slices || [];
+        const firstSlice = slices[0];
+        const lastSlice = slices[slices.length - 1];
+        const flightNumbers = slices.flatMap((s: any) =>
+          (s.segments || []).map((seg: any) => `${seg.operating_carrier?.iata_code || ""}${seg.operating_carrier_flight_number || ""}`)
+        );
+        const passengerNames = (order.passengers || []).map((p: any) => `${p.given_name} ${p.family_name}`);
+        const passengerEmails = (passengers || []).map((p: any) => p.email).filter(Boolean);
+
+        await serviceSupabase.from("flight_orders").insert({
           user_id: user.id,
-          trip_id,
-          confirmation_number: order.booking_reference || order.id,
-          status: "confirmed",
-          gross_sales: totalAmount,
-          total_price: totalAmount,
-          net_sales: totalAmount,
-          commissionable_amount: totalAmount,
+          duffel_order_id: order.id,
+          booking_reference: order.booking_reference || null,
+          trip_id: trip_id || null,
+          client_id: client_id || null,
+          passenger_names: passengerNames,
+          passenger_emails: passengerEmails,
+          origin_iata: firstSlice?.origin?.iata_code || null,
+          destination_iata: lastSlice?.destination?.iata_code || null,
+          departure_at: firstSlice?.segments?.[0]?.departing_at || null,
+          arrival_at: lastSlice?.segments?.slice(-1)?.[0]?.arriving_at || null,
+          airline_name: order.owner?.name || null,
+          flight_numbers: flightNumbers,
+          total_amount: totalAmount,
+          total_currency: order.total_currency || "USD",
+          order_status: "confirmed",
         });
       }
 
