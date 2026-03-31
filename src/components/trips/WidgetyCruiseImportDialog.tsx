@@ -17,6 +17,8 @@ interface WidgetySailing {
   name: string;
   operator_title: string;
   holiday: string;
+  date_from?: string;
+  date_to?: string;
 }
 
 interface WidgetyCabinPrice {
@@ -319,32 +321,49 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     setSailingMonthFilter("all");
   };
 
-  const parseSailingDate = (holidayRef: string): Date | null => {
-    const match = holidayRef.match(/(\d{6})/);
-    if (!match) return null;
-
-    const compactDate = match[1];
-    const year = 2000 + Number(compactDate.slice(0, 2));
-    const month = Number(compactDate.slice(2, 4));
-    const day = Number(compactDate.slice(4, 6));
-
-    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
-    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-    const parsed = new Date(Date.UTC(year, month - 1, day));
-    if (
-      parsed.getUTCFullYear() !== year ||
-      parsed.getUTCMonth() !== month - 1 ||
-      parsed.getUTCDate() !== day
-    ) {
-      return null;
+  const parseSailingDate = (sailing: WidgetySailing): Date | null => {
+    // Prefer the actual date_from field from the API
+    if (sailing.date_from) {
+      try {
+        const parsed = parseISO(sailing.date_from);
+        if (!isNaN(parsed.getTime())) return parsed;
+      } catch { /* fall through */ }
     }
 
-    return parsed;
+    // Fallback: try parsing from holiday_ref (8-digit YYYYMMDD or 6-digit YYMMDD)
+    const match8 = sailing.holiday_ref.match(/(\d{8})/);
+    if (match8) {
+      const d = match8[1];
+      const year = Number(d.slice(0, 4));
+      const month = Number(d.slice(4, 6));
+      const day = Number(d.slice(6, 8));
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const parsed = new Date(Date.UTC(year, month - 1, day));
+        if (parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) {
+          return parsed;
+        }
+      }
+    }
+
+    const match6 = sailing.holiday_ref.match(/(\d{6})/);
+    if (match6) {
+      const d = match6[1];
+      const year = 2000 + Number(d.slice(0, 2));
+      const month = Number(d.slice(2, 4));
+      const day = Number(d.slice(4, 6));
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const parsed = new Date(Date.UTC(year, month - 1, day));
+        if (parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) {
+          return parsed;
+        }
+      }
+    }
+
+    return null;
   };
 
-  const formatSailingDate = (holidayRef: string) => {
-    const parsed = parseSailingDate(holidayRef);
+  const formatSailingDate = (sailing: WidgetySailing) => {
+    const parsed = parseSailingDate(sailing);
     return parsed ? format(parsed, "MMM d, yyyy") : null;
   };
 
@@ -352,7 +371,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     return Array.from(
       new Set(
         sailings
-          .map((s) => parseSailingDate(s.holiday_ref)?.getUTCFullYear())
+          .map((s) => parseSailingDate(s)?.getUTCFullYear())
           .filter((year): year is number => typeof year === "number")
       )
     ).sort((a, b) => a - b);
@@ -362,7 +381,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     const months = new Set<string>();
 
     for (const sailing of sailings) {
-      const sailingDate = parseSailingDate(sailing.holiday_ref);
+      const sailingDate = parseSailingDate(sailing);
       if (!sailingDate) continue;
 
       if (sailingYearFilter !== "all" && String(sailingDate.getUTCFullYear()) !== sailingYearFilter) {
@@ -377,7 +396,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
 
   const filteredSailings = useMemo(() => {
     return sailings.filter((sailing) => {
-      const sailingDate = parseSailingDate(sailing.holiday_ref);
+      const sailingDate = parseSailingDate(sailing);
 
       if (sailingYearFilter !== "all") {
         if (!sailingDate || String(sailingDate.getUTCFullYear()) !== sailingYearFilter) return false;
@@ -532,7 +551,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                 <ScrollArea className="h-[400px]">
                   <div className="space-y-2 pr-3">
                     {filteredSailings.map((s) => {
-                      const sailingDate = formatSailingDate(s.holiday_ref);
+                      const sailingDate = formatSailingDate(s);
                       return (
                         <button
                           key={s.holiday_ref}
