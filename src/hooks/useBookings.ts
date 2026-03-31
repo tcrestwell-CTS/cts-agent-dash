@@ -195,6 +195,7 @@ export interface UpdateBookingData {
   supplier_id?: string | null;
   total_price?: number;
   gross_sales?: number;
+  supplier_payout?: number;
   commissionable_amount?: number;
   commission_revenue?: number;
   net_sales?: number;

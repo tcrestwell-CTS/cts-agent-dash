@@ -18,7 +18,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { MarginLineType, MarginLineSource, BookingMarginLine } from "@/types/margin";
+import type { MarginLineType, MarginLineSource, BookingMarginLine, AgencyMarginRule } from "@/types/margin";
+import { findApplicableRule, applySuggestedMarkup } from "@/types/margin";
 
 // ── Local line type for pre-save editing ────────────────────────────────
 export interface LocalMarginLine {
