@@ -124,6 +124,20 @@ export interface CreateOrderParams {
     amount: string;
   }>;
   services?: ServiceSelection[];
+  trip_id?: string;
+}
+
+export interface DuffelOrder {
+  id: string;
+  booking_reference: string;
+  total_amount: string;
+  total_currency: string;
+  created_at: string;
+  synced_at: string;
+  live_mode: boolean;
+  passengers: Array<{ id: string; given_name: string; family_name: string; type: string }>;
+  slices: FlightOffer["slices"];
+  cancellation?: { refund_amount: string; refund_currency: string };
 }
 
 export function useFlightSearch() {
