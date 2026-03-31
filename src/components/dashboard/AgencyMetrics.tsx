@@ -244,7 +244,7 @@ export function AgencyMetrics() {
         {[
           { label: "Bookings", value: kpis.bookingCount.toString() },
           { label: "Sales volume", value: fmt(kpis.salesVolume) },
-          { label: "Commission received", value: fmt(kpis.commissionReceived) },
+          { label: "Gross margin", value: fmt(kpis.grossMargin) },
           { label: "Agency income", value: fmt(kpis.agencyIncome) },
         ].map((kpi) => (
           <Card key={kpi.label}>
