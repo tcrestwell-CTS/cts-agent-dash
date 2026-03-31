@@ -143,10 +143,7 @@ const handler = async (req: Request): Promise<Response> => {
       case "welcome":
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
+            ${buildBannerHtml("Welcome Aboard! 🌍")}
             <h2 style="color: #1f2937;">Welcome Aboard! 🌍</h2>
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Thank you for choosing ${agencyName} for your upcoming adventure. We're thrilled to help you create unforgettable travel memories.</p>
