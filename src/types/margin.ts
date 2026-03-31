@@ -108,6 +108,14 @@ export interface MarginCalculationResult {
   margin_version: number;
   margin_pct: number;
   source: "margin_lines" | "legacy_fields";
+  warnings?: Array<{
+    rule_id: string;
+    rule_name: string;
+    rule_type: string;
+    required_value: number;
+    actual_value: number;
+    message: string;
+  }>;
   // Only on error:
   error?: string;
   detail?: string;
