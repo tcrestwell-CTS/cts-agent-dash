@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, User, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -14,9 +14,6 @@ interface RecentBooking {
     destination: string | null;
     depart_date: string | null;
     return_date: string | null;
-    clients: {
-      name: string;
-    } | null;
   } | null;
 }
 
@@ -42,9 +39,6 @@ export function RecentBookings() {
             destination,
             depart_date,
             return_date,
-            clients!trips_client_id_fkey (
-              name
-            )
           )
         `)
         .order("created_at", { ascending: false })
@@ -121,11 +115,11 @@ export function RecentBookings() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+                    <MapPin className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium text-card-foreground">
-                      {booking.trips?.clients?.name || "Unknown Client"}
+                      {booking.trips?.trip_name || booking.trips?.destination || "Untitled Trip"}
                     </p>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">

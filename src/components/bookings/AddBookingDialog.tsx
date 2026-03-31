@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
 import {
@@ -22,9 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, Mail, Users, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
-import { useClients } from "@/hooks/useClients";
-import { useCompanions } from "@/hooks/useCompanions";
+import { Plus, Loader2, Mail, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { useAddBookingTravelers } from "@/hooks/useBookingTravelers";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { CreateBookingData } from "@/hooks/useBookings";
@@ -43,13 +41,11 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
-  const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { activeSuppliers, isLoading: suppliersLoading } = useSuppliers();
   const addBookingTravelers = useAddBookingTravelers();
   const [showFinancials, setShowFinancials] = useState(false);
   
   const [formData, setFormData] = useState({
-    client_id: "",
     destination: "",
     depart_date: "",
     return_date: "",
@@ -68,40 +64,10 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
 
   const [selectedCompanionIds, setSelectedCompanionIds] = useState<string[]>([]);
 
-  // Fetch companions for the selected client
-  const { data: companions = [], isLoading: companionsLoading } = useCompanions(
-    formData.client_id || undefined
-  );
-
-  const [selectedClientEmail, setSelectedClientEmail] = useState<string | null>(null);
-
-  // Update selected client email when client changes
-  // Reset selected companions when client changes
-  useEffect(() => {
-    setSelectedCompanionIds([]);
-  }, [formData.client_id]);
-
-  useEffect(() => {
-    if (formData.client_id) {
-      const client = clients.find(c => c.id === formData.client_id);
-      setSelectedClientEmail(client?.email || null);
-    } else {
-      setSelectedClientEmail(null);
-    }
-  }, [formData.client_id, clients]);
-
-  const toggleCompanion = (companionId: string) => {
-    setSelectedCompanionIds(prev =>
-      prev.includes(companionId)
-        ? prev.filter(id => id !== companionId)
-        : [...prev, companionId]
-    );
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.client_id || !formData.destination || !formData.depart_date || !formData.return_date) {
+    if (!formData.destination || !formData.depart_date || !formData.return_date) {
       return;
     }
 
@@ -122,7 +88,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
 
       setOpen(false);
       setFormData({
-        client_id: "",
         destination: "",
         depart_date: "",
         return_date: "",
@@ -200,25 +165,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="client">Client *</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={clientsLoading ? "Loading clients..." : "Select a client"} />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} {client.email ? `(${client.email})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="trip_name">Trip Name</Label>
             <Input
@@ -422,48 +368,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Travel Companions Selection */}
-          {formData.client_id && companions.length > 0 && (
-            <div className="space-y-3">
-              <Label className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Travel Companions
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Select companions who will be traveling on this trip
-              </p>
-              <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-3">
-                {companionsLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading companions...</p>
-                ) : (
-                  companions.map((companion) => (
-                    <div key={companion.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`companion-${companion.id}`}
-                        checked={selectedCompanionIds.includes(companion.id)}
-                        onCheckedChange={() => toggleCompanion(companion.id)}
-                      />
-                      <label
-                        htmlFor={`companion-${companion.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {companion.first_name} {companion.last_name}
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          ({companion.relationship})
-                        </span>
-                      </label>
-                    </div>
-                  ))
-                )}
-              </div>
-              {selectedCompanionIds.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {selectedCompanionIds.length} companion{selectedCompanionIds.length > 1 ? 's' : ''} selected
-                </p>
-              )}
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
@@ -481,16 +385,13 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
               <div>
                 <p className="font-medium text-sm">Send Confirmation Email</p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedClientEmail 
-                    ? `Email will be sent to ${selectedClientEmail}`
-                    : "Select a client with email to enable"}
+                  Confirmation will be sent to the trip's client
                 </p>
               </div>
             </div>
             <Switch
-              checked={formData.send_confirmation_email && !!selectedClientEmail}
+              checked={formData.send_confirmation_email}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, send_confirmation_email: checked }))}
-              disabled={!selectedClientEmail}
             />
           </div>
 
