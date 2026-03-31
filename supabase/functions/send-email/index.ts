@@ -239,11 +239,8 @@ const handler = async (req: Request): Promise<Response> => {
         const expiresIn = templateData?.expiresIn || "7 days";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">You're Invited! 🎉</h2>
+            ${buildBannerHtml("You're Invited! 🎉")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Hello,</p>
             <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${agencyName}</strong> as a travel agent.</p>
             <p style="color: #4b5563; line-height: 1.6;">Click the button below to accept your invitation and set up your account:</p>
