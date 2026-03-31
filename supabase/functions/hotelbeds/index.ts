@@ -6,22 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const HB_BASE = "https://api.test.hotelbeds.com/hotel-api/1.0";
+// Toggle between test and production environments
+const HB_ENV = Deno.env.get("HOTELBEDS_ENV") || "test"; // "test" or "live"
+const HB_BASE =
+  HB_ENV === "live"
+    ? "https://api.hotelbeds.com/hotel-api/1.0"
+    : "https://api.test.hotelbeds.com/hotel-api/1.0";
+const HB_CONTENT_BASE =
+  HB_ENV === "live"
+    ? "https://api.hotelbeds.com/hotel-content-api/1.0"
+    : "https://api.test.hotelbeds.com/hotel-content-api/1.0";
 
-function generateSignature(apiKey: string, secret: string): string {
+async function generateSignature(apiKey: string, secret: string): Promise<string> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const raw = apiKey + secret + timestamp;
-  // Use Web Crypto API for SHA-256
   const encoder = new TextEncoder();
   const data = encoder.encode(raw);
-  return crypto.subtle.digest("SHA-256", data).then((buf) => {
-    return Array.from(new Uint8Array(buf))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-  }) as any; // We'll await this
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-async function hbFetch(path: string, method: string, body?: any) {
+async function hbFetch(basePath: string, path: string, method: string, body?: any) {
   const apiKey = Deno.env.get("HOTELBEDS_API_KEY");
   const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET");
   if (!apiKey || !apiSecret) {
@@ -34,10 +41,11 @@ async function hbFetch(path: string, method: string, body?: any) {
     "Api-key": apiKey,
     "X-Signature": signature,
     Accept: "application/json",
+    "Accept-Encoding": "gzip", // Required by Hotelbeds certification
     "Content-Type": "application/json",
   };
 
-  const url = `${HB_BASE}${path}`;
+  const url = `${basePath}${path}`;
   const options: RequestInit = { method, headers };
   if (body && method !== "GET") {
     options.body = JSON.stringify(body);
@@ -47,12 +55,20 @@ async function hbFetch(path: string, method: string, body?: any) {
   const data = await response.json();
 
   if (!response.ok) {
-    const errorMsg = data?.error?.message || `HotelBeds API error [${response.status}]`;
+    const errorMsg =
+      data?.error?.message || `HotelBeds API error [${response.status}]`;
     throw new Error(errorMsg);
   }
 
   return data;
 }
+
+// Shorthand helpers
+const bookingApi = (path: string, method: string, body?: any) =>
+  hbFetch(HB_BASE, path, method, body);
+
+const contentApi = (path: string) =>
+  hbFetch(HB_CONTENT_BASE, path, "GET");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -74,9 +90,8 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } }
   );
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-  if (claimsError || !claimsData?.claims) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,8 +104,8 @@ Deno.serve(async (req) => {
     let result;
 
     switch (action) {
+      // ── Availability Search ──────────────────────────────────
       case "search": {
-        // Availability search
         const body: any = {
           stay: {
             checkIn: params.checkIn,
@@ -99,7 +114,6 @@ Deno.serve(async (req) => {
           occupancies: params.occupancies || [{ rooms: 1, adults: 2, children: 0 }],
         };
 
-        // Support search by destination code or geolocation
         if (params.destination) {
           body.destination = { code: params.destination };
         }
@@ -109,27 +123,25 @@ Deno.serve(async (req) => {
         if (params.hotels) {
           body.hotels = { hotel: params.hotels };
         }
-
-        // Optional filters
         if (params.filter) {
           body.filter = params.filter;
         }
 
-        result = await hbFetch("/hotels", "POST", body);
+        result = await bookingApi("/hotels", "POST", body);
         break;
       }
 
+      // ── Check Rate (pre-booking verification) ────────────────
       case "checkrate": {
-        // Check rate for selected rooms
         const body = {
           rooms: params.rooms.map((r: any) => ({ rateKey: r.rateKey })),
         };
-        result = await hbFetch("/checkrates", "POST", body);
+        result = await bookingApi("/checkrates", "POST", body);
         break;
       }
 
+      // ── Confirm Booking ──────────────────────────────────────
       case "book": {
-        // Confirm booking
         const body: any = {
           holder: params.holder,
           rooms: params.rooms,
@@ -141,34 +153,125 @@ Deno.serve(async (req) => {
         if (params.tolerance !== undefined) {
           body.tolerance = params.tolerance;
         }
-        result = await hbFetch("/bookings", "POST", body);
+        result = await bookingApi("/bookings", "POST", body);
         break;
       }
 
+      // ── Get Booking Details ──────────────────────────────────
       case "get_booking": {
-        result = await hbFetch(`/bookings/${params.bookingId}`, "GET");
+        result = await bookingApi(`/bookings/${params.bookingId}`, "GET");
         break;
       }
 
+      // ── Cancel Booking ───────────────────────────────────────
       case "cancel": {
-        result = await hbFetch(`/bookings/${params.bookingId}?cancellationFlag=CANCELLATION`, "DELETE");
+        result = await bookingApi(
+          `/bookings/${params.bookingId}?cancellationFlag=CANCELLATION`,
+          "DELETE"
+        );
+        break;
+      }
+
+      // ── List Bookings (date range) ───────────────────────────
+      case "list_bookings": {
+        const from = params.from; // YYYY-MM-DD
+        const to = params.to;     // YYYY-MM-DD
+        const filterType = params.filterType || "CREATION"; // CREATION or CHECKIN
+        result = await bookingApi(
+          `/bookings?from=${from}&to=${to}&filterType=${filterType}`,
+          "GET"
+        );
+        break;
+      }
+
+      // ── Reconfirm Booking ────────────────────────────────────
+      case "reconfirm": {
+        result = await bookingApi(
+          `/bookings/${params.bookingId}?from=${params.from}&to=${params.to}`,
+          "GET"
+        );
+        break;
+      }
+
+      // ── Hotel Content / Details ──────────────────────────────
+      case "hotel_details": {
+        const codes = Array.isArray(params.hotelCodes)
+          ? params.hotelCodes.join(",")
+          : params.hotelCodes;
+        const lang = params.language || "ENG";
+        result = await contentApi(`/hotels/${codes}?language=${lang}&useSecondaryLanguage=false`);
+        break;
+      }
+
+      // ── Hotel Images ─────────────────────────────────────────
+      case "hotel_images": {
+        const codes = Array.isArray(params.hotelCodes)
+          ? params.hotelCodes.join(",")
+          : params.hotelCodes;
+        result = await contentApi(`/hotels/${codes}/images`);
+        break;
+      }
+
+      // ── Destinations List (for mapping) ──────────────────────
+      case "destinations": {
+        const lang = params.language || "ENG";
+        const from = params.from || 1;
+        const to = params.to || 100;
+        result = await contentApi(`/locations/destinations?language=${lang}&from=${from}&to=${to}`);
+        break;
+      }
+
+      // ── Voucher / Booking Voucher ────────────────────────────
+      case "voucher": {
+        // Hotelbeds doesn't have a dedicated voucher endpoint;
+        // voucher data comes from booking confirmation response.
+        // This action retrieves the booking and formats voucher info.
+        const bookingData = await bookingApi(`/bookings/${params.bookingId}`, "GET");
+        const bk = bookingData?.booking;
+        if (!bk) throw new Error("Booking not found");
+
+        result = {
+          voucher: {
+            reference: bk.reference,
+            clientReference: bk.clientReference,
+            status: bk.status,
+            holder: bk.holder,
+            hotel: {
+              code: bk.hotel?.code,
+              name: bk.hotel?.name,
+              destinationName: bk.hotel?.destinationName,
+              checkIn: bk.hotel?.checkIn,
+              checkOut: bk.hotel?.checkOut,
+              rooms: bk.hotel?.rooms,
+            },
+            supplier: bk.hotel?.supplier,
+            remark: bk.remark,
+            creationDate: bk.creationDate,
+            totalNet: bk.totalNet,
+            currency: bk.currency,
+          },
+        };
         break;
       }
 
       default:
-        return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: `Unknown action: ${action}` }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
     }
 
-    return new Response(JSON.stringify({ data: result }), {
+    return new Response(JSON.stringify({ data: result, env: HB_ENV }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
     console.error("HotelBeds function error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
