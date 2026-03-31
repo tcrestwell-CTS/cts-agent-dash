@@ -39,7 +39,6 @@ import {
   Mail,
   Phone,
   Clock,
-  Percent,
   TrendingUp,
   CheckCircle,
   Loader2,
@@ -62,8 +61,8 @@ import { useUserCommissionRate, useUserCommissionTier } from "@/hooks/useCommiss
 import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookingTravelers";
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
+import { BookingFinancialsDisplay } from "@/components/bookings/BookingFinancials";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
-import { getTierConfig } from "@/lib/commissionTiers";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "@/components/trips/InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
@@ -611,94 +610,34 @@ const BookingDetail = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Financial Summary - Enhanced with Commission Structure */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                Trip Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
-                <p className="text-2xl font-semibold text-foreground">
-                  {formatCurrency(booking.gross_sales || booking.total_amount)}
+          {/* Financial Summary — powered by margin engine */}
+          <BookingFinancialsDisplay
+            grossSales={booking.gross_sales || booking.total_amount}
+            commissionableAmount={booking.commissionable_amount || 0}
+            commissionRevenue={booking.commission_revenue || 0}
+            netSales={booking.net_sales || 0}
+            supplierPayout={booking.supplier_payout || 0}
+            supplierName={selectedSupplier?.name}
+            agencyGrossMargin={booking.agency_gross_margin}
+            advisorMarginAmount={booking.advisor_margin_amount}
+            agencyMarginAmount={booking.agency_margin_amount}
+            advisorSplitPct={booking.advisor_split_pct}
+            agencySplitPct={booking.agency_split_pct}
+            marginLocked={booking.margin_locked}
+            marginVersion={booking.margin_version}
+            pricingMode={booking.pricing_mode}
+            commissionTier={userTier ?? undefined}
+          />
+          {booking.travelers > 1 && (
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-sm text-muted-foreground">Per Traveler</p>
+                <p className="font-medium text-foreground">
+                  {formatCurrency((booking.gross_sales || booking.total_amount) / booking.travelers)}
                 </p>
-              </div>
-
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Net Sales (Gross − Supplier Cost)
-                  </span>
-                  <span className="font-medium">
-                    {formatCurrency(booking.net_sales || booking.commissionable_amount)}
-                  </span>
-                </div>
-
-                {(() => {
-                  const grossSales = booking.gross_sales || booking.total_amount;
-                  const commissionRevenue = booking.commission_revenue || 0;
-                  const commissionPct = grossSales > 0
-                    ? Math.round((commissionRevenue / (booking.net_sales || grossSales)) * 100)
-                    : 0;
-                  const agentSplit = userTier ? getTierConfig(userTier).agentSplit : 70;
-                  const agencySplit = userTier ? getTierConfig(userTier).agencySplit : 30;
-                  const agentAmount = commissionRevenue * (agentSplit / 100);
-                  const agencyAmount = commissionRevenue * (agencySplit / 100);
-
-                  return (
-                    <>
-                      <div className="flex items-center justify-between bg-success/10 p-2 rounded">
-                        <span className="text-sm text-success font-medium">
-                          Commission Revenue ({commissionPct}%)
-                        </span>
-                        <span className="font-semibold text-success">
-                          {formatCurrency(commissionRevenue)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Net Booking Sales</span>
-                        <span className="font-medium">
-                          {formatCurrency(booking.net_sales || 0)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t pt-3 bg-primary/10 p-2 rounded">
-                        <span className="text-sm font-medium text-primary">
-                          Agent Commission ({agentSplit}%)
-                        </span>
-                        <span className="font-semibold text-primary">
-                          {formatCurrency(agentAmount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Agency receives ({agencySplit}%)</span>
-                        <span>{formatCurrency(agencyAmount)}</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-
-              {booking.travelers > 1 && (
-                <div className="border-t pt-3">
-                  <p className="text-sm text-muted-foreground">Per Traveler</p>
-                  <p className="font-medium text-foreground">
-                    {formatCurrency((booking.gross_sales || booking.total_amount) / booking.travelers)}
-                  </p>
-                </div>
-              )}
-
-              {selectedSupplier && (
-                <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                  Supplier: <strong>{selectedSupplier.name}</strong>
-                </p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Commission Line Items (for multi-line suppliers) */}
           {isMultiLineSupplier && booking && (
