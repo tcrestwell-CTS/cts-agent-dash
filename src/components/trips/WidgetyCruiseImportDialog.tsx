@@ -111,6 +111,72 @@ const AVAILABLE_OPERATORS = [
   { slug: "virgin-voyages", label: "Virgin Voyages" },
 ];
 
+const cruiseDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+const currentCruiseYear = new Date().getUTCFullYear();
+
+const createCruiseUtcDate = (year: number, month: number, day: number) => {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  if (year < currentCruiseYear - 1 || year > currentCruiseYear + 10) {
+    return null;
+  }
+
+  return parsed;
+};
+
+const parseCruiseDateFromRef = (holidayRef: string) => {
+  const normalizedRef = holidayRef.replace(/HOL$/i, "");
+
+  const eightDigitMatches = Array.from(normalizedRef.matchAll(/(\d{8})/g), (match) => match[1]).reverse();
+  for (const candidate of eightDigitMatches) {
+    const asDayMonthYear = createCruiseUtcDate(
+      Number(candidate.slice(4, 8)),
+      Number(candidate.slice(2, 4)),
+      Number(candidate.slice(0, 2))
+    );
+    if (asDayMonthYear) return asDayMonthYear;
+
+    const asYearMonthDay = createCruiseUtcDate(
+      Number(candidate.slice(0, 4)),
+      Number(candidate.slice(4, 6)),
+      Number(candidate.slice(6, 8))
+    );
+    if (asYearMonthDay) return asYearMonthDay;
+  }
+
+  const sixDigitMatches = Array.from(normalizedRef.matchAll(/(\d{6})/g), (match) => match[1]).reverse();
+  for (const candidate of sixDigitMatches) {
+    const parsed = createCruiseUtcDate(
+      2000 + Number(candidate.slice(0, 2)),
+      Number(candidate.slice(2, 4)),
+      Number(candidate.slice(4, 6))
+    );
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+const formatCruiseDate = (value: string | Date) => {
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value) : cruiseDateFormatter.format(parsed);
+};
+
 export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, destination, cruiseBookings, onImport }: Props) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("search");
@@ -158,6 +224,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
       // Use the first cruise booking to search
       const cruise = cruiseBookings[0];
       const supplierName = cruise.suppliers?.name?.toLowerCase().replace(/\s+/g, "-") || "";
+      const hasBookingDates = Boolean(cruise.depart_date || cruise.return_date);
 
       const data = await callWidgety({
         action: "search",
@@ -165,7 +232,9 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         date_from: cruise.depart_date,
         date_to: cruise.return_date,
         market: "us",
-        limit: 25,
+        limit: 100,
+        fetch_all: hasBookingDates,
+        resolve_departure_dates: hasBookingDates,
       });
 
       if (data._date_filter_removed) {
@@ -196,10 +265,13 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     setLoading(true);
     setStep("sailings");
     try {
+      const hasDateWindow = Boolean(dateFrom || dateTo);
       const params: Record<string, any> = {
         action: "search",
         market: "us",
-        limit: 25,
+        limit: 100,
+        fetch_all: hasDateWindow,
+        resolve_departure_dates: hasDateWindow,
       };
       if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
       if (dateFrom) params.date_from = dateFrom;
@@ -322,49 +394,17 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   };
 
   const parseSailingDate = (sailing: WidgetySailing): Date | null => {
-    // Prefer the actual date_from field from the API
     if (sailing.date_from) {
-      try {
-        const parsed = parseISO(sailing.date_from);
-        if (!isNaN(parsed.getTime())) return parsed;
-      } catch { /* fall through */ }
+      const parsed = new Date(sailing.date_from);
+      if (!Number.isNaN(parsed.getTime())) return parsed;
     }
 
-    // Fallback: try parsing from holiday_ref (8-digit YYYYMMDD or 6-digit YYMMDD)
-    const match8 = sailing.holiday_ref.match(/(\d{8})/);
-    if (match8) {
-      const d = match8[1];
-      const year = Number(d.slice(0, 4));
-      const month = Number(d.slice(4, 6));
-      const day = Number(d.slice(6, 8));
-      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-        const parsed = new Date(Date.UTC(year, month - 1, day));
-        if (parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) {
-          return parsed;
-        }
-      }
-    }
-
-    const match6 = sailing.holiday_ref.match(/(\d{6})/);
-    if (match6) {
-      const d = match6[1];
-      const year = 2000 + Number(d.slice(0, 2));
-      const month = Number(d.slice(2, 4));
-      const day = Number(d.slice(4, 6));
-      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-        const parsed = new Date(Date.UTC(year, month - 1, day));
-        if (parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) {
-          return parsed;
-        }
-      }
-    }
-
-    return null;
+    return parseCruiseDateFromRef(sailing.holiday_ref);
   };
 
   const formatSailingDate = (sailing: WidgetySailing) => {
     const parsed = parseSailingDate(sailing);
-    return parsed ? format(parsed, "MMM d, yyyy") : null;
+    return parsed ? formatCruiseDate(parsed) : null;
   };
 
   const sailingYearOptions = useMemo(() => {
@@ -418,7 +458,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   }, [sailingMonthFilter, sailingMonthOptions]);
 
   const formatDate = (d: string) => {
-    try { return format(parseISO(d), "MMM d, yyyy"); }
+    try { return formatCruiseDate(parseISO(d)); }
     catch { return d; }
   };
 
