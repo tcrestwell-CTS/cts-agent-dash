@@ -55,6 +55,7 @@ export default function HotelSearch() {
     booking,
     lastBookingResult,
   } = useHotelSearch();
+  const { user } = useAuth();
 
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState("");
