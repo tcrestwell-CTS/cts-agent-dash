@@ -1,0 +1,15 @@
+name = "hotelbeds-mtls-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# mTLS certificate binding — upload via:
+#   wrangler mtls-certificate upload --cert cert.pem --key key.pem --name hotelbeds-mtls
+[mtls_certificates]
+HOTELBEDS_CERT = { binding = "MY_CERT", certificate_id = "<CERT_ID_AFTER_UPLOAD>" }
+
+[vars]
+HOTELBEDS_BOOKING_API = "https://api.hotelbeds.com/hotel-api/1.0"
+HOTELBEDS_CONTENT_API = "https://api.hotelbeds.com/hotel-content-api/1.0"
+
+# Set this secret via: wrangler secret put PROXY_AUTH_TOKEN
+# Your Edge Function will send this token to authenticate with the worker
