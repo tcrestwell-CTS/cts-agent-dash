@@ -268,16 +268,22 @@ function buildFlightAlertEmailHtml(params: EmailParams): string {
     ? new Date(departureAt).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })
     : "N/A";
 
+  const bannerTitle = isAgent ? "Agent Flight Alert" : "Flight Notification";
+  const alertBadgeColor = eventType === "order.cancellation" ? "#dc2626" 
+    : eventType === "order.airline_initiated_change" ? "#f59e0b" 
+    : "#2563eb";
+
   return `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
   <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; margin-top: 20px;">
-    <div style="background: ${alertColor}; padding: 20px 24px;">
-      <h1 style="color: white; margin: 0; font-size: 20px;">${title}</h1>
+    <div style="background-color: #0D1B2A; padding: 24px 24px 20px; text-align: center;">
+      <h1 style="color: #C9A84C; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px;">✈️ ${bannerTitle}</h1>
     </div>
     <div style="padding: 24px;">
+      <div style="display: inline-block; background-color: ${alertBadgeColor}; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 16px;">${eventType.replace(/\./g, ' · ').toUpperCase()}</div>
       ${isAgent ? `<p style="color: #666; font-size: 14px;">Hi ${agentName || "Agent"},</p>` : ""}
       <p style="color: #333; font-size: 15px; line-height: 1.6;">${message}</p>
       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -299,8 +305,8 @@ function buildFlightAlertEmailHtml(params: EmailParams): string {
         : `<p style="color: #666; font-size: 13px;">Your travel advisor has been notified and will reach out if any action is needed on your part.</p>`
       }
     </div>
-    <div style="padding: 16px 24px; background: #f9fafb; text-align: center;">
-      <p style="color: #999; font-size: 12px; margin: 0;">Crestwell Travel Services</p>
+    <div style="padding: 16px 24px; background: #0D1B2A; text-align: center;">
+      <p style="color: #C9A84C; font-size: 12px; margin: 0;">Crestwell Travel Services</p>
     </div>
   </div>
 </body>

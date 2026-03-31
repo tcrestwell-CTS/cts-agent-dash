@@ -106,9 +106,16 @@ const handler = async (req: Request): Promise<Response> => {
     const hasClientPath = new URL(portalUrlBase).pathname.includes("/client");
     const clientPortalUrl = hasClientPath ? portalUrlBase : `${portalUrlBase}/client`;
 
-    const logoHtml = logoUrl 
-      ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 60px; margin-bottom: 16px;" />`
+    const bannerLogoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="${agencyName}" style="max-height: 50px; margin-bottom: 8px;" />`
       : "";
+
+    const buildBannerHtml = (purposeTitle: string) => `
+      <div style="background-color: #0D1B2A; padding: 24px 24px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        ${bannerLogoHtml}
+        <h1 style="color: #C9A84C; margin: ${logoUrl ? '8px' : '0px'} 0 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px;">${purposeTitle}</h1>
+      </div>
+    `;
 
     const footerHtml = `
       <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
@@ -136,11 +143,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "welcome":
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Welcome Aboard! 🌍</h2>
+            ${buildBannerHtml("Welcome Aboard! 🌍")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Thank you for choosing ${agencyName} for your upcoming adventure. We're thrilled to help you create unforgettable travel memories.</p>
             <p style="color: #4b5563; line-height: 1.6;">Your dedicated travel consultant is ready to craft the perfect itinerary for you.</p>
@@ -155,11 +159,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "booking_confirmation":
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Booking Confirmed! ✈️</h2>
+            ${buildBannerHtml("Booking Confirmed! ✈️")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Great news! Your booking has been confirmed. Here are your trip details:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -176,11 +177,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "itinerary":
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Your Travel Itinerary 📋</h2>
+            ${buildBannerHtml("Your Travel Itinerary 📋")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Please find your detailed travel itinerary attached. Here's a quick overview:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -196,11 +194,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "quote":
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Your Travel Quote 💼</h2>
+            ${buildBannerHtml("Your Travel Quote 💼")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Thank you for your interest! Here's a personalized quote for your trip:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -219,11 +214,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "trip_completed":
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Welcome Back! 🎉</h2>
+            ${buildBannerHtml("Welcome Back! 🎉")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">We hope you had an amazing trip to <strong>${templateData?.destination || "your destination"}</strong>!</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -247,11 +239,8 @@ const handler = async (req: Request): Promise<Response> => {
         const expiresIn = templateData?.expiresIn || "7 days";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">You're Invited! 🎉</h2>
+            ${buildBannerHtml("You're Invited! 🎉")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Hello,</p>
             <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${agencyName}</strong> as a travel agent.</p>
             <p style="color: #4b5563; line-height: 1.6;">Click the button below to accept your invitation and set up your account:</p>
@@ -275,11 +264,8 @@ const handler = async (req: Request): Promise<Response> => {
         const approvalUrl = templateData?.approvalUrl || "#";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">⚠️ Commission Override Requires Approval</h2>
+            ${buildBannerHtml("⚠️ Commission Override Approval")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">A commission override has been submitted that requires your approval:</p>
             <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 24px 0;">
               <p style="margin: 8px 0; color: #374151;"><strong>Agent:</strong> ${agentNameOverride}</p>
@@ -311,11 +297,8 @@ const handler = async (req: Request): Promise<Response> => {
         const invoiceRemaining = templateData?.totalRemaining || "$0.00";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Your Invoice 📄</h2>
+            ${buildBannerHtml("Your Invoice 📄")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Please find your invoice attached for the following trip:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -342,11 +325,8 @@ const handler = async (req: Request): Promise<Response> => {
         const agentName = templateData?.agentName || "Your Travel Advisor";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Your Travel Proposal is Ready! ✨</h2>
+            ${buildBannerHtml("Your Travel Proposal ✨")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">${agentName} has prepared a personalized travel proposal for you. We'd love for you to review the details and let us know your thoughts!</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
@@ -410,10 +390,8 @@ const handler = async (req: Request): Promise<Response> => {
 
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
+            ${buildBannerHtml("✅ Financing Approved!")}
+            <div style="padding: 24px;">
             <div style="text-align: center; margin-bottom: 24px;">
               <span style="display: inline-block; background-color: #dcfce7; color: #166534; padding: 8px 24px; border-radius: 24px; font-weight: 600; font-size: 15px;">✅ Financing Approved!</span>
             </div>
@@ -488,10 +466,8 @@ const handler = async (req: Request): Promise<Response> => {
         const formattedMessage = messageContent.replace(/\n/g, "<br>");
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
+            ${buildBannerHtml(subject)}
+            <div style="padding: 24px;">
             <div style="color: #4b5563; line-height: 1.8;">
               ${formattedMessage}
             </div>
