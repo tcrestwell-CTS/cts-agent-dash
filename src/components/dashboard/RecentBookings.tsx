@@ -115,7 +115,7 @@ export function RecentBookings() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+                    <MapPin className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium text-card-foreground">
