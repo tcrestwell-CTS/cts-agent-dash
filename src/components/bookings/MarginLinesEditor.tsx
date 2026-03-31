@@ -93,9 +93,11 @@ interface MarginLinesEditorProps {
   lines: LocalMarginLine[];
   onChange: (lines: LocalMarginLine[]) => void;
   readOnly?: boolean;
+  rules?: AgencyMarginRule[];
+  supplierId?: string | null;
 }
 
-export function MarginLinesEditor({ lines, onChange, readOnly = false }: MarginLinesEditorProps) {
+export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null }: MarginLinesEditorProps) {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
 

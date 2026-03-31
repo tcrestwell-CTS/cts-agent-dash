@@ -379,12 +379,12 @@ export function useBookings() {
       toast.success("Booking updated successfully");
 
       // Recalculate margin if financials changed
-      const financialsChanged = "gross_sales" in data || "supplier_id" in data || "total_price" in data;
+      const financialsChanged = "gross_sales" in data || "supplier_payout" in data || "supplier_id" in data || "total_price" in data;
       if (financialsChanged) {
         const current = bookings.find(b => b.id === bookingId);
         if (current) {
           const gs = (data as any).gross_sales ?? current.gross_sales ?? 0;
-          const sp = current.supplier_payout ?? 0;
+          const sp = (data as any).supplier_payout ?? current.supplier_payout ?? 0;
           await recalculateMargin(bookingId, user.id, gs, sp);
         }
       }
