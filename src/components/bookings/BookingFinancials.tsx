@@ -238,6 +238,16 @@ interface BookingFinancialsDisplayProps {
   netSales: number;
   supplierPayout: number;
   supplierName?: string | null;
+  // Margin engine fields (optional — gracefully absent for un-calculated bookings)
+  agencyGrossMargin?: number;
+  advisorMarginAmount?: number;
+  agencyMarginAmount?: number;
+  advisorSplitPct?: number;   // 0.0-1.0 decimal from DB
+  agencySplitPct?: number;    // 0.0-1.0 decimal from DB
+  marginLocked?: boolean;
+  marginVersion?: number;
+  pricingMode?: string;
+  commissionTier?: string | null;
 }
 
 export function BookingFinancialsDisplay({
@@ -247,6 +257,15 @@ export function BookingFinancialsDisplay({
   netSales,
   supplierPayout,
   supplierName,
+  agencyGrossMargin,
+  advisorMarginAmount,
+  agencyMarginAmount,
+  advisorSplitPct,
+  agencySplitPct,
+  marginLocked,
+  marginVersion,
+  pricingMode,
+  commissionTier,
 }: BookingFinancialsDisplayProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -260,12 +279,22 @@ export function BookingFinancialsDisplay({
     ? ((commissionRevenue / netSales) * 100).toFixed(1)
     : "0";
 
+  const marginEngineActive = (agencyGrossMargin ?? 0) !== 0 || (advisorMarginAmount ?? 0) !== 0;
+  const grossMarginPct = grossSales > 0 && agencyGrossMargin !== undefined
+    ? ((agencyGrossMargin / grossSales) * 100).toFixed(1)
+    : null;
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <DollarSign className="h-5 w-5 text-muted-foreground" />
           Trip Breakdown
+          {marginLocked && (
+            <span className="ml-auto text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground flex items-center gap-1">
+              🔒 Locked
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -283,9 +312,7 @@ export function BookingFinancialsDisplay({
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
-              Net Sales
-            </span>
+            <span className="text-sm text-muted-foreground">Net Sales</span>
             <span className="font-medium">{formatCurrency(netSales)}</span>
           </div>
 
@@ -298,6 +325,59 @@ export function BookingFinancialsDisplay({
             </span>
           </div>
         </div>
+
+        {/* Margin Engine Section */}
+        {marginEngineActive && (
+          <div className="border-t pt-4 space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              Margin Breakdown
+              {marginVersion !== undefined && marginVersion > 1 && (
+                <span className="ml-auto text-xs font-normal opacity-60">v{marginVersion}</span>
+              )}
+            </p>
+
+            {/* Agency Gross Margin */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                Agency Gross Margin
+                {grossMarginPct && (
+                  <span className="ml-1 text-xs">({grossMarginPct}%)</span>
+                )}
+              </span>
+              <span className={`font-semibold ${(agencyGrossMargin ?? 0) >= 0 ? "text-foreground" : "text-destructive"}`}>
+                {formatCurrency(agencyGrossMargin ?? 0)}
+              </span>
+            </div>
+
+            {/* Advisor Split */}
+            {(advisorSplitPct ?? 0) > 0 && (
+              <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950/30 p-2 rounded">
+                <span className="text-sm text-blue-700 dark:text-blue-300">
+                  Advisor ({((advisorSplitPct ?? 0) * 100).toFixed(0)}%)
+                  {commissionTier && (
+                    <span className="ml-1 text-xs opacity-70">
+                      · {commissionTier.replace("_", " ")}
+                    </span>
+                  )}
+                </span>
+                <span className="font-semibold text-blue-700 dark:text-blue-300">
+                  {formatCurrency(advisorMarginAmount ?? 0)}
+                </span>
+              </div>
+            )}
+
+            {/* Agency Retained */}
+            <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/30 p-2 rounded">
+              <span className="text-sm text-purple-700 dark:text-purple-300">
+                Agency Retained ({((agencySplitPct ?? 0) * 100).toFixed(0)}%)
+              </span>
+              <span className="font-semibold text-purple-700 dark:text-purple-300">
+                {formatCurrency(agencyMarginAmount ?? 0)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {supplierName && (
           <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
