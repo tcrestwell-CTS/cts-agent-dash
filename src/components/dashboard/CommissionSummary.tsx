@@ -32,14 +32,15 @@ export function CommissionSummary() {
 
   const fetchCommissionData = async () => {
     try {
-      // Fetch commissions with their booking info
+      // Fetch commissions with booking margin data
       const { data: commissions } = await supabase
         .from("commissions")
         .select(`
           id,
           amount,
           status,
-          user_id
+          user_id,
+          booking_id
         `);
 
       if (!commissions || commissions.length === 0) {
@@ -47,7 +48,18 @@ export function CommissionSummary() {
         return;
       }
 
-      // Fetch profiles to get commission tiers for each user
+      // Fetch booking margin fields for accurate splits
+      const bookingIds = [...new Set(commissions.map(c => c.booking_id).filter(Boolean))];
+      const { data: bookingMargins } = await supabase
+        .from("bookings")
+        .select("id, advisor_margin_amount, agency_margin_amount, agency_gross_margin")
+        .in("id", bookingIds);
+
+      const marginMap = new Map(
+        bookingMargins?.map(b => [b.id, b]) || []
+      );
+
+      // Fallback: profiles for tier-based splits when margin engine hasn't run
       const userIds = [...new Set(commissions.map(c => c.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -58,7 +70,6 @@ export function CommissionSummary() {
         profiles?.map(p => [p.user_id, p.commission_tier as CommissionTier | null]) || []
       );
 
-      // Calculate totals with tier-based splits
       let totalCommission = 0;
       let agentShare = 0;
       let agencyShare = 0;
@@ -66,12 +77,20 @@ export function CommissionSummary() {
       let paidCommission = 0;
 
       commissions.forEach((commission) => {
-        const tier = profileMap.get(commission.user_id);
         const amount = commission.amount || 0;
+        const margins = marginMap.get(commission.booking_id);
         
-        totalCommission += amount;
-        agentShare += calculateAgentCommission(amount, tier);
-        agencyShare += calculateAgencyCommission(amount, tier);
+        // Phase 4: Use margin engine values when available
+        if (margins && (margins.advisor_margin_amount || margins.agency_margin_amount)) {
+          totalCommission += margins.agency_gross_margin || amount;
+          agentShare += margins.advisor_margin_amount || 0;
+          agencyShare += margins.agency_margin_amount || 0;
+        } else {
+          const tier = profileMap.get(commission.user_id);
+          totalCommission += amount;
+          agentShare += calculateAgentCommission(amount, tier);
+          agencyShare += calculateAgencyCommission(amount, tier);
+        }
         
         if (commission.status === "pending") {
           pendingCommission += amount;
