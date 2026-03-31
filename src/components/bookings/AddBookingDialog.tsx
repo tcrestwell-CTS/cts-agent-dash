@@ -41,13 +41,11 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
-  const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { activeSuppliers, isLoading: suppliersLoading } = useSuppliers();
   const addBookingTravelers = useAddBookingTravelers();
   const [showFinancials, setShowFinancials] = useState(false);
   
   const [formData, setFormData] = useState({
-    client_id: "",
     destination: "",
     depart_date: "",
     return_date: "",
