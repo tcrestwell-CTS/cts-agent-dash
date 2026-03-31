@@ -100,7 +100,7 @@ export default function PortalLogin() {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ action: "send-magic-link", email: email.trim(), origin: window.location.origin }),
+        body: JSON.stringify({ action: "send-magic-link", email: email.trim() }),
       });
       if (!res.ok) throw new Error("Failed");
       setSent(true);
