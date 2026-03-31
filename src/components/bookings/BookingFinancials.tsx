@@ -8,7 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, Percent, Building2, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DollarSign, Percent, Building2, TrendingUp, AlertTriangle } from "lucide-react";
+import { useSuppliers, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
+import { useMemo } from "react";
+import type { MarginWarning } from "@/hooks/useMarginWarnings";
 import { useSuppliers, isFlightFlatRate, FLIGHT_FLAT_RATE, FLIGHT_FLAT_PER } from "@/hooks/useSuppliers";
 import { useMemo } from "react";
 
