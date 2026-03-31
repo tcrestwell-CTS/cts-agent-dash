@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Rate limit: 5 leads per minute per IP
+  const ip = getClientIP(req);
+  const rl = checkRateLimit(`receive-lead:${ip}`, 5, 60);
+  if (rl) return rateLimitResponse(rl.retryAfter, corsHeaders);
 
   // Only accept POST
   if (req.method !== 'POST') {
