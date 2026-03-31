@@ -236,6 +236,7 @@ export default function FlightSearch() {
         amount: totalAmount,
       }],
       services: services.length > 0 ? services : undefined,
+      trip_id: tripIdFromQuery,
     });
     setCheckoutOffer(null);
   };
