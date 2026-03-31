@@ -14,9 +14,6 @@ interface RecentBooking {
     destination: string | null;
     depart_date: string | null;
     return_date: string | null;
-    clients: {
-      name: string;
-    } | null;
   } | null;
 }
 
