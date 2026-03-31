@@ -297,11 +297,8 @@ const handler = async (req: Request): Promise<Response> => {
         const invoiceRemaining = templateData?.totalRemaining || "$0.00";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
-            <h2 style="color: #1f2937;">Your Invoice 📄</h2>
+            ${buildBannerHtml("Your Invoice 📄")}
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Please find your invoice attached for the following trip:</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 24px 0;">
