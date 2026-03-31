@@ -23,8 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Loader2, Mail, Users, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
-import { useClients } from "@/hooks/useClients";
-import { useCompanions } from "@/hooks/useCompanions";
 import { useAddBookingTravelers } from "@/hooks/useBookingTravelers";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { CreateBookingData } from "@/hooks/useBookings";
