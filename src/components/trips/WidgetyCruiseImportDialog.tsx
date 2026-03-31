@@ -321,32 +321,49 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     setSailingMonthFilter("all");
   };
 
-  const parseSailingDate = (holidayRef: string): Date | null => {
-    const match = holidayRef.match(/(\d{6})/);
-    if (!match) return null;
-
-    const compactDate = match[1];
-    const year = 2000 + Number(compactDate.slice(0, 2));
-    const month = Number(compactDate.slice(2, 4));
-    const day = Number(compactDate.slice(4, 6));
-
-    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
-    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-
-    const parsed = new Date(Date.UTC(year, month - 1, day));
-    if (
-      parsed.getUTCFullYear() !== year ||
-      parsed.getUTCMonth() !== month - 1 ||
-      parsed.getUTCDate() !== day
-    ) {
-      return null;
+  const parseSailingDate = (sailing: WidgetySailing): Date | null => {
+    // Prefer the actual date_from field from the API
+    if (sailing.date_from) {
+      try {
+        const parsed = parseISO(sailing.date_from);
+        if (!isNaN(parsed.getTime())) return parsed;
+      } catch { /* fall through */ }
     }
 
-    return parsed;
+    // Fallback: try parsing from holiday_ref (8-digit YYYYMMDD or 6-digit YYMMDD)
+    const match8 = sailing.holiday_ref.match(/(\d{8})/);
+    if (match8) {
+      const d = match8[1];
+      const year = Number(d.slice(0, 4));
+      const month = Number(d.slice(4, 6));
+      const day = Number(d.slice(6, 8));
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const parsed = new Date(Date.UTC(year, month - 1, day));
+        if (parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) {
+          return parsed;
+        }
+      }
+    }
+
+    const match6 = sailing.holiday_ref.match(/(\d{6})/);
+    if (match6) {
+      const d = match6[1];
+      const year = 2000 + Number(d.slice(0, 2));
+      const month = Number(d.slice(2, 4));
+      const day = Number(d.slice(4, 6));
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const parsed = new Date(Date.UTC(year, month - 1, day));
+        if (parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day) {
+          return parsed;
+        }
+      }
+    }
+
+    return null;
   };
 
-  const formatSailingDate = (holidayRef: string) => {
-    const parsed = parseSailingDate(holidayRef);
+  const formatSailingDate = (sailing: WidgetySailing) => {
+    const parsed = parseSailingDate(sailing);
     return parsed ? format(parsed, "MMM d, yyyy") : null;
   };
 
