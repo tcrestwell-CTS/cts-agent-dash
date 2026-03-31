@@ -258,8 +258,8 @@ export function AgencyMetrics() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <MiniBarChart data={chartData.commission} title="Commission received by month" />
-        <MiniBarChart data={chartData.agencyIncome} title="Agency income by month" />
+        <MiniBarChart data={chartData.commission} title="Gross margin by month" />
+        <MiniBarChart data={chartData.agencyIncome} title="Agency retained by month" />
       </div>
 
       {/* Full Width Gross Sales */}
