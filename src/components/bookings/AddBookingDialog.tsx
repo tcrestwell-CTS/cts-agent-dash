@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, Mail, Users, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, Mail, DollarSign, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { useAddBookingTravelers } from "@/hooks/useBookingTravelers";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { CreateBookingData } from "@/hooks/useBookings";
