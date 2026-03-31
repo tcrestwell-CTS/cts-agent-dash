@@ -144,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
             ${buildBannerHtml("Welcome Aboard! 🌍")}
-            <h2 style="color: #1f2937;">Welcome Aboard! 🌍</h2>
+            <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
             <p style="color: #4b5563; line-height: 1.6;">Thank you for choosing ${agencyName} for your upcoming adventure. We're thrilled to help you create unforgettable travel memories.</p>
             <p style="color: #4b5563; line-height: 1.6;">Your dedicated travel consultant is ready to craft the perfect itinerary for you.</p>
