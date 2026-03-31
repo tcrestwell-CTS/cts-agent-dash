@@ -637,6 +637,7 @@ const BookingDetail = () => {
             marginVersion={booking.margin_version}
             pricingMode={booking.pricing_mode}
             commissionTier={userTier ?? undefined}
+            marginWarnings={marginWarnings}
           />
           {booking.travelers > 1 && (
             <Card>
