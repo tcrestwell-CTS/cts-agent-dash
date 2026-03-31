@@ -510,6 +510,98 @@ export type Database = {
           },
         ]
       }
+      booking_confirmations: {
+        Row: {
+          booking_id: string
+          commission_variance: number
+          created_at: string
+          extracted_at: string | null
+          extracted_commission_amount: number | null
+          extracted_commission_rate: number | null
+          extracted_cruise_line: string | null
+          extracted_gross_charges: number | null
+          extracted_guests: number | null
+          extracted_itinerary: string | null
+          extracted_json: Json
+          extracted_net_charges: number | null
+          extracted_reservation_id: string | null
+          extracted_sailing_date: string | null
+          extracted_ship: string | null
+          extracted_stateroom: string | null
+          gross_variance: number
+          id: string
+          net_variance: number
+          pdf_filename: string | null
+          recon_notes: string | null
+          recon_status: string
+          reconciled_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          commission_variance?: number
+          created_at?: string
+          extracted_at?: string | null
+          extracted_commission_amount?: number | null
+          extracted_commission_rate?: number | null
+          extracted_cruise_line?: string | null
+          extracted_gross_charges?: number | null
+          extracted_guests?: number | null
+          extracted_itinerary?: string | null
+          extracted_json?: Json
+          extracted_net_charges?: number | null
+          extracted_reservation_id?: string | null
+          extracted_sailing_date?: string | null
+          extracted_ship?: string | null
+          extracted_stateroom?: string | null
+          gross_variance?: number
+          id?: string
+          net_variance?: number
+          pdf_filename?: string | null
+          recon_notes?: string | null
+          recon_status?: string
+          reconciled_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          commission_variance?: number
+          created_at?: string
+          extracted_at?: string | null
+          extracted_commission_amount?: number | null
+          extracted_commission_rate?: number | null
+          extracted_cruise_line?: string | null
+          extracted_gross_charges?: number | null
+          extracted_guests?: number | null
+          extracted_itinerary?: string | null
+          extracted_json?: Json
+          extracted_net_charges?: number | null
+          extracted_reservation_id?: string | null
+          extracted_sailing_date?: string | null
+          extracted_ship?: string | null
+          extracted_stateroom?: string | null
+          gross_variance?: number
+          id?: string
+          net_variance?: number
+          pdf_filename?: string | null
+          recon_notes?: string | null
+          recon_status?: string
+          reconciled_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_confirmations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_margin_audit: {
         Row: {
           advisor_margin_amount: number
