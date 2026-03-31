@@ -94,6 +94,7 @@ const navGroups: NavGroup[] = [
     icon: Wrench,
     items: [
       { name: "Flight Search", href: "/flights", icon: Plane },
+      { name: "Flight Monitor", href: "/flight-monitoring", icon: Bell },
       { name: "Hotel Search", href: "/hotels", icon: Hotel },
       { name: "Cruise Search", href: "/cruises", icon: Ship },
       { name: "Training", href: "/training", icon: GraduationCap },
