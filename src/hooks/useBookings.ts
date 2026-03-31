@@ -588,7 +588,7 @@ export async function recalculateMargin(
 ): Promise<MarginCalculationResult | null> {
   try {
     // Delete existing synthetic line(s) (manual lines are preserved)
-    await supabase
+    await (supabase as any)
       .from("booking_margin_lines")
       .delete()
       .eq("booking_id", bookingId)
@@ -596,7 +596,7 @@ export async function recalculateMargin(
 
     // Insert fresh synthetic line (do NOT include generated columns)
     const line = buildSyntheticMarginLine(bookingId, userId, grossSales, supplierPayout);
-    const { error: lineError } = await supabase
+    const { error: lineError } = await (supabase as any)
       .from("booking_margin_lines")
       .insert({
         booking_id:      line.booking_id,
