@@ -617,7 +617,7 @@ export async function recalculateMargin(
     }
 
     // Call the server-side margin calculation
-    const { data, error: rpcError } = await supabase.rpc(
+    const { data, error: rpcError } = await (supabase as any).rpc(
       "calculate_booking_margin",
       {
         p_booking_id:    bookingId,
@@ -631,7 +631,7 @@ export async function recalculateMargin(
       return null;
     }
 
-    const result = data as MarginCalculationResult;
+    const result = data as unknown as MarginCalculationResult;
     if (result.status === "error") {
       console.error("[recalculateMargin] Calc error:", result.error);
       return null;
