@@ -1629,6 +1629,96 @@ export type Database = {
         }
         Relationships: []
       }
+      flight_orders: {
+        Row: {
+          airline_name: string | null
+          arrival_at: string | null
+          booking_reference: string | null
+          client_id: string | null
+          created_at: string | null
+          departure_at: string | null
+          destination_iata: string | null
+          duffel_order_id: string
+          event_log: Json | null
+          flight_numbers: string[] | null
+          id: string
+          last_event_at: string | null
+          last_event_type: string | null
+          order_status: string | null
+          origin_iata: string | null
+          passenger_emails: string[] | null
+          passenger_names: string[] | null
+          total_amount: number | null
+          total_currency: string | null
+          trip_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          airline_name?: string | null
+          arrival_at?: string | null
+          booking_reference?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          departure_at?: string | null
+          destination_iata?: string | null
+          duffel_order_id: string
+          event_log?: Json | null
+          flight_numbers?: string[] | null
+          id?: string
+          last_event_at?: string | null
+          last_event_type?: string | null
+          order_status?: string | null
+          origin_iata?: string | null
+          passenger_emails?: string[] | null
+          passenger_names?: string[] | null
+          total_amount?: number | null
+          total_currency?: string | null
+          trip_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          airline_name?: string | null
+          arrival_at?: string | null
+          booking_reference?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          departure_at?: string | null
+          destination_iata?: string | null
+          duffel_order_id?: string
+          event_log?: Json | null
+          flight_numbers?: string[] | null
+          id?: string
+          last_event_at?: string | null
+          last_event_type?: string | null
+          order_status?: string | null
+          origin_iata?: string | null
+          passenger_emails?: string[] | null
+          passenger_names?: string[] | null
+          total_amount?: number | null
+          total_currency?: string | null
+          trip_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_orders_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_signups: {
         Row: {
           created_at: string
