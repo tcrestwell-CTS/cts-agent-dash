@@ -89,14 +89,15 @@ export function AgencyMetrics() {
   const kpis = useMemo(() => {
     const bookingCount = filteredBookings.length;
     const salesVolume = filteredBookings.reduce((s, b) => s + (b.gross_sales || b.total_amount || 0), 0);
-    const commissionReceived = filteredBookings.reduce((s, b) => s + (b.commission_revenue || 0), 0);
+    // Phase 4: Use agency_gross_margin (margin engine) with fallback to commission_revenue
+    const grossMargin = filteredBookings.reduce((s, b) => s + (b.agency_gross_margin || b.commission_revenue || 0), 0);
 
-    // Agency income uses actual tier split from agent profile
+    // Agency income uses margin engine's agency_margin_amount when available
     const agencyIncome = filteredBookings.reduce((s, b) => {
-      return s + getAgencyShare(b.commission_revenue || 0, b.user_id);
+      return s + (b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id));
     }, 0);
 
-    return { bookingCount, salesVolume, commissionReceived, agencyIncome };
+    return { bookingCount, salesVolume, grossMargin, agencyIncome };
   }, [filteredBookings, agentTierMap]);
 
   // Monthly chart data for the selected range
