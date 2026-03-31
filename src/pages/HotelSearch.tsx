@@ -82,6 +82,10 @@ export default function HotelSearch() {
     if (!dest || dest.length > 3 || !checkIn || !checkOut) {
       return;
     }
+    if (checkOut <= checkIn) {
+      toast.error("Check-out date must be after check-in date.");
+      return;
+    }
     searchHotels({
       checkIn,
       checkOut,
