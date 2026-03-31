@@ -466,10 +466,8 @@ const handler = async (req: Request): Promise<Response> => {
         const formattedMessage = messageContent.replace(/\n/g, "<br>");
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              ${logoHtml}
-              <h1 style="color: ${primaryColor}; margin: 0;">${agencyName}</h1>
-            </div>
+            ${buildBannerHtml(subject)}
+            <div style="padding: 24px;">
             <div style="color: #4b5563; line-height: 1.8;">
               ${formattedMessage}
             </div>
