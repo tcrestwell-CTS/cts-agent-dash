@@ -60,6 +60,7 @@ serve(async (req) => {
         break;
 
       case "order.airline_initiated_change":
+      case "order.airline_initiated_change_detected":
         eventSummary = "Airline-initiated schedule change";
         newStatus = "schedule_changed";
         notificationTitle = `⚠️ Schedule Change: ${route}`;
@@ -67,10 +68,79 @@ serve(async (req) => {
         break;
 
       case "order.cancellation":
-        eventSummary = "Flight cancelled";
+      case "order.cancellation.created":
+        eventSummary = "Flight cancellation initiated";
+        newStatus = "cancelled";
+        notificationTitle = `🚨 Flight Cancellation: ${route}`;
+        notificationMessage = `Flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} cancellation has been initiated.`;
+        break;
+
+      case "order.cancellation.confirmed":
+        eventSummary = "Flight cancellation confirmed";
         newStatus = "cancelled";
         notificationTitle = `🚨 Flight Cancelled: ${route}`;
-        notificationMessage = `Flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} has been cancelled. Immediate rebooking action required.`;
+        notificationMessage = `Flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} has been fully cancelled. Immediate rebooking action required.`;
+        break;
+
+      case "order.created":
+        eventSummary = "Order created successfully";
+        notificationTitle = `✅ Flight Booked: ${route}`;
+        notificationMessage = `Flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} has been booked successfully.`;
+        break;
+
+      case "order.creation_failed":
+        eventSummary = "Order creation failed";
+        newStatus = "failed";
+        notificationTitle = `❌ Booking Failed: ${route}`;
+        notificationMessage = `Flight booking for ${route} (${paxNames}) failed. Please retry or contact support.`;
+        break;
+
+      case "air.payment.succeeded":
+        eventSummary = "Payment processed successfully";
+        notificationTitle = `💳 Payment Confirmed: ${route}`;
+        notificationMessage = `Payment for flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} was processed successfully.`;
+        break;
+
+      case "air.payment.failed":
+        eventSummary = "Payment failed";
+        notificationTitle = `❌ Payment Failed: ${route}`;
+        notificationMessage = `Payment for flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} has failed. Please update payment details.`;
+        break;
+
+      case "air.payment.cancelled":
+        eventSummary = "Payment cancelled";
+        notificationTitle = `Payment Cancelled: ${route}`;
+        notificationMessage = `Payment for flight ${route} (${paxNames}) was cancelled.`;
+        break;
+
+      case "air.payment.pending":
+        eventSummary = "Payment pending";
+        notificationTitle = `⏳ Payment Pending: ${route}`;
+        notificationMessage = `Payment for flight ${route} (${paxNames}) is pending processing.`;
+        break;
+
+      case "air.airline_credit.created":
+        eventSummary = "Airline credit issued";
+        notificationTitle = `🎟️ Airline Credit Issued: ${route}`;
+        notificationMessage = `An airline credit has been issued for flight ${route} (${paxNames}). Check your dashboard for details.`;
+        break;
+
+      case "air.airline_credit.spent":
+        eventSummary = "Airline credit used";
+        notificationTitle = `Airline Credit Used: ${route}`;
+        notificationMessage = `An airline credit for ${route} (${paxNames}) has been applied to a booking.`;
+        break;
+
+      case "air.airline_credit.invalidated":
+        eventSummary = "Airline credit invalidated";
+        notificationTitle = `⚠️ Airline Credit Expired: ${route}`;
+        notificationMessage = `An airline credit for ${route} (${paxNames}) has been invalidated or expired.`;
+        break;
+
+      case "payment.created":
+        eventSummary = "New payment created";
+        notificationTitle = `Payment Created: ${route}`;
+        notificationMessage = `A new payment has been created for flight ${route} (${paxNames}).`;
         break;
 
       default:
