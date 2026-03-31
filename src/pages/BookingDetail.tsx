@@ -51,7 +51,7 @@ import {
   Ban,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
-import { useBooking, useBookings } from "@/hooks/useBookings";
+import { useBooking, useBookings, useBookingMarginLines } from "@/hooks/useBookings";
 import {
   Tooltip,
   TooltipContent,

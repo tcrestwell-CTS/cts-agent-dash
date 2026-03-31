@@ -572,7 +572,10 @@ const Settings = () => {
 
         {isAdmin && (
           <TabsContent value="agency">
-            <AgencySettingsTab />
+            <div className="space-y-8">
+              <AgencySettingsTab />
+              <MarginEngineSettings />
+            </div>
           </TabsContent>
         )}
       </Tabs>
