@@ -3,6 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import {
+  BookingMarginLine,
+  BookingMarginLineInsert,
+  MarginCalculationResult,
+  buildSyntheticMarginLine,
+} from "@/types/margin";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ── Shared select strings ──────────────────────────────────────────────
 const BOOKING_FIELDS = `
@@ -19,7 +26,15 @@ const BOOKING_FIELDS = `
   net_sales,
   calculated_commission,
   commission_estimate,
-  trip_id
+  trip_id,
+  agency_gross_margin,
+  advisor_split_pct,
+  agency_split_pct,
+  advisor_margin_amount,
+  agency_margin_amount,
+  pricing_mode,
+  margin_locked,
+  margin_version
 `;
 
 const BOOKING_SELECT_LIST = `
@@ -91,6 +106,15 @@ export interface Booking {
   calculated_commission: number;
   commission_estimate: number;
   trip_id: string | null;
+  // ── Margin engine fields (populated by calculate_booking_margin RPC) ──
+  agency_gross_margin?: number;
+  advisor_split_pct?: number;
+  agency_split_pct?: number;
+  advisor_margin_amount?: number;
+  agency_margin_amount?: number;
+  pricing_mode?: string;
+  margin_locked?: boolean;
+  margin_version?: number;
   trips?: {
     id: string;
     status: string;
@@ -270,6 +294,12 @@ export function useBookings() {
       }
 
       toast.success("Booking created successfully");
+
+      // Margin engine: upsert synthetic line + call calculate_booking_margin RPC
+      const grossSalesForMargin   = data.gross_sales ?? data.total_price ?? 0;
+      const supplierCostForMargin = data.supplier_payout ?? 0;
+      await recalculateMargin(newBooking.id, user.id, grossSalesForMargin, supplierCostForMargin);
+
       await fetchBookings();
       return newBooking;
     } catch (error) {
@@ -345,6 +375,18 @@ export function useBookings() {
       }
 
       toast.success("Booking updated successfully");
+
+      // Recalculate margin if financials changed
+      const financialsChanged = "gross_sales" in data || "supplier_id" in data || "total_price" in data;
+      if (financialsChanged) {
+        const current = bookings.find(b => b.id === bookingId);
+        if (current) {
+          const gs = (data as any).gross_sales ?? current.gross_sales ?? 0;
+          const sp = current.supplier_payout ?? 0;
+          await recalculateMargin(bookingId, user.id, gs, sp);
+        }
+      }
+
       await fetchBookings();
       return true;
     } catch (error) {
@@ -526,4 +568,112 @@ export function useClientBookings(clientId: string | undefined) {
   }, [user, clientId]);
 
   return { bookings, loading };
+}
+
+// ── Margin Engine ──────────────────────────────────────────────────────────
+
+/**
+ * Upserts a synthetic margin line for a booking and calls the
+ * calculate_booking_margin RPC. Runs after booking create/update.
+ *
+ * Phase 1 MVP: one synthetic line from gross_sales/supplier_payout.
+ * Phase 2: replace with real line-item insertion from MarginLinesEditor.
+ */
+export async function recalculateMargin(
+  bookingId: string,
+  userId: string,
+  grossSales: number,
+  supplierPayout: number,
+  advisorSplitOverride?: number | null
+): Promise<MarginCalculationResult | null> {
+  try {
+    // Delete existing synthetic line(s) (manual lines are preserved)
+    await supabase
+      .from("booking_margin_lines")
+      .delete()
+      .eq("booking_id", bookingId)
+      .eq("source", "synthetic");
+
+    // Insert fresh synthetic line (do NOT include generated columns)
+    const line = buildSyntheticMarginLine(bookingId, userId, grossSales, supplierPayout);
+    const { error: lineError } = await supabase
+      .from("booking_margin_lines")
+      .insert({
+        booking_id:      line.booking_id,
+        user_id:         line.user_id,
+        line_type:       line.line_type,
+        description:     line.description,
+        source:          line.source,
+        quantity:        line.quantity,
+        unit_cost:       line.unit_cost,
+        unit_sell:       line.unit_sell,
+        is_pass_through: line.is_pass_through,
+        sort_order:      line.sort_order,
+      });
+
+    if (lineError) {
+      console.error("[recalculateMargin] Synthetic line insert failed:", lineError);
+      // Don't hard-fail — RPC falls back to legacy fields if no lines exist
+    }
+
+    // Call the server-side margin calculation
+    const { data, error: rpcError } = await supabase.rpc(
+      "calculate_booking_margin",
+      {
+        p_booking_id:    bookingId,
+        p_advisor_split: advisorSplitOverride ?? null,
+        p_force_recalc:  false,
+      }
+    );
+
+    if (rpcError) {
+      console.error("[recalculateMargin] RPC error:", rpcError);
+      return null;
+    }
+
+    const result = data as MarginCalculationResult;
+    if (result.status === "error") {
+      console.error("[recalculateMargin] Calc error:", result.error);
+      return null;
+    }
+
+    return result;
+  } catch (err) {
+    console.error("[recalculateMargin] Unexpected error:", err);
+    return null;
+  }
+}
+
+// ── useBookingMarginLines hook ─────────────────────────────────────────────
+
+export function useBookingMarginLines(bookingId: string | undefined) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: lines = [], isLoading, error } = useQuery({
+    queryKey: ["booking-margin-lines", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return [];
+      const { data, error } = await supabase
+        .from("booking_margin_lines")
+        .select("*")
+        .eq("booking_id", bookingId)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data as BookingMarginLine[];
+    },
+    enabled: !!bookingId && !!user,
+  });
+
+  const totalSell   = lines.reduce((s, l) => s + l.total_sell, 0);
+  const totalCost   = lines
+    .filter(l => !l.is_pass_through)
+    .reduce((s, l) => s + l.total_cost, 0);
+  const totalMargin = lines.reduce((s, l) => s + l.margin_amount, 0);
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["booking-margin-lines", bookingId] });
+  };
+
+  return { lines, isLoading, error, totalSell, totalCost, totalMargin, invalidate };
 }
