@@ -222,11 +222,18 @@ async function handleCommissionReceived(
   await logSync(supabase, userId, "auto-commission-received", "success", 1);
 }
 
-/** Advisor payout approved → create QBO Expense (payout to advisor) */
+/** Advisor payout approved → create QBO Expense (payout to advisor)
+ *  Phase 4: Uses advisor_margin_amount from the margin engine when available,
+ *  falls back to commission_override_amount → commission_revenue for legacy. */
 async function handlePayoutApproved(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
 ) {
-  const payoutAmount = booking.commission_override_amount || booking.commission_revenue || 0;
+  const payoutAmount = booking.advisor_margin_amount
+    || booking.commission_override_amount
+    || booking.commission_revenue
+    || 0;
+
+  const agencyRetained = booking.agency_margin_amount || 0;
 
   const expense = {
     PaymentType: "Check",
@@ -238,7 +245,7 @@ async function handlePayoutApproved(
         AccountBasedExpenseLineDetail: {
           AccountRef: { value: "1", name: "Commission Expense" },
         },
-        Description: `Advisor payout – Booking ${booking.booking_reference}`,
+        Description: `Advisor payout – Booking ${booking.booking_reference} (advisor share: ${payoutAmount}, agency retained: ${agencyRetained})`,
       },
     ],
     TxnDate: booking.override_approved_at?.split("T")[0] || new Date().toISOString().split("T")[0],
@@ -479,7 +486,18 @@ async function handleTripCompleted(
   const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiability");
   const commissionRevenueId = await ensureQBOAccount(qboBase, qboHeaders, "Commission Revenue", "Income", "ServiceFeeIncome");
 
-  const amount = trip.total_commission_revenue || 0;
+  // Phase 4: Prefer agency_gross_margin (margin engine) over legacy commission_revenue
+  // Fetch summed margin from bookings to get the true agency gross margin
+  const { data: tripBookings } = await supabase
+    .from("bookings")
+    .select("agency_gross_margin, commission_revenue")
+    .eq("trip_id", trip.id);
+
+  const amount = tripBookings?.reduce(
+    (sum: number, b: any) => sum + (b.agency_gross_margin || b.commission_revenue || 0),
+    0
+  ) || trip.total_commission_revenue || 0;
+
   const txnDate = new Date().toISOString().split("T")[0];
   const memo = `Revenue recognition – Trip "${trip.trip_name}" completed`;
 

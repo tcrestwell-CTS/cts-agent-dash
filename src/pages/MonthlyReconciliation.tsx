@@ -115,7 +115,7 @@ const MonthlyReconciliation = () => {
       client: b.clientName,
       destination: b.destination,
       gross_sales: formatCurrencyForExport(b.gross_sales),
-      commission: formatCurrencyForExport(b.commission_revenue),
+      margin: formatCurrencyForExport(b.agency_gross_margin || b.commission_revenue),
       status: b.status,
       date: formatDateForExport(b.created_at),
     }));
@@ -124,7 +124,7 @@ const MonthlyReconciliation = () => {
       { key: "client", header: "Client" },
       { key: "destination", header: "Destination" },
       { key: "gross_sales", header: "Gross Sales" },
-      { key: "commission", header: "Commission" },
+      { key: "margin", header: "Gross Margin" },
       { key: "status", header: "Status" },
       { key: "date", header: "Date" },
     ]);
@@ -267,7 +267,7 @@ const MonthlyReconciliation = () => {
                   <TableHead>Client</TableHead>
                   <TableHead>Destination</TableHead>
                   <TableHead className="text-right">Gross Sales</TableHead>
-                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Gross Margin</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -278,7 +278,7 @@ const MonthlyReconciliation = () => {
                     <TableCell>{b.clientName}</TableCell>
                     <TableCell>{b.destination}</TableCell>
                     <TableCell className="text-right">{fmt(b.gross_sales)}</TableCell>
-                    <TableCell className="text-right text-success">{fmt(b.commission_revenue)}</TableCell>
+                    <TableCell className="text-right text-success">{fmt(b.agency_gross_margin || b.commission_revenue)}</TableCell>
                     <TableCell>
                       <Badge variant={b.status === "confirmed" ? "default" : "secondary"}>
                         {b.status}

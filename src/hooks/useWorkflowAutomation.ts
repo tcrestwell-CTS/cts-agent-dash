@@ -231,18 +231,19 @@ export function useWorkflowAutomation() {
 
       // === BOOKED ===
       if (newStatus === "booked") {
-        // Validate: every booking must have supplier, confirmation #, price, and commission
+        // Validate: every booking must have supplier, confirmation #, price, and margin
         const invalidBookings = bookings.filter(
-          (b) => !b.suppliers?.name || !b.booking_reference || b.gross_sales <= 0 || b.commission_revenue <= 0
+          (b) => !b.suppliers?.name || !b.booking_reference || b.gross_sales <= 0 ||
+                 ((b.agency_gross_margin || 0) <= 0 && (b.commission_revenue || 0) <= 0)
         );
         if (invalidBookings.length > 0) {
           return {
             allowed: false,
-            error: "All bookings must have a supplier, confirmation number, price, and expected commission before marking as Booked",
+            error: "All bookings must have a supplier, confirmation number, price, and expected margin/commission before marking as Booked",
           };
         }
 
-        // Create commission forecast entries for bookings that don't have one yet
+        // Create commission forecast entries using margin engine values when available
         for (const booking of bookings) {
           const { data: existing } = await supabase
             .from("commissions")
@@ -251,15 +252,19 @@ export function useWorkflowAutomation() {
             .limit(1);
 
           if (!existing || existing.length === 0) {
+            // Phase 4: Use advisor_margin_amount from engine, fall back to commission_revenue
+            const payoutAmount = booking.advisor_margin_amount || booking.commission_revenue || 0;
+            const grossMargin = booking.agency_gross_margin || booking.commission_revenue || 0;
+
             await supabase.from("commissions").insert({
               user_id: user!.id,
               booking_id: booking.id,
-              amount: booking.commission_revenue,
-              rate: booking.commissionable_amount > 0
-                ? (booking.commission_revenue / booking.commissionable_amount) * 100
+              amount: payoutAmount,
+              rate: grossMargin > 0 && booking.gross_sales > 0
+                ? (grossMargin / booking.gross_sales) * 100
                 : 0,
               status: "pending",
-              expected_commission: booking.commission_revenue,
+              expected_commission: payoutAmount,
             });
           }
         }

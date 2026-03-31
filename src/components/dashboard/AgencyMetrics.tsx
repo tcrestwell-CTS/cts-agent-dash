@@ -89,14 +89,15 @@ export function AgencyMetrics() {
   const kpis = useMemo(() => {
     const bookingCount = filteredBookings.length;
     const salesVolume = filteredBookings.reduce((s, b) => s + (b.gross_sales || b.total_amount || 0), 0);
-    const commissionReceived = filteredBookings.reduce((s, b) => s + (b.commission_revenue || 0), 0);
+    // Phase 4: Use agency_gross_margin (margin engine) with fallback to commission_revenue
+    const grossMargin = filteredBookings.reduce((s, b) => s + (b.agency_gross_margin || b.commission_revenue || 0), 0);
 
-    // Agency income uses actual tier split from agent profile
+    // Agency income uses margin engine's agency_margin_amount when available
     const agencyIncome = filteredBookings.reduce((s, b) => {
-      return s + getAgencyShare(b.commission_revenue || 0, b.user_id);
+      return s + (b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id));
     }, 0);
 
-    return { bookingCount, salesVolume, commissionReceived, agencyIncome };
+    return { bookingCount, salesVolume, grossMargin, agencyIncome };
   }, [filteredBookings, agentTierMap]);
 
   // Monthly chart data for the selected range
@@ -122,8 +123,8 @@ export function AgencyMetrics() {
 
       const key = format(parsedDepartDate, "yyyy-MM");
       if (commMap[key] !== undefined) {
-        commMap[key] += b.commission_revenue || 0;
-        agencyMap[key] += getAgencyShare(b.commission_revenue || 0, b.user_id);
+        commMap[key] += b.agency_gross_margin || b.commission_revenue || 0;
+        agencyMap[key] += b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id);
         grossMap[key] += b.gross_sales || b.total_amount || 0;
       }
     });
@@ -243,7 +244,7 @@ export function AgencyMetrics() {
         {[
           { label: "Bookings", value: kpis.bookingCount.toString() },
           { label: "Sales volume", value: fmt(kpis.salesVolume) },
-          { label: "Commission received", value: fmt(kpis.commissionReceived) },
+          { label: "Gross margin", value: fmt(kpis.grossMargin) },
           { label: "Agency income", value: fmt(kpis.agencyIncome) },
         ].map((kpi) => (
           <Card key={kpi.label}>
@@ -257,8 +258,8 @@ export function AgencyMetrics() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <MiniBarChart data={chartData.commission} title="Commission received by month" />
-        <MiniBarChart data={chartData.agencyIncome} title="Agency income by month" />
+        <MiniBarChart data={chartData.commission} title="Gross margin by month" />
+        <MiniBarChart data={chartData.agencyIncome} title="Agency retained by month" />
       </div>
 
       {/* Full Width Gross Sales */}
