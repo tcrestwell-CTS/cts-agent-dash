@@ -233,8 +233,7 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
                 </button>
               );
             })()}
-            className="h-8 text-sm"
-          />
+          </div>
 
           <span className="text-xs font-medium px-1 text-muted-foreground">
             {formatCurrency(line._preview_total_cost)}
