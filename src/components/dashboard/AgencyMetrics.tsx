@@ -123,8 +123,8 @@ export function AgencyMetrics() {
 
       const key = format(parsedDepartDate, "yyyy-MM");
       if (commMap[key] !== undefined) {
-        commMap[key] += b.commission_revenue || 0;
-        agencyMap[key] += getAgencyShare(b.commission_revenue || 0, b.user_id);
+        commMap[key] += b.agency_gross_margin || b.commission_revenue || 0;
+        agencyMap[key] += b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id);
         grossMap[key] += b.gross_sales || b.total_amount || 0;
       }
     });
