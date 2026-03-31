@@ -166,25 +166,6 @@ export function AddBookingDialog({ onSubmit, creating, open: controlledOpen, onO
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="client">Client *</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={clientsLoading ? "Loading clients..." : "Select a client"} />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} {client.email ? `(${client.email})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="trip_name">Trip Name</Label>
             <Input
               id="trip_name"
