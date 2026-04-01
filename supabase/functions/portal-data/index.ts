@@ -305,12 +305,34 @@ const handler = async (req: Request): Promise<Response> => {
 
       const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
-        supabase.from("bookings").select("id, booking_reference, booking_type, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id, cancellation_terms").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
+        supabase.from("bookings").select("id, booking_reference, booking_type, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id, cancellation_terms, gross_sales").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url").eq("trip_id", tripId),
         supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
         supabase.from("option_blocks").select("id, day_number, title, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
       ]);
+
+      // Fetch pricing lines (client-facing sell prices only) for all bookings
+      const bookingIds = (bookingsRes.data || []).map((b: any) => b.id);
+      let pricingLines: any[] = [];
+      if (bookingIds.length > 0) {
+        const { data: marginLines } = await supabase
+          .from("booking_margin_lines")
+          .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
+          .in("booking_id", bookingIds)
+          .order("sort_order", { ascending: true });
+        pricingLines = (marginLines || []).map((l: any) => ({
+          id: l.id,
+          booking_id: l.booking_id,
+          description: l.description,
+          line_type: l.line_type,
+          unit_price: l.unit_sell,
+          quantity: l.quantity,
+          total_price: l.total_sell,
+          is_addon: l.is_pass_through || l.line_type === 'addon',
+          sort_order: l.sort_order,
+        }));
+      }
 
       // Verify the client has access (either owner, sibling client record, or companion)
       if (!tripRes.data || (!allClientIds.includes(tripRes.data.client_id) && !isCompanion)) {
