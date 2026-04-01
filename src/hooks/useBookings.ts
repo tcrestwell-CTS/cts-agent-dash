@@ -511,7 +511,7 @@ export function useBooking(bookingId: string | undefined) {
             trip_name: trip?.trip_name ?? null,
             client_id: trip?.client_id ?? null,
             clients: client,
-            travelers: 1,
+            travelers: trip?.travelers ?? 1,
             supplier_payout: raw.supplier_payout ?? 0,
           };
           setBooking(flattened);
