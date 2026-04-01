@@ -20,6 +20,7 @@ export type MarginLineType =
   | "service_fee"
   | "package"
   | "excursion"
+  | "addon"
   | "other";
 
 export type MarginLineSource =
@@ -286,6 +287,7 @@ export const LINE_TYPE_LABELS: Record<MarginLineType, string> = {
   service_fee: "Service Fee",
   package:     "Package",
   excursion:   "Excursion",
+  addon:       "Add-on",
   other:       "Other",
 };
 

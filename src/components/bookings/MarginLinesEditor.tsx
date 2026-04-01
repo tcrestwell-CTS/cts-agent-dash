@@ -85,6 +85,7 @@ const LINE_TYPE_OPTIONS: { value: MarginLineType; label: string }[] = [
   { value: "service_fee", label: "Service Fee" },
   { value: "package", label: "Package" },
   { value: "excursion", label: "Excursion" },
+  { value: "addon", label: "Add-on" },
   { value: "other", label: "Other" },
 ];
 
