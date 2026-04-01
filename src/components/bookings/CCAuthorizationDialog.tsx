@@ -105,7 +105,7 @@ export function CCAuthorizationDialog({
     toast.success(`${label} copied`);
   };
 
-  const PRODUCTION_DOMAIN = "https://agents.crestwelltravels.com";
+  const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
 
   const getAuthLink = (token: string) => {
     return `${PRODUCTION_DOMAIN}/authorize/${token}`;
