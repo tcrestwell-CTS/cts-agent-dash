@@ -321,17 +321,23 @@ const handler = async (req: Request): Promise<Response> => {
           .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
           .in("booking_id", bookingIds)
           .order("sort_order", { ascending: true });
-        pricingLines = (marginLines || []).map((l: any) => ({
-          id: l.id,
-          booking_id: l.booking_id,
-          description: l.description,
-          line_type: l.line_type,
-          unit_price: l.unit_sell,
-          quantity: l.quantity,
-          total_price: l.total_sell,
-          is_addon: l.is_pass_through || l.line_type === 'addon',
-          sort_order: l.sort_order,
-        }));
+        const bookingsData = bookingsRes.data || [];
+        pricingLines = (marginLines || []).map((l: any) => {
+          const parentBooking = bookingsData.find((b: any) => b.id === l.booking_id);
+          return {
+            id: l.id,
+            booking_id: l.booking_id,
+            booking_name: parentBooking?.trip_name || "",
+            description: l.description,
+            line_type: l.line_type,
+            unit_price: l.unit_sell,
+            quantity: l.quantity,
+            total_price: l.total_sell,
+            is_addon: l.is_pass_through || l.line_type === 'addon',
+            sort_order: l.sort_order,
+            travelers: parentBooking?.travelers || 1,
+          };
+        });
       }
 
       // Verify the client has access (either owner, sibling client record, or companion)
