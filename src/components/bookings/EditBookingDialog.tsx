@@ -77,19 +77,30 @@ export function EditBookingDialog({
     if (!booking || !user) return;
     setSaving(true);
     try {
+      const hasManualLines = localLines.length > 0;
+
+      // When line items exist, derive supplier_payout and gross_sales from them
+      let derivedSupplierPayout = formData.supplier_payout;
+      let derivedGrossSales = formData.gross_sales;
+      if (hasManualLines) {
+        derivedSupplierPayout = localLines.reduce(
+          (sum, l) => sum + (l.unit_cost * (l.quantity || 1)), 0
+        );
+        derivedGrossSales = localLines.reduce(
+          (sum, l) => sum + (l.unit_sell * (l.quantity || 1)), 0
+        );
+      }
+
       const success = await onSubmit(booking.id, {
-        total_price:         formData.total_price,
-        gross_sales:         formData.gross_sales,
-        supplier_payout:     formData.supplier_payout,
+        total_price:         derivedGrossSales,
+        gross_sales:         derivedGrossSales,
+        supplier_payout:     derivedSupplierPayout,
         supplier_id:         formData.supplier_id || null,
         commission_estimate: formData.commission_estimate,
       });
       if (!success) return;
 
-      // If agent added real line items, persist them and let RPC derive totals
-      const hasManualLines = localLines.length > 0;
       if (hasManualLines) {
-        // Remove old manual + synthetic lines, replace with current editor state
         await (supabase as any)
           .from("booking_margin_lines")
           .delete()
@@ -106,11 +117,9 @@ export function EditBookingDialog({
         await (supabase as any).from("booking_margin_lines").insert(inserts);
       }
 
-      // RPC sums from lines when they exist; otherwise uses the form values
-      // skipSyntheticLine=true when manual lines exist to prevent doubling
       await recalculateMargin(
         booking.id, user.id,
-        formData.gross_sales, formData.supplier_payout,
+        derivedGrossSales, derivedSupplierPayout,
         null,
         hasManualLines
       );
