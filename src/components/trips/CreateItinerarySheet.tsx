@@ -49,21 +49,26 @@ export function CreateItinerarySheet({
 
   const [name, setName] = useState("");
   const [overview, setOverview] = useState("");
+  const [departDate, setDepartDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Populate form when editing or reset when creating
   useEffect(() => {
     if (open && editingItinerary) {
       setName(editingItinerary.name);
       setOverview(editingItinerary.overview || "");
+      setDepartDate(editingItinerary.depart_date || tripDepartDate || "");
+      setReturnDate(editingItinerary.return_date || tripReturnDate || "");
       setCoverPreview(editingItinerary.cover_image_url || null);
       setCoverFile(null);
     } else if (open && !editingItinerary) {
       setName("");
       setOverview("");
+      setDepartDate(tripDepartDate || "");
+      setReturnDate(tripReturnDate || "");
       setCoverPreview(null);
       setCoverFile(null);
     }
@@ -103,7 +108,6 @@ export function CreateItinerarySheet({
       return urlData.publicUrl;
     }
     if (coverPreview && !coverFile) return coverPreview;
-    // Cover was removed
     if (!coverPreview) return null;
     return undefined;
   };
@@ -113,6 +117,12 @@ export function CreateItinerarySheet({
       toast.error("Please enter a name");
       return;
     }
+
+    if (departDate && returnDate && returnDate < departDate) {
+      toast.error("Return date must be on or after departure date");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const cover_image_url = await uploadCoverIfNeeded();
@@ -120,16 +130,16 @@ export function CreateItinerarySheet({
       if (isEditing && onUpdate) {
         await onUpdate(editingItinerary.id, {
           name: name.trim(),
-          depart_date: tripDepartDate || null,
-          return_date: tripReturnDate || null,
+          depart_date: departDate || null,
+          return_date: returnDate || null,
           cover_image_url: cover_image_url === undefined ? editingItinerary.cover_image_url : cover_image_url,
           overview: overview.trim() || null,
         });
       } else {
         await onCreate({
           name: name.trim(),
-          depart_date: tripDepartDate || undefined,
-          return_date: tripReturnDate || undefined,
+          depart_date: departDate || undefined,
+          return_date: returnDate || undefined,
           cover_image_url: cover_image_url || undefined,
           overview: overview.trim() || undefined,
         });
@@ -152,7 +162,6 @@ export function CreateItinerarySheet({
         </SheetHeader>
 
         <div className="space-y-6 py-6">
-          {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="itin-name">Name</Label>
             <Input
@@ -164,30 +173,28 @@ export function CreateItinerarySheet({
             />
           </div>
 
-          {/* Travel Dates (read-only, inherited from trip) */}
           <div className="space-y-2">
             <Label>Travel Dates</Label>
             <p className="text-xs text-muted-foreground">
-              Dates are inherited from the trip. Edit them in Trip Details.
+              These dates apply to this itinerary option and can differ from the main trip dates.
             </p>
             <div className="flex items-center gap-2">
               <Input
                 type="date"
-                value={tripDepartDate || ""}
-                disabled
-                className="flex-1 opacity-70"
+                value={departDate}
+                onChange={(e) => setDepartDate(e.target.value)}
+                className="flex-1"
               />
               <span className="text-sm text-muted-foreground">to</span>
               <Input
                 type="date"
-                value={tripReturnDate || ""}
-                disabled
-                className="flex-1 opacity-70"
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+                className="flex-1"
               />
             </div>
           </div>
 
-          {/* Cover Photo */}
           <CoverPhotoPicker
             coverPreview={coverPreview}
             onFileSelected={handleFileSelected}
@@ -195,7 +202,6 @@ export function CreateItinerarySheet({
             onRemove={removeCover}
           />
 
-          {/* Overview Statement */}
           <div className="space-y-2">
             <Label>Overview Statement</Label>
             <p className="text-xs text-muted-foreground">
