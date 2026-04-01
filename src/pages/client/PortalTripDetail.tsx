@@ -358,6 +358,10 @@ export default function PortalTripDetail() {
             )}
           </button>
         ))}
+      </div>
+
+      {/* Overview Tab Content */}
+      {activeTab === "overview" && (<>
 
       {/* Payment Milestone Tracker */}
       {payments.length > 0 && totalCost > 0 && (
