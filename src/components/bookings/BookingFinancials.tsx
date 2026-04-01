@@ -312,7 +312,7 @@ export function BookingFinancialsDisplay({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
+          <p className="text-sm text-muted-foreground">Client Total</p>
           <p className="text-2xl font-semibold text-foreground">
             {formatCurrency(grossSales)}
           </p>
@@ -320,22 +320,13 @@ export function BookingFinancialsDisplay({
 
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Supplier Payout</span>
+            <span className="text-sm text-muted-foreground">Supplier Cost</span>
             <span className="font-medium">{formatCurrency(supplierPayout)}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Net Sales</span>
+            <span className="text-sm text-muted-foreground">Agency Gross Margin</span>
             <span className="font-medium">{formatCurrency(netSales)}</span>
-          </div>
-
-          <div className="flex items-center justify-between bg-success/10 p-2 rounded">
-            <span className="text-sm text-success font-medium">
-              Commission ({commissionRate}%)
-            </span>
-            <span className="font-semibold text-success">
-              {formatCurrency(commissionRevenue)}
-            </span>
           </div>
         </div>
 

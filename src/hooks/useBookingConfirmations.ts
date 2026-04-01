@@ -130,7 +130,6 @@ export function useBookingConfirmation(bookingId: string | undefined) {
       await (supabase as any).rpc("calculate_booking_margin", {
         p_booking_id:   bookingId,
         p_force_recalc: true,
-        p_triggered_by: "manual",
       });
     },
     onSuccess: () => {
