@@ -252,40 +252,6 @@ export default function SharedTripInvestment({
         </div>
       )}
 
-      {/* Ready to Book CTA */}
-      <div className="rounded-xl border border-gray-200 p-6 text-center space-y-4 bg-gray-50">
-        <h3 className="text-lg font-bold text-gray-900">Ready to Book?</h3>
-        <p className="text-sm text-gray-500 max-w-md mx-auto">
-          Review and accept the terms below to proceed with payment.
-        </p>
-        {termsAccepted ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2 text-sm font-medium" style={{ color: primaryColor }}>
-              <CheckCircle2 className="h-5 w-5" />
-              Terms accepted
-            </div>
-            <Button
-              size="lg"
-              className="text-white"
-              style={{ backgroundColor: primaryColor }}
-              onClick={() => setShowPaymentMethods(true)}
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Choose Payment Method
-            </Button>
-          </div>
-        ) : (
-          <Button
-            size="lg"
-            className="text-white"
-            style={{ backgroundColor: primaryColor }}
-            onClick={() => setShowTerms(true)}
-          >
-            <Shield className="h-4 w-4 mr-2" />
-            Review Terms & Proceed
-          </Button>
-        )}
-      </div>
 
       {/* Terms Acceptance Dialog */}
       <Dialog open={showTerms} onOpenChange={setShowTerms}>
