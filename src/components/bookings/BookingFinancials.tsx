@@ -288,9 +288,7 @@ export function BookingFinancialsDisplay({
     }).format(value);
   };
 
-  const commissionRate = netSales > 0
-    ? ((commissionRevenue / netSales) * 100).toFixed(1)
-    : "0";
+  // commissionRate removed — margin engine handles split display
 
   const marginEngineActive = (agencyGrossMargin ?? 0) !== 0 || (advisorMarginAmount ?? 0) !== 0;
   const grossMarginPct = grossSales > 0 && agencyGrossMargin !== undefined
