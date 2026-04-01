@@ -258,8 +258,8 @@ export default function PortalTripDetail() {
                 {trip.depart_date && (
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    {format(new Date(trip.depart_date), "MMM d")}
-                    {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
+                    {format(parseLocalDate(trip.depart_date), "MMM d")}
+                    {trip.return_date && ` – ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
                   </span>
                 )}
                 {totalCost > 0 && (
