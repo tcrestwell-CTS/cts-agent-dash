@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers, Send, Hash } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { RequestChangesDialog } from "@/components/client/RequestChangesDialog";
 import { PaymentMilestoneTracker } from "@/components/client/PaymentMilestoneTracker";

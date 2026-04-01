@@ -39,6 +39,7 @@ import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { SupplierNotesDialog } from "@/components/suppliers/SupplierNotesDialog";
 import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import type { Supplier } from "@/types/supplier";
 
 
