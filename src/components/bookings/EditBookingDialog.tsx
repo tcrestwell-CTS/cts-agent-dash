@@ -63,12 +63,14 @@ export function EditBookingDialog({
     }
   }, [booking]);
 
+  const dbLinesJson = JSON.stringify(dbLines.map(l => l.id));
   useEffect(() => {
-    if (!linesLoading) {
+    if (!linesLoading && dbLines.length > 0) {
       const real = dbLines.filter(l => l.source !== "synthetic");
       setLocalLines(real.length > 0 ? real.map(fromDbLine) : []);
     }
-  }, [dbLines, linesLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbLinesJson, linesLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
