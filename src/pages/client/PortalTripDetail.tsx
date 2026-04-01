@@ -643,7 +643,7 @@ export default function PortalTripDetail() {
                         <p className="font-medium">{b.trip_name || b.destination}</p>
                         <p className="text-sm text-muted-foreground">
                           {typeInfo.label} · {b.destination}
-                          {b.depart_date && ` · ${format(new Date(b.depart_date), "MMM d, yyyy")}`}
+                          {b.depart_date && ` · ${format(parseLocalDate(b.depart_date), "MMM d, yyyy")}`}
                         </p>
                         {b.booking_reference && (
                           <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/80 border">
