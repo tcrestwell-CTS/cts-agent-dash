@@ -84,13 +84,14 @@ export function EditBookingDialog({
       });
       if (!success) return;
 
-      // If agent added real line items, persist them
-      if (activeTab === "lines" && localLines.length > 0) {
+      // If agent added real line items, persist them and let RPC derive totals
+      const hasManualLines = localLines.length > 0;
+      if (hasManualLines) {
+        // Remove old manual + synthetic lines, replace with current editor state
         await (supabase as any)
           .from("booking_margin_lines")
           .delete()
-          .eq("booking_id", booking.id)
-          .neq("source", "synthetic");
+          .eq("booking_id", booking.id);
 
         const inserts: BookingMarginLineInsert[] = localLines.map((l, i) => ({
           booking_id: booking.id, user_id: user.id,
@@ -103,6 +104,7 @@ export function EditBookingDialog({
         await (supabase as any).from("booking_margin_lines").insert(inserts);
       }
 
+      // RPC sums from lines when they exist; otherwise uses the form values
       await recalculateMargin(
         booking.id, user.id,
         formData.gross_sales, formData.supplier_payout
