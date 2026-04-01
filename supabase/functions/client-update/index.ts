@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
       const agencyName = branding?.agency_name || "Crestwell Travel Services";
       const logoUrl = branding?.logo_url || "";
       const primaryColor = branding?.primary_color || "#1e3a5f";
-      const updateLink = `https://agents.crestwelltravels.com/update-info/${tokenRow.token}`;
+      const updateLink = `https://app.crestwelltravels.com/update-info/${tokenRow.token}`;
 
       // Send email via Resend
       const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
