@@ -1,0 +1,1 @@
+UPDATE public.trips SET total_supplier_payout = COALESCE((SELECT SUM(supplier_payout) FROM public.bookings WHERE trip_id = trips.id), 0) WHERE total_supplier_payout = 0 AND EXISTS (SELECT 1 FROM public.bookings WHERE trip_id = trips.id AND supplier_payout > 0);
