@@ -192,38 +192,41 @@ export function BookingFinancials({
 
         {/* Calculated Values */}
         <div className="border-t pt-4 space-y-3">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Building2 className="h-4 w-4" />
+              Supplier Cost
+            </div>
+            <span className="font-medium">
+              {formatCurrency(supplierCost)}
+            </span>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <DollarSign className="h-4 w-4" />
-              Net Sales (Gross − Supplier Cost)
+              Gross Margin (Client Total − Supplier Cost)
             </div>
             <span className="font-medium">
               {formatCurrency(financials.netSales)}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-success/10 p-2 rounded">
             <div className="flex items-center gap-2 text-sm text-success">
               <TrendingUp className="h-4 w-4" />
               {isFlightFlat
-                ? `Commission ($${FLIGHT_FLAT_RATE}/$${FLIGHT_FLAT_PER})`
-                : `Commission (${financials.effectiveCommissionRate}%)`
+                ? `Est. Commission ($${FLIGHT_FLAT_RATE}/$${FLIGHT_FLAT_PER})`
+                : `Est. Commission (${financials.effectiveCommissionRate}%)`
               }
             </div>
             <span className="font-semibold text-success">
               {formatCurrency(financials.commissionRevenue)}
             </span>
           </div>
-
-          <div className="flex items-center justify-between border-t pt-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Building2 className="h-4 w-4" />
-              Supplier Payout
-            </div>
-            <span className="font-semibold">
-              {formatCurrency(supplierCost)}
-            </span>
-          </div>
+          <p className="text-[10px] text-muted-foreground italic">
+            Preview only — final split calculated on save
+          </p>
         </div>
 
         {/* Info text */}
