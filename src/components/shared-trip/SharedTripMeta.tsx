@@ -1,5 +1,6 @@
 import { MapPin, Calendar, DollarSign } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface SharedTripMetaProps {
   trip: {
