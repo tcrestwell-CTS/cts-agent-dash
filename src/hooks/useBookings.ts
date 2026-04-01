@@ -34,7 +34,8 @@ const BOOKING_FIELDS = `
   agency_margin_amount,
   pricing_mode,
   margin_locked,
-  margin_version
+  margin_version,
+  supplier_payout
 `;
 
 const BOOKING_SELECT_LIST = `
@@ -70,6 +71,7 @@ const BOOKING_SELECT_DETAIL = `
     depart_date,
     return_date,
     client_id,
+    travelers,
     clients!trips_client_id_fkey (
       id,
       name,
@@ -495,7 +497,27 @@ export function useBooking(bookingId: string | undefined) {
           .maybeSingle();
 
         if (fetchError) throw fetchError;
-        setBooking(data as any);
+        if (data) {
+          const raw = data as any;
+          const trip = raw.trips;
+          const client = trip?.clients ?? null;
+          const flattened = {
+            ...raw,
+            booking_reference: raw.confirmation_number,
+            total_amount: raw.total_price ?? 0,
+            destination: trip?.destination ?? "",
+            depart_date: trip?.depart_date ?? "",
+            return_date: trip?.return_date ?? "",
+            trip_name: trip?.trip_name ?? null,
+            client_id: trip?.client_id ?? null,
+            clients: client,
+            travelers: trip?.travelers ?? 1,
+            supplier_payout: raw.supplier_payout ?? 0,
+          };
+          setBooking(flattened);
+        } else {
+          setBooking(null);
+        }
       } catch (err) {
         console.error("Error fetching booking:", err);
         setError(err instanceof Error ? err : new Error("Failed to fetch booking"));
