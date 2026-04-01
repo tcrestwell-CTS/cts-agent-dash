@@ -284,7 +284,7 @@ serve(async (req) => {
               </div>
             </div>
             <div style="text-align: center; margin: 24px 0;">
-              <a href="https://agents.crestwelltravels.com" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Open Dashboard</a>
+              <a href="https://app.crestwelltravels.com" style="background-color: ${primaryColor}; color: white; padding: 12px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Open Dashboard</a>
             </div>
             <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
               <p>${agencyName}</p>
