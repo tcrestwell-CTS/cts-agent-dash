@@ -372,6 +372,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
       });
       optionBlocks = snapshot.optionBlocks || [];
+      // Pricing from snapshot if available
     } else {
       // Legacy fallback: serve live data for trips published before versioning
       const [itineraryRes, bookingsRes] = await Promise.all([
@@ -383,7 +384,7 @@ const handler = async (req: Request): Promise<Response> => {
           .order("sort_order", { ascending: true }),
         supabase
           .from("bookings")
-          .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type")
+          .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type, gross_sales, travelers")
           .eq("trip_id", trip.id),
       ]);
 
@@ -416,6 +417,39 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("trip_id", trip.id)
         .order("sort_order", { ascending: true });
       optionBlocks = optionBlocksRes.data || [];
+    }
+
+    // Fetch pricing lines (client-facing sell prices only)
+    let pricingLines: any[] = [];
+    const { data: tripBookingIds } = await supabase
+      .from("bookings")
+      .select("id, trip_name, travelers, gross_sales")
+      .eq("trip_id", trip.id);
+
+    if (tripBookingIds?.length) {
+      const bIds = tripBookingIds.map((b: any) => b.id);
+      const { data: marginLines } = await supabase
+        .from("booking_margin_lines")
+        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
+        .in("booking_id", bIds)
+        .order("sort_order", { ascending: true });
+
+      pricingLines = (marginLines || []).map((l: any) => {
+        const parentBooking = tripBookingIds.find((b: any) => b.id === l.booking_id);
+        return {
+          id: l.id,
+          booking_id: l.booking_id,
+          booking_name: parentBooking?.trip_name || "",
+          description: l.description,
+          line_type: l.line_type,
+          unit_price: l.unit_sell,
+          quantity: l.quantity,
+          total_price: l.total_sell,
+          is_addon: l.is_pass_through || l.line_type === "addon",
+          sort_order: l.sort_order,
+          travelers: parentBooking?.travelers || 1,
+        };
+      });
     }
     let branding = null;
     let advisor = null;
