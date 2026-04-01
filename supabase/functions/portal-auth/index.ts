@@ -16,13 +16,18 @@ const ALLOWED_ORIGINS = [
 
 // Preview URLs pattern
 const LOVABLE_PREVIEW_RE = /^https:\/\/.*--8ab51332-288c-4764-b4d9-392cc428e2fb\.lovable\.app$/;
+const LOVABLE_PROJECT_PREVIEW_RE = /^https:\/\/.*\.lovableproject\.com$/;
 
 function getAllowedOrigin(req: Request): string {
   const origin = req.headers.get("Origin") || "";
-  if (ALLOWED_ORIGINS.includes(origin) || LOVABLE_PREVIEW_RE.test(origin)) {
+  if (
+    ALLOWED_ORIGINS.includes(origin) ||
+    LOVABLE_PREVIEW_RE.test(origin) ||
+    LOVABLE_PROJECT_PREVIEW_RE.test(origin)
+  ) {
     return origin;
   }
-  return ALLOWED_ORIGINS[0]; // fallback — won't match, so browser blocks
+  return ALLOWED_ORIGINS[0];
 }
 
 function corsHeaders(req: Request) {
@@ -30,6 +35,7 @@ function corsHeaders(req: Request) {
     "Access-Control-Allow-Origin": getAllowedOrigin(req),
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }
 
