@@ -34,7 +34,8 @@ const BOOKING_FIELDS = `
   agency_margin_amount,
   pricing_mode,
   margin_locked,
-  margin_version
+  margin_version,
+  supplier_payout
 `;
 
 const BOOKING_SELECT_LIST = `
