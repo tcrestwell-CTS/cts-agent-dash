@@ -361,6 +361,55 @@ Deno.serve(async (req) => {
 
       if (updateErr) throw updateErr;
 
+      // Handle companions
+      const { companions: companionUpdates } = body;
+      if (Array.isArray(companionUpdates)) {
+        // Get existing companion IDs for this client
+        const { data: existingCompanions } = await supabaseAdmin
+          .from("client_companions")
+          .select("id")
+          .eq("client_id", tokenRow.client_id);
+
+        const existingIds = new Set((existingCompanions || []).map((c: any) => c.id));
+        const submittedIds = new Set(companionUpdates.filter((c: any) => c.id).map((c: any) => c.id));
+
+        // Delete companions that were removed
+        for (const existing of existingCompanions || []) {
+          if (!submittedIds.has(existing.id)) {
+            await supabaseAdmin.from("client_companions").delete().eq("id", existing.id);
+          }
+        }
+
+        // Upsert companions
+        for (const comp of companionUpdates) {
+          if (!comp.first_name) continue;
+          const companionData = {
+            client_id: tokenRow.client_id,
+            user_id: tokenRow.user_id,
+            first_name: comp.first_name,
+            last_name: comp.last_name || null,
+            relationship: comp.relationship || "other",
+            birthday: comp.birthday || null,
+            email: comp.email || null,
+            phone: comp.phone || null,
+            passport_info: comp.passport_info || null,
+            known_traveler_number: comp.known_traveler_number || null,
+            redress_number: comp.redress_number || null,
+          };
+
+          if (comp.id && existingIds.has(comp.id)) {
+            await supabaseAdmin
+              .from("client_companions")
+              .update(companionData)
+              .eq("id", comp.id);
+          } else {
+            await supabaseAdmin
+              .from("client_companions")
+              .insert(companionData);
+          }
+        }
+      }
+
       // Mark token as used
       await supabaseAdmin
         .from("client_update_tokens")
