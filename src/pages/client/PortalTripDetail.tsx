@@ -336,6 +336,29 @@ export default function PortalTripDetail() {
       {/* Departure Countdown */}
       <DepartureCountdown departDate={trip.depart_date} returnDate={trip.return_date} />
 
+      {/* Tab Navigation */}
+      <div className="flex gap-6 border-b border-border">
+        {([
+          { key: "overview" as const, label: "Overview" },
+          { key: "itinerary" as const, label: "Full Itinerary" },
+          { key: "pricing" as const, label: "Pricing" },
+        ]).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`pb-2 text-sm font-medium transition-colors relative ${
+              activeTab === tab.key
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+            {activeTab === tab.key && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary" />
+            )}
+          </button>
+        ))}
+
       {/* Payment Milestone Tracker */}
       {payments.length > 0 && totalCost > 0 && (
         <Card>
