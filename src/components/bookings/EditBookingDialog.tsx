@@ -107,9 +107,12 @@ export function EditBookingDialog({
       }
 
       // RPC sums from lines when they exist; otherwise uses the form values
+      // skipSyntheticLine=true when manual lines exist to prevent doubling
       await recalculateMargin(
         booking.id, user.id,
-        formData.gross_sales, formData.supplier_payout
+        formData.gross_sales, formData.supplier_payout,
+        null,
+        hasManualLines
       );
       onOpenChange(false);
     } finally {
