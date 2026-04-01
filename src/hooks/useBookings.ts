@@ -71,7 +71,6 @@ const BOOKING_SELECT_DETAIL = `
     depart_date,
     return_date,
     client_id,
-    travelers,
     clients!trips_client_id_fkey (
       id,
       name,
@@ -511,7 +510,7 @@ export function useBooking(bookingId: string | undefined) {
             trip_name: trip?.trip_name ?? null,
             client_id: trip?.client_id ?? null,
             clients: client,
-            travelers: trip?.travelers ?? 1,
+            travelers: 1,
             supplier_payout: raw.supplier_payout ?? 0,
           };
           setBooking(flattened);
