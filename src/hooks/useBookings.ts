@@ -71,6 +71,7 @@ const BOOKING_SELECT_DETAIL = `
     depart_date,
     return_date,
     client_id,
+    travelers,
     clients!trips_client_id_fkey (
       id,
       name,
