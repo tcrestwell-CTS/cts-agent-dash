@@ -287,6 +287,7 @@ export const LINE_TYPE_LABELS: Record<MarginLineType, string> = {
   service_fee: "Service Fee",
   package:     "Package",
   excursion:   "Excursion",
+  addon:       "Add-on",
   other:       "Other",
 };
 
