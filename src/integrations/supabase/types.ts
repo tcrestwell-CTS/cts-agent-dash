@@ -4605,7 +4605,6 @@ export type Database = {
           p_advisor_split?: number
           p_booking_id: string
           p_force_recalc?: boolean
-          p_triggered_by?: string
         }
         Returns: Json
       }
