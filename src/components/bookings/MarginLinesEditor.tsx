@@ -25,13 +25,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { MarginLineType, MarginLineSource, BookingMarginLine, AgencyMarginRule } from "@/types/margin";
 import { findApplicableRule, applySuggestedMarkup } from "@/types/margin";
 
