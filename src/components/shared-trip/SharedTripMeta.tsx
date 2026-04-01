@@ -1,5 +1,6 @@
 import { MapPin, Calendar, DollarSign } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface SharedTripMetaProps {
   trip: {
@@ -27,8 +28,8 @@ export default function SharedTripMeta({ trip, primaryColor }: SharedTripMetaPro
         {trip.depart_date && (
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" style={{ color: primaryColor }} />
-            {format(parseISO(trip.depart_date), "MMM d, yyyy")}
-            {trip.return_date && ` – ${format(parseISO(trip.return_date), "MMM d, yyyy")}`}
+            {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
+            {trip.return_date && ` – ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
           </span>
         )}
         {trip.total_cost != null && trip.total_cost > 0 && (

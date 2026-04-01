@@ -1,5 +1,6 @@
 import { differenceInDays, differenceInHours, isPast, isWithinInterval } from "date-fns";
 import { Plane, Clock, PartyPopper } from "lucide-react";
+import { parseLocalDate } from "@/lib/utils";
 
 interface DepartureCountdownProps {
   departDate: string | null;
@@ -11,8 +12,8 @@ export function DepartureCountdown({ departDate, returnDate, compact = false }: 
   if (!departDate) return null;
 
   const now = new Date();
-  const depart = new Date(departDate);
-  const ret = returnDate ? new Date(returnDate) : null;
+  const depart = parseLocalDate(departDate);
+  const ret = returnDate ? parseLocalDate(returnDate) : null;
 
   const isTraveling = ret
     ? isWithinInterval(now, { start: depart, end: ret })

@@ -55,6 +55,7 @@ import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -437,9 +438,9 @@ const TripDetail = () => {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           <span className="text-muted-foreground">Dates:</span>{" "}
-                          {format(new Date(trip.depart_date), "MMM d, yyyy")}
+                          {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
                           {trip.return_date && (
-                            <> - {format(new Date(trip.return_date), "MMM d, yyyy")}</>
+                            <> - {format(parseLocalDate(trip.return_date), "MMM d, yyyy")}</>
                           )}
                         </span>
                       </div>

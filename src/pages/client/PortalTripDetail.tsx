@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers, Send, Hash } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { RequestChangesDialog } from "@/components/client/RequestChangesDialog";
 import { PaymentMilestoneTracker } from "@/components/client/PaymentMilestoneTracker";
@@ -258,8 +259,8 @@ export default function PortalTripDetail() {
                 {trip.depart_date && (
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
-                    {format(new Date(trip.depart_date), "MMM d")}
-                    {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
+                    {format(parseLocalDate(trip.depart_date), "MMM d")}
+                    {trip.return_date && ` – ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
                   </span>
                 )}
                 {totalCost > 0 && (
@@ -306,8 +307,8 @@ export default function PortalTripDetail() {
               {trip.depart_date && (
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
-                  {format(new Date(trip.depart_date), "MMM d")}
-                  {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
+                  {format(parseLocalDate(trip.depart_date), "MMM d")}
+                  {trip.return_date && ` – ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
                 </span>
               )}
               {totalCost > 0 && (
@@ -642,7 +643,7 @@ export default function PortalTripDetail() {
                         <p className="font-medium">{b.trip_name || b.destination}</p>
                         <p className="text-sm text-muted-foreground">
                           {typeInfo.label} · {b.destination}
-                          {b.depart_date && ` · ${format(new Date(b.depart_date), "MMM d, yyyy")}`}
+                          {b.depart_date && ` · ${format(parseLocalDate(b.depart_date), "MMM d, yyyy")}`}
                         </p>
                         {b.booking_reference && (
                           <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/80 border">
