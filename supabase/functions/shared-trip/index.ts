@@ -516,6 +516,7 @@ const handler = async (req: Request): Promise<Response> => {
       itinerary,
       optionBlocks,
       bookings: bookingsForResponse,
+      pricingLines,
       branding,
       advisor,
     }), {
