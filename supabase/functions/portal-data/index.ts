@@ -388,6 +388,7 @@ const handler = async (req: Request): Promise<Response> => {
         itinerary: itineraryRes.data || [],
         itineraries: itinerariesRes.data || [],
         optionBlocks: optionBlocksRes.data || [],
+        pricingLines,
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
