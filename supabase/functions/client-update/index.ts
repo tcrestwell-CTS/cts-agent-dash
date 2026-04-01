@@ -236,6 +236,14 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const client = tokenRow.clients;
+
+      // Fetch existing companions
+      const { data: existingCompanions } = await supabaseAdmin
+        .from("client_companions")
+        .select("id, first_name, last_name, relationship, birthday, email, phone, passport_info, known_traveler_number, redress_number")
+        .eq("client_id", client.id)
+        .order("first_name", { ascending: true });
+
       return new Response(
         JSON.stringify({
           client: {
@@ -261,6 +269,18 @@ Deno.serve(async (req) => {
             activities_interests: client.activities_interests,
             loyalty_programs: client.loyalty_programs,
           },
+          companions: (existingCompanions || []).map((c: any) => ({
+            id: c.id,
+            first_name: c.first_name || "",
+            last_name: c.last_name || "",
+            relationship: c.relationship || "other",
+            birthday: c.birthday || "",
+            email: c.email || "",
+            phone: c.phone || "",
+            passport_info: c.passport_info || "",
+            known_traveler_number: c.known_traveler_number || "",
+            redress_number: c.redress_number || "",
+          })),
           branding: {
             agency_name: branding?.agency_name || "Crestwell Travel Services",
             logo_url: branding?.logo_url || "",
