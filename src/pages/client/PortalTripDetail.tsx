@@ -185,7 +185,7 @@ export default function PortalTripDetail() {
     );
   }
 
-  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [] } = data;
+  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [], pricingLines = [] } = data;
   const approvedId = trip.approved_itinerary_id;
 
   const depositPaid = payments.some((p: any) =>
