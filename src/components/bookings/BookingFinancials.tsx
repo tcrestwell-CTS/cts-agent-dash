@@ -192,38 +192,41 @@ export function BookingFinancials({
 
         {/* Calculated Values */}
         <div className="border-t pt-4 space-y-3">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Building2 className="h-4 w-4" />
+              Supplier Cost
+            </div>
+            <span className="font-medium">
+              {formatCurrency(supplierCost)}
+            </span>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <DollarSign className="h-4 w-4" />
-              Net Sales (Gross − Supplier Cost)
+              Gross Margin (Client Total − Supplier Cost)
             </div>
             <span className="font-medium">
               {formatCurrency(financials.netSales)}
             </span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-success/10 p-2 rounded">
             <div className="flex items-center gap-2 text-sm text-success">
               <TrendingUp className="h-4 w-4" />
               {isFlightFlat
-                ? `Commission ($${FLIGHT_FLAT_RATE}/$${FLIGHT_FLAT_PER})`
-                : `Commission (${financials.effectiveCommissionRate}%)`
+                ? `Est. Commission ($${FLIGHT_FLAT_RATE}/$${FLIGHT_FLAT_PER})`
+                : `Est. Commission (${financials.effectiveCommissionRate}%)`
               }
             </div>
             <span className="font-semibold text-success">
               {formatCurrency(financials.commissionRevenue)}
             </span>
           </div>
-
-          <div className="flex items-center justify-between border-t pt-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Building2 className="h-4 w-4" />
-              Supplier Payout
-            </div>
-            <span className="font-semibold">
-              {formatCurrency(supplierCost)}
-            </span>
-          </div>
+          <p className="text-[10px] text-muted-foreground italic">
+            Preview only — final split calculated on save
+          </p>
         </div>
 
         {/* Info text */}
@@ -285,9 +288,7 @@ export function BookingFinancialsDisplay({
     }).format(value);
   };
 
-  const commissionRate = netSales > 0
-    ? ((commissionRevenue / netSales) * 100).toFixed(1)
-    : "0";
+  // commissionRate removed — margin engine handles split display
 
   const marginEngineActive = (agencyGrossMargin ?? 0) !== 0 || (advisorMarginAmount ?? 0) !== 0;
   const grossMarginPct = grossSales > 0 && agencyGrossMargin !== undefined
@@ -309,7 +310,7 @@ export function BookingFinancialsDisplay({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm text-muted-foreground">Gross Booking Sales</p>
+          <p className="text-sm text-muted-foreground">Client Total</p>
           <p className="text-2xl font-semibold text-foreground">
             {formatCurrency(grossSales)}
           </p>
@@ -317,22 +318,13 @@ export function BookingFinancialsDisplay({
 
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Supplier Payout</span>
+            <span className="text-sm text-muted-foreground">Supplier Cost</span>
             <span className="font-medium">{formatCurrency(supplierPayout)}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Net Sales</span>
+            <span className="text-sm text-muted-foreground">Agency Gross Margin</span>
             <span className="font-medium">{formatCurrency(netSales)}</span>
-          </div>
-
-          <div className="flex items-center justify-between bg-success/10 p-2 rounded">
-            <span className="text-sm text-success font-medium">
-              Commission ({commissionRate}%)
-            </span>
-            <span className="font-semibold text-success">
-              {formatCurrency(commissionRevenue)}
-            </span>
           </div>
         </div>
 

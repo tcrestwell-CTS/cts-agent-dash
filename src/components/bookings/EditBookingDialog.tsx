@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Booking, UpdateBookingData,
   recalculateMargin, useBookingMarginLines,
@@ -101,10 +102,16 @@ export function EditBookingDialog({
       if (!success) return;
 
       if (hasManualLines) {
-        await (supabase as any)
+        const { error: deleteError } = await (supabase as any)
           .from("booking_margin_lines")
           .delete()
           .eq("booking_id", booking.id);
+
+        if (deleteError) {
+          console.error("[EditBooking] Failed to delete margin lines:", deleteError);
+          toast.error("Failed to update line items — please try again.");
+          return;
+        }
 
         const inserts: BookingMarginLineInsert[] = localLines.map((l, i) => ({
           booking_id: booking.id, user_id: user.id,
@@ -114,7 +121,12 @@ export function EditBookingDialog({
           is_pass_through: l.is_pass_through, sort_order: i,
         }));
 
-        await (supabase as any).from("booking_margin_lines").insert(inserts);
+        const { error: insertError } = await (supabase as any).from("booking_margin_lines").insert(inserts);
+        if (insertError) {
+          console.error("[EditBooking] Failed to insert margin lines:", insertError);
+          toast.error("Failed to save line items — margin not recalculated.");
+          return;
+        }
       }
 
       await recalculateMargin(

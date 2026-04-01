@@ -656,7 +656,6 @@ export async function recalculateMargin(
         p_booking_id:    bookingId,
         p_advisor_split: advisorSplitOverride ?? null,
         p_force_recalc:  false,
-        p_triggered_by:  "manual",
       }
     );
 

@@ -375,9 +375,9 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
     onChange([...lines, createEmptyLine(lines.length)]);
   };
 
-  // Preview totals
+  // Preview totals — backend sums ALL lines (including pass-through) for totals
   const totalSell = lines.reduce((s, l) => s + l._preview_total_sell, 0);
-  const totalCost = lines.filter((l) => !l.is_pass_through).reduce((s, l) => s + l._preview_total_cost, 0);
+  const totalCost = lines.reduce((s, l) => s + l._preview_total_cost, 0);
   const totalMargin = lines.reduce((s, l) => s + l._preview_margin, 0);
   const marginPct = totalSell > 0 ? (totalMargin / totalSell) * 100 : 0;
 
