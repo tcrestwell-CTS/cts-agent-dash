@@ -152,7 +152,7 @@ export default function SharedTripInvestment({
       <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-5 py-3">
         <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
         <p className="text-sm text-amber-800 font-medium">
-          Pricing is subject to availability and may change. Book now to secure these rates.
+          Pricing is subject to availability and may change.
         </p>
       </div>
 
