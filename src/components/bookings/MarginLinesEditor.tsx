@@ -17,7 +17,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, GripVertical, Info, Ship, Wifi, Wine, DollarSign } from "lucide-react";
+import { Plus, Trash2, GripVertical, Info, Ship, Wifi, Wine, DollarSign, Anchor, ChevronDown, UtensilsCrossed, Sparkles } from "lucide-react";
+import { DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
