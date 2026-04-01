@@ -700,9 +700,9 @@ const Trips = () => {
                             {trip.depart_date && (
                               <span className="flex items-center gap-1.5">
                                 <Calendar className="h-4 w-4" />
-                                {format(new Date(trip.depart_date), "MMM d, yyyy")}
+                                {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
                                 {trip.return_date && (
-                                  <> - {format(new Date(trip.return_date), "MMM d, yyyy")}</>
+                                  <> - {format(parseLocalDate(trip.return_date), "MMM d, yyyy")}</>
                                 )}
                               </span>
                             )}
