@@ -268,10 +268,16 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
 
       {/* Add button */}
       {!readOnly && (
-        <Button variant="outline" size="sm" onClick={addLine} className="gap-2">
-          <Plus className="h-3.5 w-3.5" />
-          Add Line
-        </Button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={addLine} className="gap-2">
+              <Plus className="h-3.5 w-3.5" />
+              Add Line
+            </Button>
+
+            <QuickAddDropdown onAddLine={(line) => onChange([...lines, computePreviewFields({ ...line, sort_order: lines.length })])} />
+          </div>
+        </div>
       )}
 
       {/* Preview Totals */}
