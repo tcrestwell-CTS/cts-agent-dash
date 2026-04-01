@@ -4600,24 +4600,14 @@ export type Database = {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
       }
-      calculate_booking_margin:
-        | {
-            Args: {
-              p_advisor_split?: number
-              p_booking_id: string
-              p_force_recalc?: boolean
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_advisor_split?: number
-              p_booking_id: string
-              p_force_recalc?: boolean
-              p_triggered_by?: string
-            }
-            Returns: Json
-          }
+      calculate_booking_margin: {
+        Args: {
+          p_advisor_split?: number
+          p_booking_id: string
+          p_force_recalc?: boolean
+        }
+        Returns: Json
+      }
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
