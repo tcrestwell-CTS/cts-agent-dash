@@ -4,7 +4,7 @@
 //   invoice.payment_failed     → track missed payments, apply $25 late fee after 5-day grace, cancel at 2 misses
 //   customer.subscription.deleted → mark plan completed or cancelled
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
