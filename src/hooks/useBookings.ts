@@ -607,7 +607,8 @@ export async function recalculateMargin(
   userId: string,
   grossSales: number,
   supplierPayout: number,
-  advisorSplitOverride?: number | null
+  advisorSplitOverride?: number | null,
+  skipSyntheticLine?: boolean
 ): Promise<MarginCalculationResult | null> {
   try {
     // Delete existing synthetic line(s) (manual lines are preserved)
@@ -617,26 +618,35 @@ export async function recalculateMargin(
       .eq("booking_id", bookingId)
       .eq("source", "synthetic");
 
-    // Insert fresh synthetic line (do NOT include generated columns)
-    const line = buildSyntheticMarginLine(bookingId, userId, grossSales, supplierPayout);
-    const { error: lineError } = await (supabase as any)
-      .from("booking_margin_lines")
-      .insert({
-        booking_id:      line.booking_id,
-        user_id:         line.user_id,
-        line_type:       line.line_type,
-        description:     line.description,
-        source:          line.source,
-        quantity:        line.quantity,
-        unit_cost:       line.unit_cost,
-        unit_sell:       line.unit_sell,
-        is_pass_through: line.is_pass_through,
-        sort_order:      line.sort_order,
-      });
+    // Only insert a synthetic fallback line when NO manual lines exist
+    if (!skipSyntheticLine) {
+      // Check if manual lines already cover this booking
+      const { count } = await (supabase as any)
+        .from("booking_margin_lines")
+        .select("id", { count: "exact", head: true })
+        .eq("booking_id", bookingId);
 
-    if (lineError) {
-      console.error("[recalculateMargin] Synthetic line insert failed:", lineError);
-      // Don't hard-fail — RPC falls back to legacy fields if no lines exist
+      if (!count || count === 0) {
+        const line = buildSyntheticMarginLine(bookingId, userId, grossSales, supplierPayout);
+        const { error: lineError } = await (supabase as any)
+          .from("booking_margin_lines")
+          .insert({
+            booking_id:      line.booking_id,
+            user_id:         line.user_id,
+            line_type:       line.line_type,
+            description:     line.description,
+            source:          line.source,
+            quantity:        line.quantity,
+            unit_cost:       line.unit_cost,
+            unit_sell:       line.unit_sell,
+            is_pass_through: line.is_pass_through,
+            sort_order:      line.sort_order,
+          });
+
+        if (lineError) {
+          console.error("[recalculateMargin] Synthetic line insert failed:", lineError);
+        }
+      }
     }
 
     // Call the server-side margin calculation
