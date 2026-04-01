@@ -20,6 +20,7 @@ export type MarginLineType =
   | "service_fee"
   | "package"
   | "excursion"
+  | "addon"
   | "other";
 
 export type MarginLineSource =
