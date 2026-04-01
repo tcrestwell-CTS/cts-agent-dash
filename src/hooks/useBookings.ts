@@ -495,7 +495,27 @@ export function useBooking(bookingId: string | undefined) {
           .maybeSingle();
 
         if (fetchError) throw fetchError;
-        setBooking(data as any);
+        if (data) {
+          const raw = data as any;
+          const trip = raw.trips;
+          const client = trip?.clients ?? null;
+          const flattened = {
+            ...raw,
+            booking_reference: raw.confirmation_number,
+            total_amount: raw.total_price ?? 0,
+            destination: trip?.destination ?? "",
+            depart_date: trip?.depart_date ?? "",
+            return_date: trip?.return_date ?? "",
+            trip_name: trip?.trip_name ?? null,
+            client_id: trip?.client_id ?? null,
+            clients: client,
+            travelers: 1,
+            supplier_payout: raw.supplier_payout ?? 0,
+          };
+          setBooking(flattened);
+        } else {
+          setBooking(null);
+        }
       } catch (err) {
         console.error("Error fetching booking:", err);
         setError(err instanceof Error ? err : new Error("Failed to fetch booking"));
