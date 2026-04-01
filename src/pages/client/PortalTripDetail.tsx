@@ -46,6 +46,7 @@ export default function PortalTripDetail() {
   const approveItinerary = useApproveItinerary();
   const selectOption = useSelectOption();
   const [showItinerary, setShowItinerary] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "itinerary" | "pricing">("overview");
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [changeRequest, setChangeRequest] = useState<{ id: string; name: string } | null>(null);
