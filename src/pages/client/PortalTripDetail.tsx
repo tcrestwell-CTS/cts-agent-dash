@@ -46,6 +46,7 @@ export default function PortalTripDetail() {
   const approveItinerary = useApproveItinerary();
   const selectOption = useSelectOption();
   const [showItinerary, setShowItinerary] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "itinerary" | "pricing">("overview");
   const [confirmApproval, setConfirmApproval] = useState<{ id: string; name: string } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [changeRequest, setChangeRequest] = useState<{ id: string; name: string } | null>(null);
@@ -185,7 +186,7 @@ export default function PortalTripDetail() {
     );
   }
 
-  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [] } = data;
+  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [], pricingLines = [] } = data;
   const approvedId = trip.approved_itinerary_id;
 
   const depositPaid = payments.some((p: any) =>
@@ -334,6 +335,33 @@ export default function PortalTripDetail() {
 
       {/* Departure Countdown */}
       <DepartureCountdown departDate={trip.depart_date} returnDate={trip.return_date} />
+
+      {/* Tab Navigation */}
+      <div className="flex gap-6 border-b border-border">
+        {([
+          { key: "overview" as const, label: "Overview" },
+          { key: "itinerary" as const, label: "Full Itinerary" },
+          { key: "pricing" as const, label: "Pricing" },
+        ]).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`pb-2 text-sm font-medium transition-colors relative ${
+              activeTab === tab.key
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+            {activeTab === tab.key && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Overview Tab Content */}
+      {activeTab === "overview" && (<>
 
       {/* Payment Milestone Tracker */}
       {payments.length > 0 && totalCost > 0 && (
@@ -802,7 +830,98 @@ export default function PortalTripDetail() {
         </Card>
       )}
 
-      {/* Payment Agreement Dialog */}
+      </>)}
+
+      {/* Itinerary Tab */}
+      {activeTab === "itinerary" && (
+        <div className="space-y-6">
+          {itinerary.length > 0 && <ItineraryLocationTimeline items={itinerary} />}
+          {itineraries.length > 0 ? (
+            itineraries.map((itin: any) => {
+              const items = (itemsByItinerary[itin.id] || []);
+              return (
+                <Card key={itin.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base">{itin.name}</CardTitle>
+                    {itin.overview && <p className="text-sm text-muted-foreground">{itin.overview}</p>}
+                  </CardHeader>
+                  {items.length > 0 && <CardContent><ItineraryItemsList items={items} /></CardContent>}
+                </Card>
+              );
+            })
+          ) : itinerary.length > 0 ? (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Full Itinerary</CardTitle></CardHeader>
+              <CardContent><ItineraryItemsList items={itinerary} /></CardContent>
+            </Card>
+          ) : (
+            <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">No itinerary items yet.</CardContent></Card>
+          )}
+        </div>
+      )}
+
+      {/* Pricing Tab */}
+      {activeTab === "pricing" && (
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4" /> Pricing Breakdown</CardTitle></CardHeader>
+          <CardContent>
+            {pricingLines.length > 0 ? (
+              <div className="space-y-4">
+                {(() => {
+                  const grouped = pricingLines.reduce((acc: Record<string, any[]>, line: any) => {
+                    (acc[line.booking_id] = acc[line.booking_id] || []).push(line);
+                    return acc;
+                  }, {});
+                  return Object.entries(grouped).map(([bId, lines]: [string, any[]]) => {
+                    const booking = bookings.find((b: any) => b.id === bId);
+                    const coreLines = lines.filter((l: any) => !l.is_addon);
+                    const addonLines = lines.filter((l: any) => l.is_addon);
+                    return (
+                      <div key={bId} className="space-y-2">
+                        {Object.keys(grouped).length > 1 && (
+                          <h3 className="text-sm font-semibold">{booking?.trip_name || booking?.destination || "Booking"}</h3>
+                        )}
+                        <div className="divide-y">
+                          {coreLines.map((l: any) => (
+                            <div key={l.id} className="flex justify-between py-2">
+                              <span className="text-sm">{l.description}</span>
+                              <span className="text-sm font-medium">${Number(l.unit_price || 0).toFixed(2)} / person</span>
+                            </div>
+                          ))}
+                        </div>
+                        {addonLines.length > 0 && (
+                          <>
+                            <p className="text-xs font-semibold text-muted-foreground pt-2">Add-Ons</p>
+                            <div className="divide-y">
+                              {addonLines.map((l: any) => (
+                                <div key={l.id} className="flex justify-between py-2">
+                                  <span className="text-sm">{l.description}</span>
+                                  <span className="text-sm font-medium">${Number(l.unit_price || 0).toFixed(2)} / person</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+                <div className="flex justify-between pt-4 border-t font-bold">
+                  <span>Total</span>
+                  <span>${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            ) : totalCost > 0 ? (
+              <div className="flex justify-between py-2">
+                <span className="text-sm">Trip Total</span>
+                <span className="text-sm font-bold">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Pricing details are not yet available.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
       <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

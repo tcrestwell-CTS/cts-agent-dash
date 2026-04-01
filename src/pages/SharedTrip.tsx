@@ -7,8 +7,10 @@ import SharedTripItinerary from "@/components/shared-trip/SharedTripItinerary";
 import SharedTripInvestment from "@/components/shared-trip/SharedTripInvestment";
 import SharedTripBudgetConfirmation from "@/components/shared-trip/SharedTripBudgetConfirmation";
 import SharedTripFooter from "@/components/shared-trip/SharedTripFooter";
+import SharedTripPricing from "@/components/shared-trip/SharedTripPricing";
 import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
 import { Card, CardContent } from "@/components/ui/card";
+import { Calendar } from "lucide-react";
 
 export interface SharedTripData {
   trip: {
@@ -30,6 +32,7 @@ export interface SharedTripData {
   paymentDeadlines: { label: string; date: string }[];
   itinerary: any[];
   bookings: any[];
+  pricingLines?: any[];
   branding: {
     agency_name: string | null;
     logo_url: string | null;
@@ -55,11 +58,14 @@ export interface SharedTripData {
   } | null;
 }
 
+type TabKey = "itinerary" | "overview" | "pricing";
+
 export default function SharedTrip() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<SharedTripData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("itinerary");
 
   useEffect(() => {
     if (!token) return;
@@ -110,6 +116,21 @@ export default function SharedTrip() {
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
 
+  const tabs: { key: TabKey; label: string }[] = [
+    { key: "itinerary", label: "Full Itinerary" },
+    { key: "overview", label: "Daily Overview" },
+    { key: "pricing", label: "Pricing" },
+  ];
+
+  // Build daily overview from itinerary
+  const dailyOverview = data.itinerary.reduce((acc: Record<number, any[]>, item: any) => {
+    (acc[item.day_number] = acc[item.day_number] || []).push(item);
+    return acc;
+  }, {});
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
   return (
     <div className="min-h-screen bg-white">
       {data.trip.cover_image_url && (
@@ -125,8 +146,8 @@ export default function SharedTrip() {
             <div className="flex flex-wrap items-center gap-4 mt-2 text-white/90 text-sm">
               {data.trip.destination && <span>📍 {data.trip.destination}</span>}
               {data.trip.depart_date && (
-                <span>📅 {new Date(data.trip.depart_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  {data.trip.return_date && ` – ${new Date(data.trip.return_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                <span>📅 {formatDate(data.trip.depart_date)}
+                  {data.trip.return_date && ` – ${formatDate(data.trip.return_date)}`}
                 </span>
               )}
             </div>
@@ -135,25 +156,120 @@ export default function SharedTrip() {
       )}
       <SharedTripHero branding={data.branding} advisor={data.advisor} primaryColor={primaryColor} />
 
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
         {!data.trip.cover_image_url && (
           <SharedTripMeta trip={data.trip} primaryColor={primaryColor} />
         )}
 
-        {data.trip.notes && (
+        {/* Trip name + date (below hero when cover exists) */}
+        {data.trip.cover_image_url && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Trip Details</h2>
-            <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{data.trip.notes}</p>
+            <h2 className="text-2xl font-bold text-gray-900">{data.trip.trip_name}</h2>
+            {data.trip.depart_date && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                <Calendar className="h-4 w-4" />
+                {formatDate(data.trip.depart_date)}
+                {data.trip.return_date && ` – ${formatDate(data.trip.return_date)}`}
+              </div>
+            )}
           </div>
         )}
 
-        <SharedTripItinerary
-          itinerary={data.itinerary}
-          departDate={data.trip.depart_date}
-          primaryColor={primaryColor}
-          optionBlocks={(data as any).optionBlocks || []}
-        />
+        {/* Tab Navigation */}
+        <div className="flex gap-6 border-b border-gray-200">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`pb-2 text-sm font-medium transition-colors relative ${
+                activeTab === tab.key
+                  ? "text-gray-900"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              style={activeTab === tab.key ? { color: primaryColor } : undefined}
+            >
+              {tab.label}
+              {activeTab === tab.key && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                  style={{ backgroundColor: primaryColor }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
 
+        {/* Tab Content */}
+        {activeTab === "itinerary" && (
+          <div className="space-y-10">
+            {data.trip.notes && (
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-3">Trip Details</h2>
+                <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{data.trip.notes}</p>
+              </div>
+            )}
+
+            <SharedTripItinerary
+              itinerary={data.itinerary}
+              departDate={data.trip.depart_date}
+              primaryColor={primaryColor}
+              optionBlocks={(data as any).optionBlocks || []}
+            />
+          </div>
+        )}
+
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {data.trip.notes && (
+              <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{data.trip.notes}</p>
+            )}
+            {Object.keys(dailyOverview).length > 0 ? (
+              Object.entries(dailyOverview)
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([day, items]: [string, any[]]) => (
+                  <div key={day} className="space-y-2">
+                    <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                      <span
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {day}
+                      </span>
+                      Day {day}
+                      {items[0]?.item_date && (
+                        <span className="text-sm text-gray-400 font-normal ml-2">
+                          {new Date(items[0].item_date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                    </h3>
+                    <div className="ml-9 space-y-1">
+                      {items.map((item: any) => (
+                        <div key={item.id} className="flex items-start gap-2 py-1.5">
+                          <span className="text-sm">{item.category === "flight" ? "✈️" : item.category === "cruise" ? "🚢" : item.category === "lodging" ? "🏨" : item.category === "activity" ? "🎯" : item.category === "dining" ? "🍽️" : "📌"}</span>
+                          <div>
+                            <p className="text-sm text-gray-800 font-medium">{item.title}</p>
+                            {item.description && <p className="text-xs text-gray-400">{item.description}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <p className="text-gray-400 text-sm">No itinerary items to display.</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === "pricing" && (
+          <SharedTripPricing
+            pricingLines={(data as any).pricingLines || []}
+            totalCost={data.trip.total_cost || 0}
+            primaryColor={primaryColor}
+          />
+        )}
+
+        {/* Always show below tabs */}
         {(data as any).budget?.range && (
           <SharedTripBudgetConfirmation
             budgetRange={(data as any).budget.range}
