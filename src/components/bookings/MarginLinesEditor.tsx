@@ -139,48 +139,43 @@ const CARNIVAL_ADDONS: CruiseAddon[] = [
 ];
 
 function QuickAddDropdown({ onAddLine }: { onAddLine: (line: Omit<LocalMarginLine, "_preview_total_cost" | "_preview_total_sell" | "_preview_margin">) => void }) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(!open)}
-        className="gap-2 border-dashed text-muted-foreground hover:text-foreground"
-      >
-        <Ship className="h-3.5 w-3.5" />
-        Carnival Add-ons
-      </Button>
-
-      {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 w-64 bg-popover border border-border rounded-lg shadow-lg p-1">
-          <p className="text-xs text-muted-foreground px-2 py-1.5 font-medium">Carnival 2026 Pricing</p>
-          {CARNIVAL_ADDONS.map((addon) => (
-            <button
-              key={addon.label}
-              className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
-              onClick={() => {
-                addon.items.forEach((item) => {
-                  onAddLine({
-                    ...item,
-                    id: crypto.randomUUID(),
-                    sort_order: 0,
-                  });
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 border-dashed text-muted-foreground hover:text-foreground"
+        >
+          <Ship className="h-3.5 w-3.5" />
+          Carnival Add-ons
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Carnival 2026 Pricing</DropdownMenuLabel>
+        {CARNIVAL_ADDONS.map((addon) => (
+          <DropdownMenuItem
+            key={addon.label}
+            onClick={() => {
+              addon.items.forEach((item) => {
+                onAddLine({
+                  ...item,
+                  id: crypto.randomUUID(),
+                  sort_order: 0,
                 });
-                setOpen(false);
-              }}
-            >
-              {addon.icon}
-              <span>{addon.label}</span>
-              <span className="ml-auto text-xs text-muted-foreground">
-                ${addon.items[0].unit_cost.toFixed(2)}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+              });
+            }}
+            className="gap-2"
+          >
+            {addon.icon}
+            <span className="flex-1">{addon.label}</span>
+            <span className="text-xs text-muted-foreground">
+              ${addon.items[0].unit_cost.toFixed(2)}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
