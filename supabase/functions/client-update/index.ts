@@ -236,6 +236,14 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const client = tokenRow.clients;
+
+      // Fetch existing companions
+      const { data: existingCompanions } = await supabaseAdmin
+        .from("client_companions")
+        .select("id, first_name, last_name, relationship, birthday, email, phone, passport_info, known_traveler_number, redress_number")
+        .eq("client_id", client.id)
+        .order("first_name", { ascending: true });
+
       return new Response(
         JSON.stringify({
           client: {
@@ -261,6 +269,18 @@ Deno.serve(async (req) => {
             activities_interests: client.activities_interests,
             loyalty_programs: client.loyalty_programs,
           },
+          companions: (existingCompanions || []).map((c: any) => ({
+            id: c.id,
+            first_name: c.first_name || "",
+            last_name: c.last_name || "",
+            relationship: c.relationship || "other",
+            birthday: c.birthday || "",
+            email: c.email || "",
+            phone: c.phone || "",
+            passport_info: c.passport_info || "",
+            known_traveler_number: c.known_traveler_number || "",
+            redress_number: c.redress_number || "",
+          })),
           branding: {
             agency_name: branding?.agency_name || "Crestwell Travel Services",
             logo_url: branding?.logo_url || "",
@@ -340,6 +360,55 @@ Deno.serve(async (req) => {
         .eq("id", tokenRow.client_id);
 
       if (updateErr) throw updateErr;
+
+      // Handle companions
+      const { companions: companionUpdates } = body;
+      if (Array.isArray(companionUpdates)) {
+        // Get existing companion IDs for this client
+        const { data: existingCompanions } = await supabaseAdmin
+          .from("client_companions")
+          .select("id")
+          .eq("client_id", tokenRow.client_id);
+
+        const existingIds = new Set((existingCompanions || []).map((c: any) => c.id));
+        const submittedIds = new Set(companionUpdates.filter((c: any) => c.id).map((c: any) => c.id));
+
+        // Delete companions that were removed
+        for (const existing of existingCompanions || []) {
+          if (!submittedIds.has(existing.id)) {
+            await supabaseAdmin.from("client_companions").delete().eq("id", existing.id);
+          }
+        }
+
+        // Upsert companions
+        for (const comp of companionUpdates) {
+          if (!comp.first_name) continue;
+          const companionData = {
+            client_id: tokenRow.client_id,
+            user_id: tokenRow.user_id,
+            first_name: comp.first_name,
+            last_name: comp.last_name || null,
+            relationship: comp.relationship || "other",
+            birthday: comp.birthday || null,
+            email: comp.email || null,
+            phone: comp.phone || null,
+            passport_info: comp.passport_info || null,
+            known_traveler_number: comp.known_traveler_number || null,
+            redress_number: comp.redress_number || null,
+          };
+
+          if (comp.id && existingIds.has(comp.id)) {
+            await supabaseAdmin
+              .from("client_companions")
+              .update(companionData)
+              .eq("id", comp.id);
+          } else {
+            await supabaseAdmin
+              .from("client_companions")
+              .insert(companionData);
+          }
+        }
+      }
 
       // Mark token as used
       await supabaseAdmin
