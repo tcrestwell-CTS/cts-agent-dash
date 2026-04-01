@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, Info } from "lucide-react";
+import { Plus, Trash2, GripVertical, Info, Ship, Wifi, Wine, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -74,6 +74,107 @@ export function fromDbLine(line: BookingMarginLine): LocalMarginLine {
     _preview_total_sell: line.total_sell,
     _preview_margin: line.margin_amount,
   };
+}
+
+// ── Cruise Add-on Templates ─────────────────────────────────────────────
+interface CruiseAddon {
+  label: string;
+  icon: React.ReactNode;
+  items: Omit<LocalMarginLine, "id" | "sort_order" | "_preview_total_cost" | "_preview_total_sell" | "_preview_margin">[];
+}
+
+const CARNIVAL_ADDONS: CruiseAddon[] = [
+  {
+    label: "CHEERS! Drink Package",
+    icon: <Wine className="h-3.5 w-3.5" />,
+    items: [{
+      line_type: "addon", description: "CHEERS! Drink Package (per adult)",
+      source: "manual", quantity: 1, unit_cost: 335.76, unit_sell: 335.76,
+      is_pass_through: true,
+    }],
+  },
+  {
+    label: "Wi-Fi — Social",
+    icon: <Wifi className="h-3.5 w-3.5" />,
+    items: [{
+      line_type: "addon", description: "Social Wi-Fi (4-day)",
+      source: "manual", quantity: 1, unit_cost: 51.00, unit_sell: 51.00,
+      is_pass_through: true,
+    }],
+  },
+  {
+    label: "Wi-Fi — Value",
+    icon: <Wifi className="h-3.5 w-3.5" />,
+    items: [{
+      line_type: "addon", description: "Value Wi-Fi (4-day)",
+      source: "manual", quantity: 1, unit_cost: 68.00, unit_sell: 68.00,
+      is_pass_through: true,
+    }],
+  },
+  {
+    label: "Wi-Fi — Premium",
+    icon: <Wifi className="h-3.5 w-3.5" />,
+    items: [{
+      line_type: "addon", description: "Premium Wi-Fi (4-day)",
+      source: "manual", quantity: 1, unit_cost: 78.20, unit_sell: 78.20,
+      is_pass_through: true,
+    }],
+  },
+  {
+    label: "Gratuities",
+    icon: <DollarSign className="h-3.5 w-3.5" />,
+    items: [{
+      line_type: "addon", description: "Auto Gratuities ($16/day × 4 days)",
+      source: "manual", quantity: 1, unit_cost: 64.00, unit_sell: 64.00,
+      is_pass_through: true,
+    }],
+  },
+];
+
+function QuickAddDropdown({ onAddLine }: { onAddLine: (line: Omit<LocalMarginLine, "_preview_total_cost" | "_preview_total_sell" | "_preview_margin">) => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(!open)}
+        className="gap-2 border-dashed text-muted-foreground hover:text-foreground"
+      >
+        <Ship className="h-3.5 w-3.5" />
+        Carnival Add-ons
+      </Button>
+
+      {open && (
+        <div className="absolute z-50 top-full mt-1 left-0 w-64 bg-popover border border-border rounded-lg shadow-lg p-1">
+          <p className="text-xs text-muted-foreground px-2 py-1.5 font-medium">Carnival 2026 Pricing</p>
+          {CARNIVAL_ADDONS.map((addon) => (
+            <button
+              key={addon.label}
+              className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+              onClick={() => {
+                addon.items.forEach((item) => {
+                  onAddLine({
+                    ...item,
+                    id: crypto.randomUUID(),
+                    sort_order: 0,
+                  });
+                });
+                setOpen(false);
+              }}
+            >
+              {addon.icon}
+              <span>{addon.label}</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                ${addon.items[0].unit_cost.toFixed(2)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const LINE_TYPE_OPTIONS: { value: MarginLineType; label: string }[] = [
@@ -268,10 +369,16 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
 
       {/* Add button */}
       {!readOnly && (
-        <Button variant="outline" size="sm" onClick={addLine} className="gap-2">
-          <Plus className="h-3.5 w-3.5" />
-          Add Line
-        </Button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={addLine} className="gap-2">
+              <Plus className="h-3.5 w-3.5" />
+              Add Line
+            </Button>
+
+            <QuickAddDropdown onAddLine={(line) => onChange([...lines, computePreviewFields({ ...line, sort_order: lines.length })])} />
+          </div>
+        </div>
       )}
 
       {/* Preview Totals */}
