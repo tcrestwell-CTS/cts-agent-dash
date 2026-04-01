@@ -727,6 +727,7 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
       {/* Edit dialog */}
       {editingItem && (
         <EditItineraryItemDialog
+          key={editingItem.id}
           item={editingItem}
           open={!!editingItem}
           onOpenChange={(open) => { if (!open) setEditingItem(null); }}
