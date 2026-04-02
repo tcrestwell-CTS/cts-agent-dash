@@ -30,6 +30,7 @@ const SECTION_LABELS: Record<string, string> = {
 export default function PortalManagement() {
   const { portalUsers, isLoading, updateSettings, resetSession, ALL_SECTIONS } =
     usePortalManagement();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [visibilityClient, setVisibilityClient] = useState<any | null>(null);
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
