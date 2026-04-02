@@ -18,13 +18,12 @@ export function useAdminPortalDashboard(clientId: string | undefined) {
         .eq("id", clientId)
         .single();
 
-      // Get trips for this client
       const { data: tripTravelers } = await supabase
         .from("trip_travelers")
         .select("trip_id")
         .eq("client_id", clientId);
 
-      const tripIds = (tripTravelers || []).map((t) => t.trip_id);
+      const tripIds = (tripTravelers || []).map((t: any) => t.trip_id);
 
       let trips: any[] = [];
       if (tripIds.length > 0) {
@@ -32,24 +31,21 @@ export function useAdminPortalDashboard(clientId: string | undefined) {
           .from("trips")
           .select("*")
           .in("id", tripIds)
-          .not("status", "in", '("cancelled","archived")')
           .order("depart_date", { ascending: true });
         trips = data || [];
       }
 
-      // Get payments
       let payments: any[] = [];
       if (tripIds.length > 0) {
         const { data } = await supabase
-          .from("trip_payments")
+          .from("trip_payments" as any)
           .select("*")
           .in("trip_id", tripIds)
           .eq("status", "pending")
           .order("due_date", { ascending: true });
-        payments = data || [];
+        payments = (data as any[]) || [];
       }
 
-      // Get agent info
       let agent = null;
       if (client?.user_id) {
         const { data } = await supabase
@@ -60,13 +56,7 @@ export function useAdminPortalDashboard(clientId: string | undefined) {
         agent = data;
       }
 
-      return {
-        client,
-        trips,
-        upcoming_payments: payments,
-        agent,
-        unread_messages: 0,
-      };
+      return { client, trips, upcoming_payments: payments, agent, unread_messages: 0 };
     },
     enabled: !!clientId,
   });
@@ -83,7 +73,7 @@ export function useAdminPortalTrips(clientId: string | undefined) {
         .select("trip_id")
         .eq("client_id", clientId);
 
-      const tripIds = (tripTravelers || []).map((t) => t.trip_id);
+      const tripIds = (tripTravelers || []).map((t: any) => t.trip_id);
       if (tripIds.length === 0) return { trips: [] };
 
       const { data } = await supabase
@@ -110,28 +100,24 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
         .eq("id", tripId)
         .single();
 
-      // Bookings for this trip
       const { data: bookings } = await supabase
         .from("bookings")
         .select("*")
         .eq("trip_id", tripId)
         .order("created_at", { ascending: true });
 
-      // Payments
       const { data: payments } = await supabase
-        .from("trip_payments")
+        .from("trip_payments" as any)
         .select("*")
         .eq("trip_id", tripId)
         .order("due_date", { ascending: true });
 
-      // Itineraries
       const { data: itineraries } = await supabase
         .from("itineraries")
         .select("*")
         .eq("trip_id", tripId)
         .order("created_at", { ascending: true });
 
-      // Itinerary items
       const { data: itinerary } = await supabase
         .from("itinerary_items")
         .select("*")
@@ -139,15 +125,13 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
         .order("day_number", { ascending: true })
         .order("sort_order", { ascending: true });
 
-      // Option blocks
       const { data: optionBlocks } = await supabase
         .from("option_blocks")
         .select("*")
         .eq("trip_id", tripId)
         .order("day_number", { ascending: true });
 
-      // Pricing lines (margin lines visible to client)
-      const bookingIds = (bookings || []).map((b) => b.id);
+      const bookingIds = (bookings || []).map((b: any) => b.id);
       let pricingLines: any[] = [];
       if (bookingIds.length > 0) {
         const { data } = await supabase
@@ -155,7 +139,7 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
           .select("*")
           .in("booking_id", bookingIds)
           .order("sort_order", { ascending: true });
-        pricingLines = (data || []).map((l) => ({
+        pricingLines = (data || []).map((l: any) => ({
           ...l,
           unit_price: l.unit_sell,
           is_addon: l.is_pass_through || l.line_type === "addon",
@@ -165,7 +149,7 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
       return {
         trip,
         bookings: bookings || [],
-        payments: payments || [],
+        payments: (payments as any[]) || [],
         itinerary: itinerary || [],
         itineraries: itineraries || [],
         optionBlocks: optionBlocks || [],
@@ -187,19 +171,29 @@ export function useAdminPortalPayments(clientId: string | undefined) {
         .select("trip_id")
         .eq("client_id", clientId);
 
-      const tripIds = (tripTravelers || []).map((t) => t.trip_id);
+      const tripIds = (tripTravelers || []).map((t: any) => t.trip_id);
       if (tripIds.length === 0) return { payments: [] };
 
-      const { data } = await supabase
-        .from("trip_payments")
-        .select("*, trips!inner(trip_name)")
+      // Fetch payments and trips separately to avoid type issues
+      const { data: paymentsData } = await supabase
+        .from("trip_payments" as any)
+        .select("*")
         .in("trip_id", tripIds)
         .order("due_date", { ascending: true });
 
+      const { data: tripsData } = await supabase
+        .from("trips")
+        .select("id, trip_name")
+        .in("id", tripIds);
+
+      const tripNameMap = Object.fromEntries(
+        (tripsData || []).map((t: any) => [t.id, t.trip_name])
+      );
+
       return {
-        payments: (data || []).map((p: any) => ({
+        payments: ((paymentsData as any[]) || []).map((p: any) => ({
           ...p,
-          trip_name: p.trips?.trip_name,
+          trip_name: tripNameMap[p.trip_id] || "",
         })),
       };
     },
@@ -232,7 +226,7 @@ export function useAdminPortalMessages(clientId: string | undefined) {
       if (!clientId) throw new Error("No client ID");
 
       const { data } = await supabase
-        .from("client_messages")
+        .from("portal_messages")
         .select("*")
         .eq("client_id", clientId)
         .order("created_at", { ascending: true });
