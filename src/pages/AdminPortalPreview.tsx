@@ -549,7 +549,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                     return (
                       <div key={bId} className="space-y-2">
                         {Object.keys(grouped).length > 1 && (
-                          <h3 className="text-sm font-semibold">{booking?.trip_name || booking?.destination || "Booking"}</h3>
+                          <h3 className="text-sm font-semibold">{(booking as any)?.trip_name || (booking as any)?.destination || booking?.confirmation_number || "Booking"}</h3>
                         )}
                         <div className="divide-y">
                           {coreLines.map((l: any) => (
