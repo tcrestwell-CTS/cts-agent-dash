@@ -54,6 +54,7 @@ const FeaturedTrips       = lazy(() => import("./pages/FeaturedTrips"));
 const LoanApplications   = lazy(() => import("./pages/LoanApplications"));
 const Leads              = lazy(() => import("./pages/Leads"));
 const PortalManagement   = lazy(() => import("./pages/PortalManagement"));
+const AdminPortalPreview = lazy(() => import("./pages/AdminPortalPreview"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
