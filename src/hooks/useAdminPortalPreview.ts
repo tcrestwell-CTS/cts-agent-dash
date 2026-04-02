@@ -73,7 +73,7 @@ export function useAdminPortalTrips(clientId: string | undefined) {
         .select("trip_id")
         .eq("client_id", clientId);
 
-      const tripIds = (tripTravelers || []).map((t: any) => t.trip_id);
+      const tripIds = ((tripTravelers || []) as any[]).map((t) => t.trip_id);
       if (tripIds.length === 0) return { trips: [] };
 
       const { data } = await supabase
