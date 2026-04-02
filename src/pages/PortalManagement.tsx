@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, Eye, RotateCcw, Search } from "lucide-react";
+import { Users, Shield, Eye, RotateCcw, Search, MonitorSmartphone } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
