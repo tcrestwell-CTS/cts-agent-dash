@@ -18,8 +18,8 @@ export function useAdminPortalDashboard(clientId: string | undefined) {
         .eq("id", clientId)
         .single();
 
-      const { data: tripTravelers } = await supabase
-        .from("trip_travelers")
+      const { data: tripTravelers } = await (supabase
+        .from("trip_travelers") as any)
         .select("trip_id")
         .eq("client_id", clientId);
 
