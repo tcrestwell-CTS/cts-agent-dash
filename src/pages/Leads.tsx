@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, Send, CheckCircle, Info } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -37,6 +38,8 @@ type QuoteRequest = {
   ai_processed_at: string | null;
   wants_financing: boolean | null;
   created_at: string | null;
+  proposal_draft: string | null;
+  proposal_status: string | null;
 };
 
 const stageConfig: Record<string, { color: string; label: string }> = {
@@ -59,12 +62,286 @@ function ScoreBar({ score }: { score: number | null }) {
   );
 }
 
+function LeadProposalSheet({
+  lead,
+  onClose,
+  onRequalify,
+  onAddToClients,
+  requalifyingId,
+  refetch,
+}: {
+  lead: QuoteRequest | null;
+  onClose: () => void;
+  onRequalify: (id: string) => void;
+  onAddToClients: (lead: QuoteRequest) => void;
+  requalifyingId: string | null;
+  refetch: () => void;
+}) {
+  const [sendingProposal, setSendingProposal] = useState(false);
+  const [markingContacted, setMarkingContacted] = useState(false);
+
+  if (!lead) return null;
+
+  const stage = lead.ai_stage || "new";
+  const cfg = stageConfig[stage] || stageConfig["new"];
+
+  const handleSendProposal = async () => {
+    if (!lead.proposal_draft || !lead.email) return;
+    setSendingProposal(true);
+    try {
+      const { error: emailError } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: lead.email,
+          subject: `Your Travel Proposal from Crestwell — ${lead.destination || lead.trip_type}`,
+          body: lead.proposal_draft,
+          from_name: "Crestwell Getaways",
+        },
+      });
+      if (emailError) throw emailError;
+
+      await supabase
+        .from("quote_requests")
+        .update({ proposal_status: "sent", status: "contacted" })
+        .eq("id", lead.id);
+
+      toast.success("Proposal sent to " + lead.email);
+      refetch();
+    } catch {
+      toast.error("Failed to send proposal");
+    } finally {
+      setSendingProposal(false);
+    }
+  };
+
+  const handleMarkContacted = async () => {
+    setMarkingContacted(true);
+    try {
+      await supabase
+        .from("quote_requests")
+        .update({ status: "contacted" })
+        .eq("id", lead.id);
+      toast.success("Lead marked as contacted");
+      refetch();
+    } catch {
+      toast.error("Failed to update lead");
+    } finally {
+      setMarkingContacted(false);
+    }
+  };
+
+  const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft_ready" || lead.proposal_status === "sent");
+  const canSend = lead.proposal_status === "draft_ready" && lead.proposal_draft;
+  const needsCall = !lead.proposal_draft && lead.ai_stage === "Call Needed";
+  const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
+
+  return (
+    <Sheet open={!!lead} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="text-lg">
+            {lead.first_name} {lead.last_name}
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 space-y-5 mt-4 overflow-y-auto pb-24">
+          {/* Section A — Lead Header */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
+              {lead.proposal_status === "sent" && (
+                <Badge variant="outline" className="bg-blue-500/15 text-blue-700 border-blue-500/30">Proposal Sent</Badge>
+              )}
+              {lead.wants_financing && (
+                <Badge variant="outline" className="bg-violet-500/15 text-violet-700 border-violet-500/30">Financing</Badge>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs">Email</p>
+                <a href={`mailto:${lead.email}`} className="text-primary hover:underline text-sm">{lead.email}</a>
+              </div>
+              {lead.phone && (
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Phone</p>
+                  <a href={`tel:${lead.phone}`} className="text-primary hover:underline text-sm">{lead.phone}</a>
+                </div>
+              )}
+              {lead.destination && (
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Destination</p>
+                  <p>{lead.destination}</p>
+                </div>
+              )}
+              {lead.departure_date && (
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Departure</p>
+                  <p>{format(new Date(lead.departure_date), "MMM d, yyyy")}</p>
+                </div>
+              )}
+              {lead.budget && (
+                <div className="space-y-1">
+                  <p className="text-muted-foreground text-xs">Budget</p>
+                  <p>{lead.budget}</p>
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs">Travelers</p>
+                <p>{lead.travelers_adults} Adults{lead.travelers_children > 0 ? `, ${lead.travelers_children} Children` : ""}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-muted-foreground text-xs mb-1">AI Score</p>
+              <ScoreBar score={lead.ai_score} />
+            </div>
+          </div>
+
+          {/* Section B — AI Summary & Next Action */}
+          {(lead.ai_summary || lead.ai_next_action || (lead.ai_tags && lead.ai_tags.length > 0)) && (
+            <div className="space-y-3">
+              {lead.ai_summary && (
+                <Card className="bg-muted/50 border">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground mb-1 font-medium">AI Summary</p>
+                    <p className="text-sm">{lead.ai_summary}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {lead.ai_next_action && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-blue-700 mb-0.5">Next Action</p>
+                    <p className="text-sm text-blue-900">{lead.ai_next_action}</p>
+                  </div>
+                </div>
+              )}
+
+              {lead.ai_tags && lead.ai_tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {lead.ai_tags.map((tag, i) => (
+                    <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section C — Proposal Draft */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold">Proposal</h3>
+              {lead.proposal_status === "sent" && (
+                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Sent
+                </Badge>
+              )}
+            </div>
+
+            {hasProposal ? (
+              <Card className="border">
+                <CardContent className="p-4">
+                  <div className="max-h-[40vh] overflow-y-auto">
+                    <pre className="text-xs sm:text-sm font-mono whitespace-pre-wrap text-foreground leading-relaxed">
+                      {lead.proposal_draft}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : canGenerate ? (
+              <Card className="border bg-muted/30">
+                <CardContent className="p-6 text-center space-y-3">
+                  <p className="text-sm text-muted-foreground">No proposal drafted yet</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={requalifyingId === lead.id}
+                    onClick={() => onRequalify(lead.id)}
+                  >
+                    {requalifyingId === lead.id ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Brain className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Generate Proposal
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : needsCall ? (
+              <Card className="border bg-orange-500/5">
+                <CardContent className="p-6 text-center space-y-3">
+                  <p className="text-sm text-muted-foreground">This lead needs a phone call before a proposal can be drafted.</p>
+                  {lead.phone && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`tel:${lead.phone}`}>
+                        <Phone className="h-3.5 w-3.5 mr-1.5" />
+                        Call {lead.phone}
+                      </a>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border bg-muted/30">
+                <CardContent className="p-6 text-center">
+                  <p className="text-sm text-muted-foreground">No proposal available</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* Sticky Footer Actions */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background flex flex-wrap items-center gap-2">
+          {canSend && (
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={sendingProposal}
+              onClick={handleSendProposal}
+            >
+              {sendingProposal ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Send Proposal
+            </Button>
+          )}
+          <Button variant="outline" size="sm" disabled={markingContacted} onClick={handleMarkContacted}>
+            {markingContacted ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 mr-1.5" />}
+            Mark as Contacted
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onAddToClients(lead)}>
+            <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+            Add to Clients
+          </Button>
+          <Button variant="ghost" size="sm" disabled={requalifyingId === lead.id} onClick={() => onRequalify(lead.id)}>
+            {requalifyingId === lead.id ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Brain className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            Re-qualify
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export default function Leads() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"score" | "date">("date");
   const [requalifyingId, setRequalifyingId] = useState<string | null>(null);
+  const [selectedLead, setSelectedLead] = useState<QuoteRequest | null>(null);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
     queryKey: ["leads-quote-requests"],
@@ -159,6 +436,11 @@ export default function Leads() {
     callNeeded: leads.filter((l) => l.ai_stage === "Call Needed").length,
     unscored: leads.filter((l) => !l.ai_stage).length,
   };
+
+  // Keep selectedLead in sync with latest data
+  const activeSelectedLead = selectedLead
+    ? leads.find((l) => l.id === selectedLead.id) || selectedLead
+    : null;
 
   return (
     <DashboardLayout>
@@ -258,7 +540,11 @@ export default function Leads() {
                     const stage = lead.ai_stage || "new";
                     const cfg = stageConfig[stage] || stageConfig["new"];
                     return (
-                      <TableRow key={lead.id}>
+                      <TableRow
+                        key={lead.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setSelectedLead(lead)}
+                      >
                         <TableCell>
                           <div>
                             <p className="font-medium">{lead.first_name} {lead.last_name}</p>
@@ -298,7 +584,7 @@ export default function Leads() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
@@ -354,6 +640,15 @@ export default function Leads() {
           </CardContent>
         </Card>
       </div>
+
+      <LeadProposalSheet
+        lead={activeSelectedLead}
+        onClose={() => setSelectedLead(null)}
+        onRequalify={requalify}
+        onAddToClients={addToClients}
+        requalifyingId={requalifyingId}
+        refetch={refetch}
+      />
     </DashboardLayout>
   );
 }
