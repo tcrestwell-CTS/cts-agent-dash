@@ -204,15 +204,25 @@ export default function PortalManagement() {
                           </Button>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => resetSession.mutate(client.id)}
-                            disabled={!client.hasPortalAccess}
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                            Reset
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/portal-preview/${client.id}`)}
+                            >
+                              <MonitorSmartphone className="h-3.5 w-3.5 mr-1" />
+                              Preview
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => resetSession.mutate(client.id)}
+                              disabled={!client.hasPortalAccess}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                              Reset
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
