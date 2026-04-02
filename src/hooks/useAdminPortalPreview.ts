@@ -68,8 +68,8 @@ export function useAdminPortalTrips(clientId: string | undefined) {
     queryFn: async () => {
       if (!clientId) throw new Error("No client ID");
 
-      const { data: tripTravelers } = await supabase
-        .from("trip_travelers")
+      const { data: tripTravelers } = await (supabase
+        .from("trip_travelers") as any)
         .select("trip_id")
         .eq("client_id", clientId);
 
