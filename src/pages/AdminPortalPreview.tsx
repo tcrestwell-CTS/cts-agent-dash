@@ -60,8 +60,8 @@ export default function AdminPortalPreview() {
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
   // Get client name
-  const { clients } = useClients();
-  const client = clients?.find((c: any) => c.id === clientId);
+  const clientsQuery = useClients();
+  const client = (clientsQuery.data || []).find((c: any) => c.id === clientId);
 
   return (
     <DashboardLayout>
