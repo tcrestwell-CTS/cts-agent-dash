@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, Eye, RotateCcw, Search } from "lucide-react";
+import { Users, Shield, Eye, RotateCcw, Search, MonitorSmartphone } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ const SECTION_LABELS: Record<string, string> = {
 export default function PortalManagement() {
   const { portalUsers, isLoading, updateSettings, resetSession, ALL_SECTIONS } =
     usePortalManagement();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [visibilityClient, setVisibilityClient] = useState<any | null>(null);
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
@@ -202,15 +204,25 @@ export default function PortalManagement() {
                           </Button>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => resetSession.mutate(client.id)}
-                            disabled={!client.hasPortalAccess}
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                            Reset
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/portal-preview/${client.id}`)}
+                            >
+                              <MonitorSmartphone className="h-3.5 w-3.5 mr-1" />
+                              Preview
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => resetSession.mutate(client.id)}
+                              disabled={!client.hasPortalAccess}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                              Reset
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
