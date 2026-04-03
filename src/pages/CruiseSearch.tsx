@@ -157,8 +157,8 @@ export default function CruiseSearch() {
   const [toMonth, setToMonth] = useState("");
 
   // Derive dateFrom / dateTo from year+month selectors
-  const dateFrom = fromYear && fromMonth ? `${fromYear}-${fromMonth}-01` : "";
-  const dateTo = toYear && toMonth
+  const dateFrom = fromYear && fromYear !== "all" && fromMonth ? `${fromYear}-${fromMonth}-01` : "";
+  const dateTo = toYear && toYear !== "all" && toMonth
     ? `${toYear}-${toMonth}-${new Date(Number(toYear), Number(toMonth), 0).getDate()}`
     : "";
 
