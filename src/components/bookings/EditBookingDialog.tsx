@@ -34,6 +34,74 @@ interface EditBookingDialogProps {
   onSaved?: () => void | Promise<void>;
 }
 
+const roundCurrency = (value: number) => Math.round(value * 100) / 100;
+
+const getLineTotals = (lines: LocalMarginLine[]) => {
+  return lines.reduce(
+    (totals, line) => ({
+      grossSales: roundCurrency(totals.grossSales + line.unit_sell * (line.quantity || 1)),
+      supplierPayout: roundCurrency(totals.supplierPayout + line.unit_cost * (line.quantity || 1)),
+    }),
+    { grossSales: 0, supplierPayout: 0 },
+  );
+};
+
+const withPreviewFields = (line: LocalMarginLine): LocalMarginLine => {
+  const quantity = line.quantity || 1;
+  const totalCost = roundCurrency(line.unit_cost * quantity);
+  const totalSell = roundCurrency(line.unit_sell * quantity);
+
+  return {
+    ...line,
+    _preview_total_cost: totalCost,
+    _preview_total_sell: totalSell,
+    _preview_margin: line.is_pass_through ? 0 : roundCurrency(totalSell - totalCost),
+  };
+};
+
+const syncManualLinesToSummary = (
+  lines: LocalMarginLine[],
+  targetGrossSales: number,
+  targetSupplierPayout: number,
+) => {
+  if (lines.length === 0) return lines;
+
+  const { grossSales: currentGrossSales, supplierPayout: currentSupplierPayout } = getLineTotals(lines);
+  const grossDelta = roundCurrency(targetGrossSales - currentGrossSales);
+  const supplierDelta = roundCurrency(targetSupplierPayout - currentSupplierPayout);
+
+  if (Math.abs(grossDelta) < 0.005 && Math.abs(supplierDelta) < 0.005) {
+    return lines.map(withPreviewFields);
+  }
+
+  const primaryLineIndex = lines.reduce((bestIndex, line, index) => {
+    const bestLine = lines[bestIndex];
+    const linePriority = line.is_pass_through ? 0 : 1;
+    const bestPriority = bestLine.is_pass_through ? 0 : 1;
+    const lineWeight = roundCurrency((line.unit_sell + line.unit_cost) * (line.quantity || 1));
+    const bestWeight = roundCurrency((bestLine.unit_sell + bestLine.unit_cost) * (bestLine.quantity || 1));
+
+    if (linePriority > bestPriority) return index;
+    if (linePriority === bestPriority && lineWeight > bestWeight) return index;
+    return bestIndex;
+  }, 0);
+
+  const primaryLine = lines[primaryLineIndex];
+  const quantity = primaryLine.quantity || 1;
+  const nextUnitSell = roundCurrency(primaryLine.unit_sell + grossDelta / quantity);
+  const nextUnitCost = roundCurrency(primaryLine.unit_cost + supplierDelta / quantity);
+
+  if (nextUnitSell < 0 || nextUnitCost < 0) {
+    return null;
+  }
+
+  return lines.map((line, index) =>
+    index === primaryLineIndex
+      ? withPreviewFields({ ...line, unit_sell: nextUnitSell, unit_cost: nextUnitCost })
+      : withPreviewFields(line),
+  );
+};
+
 export function EditBookingDialog({
   booking, open, onOpenChange, onSubmit, onSaved,
 }: EditBookingDialogProps) {
@@ -52,6 +120,7 @@ export function EditBookingDialog({
     open ? booking?.id : undefined
   );
   const [localLines, setLocalLines] = useState<LocalMarginLine[]>([]);
+  const [financialsDirty, setFinancialsDirty] = useState(false);
 
   useEffect(() => {
     if (booking) {
@@ -63,16 +132,36 @@ export function EditBookingDialog({
         commission_estimate: booking.commission_estimate || 0,
       });
     }
+    setLocalLines([]);
+    setFinancialsDirty(false);
   }, [booking]);
 
-  const dbLinesJson = JSON.stringify(dbLines.map(l => l.id));
+  const dbLinesJson = JSON.stringify(dbLines.map((line) => ({
+    id: line.id,
+    source: line.source,
+    quantity: line.quantity,
+    unit_cost: line.unit_cost,
+    unit_sell: line.unit_sell,
+    is_pass_through: line.is_pass_through,
+  })));
   useEffect(() => {
-    if (!linesLoading && dbLines.length > 0) {
-      const real = dbLines.filter(l => l.source !== "synthetic");
-      setLocalLines(real.length > 0 ? real.map(fromDbLine) : []);
+    if (linesLoading) return;
+
+    const real = dbLines.filter(l => l.source !== "synthetic");
+    const nextLines = real.map(fromDbLine);
+    setLocalLines(nextLines);
+
+    if (nextLines.length > 0 && !financialsDirty) {
+      const totals = getLineTotals(nextLines);
+      setFormData((prev) => ({
+        ...prev,
+        total_price: totals.grossSales,
+        gross_sales: totals.grossSales,
+        supplier_payout: totals.supplierPayout,
+      }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbLinesJson, linesLoading]);
+  }, [dbLinesJson, linesLoading, financialsDirty]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,17 +169,30 @@ export function EditBookingDialog({
     setSaving(true);
     try {
       const hasManualLines = localLines.length > 0;
+      let linesToPersist = localLines;
+
+      if (hasManualLines && financialsDirty) {
+        const syncedLines = syncManualLinesToSummary(
+          localLines,
+          formData.gross_sales,
+          formData.supplier_payout,
+        );
+
+        if (!syncedLines) {
+          toast.error("That total is lower than the existing line items. Update the line items directly.");
+          return;
+        }
+
+        linesToPersist = syncedLines;
+      }
 
       // When line items exist, derive supplier_payout and gross_sales from them
       let derivedSupplierPayout = formData.supplier_payout;
       let derivedGrossSales = formData.gross_sales;
       if (hasManualLines) {
-        derivedSupplierPayout = localLines.reduce(
-          (sum, l) => sum + (l.unit_cost * (l.quantity || 1)), 0
-        );
-        derivedGrossSales = localLines.reduce(
-          (sum, l) => sum + (l.unit_sell * (l.quantity || 1)), 0
-        );
+        const totals = getLineTotals(linesToPersist);
+        derivedSupplierPayout = totals.supplierPayout;
+        derivedGrossSales = totals.grossSales;
       }
 
       const success = await onSubmit(booking.id, {
@@ -114,7 +216,7 @@ export function EditBookingDialog({
           return;
         }
 
-        const inserts: BookingMarginLineInsert[] = localLines.map((l, i) => ({
+        const inserts: BookingMarginLineInsert[] = linesToPersist.map((l, i) => ({
           booking_id: booking.id, user_id: user.id,
           line_type: l.line_type, description: l.description,
           source: "manual" as const, quantity: l.quantity,
@@ -172,6 +274,7 @@ export function EditBookingDialog({
                     value={formData.gross_sales}
                     onChange={e => {
                       const v = parseFloat(e.target.value) || 0;
+                      setFinancialsDirty(true);
                       setFormData({ ...formData, gross_sales: v, total_price: v });
                     }} />
                   <p className="text-xs text-muted-foreground mt-1">What client pays</p>
@@ -180,9 +283,10 @@ export function EditBookingDialog({
                   <Label htmlFor="supplier_payout">Supplier Cost ($)</Label>
                   <Input id="supplier_payout" type="number" step="0.01" min="0"
                     value={formData.supplier_payout}
-                    onChange={e =>
-                      setFormData({ ...formData, supplier_payout: parseFloat(e.target.value) || 0 })
-                    } />
+                    onChange={e => {
+                      setFinancialsDirty(true);
+                      setFormData({ ...formData, supplier_payout: parseFloat(e.target.value) || 0 });
+                    }} />
                   <p className="text-xs text-muted-foreground mt-1">What you pay supplier</p>
                 </div>
               </div>
