@@ -699,9 +699,7 @@ export function useBookingMarginLines(bookingId: string | undefined) {
   });
 
   const totalSell   = lines.reduce((s, l) => s + l.total_sell, 0);
-  const totalCost   = lines
-    .filter(l => !l.is_pass_through)
-    .reduce((s, l) => s + l.total_cost, 0);
+  const totalCost   = lines.reduce((s, l) => s + l.total_cost, 0);
   const totalMargin = lines.reduce((s, l) => s + l.margin_amount, 0);
 
   const invalidate = () => {
