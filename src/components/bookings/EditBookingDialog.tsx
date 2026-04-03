@@ -31,10 +31,11 @@ interface EditBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (bookingId: string, data: UpdateBookingData) => Promise<boolean>;
+  onSaved?: () => void | Promise<void>;
 }
 
 export function EditBookingDialog({
-  booking, open, onOpenChange, onSubmit,
+  booking, open, onOpenChange, onSubmit, onSaved,
 }: EditBookingDialogProps) {
   const { suppliers } = useSuppliers();
   const { user } = useAuth();
@@ -135,6 +136,8 @@ export function EditBookingDialog({
         null,
         hasManualLines
       );
+
+      await onSaved?.();
       onOpenChange(false);
     } finally {
       setSaving(false);

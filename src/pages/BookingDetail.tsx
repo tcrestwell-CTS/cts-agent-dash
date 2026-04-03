@@ -750,13 +750,8 @@ const BookingDetail = () => {
         booking={booking}
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
-        onSubmit={async (id, data) => {
-          const success = await updateBooking(id, data);
-          if (success) {
-            refetch();
-          }
-          return success;
-        }}
+        onSubmit={updateBooking}
+        onSaved={refetch}
       />
 
       {/* Delete Confirmation */}
