@@ -377,9 +377,7 @@ export function useBookings() {
         return false;
       }
 
-      toast.success("Booking updated successfully");
-
-      // Recalculate margin if financials changed
+      // Recalculate margin if financials changed (must complete before toast so trip rollups are updated)
       const financialsChanged = "gross_sales" in data || "supplier_payout" in data || "supplier_id" in data || "total_price" in data;
       if (financialsChanged) {
         const current = bookings.find(b => b.id === bookingId);
@@ -391,6 +389,7 @@ export function useBookings() {
       }
 
       await fetchBookings();
+      toast.success("Booking updated successfully");
       return true;
     } catch (error) {
       console.error("Error updating booking:", error);
