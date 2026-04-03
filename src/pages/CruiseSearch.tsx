@@ -521,13 +521,59 @@ export default function CruiseSearch() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-full sm:w-40">
-              <Label className="text-xs text-muted-foreground">Min Date</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-background" />
+            <div className="w-full sm:w-32">
+              <Label className="text-xs text-muted-foreground">From Year</Label>
+              <Select value={fromYear} onValueChange={setFromYear}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="w-full sm:w-40">
-              <Label className="text-xs text-muted-foreground">Max Date</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-background" />
+            <div className="w-full sm:w-36">
+              <Label className="text-xs text-muted-foreground">From Month</Label>
+              <Select value={fromMonth} onValueChange={setFromMonth} disabled={!fromYear || fromYear === "all"}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-32">
+              <Label className="text-xs text-muted-foreground">To Year</Label>
+              <Select value={toYear} onValueChange={setToYear}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-36">
+              <Label className="text-xs text-muted-foreground">To Month</Label>
+              <Select value={toMonth} onValueChange={setToMonth} disabled={!toYear || toYear === "all"}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleSearch} disabled={loading} className="shrink-0">
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
