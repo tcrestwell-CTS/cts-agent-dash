@@ -90,7 +90,7 @@ interface Props {
   onImport: (items: WidgetyItineraryItem[]) => Promise<boolean>;
 }
 
-type Step = "search" | "sailings" | "dates" | "pricing" | "preview" | "importing";
+type Step = "search" | "sailings" | "dates" | "pricing" | "importing";
 
 const AVAILABLE_OPERATORS = [
   { slug: "amawaterways", label: "AmaWaterways" },
@@ -339,7 +339,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   const handleContinueToItinerary = async () => {
     if (!selectedDate) return;
     setLoading(true);
-    setStep("preview");
+    setStep("importing");
     try {
       const data = await callWidgety({
         action: "itinerary",
@@ -347,35 +347,30 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         market: "us",
       });
 
-      setPreviewItems(data.items || []);
-      setMeta({
-        ship_title: data.ship_title,
-        operator_title: data.operator_title,
-        holiday_name: data.holiday_name,
-      });
+      const items: WidgetyItineraryItem[] = data.items || [];
 
-      if ((data.items || []).length === 0) {
+      if (items.length === 0) {
         toast.info("No itinerary data available for this sailing.");
+        setStep("pricing");
+        setLoading(false);
+        return;
+      }
+
+      // Save immediately
+      const success = await onImport(items);
+      if (success) {
+        toast.success(`Imported ${items.length} cruise itinerary days from Cruise Library`);
+        setOpen(false);
+        resetState();
+      } else {
+        setStep("pricing");
       }
     } catch (err) {
-      console.error("Itinerary fetch error:", err);
-      toast.error("Failed to load itinerary");
+      console.error("Itinerary fetch/import error:", err);
+      toast.error("Failed to import itinerary");
       setStep("pricing");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleImport = async () => {
-    if (previewItems.length === 0) return;
-    setStep("importing");
-    const success = await onImport(previewItems);
-    if (success) {
-      toast.success(`Imported ${previewItems.length} cruise itinerary days from Cruise Library`);
-      setOpen(false);
-      resetState();
-    } else {
-      setStep("preview");
     }
   };
 
@@ -477,7 +472,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
             {step === "sailings" && "Select a Cruise"}
             {step === "dates" && `Sailing Dates — ${selectedHoliday?.name || ""}`}
             {step === "pricing" && "Cabin Pricing"}
-            {step === "preview" && "Preview Itinerary"}
+            {step === "importing" && "Importing Itinerary..."}
             {step === "importing" && "Importing..."}
           </DialogTitle>
         </DialogHeader>
@@ -862,76 +857,11 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
             )}
             <Separator className="my-3" />
             <div className="flex justify-end">
-              <Button onClick={handleContinueToItinerary}>
-                <Ship className="h-4 w-4 mr-2" /> Continue to Itinerary
+              <Button onClick={handleContinueToItinerary} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Ship className="h-4 w-4 mr-2" />}
+                Import Itinerary
               </Button>
             </div>
-          </div>
-        )}
-
-        {/* Preview */}
-        {step === "preview" && (
-          <div className="flex-1 min-h-0 flex flex-col">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-2">
-                  <Button variant="ghost" size="sm" onClick={() => setStep("pricing")}>
-                    ← Back to Pricing
-                  </Button>
-                </div>
-                {meta.operator_title && (
-                  <div className="mb-3 p-2 bg-accent/30 rounded-md">
-                    <p className="text-sm font-medium">{meta.holiday_name || selectedHoliday?.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {meta.operator_title}{meta.ship_title ? ` • ${meta.ship_title}` : ""}
-                    </p>
-                    {selectedCabin && (
-                      <p className="text-xs text-primary mt-1">
-                        Cabin: {selectedCabin.room_type} — {selectedCabin.cabin.grade_code} {selectedCabin.cabin.grade_name} • ${parseFloat(selectedCabin.cabin.double_price_pp).toLocaleString(undefined, { maximumFractionDigits: 0 })} pp
-                      </p>
-                    )}
-                  </div>
-                )}
-                <ScrollArea className="flex-1 h-[300px]">
-                  <div className="space-y-1 pr-3">
-                    {previewItems.map((item, idx) => (
-                      <div key={idx} className="flex gap-2 py-1.5">
-                        <span className="text-xs font-mono text-muted-foreground w-8 shrink-0 pt-0.5">
-                          D{item.day_number}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{item.title}</p>
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                          )}
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground/70">{item.notes}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {previewItems.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        No itinerary data available for this sailing
-                      </p>
-                    )}
-                  </div>
-                </ScrollArea>
-                <Separator className="my-3" />
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => { setOpen(false); resetState(); }}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleImport} disabled={previewItems.length === 0}>
-                    <Ship className="h-4 w-4 mr-2" /> Import {previewItems.length} Days
-                  </Button>
-                </div>
-              </>
-            )}
           </div>
         )}
 
