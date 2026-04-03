@@ -128,33 +128,16 @@ const ItineraryBuilder = () => {
                 <Plane className="h-4 w-4 mr-2" />
                 Search Flights
               </Button>
-              <WidgetyCruiseImportDialog
-                tripId={trip.id}
-                departDate={activeDepartDate}
-                returnDate={activeReturnDate}
-                destination={trip.destination}
-                cruiseBookings={bookings?.filter((b: any) => b.suppliers?.supplier_type?.toLowerCase() === "cruise") || []}
-                onImport={async (items) => {
-                  let success = true;
-                  for (const item of items) {
-                    const res = await addItineraryItem({
-                      trip_id: trip.id,
-                      day_number: item.day_number || 1,
-                      title: item.title,
-                      description: item.description || undefined,
-                      category: item.category || "cruise",
-                      location: item.location || undefined,
-                      start_time: item.start_time || undefined,
-                      end_time: item.end_time || undefined,
-                      notes: item.notes || undefined,
-                      sort_order: items.indexOf(item),
-                      itinerary_id: activeId || undefined,
-                    });
-                    if (!res) { success = false; break; }
-                  }
-                  return success;
-                }}
-              />
+              {sidebarCallbacks && (
+                <WidgetyCruiseImportDialog
+                  tripId={trip.id}
+                  departDate={activeDepartDate}
+                  returnDate={activeReturnDate}
+                  destination={trip.destination}
+                  cruiseBookings={bookings?.filter((b: any) => b.suppliers?.supplier_type?.toLowerCase() === "cruise") || []}
+                  onImport={sidebarCallbacks.onWidgetyImport}
+                />
+              )}
               <PublishTripButton
                 tripId={tripId!}
                 shareToken={trip.share_token}
