@@ -339,7 +339,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   const handleContinueToItinerary = async () => {
     if (!selectedDate) return;
     setLoading(true);
-    setStep("preview");
+    setStep("importing");
     try {
       const data = await callWidgety({
         action: "itinerary",
@@ -347,35 +347,30 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
         market: "us",
       });
 
-      setPreviewItems(data.items || []);
-      setMeta({
-        ship_title: data.ship_title,
-        operator_title: data.operator_title,
-        holiday_name: data.holiday_name,
-      });
+      const items: WidgetyItineraryItem[] = data.items || [];
 
-      if ((data.items || []).length === 0) {
+      if (items.length === 0) {
         toast.info("No itinerary data available for this sailing.");
+        setStep("pricing");
+        setLoading(false);
+        return;
+      }
+
+      // Save immediately
+      const success = await onImport(items);
+      if (success) {
+        toast.success(`Imported ${items.length} cruise itinerary days from Cruise Library`);
+        setOpen(false);
+        resetState();
+      } else {
+        setStep("pricing");
       }
     } catch (err) {
-      console.error("Itinerary fetch error:", err);
-      toast.error("Failed to load itinerary");
+      console.error("Itinerary fetch/import error:", err);
+      toast.error("Failed to import itinerary");
       setStep("pricing");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleImport = async () => {
-    if (previewItems.length === 0) return;
-    setStep("importing");
-    const success = await onImport(previewItems);
-    if (success) {
-      toast.success(`Imported ${previewItems.length} cruise itinerary days from Cruise Library`);
-      setOpen(false);
-      resetState();
-    } else {
-      setStep("preview");
     }
   };
 
