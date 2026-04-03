@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
+import { TripEmailNotificationDialog } from "@/components/trips/TripEmailNotificationDialog";
 import {
   Tooltip,
   TooltipContent,
