@@ -270,7 +270,7 @@ const TripDetail = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(trip.parent_trip_id ? `/trips/${trip.parent_trip_id}` : "/trips")}
+              onClick={() => trip.parent_trip_id ? navigate(`/trips/${trip.parent_trip_id}`) : navigate(-1)}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
