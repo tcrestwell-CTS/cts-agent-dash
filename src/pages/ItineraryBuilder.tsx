@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2, Plane } from "lucide-react";
 
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
-import { useItinerary } from "@/hooks/useItinerary";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { ItinerarySidebar } from "@/components/trips/ItinerarySidebar";
