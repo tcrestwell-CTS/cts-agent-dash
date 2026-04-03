@@ -857,8 +857,9 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
             )}
             <Separator className="my-3" />
             <div className="flex justify-end">
-              <Button onClick={handleContinueToItinerary}>
-                <Ship className="h-4 w-4 mr-2" /> Continue to Itinerary
+              <Button onClick={handleContinueToItinerary} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Ship className="h-4 w-4 mr-2" />}
+                Import Itinerary
               </Button>
             </div>
           </div>
