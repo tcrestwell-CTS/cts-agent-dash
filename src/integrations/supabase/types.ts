@@ -1850,6 +1850,42 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body_html: string
+          category: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_html: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_html?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       featured_trips: {
         Row: {
           cover_image_url: string | null
