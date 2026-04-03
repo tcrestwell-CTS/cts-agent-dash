@@ -90,7 +90,7 @@ interface Props {
   onImport: (items: WidgetyItineraryItem[]) => Promise<boolean>;
 }
 
-type Step = "search" | "sailings" | "dates" | "pricing" | "preview" | "importing";
+type Step = "search" | "sailings" | "dates" | "pricing" | "importing";
 
 const AVAILABLE_OPERATORS = [
   { slug: "amawaterways", label: "AmaWaterways" },
