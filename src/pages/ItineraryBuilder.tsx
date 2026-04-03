@@ -46,7 +46,7 @@ const ItineraryBuilder = () => {
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [editingItinerary, setEditingItinerary] = useState<import("@/hooks/useItineraries").Itinerary | null>(null);
 
-  const { addItem: addItineraryItem } = useItinerary(tripId);
+  
 
   const activeItinerary = useMemo(
     () => itineraries.find((i) => i.id === activeId),
