@@ -162,6 +162,17 @@ export function TripSidebar({
               Portal Link
             </Button>
           )}
+          {clientEmail && clientName && tripName && (
+            <TripEmailNotificationDialog
+              tripId={tripId}
+              tripName={tripName}
+              clientName={clientName}
+              clientEmail={clientEmail}
+              destination={destination || undefined}
+              departDate={departDate || undefined}
+              returnDate={returnDate || undefined}
+            />
+          )}
           <SendInviteLinkDialog
             defaultClientName={clientName || ""}
             defaultClientEmail={clientEmail || ""}
