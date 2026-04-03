@@ -472,7 +472,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
             {step === "sailings" && "Select a Cruise"}
             {step === "dates" && `Sailing Dates — ${selectedHoliday?.name || ""}`}
             {step === "pricing" && "Cabin Pricing"}
-            {step === "preview" && "Preview Itinerary"}
+            {step === "importing" && "Importing Itinerary..."}
             {step === "importing" && "Importing..."}
           </DialogTitle>
         </DialogHeader>
