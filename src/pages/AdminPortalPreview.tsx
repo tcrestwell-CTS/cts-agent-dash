@@ -578,7 +578,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                 })()}
                 <div className="flex justify-between pt-4 border-t font-bold">
                   <span>Total</span>
-                  <span>${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span>${pricingLines.reduce((sum: number, l: any) => sum + (Number(l.total_price) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
             ) : totalCost > 0 ? (
