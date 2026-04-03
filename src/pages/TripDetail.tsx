@@ -375,6 +375,9 @@ const TripDetail = () => {
             tripTotalAmount={trip.total_gross_sales || 0}
             depositRequired={(trip as any).deposit_required || false}
             depositAmount={(trip as any).deposit_amount || 0}
+            destination={trip.destination}
+            departDate={trip.depart_date}
+            returnDate={trip.return_date}
             isSendingPortalLink={isSendingPortalLink}
             onSendPortalLink={handleSendPortalLink}
             onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}

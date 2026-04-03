@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
+import { TripEmailNotificationDialog } from "@/components/trips/TripEmailNotificationDialog";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +46,9 @@ interface TripSidebarProps {
   tripTotalAmount?: number;
   depositRequired?: boolean;
   depositAmount?: number;
+  destination?: string | null;
+  departDate?: string | null;
+  returnDate?: string | null;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
@@ -63,6 +67,9 @@ export function TripSidebar({
   tripTotalAmount,
   depositRequired,
   depositAmount,
+  destination,
+  departDate,
+  returnDate,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
@@ -154,6 +161,17 @@ export function TripSidebar({
               )}
               Portal Link
             </Button>
+          )}
+          {clientEmail && clientName && tripName && (
+            <TripEmailNotificationDialog
+              tripId={tripId}
+              tripName={tripName}
+              clientName={clientName}
+              clientEmail={clientEmail}
+              destination={destination || undefined}
+              departDate={departDate || undefined}
+              returnDate={returnDate || undefined}
+            />
           )}
           <SendInviteLinkDialog
             defaultClientName={clientName || ""}
