@@ -116,7 +116,7 @@ export function EditBookingDialog({
     supplier_id: "", commission_estimate: 0,
   });
 
-  const { lines: dbLines, isLoading: linesLoading } = useBookingMarginLines(
+  const { lines: dbLines, isLoading: linesLoading, invalidate: invalidateMarginLines } = useBookingMarginLines(
     open ? booking?.id : undefined
   );
   const [localLines, setLocalLines] = useState<LocalMarginLine[]>([]);
@@ -239,7 +239,10 @@ export function EditBookingDialog({
         hasManualLines
       );
 
-      await onSaved?.();
+      await Promise.all([
+        invalidateMarginLines(),
+        Promise.resolve(onSaved?.()),
+      ]);
       onOpenChange(false);
     } finally {
       setSaving(false);

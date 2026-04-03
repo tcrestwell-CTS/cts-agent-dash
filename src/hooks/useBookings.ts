@@ -702,7 +702,7 @@ export function useBookingMarginLines(bookingId: string | undefined) {
   const totalMargin = lines.reduce((s, l) => s + l.margin_amount, 0);
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["booking-margin-lines", bookingId] });
+    return queryClient.invalidateQueries({ queryKey: ["booking-margin-lines", bookingId] });
   };
 
   return { lines, isLoading, error, totalSell, totalCost, totalMargin, invalidate };
