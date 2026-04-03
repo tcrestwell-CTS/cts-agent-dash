@@ -362,8 +362,10 @@ export default function CruiseSearch() {
     setCruiseType("");
     setShipFilter("");
     setDeparturePort("");
-    setDateFrom("");
-    setDateTo("");
+    setFromYear("");
+    setFromMonth("");
+    setToYear("");
+    setToMonth("");
   };
 
   const fmt = (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
