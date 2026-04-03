@@ -46,6 +46,9 @@ interface TripSidebarProps {
   tripTotalAmount?: number;
   depositRequired?: boolean;
   depositAmount?: number;
+  destination?: string | null;
+  departDate?: string | null;
+  returnDate?: string | null;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
