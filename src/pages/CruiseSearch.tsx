@@ -134,8 +134,33 @@ export default function CruiseSearch() {
   const [departurePort, setDeparturePort] = useState("");
   const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
   const [shipsLoading, setShipsLoading] = useState(false);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [currentYear, currentYear + 1, currentYear + 2];
+  const monthOptions = [
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
+  const [fromYear, setFromYear] = useState("");
+  const [fromMonth, setFromMonth] = useState("");
+  const [toYear, setToYear] = useState("");
+  const [toMonth, setToMonth] = useState("");
+
+  // Derive dateFrom / dateTo from year+month selectors
+  const dateFrom = fromYear && fromMonth ? `${fromYear}-${fromMonth}-01` : "";
+  const dateTo = toYear && toMonth
+    ? `${toYear}-${toMonth}-${new Date(Number(toYear), Number(toMonth), 0).getDate()}`
+    : "";
 
   const [sailings, setSailings] = useState<WidgetySailing[]>([]);
   const [totalResults, setTotalResults] = useState(0);
