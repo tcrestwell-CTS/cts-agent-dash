@@ -215,12 +215,20 @@ export function TripEmailNotificationDialog({
 
     setSending(true);
     try {
+      const resolvedSubject = resolveVariables(subject);
+      const resolvedMessage = resolveVariables(message);
+      const resolvedHtml = resolvedMessage
+        .replace(/\n/g, "<br/>")
+        .replace(
+          /(https?:\/\/[^\s<]+)/g,
+          '<a href="$1" style="color:#c9a84c;text-decoration:underline;">$1</a>'
+        );
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
           to: clientEmail,
-          subject,
+          subject: resolvedSubject,
           template: "custom",
-          customHtml: message.replace(/\n/g, "<br/>"),
+          customHtml: resolvedHtml,
           data: { clientName },
         },
       });
