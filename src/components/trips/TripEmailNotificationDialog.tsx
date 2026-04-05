@@ -36,7 +36,18 @@ import {
   Eye,
   FileText,
   Trash2,
+  Plus,
+  Link as LinkIcon,
+  Variable,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
