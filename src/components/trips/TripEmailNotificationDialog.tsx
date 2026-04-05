@@ -49,6 +49,7 @@ interface TripEmailNotificationDialogProps {
   destination?: string;
   departDate?: string;
   returnDate?: string;
+  shareToken?: string;
 }
 
 type BuiltInTemplate = {
@@ -58,6 +59,21 @@ type BuiltInTemplate = {
   body: string;
   category: string;
 };
+
+const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
+
+const LINK_VARIABLES = [
+  { token: "$trip_link", label: "Trip Page Link", description: "Link to the published trip page" },
+  { token: "$portal_link", label: "Portal Link", description: "Link to the client portal" },
+] as const;
+
+const TEXT_VARIABLES = [
+  { token: "{{clientName}}", label: "Client Name" },
+  { token: "{{tripName}}", label: "Trip Name" },
+  { token: "{{destination}}", label: "Destination" },
+  { token: "{{departDate}}", label: "Depart Date" },
+  { token: "{{returnDate}}", label: "Return Date" },
+] as const;
 
 export function TripEmailNotificationDialog({
   tripId,
