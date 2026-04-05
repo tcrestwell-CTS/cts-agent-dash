@@ -49,6 +49,7 @@ interface TripSidebarProps {
   destination?: string | null;
   departDate?: string | null;
   returnDate?: string | null;
+  shareToken?: string | null;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
