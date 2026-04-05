@@ -515,11 +515,13 @@ export default function FlightSearch() {
                               location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
                               start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
                               end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
+                              item_date: format(parseISO(slice.segments[0].departing_at), "yyyy-MM-dd"),
                               flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
                               departure_city_code: slice.origin.iata_code,
                               arrival_city_code: slice.destination.iata_code,
                               notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
                             }))}
+                            flightOffer={buildFlightOfferMeta(selectedOffer)}
                           />
                           <Button onClick={() => handleBookOffer(selectedOffer.id)} className="gap-2">
                             <CreditCard className="h-4 w-4" />
