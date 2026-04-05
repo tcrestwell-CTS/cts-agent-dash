@@ -13,9 +13,29 @@ import { Separator } from "@/components/ui/separator";
 import { Plane, Search, Clock, ArrowRight, Users, Loader2, CreditCard } from "lucide-react";
 import { IataCodeInput } from "@/components/trips/IataCodeInput";
 import { useFlightSearch, FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection } from "@/hooks/useFlightSearch";
-import { AddToTripSelector } from "@/components/search/AddToTripSelector";
+import { AddToTripSelector, type FlightOfferMeta } from "@/components/search/AddToTripSelector";
 import { FlightBookingCheckout } from "@/components/trips/FlightBookingCheckout";
 import { format, parseISO } from "date-fns";
+
+function buildFlightOfferMeta(offer: FlightOffer): FlightOfferMeta {
+  const firstSlice = offer.slices[0];
+  const lastSlice = offer.slices[offer.slices.length - 1];
+  const departureDate = firstSlice?.segments?.[0]?.departing_at
+    ? format(parseISO(firstSlice.segments[0].departing_at), "yyyy-MM-dd")
+    : null;
+  const returnDate = offer.slices.length > 1 && lastSlice?.segments?.[0]?.departing_at
+    ? format(parseISO(lastSlice.segments[0].departing_at), "yyyy-MM-dd")
+    : null;
+  const seg = firstSlice?.segments?.[0];
+  return {
+    totalAmount: parseFloat(offer.total_amount),
+    currency: offer.total_currency,
+    airlineName: seg?.operating_carrier?.name || offer.owner?.name || "Flight",
+    confirmationLabel: `${seg?.operating_carrier?.iata_code || ""}${seg?.operating_carrier_flight_number || ""} ${firstSlice?.origin?.iata_code || ""}-${lastSlice?.destination?.iata_code || ""}`,
+    departureDate,
+    returnDate,
+  };
+}
 
 function formatDuration(iso: string) {
   const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
@@ -515,11 +535,13 @@ export default function FlightSearch() {
                               location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
                               start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
                               end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
+                              item_date: format(parseISO(slice.segments[0].departing_at), "yyyy-MM-dd"),
                               flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
                               departure_city_code: slice.origin.iata_code,
                               arrival_city_code: slice.destination.iata_code,
                               notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
                             }))}
+                            flightOffer={buildFlightOfferMeta(selectedOffer)}
                           />
                           <Button onClick={() => handleBookOffer(selectedOffer.id)} className="gap-2">
                             <CreditCard className="h-4 w-4" />
@@ -606,11 +628,13 @@ export default function FlightSearch() {
                               location: `${slice.origin.city_name} → ${slice.destination.city_name}`,
                               start_time: format(parseISO(slice.segments[0].departing_at), "HH:mm"),
                               end_time: format(parseISO(slice.segments[slice.segments.length - 1].arriving_at), "HH:mm"),
+                              item_date: format(parseISO(slice.segments[0].departing_at), "yyyy-MM-dd"),
                               flight_number: `${slice.segments[0]?.operating_carrier?.iata_code || ""}${slice.segments[0]?.operating_carrier_flight_number || ""}`,
                               departure_city_code: slice.origin.iata_code,
                               arrival_city_code: slice.destination.iata_code,
                               notes: `Total: $${parseFloat(selectedOffer.total_amount).toFixed(2)} ${selectedOffer.total_currency}`,
                             }))}
+                            flightOffer={buildFlightOfferMeta(selectedOffer)}
                           />
                           <Button onClick={() => handleBookOffer(selectedOffer.id)} className="gap-2">
                             <CreditCard className="h-4 w-4" />
