@@ -71,6 +71,7 @@ export function TripSidebar({
   destination,
   departDate,
   returnDate,
+  shareToken,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
