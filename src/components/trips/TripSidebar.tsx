@@ -173,6 +173,7 @@ export function TripSidebar({
               destination={destination || undefined}
               departDate={departDate || undefined}
               returnDate={returnDate || undefined}
+              shareToken={shareToken || undefined}
             />
           )}
           <SendInviteLinkDialog
