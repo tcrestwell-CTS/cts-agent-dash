@@ -40,14 +40,8 @@ export function PublishTripButton({
   const handlePublish = async () => {
     setPublishing(true);
     try {
-      // 1. Fetch current itinerary items and bookings to snapshot
-      const [itineraryRes, bookingsRes, itinerariesRes, optionBlocksRes] = await Promise.all([
-        supabase
-          .from("itinerary_items")
-          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id")
-          .eq("trip_id", tripId)
-          .order("day_number", { ascending: true })
-          .order("sort_order", { ascending: true }),
+      // 1. Fetch itineraries first to determine which one to publish
+      const [bookingsRes, itinerariesRes] = await Promise.all([
         supabase
           .from("bookings")
           .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type")
@@ -57,6 +51,25 @@ export function PublishTripButton({
           .select("id, name, sort_order, cover_image_url, overview, depart_date, return_date")
           .eq("trip_id", tripId)
           .order("sort_order", { ascending: true }),
+      ]);
+
+      const itineraries = itinerariesRes.data || [];
+      const activeItineraryId = itineraries.length > 0 ? itineraries[0].id : null;
+
+      // 2. Fetch itinerary items filtered to active itinerary only (avoids orphan duplicates)
+      let itineraryQuery = supabase
+        .from("itinerary_items")
+        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id")
+        .eq("trip_id", tripId)
+        .order("day_number", { ascending: true })
+        .order("sort_order", { ascending: true });
+      
+      if (activeItineraryId) {
+        itineraryQuery = itineraryQuery.eq("itinerary_id", activeItineraryId);
+      }
+
+      const [itineraryRes, optionBlocksRes] = await Promise.all([
+        itineraryQuery,
         supabase
           .from("option_blocks")
           .select("id, day_number, title, sort_order, itinerary_id")
@@ -77,7 +90,7 @@ export function PublishTripButton({
           cancellation_terms: b.cancellation_terms,
           payment_deadline: b.payment_deadline,
         })),
-        itineraries: itinerariesRes.data || [],
+        itineraries: itineraries,
         optionBlocks: optionBlocksRes.data || [],
         snapshot_at: new Date().toISOString(),
       };
