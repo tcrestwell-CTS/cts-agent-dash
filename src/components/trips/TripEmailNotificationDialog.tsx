@@ -23,12 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Mail,
   Loader2,
   Send,
@@ -36,7 +30,18 @@ import {
   Eye,
   FileText,
   Trash2,
+  Plus,
+  Link as LinkIcon,
+  Variable,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
@@ -332,46 +337,43 @@ export function TripEmailNotificationDialog({
 
               {/* Variable insertion toolbar */}
               {!showPreview && (
-                <div className="flex flex-wrap gap-1.5">
-                  <TooltipProvider delayDuration={200}>
-                    {LINK_VARIABLES.map((v) => (
-                      <Tooltip key={v.token}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-xs px-2"
-                            onClick={() => insertVariable(v.token)}
-                          >
-                            🔗 {v.label}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="text-xs">{v.description}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                    {TEXT_VARIABLES.map((v) => (
-                      <Tooltip key={v.token}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-xs px-2"
-                            onClick={() => insertVariable(v.token)}
-                          >
-                            {v.label}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="text-xs font-mono">{v.token}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TooltipProvider>
+                <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/50">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="secondary" size="sm" className="h-7 text-xs gap-1.5">
+                        <Plus className="h-3.5 w-3.5" />
+                        Insert Variable
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuLabel className="text-xs flex items-center gap-1.5">
+                        <LinkIcon className="h-3 w-3" /> Link Variables
+                      </DropdownMenuLabel>
+                      {LINK_VARIABLES.map((v) => (
+                        <DropdownMenuItem key={v.token} onClick={() => insertVariable(v.token)} className="cursor-pointer">
+                          <div>
+                            <p className="text-sm">{v.label}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs flex items-center gap-1.5">
+                        <Variable className="h-3 w-3" /> Text Variables
+                      </DropdownMenuLabel>
+                      {TEXT_VARIABLES.map((v) => (
+                        <DropdownMenuItem key={v.token} onClick={() => insertVariable(v.token)} className="cursor-pointer">
+                          <div>
+                            <p className="text-sm">{v.label}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <span className="text-xs text-muted-foreground">
+                    Click to insert dynamic content at cursor position
+                  </span>
                 </div>
               )}
 
