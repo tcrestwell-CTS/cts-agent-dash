@@ -250,14 +250,21 @@ export function TripEmailNotificationDialog({
   };
 
   const previewHtml = useMemo(() => {
-    const bodyHtml = message.replace(/\n/g, "<br/>");
+    const resolved = resolveVariables(message);
+    const bodyHtml = resolved
+      .replace(/\n/g, "<br/>")
+      .replace(
+        /(https?:\/\/[^\s<]+)/g,
+        '<a href="$1" style="color:#c9a84c;text-decoration:underline;">$1</a>'
+      );
+    const resolvedSubject = resolveVariables(subject);
     return `
       <div style="font-family: 'Montserrat', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
         <div style="background: #142236; padding: 24px 32px; text-align: center;">
           <h2 style="color: #c9a84c; margin: 0; font-size: 18px; font-family: 'Playfair Display', serif;">Crestwell Travel Services</h2>
         </div>
         <div style="padding: 32px;">
-          <h3 style="color: #142236; margin: 0 0 16px; font-size: 16px;">${subject}</h3>
+          <h3 style="color: #142236; margin: 0 0 16px; font-size: 16px;">${resolvedSubject}</h3>
           <div style="color: #4a5568; font-size: 14px; line-height: 1.7;">${bodyHtml}</div>
         </div>
         <div style="background: #f7f5f0; padding: 16px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
@@ -265,7 +272,7 @@ export function TripEmailNotificationDialog({
         </div>
       </div>
     `;
-  }, [message, subject]);
+  }, [message, subject, tripLink, portalLink, clientName, tripName, destination, departDate, returnDate]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
