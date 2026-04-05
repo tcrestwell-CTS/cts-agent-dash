@@ -83,6 +83,7 @@ export function TripEmailNotificationDialog({
   destination,
   departDate,
   returnDate,
+  shareToken,
 }: TripEmailNotificationDialogProps) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
@@ -92,8 +93,41 @@ export function TripEmailNotificationDialog({
   const [showPreview, setShowPreview] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const messageRef = useRef<HTMLTextAreaElement>(null);
 
   const { templates: savedTemplates, isLoading: loadingTemplates, saveTemplate, deleteTemplate } = useEmailTemplates();
+
+  const tripLink = shareToken ? `${PRODUCTION_DOMAIN}/shared/${shareToken}` : "";
+  const portalLink = `${PRODUCTION_DOMAIN}/portal`;
+
+  const resolveVariables = (text: string) => {
+    return text
+      .replace(/\{\{clientName\}\}/g, clientName)
+      .replace(/\{\{tripName\}\}/g, tripName)
+      .replace(/\{\{destination\}\}/g, destination || "")
+      .replace(/\{\{departDate\}\}/g, departDate || "")
+      .replace(/\{\{returnDate\}\}/g, returnDate || "")
+      .replace(/\$trip_link/g, tripLink)
+      .replace(/\$portal_link/g, portalLink);
+  };
+
+  const insertVariable = (token: string) => {
+    const textarea = messageRef.current;
+    if (!textarea) {
+      setMessage((prev) => prev + token);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newMessage = message.substring(0, start) + token + message.substring(end);
+    setMessage(newMessage);
+    // restore cursor position after token
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + token.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
 
   const builtInTemplates: BuiltInTemplate[] = useMemo(
     () => [
