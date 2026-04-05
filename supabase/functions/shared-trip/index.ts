@@ -375,13 +375,28 @@ const handler = async (req: Request): Promise<Response> => {
       // Pricing from snapshot if available
     } else {
       // Legacy fallback: serve live data for trips published before versioning
+      // First get the active itinerary to filter items properly
+      const activeItinRes = await supabase
+        .from("itineraries")
+        .select("id")
+        .eq("trip_id", trip.id)
+        .order("sort_order", { ascending: true })
+        .limit(1);
+      const activeItineraryId = activeItinRes.data?.[0]?.id;
+
+      let itemsQuery = supabase
+        .from("itinerary_items")
+        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order")
+        .eq("trip_id", trip.id)
+        .order("day_number", { ascending: true })
+        .order("sort_order", { ascending: true });
+      
+      if (activeItineraryId) {
+        itemsQuery = itemsQuery.eq("itinerary_id", activeItineraryId);
+      }
+
       const [itineraryRes, bookingsRes] = await Promise.all([
-        supabase
-          .from("itinerary_items")
-          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order")
-          .eq("trip_id", trip.id)
-          .order("day_number", { ascending: true })
-          .order("sort_order", { ascending: true }),
+        itemsQuery,
         supabase
           .from("bookings")
           .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type, gross_sales, travelers")
