@@ -378,6 +378,7 @@ const TripDetail = () => {
             destination={trip.destination}
             departDate={trip.depart_date}
             returnDate={trip.return_date}
+            shareToken={(trip as any).share_token}
             isSendingPortalLink={isSendingPortalLink}
             onSendPortalLink={handleSendPortalLink}
             onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}

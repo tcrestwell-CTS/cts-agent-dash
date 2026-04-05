@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Mail,
   Loader2,
   Send,
@@ -43,6 +49,7 @@ interface TripEmailNotificationDialogProps {
   destination?: string;
   departDate?: string;
   returnDate?: string;
+  shareToken?: string;
 }
 
 type BuiltInTemplate = {
@@ -53,6 +60,21 @@ type BuiltInTemplate = {
   category: string;
 };
 
+const PRODUCTION_DOMAIN = "https://app.crestwelltravels.com";
+
+const LINK_VARIABLES = [
+  { token: "$trip_link", label: "Trip Page Link", description: "Link to the published trip page" },
+  { token: "$portal_link", label: "Portal Link", description: "Link to the client portal" },
+] as const;
+
+const TEXT_VARIABLES = [
+  { token: "{{clientName}}", label: "Client Name" },
+  { token: "{{tripName}}", label: "Trip Name" },
+  { token: "{{destination}}", label: "Destination" },
+  { token: "{{departDate}}", label: "Depart Date" },
+  { token: "{{returnDate}}", label: "Return Date" },
+] as const;
+
 export function TripEmailNotificationDialog({
   tripId,
   tripName,
@@ -61,6 +83,7 @@ export function TripEmailNotificationDialog({
   destination,
   departDate,
   returnDate,
+  shareToken,
 }: TripEmailNotificationDialogProps) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
@@ -70,8 +93,41 @@ export function TripEmailNotificationDialog({
   const [showPreview, setShowPreview] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const messageRef = useRef<HTMLTextAreaElement>(null);
 
   const { templates: savedTemplates, isLoading: loadingTemplates, saveTemplate, deleteTemplate } = useEmailTemplates();
+
+  const tripLink = shareToken ? `${PRODUCTION_DOMAIN}/shared/${shareToken}` : "";
+  const portalLink = `${PRODUCTION_DOMAIN}/portal`;
+
+  const resolveVariables = (text: string) => {
+    return text
+      .replace(/\{\{clientName\}\}/g, clientName)
+      .replace(/\{\{tripName\}\}/g, tripName)
+      .replace(/\{\{destination\}\}/g, destination || "")
+      .replace(/\{\{departDate\}\}/g, departDate || "")
+      .replace(/\{\{returnDate\}\}/g, returnDate || "")
+      .replace(/\$trip_link/g, tripLink)
+      .replace(/\$portal_link/g, portalLink);
+  };
+
+  const insertVariable = (token: string) => {
+    const textarea = messageRef.current;
+    if (!textarea) {
+      setMessage((prev) => prev + token);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newMessage = message.substring(0, start) + token + message.substring(end);
+    setMessage(newMessage);
+    // restore cursor position after token
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + token.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
 
   const builtInTemplates: BuiltInTemplate[] = useMemo(
     () => [
@@ -159,12 +215,20 @@ export function TripEmailNotificationDialog({
 
     setSending(true);
     try {
+      const resolvedSubject = resolveVariables(subject);
+      const resolvedMessage = resolveVariables(message);
+      const resolvedHtml = resolvedMessage
+        .replace(/\n/g, "<br/>")
+        .replace(
+          /(https?:\/\/[^\s<]+)/g,
+          '<a href="$1" style="color:#c9a84c;text-decoration:underline;">$1</a>'
+        );
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
           to: clientEmail,
-          subject,
+          subject: resolvedSubject,
           template: "custom",
-          customHtml: message.replace(/\n/g, "<br/>"),
+          customHtml: resolvedHtml,
           data: { clientName },
         },
       });
@@ -186,14 +250,21 @@ export function TripEmailNotificationDialog({
   };
 
   const previewHtml = useMemo(() => {
-    const bodyHtml = message.replace(/\n/g, "<br/>");
+    const resolved = resolveVariables(message);
+    const bodyHtml = resolved
+      .replace(/\n/g, "<br/>")
+      .replace(
+        /(https?:\/\/[^\s<]+)/g,
+        '<a href="$1" style="color:#c9a84c;text-decoration:underline;">$1</a>'
+      );
+    const resolvedSubject = resolveVariables(subject);
     return `
       <div style="font-family: 'Montserrat', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
         <div style="background: #142236; padding: 24px 32px; text-align: center;">
           <h2 style="color: #c9a84c; margin: 0; font-size: 18px; font-family: 'Playfair Display', serif;">Crestwell Travel Services</h2>
         </div>
         <div style="padding: 32px;">
-          <h3 style="color: #142236; margin: 0 0 16px; font-size: 16px;">${subject}</h3>
+          <h3 style="color: #142236; margin: 0 0 16px; font-size: 16px;">${resolvedSubject}</h3>
           <div style="color: #4a5568; font-size: 14px; line-height: 1.7;">${bodyHtml}</div>
         </div>
         <div style="background: #f7f5f0; padding: 16px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
@@ -201,7 +272,7 @@ export function TripEmailNotificationDialog({
         </div>
       </div>
     `;
-  }, [message, subject]);
+  }, [message, subject, tripLink, portalLink, clientName, tripName, destination, departDate, returnDate]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -258,21 +329,68 @@ export function TripEmailNotificationDialog({
                   {showPreview ? "Edit" : "Preview"}
                 </Button>
               </div>
+
+              {/* Variable insertion toolbar */}
+              {!showPreview && (
+                <div className="flex flex-wrap gap-1.5">
+                  <TooltipProvider delayDuration={200}>
+                    {LINK_VARIABLES.map((v) => (
+                      <Tooltip key={v.token}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => insertVariable(v.token)}
+                          >
+                            🔗 {v.label}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs">{v.description}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {TEXT_VARIABLES.map((v) => (
+                      <Tooltip key={v.token}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => insertVariable(v.token)}
+                          >
+                            {v.label}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs font-mono">{v.token}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                </div>
+              )}
+
               {showPreview ? (
                 <ScrollArea className="h-[300px] rounded-md border p-4">
                   <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
                 </ScrollArea>
               ) : (
                 <Textarea
+                  ref={messageRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write your message here... Use {{clientName}}, {{tripName}}, {{destination}} for placeholders."
+                  placeholder="Write your message here... Click variable buttons above to insert links and placeholders."
                   rows={12}
-                  className="resize-none h-[300px]"
+                  className="resize-none h-[260px]"
                 />
               )}
               <p className="text-xs text-muted-foreground">
-                Your agency branding header and footer will be included automatically.
+                Variables like <code className="bg-muted px-1 rounded">$trip_link</code> will be replaced with actual URLs when sent.
               </p>
             </div>
 

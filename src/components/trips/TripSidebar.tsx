@@ -49,6 +49,7 @@ interface TripSidebarProps {
   destination?: string | null;
   departDate?: string | null;
   returnDate?: string | null;
+  shareToken?: string | null;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
@@ -70,6 +71,7 @@ export function TripSidebar({
   destination,
   departDate,
   returnDate,
+  shareToken,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
@@ -171,6 +173,7 @@ export function TripSidebar({
               destination={destination || undefined}
               departDate={departDate || undefined}
               returnDate={returnDate || undefined}
+              shareToken={shareToken || undefined}
             />
           )}
           <SendInviteLinkDialog
