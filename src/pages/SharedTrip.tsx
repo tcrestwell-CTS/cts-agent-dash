@@ -11,6 +11,8 @@ import SharedTripPricing from "@/components/shared-trip/SharedTripPricing";
 import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
+import { parseLocalDate } from "@/lib/utils";
+import { sanitizePublishedItinerary, sanitizePublishedOptionBlocks } from "@/lib/publishedTrip";
 
 export interface SharedTripData {
   trip: {
@@ -116,6 +118,16 @@ export default function SharedTrip() {
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
 
+  const publishedItinerary = sanitizePublishedItinerary((data.itinerary || []) as any[], {
+    departDate: data.trip.depart_date,
+    returnDate: data.trip.return_date,
+  });
+
+  const publishedOptionBlocks = sanitizePublishedOptionBlocks((((data as any).optionBlocks) || []) as any[], {
+    departDate: data.trip.depart_date,
+    returnDate: data.trip.return_date,
+  });
+
   const tabs: { key: TabKey; label: string }[] = [
     { key: "itinerary", label: "Full Itinerary" },
     { key: "overview", label: "Daily Overview" },
@@ -123,13 +135,13 @@ export default function SharedTrip() {
   ];
 
   // Build daily overview from itinerary
-  const dailyOverview = data.itinerary.reduce((acc: Record<number, any[]>, item: any) => {
+  const dailyOverview = publishedItinerary.reduce((acc: Record<number, any[]>, item: any) => {
     (acc[item.day_number] = acc[item.day_number] || []).push(item);
     return acc;
   }, {});
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
     <div className="min-h-screen bg-white">
@@ -210,10 +222,10 @@ export default function SharedTrip() {
             )}
 
             <SharedTripItinerary
-              itinerary={data.itinerary}
+              itinerary={publishedItinerary}
               departDate={data.trip.depart_date}
               primaryColor={primaryColor}
-              optionBlocks={(data as any).optionBlocks || []}
+              optionBlocks={publishedOptionBlocks}
             />
           </div>
         )}
@@ -238,7 +250,7 @@ export default function SharedTrip() {
                       Day {day}
                       {items[0]?.item_date && (
                         <span className="text-sm text-gray-400 font-normal ml-2">
-                          {new Date(items[0].item_date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                          {parseLocalDate(items[0].item_date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
                         </span>
                       )}
                     </h3>

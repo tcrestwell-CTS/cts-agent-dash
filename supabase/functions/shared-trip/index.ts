@@ -6,6 +6,113 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const parseLocalDate = (value?: string | null) => {
+  if (!value) return null;
+
+  const parsed = new Date(DATE_ONLY_REGEX.test(value) ? `${value}T00:00:00` : value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const toCalendarDayStamp = (date: Date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+
+const getTripDayCount = (departDate?: string | null, returnDate?: string | null) => {
+  const start = parseLocalDate(departDate);
+  const end = parseLocalDate(returnDate);
+
+  if (!start || !end) return null;
+
+  return Math.max(Math.round((toCalendarDayStamp(end) - toCalendarDayStamp(start)) / MILLISECONDS_PER_DAY) + 1, 1);
+};
+
+const normalizeText = (value: unknown) => String(value ?? "").trim().toLowerCase();
+
+const normalizeDayNumber = (value: unknown) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+
+  const normalized = Math.trunc(numeric);
+  return normalized >= 1 ? normalized : null;
+};
+
+const filterToActiveItinerary = <T extends { itinerary_id?: string | null }>(entries: T[], activeItineraryId?: string | null) => {
+  if (!activeItineraryId) return entries;
+
+  return entries.some((entry) => entry.itinerary_id === activeItineraryId)
+    ? entries.filter((entry) => entry.itinerary_id === activeItineraryId)
+    : entries;
+};
+
+const sanitizeItinerary = (items: any[], totalDays: number | null) => {
+  const seen = new Set<string>();
+
+  return items
+    .map((item) => {
+      const dayNumber = normalizeDayNumber(item?.day_number);
+      return dayNumber ? { ...item, day_number: dayNumber } : null;
+    })
+    .filter(Boolean)
+    .filter((item: any) => !totalDays || item.day_number <= totalDays)
+    .sort(
+      (a: any, b: any) =>
+        Number(a.day_number) - Number(b.day_number) ||
+        Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
+    )
+    .filter((item: any) => {
+      const key = [
+        item.day_number,
+        normalizeText(item.title),
+        normalizeText(item.description),
+        normalizeText(item.location),
+        normalizeText(item.start_time),
+        normalizeText(item.end_time),
+        normalizeText(item.category),
+        normalizeText(item.option_block_id),
+      ].join("|");
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+
+const sanitizeOptionBlocks = (blocks: any[], totalDays: number | null) => {
+  const seen = new Set<string>();
+
+  return blocks
+    .map((block) => {
+      const dayNumber = normalizeDayNumber(block?.day_number);
+      return dayNumber ? { ...block, day_number: dayNumber } : null;
+    })
+    .filter(Boolean)
+    .filter((block: any) => !totalDays || block.day_number <= totalDays)
+    .sort(
+      (a: any, b: any) =>
+        Number(a.day_number) - Number(b.day_number) ||
+        Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
+    )
+    .filter((block: any) => {
+      const key = [
+        normalizeText(block.id),
+        block.day_number,
+        normalizeText(block.title),
+        Number(block.sort_order ?? 0),
+      ].join("|");
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+
+const getActiveSnapshotItinerary = (snapshot: any) => {
+  const itineraries = Array.isArray(snapshot?.itineraries) ? [...snapshot.itineraries] : [];
+  itineraries.sort((a, b) => Number(a?.sort_order ?? 0) - Number(b?.sort_order ?? 0));
+  return itineraries[0] || null;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -336,10 +443,24 @@ const handler = async (req: Request): Promise<Response> => {
     let cancellationTerms: string[] = [];
     let paymentDeadlines: { label: string; date: string }[] = [];
     let optionBlocks: any[] = [];
+    let effectiveDepartDate = trip.depart_date;
+    let effectiveReturnDate = trip.return_date;
 
     if (snapshot && snapshot.itinerary) {
+      const activeSnapshotItinerary = getActiveSnapshotItinerary(snapshot);
+      const totalDays = getTripDayCount(
+        activeSnapshotItinerary?.depart_date ?? trip.depart_date,
+        activeSnapshotItinerary?.return_date ?? trip.return_date
+      );
+
+      effectiveDepartDate = activeSnapshotItinerary?.depart_date ?? trip.depart_date;
+      effectiveReturnDate = activeSnapshotItinerary?.return_date ?? trip.return_date;
+
       // Serve from frozen snapshot
-      itinerary = snapshot.itinerary.map((item: any) => ({
+      itinerary = sanitizeItinerary(
+        filterToActiveItinerary(Array.isArray(snapshot.itinerary) ? snapshot.itinerary : [], activeSnapshotItinerary?.id),
+        totalDays
+      ).map((item: any) => ({
         id: item.id,
         day_number: item.day_number,
         title: item.title,
@@ -351,6 +472,7 @@ const handler = async (req: Request): Promise<Response> => {
         item_date: item.item_date,
         notes: item.notes,
         sort_order: item.sort_order,
+        option_block_id: item.option_block_id ?? null,
       }));
 
       bookingsForResponse = (snapshot.bookings || []).map((b: any) => ({
@@ -371,39 +493,58 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
       });
-      optionBlocks = snapshot.optionBlocks || [];
+      optionBlocks = sanitizeOptionBlocks(
+        filterToActiveItinerary(Array.isArray(snapshot.optionBlocks) ? snapshot.optionBlocks : [], activeSnapshotItinerary?.id),
+        totalDays
+      );
       // Pricing from snapshot if available
     } else {
       // Legacy fallback: serve live data for trips published before versioning
       // First get the active itinerary to filter items properly
       const activeItinRes = await supabase
         .from("itineraries")
-        .select("id")
+        .select("id, depart_date, return_date")
         .eq("trip_id", trip.id)
         .order("sort_order", { ascending: true })
         .limit(1);
-      const activeItineraryId = activeItinRes.data?.[0]?.id;
+      if (activeItinRes.error) throw activeItinRes.error;
 
-      let itemsQuery = supabase
-        .from("itinerary_items")
-        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order")
-        .eq("trip_id", trip.id)
-        .order("day_number", { ascending: true })
-        .order("sort_order", { ascending: true });
-      
-      if (activeItineraryId) {
-        itemsQuery = itemsQuery.eq("itinerary_id", activeItineraryId);
-      }
+      const activeItinerary = activeItinRes.data?.[0] || null;
+      const activeItineraryId = activeItinerary?.id || null;
+      const totalDays = getTripDayCount(
+        activeItinerary?.depart_date ?? trip.depart_date,
+        activeItinerary?.return_date ?? trip.return_date
+      );
 
-      const [itineraryRes, bookingsRes] = await Promise.all([
-        itemsQuery,
+      effectiveDepartDate = activeItinerary?.depart_date ?? trip.depart_date;
+      effectiveReturnDate = activeItinerary?.return_date ?? trip.return_date;
+
+      const [itineraryRes, bookingsRes, optionBlocksRes] = await Promise.all([
+        supabase
+          .from("itinerary_items")
+          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id")
+          .eq("trip_id", trip.id)
+          .order("day_number", { ascending: true })
+          .order("sort_order", { ascending: true }),
         supabase
           .from("bookings")
           .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type, gross_sales, travelers")
           .eq("trip_id", trip.id),
+        supabase
+          .from("option_blocks")
+          .select("id, trip_id, day_number, title, sort_order, itinerary_id")
+          .eq("trip_id", trip.id)
+          .order("sort_order", { ascending: true }),
       ]);
 
-      itinerary = itineraryRes.data || [];
+      if (itineraryRes.error) throw itineraryRes.error;
+      if (bookingsRes.error) throw bookingsRes.error;
+      if (optionBlocksRes.error) throw optionBlocksRes.error;
+
+      itinerary = sanitizeItinerary(
+        filterToActiveItinerary((itineraryRes.data as any[]) || [], activeItineraryId),
+        totalDays
+      );
       const bookings = bookingsRes.data || [];
 
       bookingsForResponse = bookings.map((b: any) => ({
@@ -425,13 +566,10 @@ const handler = async (req: Request): Promise<Response> => {
         }
       });
 
-      // Fetch option blocks for legacy trips
-      const optionBlocksRes = await supabase
-        .from("option_blocks")
-        .select("id, trip_id, day_number, title, sort_order")
-        .eq("trip_id", trip.id)
-        .order("sort_order", { ascending: true });
-      optionBlocks = optionBlocksRes.data || [];
+      optionBlocks = sanitizeOptionBlocks(
+        filterToActiveItinerary((optionBlocksRes.data as any[]) || [], activeItineraryId),
+        totalDays
+      );
     }
 
     // Fetch pricing lines (client-facing sell prices only)
@@ -507,8 +645,8 @@ const handler = async (req: Request): Promise<Response> => {
       trip: {
         trip_name: trip.trip_name,
         destination: trip.destination,
-        depart_date: trip.depart_date,
-        return_date: trip.return_date,
+        depart_date: effectiveDepartDate,
+        return_date: effectiveReturnDate,
         status: trip.status,
         trip_type: trip.trip_type,
         notes: trip.notes,

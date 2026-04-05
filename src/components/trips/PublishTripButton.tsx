@@ -9,6 +9,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  filterToActiveItinerary,
+  sanitizePublishedItinerary,
+  sanitizePublishedOptionBlocks,
+} from "@/lib/publishedTrip";
 
 interface PublishTripButtonProps {
   tripId: string;
@@ -53,23 +58,22 @@ export function PublishTripButton({
           .order("sort_order", { ascending: true }),
       ]);
 
-      const itineraries = itinerariesRes.data || [];
-      const activeItineraryId = itineraries.length > 0 ? itineraries[0].id : null;
+      if (bookingsRes.error) throw bookingsRes.error;
+      if (itinerariesRes.error) throw itinerariesRes.error;
 
-      // 2. Fetch itinerary items filtered to active itinerary only (avoids orphan duplicates)
-      let itineraryQuery = supabase
+      const itineraries = itinerariesRes.data || [];
+      const activeItinerary = itineraries[0] || null;
+      const activeItineraryId = activeItinerary?.id || null;
+
+      // 2. Fetch all itinerary items and option blocks, then keep only the active itinerary if present.
+      // This preserves older trips that don't have itinerary_id values while still excluding orphaned data.
+      const [itineraryRes, optionBlocksRes] = await Promise.all([
+        supabase
         .from("itinerary_items")
         .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id")
         .eq("trip_id", tripId)
         .order("day_number", { ascending: true })
-        .order("sort_order", { ascending: true });
-      
-      if (activeItineraryId) {
-        itineraryQuery = itineraryQuery.eq("itinerary_id", activeItineraryId);
-      }
-
-      const [itineraryRes, optionBlocksRes] = await Promise.all([
-        itineraryQuery,
+        .order("sort_order", { ascending: true }),
         supabase
           .from("option_blocks")
           .select("id, day_number, title, sort_order, itinerary_id")
@@ -78,8 +82,27 @@ export function PublishTripButton({
           .order("sort_order", { ascending: true }),
       ]);
 
+      if (itineraryRes.error) throw itineraryRes.error;
+      if (optionBlocksRes.error) throw optionBlocksRes.error;
+
+      const publishedItinerary = sanitizePublishedItinerary(
+        filterToActiveItinerary((itineraryRes.data as any[]) || [], activeItineraryId),
+        {
+          departDate: activeItinerary?.depart_date || null,
+          returnDate: activeItinerary?.return_date || null,
+        }
+      );
+
+      const publishedOptionBlocks = sanitizePublishedOptionBlocks(
+        filterToActiveItinerary((optionBlocksRes.data as any[]) || [], activeItineraryId),
+        {
+          departDate: activeItinerary?.depart_date || null,
+          returnDate: activeItinerary?.return_date || null,
+        }
+      );
+
       const snapshot = {
-        itinerary: itineraryRes.data || [],
+        itinerary: publishedItinerary,
         bookings: (bookingsRes.data || []).map((b: any) => ({
           destination: b.destination,
           depart_date: b.depart_date,
@@ -91,7 +114,7 @@ export function PublishTripButton({
           payment_deadline: b.payment_deadline,
         })),
         itineraries: itineraries,
-        optionBlocks: optionBlocksRes.data || [],
+        optionBlocks: publishedOptionBlocks,
         snapshot_at: new Date().toISOString(),
       };
 
