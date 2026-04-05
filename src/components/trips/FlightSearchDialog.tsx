@@ -47,6 +47,7 @@ export function FlightSearchDialog({
   destination, departDate, returnDate,
   onAddFlightToItinerary,
 }: Props) {
+  const { user } = useAuth();
   const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
   const [step, setStep] = useState<Step>("search");
   const [selectedOffers, setSelectedOffers] = useState<Set<string>>(new Set());
