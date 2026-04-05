@@ -2,23 +2,12 @@ import { useState, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -287,273 +276,191 @@ export function TripEmailNotificationDialog({
           Notify Client
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Email Notification — {tripName}</DialogTitle>
-          <DialogDescription>
-            Send an email to {clientName} ({clientEmail})
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="compose">Compose</TabsTrigger>
-            <TabsTrigger value="templates">Built-In</TabsTrigger>
-            <TabsTrigger value="saved">
-              My Templates
-              {savedTemplates.length > 0 && (
-                <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">
-                  {savedTemplates.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="compose" className="flex-1 flex flex-col min-h-0 space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>To</Label>
-              <Input value={clientEmail} disabled className="bg-muted" />
-            </div>
-            <div className="space-y-2">
-              <Label>Subject *</Label>
-              <Input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email subject..."
-              />
-            </div>
-            <div className="flex-1 min-h-0 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Message *</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  {showPreview ? "Edit" : "Preview"}
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+        {/* Top toolbar — like the reference screenshot */}
+        <div className="flex items-center justify-between px-5 py-3 border-b">
+          <h2 className="text-base font-semibold text-foreground">New Email</h2>
+          <div className="flex items-center gap-1">
+            {/* Apply Template dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7 gap-1">
+                  <FileText className="h-3.5 w-3.5" />
+                  Apply Template
                 </Button>
-              </div>
-
-              {/* Variable insertion toolbar */}
-              {!showPreview && (
-                <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/50">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="secondary" size="sm" className="h-7 text-xs gap-1.5">
-                        <Plus className="h-3.5 w-3.5" />
-                        Insert Variable
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
-                      <DropdownMenuLabel className="text-xs flex items-center gap-1.5">
-                        <LinkIcon className="h-3 w-3" /> Link Variables
-                      </DropdownMenuLabel>
-                      {LINK_VARIABLES.map((v) => (
-                        <DropdownMenuItem key={v.token} onClick={() => insertVariable(v.token)} className="cursor-pointer">
-                          <div>
-                            <p className="text-sm">{v.label}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs flex items-center gap-1.5">
-                        <Variable className="h-3 w-3" /> Text Variables
-                      </DropdownMenuLabel>
-                      {TEXT_VARIABLES.map((v) => (
-                        <DropdownMenuItem key={v.token} onClick={() => insertVariable(v.token)} className="cursor-pointer">
-                          <div>
-                            <p className="text-sm">{v.label}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <span className="text-xs text-muted-foreground">
-                    Click to insert dynamic content at cursor position
-                  </span>
-                </div>
-              )}
-
-              {showPreview ? (
-                <ScrollArea className="h-[300px] rounded-md border p-4">
-                  <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
-                </ScrollArea>
-              ) : (
-                <Textarea
-                  ref={messageRef}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write your message here... Click variable buttons above to insert links and placeholders."
-                  rows={12}
-                  className="resize-none h-[260px]"
-                />
-              )}
-              <p className="text-xs text-muted-foreground">
-                Variables like <code className="bg-muted px-1 rounded">$trip_link</code> will be replaced with actual URLs when sent.
-              </p>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex gap-2">
-                {subject && message && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSaveDialogOpen(!saveDialogOpen)}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save as Template
-                  </Button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSend} disabled={sending}>
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Send Email
-                </Button>
-              </div>
-            </div>
-
-            {saveDialogOpen && (
-              <div className="flex items-end gap-2 p-3 rounded-lg border bg-muted/50">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Template Name</Label>
-                  <Input
-                    value={templateName}
-                    onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="e.g. Cruise Update Notification"
-                    className="h-8"
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  onClick={handleSaveAsTemplate}
-                  disabled={saveTemplate.isPending}
-                >
-                  {saveTemplate.isPending ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setSaveDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="templates" className="mt-4">
-            <ScrollArea className="h-[450px]">
-              <div className="space-y-3 pr-4">
-                {builtInTemplates.map((template) => (
-                  <div
-                    key={template.id}
-                    className="rounded-lg border p-4 hover:border-accent transition-colors cursor-pointer"
-                    onClick={() => applyTemplate(template)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-sm">{template.name}</h4>
-                      <Badge variant="outline" className="text-xs">
-                        {template.category.replace("_", " ")}
-                      </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 max-h-[300px] overflow-y-auto">
+                <DropdownMenuLabel className="text-xs">Built-In Templates</DropdownMenuLabel>
+                {builtInTemplates.map((t) => (
+                  <DropdownMenuItem key={t.id} onClick={() => applyTemplate(t)} className="cursor-pointer">
+                    <div>
+                      <p className="text-sm font-medium">{t.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{t.subject}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      <span className="font-medium">Subject:</span> {template.subject}
-                    </p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {template.body.substring(0, 120)}...
-                    </p>
-                    <Button variant="link" size="sm" className="px-0 mt-1 h-auto text-xs">
-                      Use this template →
-                    </Button>
-                  </div>
+                  </DropdownMenuItem>
                 ))}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="saved" className="mt-4">
-            <ScrollArea className="h-[450px]">
-              {loadingTemplates ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : savedTemplates.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm font-medium">No saved templates yet</p>
-                  <p className="text-xs mt-1">
-                    Compose an email and click "Save as Template" to build your library.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 pr-4">
-                  {savedTemplates.map((template) => (
-                    <div
-                      key={template.id}
-                      className="rounded-lg border p-4 hover:border-accent transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4
-                          className="font-medium text-sm cursor-pointer hover:text-accent"
-                          onClick={() => applyTemplate(template)}
-                        >
-                          {template.name}
-                        </h4>
-                        <div className="flex items-center gap-1">
-                          <Badge variant="outline" className="text-xs">
-                            {template.category}
-                          </Badge>
-                          {!template.is_default && (
+                {savedTemplates.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs">My Templates</DropdownMenuLabel>
+                    {savedTemplates.map((t) => (
+                      <DropdownMenuItem key={t.id} onClick={() => applyTemplate(t)} className="cursor-pointer">
+                        <div className="flex items-center justify-between w-full">
+                          <div>
+                            <p className="text-sm font-medium">{t.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{t.subject}</p>
+                          </div>
+                          {!t.is_default && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteTemplate.mutate(template.id)}
+                              className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive ml-2 shrink-0"
+                              onClick={(e) => { e.stopPropagation(); deleteTemplate.mutate(t.id); }}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           )}
                         </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        <span className="font-medium">Subject:</span> {template.subject}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {template.body_html.substring(0, 120)}...
-                      </p>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="px-0 mt-1 h-auto text-xs"
-                        onClick={() => applyTemplate(template)}
-                      >
-                        Use this template →
-                      </Button>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Insert Variable dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7 gap-1">
+                  <Variable className="h-3.5 w-3.5" />
+                  Insert Variable
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-xs flex items-center gap-1.5">
+                  <LinkIcon className="h-3 w-3" /> Link Variables
+                </DropdownMenuLabel>
+                {LINK_VARIABLES.map((v) => (
+                  <DropdownMenuItem key={v.token} onClick={() => insertVariable(v.token)} className="cursor-pointer">
+                    <div>
+                      <p className="text-sm">{v.label}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs flex items-center gap-1.5">
+                  <Variable className="h-3 w-3" /> Text Variables
+                </DropdownMenuLabel>
+                {TEXT_VARIABLES.map((v) => (
+                  <DropdownMenuItem key={v.token} onClick={() => insertVariable(v.token)} className="cursor-pointer">
+                    <div>
+                      <p className="text-sm">{v.label}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Compose area */}
+        <div className="flex-1 flex flex-col min-h-0 px-5 py-4 space-y-3">
+          {/* Send To */}
+          <div className="flex items-center gap-3">
+            <Label className="text-sm text-muted-foreground shrink-0 w-16">Send to:</Label>
+            <div className="flex items-center gap-1.5">
+              <Badge variant="secondary" className="text-xs">
+                {clientName}
+              </Badge>
+              <span className="text-xs text-muted-foreground">{clientEmail}</span>
+            </div>
+          </div>
+
+          {/* Subject */}
+          <div className="flex items-center gap-3">
+            <Label className="text-sm text-muted-foreground shrink-0 w-16">Subject:</Label>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Email subject..."
+              className="border-0 border-b rounded-none px-0 focus-visible:ring-0 shadow-none"
+            />
+          </div>
+
+          <Separator />
+
+          {/* Message body */}
+          {showPreview ? (
+            <ScrollArea className="flex-1 min-h-[300px] rounded-md border p-4">
+              <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
             </ScrollArea>
-          </TabsContent>
-        </Tabs>
+          ) : (
+            <Textarea
+              ref={messageRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message here...&#10;&#10;Use the toolbar above to insert templates and variables like $trip_link or {{clientName}}."
+              className="flex-1 min-h-[300px] resize-none border-0 focus-visible:ring-0 shadow-none px-0 text-sm"
+            />
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-between px-5 py-3 border-t">
+          <div className="flex items-center gap-2">
+            {subject && message && (
+              <>
+                {!saveDialogOpen ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => setSaveDialogOpen(true)}
+                  >
+                    <Save className="h-3.5 w-3.5 mr-1" />
+                    Save as Template
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="Template name..."
+                      className="h-7 text-xs w-40"
+                    />
+                    <Button size="sm" className="h-7 text-xs" onClick={handleSaveAsTemplate} disabled={saveTemplate.isPending}>
+                      {saveTemplate.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSaveDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1" />
+              {showPreview ? "Edit" : "Preview"}
+            </Button>
+            <Button size="sm" className="h-7" onClick={handleSend} disabled={sending}>
+              {sending ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5 mr-1" />
+              )}
+              Send
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
