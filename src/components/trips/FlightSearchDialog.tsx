@@ -126,9 +126,61 @@ export function FlightSearchDialog({
   };
 
   const handleAddSelected = async () => {
+    if (!user) return;
     const selected = offers.filter(o => selectedOffers.has(o.id));
     let count = 0;
     for (const offer of selected) {
+      // Create a booking record with cost info
+      const totalAmount = parseFloat(offer.total_amount);
+      const seg0 = offer.slices[0]?.segments[0];
+      const confirmationLabel = `${seg0?.operating_carrier?.iata_code || ""}${seg0?.operating_carrier_flight_number || ""} ${offer.slices[0]?.origin?.iata_code || ""}-${offer.slices[offer.slices.length - 1]?.destination?.iata_code || ""}`;
+
+      const { data: newBooking } = await supabase.from("bookings").insert({
+        user_id: user.id,
+        trip_id: tripId,
+        confirmation_number: confirmationLabel,
+        status: "pending",
+        gross_sales: totalAmount,
+        total_price: totalAmount,
+        net_sales: totalAmount,
+        commissionable_amount: totalAmount,
+      }).select("id").single();
+
+      if (newBooking) {
+        await supabase.from("booking_margin_lines").insert({
+          booking_id: newBooking.id,
+          user_id: user.id,
+          line_type: "flight",
+          description: `${seg0?.operating_carrier?.name || "Flight"} — ${confirmationLabel}`,
+          source: "manual",
+          quantity: 1,
+          unit_cost: totalAmount,
+          unit_sell: totalAmount,
+          is_pass_through: false,
+          sort_order: 0,
+        });
+        await supabase.rpc("calculate_booking_margin", {
+          p_booking_id: newBooking.id,
+          p_advisor_split: null,
+          p_force_recalc: false,
+        });
+      }
+
+      // Update trip departure/return dates
+      const firstSlice = offer.slices[0];
+      const lastSlice = offer.slices[offer.slices.length - 1];
+      const dateUpdates: Record<string, string> = {};
+      if (firstSlice?.segments?.[0]?.departing_at) {
+        dateUpdates.depart_date = format(parseISO(firstSlice.segments[0].departing_at), "yyyy-MM-dd");
+      }
+      if (offer.slices.length > 1 && lastSlice?.segments?.[0]?.departing_at) {
+        dateUpdates.return_date = format(parseISO(lastSlice.segments[0].departing_at), "yyyy-MM-dd");
+      }
+      if (Object.keys(dateUpdates).length > 0) {
+        await supabase.from("trips").update(dateUpdates).eq("id", tripId);
+      }
+
+      // Add each slice to itinerary
       for (const slice of offer.slices) {
         const seg = slice.segments[0];
         const lastSeg = slice.segments[slice.segments.length - 1];
@@ -150,7 +202,7 @@ export function FlightSearchDialog({
       }
     }
     if (count > 0) {
-      toast.success(`Added ${count} flight(s) to itinerary`);
+      toast.success(`Added ${count} flight(s) to itinerary with booking`);
       setSelectedOffers(new Set());
       onOpenChange(false);
       setStep("search");
