@@ -261,6 +261,20 @@ export function FlightSearchDialog({
       trip_id: tripId,
     });
     if (order) {
+      // Update trip departure/return dates from flight slices
+      const firstSlice = checkoutOffer.slices[0];
+      const lastSlice = checkoutOffer.slices[checkoutOffer.slices.length - 1];
+      const dateUpdates: Record<string, string> = {};
+      if (firstSlice?.segments?.[0]?.departing_at) {
+        dateUpdates.depart_date = format(parseISO(firstSlice.segments[0].departing_at), "yyyy-MM-dd");
+      }
+      if (checkoutOffer.slices.length > 1 && lastSlice?.segments?.[0]?.departing_at) {
+        dateUpdates.return_date = format(parseISO(lastSlice.segments[0].departing_at), "yyyy-MM-dd");
+      }
+      if (Object.keys(dateUpdates).length > 0) {
+        await supabase.from("trips").update(dateUpdates).eq("id", tripId);
+      }
+
       // Also add to itinerary
       for (const slice of checkoutOffer.slices) {
         const seg = slice.segments[0];
