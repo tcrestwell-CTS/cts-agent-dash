@@ -329,21 +329,68 @@ export function TripEmailNotificationDialog({
                   {showPreview ? "Edit" : "Preview"}
                 </Button>
               </div>
+
+              {/* Variable insertion toolbar */}
+              {!showPreview && (
+                <div className="flex flex-wrap gap-1.5">
+                  <TooltipProvider delayDuration={200}>
+                    {LINK_VARIABLES.map((v) => (
+                      <Tooltip key={v.token}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => insertVariable(v.token)}
+                          >
+                            🔗 {v.label}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs">{v.description}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{v.token}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {TEXT_VARIABLES.map((v) => (
+                      <Tooltip key={v.token}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => insertVariable(v.token)}
+                          >
+                            {v.label}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs font-mono">{v.token}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                </div>
+              )}
+
               {showPreview ? (
                 <ScrollArea className="h-[300px] rounded-md border p-4">
                   <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
                 </ScrollArea>
               ) : (
                 <Textarea
+                  ref={messageRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Write your message here... Use {{clientName}}, {{tripName}}, {{destination}} for placeholders."
+                  placeholder="Write your message here... Click variable buttons above to insert links and placeholders."
                   rows={12}
-                  className="resize-none h-[300px]"
+                  className="resize-none h-[260px]"
                 />
               )}
               <p className="text-xs text-muted-foreground">
-                Your agency branding header and footer will be included automatically.
+                Variables like <code className="bg-muted px-1 rounded">$trip_link</code> will be replaced with actual URLs when sent.
               </p>
             </div>
 
