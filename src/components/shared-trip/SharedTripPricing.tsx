@@ -63,38 +63,48 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
               <p className="text-sm font-semibold text-gray-600">Details</p>
 
               <div className="divide-y divide-gray-100">
-                {coreLines.map(line => (
-                  <div key={line.id} className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="text-sm text-gray-900">{line.description}</p>
-                      {line.quantity > 1 && (
-                        <p className="text-xs text-gray-400">{line.quantity} × ${line.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                      )}
+                {coreLines.map(line => {
+                  const lineTotal = (line.unit_price || 0) * (line.quantity || 1) * (line.travelers || 1);
+                  return (
+                    <div key={line.id} className="flex items-center justify-between py-3">
+                      <div>
+                        <p className="text-sm text-gray-900">{line.description}</p>
+                        {(line.quantity > 1 || (line.travelers || 1) > 1) && (
+                          <p className="text-xs text-gray-400">
+                            ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} × {line.quantity || 1} × {line.travelers || 1} {(line.travelers || 1) > 1 ? 'persons' : 'person'}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                        ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
                     </div>
-                    <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                      ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} / person
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {addonLines.length > 0 && (
                 <>
                   <p className="text-sm font-semibold text-gray-600 pt-2">Add-Ons</p>
                   <div className="divide-y divide-gray-100">
-                    {addonLines.map(line => (
-                      <div key={line.id} className="flex items-center justify-between py-3">
-                        <div>
-                          <p className="text-sm text-gray-900">{line.description}</p>
-                          {line.quantity > 1 && (
-                            <p className="text-xs text-gray-400">{line.quantity} × ${line.unit_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                          )}
+                    {addonLines.map(line => {
+                      const lineTotal = (line.unit_price || 0) * (line.quantity || 1) * (line.travelers || 1);
+                      return (
+                        <div key={line.id} className="flex items-center justify-between py-3">
+                          <div>
+                            <p className="text-sm text-gray-900">{line.description}</p>
+                            {(line.quantity > 1 || (line.travelers || 1) > 1) && (
+                              <p className="text-xs text-gray-400">
+                                ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} × {line.quantity || 1} × {line.travelers || 1} {(line.travelers || 1) > 1 ? 'persons' : 'person'}
+                              </p>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                            ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
                         </div>
-                        <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                          ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} / person
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}
