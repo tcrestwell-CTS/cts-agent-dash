@@ -552,23 +552,39 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                           <h3 className="text-sm font-semibold">{(booking as any)?.trip_name || (booking as any)?.destination || booking?.confirmation_number || "Booking"}</h3>
                         )}
                         <div className="divide-y">
-                          {coreLines.map((l: any) => (
-                            <div key={l.id} className="flex justify-between py-2">
-                              <span className="text-sm">{l.description}</span>
-                              <span className="text-sm font-medium">${Number(l.unit_price || 0).toFixed(2)} / person</span>
-                            </div>
-                          ))}
+                          {coreLines.map((l: any) => {
+                            const lineTotal = Number(l.unit_price || 0) * Number(l.quantity || 1) * Number(l.travelers || 1);
+                            return (
+                              <div key={l.id} className="flex justify-between py-2">
+                                <div>
+                                  <span className="text-sm">{l.description}</span>
+                                  {(l.travelers || 1) > 1 && (
+                                    <p className="text-xs text-muted-foreground">${Number(l.unit_price || 0).toFixed(2)} × {l.quantity || 1} × {l.travelers} persons</p>
+                                  )}
+                                </div>
+                                <span className="text-sm font-medium">${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                         {addonLines.length > 0 && (
                           <>
                             <p className="text-xs font-semibold text-muted-foreground pt-2">Add-Ons</p>
                             <div className="divide-y">
-                              {addonLines.map((l: any) => (
-                                <div key={l.id} className="flex justify-between py-2">
-                                  <span className="text-sm">{l.description}</span>
-                                  <span className="text-sm font-medium">${Number(l.unit_price || 0).toFixed(2)} / person</span>
-                                </div>
-                              ))}
+                              {addonLines.map((l: any) => {
+                                const lineTotal = Number(l.unit_price || 0) * Number(l.quantity || 1) * Number(l.travelers || 1);
+                                return (
+                                  <div key={l.id} className="flex justify-between py-2">
+                                    <div>
+                                      <span className="text-sm">{l.description}</span>
+                                      {(l.travelers || 1) > 1 && (
+                                        <p className="text-xs text-muted-foreground">${Number(l.unit_price || 0).toFixed(2)} × {l.quantity || 1} × {l.travelers} persons</p>
+                                      )}
+                                    </div>
+                                    <span className="text-sm font-medium">${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </>
                         )}
@@ -578,7 +594,12 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                 })()}
                 <div className="flex justify-between pt-4 border-t font-bold">
                   <span>Total</span>
-                  <span>${pricingLines.reduce((sum: number, l: any) => sum + (Number(l.total_price) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <div className="text-right">
+                    <span>${pricingLines.reduce((sum: number, l: any) => sum + (Number(l.unit_price || 0) * Number(l.quantity || 1) * Number(l.travelers || 1)), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    {(pricingLines[0]?.travelers || 1) > 1 && (
+                      <p className="text-xs text-muted-foreground font-normal">Based on {pricingLines[0].travelers} persons</p>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : totalCost > 0 ? (
