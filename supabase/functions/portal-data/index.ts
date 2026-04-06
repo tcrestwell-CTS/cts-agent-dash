@@ -417,7 +417,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       return new Response(JSON.stringify({
         trip: tripRes.data,
-        bookings: bookingsRes.data || [],
+        bookings: portalBookings,
         payments,
         itinerary: itineraryRes.data || [],
         itineraries: itinerariesRes.data || [],
