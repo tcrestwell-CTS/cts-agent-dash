@@ -313,7 +313,36 @@ const handler = async (req: Request): Promise<Response> => {
       ]);
 
       // Fetch pricing lines (client-facing sell prices only) for all bookings
-      const bookingIds = (bookingsRes.data || []).map((b: any) => b.id);
+      // Map supplier_type to portal booking_type
+      const supplierTypeToBookingType = (st: string | null): string => {
+        if (!st) return "other";
+        const map: Record<string, string> = {
+          airline: "flight", hotel: "hotel", cruise: "cruise",
+          car_rental: "car_rental", tour_operator: "tour", insurance: "insurance",
+          transfer: "transfer", dmc: "tour",
+        };
+        return map[st.toLowerCase()] || "other";
+      };
+
+      // Transform bookings to portal shape
+      const rawBookings = bookingsRes.data || [];
+      const tripData = tripRes.data;
+      const portalBookings = rawBookings.map((b: any) => ({
+        id: b.id,
+        booking_reference: b.confirmation_number,
+        booking_type: supplierTypeToBookingType(b.suppliers?.supplier_type),
+        destination: tripData?.destination || "",
+        depart_date: tripData?.depart_date,
+        return_date: tripData?.return_date,
+        status: b.status,
+        total_amount: b.gross_sales || b.total_price || 0,
+        travelers: 1,
+        trip_name: b.suppliers?.name || tripData?.trip_name || "",
+        supplier_id: b.supplier_id,
+        gross_sales: b.gross_sales,
+      }));
+
+      const bookingIds = rawBookings.map((b: any) => b.id);
       let pricingLines: any[] = [];
       if (bookingIds.length > 0) {
         const { data: marginLines } = await supabase
@@ -321,9 +350,8 @@ const handler = async (req: Request): Promise<Response> => {
           .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
           .in("booking_id", bookingIds)
           .order("sort_order", { ascending: true });
-        const bookingsData = bookingsRes.data || [];
         pricingLines = (marginLines || []).map((l: any) => {
-          const parentBooking = bookingsData.find((b: any) => b.id === l.booking_id);
+          const parentBooking = portalBookings.find((b: any) => b.id === l.booking_id);
           return {
             id: l.id,
             booking_id: l.booking_id,
