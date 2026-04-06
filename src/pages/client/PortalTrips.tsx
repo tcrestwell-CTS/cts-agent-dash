@@ -87,8 +87,6 @@ export default function PortalTrips() {
                         {friendlyStatus(trip.status).label}
                       </Badge>
                     </div>
-                      </Badge>
-                    </div>
                     <div className="p-4">
                       <h3 className="font-bold text-lg text-foreground">{trip.trip_name}</h3>
                       {trip.destination && (
