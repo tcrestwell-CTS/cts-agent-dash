@@ -65,7 +65,12 @@ export default function PortalLogin() {
     setAuthLoading(true);
     const result = await loginWithPassword(email, password);
     if (!result.success) {
-      toast.error(result.error || "Sign in failed.");
+      const msg = result.error || "Sign in failed.";
+      if (msg.toLowerCase().includes("invalid login credentials")) {
+        toast.error("Invalid credentials. If you signed up with Google, please use the Google sign-in option instead.", { duration: 6000 });
+      } else {
+        toast.error(msg);
+      }
     }
     setAuthLoading(false);
   };
@@ -80,7 +85,12 @@ export default function PortalLogin() {
     setAuthLoading(true);
     const result = await signUp(email, password);
     if (!result.success) {
-      toast.error(result.error || "Sign up failed.");
+      const msg = result.error || "Sign up failed.";
+      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists")) {
+        toast.error("An account with this email already exists. If you signed up with Google, please use the Google sign-in option.", { duration: 6000 });
+      } else {
+        toast.error(msg);
+      }
     } else if (result.needsConfirmation) {
       setSent(true);
     }
