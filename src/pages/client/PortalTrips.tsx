@@ -7,6 +7,25 @@ import { format } from "date-fns";
 import { MapPin, Calendar } from "lucide-react";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 
+function friendlyStatus(status: string): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
+  switch (status) {
+    case "confirmed":
+    case "booked":
+      return { label: "Confirmed", variant: "default" };
+    case "completed":
+      return { label: "Completed", variant: "secondary" };
+    case "lead":
+    case "quoted":
+    case "pending":
+    case "proposal_sent":
+      return { label: "Pending", variant: "outline" };
+    case "cancelled":
+      return { label: "Cancelled", variant: "destructive" };
+    default:
+      return { label: status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " "), variant: "secondary" };
+  }
+}
+
 export default function PortalTrips() {
   const { data, isLoading } = usePortalTrips();
   const trips = data?.trips || [];
@@ -54,18 +73,18 @@ export default function PortalTrips() {
                     </div>
                     <div className="absolute top-3 right-3">
                       <Badge
-                        variant={trip.status === "confirmed" ? "default" : "secondary"}
+                        variant={friendlyStatus(trip.status).variant}
                         className="shadow-sm"
                       >
-                        {trip.status}
+                        {friendlyStatus(trip.status).label}
                       </Badge>
                     </div>
                   </div>
                 ) : (
                   <div className="relative h-28 bg-gradient-to-br from-primary/10 via-accent/5 to-muted flex items-end">
                     <div className="absolute top-3 right-3">
-                      <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
-                        {trip.status}
+                      <Badge variant={friendlyStatus(trip.status).variant}>
+                        {friendlyStatus(trip.status).label}
                       </Badge>
                     </div>
                     <div className="p-4">
