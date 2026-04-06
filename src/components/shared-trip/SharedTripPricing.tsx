@@ -122,7 +122,7 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
           </p>
           {travelers > 1 && (
             <p className="text-xs text-gray-500">
-              ${perPerson.toLocaleString(undefined, { minimumFractionDigits: 2 })} / person × {travelers}
+              Based on {travelers} persons — ${perPerson.toLocaleString(undefined, { minimumFractionDigits: 2 })} per person
             </p>
           )}
         </div>
