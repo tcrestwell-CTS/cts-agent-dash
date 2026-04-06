@@ -191,14 +191,21 @@ const CRUISE_LINE_ADDONS: CruiseLineGroup[] = [
     icon: <Sparkles className="h-3.5 w-3.5" />,
     addons: [
       {
-        label: "Premium Beverage Package",
+        label: "All Included — Classic Drink Pkg",
         icon: <Wine className="h-3.5 w-3.5" />,
-        items: [{ line_type: "addon", description: "Premium Beverage Package (per adult/day)", source: "manual", quantity: 1, unit_cost: 99.00, unit_sell: 99.00, is_pass_through: true }],
+        // Commissionable when booked under All Included
+        items: [{ line_type: "addon", description: "All Included Classic Drink Package (per adult/day) — commissionable", source: "manual", quantity: 1, unit_cost: 62.10, unit_sell: 69.00, is_pass_through: false }],
       },
       {
-        label: "Classic Beverage Package",
+        label: "The Retreat — Premium Drink Pkg",
         icon: <Wine className="h-3.5 w-3.5" />,
-        items: [{ line_type: "addon", description: "Classic Beverage Package (per adult/day)", source: "manual", quantity: 1, unit_cost: 69.00, unit_sell: 69.00, is_pass_through: true }],
+        // The Retreat always includes Premium Drink Package → commissionable
+        items: [{ line_type: "addon", description: "The Retreat Premium Drink Package (per adult/day) — commissionable", source: "manual", quantity: 1, unit_cost: 89.10, unit_sell: 99.00, is_pass_through: false }],
+      },
+      {
+        label: "Premium Beverage Pkg (standalone)",
+        icon: <Wine className="h-3.5 w-3.5" />,
+        items: [{ line_type: "addon", description: "Premium Beverage Package (per adult/day)", source: "manual", quantity: 1, unit_cost: 99.00, unit_sell: 99.00, is_pass_through: true }],
       },
       {
         label: "Xcelerate Wi-Fi",
@@ -224,12 +231,14 @@ const CRUISE_LINE_ADDONS: CruiseLineGroup[] = [
       {
         label: "Premium Extra Drink Package",
         icon: <Wine className="h-3.5 w-3.5" />,
-        items: [{ line_type: "addon", description: "Premium Extra Drink Package (per adult/day)", source: "manual", quantity: 1, unit_cost: 82.00, unit_sell: 82.00, is_pass_through: true }],
+        // MSC pays 5% commission on all drink packages
+        items: [{ line_type: "addon", description: "Premium Extra Drink Package (per adult/day) — 5% comm.", source: "manual", quantity: 1, unit_cost: 77.90, unit_sell: 82.00, is_pass_through: false }],
       },
       {
         label: "Easy Drink Package",
         icon: <Wine className="h-3.5 w-3.5" />,
-        items: [{ line_type: "addon", description: "Easy Drink Package (per adult/day)", source: "manual", quantity: 1, unit_cost: 52.00, unit_sell: 52.00, is_pass_through: true }],
+        // MSC pays 5% commission on all drink packages
+        items: [{ line_type: "addon", description: "Easy Drink Package (per adult/day) — 5% comm.", source: "manual", quantity: 1, unit_cost: 49.40, unit_sell: 52.00, is_pass_through: false }],
       },
       {
         label: "Browse Wi-Fi",
@@ -245,6 +254,70 @@ const CRUISE_LINE_ADDONS: CruiseLineGroup[] = [
         label: "Gratuities",
         icon: <DollarSign className="h-3.5 w-3.5" />,
         items: [{ line_type: "addon", description: "MSC Auto Gratuities ($16/day)", source: "manual", quantity: 1, unit_cost: 16.00, unit_sell: 16.00, is_pass_through: true }],
+      },
+    ],
+  },
+  {
+    name: "Holland America",
+    icon: <Ship className="h-3.5 w-3.5" />,
+    addons: [
+      {
+        label: "Have It All — Signature Bev Pkg",
+        icon: <Wine className="h-3.5 w-3.5" />,
+        // Commissionable when booked under Have It All
+        items: [{ line_type: "addon", description: "Have It All Signature Beverage Package (per adult) — commissionable", source: "manual", quantity: 1, unit_cost: 90.00, unit_sell: 100.00, is_pass_through: false }],
+      },
+      {
+        label: "Gratuities",
+        icon: <DollarSign className="h-3.5 w-3.5" />,
+        items: [{ line_type: "addon", description: "HAL Auto Gratuities ($17.50/day)", source: "manual", quantity: 1, unit_cost: 17.50, unit_sell: 17.50, is_pass_through: true }],
+      },
+    ],
+  },
+  {
+    name: "Cunard",
+    icon: <Ship className="h-3.5 w-3.5" />,
+    addons: [
+      {
+        label: "Grill Suite Drinks Package",
+        icon: <Wine className="h-3.5 w-3.5" />,
+        // Grill Suites include drinks → commissionable
+        items: [{ line_type: "addon", description: "Grill Suite Drinks Package (included) — commissionable", source: "manual", quantity: 1, unit_cost: 90.00, unit_sell: 100.00, is_pass_through: false }],
+      },
+      {
+        label: "Gratuities",
+        icon: <DollarSign className="h-3.5 w-3.5" />,
+        items: [{ line_type: "addon", description: "Cunard Auto Gratuities ($16.50/day)", source: "manual", quantity: 1, unit_cost: 16.50, unit_sell: 16.50, is_pass_through: true }],
+      },
+    ],
+  },
+  {
+    name: "Celestyal Cruises",
+    icon: <Ship className="h-3.5 w-3.5" />,
+    addons: [
+      {
+        label: "Celestyal Plus+ (Sky High Drinks)",
+        icon: <Wine className="h-3.5 w-3.5" />,
+        // Plus+ package is commissionable and includes Sky High
+        items: [{ line_type: "addon", description: "Celestyal Plus+ Sky High Drink Package — commissionable", source: "manual", quantity: 1, unit_cost: 45.00, unit_sell: 50.00, is_pass_through: false }],
+      },
+      {
+        label: "Sky High Drink Pkg (standalone)",
+        icon: <Wine className="h-3.5 w-3.5" />,
+        // Advisors earn commission on standalone Sky High too
+        items: [{ line_type: "addon", description: "Sky High Drink Package (standalone) — commissionable", source: "manual", quantity: 1, unit_cost: 36.00, unit_sell: 40.00, is_pass_through: false }],
+      },
+    ],
+  },
+  {
+    name: "Emerald Cruises",
+    icon: <Ship className="h-3.5 w-3.5" />,
+    addons: [
+      {
+        label: "Drink Package (Yacht/River)",
+        icon: <Wine className="h-3.5 w-3.5" />,
+        // 10% commission on drink packages for yacht and river cruises
+        items: [{ line_type: "addon", description: "Emerald Drink Package (per person) — 10% comm.", source: "manual", quantity: 1, unit_cost: 45.00, unit_sell: 50.00, is_pass_through: false }],
       },
     ],
   },
