@@ -305,7 +305,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
-        supabase.from("bookings").select("id, booking_reference, booking_type, destination, depart_date, return_date, status, total_amount, travelers, trip_name, supplier_id, cancellation_terms, gross_sales").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
+        supabase.from("bookings").select("id, confirmation_number, status, total_price, gross_sales, supplier_id, suppliers(name, supplier_type)").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url").eq("trip_id", tripId),
         supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
@@ -313,7 +313,36 @@ const handler = async (req: Request): Promise<Response> => {
       ]);
 
       // Fetch pricing lines (client-facing sell prices only) for all bookings
-      const bookingIds = (bookingsRes.data || []).map((b: any) => b.id);
+      // Map supplier_type to portal booking_type
+      const supplierTypeToBookingType = (st: string | null): string => {
+        if (!st) return "other";
+        const map: Record<string, string> = {
+          airline: "flight", hotel: "hotel", cruise: "cruise",
+          car_rental: "car_rental", tour_operator: "tour", insurance: "insurance",
+          transfer: "transfer", dmc: "tour",
+        };
+        return map[st.toLowerCase()] || "other";
+      };
+
+      // Transform bookings to portal shape
+      const rawBookings = bookingsRes.data || [];
+      const tripData = tripRes.data;
+      const portalBookings = rawBookings.map((b: any) => ({
+        id: b.id,
+        booking_reference: b.confirmation_number,
+        booking_type: supplierTypeToBookingType(b.suppliers?.supplier_type),
+        destination: tripData?.destination || "",
+        depart_date: tripData?.depart_date,
+        return_date: tripData?.return_date,
+        status: b.status,
+        total_amount: b.gross_sales || b.total_price || 0,
+        travelers: 1,
+        trip_name: b.suppliers?.name || tripData?.trip_name || "",
+        supplier_id: b.supplier_id,
+        gross_sales: b.gross_sales,
+      }));
+
+      const bookingIds = rawBookings.map((b: any) => b.id);
       let pricingLines: any[] = [];
       if (bookingIds.length > 0) {
         const { data: marginLines } = await supabase
@@ -321,9 +350,8 @@ const handler = async (req: Request): Promise<Response> => {
           .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
           .in("booking_id", bookingIds)
           .order("sort_order", { ascending: true });
-        const bookingsData = bookingsRes.data || [];
         pricingLines = (marginLines || []).map((l: any) => {
-          const parentBooking = bookingsData.find((b: any) => b.id === l.booking_id);
+          const parentBooking = portalBookings.find((b: any) => b.id === l.booking_id);
           return {
             id: l.id,
             booking_id: l.booking_id,
@@ -389,7 +417,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       return new Response(JSON.stringify({
         trip: tripRes.data,
-        bookings: bookingsRes.data || [],
+        bookings: portalBookings,
         payments,
         itinerary: itineraryRes.data || [],
         itineraries: itinerariesRes.data || [],
