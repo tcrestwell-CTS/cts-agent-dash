@@ -73,10 +73,10 @@ export default function PortalTrips() {
                     </div>
                     <div className="absolute top-3 right-3">
                       <Badge
-                        variant={trip.status === "confirmed" ? "default" : "secondary"}
+                        variant={friendlyStatus(trip.status).variant}
                         className="shadow-sm"
                       >
-                        {trip.status}
+                        {friendlyStatus(trip.status).label}
                       </Badge>
                     </div>
                   </div>
