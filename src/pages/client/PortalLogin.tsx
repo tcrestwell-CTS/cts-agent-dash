@@ -65,7 +65,12 @@ export default function PortalLogin() {
     setAuthLoading(true);
     const result = await loginWithPassword(email, password);
     if (!result.success) {
-      toast.error(result.error || "Sign in failed.");
+      const msg = result.error || "Sign in failed.";
+      if (msg.toLowerCase().includes("invalid login credentials")) {
+        toast.error("Invalid credentials. If you signed up with Google, please use the Google sign-in option instead.", { duration: 6000 });
+      } else {
+        toast.error(msg);
+      }
     }
     setAuthLoading(false);
   };
