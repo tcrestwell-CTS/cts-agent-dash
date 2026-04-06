@@ -83,8 +83,10 @@ export default function PortalTrips() {
                 ) : (
                   <div className="relative h-28 bg-gradient-to-br from-primary/10 via-accent/5 to-muted flex items-end">
                     <div className="absolute top-3 right-3">
-                      <Badge variant={trip.status === "confirmed" ? "default" : "secondary"}>
-                        {trip.status}
+                      <Badge variant={friendlyStatus(trip.status).variant}>
+                        {friendlyStatus(trip.status).label}
+                      </Badge>
+                    </div>
                       </Badge>
                     </div>
                     <div className="p-4">
