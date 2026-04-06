@@ -130,9 +130,10 @@ export function PublishTripButton({
       if (error) throw error;
       toast.success("Trip published successfully!");
       onPublished();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error publishing trip:", error);
-      toast.error("Failed to publish trip");
+      const msg = error?.message || error?.details || "Unknown error";
+      toast.error(`Failed to publish trip: ${msg}`);
     } finally {
       setPublishing(false);
     }
