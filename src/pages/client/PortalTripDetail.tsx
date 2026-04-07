@@ -135,7 +135,7 @@ export default function PortalTripDetail() {
       itemUrl: window.location.href,
     });
 
-    if (!checkoutResult.ok) {
+    if ("error" in checkoutResult) {
       toast.error(checkoutResult.error);
       return;
     }

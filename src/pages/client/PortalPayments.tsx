@@ -121,7 +121,7 @@ export default function PortalPayments() {
       itemUrl: window.location.href,
     });
 
-    if (!checkoutResult.ok) {
+    if ("error" in checkoutResult) {
       toast.error(checkoutResult.error);
       return;
     }
