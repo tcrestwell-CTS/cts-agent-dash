@@ -303,13 +303,14 @@ const handler = async (req: Request): Promise<Response> => {
       ]);
       const isCompanion = companionTripIds3.includes(tripId);
 
-      const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes] = await Promise.all([
+      const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes, clientRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
         supabase.from("bookings").select("id, confirmation_number, status, total_price, gross_sales, supplier_id, suppliers(name, supplier_type)").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url").eq("trip_id", tripId),
         supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
         supabase.from("option_blocks").select("id, day_number, title, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
+        supabase.from("clients").select("name, first_name, last_name, email, phone, address_line_1, address_city, address_state, address_zip_code, address_country").eq("id", clientId).single(),
       ]);
 
       // Fetch pricing lines (client-facing sell prices only) for all bookings
@@ -417,6 +418,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       return new Response(JSON.stringify({
         trip: tripRes.data,
+        client: clientRes.data || null,
         bookings: portalBookings,
         payments,
         itinerary: itineraryRes.data || [],
@@ -912,7 +914,8 @@ const handler = async (req: Request): Promise<Response> => {
     } else if (resource === "payments") {
       // Get all trips for this client (own + companion)
       const allClientIds = await getAllClientIds();
-      const [ownTripsRes, companionTripIds4] = await Promise.all([
+      const [clientRes, ownTripsRes, companionTripIds4] = await Promise.all([
+        supabase.from("clients").select("name, first_name, last_name, email, phone, address_line_1, address_city, address_state, address_zip_code, address_country").eq("id", clientId).single(),
         supabase.from("trips").select("id, trip_name").in("client_id", allClientIds),
         getCompanionTripIds(),
       ]);
@@ -923,7 +926,7 @@ const handler = async (req: Request): Promise<Response> => {
       ];
 
       if (allTripIds.length === 0) {
-        return new Response(JSON.stringify({ payments: [] }), {
+        return new Response(JSON.stringify({ payments: [], client: clientRes.data || null }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -956,7 +959,7 @@ const handler = async (req: Request): Promise<Response> => {
         trip_name: tripNameMap[p.trip_id] || "Trip",
       }));
 
-      return new Response(JSON.stringify({ payments: enrichedPayments }), {
+      return new Response(JSON.stringify({ payments: enrichedPayments, client: clientRes.data || null }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 

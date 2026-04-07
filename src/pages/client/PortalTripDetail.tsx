@@ -22,6 +22,7 @@ import { PaymentAgreementStep } from "@/components/client/PaymentAgreementStep";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { TravelDocChecklist } from "@/components/client/TravelDocChecklist";
 import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocationTimeline";
+import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -125,21 +126,25 @@ export default function PortalTripDetail() {
       toast.error("Affirm is not available. Please try card payment or contact your agent.");
       return;
     }
+
+    const checkoutResult = buildAffirmVcnCheckoutData({
+      amount: Number(selectedPayment.amount),
+      orderId: selectedPayment.id,
+      tripName: selectedPayment.trip_name,
+      client: data?.client,
+      itemUrl: window.location.href,
+    });
+
+    if ("error" in checkoutResult) {
+      toast.error(checkoutResult.error);
+      return;
+    }
+
     setAffirmLoading(true);
     setShowMethodDialog(false);
     notifyAgentPaymentMethod("affirm");
     const affirm = (window as any).affirm;
-    const checkoutData = {
-      merchant: { name: "Crestwell Travel Services", use_vcn: true },
-      shipping: { name: { first: "Client", last: "" }, address: { line1: "N/A", city: "N/A", state: "CA", zipcode: "00000", country: "USA" }, phone_number: "0000000000", email: "client@example.com" },
-      billing: { name: { first: "Client", last: "" }, address: { line1: "N/A", city: "N/A", state: "CA", zipcode: "00000", country: "USA" }, phone_number: "0000000000", email: "client@example.com" },
-      items: [{ display_name: `Trip Payment – ${selectedPayment.trip_name || "Travel"}`, sku: selectedPayment.id, unit_price: Math.round(selectedPayment.amount * 100), qty: 1, item_url: window.location.href }],
-      order_id: selectedPayment.id,
-      metadata: { mode: "modal" },
-      total: Math.round(selectedPayment.amount * 100),
-      shipping_amount: 0,
-      tax_amount: 0,
-    };
+    const checkoutData = checkoutResult.checkoutData;
     affirm.ui.ready(function () {
       affirm.checkout(checkoutData);
       affirm.checkout.open_vcn({
