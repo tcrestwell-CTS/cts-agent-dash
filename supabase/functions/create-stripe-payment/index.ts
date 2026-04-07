@@ -131,7 +131,18 @@ serve(async (req) => {
                 name: description,
                 description: payment.details || undefined,
               },
-              unit_amount: Math.round(payment.amount * 100),
+              unit_amount: Math.round(baseAmount * 100),
+            },
+            quantity: 1,
+          },
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "Processing Fee",
+                description: "Credit card processing fee",
+              },
+              unit_amount: chargeAmountCents - Math.round(baseAmount * 100),
             },
             quantity: 1,
           },
@@ -164,7 +175,18 @@ serve(async (req) => {
                 name: description,
                 description: payment.details || undefined,
               },
-              unit_amount: Math.round(payment.amount * 100),
+              unit_amount: Math.round(baseAmount * 100),
+            },
+            quantity: 1,
+          },
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "Processing Fee",
+                description: "Credit card processing fee",
+              },
+              unit_amount: chargeAmountCents - Math.round(baseAmount * 100),
             },
             quantity: 1,
           },
