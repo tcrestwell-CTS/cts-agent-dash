@@ -106,6 +106,13 @@ serve(async (req) => {
       : payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1);
     const description = `${paymentTypeLabel}${trip?.trip_name ? ` – ${trip.trip_name}` : ""}`;
 
+    // Gross up to cover Stripe processing fees (2.9% + $0.30)
+    // so the net payout equals the original payment amount
+    const baseAmount = payment.amount;
+    const grossedUpAmount = (baseAmount + 0.30) / (1 - 0.029);
+    const chargeAmountCents = Math.round(grossedUpAmount * 100);
+    const stripeFee = +(grossedUpAmount - baseAmount).toFixed(2);
+
     const origin = returnUrl || req.headers.get("origin") || "https://cts-agent-dash.lovable.app";
     const tripIdParam = payment.trip_id ? `&trip_id=${payment.trip_id}` : "";
 
