@@ -51,6 +51,17 @@ interface LandingContent {
   cta_link?: string;
 }
 
+interface CabinOption {
+  id: string;
+  category_name: string;
+  description: string | null;
+  price_per_person: number;
+  deposit_amount: number;
+  capacity: number | null;
+  image_url: string | null;
+  sort_order: number;
+}
+
 interface GroupLandingData {
   trip: {
     id: string;
@@ -88,6 +99,7 @@ interface GroupLandingData {
     embarc_number?: string | null;
   } | null;
   signupCount: number;
+  cabinOptions: CabinOption[];
   itineraryHighlights: {
     title: string;
     description: string | null;
@@ -123,6 +135,7 @@ export default function GroupLanding() {
     phone: "",
     number_of_travelers: "1",
     notes: "",
+    selected_cabin_option_id: "",
   });
 
   useEffect(() => {
@@ -430,6 +443,55 @@ export default function GroupLanding() {
                         </div>
                       ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── CABIN OPTIONS ──────────────────── */}
+            {data.cabinOptions && data.cabinOptions.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Choose Your Cabin
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {data.cabinOptions.map((cabin) => (
+                    <div
+                      key={cabin.id}
+                      className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                    >
+                      {cabin.image_url && (
+                        <img
+                          src={cabin.image_url}
+                          alt={cabin.category_name}
+                          className="w-full h-36 object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
+                          <span
+                            className="text-lg font-bold"
+                            style={{ color: primaryColor }}
+                          >
+                            ${cabin.price_per_person.toLocaleString()}
+                            <span className="text-xs font-normal text-gray-500">/person</span>
+                          </span>
+                        </div>
+                        {cabin.description && (
+                          <p className="text-sm text-gray-500">{cabin.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                          {cabin.deposit_amount > 0 && (
+                            <span>${cabin.deposit_amount.toLocaleString()} deposit</span>
+                          )}
+                          {cabin.capacity && (
+                            <span>Max {cabin.capacity} travelers</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -793,6 +855,28 @@ export default function GroupLanding() {
                       }
                     />
                   </div>
+
+                  {/* Cabin Selection */}
+                  {data.cabinOptions && data.cabinOptions.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Cabin / Category *</Label>
+                      <select
+                        required
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={form.selected_cabin_option_id}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, selected_cabin_option_id: e.target.value }))
+                        }
+                      >
+                        <option value="">Select a cabin type...</option>
+                        {data.cabinOptions.map((cabin) => (
+                          <option key={cabin.id} value={cabin.id}>
+                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <Label className="text-sm">Notes or Questions</Label>

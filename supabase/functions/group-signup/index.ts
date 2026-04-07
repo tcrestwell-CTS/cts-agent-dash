@@ -78,7 +78,14 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("trip_id", trip.id);
 
-      // Get itinerary highlights (first 5 items)
+      // Get cabin/category options
+      const { data: cabinOptions } = await supabaseAdmin
+        .from("trip_cabin_options")
+        .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url, sort_order")
+        .eq("trip_id", trip.id)
+        .order("sort_order", { ascending: true });
+
+      // Get itinerary highlights (first 8 items)
       const { data: itineraryItems } = await supabaseAdmin
         .from("itinerary_items")
         .select("title, description, category, day_number, location")
@@ -118,6 +125,7 @@ Deno.serve(async (req) => {
               }
             : null,
           signupCount: count || 0,
+          cabinOptions: cabinOptions || [],
           itineraryHighlights: itineraryItems || [],
         }),
         {
@@ -129,7 +137,7 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id } = body;
 
       // Validate required fields
       if (!signupToken || !first_name || !email) {
@@ -247,6 +255,7 @@ Deno.serve(async (req) => {
           status: "inbound",
           client_id: clientId,
           notes: notes?.trim() || null,
+          selected_cabin_option_id: selected_cabin_option_id || null,
         })
         .select("id")
         .single();
