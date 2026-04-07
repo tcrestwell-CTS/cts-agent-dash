@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
     const AFFIRM_PRIVATE_KEY = Deno.env.get('AFFIRM_PRIVATE_KEY');
     const AFFIRM_PUBLIC_KEY = Deno.env.get('AFFIRM_PUBLIC_KEY');
-    const AFFIRM_ENV = Deno.env.get('AFFIRM_ENVIRONMENT') || 'sandbox';
+    const AFFIRM_ENV = 'production';
 
     if (!AFFIRM_PRIVATE_KEY || !AFFIRM_PUBLIC_KEY) {
       throw new Error('Affirm keys not configured');
