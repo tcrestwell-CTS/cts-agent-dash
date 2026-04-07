@@ -67,18 +67,21 @@ Deno.serve(async (req) => {
     if (dbError) throw new Error(dbError.message);
 
     const pageUrl = isFinancing ? '/financing' : '/payment';
-    const url = new URL(`${SITE_URL}${pageUrl}`);
-    url.searchParams.set('token', token);
-    if (booking_ref) url.searchParams.set('ref', booking_ref);
-    if (invoice_number) url.searchParams.set('invoice', invoice_number);
-    if (client_name) url.searchParams.set('name', client_name);
-    if (client_email) url.searchParams.set('email', client_email);
-    if (client_address?.line1) url.searchParams.set('address', client_address.line1);
-    if (client_address?.city) url.searchParams.set('city', client_address.city);
-    if (client_address?.state) url.searchParams.set('state', client_address.state);
-    if (client_address?.zipCode) url.searchParams.set('zip', client_address.zipCode);
-    if (client_address?.country) url.searchParams.set('country', client_address.country);
-    const secureUrl = url.toString();
+    // Encode all params into a single base64 payload to prevent browsers/email clients
+    // from stripping or truncating long query parameters (especially the token)
+    const payload: Record<string, string> = { token };
+    if (booking_ref) payload.ref = booking_ref;
+    if (invoice_number) payload.invoice = invoice_number;
+    if (client_name) payload.name = client_name;
+    if (client_email) payload.email = client_email;
+    if (client_address?.line1) payload.address = client_address.line1;
+    if (client_address?.city) payload.city = client_address.city;
+    if (client_address?.state) payload.state = client_address.state;
+    if (client_address?.zipCode) payload.zip = client_address.zipCode;
+    if (client_address?.country) payload.country = client_address.country;
+    // Use URL-safe base64 encoding of JSON payload as a single 'd' query param
+    const encoded = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const secureUrl = `${SITE_URL}${pageUrl}?d=${encoded}`;
 
     const isPayment = !isFinancing;
     const pageLabel = isPayment ? 'Secure Payment' : 'Financing Application';
