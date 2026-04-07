@@ -49,7 +49,7 @@ export function PublishTripButton({
       const [bookingsRes, itinerariesRes] = await Promise.all([
         supabase
           .from("bookings")
-          .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type")
+          .select("id, confirmation_number, status, gross_sales, total_price, supplier_id, suppliers(name, supplier_type)")
           .eq("trip_id", tripId),
         supabase
           .from("itineraries")
