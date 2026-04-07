@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PaymentAgreementStep } from "@/components/client/PaymentAgreementStep";
+import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: any; className: string }> = {
   paid: { label: "Paid", variant: "default", icon: CheckCircle2, className: "bg-green-100 text-green-700 border-green-200" },
@@ -112,44 +113,24 @@ export default function PortalPayments() {
       return;
     }
 
+    const checkoutResult = buildAffirmVcnCheckoutData({
+      amount: Number(selectedPayment.amount),
+      orderId: selectedPayment.id,
+      tripName: selectedPayment.trip_name,
+      client: data?.client,
+      itemUrl: window.location.href,
+    });
+
+    if (!checkoutResult.ok) {
+      toast.error(checkoutResult.error);
+      return;
+    }
+
     setAffirmLoading(true);
     setShowMethodDialog(false);
 
     const affirm = (window as any).affirm;
-
-    // Build checkout data for Affirm VCN
-    const checkoutData = {
-      merchant: {
-        name: "Crestwell Travel Services",
-        use_vcn: true, // Enable virtual card generation
-      },
-      shipping: {
-        name: { first: "Client", last: "" },
-        address: { line1: "N/A", city: "N/A", state: "CA", zipcode: "00000", country: "USA" },
-        phone_number: "0000000000",
-        email: "client@example.com",
-      },
-      billing: {
-        name: { first: "Client", last: "" },
-        address: { line1: "N/A", city: "N/A", state: "CA", zipcode: "00000", country: "USA" },
-        phone_number: "0000000000",
-        email: "client@example.com",
-      },
-      items: [
-        {
-          display_name: `Trip Payment – ${selectedPayment.trip_name || "Travel"}`,
-          sku: selectedPayment.id,
-          unit_price: Math.round(selectedPayment.amount * 100), // cents
-          qty: 1,
-          item_url: window.location.href,
-        },
-      ],
-      order_id: selectedPayment.id,
-      metadata: { mode: "modal" },
-      total: Math.round(selectedPayment.amount * 100),
-      shipping_amount: 0,
-      tax_amount: 0,
-    };
+    const checkoutData = checkoutResult.checkoutData;
 
     // Wait for Affirm SDK readiness, then open VCN checkout
     affirm.ui.ready(function () {
