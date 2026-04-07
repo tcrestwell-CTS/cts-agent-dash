@@ -447,6 +447,55 @@ export default function GroupLanding() {
               </div>
             )}
 
+            {/* ─── CABIN OPTIONS ──────────────────── */}
+            {data.cabinOptions && data.cabinOptions.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Choose Your Cabin
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {data.cabinOptions.map((cabin) => (
+                    <div
+                      key={cabin.id}
+                      className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                    >
+                      {cabin.image_url && (
+                        <img
+                          src={cabin.image_url}
+                          alt={cabin.category_name}
+                          className="w-full h-36 object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
+                          <span
+                            className="text-lg font-bold"
+                            style={{ color: primaryColor }}
+                          >
+                            ${cabin.price_per_person.toLocaleString()}
+                            <span className="text-xs font-normal text-gray-500">/person</span>
+                          </span>
+                        </div>
+                        {cabin.description && (
+                          <p className="text-sm text-gray-500">{cabin.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                          {cabin.deposit_amount > 0 && (
+                            <span>${cabin.deposit_amount.toLocaleString()} deposit</span>
+                          )}
+                          {cabin.capacity && (
+                            <span>Max {cabin.capacity} travelers</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* ─── GALLERY ────────────────────────── */}
             {featureImages.length > 0 && (
               <div>
