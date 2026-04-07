@@ -3616,6 +3616,56 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_cabin_options: {
+        Row: {
+          capacity: number | null
+          category_name: string
+          created_at: string
+          deposit_amount: number | null
+          description: string | null
+          id: string
+          image_url: string | null
+          price_per_person: number
+          sort_order: number
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          category_name: string
+          created_at?: string
+          deposit_amount?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          price_per_person?: number
+          sort_order?: number
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          category_name?: string
+          created_at?: string
+          deposit_amount?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          price_per_person?: number
+          sort_order?: number
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_cabin_options_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_insurance_quotes: {
         Row: {
           coverage_amount: number | null
@@ -4146,6 +4196,7 @@ export type Database = {
           published_snapshot: Json | null
           readiness_score: Json | null
           return_date: string | null
+          selected_cabin_option_id: string | null
           share_token: string
           status: string
           tags: string[] | null
@@ -4209,6 +4260,7 @@ export type Database = {
           published_snapshot?: Json | null
           readiness_score?: Json | null
           return_date?: string | null
+          selected_cabin_option_id?: string | null
           share_token?: string
           status?: string
           tags?: string[] | null
@@ -4272,6 +4324,7 @@ export type Database = {
           published_snapshot?: Json | null
           readiness_score?: Json | null
           return_date?: string | null
+          selected_cabin_option_id?: string | null
           share_token?: string
           status?: string
           tags?: string[] | null
@@ -4329,6 +4382,13 @@ export type Database = {
             columns: ["parent_trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_selected_cabin_option_id_fkey"
+            columns: ["selected_cabin_option_id"]
+            isOneToOne: false
+            referencedRelation: "trip_cabin_options"
             referencedColumns: ["id"]
           },
         ]
