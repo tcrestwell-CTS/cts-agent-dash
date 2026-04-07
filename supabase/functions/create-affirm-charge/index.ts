@@ -28,15 +28,15 @@ Deno.serve(async (req) => {
 
     const AFFIRM_PRIVATE_KEY = Deno.env.get('AFFIRM_PRIVATE_KEY');
     const AFFIRM_PUBLIC_KEY = Deno.env.get('AFFIRM_PUBLIC_KEY');
-    const AFFIRM_ENV = Deno.env.get('AFFIRM_ENVIRONMENT') || 'production';
+    const AFFIRM_ENV = Deno.env.get('AFFIRM_ENVIRONMENT') || 'sandbox';
 
     if (!AFFIRM_PRIVATE_KEY || !AFFIRM_PUBLIC_KEY) {
       throw new Error('Affirm keys not configured');
     }
 
-    const affirmBase = AFFIRM_ENV === 'sandbox'
-      ? 'https://sandbox.affirm.com'
-      : 'https://api.affirm.com';
+    const affirmBase = AFFIRM_ENV === 'production'
+      ? 'https://api.affirm.com'
+      : 'https://sandbox.affirm.com';
 
     // Authorize the Affirm charge
     const authRes = await fetch(`${affirmBase}/api/v1/transactions`, {
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     if (!captureRes.ok) throw new Error(captured.message || 'Affirm capture failed');
 
     // Record in Supabase using service role to bypass RLS
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const { createClient } = await import('npm:@supabase/supabase-js@2');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
