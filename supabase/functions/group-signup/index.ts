@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id } = body;
 
       // Validate required fields
       if (!signupToken || !first_name || !email) {
@@ -255,6 +255,7 @@ Deno.serve(async (req) => {
           status: "inbound",
           client_id: clientId,
           notes: notes?.trim() || null,
+          selected_cabin_option_id: selected_cabin_option_id || null,
         })
         .select("id")
         .single();
