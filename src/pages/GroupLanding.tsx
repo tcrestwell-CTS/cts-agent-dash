@@ -174,6 +174,10 @@ export default function GroupLanding() {
       toast.error("Please fill in your name and email.");
       return;
     }
+    if (form.number_of_travelers === "2" && !form.companion_first_name.trim()) {
+      toast.error("Please fill in the second traveler's first name.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(
