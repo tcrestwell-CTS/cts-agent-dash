@@ -101,6 +101,22 @@ const TripDetail = () => {
   const { processStatusChange } = useWorkflowAutomation();
   const { addItem: addItineraryItem } = useItinerary(tripId);
 
+  // Fetch invoice number for this trip
+  const { data: invoiceData } = useQuery({
+    queryKey: ["trip-invoice-number", tripId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("invoice_number")
+        .eq("trip_id", tripId!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.invoice_number || null;
+    },
+    enabled: !!tripId,
+  });
+
   // Fetch insurance data for financials display
   const { data: insuranceData } = useQuery({
     queryKey: ["trip-insurance-financials", tripId],
@@ -379,6 +395,14 @@ const TripDetail = () => {
             departDate={trip.depart_date}
             returnDate={trip.return_date}
             shareToken={(trip as any).share_token}
+            invoiceNumber={invoiceData || undefined}
+            clientAddress={trip.clients ? {
+              line1: trip.clients.address_line_1,
+              city: trip.clients.address_city,
+              state: trip.clients.address_state,
+              zipCode: trip.clients.address_zip_code,
+              country: trip.clients.address_country,
+            } : undefined}
             isSendingPortalLink={isSendingPortalLink}
             onSendPortalLink={handleSendPortalLink}
             onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}

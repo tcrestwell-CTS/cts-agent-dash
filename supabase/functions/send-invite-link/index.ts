@@ -28,6 +28,8 @@ Deno.serve(async (req) => {
       notes,
       expires_hours = 72,
       single_use = true,
+      invoice_number,
+      client_address,
     } = await req.json();
 
     if (!link_type || !client_name || !client_email) {
@@ -65,7 +67,17 @@ Deno.serve(async (req) => {
     if (dbError) throw new Error(dbError.message);
 
     const pageUrl = isFinancing ? '/financing' : '/payment';
-    const secureUrl = `${SITE_URL}${pageUrl}?token=${token}`;
+    const url = new URL(`${SITE_URL}${pageUrl}`);
+    url.searchParams.set('token', token);
+    if (invoice_number) url.searchParams.set('invoice', invoice_number);
+    if (client_name) url.searchParams.set('name', client_name);
+    if (client_email) url.searchParams.set('email', client_email);
+    if (client_address?.line1) url.searchParams.set('address', client_address.line1);
+    if (client_address?.city) url.searchParams.set('city', client_address.city);
+    if (client_address?.state) url.searchParams.set('state', client_address.state);
+    if (client_address?.zipCode) url.searchParams.set('zip', client_address.zipCode);
+    if (client_address?.country) url.searchParams.set('country', client_address.country);
+    const secureUrl = url.toString();
 
     const isPayment = !isFinancing;
     const pageLabel = isPayment ? 'Secure Payment' : 'Financing Application';

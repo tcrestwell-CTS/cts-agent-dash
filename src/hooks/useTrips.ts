@@ -41,6 +41,11 @@ export interface Trip {
     name: string;
     email: string | null;
     phone: string | null;
+    address_line_1: string | null;
+    address_city: string | null;
+    address_state: string | null;
+    address_zip_code: string | null;
+    address_country: string | null;
   } | null;
   bookings?: TripBooking[];
   isOptimistic?: boolean;
@@ -118,7 +123,12 @@ export function useTrips() {
             id,
             name,
             email,
-            phone
+            phone,
+            address_line_1,
+            address_city,
+            address_state,
+            address_zip_code,
+            address_country
           )
         `)
         .order("created_at", { ascending: false });
@@ -211,7 +221,12 @@ export function useTrips() {
             id,
             name,
             email,
-            phone
+            phone,
+            address_line_1,
+            address_city,
+            address_state,
+            address_zip_code,
+            address_country
           )
         `)
         .single();
@@ -380,7 +395,12 @@ export function useTrip(tripId: string | undefined) {
             id,
             name,
             email,
-            phone
+            phone,
+            address_line_1,
+            address_city,
+            address_state,
+            address_zip_code,
+            address_country
           )
         `)
         .eq("id", tripId)
@@ -421,7 +441,12 @@ export function useTrip(tripId: string | undefined) {
             id,
             name,
             email,
-            phone
+            phone,
+            address_line_1,
+            address_city,
+            address_state,
+            address_zip_code,
+            address_country
           )
         `) as any)
         .eq("parent_trip_id", tripId)
