@@ -78,7 +78,14 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("trip_id", trip.id);
 
-      // Get itinerary highlights (first 5 items)
+      // Get cabin/category options
+      const { data: cabinOptions } = await supabaseAdmin
+        .from("trip_cabin_options")
+        .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url, sort_order")
+        .eq("trip_id", trip.id)
+        .order("sort_order", { ascending: true });
+
+      // Get itinerary highlights (first 8 items)
       const { data: itineraryItems } = await supabaseAdmin
         .from("itinerary_items")
         .select("title, description, category, day_number, location")
@@ -118,6 +125,7 @@ Deno.serve(async (req) => {
               }
             : null,
           signupCount: count || 0,
+          cabinOptions: cabinOptions || [],
           itineraryHighlights: itineraryItems || [],
         }),
         {
