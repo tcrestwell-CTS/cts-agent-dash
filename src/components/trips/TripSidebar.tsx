@@ -58,6 +58,7 @@ interface TripSidebarProps {
     zipCode?: string | null;
     country?: string | null;
   };
+  defaultBookingRef?: string;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
