@@ -30,6 +30,14 @@ interface SendInviteLinkDialogProps {
   tripTotalAmount?: number;
   depositRequired?: boolean;
   depositAmount?: number;
+  invoiceNumber?: string;
+  clientAddress?: {
+    line1?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipCode?: string | null;
+    country?: string | null;
+  };
   trigger?: React.ReactNode;
 }
 
@@ -41,6 +49,8 @@ export function SendInviteLinkDialog({
   tripTotalAmount = 0,
   depositRequired = false,
   depositAmount = 0,
+  invoiceNumber,
+  clientAddress,
   trigger,
 }: SendInviteLinkDialogProps) {
   const [open, setOpen] = useState(false);
@@ -113,6 +123,8 @@ export function SendInviteLinkDialog({
             amount: amount ? parseFloat(amount) : undefined,
             notes: notes.trim() || undefined,
             expires_hours: parseInt(expiresHours) || 72,
+            invoice_number: invoiceNumber || undefined,
+            client_address: clientAddress || undefined,
           }),
         }
       );
