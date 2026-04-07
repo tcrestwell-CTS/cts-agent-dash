@@ -878,6 +878,7 @@ export default function GroupLanding() {
                     </div>
                   )}
 
+                  <div className="space-y-1.5">
                     <Label className="text-sm">Notes or Questions</Label>
                     <Textarea
                       maxLength={500}
