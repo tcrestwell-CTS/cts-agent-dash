@@ -135,6 +135,7 @@ export default function GroupLanding() {
     phone: "",
     number_of_travelers: "1",
     notes: "",
+    selected_cabin_option_id: "",
   });
 
   useEffect(() => {
