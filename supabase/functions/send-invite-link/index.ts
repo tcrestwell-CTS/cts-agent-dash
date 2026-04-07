@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
     const pageUrl = isFinancing ? '/financing' : '/payment';
     const url = new URL(`${SITE_URL}${pageUrl}`);
     url.searchParams.set('token', token);
+    if (booking_ref) url.searchParams.set('ref', booking_ref);
     if (invoice_number) url.searchParams.set('invoice', invoice_number);
     if (client_name) url.searchParams.set('name', client_name);
     if (client_email) url.searchParams.set('email', client_email);

@@ -395,6 +395,7 @@ const TripDetail = () => {
             departDate={trip.depart_date}
             returnDate={trip.return_date}
             shareToken={(trip as any).share_token}
+            defaultBookingRef={bookings?.[0]?.confirmation_number || ""}
             invoiceNumber={invoiceData || undefined}
             clientAddress={trip.clients ? {
               line1: trip.clients.address_line_1,

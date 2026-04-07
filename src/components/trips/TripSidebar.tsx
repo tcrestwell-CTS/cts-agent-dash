@@ -58,6 +58,7 @@ interface TripSidebarProps {
     zipCode?: string | null;
     country?: string | null;
   };
+  defaultBookingRef?: string;
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
@@ -82,6 +83,7 @@ export function TripSidebar({
   shareToken,
   invoiceNumber,
   clientAddress,
+  defaultBookingRef,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
@@ -190,6 +192,7 @@ export function TripSidebar({
             defaultClientName={clientName || ""}
             defaultClientEmail={clientEmail || ""}
             defaultTripName={tripName || ""}
+            defaultBookingRef={defaultBookingRef || ""}
             tripTotalAmount={tripTotalAmount}
             depositRequired={depositRequired}
             depositAmount={depositAmount}
