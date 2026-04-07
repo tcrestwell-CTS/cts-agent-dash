@@ -101,6 +101,22 @@ const TripDetail = () => {
   const { processStatusChange } = useWorkflowAutomation();
   const { addItem: addItineraryItem } = useItinerary(tripId);
 
+  // Fetch invoice number for this trip
+  const { data: invoiceData } = useQuery({
+    queryKey: ["trip-invoice-number", tripId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("invoice_number")
+        .eq("trip_id", tripId!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.invoice_number || null;
+    },
+    enabled: !!tripId,
+  });
+
   // Fetch insurance data for financials display
   const { data: insuranceData } = useQuery({
     queryKey: ["trip-insurance-financials", tripId],
