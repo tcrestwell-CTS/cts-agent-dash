@@ -51,6 +51,17 @@ interface LandingContent {
   cta_link?: string;
 }
 
+interface CabinOption {
+  id: string;
+  category_name: string;
+  description: string | null;
+  price_per_person: number;
+  deposit_amount: number;
+  capacity: number | null;
+  image_url: string | null;
+  sort_order: number;
+}
+
 interface GroupLandingData {
   trip: {
     id: string;
@@ -88,6 +99,7 @@ interface GroupLandingData {
     embarc_number?: string | null;
   } | null;
   signupCount: number;
+  cabinOptions: CabinOption[];
   itineraryHighlights: {
     title: string;
     description: string | null;
