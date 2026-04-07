@@ -221,7 +221,12 @@ export function useTrips() {
             id,
             name,
             email,
-            phone
+            phone,
+            address_line_1,
+            address_city,
+            address_state,
+            address_zip_code,
+            address_country
           )
         `)
         .single();
