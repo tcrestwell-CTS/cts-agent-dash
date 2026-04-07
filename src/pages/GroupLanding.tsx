@@ -136,6 +136,10 @@ export default function GroupLanding() {
     number_of_travelers: "1",
     notes: "",
     selected_cabin_option_id: "",
+    companion_first_name: "",
+    companion_last_name: "",
+    companion_email: "",
+    companion_phone: "",
   });
 
   useEffect(() => {
@@ -168,6 +172,10 @@ export default function GroupLanding() {
     e.preventDefault();
     if (!form.first_name.trim() || !form.email.trim()) {
       toast.error("Please fill in your name and email.");
+      return;
+    }
+    if (form.number_of_travelers === "2" && !form.companion_first_name.trim()) {
+      toast.error("Please fill in the second traveler's first name.");
       return;
     }
     setSubmitting(true);
@@ -841,20 +849,87 @@ export default function GroupLanding() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-sm">Number of Travelers</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={form.number_of_travelers}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          number_of_travelers: e.target.value,
-                        }))
-                      }
-                    />
+                    <Label className="text-sm">Occupancy</Label>
+                    <div className="flex gap-2">
+                      {["1", "2"].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                            form.number_of_travelers === val
+                              ? "border-2 shadow-sm"
+                              : "border-gray-200 text-gray-600 hover:border-gray-300"
+                          }`}
+                          style={
+                            form.number_of_travelers === val
+                              ? { borderColor: primaryColor, color: primaryColor, backgroundColor: `${primaryColor}08` }
+                              : {}
+                          }
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              number_of_travelers: val,
+                              ...(val === "1" ? { companion_first_name: "", companion_last_name: "", companion_email: "", companion_phone: "" } : {}),
+                            }))
+                          }
+                        >
+                          {val === "1" ? "1 Traveler" : "2 Travelers"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Second Traveler Info */}
+                  {form.number_of_travelers === "2" && (
+                    <div className="space-y-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-sm font-semibold text-gray-700">Second Traveler</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">First Name *</Label>
+                          <Input
+                            required
+                            maxLength={100}
+                            value={form.companion_first_name}
+                            onChange={(e) =>
+                              setForm((f) => ({ ...f, companion_first_name: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Last Name</Label>
+                          <Input
+                            maxLength={100}
+                            value={form.companion_last_name}
+                            onChange={(e) =>
+                              setForm((f) => ({ ...f, companion_last_name: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Email</Label>
+                        <Input
+                          type="email"
+                          maxLength={255}
+                          value={form.companion_email}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, companion_email: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Phone</Label>
+                        <Input
+                          type="tel"
+                          maxLength={20}
+                          value={form.companion_phone}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, companion_phone: e.target.value }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Cabin Selection */}
                   {data.cabinOptions && data.cabinOptions.length > 0 && (

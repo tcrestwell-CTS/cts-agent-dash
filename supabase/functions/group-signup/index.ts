@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone } = body;
 
       // Validate required fields
       if (!signupToken || !first_name || !email) {
@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
           last_name: last_name?.trim() || null,
           email: email.toLowerCase().trim(),
           phone: phone?.trim() || null,
-          number_of_travelers: Math.max(1, Math.min(20, parseInt(number_of_travelers) || 1)),
+          number_of_travelers: Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1)),
           notes: notes?.trim()?.substring(0, 500) || null,
           status: "confirmed",
         });
@@ -290,12 +290,32 @@ Deno.serve(async (req) => {
         console.error("Failed to record signup:", signupErr);
       }
 
+      // If 2 travelers, create a companion record linked to the client
+      const travelerCount = Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1));
+      if (travelerCount === 2 && companion_first_name?.trim()) {
+        const { error: companionErr } = await supabaseAdmin
+          .from("client_companions")
+          .insert({
+            client_id: clientId,
+            user_id: parentTrip.user_id,
+            first_name: companion_first_name.trim(),
+            last_name: companion_last_name?.trim() || null,
+            email: companion_email?.trim()?.toLowerCase() || null,
+            phone: companion_phone?.trim() || null,
+            relationship: "travel_companion",
+          });
+
+        if (companionErr) {
+          console.error("Failed to create companion:", companionErr);
+        }
+      }
+
       // Create a notification for the agent
       await supabaseAdmin.from("agent_notifications").insert({
         user_id: parentTrip.user_id,
         type: "group_signup",
         title: `New Group Signup: ${clientName}`,
-        message: `${clientName} signed up for ${parentTrip.trip_name} with ${number_of_travelers || 1} traveler(s).`,
+        message: `${clientName} signed up for ${parentTrip.trip_name} with ${travelerCount} traveler(s).`,
         trip_id: parentTrip.id,
       });
 
