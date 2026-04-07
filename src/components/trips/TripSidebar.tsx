@@ -50,6 +50,14 @@ interface TripSidebarProps {
   departDate?: string | null;
   returnDate?: string | null;
   shareToken?: string | null;
+  invoiceNumber?: string;
+  clientAddress?: {
+    line1?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipCode?: string | null;
+    country?: string | null;
+  };
   isSendingPortalLink?: boolean;
   onSendPortalLink?: () => void;
   onFlightSearch?: () => void;
@@ -72,6 +80,8 @@ export function TripSidebar({
   departDate,
   returnDate,
   shareToken,
+  invoiceNumber,
+  clientAddress,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
@@ -183,6 +193,8 @@ export function TripSidebar({
             tripTotalAmount={tripTotalAmount}
             depositRequired={depositRequired}
             depositAmount={depositAmount}
+            invoiceNumber={invoiceNumber}
+            clientAddress={clientAddress}
           />
         </div>
 
