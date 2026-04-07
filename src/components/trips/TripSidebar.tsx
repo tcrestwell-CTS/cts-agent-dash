@@ -192,6 +192,7 @@ export function TripSidebar({
             defaultClientName={clientName || ""}
             defaultClientEmail={clientEmail || ""}
             defaultTripName={tripName || ""}
+            defaultBookingRef={defaultBookingRef || ""}
             tripTotalAmount={tripTotalAmount}
             depositRequired={depositRequired}
             depositAmount={depositAmount}
