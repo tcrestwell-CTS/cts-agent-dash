@@ -856,7 +856,28 @@ export default function GroupLanding() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  {/* Cabin Selection */}
+                  {data.cabinOptions && data.cabinOptions.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Cabin / Category *</Label>
+                      <select
+                        required
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={form.selected_cabin_option_id}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, selected_cabin_option_id: e.target.value }))
+                        }
+                      >
+                        <option value="">Select a cabin type...</option>
+                        {data.cabinOptions.map((cabin) => (
+                          <option key={cabin.id} value={cabin.id}>
+                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                     <Label className="text-sm">Notes or Questions</Label>
                     <Textarea
                       maxLength={500}
