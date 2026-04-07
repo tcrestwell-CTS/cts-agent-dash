@@ -83,6 +83,7 @@ export function TripSidebar({
   shareToken,
   invoiceNumber,
   clientAddress,
+  defaultBookingRef,
   isSendingPortalLink = false,
   onSendPortalLink,
   onFlightSearch,
