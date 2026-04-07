@@ -49,7 +49,7 @@ export function PublishTripButton({
       const [bookingsRes, itinerariesRes] = await Promise.all([
         supabase
           .from("bookings")
-          .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type")
+          .select("id, confirmation_number, status, gross_sales, total_price, supplier_id, suppliers(name, supplier_type)")
           .eq("trip_id", tripId),
         supabase
           .from("itineraries")
@@ -104,14 +104,13 @@ export function PublishTripButton({
       const snapshot = {
         itinerary: publishedItinerary,
         bookings: (bookingsRes.data || []).map((b: any) => ({
-          destination: b.destination,
-          depart_date: b.depart_date,
-          return_date: b.return_date,
+          id: b.id,
+          confirmation_number: b.confirmation_number,
           status: b.status,
-          trip_name: b.trip_name,
-          booking_type: b.booking_type,
-          cancellation_terms: b.cancellation_terms,
-          payment_deadline: b.payment_deadline,
+          gross_sales: b.gross_sales,
+          total_price: b.total_price,
+          supplier_name: b.suppliers?.name || null,
+          supplier_type: b.suppliers?.supplier_type || null,
         })),
         itineraries: itineraries,
         optionBlocks: publishedOptionBlocks,
