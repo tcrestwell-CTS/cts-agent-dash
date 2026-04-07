@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const SITE_URL = 'https://app.crestwelltravels.com';
+const SITE_URL = 'https://crestwellgetaways.com';
 const FROM_EMAIL = 'notify@crestwellgetaways.com';
 const FROM_NAME = 'Crestwell Travel Services';
 
