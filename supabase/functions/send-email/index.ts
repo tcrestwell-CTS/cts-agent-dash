@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@4.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -482,13 +482,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending ${template} email to ${to}`);
 
+    // Helper to decode base64 in Deno (no Node Buffer)
+    const base64ToUint8Array = (b64: string): Uint8Array => {
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return arr;
+    };
+
     // Build email options
     const emailOptions: {
       from: string;
       to: string[];
       subject: string;
       html: string;
-      attachments?: Array<{ filename: string; content: Buffer }>;
+      attachments?: Array<{ filename: string; content: Uint8Array }>;
     } = {
       from: `${fromName} <${fromEmail}>`,
       to: [to],
@@ -500,7 +508,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (attachments && attachments.length > 0) {
       emailOptions.attachments = attachments.map((att) => ({
         filename: att.filename,
-        content: Buffer.from(att.content, "base64"),
+        content: base64ToUint8Array(att.content),
       }));
       console.log(`Adding ${attachments.length} attachment(s) to email`);
     }

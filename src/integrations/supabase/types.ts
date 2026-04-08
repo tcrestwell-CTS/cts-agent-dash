@@ -950,6 +950,10 @@ export type Database = {
       }
       business_contacts: {
         Row: {
+          ai_company_research: string | null
+          ai_crm_notes: string | null
+          ai_inferred_needs: string | null
+          ai_recommended_services: string | null
           company_name: string
           contact_name: string | null
           created_at: string
@@ -963,6 +967,10 @@ export type Database = {
           lead_status: string
           linkedin_url: string | null
           notes: string | null
+          outreach_email_body: string | null
+          outreach_sent_at: string | null
+          outreach_status: string | null
+          outreach_subject: string | null
           phone: string | null
           revenue_size: string | null
           tags: string | null
@@ -971,6 +979,10 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          ai_company_research?: string | null
+          ai_crm_notes?: string | null
+          ai_inferred_needs?: string | null
+          ai_recommended_services?: string | null
           company_name: string
           contact_name?: string | null
           created_at?: string
@@ -984,6 +996,10 @@ export type Database = {
           lead_status?: string
           linkedin_url?: string | null
           notes?: string | null
+          outreach_email_body?: string | null
+          outreach_sent_at?: string | null
+          outreach_status?: string | null
+          outreach_subject?: string | null
           phone?: string | null
           revenue_size?: string | null
           tags?: string | null
@@ -992,6 +1008,10 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          ai_company_research?: string | null
+          ai_crm_notes?: string | null
+          ai_inferred_needs?: string | null
+          ai_recommended_services?: string | null
           company_name?: string
           contact_name?: string | null
           created_at?: string
@@ -1005,6 +1025,10 @@ export type Database = {
           lead_status?: string
           linkedin_url?: string | null
           notes?: string | null
+          outreach_email_body?: string | null
+          outreach_sent_at?: string | null
+          outreach_status?: string | null
+          outreach_subject?: string | null
           phone?: string | null
           revenue_size?: string | null
           tags?: string | null
