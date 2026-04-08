@@ -76,37 +76,37 @@ export default function BusinessContacts() {
               <TableRow>
                 <TableHead>Company</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead className="hidden md:table-cell">Industry</TableHead>
+                <TableHead className="hidden md:table-cell">Email</TableHead>
+                <TableHead className="hidden md:table-cell">Phone</TableHead>
+                <TableHead className="hidden lg:table-cell">Industry</TableHead>
                 <TableHead className="hidden lg:table-cell">Title</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Source</TableHead>
-                <TableHead className="hidden lg:table-cell">Added</TableHead>
+                <TableHead className="hidden xl:table-cell">Source</TableHead>
+                <TableHead className="hidden xl:table-cell">Added</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No business contacts found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No business contacts found</TableCell></TableRow>
               ) : (
                 filtered.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="font-medium text-card-foreground">{c.company_name}</div>
-                      {c.email && <div className="text-xs text-muted-foreground">{c.email}</div>}
                     </TableCell>
-                    <TableCell>
-                      <div>{c.contact_name || "—"}</div>
-                      {c.phone && <div className="text-xs text-muted-foreground">{c.phone}</div>}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">{c.industry || "—"}</TableCell>
+                    <TableCell>{c.contact_name || "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{c.email || "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{c.phone || "—"}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground">{c.industry || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground">{c.job_title || "—"}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className={STATUS_COLORS[c.lead_status] || ""}>{c.lead_status}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">{c.lead_source || "—"}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                    <TableCell className="hidden xl:table-cell text-muted-foreground text-sm">{c.lead_source || "—"}</TableCell>
+                    <TableCell className="hidden xl:table-cell text-muted-foreground text-sm">
                       {format(new Date(c.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
