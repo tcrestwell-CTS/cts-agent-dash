@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Lock, Shield, DollarSign, Calendar, Info, Users, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, subDays, differenceInMonths, addMonths } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface TripSettings {
   currency: string;
@@ -73,7 +74,7 @@ export function TripSettingsSidebar({
   const schedulePreview = useMemo(() => {
     if (localSettings.payment_mode !== "payment_schedule" || !departDate || tripTotal <= 0) return null;
 
-    const finalDueDate = subDays(new Date(departDate), 90);
+    const finalDueDate = subDays(parseLocalDate(departDate), 90);
     const now = new Date();
     const deposit = effectiveDeposit;
     const remaining = tripTotal - deposit;
@@ -313,7 +314,7 @@ export function TripSettingsSidebar({
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">
                   Final Balance
-                  {departDate && ` (due by ${format(subDays(new Date(departDate), 90), "MMM d, yyyy")})`}
+                  {departDate && ` (due by ${format(subDays(parseLocalDate(departDate), 90), "MMM d, yyyy")})`}
                 </span>
                 <span className="font-semibold">{formatCurrency(Math.max(0, tripTotal - effectiveDeposit))}</span>
               </div>

@@ -9,6 +9,7 @@ import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, L
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
@@ -230,9 +231,9 @@ export function TripPayments({
       }
 
       const dateRange = departDate && returnDate
-        ? `${format(new Date(departDate), "MMM d, yyyy")} - ${format(new Date(returnDate), "MMM d, yyyy")}`
+        ? `${format(parseLocalDate(departDate), "MMM d, yyyy")} - ${format(parseLocalDate(returnDate), "MMM d, yyyy")}`
         : departDate
-        ? format(new Date(departDate), "MMM d, yyyy")
+        ? format(parseLocalDate(departDate), "MMM d, yyyy")
         : "";
 
       const { error } = await supabase.functions.invoke("send-email", {
