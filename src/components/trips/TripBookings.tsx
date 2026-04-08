@@ -162,28 +162,60 @@ export function TripBookings({
   const getPaymentStatus = (booking: TripBooking) => {
     const { paidAmount, authorizedAmount, pendingAmount, hasPayments } = getBookingPaymentInfo(booking.id);
     const bookingCost = Number(booking.gross_sales);
+
+    // If no booking-level payments, fall back to trip-level unlinked payments for this booking
+    let effectivePaid = paidAmount;
+    let effectiveAuthorized = authorizedAmount;
+    let effectivePending = pendingAmount;
+    let effectiveHasPayments = hasPayments;
+
+    if (!hasPayments && payments.length > 0) {
+      // Use trip-level payments that aren't linked to any specific booking
+      const unlinkedPayments = payments.filter((p) => !p.booking_id);
+      if (unlinkedPayments.length > 0) {
+        effectiveHasPayments = true;
+        effectivePaid = unlinkedPayments
+          .filter((p) => p.status === "paid")
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        effectiveAuthorized = unlinkedPayments
+          .filter((p) => p.status === "authorized")
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        effectivePending = unlinkedPayments
+          .filter((p) => p.status === "pending")
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+
+        // If multiple bookings, prorate by cost share
+        if (bookings.length > 1) {
+          const totalBookingCost = bookings.reduce((s, b) => s + Number(b.gross_sales), 0);
+          const share = totalBookingCost > 0 ? bookingCost / totalBookingCost : 0;
+          effectivePaid = effectivePaid * share;
+          effectiveAuthorized = effectiveAuthorized * share;
+          effectivePending = effectivePending * share;
+        }
+      }
+    }
     
     // If booking is fully paid
-    if (paidAmount >= bookingCost && bookingCost > 0) {
+    if (effectivePaid >= bookingCost && bookingCost > 0) {
       return <span className="text-primary font-medium">Paid</span>;
     }
     
     // If there are some payments (partial)
-    if (paidAmount > 0 && paidAmount < bookingCost) {
+    if (effectivePaid > 0 && effectivePaid < bookingCost) {
       return (
         <span className="text-amber-600 font-medium">
-          Partial ({formatCurrency(paidAmount)})
+          Partial ({formatCurrency(effectivePaid)})
         </span>
       );
     }
     
     // If there are authorized payments
-    if (authorizedAmount > 0) {
+    if (effectiveAuthorized > 0) {
       return <span className="text-blue-600 font-medium">Authorized</span>;
     }
     
     // If there are pending payments scheduled
-    if (pendingAmount > 0) {
+    if (effectivePending > 0) {
       return <span className="text-muted-foreground">Scheduled</span>;
     }
     
