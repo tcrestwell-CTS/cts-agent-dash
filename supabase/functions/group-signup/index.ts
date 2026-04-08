@@ -85,14 +85,13 @@ Deno.serve(async (req) => {
         .eq("trip_id", trip.id)
         .order("sort_order", { ascending: true });
 
-      // Get itinerary highlights (first 8 items)
+      // Get all itinerary items
       const { data: itineraryItems } = await supabaseAdmin
         .from("itinerary_items")
         .select("title, description, category, day_number, location")
         .eq("trip_id", trip.id)
         .order("day_number", { ascending: true })
-        .order("sort_order", { ascending: true })
-        .limit(8);
+        .order("sort_order", { ascending: true });
 
       return new Response(
         JSON.stringify({
