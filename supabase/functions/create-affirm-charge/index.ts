@@ -28,28 +28,30 @@ Deno.serve(async (req) => {
 
     const AFFIRM_PRIVATE_KEY = Deno.env.get('AFFIRM_PRIVATE_KEY');
     const AFFIRM_PUBLIC_KEY = Deno.env.get('AFFIRM_PUBLIC_KEY');
-    const AFFIRM_ENV = 'production';
 
     if (!AFFIRM_PRIVATE_KEY || !AFFIRM_PUBLIC_KEY) {
       throw new Error('Affirm keys not configured');
     }
 
-    const affirmBase = AFFIRM_ENV === 'production'
-      ? 'https://api.affirm.com'
-      : 'https://sandbox.affirm.com';
+    const affirmBase = 'https://api.affirm.com';
 
-    // Authorize the Affirm charge
+    // Authorize the Affirm transaction using v1/transactions API
+    // Per docs: POST /api/v1/transactions with transaction_id (the checkout_token)
     const authRes = await fetch(`${affirmBase}/api/v1/transactions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa(`${AFFIRM_PUBLIC_KEY}:${AFFIRM_PRIVATE_KEY}`),
       },
-      body: JSON.stringify({ checkout_token }),
+      body: JSON.stringify({
+        transaction_id: checkout_token,
+        order_id: booking_ref || `CTS-${Date.now()}`,
+      }),
     });
 
     const charge = await authRes.json();
-    if (!authRes.ok) throw new Error(charge.message || 'Affirm authorization failed');
+    console.log('Affirm authorize response:', JSON.stringify(charge));
+    if (!authRes.ok) throw new Error(charge.message || charge.status_code || 'Affirm authorization failed');
 
     // Capture the charge immediately
     const captureRes = await fetch(`${affirmBase}/api/v1/transactions/${charge.id}/capture`, {
@@ -60,13 +62,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         order_id: booking_ref || `CTS-${Date.now()}`,
-        shipping_carrier: null,
-        shipping_confirmation: null,
       }),
     });
 
     const captured = await captureRes.json();
-    if (!captureRes.ok) throw new Error(captured.message || 'Affirm capture failed');
+    console.log('Affirm capture response:', JSON.stringify(captured));
+    if (!captureRes.ok) throw new Error(captured.message || captured.status_code || 'Affirm capture failed');
 
     // Record in Supabase using service role to bypass RLS
     const { createClient } = await import('npm:@supabase/supabase-js@2');
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
+    console.error('Affirm charge error:', err.message);
     return new Response(
       JSON.stringify({ error: err.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
