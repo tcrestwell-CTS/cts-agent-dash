@@ -107,7 +107,7 @@ export default function PortalTripDetail() {
             "x-portal-token": portalToken || "",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin, paymentMethodChoice: "stripe" }),
+          body: JSON.stringify({ paymentId: selectedPayment.id, returnUrl: window.location.origin + `/client/trips/${tripId}`, paymentMethodChoice: "stripe" }),
         });
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || "Failed");
@@ -159,7 +159,8 @@ export default function PortalTripDetail() {
               headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "x-portal-token": portalToken || "", "Content-Type": "application/json" },
               body: JSON.stringify({ paymentId: selectedPayment.id, method: "affirm", affirmCheckoutId: card_response.checkout_id || null }),
             });
-            refetch();
+            // Return to the client portal trip page
+            window.location.href = `/client/trips/${tripId}`;
           } catch (err) { console.error("Error notifying agent:", err); }
         },
         error: function () {

@@ -81,8 +81,8 @@ export default function PortalPayments() {
         },
         body: JSON.stringify({
           paymentId: selectedPayment.id,
-          returnUrl: window.location.origin,
-          paymentMethodChoice: "stripe", // Track which method the client chose
+          returnUrl: window.location.origin + "/client/payments",
+          paymentMethodChoice: "stripe",
         }),
       });
 
@@ -168,7 +168,8 @@ export default function PortalPayments() {
               }),
             });
 
-            refetch();
+            // Return to client portal payments page
+            window.location.href = "/client/payments";
           } catch (err) {
             console.error("Error notifying agent:", err);
           }
