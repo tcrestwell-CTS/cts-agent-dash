@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Users, MapPin } from "lucide-react";
 import { format, isSameDay, isWithinInterval, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { Booking } from "@/hooks/useBookings";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +24,8 @@ export const BookingsCalendar = ({ bookings, isAdmin }: BookingsCalendarProps) =
   // Get bookings for a specific date (departures, returns, or ongoing)
   const getBookingsForDate = (date: Date) => {
     return bookings.filter((booking) => {
-      const departDate = new Date(booking.depart_date);
-      const returnDate = new Date(booking.return_date);
+      const departDate = parseLocalDate(booking.depart_date);
+      const returnDate = parseLocalDate(booking.return_date);
       
       // Check if it's a departure day
       if (isSameDay(departDate, date)) return true;
@@ -48,8 +49,8 @@ export const BookingsCalendar = ({ bookings, isAdmin }: BookingsCalendarProps) =
     const dates = new Map<string, { departures: number; returns: number; ongoing: number }>();
     
     bookings.forEach((booking) => {
-      const departDate = new Date(booking.depart_date);
-      const returnDate = new Date(booking.return_date);
+      const departDate = parseLocalDate(booking.depart_date);
+      const returnDate = parseLocalDate(booking.return_date);
       
       // Mark departure date
       const departKey = format(departDate, "yyyy-MM-dd");
@@ -83,8 +84,8 @@ export const BookingsCalendar = ({ bookings, isAdmin }: BookingsCalendarProps) =
   };
 
   const getEventType = (booking: Booking, date: Date) => {
-    const departDate = new Date(booking.depart_date);
-    const returnDate = new Date(booking.return_date);
+    const departDate = parseLocalDate(booking.depart_date);
+    const returnDate = parseLocalDate(booking.return_date);
     
     if (isSameDay(departDate, date)) return "Departure";
     if (isSameDay(returnDate, date)) return "Return";
@@ -272,7 +273,7 @@ export const BookingsCalendar = ({ bookings, isAdmin }: BookingsCalendarProps) =
                       </div>
                       
                       <div className="text-xs text-muted-foreground mt-2">
-                        {format(new Date(booking.depart_date), "MMM d")} → {format(new Date(booking.return_date), "MMM d, yyyy")}
+                        {format(parseLocalDate(booking.depart_date), "MMM d")} → {format(parseLocalDate(booking.return_date), "MMM d, yyyy")}
                       </div>
                     </div>
                   );

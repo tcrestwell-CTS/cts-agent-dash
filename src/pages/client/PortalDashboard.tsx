@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Map, CreditCard, MessageSquare, User, Loader2, WifiOff } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { PWAInstallPrompt } from "@/components/client/PWAInstallPrompt";
@@ -192,7 +193,7 @@ export default function PortalDashboard() {
                     <p className="font-medium">{trip.trip_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {trip.destination}
-                      {trip.depart_date && ` · ${format(new Date(trip.depart_date), "MMM d, yyyy")}`}
+                      {trip.depart_date && ` · ${format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -256,7 +257,7 @@ export default function PortalDashboard() {
                        p.payment_type.charAt(0).toUpperCase() + p.payment_type.slice(1)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {p.due_date ? `Due ${format(new Date(p.due_date), "MMM d, yyyy")}` : "Pending"}
+                      {p.due_date ? `Due ${format(parseLocalDate(p.due_date), "MMM d, yyyy")}` : "Pending"}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, GlobeLock, Search, Loader2, MapPin, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 
 type Filter = "all" | "published" | "unpublished";
 
@@ -190,7 +190,7 @@ function TripPublishManager() {
                           {trip.depart_date && (
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {format(new Date(trip.depart_date), "MMM d, yyyy")}
+                              {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
                             </span>
                           )}
                           {trip.published_at && (

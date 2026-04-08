@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Briefcase, MapPin, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { AddTripDialog } from "./AddTripDialog";
 
 interface SubTrip {
@@ -102,8 +103,8 @@ export function SubTrips({ parentTripId, subTrips, onDataChange }: SubTripsProps
                       {st.depart_date && (
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(st.depart_date), "MMM d, yyyy")}
-                          {st.return_date && <> – {format(new Date(st.return_date), "MMM d, yyyy")}</>}
+                          {format(parseLocalDate(st.depart_date), "MMM d, yyyy")}
+                          {st.return_date && <> – {format(parseLocalDate(st.return_date), "MMM d, yyyy")}</>}
                         </span>
                       )}
                       {st.clients?.name && <span>{st.clients.name}</span>}
