@@ -194,14 +194,15 @@ export function buildAffirmVcnCheckoutData({
     ok: true,
     checkoutData: {
       merchant: {
-        user_confirmation_url: itemUrl || window.location.href,
+        user_confirmation_url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/affirm-webhook`,
+        user_confirmation_url_action: "POST",
         user_cancel_url: window.location.href,
         public_api_key: "ZCK1H9U6Z640FK0R",
         name: "Crestwell Travel Services",
         use_vcn: true,
       },
       shipping: {
-        name,
+        name: { first: name.first, last: name.last },
         address: {
           line1: addressLine1,
           city,
@@ -213,7 +214,7 @@ export function buildAffirmVcnCheckoutData({
         email,
       },
       billing: {
-        name,
+        name: { first: name.first, last: name.last },
         address: {
           line1: addressLine1,
           city,
@@ -236,6 +237,13 @@ export function buildAffirmVcnCheckoutData({
       order_id: orderId,
       metadata: {
         mode: "modal",
+        shipping_type: "travel_service",
+        booking_ref: orderId,
+        itinerary: [{
+          type: "cruise",
+          sku: orderId,
+          display_name: tripName || "Cruise Vacation",
+        }],
       },
       total,
       shipping_amount: 0,
