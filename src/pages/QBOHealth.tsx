@@ -27,7 +27,7 @@ type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getStripeReconReport, getFinancialLifecycle, getStripePayouts, getFullStripeReconciliation } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getFinancialLifecycle, getStripePayouts, getFullStripeReconciliation } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
