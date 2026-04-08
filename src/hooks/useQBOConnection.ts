@@ -469,6 +469,22 @@ export function useQBOConnection() {
     }
   };
 
+  const getFullStripeReconciliation = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-reconcile`,
+        { headers: { ...headers, "Content-Type": "application/json" } }
+      );
+      if (!resp.ok) throw new Error("Failed to run full Stripe reconciliation");
+      return await resp.json();
+    } catch (err) {
+      console.error("Stripe reconciliation error:", err);
+      toast.error("Failed to run Stripe reconciliation");
+      return null;
+    }
+  };
+
   return {
     status,
     loading,
@@ -484,6 +500,7 @@ export function useQBOConnection() {
     getStripeReconReport,
     getFinancialLifecycle,
     getStripePayouts,
+    getFullStripeReconciliation,
     refreshStatus: fetchStatus,
   };
 }
