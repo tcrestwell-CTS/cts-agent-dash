@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -26,6 +27,7 @@ import {
   Anchor,
   Compass,
   Users,
+  BedDouble,
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -365,144 +367,142 @@ export default function GroupLanding() {
               </p>
             ) : null}
 
-            {/* ─── ITINERARY SECTION ──────────────── */}
-            {Object.keys(itineraryByDay).length > 0 && (
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div
-                    className="p-2.5 rounded-xl"
-                    style={{ backgroundColor: `${primaryColor}12` }}
-                  >
-                    <Compass className="h-5 w-5" style={{ color: primaryColor }} />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Trip Itinerary
-                  </h2>
-                </div>
+            {/* ─── ITINERARY & CABINS TABS ──────── */}
+            {(Object.keys(itineraryByDay).length > 0 || (data.cabinOptions && data.cabinOptions.length > 0)) && (
+              <Tabs defaultValue={Object.keys(itineraryByDay).length > 0 ? "itinerary" : "cabins"} className="w-full">
+                <TabsList className="w-full grid grid-cols-2 h-12 rounded-xl bg-gray-100">
+                  {Object.keys(itineraryByDay).length > 0 && (
+                    <TabsTrigger value="itinerary" className="rounded-lg text-sm font-semibold data-[state=active]:shadow-sm">
+                      <Compass className="h-4 w-4 mr-2" />
+                      Trip Itinerary
+                    </TabsTrigger>
+                  )}
+                  {data.cabinOptions && data.cabinOptions.length > 0 && (
+                    <TabsTrigger value="cabins" className="rounded-lg text-sm font-semibold data-[state=active]:shadow-sm">
+                      <BedDouble className="h-4 w-4 mr-2" />
+                      Cabin Selections
+                    </TabsTrigger>
+                  )}
+                </TabsList>
 
-                <div className="relative">
-                  {/* Timeline line */}
-                  <div
-                    className="absolute left-[18px] top-6 bottom-6 w-[2px] hidden md:block"
-                    style={{ backgroundColor: `${primaryColor}20` }}
-                  />
+                {/* ─── ITINERARY TAB ──────────────── */}
+                {Object.keys(itineraryByDay).length > 0 && (
+                  <TabsContent value="itinerary" className="mt-6">
+                    <div className="relative">
+                      {/* Timeline line */}
+                      <div
+                        className="absolute left-[18px] top-6 bottom-6 w-[2px] hidden md:block"
+                        style={{ backgroundColor: `${primaryColor}20` }}
+                      />
 
-                  <div className="space-y-6">
-                    {Object.entries(itineraryByDay)
-                      .sort(([a], [b]) => Number(a) - Number(b))
-                      .map(([day, items]) => (
-                        <div key={day} className="relative">
-                          {/* Day marker */}
-                          <div className="flex items-start gap-4">
-                            <div
-                              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md z-10"
-                              style={{ backgroundColor: primaryColor }}
-                            >
-                              {day}
+                      <div className="space-y-6">
+                        {Object.entries(itineraryByDay)
+                          .sort(([a], [b]) => Number(a) - Number(b))
+                          .map(([day, items]) => (
+                            <div key={day} className="relative">
+                              <div className="flex items-start gap-4">
+                                <div
+                                  className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md z-10"
+                                  style={{ backgroundColor: primaryColor }}
+                                >
+                                  {day}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p
+                                    className="text-xs font-semibold uppercase tracking-wider mb-2"
+                                    style={{ color: primaryColor }}
+                                  >
+                                    Day {day}
+                                  </p>
+                                  <div className="space-y-2">
+                                    {items.map((item, i) => {
+                                      const Icon = categoryIcons[item.category] || Camera;
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors"
+                                        >
+                                          <div
+                                            className="p-1.5 rounded-lg shrink-0 mt-0.5"
+                                            style={{ backgroundColor: `${primaryColor}10` }}
+                                          >
+                                            <Icon className="h-4 w-4" style={{ color: primaryColor }} />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <p className="font-semibold text-gray-900 text-[15px]">
+                                              {item.title}
+                                            </p>
+                                            {item.description && (
+                                              <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+                                                {item.description}
+                                              </p>
+                                            )}
+                                            {item.location && (
+                                              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                                <MapPin className="h-3 w-3" />
+                                                {item.location}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                          ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+
+                {/* ─── CABIN SELECTIONS TAB ────────── */}
+                {data.cabinOptions && data.cabinOptions.length > 0 && (
+                  <TabsContent value="cabins" className="mt-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {data.cabinOptions.map((cabin) => (
+                        <div
+                          key={cabin.id}
+                          className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                        >
+                          {cabin.image_url && (
+                            <img
+                              src={cabin.image_url}
+                              alt={cabin.category_name}
+                              className="w-full h-36 object-cover"
+                              loading="lazy"
+                            />
+                          )}
+                          <div className="p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
+                              <span
+                                className="text-lg font-bold"
                                 style={{ color: primaryColor }}
                               >
-                                Day {day}
-                              </p>
-                              <div className="space-y-2">
-                                {items.map((item, i) => {
-                                  const Icon =
-                                    categoryIcons[item.category] || Camera;
-                                  return (
-                                    <div
-                                      key={i}
-                                      className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors"
-                                    >
-                                      <div
-                                        className="p-1.5 rounded-lg shrink-0 mt-0.5"
-                                        style={{
-                                          backgroundColor: `${primaryColor}10`,
-                                        }}
-                                      >
-                                        <Icon
-                                          className="h-4 w-4"
-                                          style={{ color: primaryColor }}
-                                        />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="font-semibold text-gray-900 text-[15px]">
-                                          {item.title}
-                                        </p>
-                                        {item.description && (
-                                          <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
-                                            {item.description}
-                                          </p>
-                                        )}
-                                        {item.location && (
-                                          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                                            <MapPin className="h-3 w-3" />
-                                            {item.location}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                ${cabin.price_per_person.toLocaleString()}
+                                <span className="text-xs font-normal text-gray-500">/person</span>
+                              </span>
+                            </div>
+                            {cabin.description && (
+                              <p className="text-sm text-gray-500">{cabin.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-gray-400">
+                              {cabin.deposit_amount > 0 && (
+                                <span>${cabin.deposit_amount.toLocaleString()} deposit</span>
+                              )}
+                              {cabin.capacity && (
+                                <span>Max {cabin.capacity} travelers</span>
+                              )}
                             </div>
                           </div>
                         </div>
                       ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ─── CABIN OPTIONS ──────────────────── */}
-            {data.cabinOptions && data.cabinOptions.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Choose Your Cabin
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {data.cabinOptions.map((cabin) => (
-                    <div
-                      key={cabin.id}
-                      className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      {cabin.image_url && (
-                        <img
-                          src={cabin.image_url}
-                          alt={cabin.category_name}
-                          className="w-full h-36 object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                      <div className="p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
-                          <span
-                            className="text-lg font-bold"
-                            style={{ color: primaryColor }}
-                          >
-                            ${cabin.price_per_person.toLocaleString()}
-                            <span className="text-xs font-normal text-gray-500">/person</span>
-                          </span>
-                        </div>
-                        {cabin.description && (
-                          <p className="text-sm text-gray-500">{cabin.description}</p>
-                        )}
-                        <div className="flex items-center gap-3 text-xs text-gray-400">
-                          {cabin.deposit_amount > 0 && (
-                            <span>${cabin.deposit_amount.toLocaleString()} deposit</span>
-                          )}
-                          {cabin.capacity && (
-                            <span>Max {cabin.capacity} travelers</span>
-                          )}
-                        </div>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </TabsContent>
+                )}
+              </Tabs>
             )}
 
             {/* ─── GALLERY ────────────────────────── */}
