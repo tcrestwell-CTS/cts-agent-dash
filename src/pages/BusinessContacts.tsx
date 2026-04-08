@@ -1,5 +1,5 @@
 import { useState } from "react";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useBusinessContacts, BusinessContact } from "@/hooks/useBusinessContacts";
 import { AddBusinessContactDialog } from "@/components/business-contacts/AddBusinessContactDialog";
 import { ImportBusinessContactsDialog } from "@/components/business-contacts/ImportBusinessContactsDialog";
