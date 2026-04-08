@@ -233,7 +233,7 @@ export function useWorkflowAutomation() {
       if (newStatus === "booked") {
         // Validate: every booking must have supplier, confirmation #, price, and margin
         const invalidBookings = bookings.filter(
-          (b) => !b.suppliers?.name || !b.booking_reference || b.gross_sales <= 0 ||
+          (b) => !b.suppliers?.name || !(b.confirmation_number || b.booking_reference) || b.gross_sales <= 0 ||
                  ((b.agency_gross_margin || 0) <= 0 && (b.commission_revenue || 0) <= 0)
         );
         if (invalidBookings.length > 0) {
