@@ -344,7 +344,7 @@ export function TripBookings({
                         </span>
                       </td>
                       <td className="py-3 font-mono text-sm text-primary">
-                        {booking.booking_reference}
+                        {booking.confirmation_number || booking.booking_reference || "-"}
                       </td>
                       <td className="py-3">{getPaymentStatus(booking)}</td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>
