@@ -28,6 +28,7 @@ import {
   Users,
 } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface FeatureImage {
   id: string;
@@ -253,9 +254,9 @@ export default function GroupLanding() {
 
   const formatDateRange = () => {
     if (!data.trip.depart_date) return null;
-    const depart = format(new Date(data.trip.depart_date), "MMMM d");
+    const depart = format(parseLocalDate(data.trip.depart_date), "MMMM d");
     const returnStr = data.trip.return_date
-      ? format(new Date(data.trip.return_date), "MMMM d, yyyy")
+      ? format(parseLocalDate(data.trip.return_date), "MMMM d, yyyy")
       : null;
     return returnStr ? `${depart} – ${returnStr}` : depart;
   };

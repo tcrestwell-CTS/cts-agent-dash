@@ -97,7 +97,7 @@ const getStatusBadgeClass = (status: string) => {
 
 const formatDate = (dateStr: string) => {
   try {
-    return format(new Date(dateStr), "MMMM d, yyyy");
+    return format(parseLocalDate(dateStr), "MMMM d, yyyy");
   } catch {
     return dateStr;
   }
@@ -248,7 +248,7 @@ const BookingDetail = () => {
   };
 
   const tripDuration = booking
-    ? differenceInDays(new Date(booking.return_date), new Date(booking.depart_date)) + 1
+    ? differenceInDays(parseLocalDate(booking.return_date), parseLocalDate(booking.depart_date)) + 1
     : 0;
 
   if (loading) {

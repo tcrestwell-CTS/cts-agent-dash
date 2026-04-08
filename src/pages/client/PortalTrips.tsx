@@ -103,8 +103,8 @@ export default function PortalTrips() {
                     {trip.depart_date && (
                       <p className="text-sm text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
-                        {format(new Date(trip.depart_date), "MMM d")}
-                        {trip.return_date && ` – ${format(new Date(trip.return_date), "MMM d, yyyy")}`}
+                        {format(parseLocalDate(trip.depart_date), "MMM d")}
+                        {trip.return_date && ` – ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
                       </p>
                     )}
                     <DepartureCountdown departDate={trip.depart_date} returnDate={trip.return_date} compact />

@@ -192,7 +192,7 @@ export default function PortalDashboard() {
                     <p className="font-medium">{trip.trip_name}</p>
                     <p className="text-sm text-muted-foreground">
                       {trip.destination}
-                      {trip.depart_date && ` · ${format(new Date(trip.depart_date), "MMM d, yyyy")}`}
+                      {trip.depart_date && ` · ${format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

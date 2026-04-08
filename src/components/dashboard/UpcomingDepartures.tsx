@@ -16,14 +16,14 @@ export function UpcomingDepartures() {
   const upcomingDepartures = trips
     .filter((trip) => {
       if (!trip.depart_date) return false;
-      const departDate = new Date(trip.depart_date);
+      const departDate = parseLocalDate(trip.depart_date);
       return (
         trip.status !== "cancelled" &&
         isFuture(departDate) &&
         isWithinInterval(departDate, { start: today, end: thirtyDaysFromNow })
       );
     })
-    .sort((a, b) => new Date(a.depart_date!).getTime() - new Date(b.depart_date!).getTime())
+    .sort((a, b) => parseLocalDate(a.depart_date!).getTime() - parseLocalDate(b.depart_date!).getTime())
     .slice(0, 5);
 
   const getDaysUntilDeparture = (departDate: string) => {
@@ -98,7 +98,7 @@ export function UpcomingDepartures() {
                       )}
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(trip.depart_date!), "MMM d")}
+                        {format(parseLocalDate(trip.depart_date!), "MMM d")}
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />

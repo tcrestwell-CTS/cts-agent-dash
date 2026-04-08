@@ -473,7 +473,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         <div className="space-y-0.5">
                           <p className="font-medium">{typeLabel}</p>
                           <p className="text-sm text-muted-foreground">
-                            {p.due_date ? format(new Date(p.due_date), "MMM d, yyyy") : "Pending"}
+                            {p.due_date ? format(parseLocalDate(p.due_date), "MMM d, yyyy") : "Pending"}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -692,7 +692,7 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
                       {p.trip_name && <span className="text-xs text-muted-foreground">· {p.trip_name}</span>}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {p.due_date ? format(new Date(p.due_date), "MMM d, yyyy") : "Pending"}
+                      {p.due_date ? format(parseLocalDate(p.due_date), "MMM d, yyyy") : "Pending"}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -796,7 +796,7 @@ function InvoicesTab({ clientId }: { clientId?: string }) {
                   <div>
                     <p className="font-semibold">{inv.invoice_number}</p>
                     <p className="text-sm text-muted-foreground">
-                      {inv.invoice_date ? format(new Date(inv.invoice_date), "MMM d, yyyy") : format(new Date(inv.created_at), "MMM d, yyyy")}
+                      {inv.invoice_date ? format(parseLocalDate(inv.invoice_date), "MMM d, yyyy") : format(parseLocalDate(inv.created_at), "MMM d, yyyy")}
                       {inv.trip_name && ` · ${inv.trip_name}`}
                     </p>
                   </div>
@@ -848,7 +848,7 @@ function ItineraryItemsList({ items }: { items: any[] }) {
             Day {day}
             {dayItems[0]?.item_date && (
               <span className="text-muted-foreground font-normal">
-                — {format(new Date(dayItems[0].item_date), "EEEE, MMM d, yyyy")}
+                — {format(parseLocalDate(dayItems[0].item_date), "EEEE, MMM d, yyyy")}
               </span>
             )}
           </h4>

@@ -267,7 +267,7 @@ export default function CCAuthorize() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Travel Dates</span>
                 <span>
-                  {format(new Date(booking.depart_date), "MMM d")} — {format(new Date(booking.return_date), "MMM d, yyyy")}
+                  {format(parseLocalDate(booking.depart_date), "MMM d")} — {format(parseLocalDate(booking.return_date), "MMM d, yyyy")}
                 </span>
               </div>
               <div className="flex justify-between">

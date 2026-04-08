@@ -190,7 +190,7 @@ function TripPublishManager() {
                           {trip.depart_date && (
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {format(new Date(trip.depart_date), "MMM d, yyyy")}
+                              {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
                             </span>
                           )}
                           {trip.published_at && (

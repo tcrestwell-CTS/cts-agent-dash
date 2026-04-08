@@ -473,7 +473,7 @@ export default function TripInsurance() {
                   </span>
                   <span className="font-medium">
                     {trip.depart_date && trip.return_date
-                      ? `${format(new Date(trip.depart_date), "MMM d")} – ${format(new Date(trip.return_date), "MMM d, yyyy")}`
+                      ? `${format(parseLocalDate(trip.depart_date), "MMM d")} – ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`
                       : "Not set"}
                   </span>
                 </div>
