@@ -435,6 +435,244 @@ export default function QBOHealth() {
           </CardContent>
         </Card>
 
+        {/* Full Stripe Reconciliation */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Scale className="h-5 w-5" />
+                  Full Stripe Reconciliation
+                </CardTitle>
+                <CardDescription>Cross-system check: Stripe → Local DB → QBO (last 90 days)</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setLoadingFullRecon(true);
+                  const data = await getFullStripeReconciliation();
+                  setFullRecon(data);
+                  setLoadingFullRecon(false);
+                }}
+                disabled={loadingFullRecon}
+              >
+                {loadingFullRecon ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Scale className="h-4 w-4 mr-2" />}
+                {fullRecon ? "Re-run" : "Run Reconciliation"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingFullRecon ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : !fullRecon ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Scale className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Click "Run Reconciliation" to cross-check Stripe, your database, and QBO</p>
+              </div>
+            ) : !fullRecon.ok ? (
+              <div className="p-4 bg-destructive/10 rounded-lg text-sm text-destructive">{fullRecon.error || "Reconciliation failed"}</div>
+            ) : (
+              <div className="space-y-4">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Stripe PIs</p>
+                    <p className="text-lg font-bold text-foreground">{fullRecon.summary.total_stripe_pis}</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Matched</p>
+                    <p className="text-lg font-bold text-emerald-600">{fullRecon.summary.matched}</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Discrepancies</p>
+                    <p className={`text-lg font-bold ${fullRecon.summary.discrepancies > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                      {fullRecon.summary.discrepancies}
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Orphaned in Stripe</p>
+                    <p className={`text-lg font-bold ${fullRecon.summary.orphaned_in_stripe > 0 ? "text-amber-600" : "text-foreground"}`}>
+                      {fullRecon.summary.orphaned_in_stripe}
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Overall</p>
+                    {fullRecon.summary.all_clear ? (
+                      <Badge variant="outline" className="mt-1 text-emerald-600 border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> All Clear
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="mt-1">
+                        <AlertTriangle className="h-3 w-3 mr-1" /> Issues Found
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Volume Comparison */}
+                <div className="bg-muted/20 rounded-lg p-4">
+                  <h4 className="text-sm font-medium mb-2 text-foreground">Volume Comparison (90 days)</h4>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Stripe Succeeded</p>
+                      <p className="font-mono font-bold text-foreground">${fullRecon.volume_comparison.stripe_succeeded_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Local Completed</p>
+                      <p className="font-mono font-bold text-foreground">${fullRecon.volume_comparison.local_completed_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Variance</p>
+                      <p className={`font-mono font-bold ${Math.abs(fullRecon.volume_comparison.variance) > 1 ? "text-destructive" : "text-emerald-600"}`}>
+                        ${fullRecon.volume_comparison.variance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stripe Balance */}
+                <div className="bg-muted/20 rounded-lg p-4">
+                  <h4 className="text-sm font-medium mb-2 text-foreground">Stripe Balance</h4>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Available</p>
+                      <p className="font-mono font-bold text-emerald-600">${fullRecon.stripe_balance.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pending</p>
+                      <p className="font-mono font-bold text-foreground">${fullRecon.stripe_balance.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* QBO Clearing */}
+                {fullRecon.qbo_clearing && (
+                  <div className={`rounded-lg p-4 ${fullRecon.qbo_clearing.is_balanced ? "bg-emerald-50/50 dark:bg-emerald-950/20" : fullRecon.qbo_clearing.error ? "bg-amber-50/50 dark:bg-amber-950/20" : "bg-destructive/5"}`}>
+                    <h4 className="text-sm font-medium mb-1 text-foreground flex items-center gap-2">
+                      <Landmark className="h-4 w-4" /> QBO Stripe Clearing
+                    </h4>
+                    <p className="text-xs text-muted-foreground">{fullRecon.qbo_clearing.message}</p>
+                    {fullRecon.qbo_clearing.qbo_balance !== undefined && (
+                      <div className="grid grid-cols-3 gap-4 mt-2 text-center">
+                        <div>
+                          <p className="text-xs text-muted-foreground">QBO Balance</p>
+                          <p className="font-mono font-bold text-foreground">${fullRecon.qbo_clearing.qbo_balance.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Stripe Pending</p>
+                          <p className="font-mono font-bold text-foreground">${fullRecon.qbo_clearing.stripe_pending.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Variance</p>
+                          <p className={`font-mono font-bold ${fullRecon.qbo_clearing.is_balanced ? "text-emerald-600" : "text-destructive"}`}>
+                            ${fullRecon.qbo_clearing.variance.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Discrepancy Tables */}
+                {fullRecon.checkout_discrepancies?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-destructive">Checkout Payment Discrepancies ({fullRecon.checkout_discrepancies.length})</h4>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead className="text-right">Local $</TableHead>
+                            <TableHead className="text-right">Stripe $</TableHead>
+                            <TableHead>Issue</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {fullRecon.checkout_discrepancies.slice(0, 20).map((d: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell><Badge variant="outline" className="text-[10px]">{d.type}</Badge></TableCell>
+                              <TableCell className="text-xs">{d.customer || "—"}</TableCell>
+                              <TableCell className="text-right font-mono text-xs">${(d.local_amount || d.amount || 0).toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-mono text-xs">{d.stripe_amount ? `$${d.stripe_amount.toFixed(2)}` : "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={d.message}>{d.message}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {fullRecon.trip_discrepancies?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-destructive">Trip Payment Discrepancies ({fullRecon.trip_discrepancies.length})</h4>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead className="text-right">Local $</TableHead>
+                            <TableHead className="text-right">Stripe $</TableHead>
+                            <TableHead>Issue</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {fullRecon.trip_discrepancies.slice(0, 20).map((d: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell><Badge variant="outline" className="text-[10px]">{d.type}</Badge></TableCell>
+                              <TableCell className="text-right font-mono text-xs">${(d.local_amount || d.amount || 0).toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-mono text-xs">{d.stripe_amount ? `$${d.stripe_amount.toFixed(2)}` : "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={d.message}>{d.message}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {fullRecon.orphaned_stripe_payments?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-amber-600">Orphaned Stripe Payments ({fullRecon.orphaned_stripe_payments.length})</h4>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>PI ID</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Date</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {fullRecon.orphaned_stripe_payments.slice(0, 20).map((op: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs font-mono">{op.pi_id.slice(0, 15)}…</TableCell>
+                              <TableCell className="text-right font-mono text-xs">${op.amount.toFixed(2)}</TableCell>
+                              <TableCell className="text-xs">{op.customer_email || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{op.description || "—"}</TableCell>
+                              <TableCell className="text-xs">{op.created ? format(new Date(op.created), "MMM d") : "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground text-right">
+                  Checked at {fullRecon.checked_at ? format(new Date(fullRecon.checked_at), "MMM d, h:mm a") : "—"}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Stripe Reconciliation Report */}
         {status.connected && (
           <Card>
