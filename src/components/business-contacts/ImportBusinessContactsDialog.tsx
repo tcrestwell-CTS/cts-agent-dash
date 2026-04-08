@@ -18,15 +18,41 @@ const EXPECTED_HEADERS = [
   "lead_source", "lead_status", "notes",
 ];
 
+const HEADER_MAP: Record<string, string> = {
+  company: "company_name",
+  company_name: "company_name",
+  contact: "contact_name",
+  contact_name: "contact_name",
+  name: "contact_name",
+  title: "job_title",
+  job_title: "job_title",
+  status: "lead_status",
+  lead_status: "lead_status",
+  source: "lead_source",
+  lead_source: "lead_source",
+  email: "email",
+  phone: "phone",
+  industry: "industry",
+  website: "website",
+  linkedin: "linkedin_url",
+  linkedin_url: "linkedin_url",
+  revenue: "revenue_size",
+  revenue_size: "revenue_size",
+  employees: "employee_count",
+  employee_count: "employee_count",
+  notes: "notes",
+};
+
 function parseCSV(text: string): Partial<BusinessContactInsert>[] {
   const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  const rawHeaders = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  const mappedHeaders = rawHeaders.map((h) => HEADER_MAP[h] || null);
   return lines.slice(1).filter(Boolean).map((line) => {
     const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
     const row: Record<string, string> = {};
-    headers.forEach((h, i) => {
-      if (values[i]) row[h] = values[i];
+    mappedHeaders.forEach((mapped, i) => {
+      if (mapped && values[i]) row[mapped] = values[i];
     });
     return row as Partial<BusinessContactInsert>;
   });
