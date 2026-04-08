@@ -145,6 +145,7 @@ const Analytics = () => {
   const filteredBookings = useMemo(() => {
     if (!bookings?.length) return [];
     return bookings.filter((booking) => {
+      if (!booking.depart_date) return false;
       const departDate = parseISO(booking.depart_date);
       return isWithinInterval(departDate, { start: dateRange.from, end: dateRange.to });
     });
