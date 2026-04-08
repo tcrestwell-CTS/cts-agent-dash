@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, Clock, Calendar, AlertTriangle } from "lucide-react";
+import { CreditCard, Clock, Calendar, AlertTriangle, Landmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 interface UpcomingPayment {
   id: string;
-  tripId: string;
+  tripId: string | null;
   tripName: string;
   clientName: string;
   amount: number;
@@ -18,13 +18,14 @@ interface UpcomingPayment {
   daysUntil: number;
   isOverdue: boolean;
   paymentType: string;
+  source: "trip" | "loan";
 }
 
 export function UpcomingPayments() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: payments, isLoading } = useQuery({
+  const { data: tripPayments, isLoading: tripLoading } = useQuery({
     queryKey: ["upcoming-payments", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -53,35 +54,92 @@ export function UpcomingPayments() {
     enabled: !!user,
   });
 
-  // Process payments to get upcoming ones
-  const upcomingPayments: UpcomingPayment[] = (payments || [])
-    .map((payment) => {
-      const dueDate = parseISO(payment.due_date!);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const daysUntil = differenceInDays(dueDate, today);
-      const isOverdue = isPast(dueDate) && daysUntil < 0;
-      
-      return {
-        id: payment.id,
-        tripId: payment.trip_id,
-        tripName: (payment.trips as any)?.trip_name || "Trip",
-        clientName: (payment.trips as any)?.clients?.name || "Unknown Client",
-        amount: payment.amount,
-        dueDate,
-        daysUntil,
-        isOverdue,
-        paymentType: payment.payment_type,
-      };
-    })
+  const { data: loanPayments, isLoading: loanLoading } = useQuery({
+    queryKey: ["upcoming-loan-payments", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("loan_payment_schedules")
+        .select(`
+          id,
+          due_date,
+          total_payment,
+          payment_number,
+          status,
+          loan_applications (
+            first_name,
+            last_name,
+            trip_description,
+            application_number
+          )
+        `)
+        .eq("status", "pending")
+        .not("due_date", "is", null)
+        .order("due_date", { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const isLoading = tripLoading || loanLoading;
+
+  // Process trip payments
+  const processedTripPayments: UpcomingPayment[] = (tripPayments || []).map((payment) => {
+    const dueDate = parseISO(payment.due_date!);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysUntil = differenceInDays(dueDate, today);
+    const isOverdue = isPast(dueDate) && daysUntil < 0;
+
+    return {
+      id: payment.id,
+      tripId: payment.trip_id,
+      tripName: (payment.trips as any)?.trip_name || "Trip",
+      clientName: (payment.trips as any)?.clients?.name || "Unknown Client",
+      amount: payment.amount,
+      dueDate,
+      daysUntil,
+      isOverdue,
+      paymentType: payment.payment_type,
+      source: "trip" as const,
+    };
+  });
+
+  // Process loan payments
+  const processedLoanPayments: UpcomingPayment[] = (loanPayments || []).map((payment) => {
+    const dueDate = parseISO(payment.due_date!);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysUntil = differenceInDays(dueDate, today);
+    const isOverdue = isPast(dueDate) && daysUntil < 0;
+    const loan = payment.loan_applications as any;
+    const clientName = loan ? `${loan.first_name || ""} ${loan.last_name || ""}`.trim() : "Unknown";
+
+    return {
+      id: payment.id,
+      tripId: null,
+      tripName: loan?.trip_description || `Loan ${loan?.application_number || ""}`,
+      clientName,
+      amount: Number(payment.total_payment),
+      dueDate,
+      daysUntil,
+      isOverdue,
+      paymentType: `loan_installment`,
+      source: "loan" as const,
+    };
+  });
+
+  // Combine and filter
+  const allPayments = [...processedTripPayments, ...processedLoanPayments];
+  const upcomingPayments = allPayments
     .filter((p) => {
-      // Show overdue payments and those due within next 30 days
       const today = new Date();
       const thirtyDaysFromNow = addDays(today, 30);
       return p.isOverdue || isWithinInterval(p.dueDate, { start: today, end: thirtyDaysFromNow });
     })
     .sort((a, b) => a.daysUntil - b.daysUntil)
-    .slice(0, 5);
+    .slice(0, 8);
 
   const overduePayments = upcomingPayments.filter((p) => p.isOverdue);
   const totalDueAmount = upcomingPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -101,14 +159,30 @@ export function UpcomingPayments() {
     return "text-muted-foreground";
   };
 
-  const getPaymentTypeLabel = (type: string) => {
+  const getPaymentTypeLabel = (type: string, source: "trip" | "loan") => {
+    if (source === "loan") return "Loan Payment";
     const labels: Record<string, string> = {
-      deposit: "Deposit",
-      final_balance: "Final Balance",
-      payment: "Payment",
-      installment: "Installment",
+      deposit: "Trip Deposit",
+      final_balance: "Trip Final Balance",
+      payment: "Trip Payment",
+      installment: "Trip Installment",
     };
-    return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+    return labels[type] || `Trip ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  };
+
+  const getSourceBadge = (source: "trip" | "loan") => {
+    if (source === "loan") {
+      return (
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-700 bg-amber-50">
+          Loan
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
+        Trip
+      </Badge>
+    );
   };
 
   if (isLoading) {
@@ -164,23 +238,33 @@ export function UpcomingPayments() {
           <div className="space-y-3">
             {upcomingPayments.map((payment) => (
               <div
-                key={payment.id}
+                key={`${payment.source}-${payment.id}`}
                 className={`flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors ${
                   payment.isOverdue ? "border-destructive/50 bg-destructive/5" : ""
                 }`}
-                onClick={() => navigate(`/trips/${payment.tripId}`)}
+                onClick={() => {
+                  if (payment.source === "loan") {
+                    navigate("/loan-applications");
+                  } else if (payment.tripId) {
+                    navigate(`/trips/${payment.tripId}`);
+                  }
+                }}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     {payment.isOverdue && (
                       <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
                     )}
+                    {payment.source === "loan" ? (
+                      <Landmark className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+                    ) : null}
                     <p className="font-medium text-sm truncate">
                       {payment.tripName}
                     </p>
+                    {getSourceBadge(payment.source)}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {payment.clientName} • {getPaymentTypeLabel(payment.paymentType)}
+                    {payment.clientName} • {getPaymentTypeLabel(payment.paymentType, payment.source)}
                   </p>
                 </div>
                 <div className="text-right ml-3">
