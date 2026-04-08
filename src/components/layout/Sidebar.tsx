@@ -70,6 +70,7 @@ const navGroups: NavGroup[] = [
       { name: "Trips", href: "/trips", icon: Compass },
       { name: "Quotes", href: "/commission-report", icon: FileText },
       { name: "Clients", href: "/contacts", icon: Users },
+      { name: "Business Contacts", href: "/business-contacts", icon: Building2 },
     ],
   },
   {
