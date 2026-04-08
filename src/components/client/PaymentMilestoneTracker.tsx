@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, Clock, AlertTriangle } from "lucide-react";
 import { format, isPast, differenceInDays } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface Payment {
   id: string;
@@ -74,8 +75,8 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
             {nextDueDate && (
               <span className="font-normal text-muted-foreground">
                 {isOverdue
-                  ? ` — payment was due ${format(new Date(nextDueDate), "MMM d")}`
-                  : ` — next payment due ${format(new Date(nextDueDate), "MMM d, yyyy")}`}
+                  ? ` — payment was due ${format(parseLocalDate(nextDueDate), "MMM d")}`
+                  : ` — next payment due ${format(parseLocalDate(nextDueDate), "MMM d, yyyy")}`}
               </span>
             )}
           </p>
@@ -124,7 +125,7 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {isPaid ? "Paid" : paymentOverdue ? "Overdue" : "Due"}{" "}
-                  {date && format(new Date(date), "MMM d, yyyy")}
+                  {date && format(parseLocalDate(date), "MMM d, yyyy")}
                 </p>
               </div>
               <span className={`text-sm font-semibold ${

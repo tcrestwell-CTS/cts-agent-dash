@@ -9,6 +9,7 @@ import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, L
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
@@ -230,9 +231,9 @@ export function TripPayments({
       }
 
       const dateRange = departDate && returnDate
-        ? `${format(new Date(departDate), "MMM d, yyyy")} - ${format(new Date(returnDate), "MMM d, yyyy")}`
+        ? `${format(parseLocalDate(departDate), "MMM d, yyyy")} - ${format(parseLocalDate(returnDate), "MMM d, yyyy")}`
         : departDate
-        ? format(new Date(departDate), "MMM d, yyyy")
+        ? format(parseLocalDate(departDate), "MMM d, yyyy")
         : "";
 
       const { error } = await supabase.functions.invoke("send-email", {
@@ -370,7 +371,7 @@ export function TripPayments({
                            payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1)}
                         </td>
                         <td className="py-3 text-sm">
-                          {payment.due_date ? format(new Date(payment.due_date), "MMM d, yyyy") : "-"}
+                          {payment.due_date ? format(parseLocalDate(payment.due_date), "MMM d, yyyy") : "-"}
                         </td>
                         <td className="py-3 font-medium">{formatCurrency(payment.amount)}</td>
                         <td className="py-3 font-medium">{formatCurrency(payment.amount)}</td>
@@ -528,7 +529,7 @@ export function TripPayments({
                           </div>
                         </td>
                         <td className="py-3 text-sm">
-                          {format(new Date(payment.payment_date), "MMM d, yyyy")}
+                          {format(parseLocalDate(payment.payment_date), "MMM d, yyyy")}
                         </td>
                         <td className="py-3 text-sm text-primary">
                           {payment.details || "-"}
