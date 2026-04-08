@@ -32,8 +32,8 @@ export default function QBOHealth() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loadingFinancials, setLoadingFinancials] = useState(false);
-  const [reconReport, setReconReport] = useState<any>(null);
-  const [loadingRecon, setLoadingRecon] = useState(false);
+
+
   const [lifecycle, setLifecycle] = useState<any[] | null>(null);
   const [loadingLifecycle, setLoadingLifecycle] = useState(false);
   const [stripePayouts, setStripePayouts] = useState<any>(null);
