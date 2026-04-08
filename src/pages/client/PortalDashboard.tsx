@@ -257,7 +257,7 @@ export default function PortalDashboard() {
                        p.payment_type.charAt(0).toUpperCase() + p.payment_type.slice(1)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {p.due_date ? `Due ${format(new Date(p.due_date), "MMM d, yyyy")}` : "Pending"}
+                      {p.due_date ? `Due ${format(parseLocalDate(p.due_date), "MMM d, yyyy")}` : "Pending"}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

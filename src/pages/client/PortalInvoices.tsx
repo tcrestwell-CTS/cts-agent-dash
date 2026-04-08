@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { FileText, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -44,7 +45,7 @@ export default function PortalInvoices() {
                   <div>
                     <p className="font-semibold">{inv.invoice_number}</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(inv.invoice_date), "MMM d, yyyy")}
+                      {format(parseLocalDate(inv.invoice_date), "MMM d, yyyy")}
                       {inv.trip_name && ` · ${inv.trip_name}`}
                     </p>
                   </div>
