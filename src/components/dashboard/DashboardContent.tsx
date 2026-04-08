@@ -7,7 +7,7 @@ import { useCanViewTeam } from "@/hooks/useAdmin";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, isFuture, isWithinInterval, startOfMonth, endOfMonth, differenceInDays, parseISO, isPast } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 
 import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
 import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
@@ -93,7 +93,7 @@ export function DashboardContent() {
 
     const departuresSoon = (trips || []).filter((t) => {
       if (!t.depart_date || t.status === "cancelled") return false;
-      const d = new Date(t.depart_date);
+      const d = parseLocalDate(t.depart_date);
       return isFuture(d) && isWithinInterval(d, { start: now, end: addDays(now, 14) });
     }).length;
 
@@ -104,10 +104,10 @@ export function DashboardContent() {
     const upcomingTrips = (trips || [])
       .filter((t) => {
         if (!t.depart_date || t.status === "cancelled" || t.status === "completed") return false;
-        const d = new Date(t.depart_date);
+        const d = parseLocalDate(t.depart_date);
         return isFuture(d) && isWithinInterval(d, { start: now, end: thirtyDays });
       })
-      .sort((a, b) => new Date(a.depart_date!).getTime() - new Date(b.depart_date!).getTime())
+      .sort((a, b) => parseLocalDate(a.depart_date!).getTime() - parseLocalDate(b.depart_date!).getTime())
       .slice(0, 5);
 
     const thisMonthBookings = activeBookings.filter((b) => {
