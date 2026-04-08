@@ -194,6 +194,9 @@ export function buildAffirmVcnCheckoutData({
     ok: true,
     checkoutData: {
       merchant: {
+        user_confirmation_url: itemUrl || window.location.href,
+        user_cancel_url: window.location.href,
+        public_api_key: "ZCK1H9U6Z640FK0R",
         name: "Crestwell Travel Services",
         use_vcn: true,
       },
@@ -227,7 +230,7 @@ export function buildAffirmVcnCheckoutData({
           sku: orderId,
           unit_price: total,
           qty: 1,
-          item_url: itemUrl,
+          item_url: itemUrl || window.location.href,
         },
       ],
       order_id: orderId,
