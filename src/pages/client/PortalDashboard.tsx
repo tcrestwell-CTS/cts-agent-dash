@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Map, CreditCard, MessageSquare, User, Loader2, WifiOff } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { PWAInstallPrompt } from "@/components/client/PWAInstallPrompt";

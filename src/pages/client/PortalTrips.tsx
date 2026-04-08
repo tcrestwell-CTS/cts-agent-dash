@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { MapPin, Calendar } from "lucide-react";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plane, Calendar, Users, MapPin, DollarSign } from "lucide-react";
 import { useTrips } from "@/hooks/useTrips";
 import { format, addDays, isWithinInterval, isFuture } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 export function UpcomingDepartures() {
   const navigate = useNavigate();

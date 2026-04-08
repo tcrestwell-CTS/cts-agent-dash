@@ -11,6 +11,7 @@ import {
   CreditCard, Shield, CheckCircle, Loader2, Calendar, DollarSign, FileText, PenTool,
 } from "lucide-react";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface AuthInfo {
