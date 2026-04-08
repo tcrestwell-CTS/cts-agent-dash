@@ -948,6 +948,72 @@ export type Database = {
         }
         Relationships: []
       }
+      business_contacts: {
+        Row: {
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          employee_count: string | null
+          follow_up_date: string | null
+          id: string
+          industry: string | null
+          job_title: string | null
+          lead_source: string | null
+          lead_status: string
+          linkedin_url: string | null
+          notes: string | null
+          phone: string | null
+          revenue_size: string | null
+          tags: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          employee_count?: string | null
+          follow_up_date?: string | null
+          id?: string
+          industry?: string | null
+          job_title?: string | null
+          lead_source?: string | null
+          lead_status?: string
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          revenue_size?: string | null
+          tags?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          employee_count?: string | null
+          follow_up_date?: string | null
+          id?: string
+          industry?: string | null
+          job_title?: string | null
+          lead_source?: string | null
+          lead_status?: string
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          revenue_size?: string | null
+          tags?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       cc_authorizations: {
         Row: {
           access_token: string
