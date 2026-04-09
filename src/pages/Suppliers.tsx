@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SupplierManagement } from "@/components/suppliers/SupplierManagement";
+import ViatorPanel from "@/components/ViatorPanel";
 
 export default function Suppliers() {
   return (
@@ -12,6 +13,9 @@ export default function Suppliers() {
 
         {/* Supplier Management */}
         <SupplierManagement />
+
+        {/* Viator Activities */}
+        <ViatorPanel />
       </div>
     </DashboardLayout>
   );
