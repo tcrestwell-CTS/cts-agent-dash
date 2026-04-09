@@ -79,6 +79,7 @@ export function AddTripBookingDialog({
     depart_date: departDate || "",
     return_date: returnDate || "",
     booking_reference: "",
+    supplier_confirmation_number: "",
     travelers: 1,
     gross_sales: 0,
     supplier_payout: 0,
@@ -97,6 +98,7 @@ export function AddTripBookingDialog({
         depart_date: departDate || "",
         return_date: returnDate || "",
         booking_reference: "",
+        supplier_confirmation_number: "",
         travelers: 1,
         gross_sales: 0,
         supplier_payout: 0,
@@ -197,6 +199,7 @@ export function AddTripBookingDialog({
         net_sales: netSales,
         commission_estimate: formData.commission_rate || 0,
         supplier_id: formData.supplier_id || null,
+        supplier_confirmation_number: formData.supplier_confirmation_number || null,
         status: "pending",
       };
 
@@ -356,8 +359,8 @@ export function AddTripBookingDialog({
             />
           </div>
 
-          {/* Booking Reference & Travelers */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Booking Reference, Supplier Confirmation & Travelers */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="booking_reference">Confirmation #</Label>
               <Input
@@ -365,6 +368,15 @@ export function AddTripBookingDialog({
                 value={formData.booking_reference}
                 onChange={(e) => setFormData((prev) => ({ ...prev, booking_reference: e.target.value }))}
                 placeholder="ABC123"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier_confirmation_number">Supplier Conf #</Label>
+              <Input
+                id="supplier_confirmation_number"
+                value={formData.supplier_confirmation_number}
+                onChange={(e) => setFormData((prev) => ({ ...prev, supplier_confirmation_number: e.target.value }))}
+                placeholder="SUP-12345"
               />
             </div>
             <div className="space-y-2">
