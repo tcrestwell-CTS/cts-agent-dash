@@ -69,8 +69,9 @@ const Commissions = () => {
         const booking = bookingMap.get(commission.booking_id);
         const client = booking ? clientMap.get(booking.client_id) : undefined;
 
-        const expectedCommissionDate = booking
-          ? subDays(new Date(booking.depart_date), 30)
+        const departDate = booking?.depart_date ? new Date(booking.depart_date + "T00:00:00") : null;
+        const expectedCommissionDate = departDate && !isNaN(departDate.getTime())
+          ? subDays(departDate, 30)
           : null;
 
         return {
