@@ -131,6 +131,7 @@ export function EditBookingDialog({
         supplier_payout:     booking.supplier_payout || 0,
         supplier_id:         booking.supplier_id || "",
         commission_estimate: booking.commission_estimate || 0,
+        supplier_confirmation_number: (booking as any).supplier_confirmation_number || "",
       });
     }
     setLocalLines([]);
