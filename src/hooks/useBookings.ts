@@ -153,6 +153,7 @@ export interface Booking {
   override_pending_approval?: boolean;
   approval_required?: boolean;
   supplier_payout?: number;
+  supplier_confirmation_number?: string | null;
   commission_override_amount?: number | null;
   override_approved?: boolean;
   override_approved_by?: string | null;
@@ -188,6 +189,7 @@ export interface CreateBookingData {
   notes?: string;
   send_confirmation_email?: boolean;
   supplier_payout?: number;
+  supplier_confirmation_number?: string | null;
   commissionable_percentage?: number;
   commission_override_amount?: number;
   override_notes?: string;
@@ -195,6 +197,7 @@ export interface CreateBookingData {
 
 export interface UpdateBookingData {
   supplier_id?: string | null;
+  supplier_confirmation_number?: string | null;
   total_price?: number;
   gross_sales?: number;
   supplier_payout?: number;
@@ -276,6 +279,7 @@ export function useBookings() {
           total_price: data.total_price,
           status: "confirmed",
           supplier_id: data.supplier_id || null,
+          supplier_confirmation_number: data.supplier_confirmation_number || null,
           gross_sales: grossSales,
           commissionable_amount: commissionableAmount,
           commission_revenue: hasOverride ? data.commission_override_amount! : commissionRevenue,
@@ -360,6 +364,7 @@ export function useBookings() {
 
       if (data.total_price !== undefined) updatePayload.total_price = data.total_price;
       if (data.supplier_id !== undefined) updatePayload.supplier_id = data.supplier_id;
+      if (data.supplier_confirmation_number !== undefined) updatePayload.supplier_confirmation_number = data.supplier_confirmation_number;
       if (data.gross_sales !== undefined) updatePayload.gross_sales = data.gross_sales;
       if (data.supplier_payout !== undefined) updatePayload.supplier_payout = data.supplier_payout;
       if (data.commissionable_amount !== undefined) updatePayload.commissionable_amount = data.commissionable_amount;
