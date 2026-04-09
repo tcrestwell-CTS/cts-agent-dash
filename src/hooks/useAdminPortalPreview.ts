@@ -203,8 +203,10 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
       const [bookingsRes, paymentsRes, itinerariesRes, itineraryRes, optionBlocksRes] = await Promise.all([
         supabase
           .from("bookings")
-          .select("*")
+          .select("id, confirmation_number, status, total_price, gross_sales, supplier_id, suppliers(name, supplier_type)")
           .eq("trip_id", tripId)
+          .neq("status", "cancelled")
+          .neq("status", "archived")
           .order("created_at", { ascending: true }),
         supabase
           .from("trip_payments" as any)
@@ -235,7 +237,32 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
       if (itineraryRes.error) throw itineraryRes.error;
       if (optionBlocksRes.error) throw optionBlocksRes.error;
 
-      const bookings = bookingsRes.data || [];
+      // Transform bookings to portal shape (mirrors portal-data edge function)
+      const supplierTypeToBookingType = (st: string | null): string => {
+        if (!st) return "other";
+        const map: Record<string, string> = {
+          airline: "flight", hotel: "hotel", cruise: "cruise",
+          car_rental: "car_rental", tour_operator: "tour", insurance: "insurance",
+          transfer: "transfer", dmc: "tour",
+        };
+        return map[st.toLowerCase()] || "other";
+      };
+
+      const rawBookings = bookingsRes.data || [];
+      const bookings = rawBookings.map((b: any) => ({
+        id: b.id,
+        booking_reference: b.confirmation_number,
+        booking_type: supplierTypeToBookingType(b.suppliers?.supplier_type),
+        destination: trip?.destination || "",
+        depart_date: trip?.depart_date,
+        return_date: trip?.return_date,
+        status: b.status,
+        total_amount: b.gross_sales || b.total_price || 0,
+        travelers: 1,
+        trip_name: b.suppliers?.name || trip?.trip_name || "",
+        supplier_id: b.supplier_id,
+        gross_sales: b.gross_sales,
+      }));
       const bookingIds = bookings.map((booking: any) => booking.id);
       let pricingLines: any[] = [];
 
