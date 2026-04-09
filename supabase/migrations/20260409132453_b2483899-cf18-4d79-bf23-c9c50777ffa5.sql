@@ -1,0 +1,1 @@
+ALTER TABLE public.bookings ADD COLUMN supplier_confirmation_number text;

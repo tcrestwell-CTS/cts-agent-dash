@@ -114,6 +114,7 @@ export function EditBookingDialog({
   const [formData, setFormData] = useState({
     total_price: 0, gross_sales: 0, supplier_payout: 0,
     supplier_id: "", commission_estimate: 0,
+    supplier_confirmation_number: "",
   });
 
   const { lines: dbLines, isLoading: linesLoading, invalidate: invalidateMarginLines } = useBookingMarginLines(
@@ -130,6 +131,7 @@ export function EditBookingDialog({
         supplier_payout:     booking.supplier_payout || 0,
         supplier_id:         booking.supplier_id || "",
         commission_estimate: booking.commission_estimate || 0,
+        supplier_confirmation_number: (booking as any).supplier_confirmation_number || "",
       });
     }
     setLocalLines([]);
@@ -201,7 +203,8 @@ export function EditBookingDialog({
         supplier_payout:     derivedSupplierPayout,
         supplier_id:         formData.supplier_id || null,
         commission_estimate: formData.commission_estimate,
-      });
+        supplier_confirmation_number: formData.supplier_confirmation_number || null,
+      } as any);
       if (!success) return;
 
       if (hasManualLines) {
@@ -317,18 +320,28 @@ export function EditBookingDialog({
                 )}
               </div>
 
-              <div>
-                <Label>Supplier</Label>
-                <Select value={formData.supplier_id || "none"}
-                  onValueChange={v => setFormData({ ...formData, supplier_id: v === "none" ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="Select a supplier" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No supplier</SelectItem>
-                    {activeSuppliers.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Supplier</Label>
+                  <Select value={formData.supplier_id || "none"}
+                    onValueChange={v => setFormData({ ...formData, supplier_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Select a supplier" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No supplier</SelectItem>
+                      {activeSuppliers.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="supplier_confirmation_number">Supplier Conf #</Label>
+                  <Input id="supplier_confirmation_number"
+                    value={formData.supplier_confirmation_number || ""}
+                    onChange={e => setFormData({ ...formData, supplier_confirmation_number: e.target.value })}
+                    placeholder="SUP-12345"
+                  />
+                </div>
               </div>
 
               <div>
