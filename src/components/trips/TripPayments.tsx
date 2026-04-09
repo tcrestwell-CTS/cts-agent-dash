@@ -165,14 +165,8 @@ export function TripPayments({
     setInvoicePreviewOpen(true);
     setInvoicePreviewUrl(null);
     try {
-      const invoiceNumber = await getNextInvoiceNumber();
-      if (!invoiceNumber) {
-        toast.error("Failed to generate invoice number");
-        setInvoicePreviewOpen(false);
-        return;
-      }
-
-      await createInvoice({
+      // createInvoice internally calls getNextInvoiceNumber, so we only call it once
+      const invoice = await createInvoice({
         trip_id: tripId,
         client_id: clientId,
         trip_name: tripName,
@@ -182,10 +176,19 @@ export function TripPayments({
         amount_remaining: totalRemaining,
       });
 
+      if (!invoice) {
+        setInvoicePreviewOpen(false);
+        return;
+      }
+
+      const invoiceNumber = invoice.invoice_number;
+
       const blobUrl = await generateInvoicePDF(getInvoiceData(invoiceNumber), { returnBlobUrl: true });
       if (blobUrl && typeof blobUrl === "string") {
         setInvoicePreviewUrl(blobUrl);
         setInvoicePreviewNumber(invoiceNumber);
+      } else {
+        throw new Error("PDF generation returned no URL");
       }
       toast.success(`Invoice ${invoiceNumber} generated`);
     } catch (error) {
