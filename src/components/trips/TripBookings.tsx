@@ -345,13 +345,14 @@ export function TripBookings({
               <table className="w-full">
                 <thead>
                   <tr className="border-b text-left">
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Item</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Cost</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Confirmation #</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Payment</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground">Commission</th>
-                    <th className="pb-3 font-medium text-sm text-muted-foreground w-10"></th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Item</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Cost</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Confirmation #</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier Conf #</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Payment</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Commission</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -377,6 +378,9 @@ export function TripBookings({
                       </td>
                       <td className="py-3 font-mono text-sm text-primary">
                         {booking.confirmation_number || booking.booking_reference || "-"}
+                      </td>
+                      <td className="py-3 font-mono text-sm text-muted-foreground">
+                        {(booking as any).supplier_confirmation_number || "-"}
                       </td>
                       <td className="py-3">{getPaymentStatus(booking)}</td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>

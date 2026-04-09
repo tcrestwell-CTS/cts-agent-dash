@@ -203,7 +203,8 @@ export function EditBookingDialog({
         supplier_payout:     derivedSupplierPayout,
         supplier_id:         formData.supplier_id || null,
         commission_estimate: formData.commission_estimate,
-      });
+        supplier_confirmation_number: formData.supplier_confirmation_number || null,
+      } as any);
       if (!success) return;
 
       if (hasManualLines) {
