@@ -35,7 +35,8 @@ const BOOKING_FIELDS = `
   pricing_mode,
   margin_locked,
   margin_version,
-  supplier_payout
+  supplier_payout,
+  supplier_confirmation_number
 `;
 
 const BOOKING_SELECT_LIST = `
