@@ -380,7 +380,7 @@ export function TripBookings({
                         {booking.confirmation_number || booking.booking_reference || "-"}
                       </td>
                       <td className="py-3 font-mono text-sm text-muted-foreground">
-                        {(booking as any).supplier_confirmation_number || "-"}
+                        {booking.supplier_confirmation_number || "-"}
                       </td>
                       <td className="py-3">{getPaymentStatus(booking)}</td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>
