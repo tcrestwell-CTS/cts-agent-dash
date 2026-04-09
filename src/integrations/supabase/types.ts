@@ -4507,6 +4507,75 @@ export type Database = {
         }
         Relationships: []
       }
+      viator_bookings: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          id: string
+          notes: string | null
+          pax_mix: Json | null
+          product_code: string
+          product_option_code: string | null
+          product_title: string | null
+          raw_response: Json | null
+          start_time: string | null
+          status: string | null
+          total_price: number | null
+          travel_date: string | null
+          updated_at: string | null
+          viator_booking_ref: string | null
+          viator_cart_ref: string | null
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string
+          notes?: string | null
+          pax_mix?: Json | null
+          product_code: string
+          product_option_code?: string | null
+          product_title?: string | null
+          raw_response?: Json | null
+          start_time?: string | null
+          status?: string | null
+          total_price?: number | null
+          travel_date?: string | null
+          updated_at?: string | null
+          viator_booking_ref?: string | null
+          viator_cart_ref?: string | null
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string
+          notes?: string | null
+          pax_mix?: Json | null
+          product_code?: string
+          product_option_code?: string | null
+          product_title?: string | null
+          raw_response?: Json | null
+          start_time?: string | null
+          status?: string | null
+          total_price?: number | null
+          travel_date?: string | null
+          updated_at?: string | null
+          viator_booking_ref?: string | null
+          viator_cart_ref?: string | null
+        }
+        Relationships: []
+      }
       webhook_configurations: {
         Row: {
           created_at: string
