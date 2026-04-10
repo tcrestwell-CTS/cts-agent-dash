@@ -293,6 +293,11 @@ const MonthlyReconciliation = () => {
         </CardContent>
       </Card>
 
+      {/* Stripe Payment Reconciliation */}
+      <div className="mt-8">
+        <StripeReconcilePanel />
+      </div>
+
       {/* Kandi AI Agent Reconcile */}
       <div className="mt-8">
         <KandiReconcilePanel />
