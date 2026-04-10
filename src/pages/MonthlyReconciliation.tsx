@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import KandiReconcilePanel from "@/components/KandiReconcilePanel";
+import StripeReconcilePanel from "@/components/reconciliation/StripeReconcilePanel";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -291,6 +292,11 @@ const MonthlyReconciliation = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Stripe Payment Reconciliation */}
+      <div className="mt-8">
+        <StripeReconcilePanel />
+      </div>
 
       {/* Kandi AI Agent Reconcile */}
       <div className="mt-8">
