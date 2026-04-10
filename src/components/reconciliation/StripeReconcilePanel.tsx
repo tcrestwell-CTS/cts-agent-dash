@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -16,8 +16,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  RefreshCcw, AlertTriangle, CheckCircle2, Link2, Plus, DollarSign, XCircle, CreditCard,
+  RefreshCcw, AlertTriangle, CheckCircle2, Link2, Plus, DollarSign, XCircle, CreditCard, Search,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -49,6 +50,24 @@ interface ActionDialog {
   source: "orphan" | "checkout_mismatch" | "trip_mismatch";
 }
 
+interface TripOption {
+  id: string;
+  trip_name: string;
+  client_name: string | null;
+  destination: string | null;
+}
+
+interface UnlinkedPayment {
+  id: string;
+  trip_id: string;
+  amount: number;
+  status: string;
+  payment_date: string;
+  payment_type: string;
+  trip_name?: string;
+  client_name?: string;
+}
+
 const fmt = (v: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
 
@@ -60,12 +79,21 @@ export default function StripeReconcilePanel() {
   const [actionLoading, setActionLoading] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
-  // For link dialog
-  const [linkTripId, setLinkTripId] = useState("");
-  const [linkPaymentId, setLinkPaymentId] = useState("");
+  // Trip search for both link and create
+  const [tripSearch, setTripSearch] = useState("");
+  const [trips, setTrips] = useState<TripOption[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [selectedTripId, setSelectedTripId] = useState("");
 
-  // For create dialog
-  const [createTripId, setCreateTripId] = useState("");
+  // For link dialog — payments for selected trip
+  const [tripPayments, setTripPayments] = useState<UnlinkedPayment[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [selectedPaymentId, setSelectedPaymentId] = useState("");
+
+  // For link dialog — all unlinked payments tab
+  const [allUnlinked, setAllUnlinked] = useState<UnlinkedPayment[]>([]);
+  const [allUnlinkedLoading, setAllUnlinkedLoading] = useState(false);
+  const [unlinkedSearch, setUnlinkedSearch] = useState("");
 
   // For adjust dialog
   const [adjustTarget, setAdjustTarget] = useState<"local" | "stripe">("local");
@@ -84,6 +112,113 @@ export default function StripeReconcilePanel() {
     }
   }, [user]);
 
+  // Search trips when dialog opens or search changes
+  const searchTrips = useCallback(async (query: string) => {
+    if (!user) return;
+    setTripsLoading(true);
+    try {
+      let q = supabase
+        .from("trips")
+        .select("id, trip_name, client_name, destination")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (query.trim()) {
+        q = q.or(`trip_name.ilike.%${query}%,client_name.ilike.%${query}%,destination.ilike.%${query}%`);
+      }
+      const { data: results } = await q;
+      setTrips(results || []);
+    } catch {
+      setTrips([]);
+    } finally {
+      setTripsLoading(false);
+    }
+  }, [user]);
+
+  // Fetch payments for a specific trip (unlinked to Stripe)
+  const fetchTripPayments = useCallback(async (tripId: string) => {
+    setPaymentsLoading(true);
+    try {
+      const { data: payments } = await supabase
+        .from("trip_payments")
+        .select("id, trip_id, amount, status, payment_date, payment_type, stripe_session_id")
+        .eq("trip_id", tripId)
+        .is("stripe_session_id", null)
+        .order("payment_date", { ascending: false });
+      setTripPayments(
+        (payments || []).map((p) => ({
+          id: p.id,
+          trip_id: p.trip_id,
+          amount: p.amount,
+          status: p.status,
+          payment_date: p.payment_date,
+          payment_type: p.payment_type,
+        }))
+      );
+    } catch {
+      setTripPayments([]);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, []);
+
+  // Fetch all unlinked payments across all trips
+  const fetchAllUnlinked = useCallback(async () => {
+    if (!user) return;
+    setAllUnlinkedLoading(true);
+    try {
+      const { data: payments } = await supabase
+        .from("trip_payments")
+        .select("id, trip_id, amount, status, payment_date, payment_type, stripe_session_id, trips(trip_name, client_name)")
+        .eq("user_id", user.id)
+        .is("stripe_session_id", null)
+        .neq("status", "paid")
+        .order("payment_date", { ascending: false })
+        .limit(50);
+      setAllUnlinked(
+        (payments || []).map((p: any) => ({
+          id: p.id,
+          trip_id: p.trip_id,
+          amount: p.amount,
+          status: p.status,
+          payment_date: p.payment_date,
+          payment_type: p.payment_type,
+          trip_name: p.trips?.trip_name || "",
+          client_name: p.trips?.client_name || "",
+        }))
+      );
+    } catch {
+      setAllUnlinked([]);
+    } finally {
+      setAllUnlinkedLoading(false);
+    }
+  }, [user]);
+
+  // When link dialog opens, load trips and all unlinked
+  useEffect(() => {
+    if (actionDialog?.type === "link") {
+      searchTrips("");
+      fetchAllUnlinked();
+      setSelectedTripId("");
+      setSelectedPaymentId("");
+      setTripSearch("");
+      setUnlinkedSearch("");
+    }
+    if (actionDialog?.type === "create") {
+      searchTrips("");
+      setSelectedTripId("");
+      setTripSearch("");
+    }
+  }, [actionDialog?.type, searchTrips, fetchAllUnlinked]);
+
+  // When trip selected in link dialog, fetch its payments
+  useEffect(() => {
+    if (selectedTripId && actionDialog?.type === "link") {
+      fetchTripPayments(selectedTripId);
+      setSelectedPaymentId("");
+    }
+  }, [selectedTripId, actionDialog?.type, fetchTripPayments]);
+
   const handleDismiss = (id: string) => {
     setDismissed((prev) => new Set(prev).add(id));
     toast.success("Item dismissed");
@@ -91,7 +226,7 @@ export default function StripeReconcilePanel() {
   };
 
   const handleLinkOrphan = async () => {
-    if (!actionDialog || !linkPaymentId) return;
+    if (!actionDialog || !selectedPaymentId) return;
     setActionLoading(true);
     try {
       const piId = actionDialog.item.pi_id;
@@ -103,7 +238,7 @@ export default function StripeReconcilePanel() {
           payment_method: "stripe",
           notes: `Linked from orphan Stripe PI ${piId} during reconciliation`,
         })
-        .eq("id", linkPaymentId);
+        .eq("id", selectedPaymentId);
       if (error) throw error;
       toast.success("Orphan payment linked to trip payment");
       handleDismiss(piId);
@@ -116,12 +251,12 @@ export default function StripeReconcilePanel() {
   };
 
   const handleCreateFromOrphan = async () => {
-    if (!actionDialog || !createTripId || !user) return;
+    if (!actionDialog || !selectedTripId || !user) return;
     setActionLoading(true);
     try {
       const item = actionDialog.item;
       const { error } = await supabase.from("trip_payments").insert({
-        trip_id: createTripId,
+        trip_id: selectedTripId,
         user_id: user.id,
         amount: item.amount,
         payment_date: item.created?.split("T")[0] || new Date().toISOString().split("T")[0],
@@ -149,7 +284,6 @@ export default function StripeReconcilePanel() {
     try {
       const item = actionDialog.item;
       if (adjustTarget === "local") {
-        // Update local record to match Stripe
         const table = actionDialog.source === "checkout_mismatch" ? "checkout_payments" : "trip_payments";
         const updateData =
           table === "checkout_payments"
@@ -186,6 +320,15 @@ export default function StripeReconcilePanel() {
   const filteredTrip = data?.trip_discrepancies.filter((d) => !dismissed.has(issueKey(d))) || [];
   const filteredOrphans = data?.orphaned_stripe_payments.filter((d) => !dismissed.has(issueKey(d))) || [];
   const totalIssues = filteredCheckout.length + filteredTrip.length + filteredOrphans.length;
+
+  const filteredAllUnlinked = unlinkedSearch
+    ? allUnlinked.filter(
+        (p) =>
+          p.trip_name?.toLowerCase().includes(unlinkedSearch.toLowerCase()) ||
+          p.client_name?.toLowerCase().includes(unlinkedSearch.toLowerCase()) ||
+          p.amount.toString().includes(unlinkedSearch)
+      )
+    : allUnlinked;
 
   return (
     <Card>
@@ -292,13 +435,13 @@ export default function StripeReconcilePanel() {
                         <TableCell className="text-right space-x-1">
                           <Button
                             size="sm" variant="outline" className="gap-1 h-7 text-xs"
-                            onClick={() => { setActionDialog({ type: "link", item, source: "orphan" }); setLinkPaymentId(""); setLinkTripId(""); }}
+                            onClick={() => setActionDialog({ type: "link", item, source: "orphan" })}
                           >
                             <Link2 className="h-3 w-3" /> Link
                           </Button>
                           <Button
                             size="sm" variant="outline" className="gap-1 h-7 text-xs"
-                            onClick={() => { setActionDialog({ type: "create", item, source: "orphan" }); setCreateTripId(""); }}
+                            onClick={() => setActionDialog({ type: "create", item, source: "orphan" })}
                           >
                             <Plus className="h-3 w-3" /> Create
                           </Button>
@@ -449,27 +592,133 @@ export default function StripeReconcilePanel() {
 
       {/* Link Orphan Dialog */}
       <Dialog open={actionDialog?.type === "link"} onOpenChange={(o) => !o && setActionDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Link Orphan to Existing Trip Payment</DialogTitle>
+            <DialogTitle>Link Orphan to Trip Payment</DialogTitle>
             <DialogDescription>
-              Link Stripe PI <span className="font-mono">{actionDialog?.item?.pi_id?.slice(0, 25)}…</span> ({fmt(actionDialog?.item?.amount || 0)}) to an existing trip payment record.
+              Stripe PI {fmt(actionDialog?.item?.amount || 0)}
+              {actionDialog?.item?.customer_email && ` • ${actionDialog.item.customer_email}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Trip Payment ID</label>
-              <Input
-                placeholder="Paste the trip payment UUID"
-                value={linkPaymentId}
-                onChange={(e) => setLinkPaymentId(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Find this in the trip's payment tab</p>
-            </div>
-          </div>
+
+          <Tabs defaultValue="by-trip" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="by-trip">Search by Trip</TabsTrigger>
+              <TabsTrigger value="all-unlinked">All Unlinked Payments</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="by-trip" className="space-y-3 mt-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search trips by name, client, or destination..."
+                  className="pl-9"
+                  value={tripSearch}
+                  onChange={(e) => {
+                    setTripSearch(e.target.value);
+                    searchTrips(e.target.value);
+                  }}
+                />
+              </div>
+
+              <div className="max-h-40 overflow-y-auto border rounded-md">
+                {tripsLoading ? (
+                  <div className="p-3 text-center text-sm text-muted-foreground">Searching...</div>
+                ) : trips.length === 0 ? (
+                  <div className="p-3 text-center text-sm text-muted-foreground">No trips found</div>
+                ) : (
+                  trips.map((trip) => (
+                    <button
+                      key={trip.id}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-b-0 transition-colors ${selectedTripId === trip.id ? "bg-primary/10 font-medium" : ""}`}
+                      onClick={() => setSelectedTripId(trip.id)}
+                    >
+                      <span className="font-medium">{trip.trip_name || "Untitled"}</span>
+                      {trip.client_name && (
+                        <span className="text-muted-foreground ml-2">• {trip.client_name}</span>
+                      )}
+                      {trip.destination && (
+                        <span className="text-muted-foreground ml-1 text-xs">({trip.destination})</span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {selectedTripId && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Unlinked payments on this trip:</p>
+                  <div className="max-h-32 overflow-y-auto border rounded-md">
+                    {paymentsLoading ? (
+                      <div className="p-3 text-center text-sm text-muted-foreground">Loading...</div>
+                    ) : tripPayments.length === 0 ? (
+                      <div className="p-3 text-center text-sm text-muted-foreground">No unlinked payments on this trip</div>
+                    ) : (
+                      tripPayments.map((p) => (
+                        <button
+                          key={p.id}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-b-0 flex items-center justify-between transition-colors ${selectedPaymentId === p.id ? "bg-primary/10 font-medium" : ""}`}
+                          onClick={() => setSelectedPaymentId(p.id)}
+                        >
+                          <span>
+                            {fmt(p.amount)} • {p.payment_type}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            <Badge variant="secondary" className="text-xs">{p.status}</Badge>
+                            <span className="ml-1">{p.payment_date}</span>
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="all-unlinked" className="space-y-3 mt-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filter by trip name, client, or amount..."
+                  className="pl-9"
+                  value={unlinkedSearch}
+                  onChange={(e) => setUnlinkedSearch(e.target.value)}
+                />
+              </div>
+
+              <div className="max-h-64 overflow-y-auto border rounded-md">
+                {allUnlinkedLoading ? (
+                  <div className="p-3 text-center text-sm text-muted-foreground">Loading...</div>
+                ) : filteredAllUnlinked.length === 0 ? (
+                  <div className="p-3 text-center text-sm text-muted-foreground">No unlinked payments found</div>
+                ) : (
+                  filteredAllUnlinked.map((p) => (
+                    <button
+                      key={p.id}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-b-0 flex items-center justify-between transition-colors ${selectedPaymentId === p.id ? "bg-primary/10 font-medium" : ""}`}
+                      onClick={() => setSelectedPaymentId(p.id)}
+                    >
+                      <div>
+                        <span className="font-medium">{fmt(p.amount)}</span>
+                        <span className="text-muted-foreground ml-2">• {p.trip_name || "Unknown trip"}</span>
+                        {p.client_name && (
+                          <span className="text-muted-foreground text-xs ml-1">({p.client_name})</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-xs">{p.status}</Badge>
+                        <span className="text-xs text-muted-foreground">{p.payment_date}</span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(null)}>Cancel</Button>
-            <Button onClick={handleLinkOrphan} disabled={!linkPaymentId || actionLoading}>
+            <Button onClick={handleLinkOrphan} disabled={!selectedPaymentId || actionLoading}>
               {actionLoading ? "Linking..." : "Link Payment"}
             </Button>
           </DialogFooter>
@@ -478,27 +727,53 @@ export default function StripeReconcilePanel() {
 
       {/* Create from Orphan Dialog */}
       <Dialog open={actionDialog?.type === "create"} onOpenChange={(o) => !o && setActionDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Create Trip Payment from Orphan</DialogTitle>
             <DialogDescription>
-              Create a new trip payment record for {fmt(actionDialog?.item?.amount || 0)} from Stripe PI.
+              Create a new trip payment for {fmt(actionDialog?.item?.amount || 0)} from Stripe.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Trip ID</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Paste the trip UUID"
-                value={createTripId}
-                onChange={(e) => setCreateTripId(e.target.value)}
+                placeholder="Search trips by name, client, or destination..."
+                className="pl-9"
+                value={tripSearch}
+                onChange={(e) => {
+                  setTripSearch(e.target.value);
+                  searchTrips(e.target.value);
+                }}
               />
-              <p className="text-xs text-muted-foreground mt-1">The trip this payment belongs to</p>
+            </div>
+            <div className="max-h-48 overflow-y-auto border rounded-md">
+              {tripsLoading ? (
+                <div className="p-3 text-center text-sm text-muted-foreground">Searching...</div>
+              ) : trips.length === 0 ? (
+                <div className="p-3 text-center text-sm text-muted-foreground">No trips found</div>
+              ) : (
+                trips.map((trip) => (
+                  <button
+                    key={trip.id}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-b-0 transition-colors ${selectedTripId === trip.id ? "bg-primary/10 font-medium" : ""}`}
+                    onClick={() => setSelectedTripId(trip.id)}
+                  >
+                    <span className="font-medium">{trip.trip_name || "Untitled"}</span>
+                    {trip.client_name && (
+                      <span className="text-muted-foreground ml-2">• {trip.client_name}</span>
+                    )}
+                    {trip.destination && (
+                      <span className="text-muted-foreground ml-1 text-xs">({trip.destination})</span>
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(null)}>Cancel</Button>
-            <Button onClick={handleCreateFromOrphan} disabled={!createTripId || actionLoading}>
+            <Button onClick={handleCreateFromOrphan} disabled={!selectedTripId || actionLoading}>
               {actionLoading ? "Creating..." : "Create Payment"}
             </Button>
           </DialogFooter>
