@@ -251,6 +251,19 @@ export default function QBOHealth() {
                 <Button
                   variant="outline"
                   className="justify-start gap-2"
+                  onClick={() => syncSuppliers().then(() => refetchLogs())}
+                  disabled={!!syncing}
+                >
+                  {syncing === "suppliers" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Building2 className="h-4 w-4" />
+                  )}
+                  Sync Suppliers as Vendors
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
                   onClick={() => syncPayments().then(() => refetchLogs())}
                   disabled={!!syncing}
                 >
