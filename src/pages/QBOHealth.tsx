@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale, Landmark } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale, Landmark, Building2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
@@ -27,7 +27,7 @@ type FilterStatus = "all" | "success" | "error";
 
 export default function QBOHealth() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncPayments, syncStripeDeposits, getFinancialSummary, getFinancialLifecycle, getStripePayouts, getFullStripeReconciliation } = useQBOConnection();
+  const { status, loading: connLoading, refreshStatus, syncing, syncClients, syncSuppliers, syncPayments, syncStripeDeposits, getFinancialSummary, getFinancialLifecycle, getStripePayouts, getFullStripeReconciliation } = useQBOConnection();
   const { data: logs, isLoading: logsLoading, refetch: refetchLogs } = useQBOSyncLogs(100);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [financials, setFinancials] = useState<FinancialSummary | null>(null);
@@ -247,6 +247,19 @@ export default function QBOHealth() {
                     <Users className="h-4 w-4" />
                   )}
                   Sync Clients
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2"
+                  onClick={() => syncSuppliers().then(() => refetchLogs())}
+                  disabled={!!syncing}
+                >
+                  {syncing === "suppliers" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Building2 className="h-4 w-4" />
+                  )}
+                  Sync Suppliers as Vendors
                 </Button>
                 <Button
                   variant="outline"

@@ -485,6 +485,32 @@ export function useQBOConnection() {
     }
   };
 
+  const syncSuppliers = async (supplierIds?: string[]) => {
+    setSyncing("suppliers");
+    try {
+      const headers = await getAuthHeaders();
+      const resp = await qboFetchWithRetry(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-sync?action=sync-suppliers`,
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ supplier_ids: supplierIds }),
+        },
+        showReconnectToast
+      );
+      if (!resp.ok) throw new Error("Sync suppliers failed");
+      const data = await resp.json();
+      toast.success(`Synced suppliers as vendors: ${data.created} created, ${data.updated} updated`);
+      await fetchStatus();
+      return data;
+    } catch (err) {
+      console.error("Supplier sync error:", err);
+      toast.error("Failed to sync suppliers to QuickBooks");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
   return {
     status,
     loading,
@@ -495,6 +521,7 @@ export function useQBOConnection() {
     syncClients,
     syncInvoice,
     syncPayments,
+    syncSuppliers,
     syncStripeDeposits,
     getFinancialSummary,
     getStripeReconReport,

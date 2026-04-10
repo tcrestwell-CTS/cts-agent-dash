@@ -3250,6 +3250,38 @@ export type Database = {
           },
         ]
       }
+      qbo_supplier_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          qbo_vendor_id: string
+          supplier_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          qbo_vendor_id: string
+          supplier_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          qbo_vendor_id?: string
+          supplier_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_supplier_mappings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qbo_sync_logs: {
         Row: {
           created_at: string
