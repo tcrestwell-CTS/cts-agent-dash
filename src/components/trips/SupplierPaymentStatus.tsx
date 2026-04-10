@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, FileText, CreditCard, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { Building2, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface Booking {
   id: string;
@@ -11,74 +13,64 @@ interface Booking {
   supplier_id?: string | null;
   total_price?: number;
   total_amount?: number;
+  supplier_payout?: number;
   status: string;
+  supplier_paid_status?: string;
+  supplier_paid_date?: string | null;
+  supplier_paid_amount?: number;
+  supplier_paid_method?: string | null;
   suppliers?: { name: string } | null;
-}
-
-interface TripPayment {
-  id: string;
-  booking_id?: string | null;
-  virtual_card_id?: string | null;
-  virtual_card_status?: string | null;
-  amount: number;
-  status: string;
 }
 
 interface SupplierPaymentStatusProps {
   bookings: Booking[];
-  payments: TripPayment[];
 }
 
-const cardStatusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  ready: { label: "Card Ready", color: "bg-primary/10 text-primary", icon: CreditCard },
-  authorized: { label: "Authorized", color: "bg-blue-100 text-blue-700", icon: CreditCard },
-  used: { label: "Paid", color: "bg-success/10 text-success", icon: CheckCircle2 },
-  canceled: { label: "Locked", color: "bg-muted text-muted-foreground", icon: CheckCircle2 },
-  declined: { label: "Declined", color: "bg-destructive/10 text-destructive", icon: AlertTriangle },
+const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
+  paid: { label: "Paid", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
+  partial: { label: "Partial", color: "bg-blue-100 text-blue-700", icon: Clock },
+  unpaid: { label: "Unpaid", color: "bg-amber-100 text-amber-700", icon: Clock },
 };
 
-export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentStatusProps) {
+export function SupplierPaymentStatus({ bookings }: SupplierPaymentStatusProps) {
   if (!bookings.length) return null;
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
-  const getBookingPaymentInfo = (bookingId: string) => {
-    const payment = payments.find((p) => p.booking_id === bookingId);
-    return payment;
-  };
-
-  const getVirtualCardStatus = (payment: TripPayment | undefined) => {
-    if (!payment) return "not_issued";
-    if (!payment.virtual_card_id) return "not_issued";
-    return payment.virtual_card_status || "pending";
-  };
-
-  const getRowColor = (vcStatus: string, paymentStatus: string) => {
-    if (vcStatus === "used" || vcStatus === "canceled") return "border-l-success";
-    if (vcStatus === "ready" || vcStatus === "authorized") return "border-l-primary";
-    if (vcStatus === "declined") return "border-l-destructive";
-    if (paymentStatus === "paid") return "border-l-warning";
-    return "border-l-muted-foreground/30";
-  };
+  const totalDue = bookings.reduce((s, b) => s + (b.supplier_payout || 0), 0);
+  const totalPaid = bookings.reduce((s, b) => s + (b.supplier_paid_amount || 0), 0);
+  const allPaid = bookings.every((b) => (b.supplier_paid_status || "unpaid") === "paid");
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Building2 className="h-4 w-4" />
-          Supplier Payment Status
+          Supplier Payments
+          {allPaid ? (
+            <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700 text-xs">
+              All Paid
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="ml-auto bg-amber-100 text-amber-700 text-xs">
+              {formatCurrency(totalDue - totalPaid)} outstanding
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {bookings.map((booking) => {
-          const payment = getBookingPaymentInfo(booking.id);
-          const vcStatus = getVirtualCardStatus(payment);
-          const hasInvoice = false;
+          const paidStatus = booking.supplier_paid_status || "unpaid";
           const supplierName = (booking as any).suppliers?.name || "No supplier";
-          const rowColor = getRowColor(vcStatus, payment?.status || "pending");
+          const info = statusConfig[paidStatus] || statusConfig.unpaid;
+          const Icon = info.icon;
 
-          const statusInfo = cardStatusConfig[vcStatus];
+          const rowColor = paidStatus === "paid"
+            ? "border-l-green-500"
+            : paidStatus === "partial"
+            ? "border-l-blue-500"
+            : "border-l-amber-400";
 
           return (
             <div
@@ -90,39 +82,42 @@ export function SupplierPaymentStatus({ bookings, payments }: SupplierPaymentSta
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <Link to={`/bookings/${booking.id}`} className="text-sm font-medium truncate text-primary hover:underline">
+                  <Link
+                    to={`/bookings/${booking.id}`}
+                    className="text-sm font-medium truncate text-primary hover:underline"
+                  >
                     {booking.confirmation_number || booking.booking_reference || booking.id.slice(0, 8)}
                   </Link>
                   <span className="text-xs text-muted-foreground">•</span>
                   <p className="text-xs text-muted-foreground truncate">{supplierName}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatCurrency(booking.total_price || booking.total_amount || 0)}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 shrink-0">
-                {/* Invoice Status */}
-                <div className="flex items-center gap-1">
-                  <FileText className={cn("h-3.5 w-3.5", hasInvoice ? "text-success" : "text-muted-foreground")} />
-                  <span className={cn("text-xs", hasInvoice ? "text-success" : "text-muted-foreground")}>
-                    {hasInvoice ? "Invoice" : "No invoice"}
-                  </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-muted-foreground">
+                    Due: {formatCurrency(booking.supplier_payout || 0)}
+                  </p>
+                  {paidStatus !== "unpaid" && (
+                    <>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <p className="text-xs text-muted-foreground">
+                        Paid: {formatCurrency(booking.supplier_paid_amount || 0)}
+                      </p>
+                    </>
+                  )}
+                  {booking.supplier_paid_date && (
+                    <>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseLocalDate(booking.supplier_paid_date), "MMM d")}
+                      </p>
+                    </>
+                  )}
                 </div>
-
-                {/* Card Status */}
-                {statusInfo ? (
-                  <Badge variant="secondary" className={cn("text-xs gap-1", statusInfo.color)}>
-                    <statusInfo.icon className="h-3 w-3" />
-                    {statusInfo.label}
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-xs gap-1 bg-muted text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {vcStatus === "not_issued" ? "No card" : "Pending"}
-                  </Badge>
-                )}
               </div>
+
+              <Badge variant="secondary" className={cn("text-xs gap-1", info.color)}>
+                <Icon className="h-3 w-3" />
+                {info.label}
+              </Badge>
             </div>
           );
         })}

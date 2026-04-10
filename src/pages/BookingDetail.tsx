@@ -66,6 +66,7 @@ import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookin
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { BookingFinancialsDisplay } from "@/components/bookings/BookingFinancials";
+import { SupplierPaymentCard } from "@/components/bookings/SupplierPaymentCard";
 import { useMarginWarnings } from "@/hooks/useMarginWarnings";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
@@ -642,6 +643,20 @@ const BookingDetail = () => {
             commissionTier={userTier ?? undefined}
             marginWarnings={marginWarnings}
           />
+
+          {/* Supplier Payment Tracking */}
+          <SupplierPaymentCard
+            bookingId={booking.id}
+            supplierName={selectedSupplier?.name}
+            supplierPayout={booking.supplier_payout || 0}
+            supplierPaidStatus={(booking as any).supplier_paid_status || "unpaid"}
+            supplierPaidDate={(booking as any).supplier_paid_date}
+            supplierPaidMethod={(booking as any).supplier_paid_method}
+            supplierPaidReference={(booking as any).supplier_paid_reference}
+            supplierPaidAmount={(booking as any).supplier_paid_amount || 0}
+            onUpdated={refetch}
+          />
+
           {booking.travelers > 1 && (
             <Card>
               <CardContent className="pt-4">

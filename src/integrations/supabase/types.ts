@@ -799,6 +799,11 @@ export type Database = {
           status: string
           supplier_confirmation_number: string | null
           supplier_id: string | null
+          supplier_paid_amount: number | null
+          supplier_paid_date: string | null
+          supplier_paid_method: string | null
+          supplier_paid_reference: string | null
+          supplier_paid_status: string
           supplier_payout: number | null
           total_price: number
           trip_id: string | null
@@ -832,6 +837,11 @@ export type Database = {
           status?: string
           supplier_confirmation_number?: string | null
           supplier_id?: string | null
+          supplier_paid_amount?: number | null
+          supplier_paid_date?: string | null
+          supplier_paid_method?: string | null
+          supplier_paid_reference?: string | null
+          supplier_paid_status?: string
           supplier_payout?: number | null
           total_price?: number
           trip_id?: string | null
@@ -865,6 +875,11 @@ export type Database = {
           status?: string
           supplier_confirmation_number?: string | null
           supplier_id?: string | null
+          supplier_paid_amount?: number | null
+          supplier_paid_date?: string | null
+          supplier_paid_method?: string | null
+          supplier_paid_reference?: string | null
+          supplier_paid_status?: string
           supplier_payout?: number | null
           total_price?: number
           trip_id?: string | null
