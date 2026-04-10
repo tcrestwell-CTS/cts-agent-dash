@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale, Landmark } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Activity, Clock, Wifi, WifiOff, ShieldAlert, Users, DollarSign, BarChart3, Loader2, CreditCard, Scale, Landmark, Building2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
