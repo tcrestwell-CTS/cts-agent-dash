@@ -738,7 +738,74 @@ async function ensureQBOCustomer(
   return qboId;
 }
 
-async function logSync(
+/** Ensure a supplier exists as a QBO Vendor; return QBO vendor ID */
+async function ensureQBOVendor(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, supplier: any
+): Promise<string> {
+  // Check existing mapping
+  const { data: mapping } = await supabase
+    .from("qbo_supplier_mappings")
+    .select("qbo_vendor_id")
+    .eq("user_id", userId)
+    .eq("supplier_id", supplier.id)
+    .single();
+
+  if (mapping) return mapping.qbo_vendor_id;
+
+  // Check QBO by DisplayName to avoid duplicates
+  const displayName = supplier.name.substring(0, 100);
+  const nameEscaped = displayName.replace(/'/g, "\\'");
+  const queryResp = await fetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Vendor WHERE DisplayName = '${nameEscaped}'`)}`,
+    { headers: qboHeaders }
+  );
+
+  if (queryResp.ok) {
+    const queryResult = await queryResp.json();
+    const existing = queryResult?.QueryResponse?.Vendor?.[0];
+    if (existing) {
+      await supabase.from("qbo_supplier_mappings").insert({
+        user_id: userId,
+        supplier_id: supplier.id,
+        qbo_vendor_id: existing.Id,
+      });
+      return existing.Id;
+    }
+  }
+
+  // Create new vendor
+  const vendorData: any = {
+    DisplayName: displayName,
+    CompanyName: displayName,
+  };
+  if (supplier.contact_email) vendorData.PrimaryEmailAddr = { Address: supplier.contact_email };
+  if (supplier.contact_phone) vendorData.PrimaryPhone = { FreeFormNumber: supplier.contact_phone };
+  if (supplier.website) vendorData.WebAddr = { URI: supplier.website };
+
+  const createResp = await fetch(`${qboBase}/vendor`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(vendorData),
+  });
+
+  if (!createResp.ok) {
+    const errBody = await createResp.text();
+    throw new Error(`Failed to create QBO Vendor: ${errBody}`);
+  }
+
+  const created = await createResp.json();
+  const qboId = created.Vendor.Id;
+
+  await supabase.from("qbo_supplier_mappings").insert({
+    user_id: userId,
+    supplier_id: supplier.id,
+    qbo_vendor_id: qboId,
+  });
+
+  console.log(`[QBO] Auto-created vendor "${displayName}" (ID: ${qboId})`);
+  return qboId;
+}
+
   supabase: any, userId: string, syncType: string, status: string, recordsProcessed: number, errorMessage?: string, details?: any
 ) {
   await supabase.from("qbo_sync_logs").insert({
