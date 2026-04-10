@@ -545,6 +545,13 @@ serve(async (req) => {
         qboVendorId = result.Vendor.Id;
       }
 
+      // Save mapping to qbo_supplier_mappings
+      await supabaseAdmin.from("qbo_supplier_mappings").upsert({
+        user_id: userId,
+        supplier_id: supplier_id,
+        qbo_vendor_id: qboVendorId,
+      }, { onConflict: "user_id,supplier_id" });
+
       await supabaseAdmin.from("qbo_sync_logs").insert({
         user_id: userId, sync_type: "vendor", direction: "push", status: "success", records_processed: 1,
         details: { supplier_id, qbo_vendor_id: qboVendorId, existed: !!existingVendor },
@@ -552,6 +559,106 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, qbo_vendor_id: qboVendorId }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── POST ?action=sync-suppliers ──────────────────────────────────
+    if (urlPath === "sync-suppliers" && req.method === "POST") {
+      const { supplier_ids } = await req.json().catch(() => ({}));
+
+      let query = supabaseAdmin.from("suppliers").select("*").eq("user_id", userId).eq("is_active", true);
+      if (supplier_ids?.length) {
+        query = query.in("id", supplier_ids);
+      }
+      const { data: suppliers, error: supError } = await query;
+      if (supError) throw supError;
+
+      const { data: mappings } = await supabaseAdmin
+        .from("qbo_supplier_mappings")
+        .select("supplier_id, qbo_vendor_id")
+        .eq("user_id", userId);
+      const mappingMap = new Map((mappings || []).map((m: any) => [m.supplier_id, m.qbo_vendor_id]));
+
+      let created = 0, updated = 0, errors = 0;
+
+      for (const supplier of suppliers || []) {
+        try {
+          const displayName = supplier.name.substring(0, 100);
+          const vendorData: any = {
+            DisplayName: displayName,
+            CompanyName: displayName,
+          };
+          if (supplier.contact_email) vendorData.PrimaryEmailAddr = { Address: supplier.contact_email.substring(0, 100) };
+          if (supplier.contact_phone) vendorData.PrimaryPhone = { FreeFormNumber: supplier.contact_phone.substring(0, 30) };
+          if (supplier.website) vendorData.WebAddr = { URI: supplier.website.substring(0, 1000) };
+
+          const existingQboId = mappingMap.get(supplier.id);
+
+          if (existingQboId) {
+            // Update existing vendor
+            const getResp = await fetch(`${qboBase}/vendor/${existingQboId}`, { headers: qboHeaders });
+            if (getResp.ok) {
+              const existing = await getResp.json();
+              vendorData.Id = existingQboId;
+              vendorData.SyncToken = existing.Vendor.SyncToken;
+              const updateResp = await fetch(`${qboBase}/vendor`, {
+                method: "POST", headers: qboHeaders, body: JSON.stringify(vendorData),
+              });
+              if (updateResp.ok) updated++;
+              else errors++;
+            }
+          } else {
+            // Check if vendor exists in QBO by name
+            const nameEscaped = displayName.replace(/'/g, "\\'");
+            const searchResp = await fetch(
+              `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Vendor WHERE DisplayName = '${nameEscaped}'`)}`,
+              { headers: qboHeaders }
+            );
+            let existingVendor: any = null;
+            if (searchResp.ok) {
+              const searchData = await searchResp.json();
+              const matches = searchData.QueryResponse?.Vendor || [];
+              if (matches.length > 0) existingVendor = matches[0];
+            }
+
+            if (existingVendor) {
+              await supabaseAdmin.from("qbo_supplier_mappings").insert({
+                user_id: userId, supplier_id: supplier.id, qbo_vendor_id: existingVendor.Id,
+              });
+              created++;
+            } else {
+              const createResp = await fetch(`${qboBase}/vendor`, {
+                method: "POST", headers: qboHeaders, body: JSON.stringify(vendorData),
+              });
+              if (createResp.ok) {
+                const result = await createResp.json();
+                await supabaseAdmin.from("qbo_supplier_mappings").insert({
+                  user_id: userId, supplier_id: supplier.id, qbo_vendor_id: result.Vendor.Id,
+                });
+                created++;
+              } else {
+                const errText = await createResp.text();
+                console.error(`Failed to create QBO vendor for ${supplier.id}:`, errText);
+                errors++;
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`Error syncing supplier ${supplier.id}:`, e);
+          errors++;
+        }
+      }
+
+      await supabaseAdmin.from("qbo_sync_logs").insert({
+        user_id: userId, sync_type: "suppliers", direction: "push",
+        status: errors > 0 ? "partial" : "success",
+        records_processed: created + updated,
+        details: { created, updated, errors },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, created, updated, errors }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
