@@ -679,7 +679,6 @@ const TripDetail = () => {
                 />
                 <SupplierPaymentStatus
                   bookings={bookings as any}
-                  payments={payments}
                 />
               </TabsContent>
 

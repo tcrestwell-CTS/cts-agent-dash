@@ -66,6 +66,7 @@ import { useBookingTravelers, useRemoveBookingTraveler } from "@/hooks/useBookin
 import { useSuppliers, calculateBookingFinancials } from "@/hooks/useSuppliers";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { BookingFinancialsDisplay } from "@/components/bookings/BookingFinancials";
+import { SupplierPaymentCard } from "@/components/bookings/SupplierPaymentCard";
 import { useMarginWarnings } from "@/hooks/useMarginWarnings";
 import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
