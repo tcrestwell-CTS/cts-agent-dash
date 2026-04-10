@@ -806,6 +806,7 @@ async function ensureQBOVendor(
   return qboId;
 }
 
+async function logSync(
   supabase: any, userId: string, syncType: string, status: string, recordsProcessed: number, errorMessage?: string, details?: any
 ) {
   await supabase.from("qbo_sync_logs").insert({
