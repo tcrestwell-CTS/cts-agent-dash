@@ -119,15 +119,22 @@ export default function StripeReconcilePanel() {
     try {
       let q = supabase
         .from("trips")
-        .select("id, trip_name, client_name, destination")
+        .select("id, trip_name, destination, clients(name)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
       if (query.trim()) {
-        q = q.or(`trip_name.ilike.%${query}%,client_name.ilike.%${query}%,destination.ilike.%${query}%`);
+        q = q.or(`trip_name.ilike.%${query}%,destination.ilike.%${query}%`);
       }
       const { data: results } = await q;
-      setTrips(results || []);
+      setTrips(
+        (results || []).map((t: any) => ({
+          id: t.id,
+          trip_name: t.trip_name,
+          client_name: t.clients?.name || null,
+          destination: t.destination,
+        }))
+      );
     } catch {
       setTrips([]);
     } finally {
