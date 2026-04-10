@@ -4076,6 +4076,7 @@ export type Database = {
           payment_method_choice: string | null
           payment_type: string
           status: string
+          stripe_payment_intent_id: string | null
           stripe_payment_url: string | null
           stripe_receipt_url: string | null
           stripe_session_id: string | null
@@ -4100,6 +4101,7 @@ export type Database = {
           payment_method_choice?: string | null
           payment_type?: string
           status?: string
+          stripe_payment_intent_id?: string | null
           stripe_payment_url?: string | null
           stripe_receipt_url?: string | null
           stripe_session_id?: string | null
@@ -4124,6 +4126,7 @@ export type Database = {
           payment_method_choice?: string | null
           payment_type?: string
           status?: string
+          stripe_payment_intent_id?: string | null
           stripe_payment_url?: string | null
           stripe_receipt_url?: string | null
           stripe_session_id?: string | null
