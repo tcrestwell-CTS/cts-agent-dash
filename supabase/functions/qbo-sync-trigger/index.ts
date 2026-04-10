@@ -420,59 +420,124 @@ async function handleDepositPosted(
 }
 
 /**
- * Supplier paid (virtual card transaction completed)
- * → Debit "Supplier Expense", Credit "Stripe Clearing"
+ * Supplier paid → create QBO Bill + BillPayment against the vendor.
+ * The supplier is auto-synced as a QBO Vendor if not already mapped.
  */
 async function handleSupplierPaid(
-  supabase: any, qboBase: string, qboHeaders: any, userId: string, record: any
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
 ) {
+  // 1. Ensure supplier exists as a QBO Vendor
+  let qboVendorId: string | null = null;
+  if (booking.supplier_id) {
+    const { data: supplier } = await supabase
+      .from("suppliers")
+      .select("*")
+      .eq("id", booking.supplier_id)
+      .single();
+
+    if (supplier) {
+      qboVendorId = await ensureQBOVendor(supabase, qboBase, qboHeaders, userId, supplier);
+    }
+  }
+
+  // 2. Auto-provision the Accounts Payable account (QBO usually has one by default)
+  const apAccountId = await ensureQBOAccount(qboBase, qboHeaders, "Accounts Payable (A/P)", "Accounts Payable", "AccountsPayable");
   const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "Expense");
-  const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
 
-  const amount = record.amount || 0;
-  const txnDate = record.payment_date || new Date().toISOString().split("T")[0];
-  const memo = `Supplier payment via virtual card – ${record.details || record.notes || "Trip payment"}`;
+  const amount = booking.supplier_paid_amount || booking.supplier_payout || 0;
+  const txnDate = booking.supplier_paid_date || new Date().toISOString().split("T")[0];
 
-  const journalEntry = {
+  // Get supplier name for memo
+  let supplierName = "Supplier";
+  if (booking.supplier_id) {
+    const { data: sup } = await supabase.from("suppliers").select("name").eq("id", booking.supplier_id).single();
+    if (sup) supplierName = sup.name;
+  }
+
+  const memo = `Supplier payment – ${supplierName} – Booking ${booking.confirmation_number || booking.id}`;
+
+  // 3. Create a QBO Bill (represents what we owe the vendor)
+  const billData: any = {
     TxnDate: txnDate,
     PrivateNote: memo,
     Line: [
       {
         Amount: amount,
-        DetailType: "JournalEntryLineDetail",
-        JournalEntryLineDetail: {
-          PostingType: "Debit",
+        DetailType: "AccountBasedExpenseLineDetail",
+        AccountBasedExpenseLineDetail: {
           AccountRef: { value: supplierExpenseId, name: "Supplier Expense" },
-        },
-        Description: memo,
-      },
-      {
-        Amount: amount,
-        DetailType: "JournalEntryLineDetail",
-        JournalEntryLineDetail: {
-          PostingType: "Credit",
-          AccountRef: { value: stripeClearingId, name: "Stripe Clearing" },
         },
         Description: memo,
       },
     ],
   };
 
-  const resp = await fetch(`${qboBase}/journalentry`, {
-    method: "POST",
-    headers: qboHeaders,
-    body: JSON.stringify(journalEntry),
-  });
-
-  if (!resp.ok) {
-    const errBody = await resp.text();
-    throw new Error(`QBO Supplier Paid journal entry failed: ${errBody}`);
+  if (qboVendorId) {
+    billData.VendorRef = { value: qboVendorId };
   }
 
-  await logSync(supabase, userId, "auto-supplier-paid", "success", 1, undefined, {
+  const billResp = await fetch(`${qboBase}/bill`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(billData),
+  });
+
+  if (!billResp.ok) {
+    const errBody = await billResp.text();
+    throw new Error(`QBO Bill creation failed: ${errBody}`);
+  }
+
+  const billResult = await billResp.json();
+  const billId = billResult.Bill.Id;
+
+  // 4. Create a QBO BillPayment (marks the bill as paid)
+  const paymentMethod = booking.supplier_paid_method || "check";
+  const billPaymentData: any = {
+    VendorRef: qboVendorId ? { value: qboVendorId } : undefined,
+    TotalAmt: amount,
+    PayType: paymentMethod === "credit_card" ? "CreditCard" : "Check",
+    TxnDate: txnDate,
+    PrivateNote: `Payment – ${memo}`,
+    Line: [
+      {
+        Amount: amount,
+        LinkedTxn: [{ TxnId: billId, TxnType: "Bill" }],
+      },
+    ],
+  };
+
+  if (paymentMethod === "credit_card") {
+    billPaymentData.CreditCardPayment = {
+      CCAccountRef: { name: "Checking" },
+    };
+  } else {
+    billPaymentData.CheckPayment = {
+      BankAccountRef: { name: "Checking" },
+    };
+  }
+
+  const payResp = await fetch(`${qboBase}/billpayment`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(billPaymentData),
+  });
+
+  if (!payResp.ok) {
+    const errBody = await payResp.text();
+    // Bill was created but payment failed — log but don't lose the bill
+    console.error(`QBO BillPayment failed (Bill ${billId} exists):`, errBody);
+    await logSync(supabase, userId, "auto-supplier-paid", "partial", 1, `Bill created (${billId}), BillPayment failed: ${errBody}`, {
+      amount, bill_id: billId, vendor_id: qboVendorId,
+    });
+    return;
+  }
+
+  await logSync(supabase, userId, "auto-supplier-paid", "success", 2, undefined, {
     amount,
-    trip_payment_id: record.id,
-    accounts: { supplier_expense: supplierExpenseId, stripe_clearing: stripeClearingId },
+    booking_id: booking.id,
+    bill_id: billId,
+    vendor_id: qboVendorId,
+    supplier_name: supplierName,
   });
 }
 
