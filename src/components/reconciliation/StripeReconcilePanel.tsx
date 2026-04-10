@@ -176,7 +176,7 @@ export default function StripeReconcilePanel() {
     try {
       const { data: payments } = await supabase
         .from("trip_payments")
-        .select("id, trip_id, amount, status, payment_date, payment_type, stripe_session_id, trips(trip_name, client_name)")
+        .select("id, trip_id, amount, status, payment_date, payment_type, stripe_session_id, trips(trip_name, clients(name))")
         .eq("user_id", user.id)
         .is("stripe_session_id", null)
         .neq("status", "paid")
@@ -191,7 +191,7 @@ export default function StripeReconcilePanel() {
           payment_date: p.payment_date,
           payment_type: p.payment_type,
           trip_name: p.trips?.trip_name || "",
-          client_name: p.trips?.client_name || "",
+          client_name: p.trips?.clients?.name || "",
         }))
       );
     } catch {
