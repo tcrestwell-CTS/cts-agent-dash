@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
               total_price: grossSales,
               net_sales: grossSales,
               commissionable_amount: grossSales,
-              pricing_mode: "margin",
+              pricing_mode: "commission",
             });
 
           if (bookingErr) {
