@@ -289,8 +289,40 @@ Deno.serve(async (req) => {
         console.error("Failed to record signup:", signupErr);
       }
 
-      // If 2 travelers, create a companion record linked to the client
+      // Create booking from cabin selection
       const travelerCount = Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1));
+      if (selected_cabin_option_id) {
+        const { data: cabin } = await supabaseAdmin
+          .from("trip_cabin_options")
+          .select("category_name, price_per_person, deposit_amount")
+          .eq("id", selected_cabin_option_id)
+          .single();
+
+        if (cabin) {
+          const grossSales = (cabin.price_per_person || 0) * travelerCount;
+          const confirmNum = `GRP-${subTrip.id.substring(0, 8).toUpperCase()}`;
+
+          const { error: bookingErr } = await supabaseAdmin
+            .from("bookings")
+            .insert({
+              user_id: parentTrip.user_id,
+              trip_id: subTrip.id,
+              confirmation_number: confirmNum,
+              status: "pending",
+              gross_sales: grossSales,
+              total_price: grossSales,
+              net_sales: grossSales,
+              commissionable_amount: grossSales,
+              pricing_mode: "margin",
+            });
+
+          if (bookingErr) {
+            console.error("Failed to create booking:", bookingErr);
+          }
+        }
+      }
+
+      // If 2 travelers, create a companion record linked to the client
       if (travelerCount === 2 && companion_first_name?.trim()) {
         const { error: companionErr } = await supabaseAdmin
           .from("client_companions")
