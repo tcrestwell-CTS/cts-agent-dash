@@ -409,8 +409,20 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
               <p className="text-muted-foreground mb-4 max-w-sm">
                 Drag a trip component here, use AI to auto-generate, import from existing bookings, or add items manually.
               </p>
-              <div className="flex gap-2">
-                <Button onClick={() => setAiPromptOpen(true)}>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {parentTripId && (
+                  <Button
+                    onClick={async () => {
+                      setSyncing(true);
+                      await syncFromParent(parentTripId);
+                      setSyncing(false);
+                    }}
+                    disabled={syncing}
+                  >
+                    <Import className="h-4 w-4 mr-2" /> {syncing ? "Syncing..." : "Sync from Group"}
+                  </Button>
+                )}
+                <Button variant={parentTripId ? "outline" : "default"} onClick={() => setAiPromptOpen(true)}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
                 </Button>
                 {unimportedBookings.length > 0 && (
