@@ -249,7 +249,61 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
-  return { items, loading, generating, fetchItems, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings };
+  const syncFromParent = async (parentTripId: string) => {
+    if (!user || !tripId) return false;
+    try {
+      // Fetch parent itinerary items
+      const { data: parentItems, error: fetchError } = await supabase
+        .from("itinerary_items")
+        .select("*")
+        .eq("trip_id", parentTripId)
+        .order("day_number", { ascending: true })
+        .order("sort_order", { ascending: true });
+      if (fetchError) throw fetchError;
+      if (!parentItems || parentItems.length === 0) {
+        toast.error("Parent trip has no itinerary items to sync");
+        return false;
+      }
+
+      // Clear existing items first
+      let deleteQuery = supabase.from("itinerary_items").delete().eq("trip_id", tripId);
+      if (itineraryId) deleteQuery = deleteQuery.eq("itinerary_id", itineraryId);
+      const { error: delError } = await deleteQuery;
+      if (delError) throw delError;
+
+      // Copy parent items to this sub-trip
+      const inserts = parentItems.map((item: any, idx: number) => ({
+        trip_id: tripId,
+        user_id: user.id,
+        itinerary_id: itineraryId || null,
+        day_number: item.day_number,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        location: item.location,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        item_date: item.item_date,
+        notes: item.notes,
+        sort_order: item.sort_order ?? idx,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("itinerary_items")
+        .insert(inserts as any);
+      if (insertError) throw insertError;
+
+      toast.success(`Synced ${parentItems.length} items from group itinerary`);
+      await fetchItems();
+      return true;
+    } catch (error) {
+      console.error("Error syncing from parent:", error);
+      toast.error("Failed to sync itinerary from group trip");
+      return false;
+    }
+  };
+
+  return { items, loading, generating, fetchItems, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent };
 }
 
 function mapSupplierType(type?: string): string {
