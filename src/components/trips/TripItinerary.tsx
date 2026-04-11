@@ -47,6 +47,7 @@ const categoryColors: Record<string, string> = {
 interface Props {
   tripId: string;
   itineraryId?: string | null;
+  parentTripId?: string | null;
   destination: string | null;
   departDate: string | null;
   returnDate: string | null;
@@ -98,8 +99,9 @@ function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop
   );
 }
 
-export function TripItinerary({ tripId, itineraryId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
-  const { items, loading, generating, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, fetchItems } = useItinerary(tripId, itineraryId);
+export function TripItinerary({ tripId, itineraryId, parentTripId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
+  const { items, loading, generating, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent, fetchItems } = useItinerary(tripId, itineraryId);
+  const [syncing, setSyncing] = useState(false);
   const { blocks, createBlock, updateBlock, deleteBlock, fetchBlocks } = useOptionBlocks(tripId, itineraryId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
   const [preferences, setPreferences] = useState("");
@@ -331,6 +333,22 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
           </DialogContent>
         </Dialog>
 
+        {parentTripId && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={syncing}
+            onClick={async () => {
+              setSyncing(true);
+              await syncFromParent(parentTripId);
+              setSyncing(false);
+            }}
+          >
+            <Import className="h-4 w-4 mr-2" />
+            {syncing ? "Syncing..." : "Sync from Group"}
+          </Button>
+        )}
+
         {unimportedBookings.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => importFromBookings(unimportedBookings)}>
             <Import className="h-4 w-4 mr-2" /> Import Bookings ({unimportedBookings.length})
@@ -391,8 +409,20 @@ export function TripItinerary({ tripId, itineraryId, destination, departDate, re
               <p className="text-muted-foreground mb-4 max-w-sm">
                 Drag a trip component here, use AI to auto-generate, import from existing bookings, or add items manually.
               </p>
-              <div className="flex gap-2">
-                <Button onClick={() => setAiPromptOpen(true)}>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {parentTripId && (
+                  <Button
+                    onClick={async () => {
+                      setSyncing(true);
+                      await syncFromParent(parentTripId);
+                      setSyncing(false);
+                    }}
+                    disabled={syncing}
+                  >
+                    <Import className="h-4 w-4 mr-2" /> {syncing ? "Syncing..." : "Sync from Group"}
+                  </Button>
+                )}
+                <Button variant={parentTripId ? "outline" : "default"} onClick={() => setAiPromptOpen(true)}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate with AI
                 </Button>
                 {unimportedBookings.length > 0 && (

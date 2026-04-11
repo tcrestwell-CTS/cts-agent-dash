@@ -306,6 +306,7 @@ const ItineraryBuilder = () => {
                   <TripItinerary
                     tripId={tripId!}
                     itineraryId={activeId}
+                    parentTripId={trip.parent_trip_id}
                     destination={trip.destination}
                     departDate={activeDepartDate}
                     returnDate={activeReturnDate}
