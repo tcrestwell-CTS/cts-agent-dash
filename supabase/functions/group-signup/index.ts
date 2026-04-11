@@ -341,6 +341,39 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Copy parent trip itinerary items to sub-trip
+      const { data: parentItems } = await supabaseAdmin
+        .from("itinerary_items")
+        .select("*")
+        .eq("trip_id", parentTrip.id)
+        .order("day_number", { ascending: true })
+        .order("sort_order", { ascending: true });
+
+      if (parentItems && parentItems.length > 0) {
+        const itineraryInserts = parentItems.map((item: any, idx: number) => ({
+          trip_id: subTrip.id,
+          user_id: parentTrip.user_id,
+          day_number: item.day_number,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          location: item.location,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          item_date: item.item_date,
+          notes: item.notes,
+          sort_order: item.sort_order ?? idx,
+        }));
+
+        const { error: itinErr } = await supabaseAdmin
+          .from("itinerary_items")
+          .insert(itineraryInserts);
+
+        if (itinErr) {
+          console.error("Failed to copy itinerary:", itinErr);
+        }
+      }
+
       // Create a notification for the agent
       await supabaseAdmin.from("agent_notifications").insert({
         user_id: parentTrip.user_id,
