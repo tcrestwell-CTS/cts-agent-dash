@@ -2396,6 +2396,90 @@ export type Database = {
           },
         ]
       }
+      issued_cards: {
+        Row: {
+          agent_email: string
+          agent_name: string
+          amount_spent_cents: number | null
+          booking_id: string | null
+          booking_ref: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          card_type: string | null
+          created_at: string | null
+          currency: string | null
+          expires_at: string
+          id: string
+          last_transaction_at: string | null
+          purpose: string | null
+          raw_stripe_response: Json | null
+          spend_limit_cents: number
+          status: string | null
+          stripe_card_id: string
+          stripe_card_number: string | null
+          stripe_cardholder_id: string | null
+          supplier_category: string | null
+          supplier_name: string | null
+          transaction_count: number | null
+          trip_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_email: string
+          agent_name: string
+          amount_spent_cents?: number | null
+          booking_id?: string | null
+          booking_ref?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          card_type?: string | null
+          created_at?: string | null
+          currency?: string | null
+          expires_at: string
+          id?: string
+          last_transaction_at?: string | null
+          purpose?: string | null
+          raw_stripe_response?: Json | null
+          spend_limit_cents: number
+          status?: string | null
+          stripe_card_id: string
+          stripe_card_number?: string | null
+          stripe_cardholder_id?: string | null
+          supplier_category?: string | null
+          supplier_name?: string | null
+          transaction_count?: number | null
+          trip_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_email?: string
+          agent_name?: string
+          amount_spent_cents?: number | null
+          booking_id?: string | null
+          booking_ref?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          card_type?: string | null
+          created_at?: string | null
+          currency?: string | null
+          expires_at?: string
+          id?: string
+          last_transaction_at?: string | null
+          purpose?: string | null
+          raw_stripe_response?: Json | null
+          spend_limit_cents?: number
+          status?: string | null
+          stripe_card_id?: string
+          stripe_card_number?: string | null
+          stripe_cardholder_id?: string | null
+          supplier_category?: string | null
+          supplier_name?: string | null
+          transaction_count?: number | null
+          trip_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       itineraries: {
         Row: {
           cover_image_url: string | null
