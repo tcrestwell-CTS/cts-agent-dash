@@ -47,6 +47,7 @@ const categoryColors: Record<string, string> = {
 interface Props {
   tripId: string;
   itineraryId?: string | null;
+  parentTripId?: string | null;
   destination: string | null;
   departDate: string | null;
   returnDate: string | null;
