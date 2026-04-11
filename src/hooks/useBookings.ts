@@ -228,7 +228,25 @@ export function useBookings() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setBookings((data as any) || []);
+      const mapped = (data || []).map((raw: any) => {
+        const trip = raw.trips;
+        const client = trip?.clients ?? null;
+        return {
+          ...raw,
+          booking_reference: raw.confirmation_number,
+          total_amount: raw.total_price ?? 0,
+          destination: trip?.destination ?? "",
+          depart_date: trip?.depart_date ?? "",
+          return_date: trip?.return_date ?? "",
+          trip_name: trip?.trip_name ?? null,
+          client_id: trip?.client_id ?? null,
+          clients: client,
+          travelers: 1,
+          owner_agent: null,
+          supplier_payout: raw.supplier_payout ?? 0,
+        };
+      });
+      setBookings(mapped);
     } catch (error) {
       console.error("Error fetching bookings:", error);
     } finally {
