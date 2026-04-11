@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
       // Find the parent trip
       const { data: parentTrip, error: tripErr } = await supabaseAdmin
         .from("trips")
-        .select("id, user_id, trip_name, destination, depart_date, return_date, trip_type, group_landing_enabled")
+        .select("id, user_id, trip_name, destination, depart_date, return_date, trip_type, group_landing_enabled, cover_image_url")
         .eq("share_token", signupToken)
         .eq("trip_type", "group")
         .eq("group_landing_enabled", true)
@@ -255,6 +255,7 @@ Deno.serve(async (req) => {
           client_id: clientId,
           notes: notes?.trim() || null,
           selected_cabin_option_id: selected_cabin_option_id || null,
+          cover_image_url: parentTrip.cover_image_url,
         })
         .select("id")
         .single();
