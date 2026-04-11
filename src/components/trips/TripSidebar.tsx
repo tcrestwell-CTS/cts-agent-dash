@@ -213,7 +213,7 @@ export function TripSidebar({
         )}
 
         {/* Delete Trip */}
-        {(tripStatus === "cancelled" || tripStatus === "archived") && onDelete && (
+        {onDelete && (
           <div className="pt-2 border-t">
             {hasPayments ? (
               <TooltipProvider>
