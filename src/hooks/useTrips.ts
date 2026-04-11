@@ -62,6 +62,12 @@ export interface TripBooking {
   commission_estimate: number;
   supplier_id: string | null;
   supplier_confirmation_number?: string | null;
+  supplier_payout?: number | null;
+  supplier_paid_status?: string;
+  supplier_paid_date?: string | null;
+  supplier_paid_amount?: number | null;
+  supplier_paid_method?: string | null;
+  supplier_paid_reference?: string | null;
   suppliers?: {
     id: string;
     name: string;
@@ -423,6 +429,12 @@ export function useTrip(tripId: string | undefined) {
           commission_estimate,
           supplier_id,
           supplier_confirmation_number,
+          supplier_payout,
+          supplier_paid_status,
+          supplier_paid_date,
+          supplier_paid_amount,
+          supplier_paid_method,
+          supplier_paid_reference,
           suppliers (
             id,
             name,
