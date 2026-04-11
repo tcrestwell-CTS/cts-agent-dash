@@ -333,6 +333,22 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
           </DialogContent>
         </Dialog>
 
+        {parentTripId && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={syncing}
+            onClick={async () => {
+              setSyncing(true);
+              await syncFromParent(parentTripId);
+              setSyncing(false);
+            }}
+          >
+            <Import className="h-4 w-4 mr-2" />
+            {syncing ? "Syncing..." : "Sync from Group"}
+          </Button>
+        )}
+
         {unimportedBookings.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => importFromBookings(unimportedBookings)}>
             <Import className="h-4 w-4 mr-2" /> Import Bookings ({unimportedBookings.length})
