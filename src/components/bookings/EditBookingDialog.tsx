@@ -122,6 +122,7 @@ export function EditBookingDialog({
   );
   const [localLines, setLocalLines] = useState<LocalMarginLine[]>([]);
   const [financialsDirty, setFinancialsDirty] = useState(false);
+  const [marginValid, setMarginValid] = useState(true);
 
   useEffect(() => {
     if (booking) {
@@ -168,6 +169,10 @@ export function EditBookingDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!booking || !user) return;
+    if (!marginValid) {
+      toast.error("Pass-through lines require at least one line with margin. Add a service fee or markup.");
+      return;
+    }
     setSaving(true);
     try {
       const hasManualLines = localLines.length > 0;
@@ -408,6 +413,7 @@ export function EditBookingDialog({
                     onChange={setLocalLines}
                     rules={activeRules}
                     supplierId={formData.supplier_id || null}
+                    onMarginValid={setMarginValid}
                   />
                 </div>
               )}
@@ -416,7 +422,7 @@ export function EditBookingDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !marginValid}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
             </Button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -424,9 +424,10 @@ interface MarginLinesEditorProps {
   readOnly?: boolean;
   rules?: AgencyMarginRule[];
   supplierId?: string | null;
+  onMarginValid?: (valid: boolean) => void;
 }
 
-export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null }: MarginLinesEditorProps) {
+export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null, onMarginValid }: MarginLinesEditorProps) {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
 
@@ -453,6 +454,13 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
   const totalCost = lines.reduce((s, l) => s + l._preview_total_cost, 0);
   const totalMargin = lines.reduce((s, l) => s + l._preview_margin, 0);
   const marginPct = totalSell > 0 ? (totalMargin / totalSell) * 100 : 0;
+  const hasPassThrough = lines.some(l => l.is_pass_through);
+  const needsMargin = hasPassThrough && totalMargin <= 0 && lines.length > 0;
+
+  // Notify parent of margin validity
+  useEffect(() => {
+    onMarginValid?.(!needsMargin);
+  }, [needsMargin, onMarginValid]);
 
   return (
     <div className="space-y-3">
@@ -575,7 +583,13 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
           <div className="flex justify-center">
             <Switch
               checked={line.is_pass_through}
-              onCheckedChange={(v) => updateLine(line.id, { is_pass_through: v })}
+              onCheckedChange={(v) => {
+                const patch: Partial<LocalMarginLine> = { is_pass_through: v };
+                if (v) {
+                  patch.unit_sell = line.unit_cost;
+                }
+                updateLine(line.id, patch);
+              }}
               disabled={readOnly}
               className="scale-75"
             />
@@ -614,6 +628,11 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
           <Badge variant="outline" className="text-xs text-muted-foreground">
             Preview — final values set by backend
           </Badge>
+          {needsMargin && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              ⚠ Pass-through lines require at least one line with margin. Add a service fee or markup line to proceed.
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">Total Sell</p>
