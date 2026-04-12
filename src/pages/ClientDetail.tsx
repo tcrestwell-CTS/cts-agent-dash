@@ -46,6 +46,7 @@ import {
   Link2,
   ClipboardEdit,
   Send,
+  ChevronDown,
 } from "lucide-react";
 import { useClient, useDeleteClient, useUpdateClient } from "@/hooks/useClients";
 import { PageBanner } from "@/components/layout/PageBanner";
