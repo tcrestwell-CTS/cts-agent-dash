@@ -41,6 +41,7 @@ import {
 import { Link } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { useClients } from "@/hooks/useClients";
+import { useCompanions } from "@/hooks/useCompanions";
 import {
   useTripTravelers,
   useCreateTripTraveler,
