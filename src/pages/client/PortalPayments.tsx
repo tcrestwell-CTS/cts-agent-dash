@@ -171,13 +171,11 @@ export default function PortalPayments() {
           toast.success("Affirm approved! Your agent has been notified.");
 
           try {
-            const portalSession = localStorage.getItem("portal_session");
-            const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+            const headers = await getAuthHeaders();
 
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-virtual-card`, {
               method: "POST",
-              headers: {
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              headers,
                 "x-portal-token": portalToken || "",
                 "Content-Type": "application/json",
               },
@@ -396,15 +394,10 @@ export default function PortalPayments() {
                 setShowMethodDialog(false);
                 toast.info("Preparing your authorization form...");
                 try {
-                  const portalSession = localStorage.getItem("portal_session");
-                  const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+                  const headers = await getAuthHeaders();
                   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=notify-payment-method`, {
                     method: "POST",
-                    headers: {
-                      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                      "x-portal-token": portalToken || "",
-                      "Content-Type": "application/json",
-                    },
+                    headers,
                     body: JSON.stringify({
                       tripId: selectedPayment?.trip_id,
                       paymentId: selectedPayment?.id,
