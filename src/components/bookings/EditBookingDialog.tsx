@@ -169,6 +169,10 @@ export function EditBookingDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!booking || !user) return;
+    if (!marginValid) {
+      toast.error("Pass-through lines require at least one line with margin. Add a service fee or markup.");
+      return;
+    }
     setSaving(true);
     try {
       const hasManualLines = localLines.length > 0;
@@ -409,6 +413,7 @@ export function EditBookingDialog({
                     onChange={setLocalLines}
                     rules={activeRules}
                     supplierId={formData.supplier_id || null}
+                    onMarginValid={setMarginValid}
                   />
                 </div>
               )}
