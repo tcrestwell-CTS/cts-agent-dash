@@ -427,7 +427,7 @@ interface MarginLinesEditorProps {
   onMarginValid?: (valid: boolean) => void;
 }
 
-export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null }: MarginLinesEditorProps) {
+export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null, onMarginValid }: MarginLinesEditorProps) {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(v);
 
