@@ -37,11 +37,19 @@ import {
   Pencil,
   Crown,
   ChevronRight,
+  ChevronDown,
+  Cake,
+  Mail,
+  Phone,
+  MapPin,
+  Shield,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useClients } from "@/hooks/useClients";
 import { useCompanions } from "@/hooks/useCompanions";
+import { format, differenceInYears } from "date-fns";
 import {
   useTripTravelers,
   useCreateTripTraveler,
