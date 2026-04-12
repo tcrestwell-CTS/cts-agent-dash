@@ -575,7 +575,13 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
           <div className="flex justify-center">
             <Switch
               checked={line.is_pass_through}
-              onCheckedChange={(v) => updateLine(line.id, { is_pass_through: v })}
+              onCheckedChange={(v) => {
+                const patch: Partial<LocalMarginLine> = { is_pass_through: v };
+                if (v) {
+                  patch.unit_sell = line.unit_cost;
+                }
+                updateLine(line.id, patch);
+              }}
               disabled={readOnly}
               className="scale-75"
             />
