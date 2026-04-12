@@ -48,11 +48,9 @@ export function StripeVirtualCardButton({
   const [expirationDays, setExpirationDays] = useState("14");
   const [issueNotes, setIssueNotes] = useState("");
 
-  const isStripePaid =
-    paymentStatus === "paid" &&
-    (paymentMethodChoice === "stripe" || (!paymentMethodChoice && paymentMethod === "stripe"));
-
-  if (!isStripePaid) return null;
+  // Show Issue Card for any paid payment — the agent may want to pay the supplier via virtual card
+  // regardless of how the client originally paid
+  if (paymentStatus !== "paid") return null;
 
   const hasCard = virtualCardId && virtualCardStatus === "ready";
   const isCardUsed = virtualCardStatus === "used" || virtualCardStatus === "canceled";
