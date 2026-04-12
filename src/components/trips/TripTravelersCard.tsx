@@ -41,6 +41,7 @@ import {
 import { Link } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { useClients } from "@/hooks/useClients";
+import { useCompanions } from "@/hooks/useCompanions";
 import {
   useTripTravelers,
   useCreateTripTraveler,
@@ -90,6 +91,7 @@ const emptyForm = {
 
 export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCardProps) {
   const { data: travelers = [], isLoading } = useTripTravelers(tripId);
+  const { data: companions = [] } = useCompanions(clientId || undefined);
   const { data: allClients = [] } = useClients();
   const createTraveler = useCreateTripTraveler();
   const updateTraveler = useUpdateTripTraveler();
@@ -324,6 +326,65 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               </div>
             ))}
           </div>
+
+          {/* Travel Companions from client profile */}
+          {(() => {
+            // Filter out companions already added as trip travelers (by name match)
+            const travelerNames = new Set(
+              travelers.map((t) => `${t.first_name}|${t.last_name || ""}`.toLowerCase())
+            );
+            const unlinkedCompanions = companions.filter(
+              (c) => !travelerNames.has(`${c.first_name}|${c.last_name || ""}`.toLowerCase())
+            );
+            if (unlinkedCompanions.length === 0) return null;
+            return (
+              <>
+                <Separator />
+                <p className="text-xs font-medium text-muted-foreground pt-1">
+                  Travel Companions
+                </p>
+                <div className="space-y-2">
+                  {unlinkedCompanions.map((c) => (
+                    <div key={c.id} className="flex items-center gap-2.5 group">
+                      <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 border border-dashed border-border">
+                        <UserRound className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {c.first_name} {c.last_name || ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground capitalize">{c.relationship}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          createTraveler.mutate({
+                            trip_id: tripId,
+                            client_id: clientId,
+                            first_name: c.first_name,
+                            last_name: c.last_name,
+                            relationship: c.relationship,
+                            email: c.email,
+                            phone: c.phone,
+                            birthday: c.birthday,
+                            known_traveler_number: c.known_traveler_number,
+                            passport_info: c.passport_info,
+                            notes: c.notes,
+                          });
+                        }}
+                        disabled={createTraveler.isPending}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
