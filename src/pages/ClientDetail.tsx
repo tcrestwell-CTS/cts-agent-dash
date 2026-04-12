@@ -523,55 +523,24 @@ const ClientDetail = () => {
       </PageBanner>
 
       <div className="space-y-6">
-        {/* Quick Copy Card */}
+        {/* Travelers Card */}
         {!isEditing && (
-          <Card className="border-dashed">
-            <CardContent className="py-3 px-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-6 flex-wrap text-sm min-w-0">
-                  <span className="font-medium">{client.name}</span>
-                  {client.birthday && (
-                    <span className="text-muted-foreground">
-                      DOB: {format(new Date(client.birthday), "MM/dd/yyyy")}
-                    </span>
-                  )}
-                  {hasAddress && (
-                    <span className="text-muted-foreground truncate">
-                      {[client.address_line_1, client.address_city, client.address_state, client.address_zip_code]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </span>
-                  )}
-                  {client.phone && (
-                    <span className="text-muted-foreground">{client.phone}</span>
-                  )}
-                  {client.email && (
-                    <span className="text-muted-foreground">{client.email}</span>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 h-7 text-xs gap-1.5"
-                  onClick={() => {
-                    const lines = [
-                      client.name,
-                      client.birthday ? `DOB: ${format(new Date(client.birthday), "MM/dd/yyyy")}` : null,
-                      [client.address_line_1, client.address_line_2].filter(Boolean).join(", ") || null,
-                      [client.address_city, client.address_state, client.address_zip_code].filter(Boolean).join(", ") || null,
-                      client.phone ? `Phone: ${client.phone}` : null,
-                      client.email ? `Email: ${client.email}` : null,
-                    ].filter(Boolean).join("\n");
-                    navigator.clipboard.writeText(lines);
-                    toast.success("Client info copied to clipboard");
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  Copy All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <TravelersInfoCard
+            client={client}
+            companions={companions}
+            companionsLoading={companionsLoading}
+            onAddCompanion={() => {
+              setEditingCompanion(null);
+              setCompanionDialogOpen(true);
+            }}
+            onEditCompanion={(c) => {
+              setEditingCompanion(c);
+              setCompanionDialogOpen(true);
+            }}
+            onDeleteCompanion={(c) => {
+              if (clientId) deleteCompanion.mutate({ id: c.id, clientId });
+            }}
+          />
         )}
 
         {/* Row 1: Personal Info + Contact + Address */}
