@@ -36,13 +36,7 @@ import {
   UserRound,
   Pencil,
   Crown,
-  ChevronRight,
   ChevronDown,
-  Cake,
-  Mail,
-  Phone,
-  MapPin,
-  Shield,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -83,15 +77,8 @@ interface TripTravelersCardProps {
 }
 
 const RELATIONSHIPS = [
-  "traveler",
-  "spouse",
-  "partner",
-  "child",
-  "parent",
-  "sibling",
-  "friend",
-  "colleague",
-  "other",
+  "traveler", "spouse", "partner", "child", "parent",
+  "sibling", "friend", "colleague", "other",
 ];
 
 const emptyForm = {
@@ -118,7 +105,11 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTraveler, setEditingTraveler] = useState<TripTraveler | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [nameSearch, setNameSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
   const formatDob = (birthday: string | null | undefined) => {
@@ -133,11 +124,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
       .filter(Boolean)
       .join(", ");
   };
-  const [nameSearch, setNameSearch] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Filter clients by typed name (min 2 chars)
   const clientSuggestions = nameSearch.trim().length >= 2
     ? allClients.filter((c) => {
         const full = `${c.first_name || ""} ${c.last_name || ""} ${c.name}`.toLowerCase();
@@ -269,10 +256,14 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-2 pt-0">
+        <CardContent className="space-y-1 pt-0">
+          {/* Primary client - expandable */}
           {client && (
             <>
-              <div className="flex items-center gap-2.5 group">
+              <button
+                onClick={() => toggleExpand("client")}
+                className="w-full flex items-center gap-2.5 py-2 text-left hover:bg-muted/50 rounded-lg px-1.5 transition-colors"
+              >
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-semibold text-primary">
                     {getInitials(client.name.split(" ")[0], client.name.split(" ")[1])}
@@ -281,88 +272,173 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-medium truncate">{client.name}</p>
-                    <Crown className="h-3 w-3 text-yellow-500 shrink-0" />
+                    <Crown className="h-3 w-3 text-amber-500 shrink-0" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Primary client</p>
+                  {client.email && (
+                    <p className="text-xs text-muted-foreground truncate">{client.email}</p>
+                  )}
                 </div>
-                <Link to={`/contacts/${client.id}`}>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                </Link>
-              </div>
-              {travelers.length > 0 && <Separator />}
+                <Badge variant="secondary" className="text-[10px] shrink-0">Primary</Badge>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedId === "client" ? "rotate-180" : ""}`} />
+              </button>
+              {expandedId === "client" && (
+                <div className="space-y-1.5 pb-2 pl-12">
+                  {client.birthday && (
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">Birthday</p>
+                      <p className="text-xs select-all">{formatDob(client.birthday)}</p>
+                    </div>
+                  )}
+                  {getAddress(client) && (
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">Address</p>
+                      <p className="text-xs select-all">{getAddress(client)}</p>
+                    </div>
+                  )}
+                  {client.email && (
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">Email</p>
+                      <p className="text-xs select-all">{client.email}</p>
+                    </div>
+                  )}
+                  {client.phone && (
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">Phone</p>
+                      <p className="text-xs select-all">{client.phone}</p>
+                    </div>
+                  )}
+                  {client.known_traveler_number && (
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground">Known Traveler #</p>
+                      <p className="text-xs select-all">{client.known_traveler_number}</p>
+                    </div>
+                  )}
+                  <div className="pt-1">
+                    <Link to={`/contacts/${client.id}`} className="text-xs text-primary hover:underline">
+                      View full profile →
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {(travelers.length > 0 || companions.length > 0) && <Separator />}
             </>
           )}
 
-          {travelers.length === 0 && !isLoading && (
+          {travelers.length === 0 && !isLoading && companions.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-3">
               {client ? "No additional travelers yet" : "No travelers added yet"}
             </p>
           )}
 
-          <div className="space-y-2">
+          {/* Trip travelers - expandable */}
+          <div className="space-y-1">
             {travelers.map((t) => (
-              <div key={t.id} className="flex items-center gap-2.5 group">
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  {t.is_primary ? (
-                    <Crown className="h-4 w-4 text-amber-500" />
-                  ) : (
-                    <UserRound className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {t.first_name} {t.last_name || ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground capitalize">{t.relationship}</p>
-                  {t.email && (
-                    <p className="text-xs text-muted-foreground truncate">{t.email}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                    onClick={() => openEdit(t)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+              <div key={t.id}>
+                <button
+                  onClick={() => toggleExpand(t.id)}
+                  className="w-full flex items-center gap-2.5 py-2 text-left hover:bg-muted/50 rounded-lg px-1.5 transition-colors group"
+                >
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    {t.is_primary ? (
+                      <Crown className="h-4 w-4 text-amber-500" />
+                    ) : (
+                      <UserRound className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {t.first_name} {t.last_name || ""}
+                    </p>
+                    {t.email && (
+                      <p className="text-xs text-muted-foreground truncate">{t.email}</p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="text-[10px] shrink-0 capitalize">
+                    {t.relationship}
+                  </Badge>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedId === t.id ? "rotate-180" : ""}`} />
+                </button>
+                {expandedId === t.id && (
+                  <div className="space-y-1.5 pb-2 pl-12">
+                    {t.birthday && (
+                      <div>
+                        <p className="text-[10px] font-medium text-muted-foreground">Birthday</p>
+                        <p className="text-xs select-all">{formatDob(t.birthday)}</p>
+                      </div>
+                    )}
+                    {t.email && (
+                      <div>
+                        <p className="text-[10px] font-medium text-muted-foreground">Email</p>
+                        <p className="text-xs select-all">{t.email}</p>
+                      </div>
+                    )}
+                    {t.phone && (
+                      <div>
+                        <p className="text-[10px] font-medium text-muted-foreground">Phone</p>
+                        <p className="text-xs select-all">{t.phone}</p>
+                      </div>
+                    )}
+                    {t.known_traveler_number && (
+                      <div>
+                        <p className="text-[10px] font-medium text-muted-foreground">Known Traveler #</p>
+                        <p className="text-xs select-all">{t.known_traveler_number}</p>
+                      </div>
+                    )}
+                    {t.passport_info && (
+                      <div>
+                        <p className="text-[10px] font-medium text-muted-foreground">Passport</p>
+                        <p className="text-xs select-all">{t.passport_info}</p>
+                      </div>
+                    )}
+                    <div className="pt-1 flex gap-2">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={(e) => { e.stopPropagation(); openEdit(t); }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove Traveler?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove {t.first_name} from this trip.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => deleteTraveler.mutate({ id: t.id, tripId })}
-                        >
-                          Remove
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-xs px-2 text-destructive hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Remove
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Traveler?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove {t.first_name} from this trip.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => deleteTraveler.mutate({ id: t.id, tripId })}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
           {/* Travel Companions from client profile */}
           {(() => {
-            // Filter out companions already added as trip travelers (by name match)
             const travelerNames = new Set(
               travelers.map((t) => `${t.first_name}|${t.last_name || ""}`.toLowerCase())
             );
@@ -376,9 +452,9 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 <p className="text-xs font-medium text-muted-foreground pt-1">
                   Travel Companions
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {unlinkedCompanions.map((c) => (
-                    <div key={c.id} className="flex items-center gap-2.5 group">
+                    <div key={c.id} className="flex items-center gap-2.5 py-2 px-1.5 group hover:bg-muted/50 rounded-lg transition-colors">
                       <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 border border-dashed border-border">
                         <UserRound className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -432,7 +508,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Name row with autocomplete on First Name */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">First Name *</Label>
@@ -476,7 +551,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               </div>
             </div>
 
-            {/* Relationship */}
             <div className="space-y-1.5">
               <Label className="text-xs">Relationship</Label>
               <Select
@@ -496,7 +570,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               </Select>
             </div>
 
-            {/* Contact */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Email</Label>
@@ -518,7 +591,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               </div>
             </div>
 
-            {/* Travel info */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Birthday</Label>
@@ -557,7 +629,6 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               />
             </div>
 
-            {/* Primary toggle */}
             <div className="flex items-center gap-2 pt-1">
               <input
                 id="is_primary"
