@@ -91,6 +91,7 @@ const emptyForm = {
 
 export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCardProps) {
   const { data: travelers = [], isLoading } = useTripTravelers(tripId);
+  const { data: companions = [] } = useCompanions(clientId || undefined);
   const { data: allClients = [] } = useClients();
   const createTraveler = useCreateTripTraveler();
   const updateTraveler = useUpdateTripTraveler();
