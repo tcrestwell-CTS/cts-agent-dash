@@ -71,7 +71,7 @@ export default function PortalPayments() {
     setShowMethodDialog(false);
 
     try {
-      const headers = await getAuthHeaders();
+      const headers = await getPortalAuthHeaders(session, { includeContentType: true });
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
         method: "POST",
@@ -148,7 +148,7 @@ export default function PortalPayments() {
           toast.success("Affirm approved! Your agent has been notified.");
 
           try {
-            const headers = await getAuthHeaders();
+            const headers = await getPortalAuthHeaders(session, { includeContentType: true });
 
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-virtual-card`, {
               method: "POST",
@@ -368,7 +368,7 @@ export default function PortalPayments() {
                 setShowMethodDialog(false);
                 toast.info("Preparing your authorization form...");
                 try {
-                  const headers = await getAuthHeaders();
+                  const headers = await getPortalAuthHeaders(session, { includeContentType: true });
                   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=notify-payment-method`, {
                     method: "POST",
                     headers,
