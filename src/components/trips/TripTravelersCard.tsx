@@ -359,36 +359,11 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 </button>
                 {expandedId === t.id && (
                   <div className="space-y-1.5 pb-2 pl-12">
-                    {t.birthday && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Birthday</p>
-                        <p className="text-xs select-all">{formatDob(t.birthday)}</p>
-                      </div>
-                    )}
-                    {t.email && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Email</p>
-                        <p className="text-xs select-all">{t.email}</p>
-                      </div>
-                    )}
-                    {t.phone && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Phone</p>
-                        <p className="text-xs select-all">{t.phone}</p>
-                      </div>
-                    )}
-                    {t.known_traveler_number && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Known Traveler #</p>
-                        <p className="text-xs select-all">{t.known_traveler_number}</p>
-                      </div>
-                    )}
-                    {t.passport_info && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Passport</p>
-                        <p className="text-xs select-all">{t.passport_info}</p>
-                      </div>
-                    )}
+                    {t.birthday && <DetailRow label="Birthday" value={formatDob(t.birthday)!} />}
+                    {t.email && <DetailRow label="Email" value={t.email} />}
+                    {t.phone && <DetailRow label="Phone" value={t.phone} />}
+                    {t.known_traveler_number && <DetailRow label="Known Traveler #" value={t.known_traveler_number} />}
+                    {t.passport_info && <DetailRow label="Passport" value={t.passport_info} />}
                     <div className="pt-1 flex gap-2">
                       <Button
                         variant="outline"
