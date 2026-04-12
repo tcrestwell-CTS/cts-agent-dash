@@ -62,8 +62,18 @@ interface Client {
   id: string;
   name: string;
   email?: string | null;
+  phone?: string | null;
   first_name?: string | null;
   last_name?: string | null;
+  birthday?: string | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_zip_code?: string | null;
+  address_country?: string | null;
+  known_traveler_number?: string | null;
+  passport_info?: string | null;
 }
 
 interface TripTravelersCardProps {
