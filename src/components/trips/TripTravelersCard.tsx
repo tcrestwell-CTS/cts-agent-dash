@@ -37,7 +37,9 @@ import {
   Pencil,
   Crown,
   ChevronDown,
+  Copy,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -111,6 +113,28 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
+
+  const copyToClipboard = (value: string, label: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  };
+
+  const DetailRow = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs select-all">{value}</p>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-5 w-5 shrink-0 mt-1"
+        onClick={(e) => { e.stopPropagation(); copyToClipboard(value, label); }}
+      >
+        <Copy className="h-3 w-3" />
+      </Button>
+    </div>
+  );
 
   const formatDob = (birthday: string | null | undefined) => {
     if (!birthday) return null;
@@ -283,36 +307,11 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               </button>
               {expandedId === "client" && (
                 <div className="space-y-1.5 pb-2 pl-12">
-                  {client.birthday && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Birthday</p>
-                      <p className="text-xs select-all">{formatDob(client.birthday)}</p>
-                    </div>
-                  )}
-                  {getAddress(client) && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Address</p>
-                      <p className="text-xs select-all">{getAddress(client)}</p>
-                    </div>
-                  )}
-                  {client.email && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Email</p>
-                      <p className="text-xs select-all">{client.email}</p>
-                    </div>
-                  )}
-                  {client.phone && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Phone</p>
-                      <p className="text-xs select-all">{client.phone}</p>
-                    </div>
-                  )}
-                  {client.known_traveler_number && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Known Traveler #</p>
-                      <p className="text-xs select-all">{client.known_traveler_number}</p>
-                    </div>
-                  )}
+                  {client.birthday && <DetailRow label="Birthday" value={formatDob(client.birthday)!} />}
+                  {getAddress(client) && <DetailRow label="Address" value={getAddress(client)} />}
+                  {client.email && <DetailRow label="Email" value={client.email} />}
+                  {client.phone && <DetailRow label="Phone" value={client.phone} />}
+                  {client.known_traveler_number && <DetailRow label="Known Traveler #" value={client.known_traveler_number} />}
                   <div className="pt-1">
                     <Link to={`/contacts/${client.id}`} className="text-xs text-primary hover:underline">
                       View full profile →
@@ -360,36 +359,11 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 </button>
                 {expandedId === t.id && (
                   <div className="space-y-1.5 pb-2 pl-12">
-                    {t.birthday && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Birthday</p>
-                        <p className="text-xs select-all">{formatDob(t.birthday)}</p>
-                      </div>
-                    )}
-                    {t.email && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Email</p>
-                        <p className="text-xs select-all">{t.email}</p>
-                      </div>
-                    )}
-                    {t.phone && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Phone</p>
-                        <p className="text-xs select-all">{t.phone}</p>
-                      </div>
-                    )}
-                    {t.known_traveler_number && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Known Traveler #</p>
-                        <p className="text-xs select-all">{t.known_traveler_number}</p>
-                      </div>
-                    )}
-                    {t.passport_info && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground">Passport</p>
-                        <p className="text-xs select-all">{t.passport_info}</p>
-                      </div>
-                    )}
+                    {t.birthday && <DetailRow label="Birthday" value={formatDob(t.birthday)!} />}
+                    {t.email && <DetailRow label="Email" value={t.email} />}
+                    {t.phone && <DetailRow label="Phone" value={t.phone} />}
+                    {t.known_traveler_number && <DetailRow label="Known Traveler #" value={t.known_traveler_number} />}
+                    {t.passport_info && <DetailRow label="Passport" value={t.passport_info} />}
                     <div className="pt-1 flex gap-2">
                       <Button
                         variant="outline"
