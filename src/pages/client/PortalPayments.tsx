@@ -94,17 +94,11 @@ export default function PortalPayments() {
     setShowMethodDialog(false);
 
     try {
-      const portalSession = localStorage.getItem("portal_session");
-      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+      const headers = await getAuthHeaders();
 
-      // Record the client's payment method choice
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
         method: "POST",
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "x-portal-token": portalToken || "",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           paymentId: selectedPayment.id,
           returnUrl: window.location.origin + "/client/payments",
