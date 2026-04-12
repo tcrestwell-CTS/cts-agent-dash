@@ -307,36 +307,11 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
               </button>
               {expandedId === "client" && (
                 <div className="space-y-1.5 pb-2 pl-12">
-                  {client.birthday && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Birthday</p>
-                      <p className="text-xs select-all">{formatDob(client.birthday)}</p>
-                    </div>
-                  )}
-                  {getAddress(client) && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Address</p>
-                      <p className="text-xs select-all">{getAddress(client)}</p>
-                    </div>
-                  )}
-                  {client.email && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Email</p>
-                      <p className="text-xs select-all">{client.email}</p>
-                    </div>
-                  )}
-                  {client.phone && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Phone</p>
-                      <p className="text-xs select-all">{client.phone}</p>
-                    </div>
-                  )}
-                  {client.known_traveler_number && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground">Known Traveler #</p>
-                      <p className="text-xs select-all">{client.known_traveler_number}</p>
-                    </div>
-                  )}
+                  {client.birthday && <DetailRow label="Birthday" value={formatDob(client.birthday)!} />}
+                  {getAddress(client) && <DetailRow label="Address" value={getAddress(client)} />}
+                  {client.email && <DetailRow label="Email" value={client.email} />}
+                  {client.phone && <DetailRow label="Phone" value={client.phone} />}
+                  {client.known_traveler_number && <DetailRow label="Known Traveler #" value={client.known_traveler_number} />}
                   <div className="pt-1">
                     <Link to={`/contacts/${client.id}`} className="text-xs text-primary hover:underline">
                       View full profile →
