@@ -32,12 +32,36 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 
 export default function PortalPayments() {
   const { data, isLoading, refetch } = usePortalPayments();
+  const { session } = usePortalAuth();
   const payments = data?.payments || [];
   const [payingId, setPayingId] = useState<string | null>(null);
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [affirmLoading, setAffirmLoading] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
+
+  /** Build correct auth headers for edge function calls */
+  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    // Supabase Auth session (Google, email/password)
+    if (session?.authUser) {
+      const { data: { session: supaSession } } = await supabase.auth.getSession();
+      if (supaSession?.access_token) {
+        return {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${supaSession.access_token}`,
+          "Content-Type": "application/json",
+        };
+      }
+    }
+    // Legacy portal token
+    const portalSession = localStorage.getItem("portal_session");
+    const portalToken = portalSession ? JSON.parse(portalSession).token : "";
+    return {
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      "x-portal-token": portalToken || "",
+      "Content-Type": "application/json",
+    };
+  }, [session]);
 
   /**
    * Opens the payment agreement step first before showing payment methods.
