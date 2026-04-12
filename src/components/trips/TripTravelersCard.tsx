@@ -428,40 +428,57 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 </p>
                 <div className="space-y-1">
                   {unlinkedCompanions.map((c) => (
-                    <div key={c.id} className="flex items-center gap-2.5 py-2 px-1.5 group hover:bg-muted/50 rounded-lg transition-colors">
-                      <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 border border-dashed border-border">
-                        <UserRound className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {c.first_name} {c.last_name || ""}
-                        </p>
-                        <p className="text-xs text-muted-foreground capitalize">{c.relationship}</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 px-2 text-xs shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => {
-                          createTraveler.mutate({
-                            trip_id: tripId,
-                            client_id: clientId,
-                            first_name: c.first_name,
-                            last_name: c.last_name,
-                            relationship: c.relationship,
-                            email: c.email,
-                            phone: c.phone,
-                            birthday: c.birthday,
-                            known_traveler_number: c.known_traveler_number,
-                            passport_info: c.passport_info,
-                            notes: c.notes,
-                          });
-                        }}
-                        disabled={createTraveler.isPending}
+                    <div key={c.id}>
+                      <button
+                        onClick={() => toggleExpand(`comp-${c.id}`)}
+                        className="w-full flex items-center gap-2.5 py-2 text-left hover:bg-muted/50 rounded-lg px-1.5 transition-colors group"
                       >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add
-                      </Button>
+                        <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 border border-dashed border-border">
+                          <UserRound className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {c.first_name} {c.last_name || ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">{c.relationship}</p>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedId === `comp-${c.id}` ? "rotate-180" : ""}`} />
+                      </button>
+                      {expandedId === `comp-${c.id}` && (
+                        <div className="space-y-1.5 pb-2 pl-12">
+                          {c.birthday && <DetailRow label="Birthday" value={formatDob(c.birthday)!} />}
+                          {c.email && <DetailRow label="Email" value={c.email} />}
+                          {c.phone && <DetailRow label="Phone" value={c.phone} />}
+                          {c.known_traveler_number && <DetailRow label="Known Traveler #" value={c.known_traveler_number} />}
+                          {c.passport_info && <DetailRow label="Passport" value={c.passport_info} />}
+                          <div className="pt-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => {
+                                createTraveler.mutate({
+                                  trip_id: tripId,
+                                  client_id: clientId,
+                                  first_name: c.first_name,
+                                  last_name: c.last_name,
+                                  relationship: c.relationship,
+                                  email: c.email,
+                                  phone: c.phone,
+                                  birthday: c.birthday,
+                                  known_traveler_number: c.known_traveler_number,
+                                  passport_info: c.passport_info,
+                                  notes: c.notes,
+                                });
+                              }}
+                              disabled={createTraveler.isPending}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add to Trip
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
