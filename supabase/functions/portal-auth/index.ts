@@ -115,16 +115,15 @@ const handler = async (req: Request): Promise<Response> => {
         { global: { headers: { Authorization: authHeader } } }
       );
 
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
+      const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser();
+      if (authError || !authUser) {
         return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
           status: 401, headers: { ...headers, "Content-Type": "application/json" },
         });
       }
 
-      const authUserId = claimsData.claims.sub;
-      const emailFromToken = claimsData.claims.email as string | undefined;
+      const authUserId = authUser.id;
+      const emailFromToken = authUser.email;
       // Use email from verified token, falling back to body only if token has no email
       const emailLower = (emailFromToken || body.email || "").toLowerCase().trim();
 
@@ -384,15 +383,14 @@ const handler = async (req: Request): Promise<Response> => {
         { global: { headers: { Authorization: authHeader } } }
       );
 
-      const tokenStr = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(tokenStr);
-      if (claimsError || !claimsData?.claims) {
+      const { data: { user: authUser2 }, error: authError2 } = await supabaseAuth.auth.getUser();
+      if (authError2 || !authUser2) {
         return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
           status: 401, headers: { ...headers, "Content-Type": "application/json" },
         });
       }
 
-      const emailFromToken = (claimsData.claims.email as string || "").toLowerCase().trim();
+      const emailFromToken = (authUser2.email || "").toLowerCase().trim();
       if (!emailFromToken) {
         return new Response(JSON.stringify({ error: "No email in token" }), {
           status: 400, headers: { ...headers, "Content-Type": "application/json" },
