@@ -1,0 +1,1 @@
+DELETE FROM public.client_companions WHERE id = '40ca1577-2834-4563-981e-e7cb69407ec3';
