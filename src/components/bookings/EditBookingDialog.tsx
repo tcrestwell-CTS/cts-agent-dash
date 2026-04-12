@@ -122,6 +122,7 @@ export function EditBookingDialog({
   );
   const [localLines, setLocalLines] = useState<LocalMarginLine[]>([]);
   const [financialsDirty, setFinancialsDirty] = useState(false);
+  const [marginValid, setMarginValid] = useState(true);
 
   useEffect(() => {
     if (booking) {

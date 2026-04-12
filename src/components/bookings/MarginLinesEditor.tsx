@@ -628,6 +628,11 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
           <Badge variant="outline" className="text-xs text-muted-foreground">
             Preview — final values set by backend
           </Badge>
+          {needsMargin && (
+            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              ⚠ Pass-through lines require at least one line with margin. Add a service fee or markup line to proceed.
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">Total Sell</p>
