@@ -424,6 +424,7 @@ interface MarginLinesEditorProps {
   readOnly?: boolean;
   rules?: AgencyMarginRule[];
   supplierId?: string | null;
+  onMarginValid?: (valid: boolean) => void;
 }
 
 export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [], supplierId = null }: MarginLinesEditorProps) {
