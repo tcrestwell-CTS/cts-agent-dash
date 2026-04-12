@@ -1,7 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { usePortalPayments } from "@/hooks/usePortalData";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { PaymentAgreementStep } from "@/components/client/PaymentAgreementStep";
 import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
+import { getPortalAuthHeaders } from "@/lib/portalAuthHeaders";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: any; className: string }> = {
   paid: { label: "Paid", variant: "default", icon: CheckCircle2, className: "bg-green-100 text-green-700 border-green-200" },
@@ -39,37 +39,6 @@ export default function PortalPayments() {
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [affirmLoading, setAffirmLoading] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
-
-  /** Build correct auth headers for edge function calls */
-  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
-    // Supabase Auth session (Google, email/password)
-    if (session?.authUser) {
-      const { data: { session: supaSession } } = await supabase.auth.getSession();
-      if (supaSession?.access_token) {
-        return {
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${supaSession.access_token}`,
-          "Content-Type": "application/json",
-        };
-      }
-    }
-    // Legacy portal token
-    const portalSession = localStorage.getItem("portal_session");
-    const portalToken = portalSession ? JSON.parse(portalSession).token : "";
-    // FIX: only send x-portal-token if we actually have one — empty string causes 401
-    if (!portalToken) {
-      // No auth available — return anon headers and let the function handle it
-      return {
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        "Content-Type": "application/json",
-      };
-    }
-    return {
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      "x-portal-token": portalToken,
-      "Content-Type": "application/json",
-    };
-  }, [session]);
 
   /**
    * Opens the payment agreement step first before showing payment methods.

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePortalDashboard } from "@/hooks/usePortalData";
+import { usePortalAuth } from "@/contexts/PortalAuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgencyCertifications } from "@/components/shared/AgencyCertifications";
@@ -13,9 +14,11 @@ import { toast } from "sonner";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { PWAInstallPrompt } from "@/components/client/PWAInstallPrompt";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { getPortalAuthHeaders } from "@/lib/portalAuthHeaders";
 
 export default function PortalDashboard() {
   const { data, isLoading, refetch } = usePortalDashboard();
+  const { session } = usePortalAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -53,19 +56,14 @@ export default function PortalDashboard() {
   const handlePayNow = async (paymentId: string) => {
     setPayingId(paymentId);
     try {
-      const portalSession = localStorage.getItem("portal_session");
-      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+      const headers = await getPortalAuthHeaders(session, { includeContentType: true });
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
         method: "POST",
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "x-portal-token": portalToken || "",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           paymentId,
-          returnUrl: window.location.origin + "/client",
+          returnUrl: window.location.origin,
         }),
       });
 

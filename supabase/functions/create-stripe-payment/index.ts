@@ -8,6 +8,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-portal-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function getAccessiblePortalClientIds(supabase: any, seedClientId: string | null) {
+  if (!seedClientId) return [];
+
+  const { data: seedClient } = await supabase
+    .from("clients")
+    .select("id, email")
+    .eq("id", seedClientId)
+    .maybeSingle();
+
+  if (!seedClient?.email) {
+    return [seedClientId];
+  }
+
+  const { data: siblingClients } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("email", seedClient.email);
+
+  const siblingIds = siblingClients?.map((client: { id: string }) => client.id) ?? [];
+  return siblingIds.length > 0 ? [...new Set(siblingIds)] : [seedClientId];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,12 +44,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Parse body once
     const body = await req.json();
     const { paymentId, returnUrl, portalToken, embedded, paymentMethodChoice } = body;
     if (!paymentId) throw new Error("paymentId is required");
 
-    // Determine auth context: agent (Authorization header) or client (portal token)
     let isPortal = false;
     let clientId: string | null = null;
 
@@ -55,7 +75,6 @@ serve(async (req) => {
       const { data } = await anonClient.auth.getUser(token);
       if (!data.user) throw new Error("Not authenticated");
 
-      // Check if this is a portal client (has client_profiles link)
       const { data: profile } = await supabase
         .from("client_profiles")
         .select("client_id")
@@ -70,7 +89,6 @@ serve(async (req) => {
       throw new Error("No authentication provided");
     }
 
-    // Fetch the payment record
     const { data: payment, error: paymentError } = await supabase
       .from("trip_payments")
       .select("id, amount, trip_id, status, details, payment_type")
@@ -80,19 +98,20 @@ serve(async (req) => {
     if (paymentError || !payment) throw new Error("Payment not found");
     if (payment.status === "paid") throw new Error("Payment already completed");
 
-    // Get trip info
     const { data: trip } = await supabase
       .from("trips")
       .select("trip_name, client_id, user_id")
       .eq("id", payment.trip_id)
       .single();
 
-    if (isPortal && trip && trip.client_id !== clientId) {
-      throw new Error("Unauthorized: you don't have access to this payment");
+    if (isPortal && trip) {
+      const accessibleClientIds = await getAccessiblePortalClientIds(supabase, clientId);
+      if (!accessibleClientIds.includes(trip.client_id)) {
+        throw new Error("Unauthorized: you don't have access to this payment");
+      }
     }
 
-    // Get client email
-    const actualClientId = clientId || trip?.client_id;
+    const actualClientId = trip?.client_id || clientId;
     let customerEmail: string | null = null;
     if (actualClientId) {
       const { data: client } = await supabase
@@ -118,20 +137,16 @@ serve(async (req) => {
       : payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1);
     const description = `${paymentTypeLabel}${trip?.trip_name ? ` – ${trip.trip_name}` : ""}`;
 
-    // Gross up to cover Stripe processing fees (2.9% + $0.30)
-    // so the net payout equals the original payment amount
     const baseAmount = payment.amount;
     const grossedUpAmount = (baseAmount + 0.30) / (1 - 0.029);
     const chargeAmountCents = Math.round(grossedUpAmount * 100);
-    const stripeFee = +(grossedUpAmount - baseAmount).toFixed(2);
 
-    const origin = returnUrl || req.headers.get("origin") || "https://cts-agent-dash.lovable.app";
+    const appBaseUrl = returnUrl || req.headers.get("origin") || "https://cts-agent-dash.lovable.app";
     const tripIdParam = payment.trip_id ? `&trip_id=${payment.trip_id}` : "";
 
     let session: any;
 
     if (!isPortal && embedded) {
-      // Embedded checkout — renders inside the app
       session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : customerEmail || undefined,
@@ -161,20 +176,19 @@ serve(async (req) => {
         ],
         mode: "payment",
         ui_mode: "embedded",
-        return_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`,
+        return_url: `${appBaseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`,
         metadata: {
           trip_payment_id: paymentId,
           trip_id: payment.trip_id,
         },
       });
     } else {
-      // Hosted redirect mode (portal clients or fallback)
       const successUrl = isPortal
-        ? `${origin}/client?payment=success&session_id={CHECKOUT_SESSION_ID}`
-        : `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`;
+        ? `${appBaseUrl}/client?payment=success&session_id={CHECKOUT_SESSION_ID}`
+        : `${appBaseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`;
       const cancelUrl = isPortal
-        ? `${origin}/client?payment=cancelled`
-        : `${origin}/payment-success?payment=cancelled${tripIdParam}`;
+        ? `${appBaseUrl}/client?payment=cancelled`
+        : `${appBaseUrl}/payment-success?payment=cancelled${tripIdParam}`;
 
       session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -218,7 +232,6 @@ serve(async (req) => {
       stripe_payment_url: session.url || null,
     };
 
-    // Store client's payment method choice (stripe/affirm) for virtual card flow
     if (paymentMethodChoice) {
       updateData.payment_method_choice = paymentMethodChoice;
     }
