@@ -56,9 +56,17 @@ export default function PortalPayments() {
     // Legacy portal token
     const portalSession = localStorage.getItem("portal_session");
     const portalToken = portalSession ? JSON.parse(portalSession).token : "";
+    // FIX: only send x-portal-token if we actually have one — empty string causes 401
+    if (!portalToken) {
+      // No auth available — return anon headers and let the function handle it
+      return {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      };
+    }
     return {
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      "x-portal-token": portalToken || "",
+      "x-portal-token": portalToken,
       "Content-Type": "application/json",
     };
   }, [session]);
