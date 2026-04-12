@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { usePortalPayments } from "@/hooks/usePortalData";
+import { usePortalAuth } from "@/contexts/PortalAuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,12 +32,36 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 
 export default function PortalPayments() {
   const { data, isLoading, refetch } = usePortalPayments();
+  const { session } = usePortalAuth();
   const payments = data?.payments || [];
   const [payingId, setPayingId] = useState<string | null>(null);
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [affirmLoading, setAffirmLoading] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
+
+  /** Build correct auth headers for edge function calls */
+  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    // Supabase Auth session (Google, email/password)
+    if (session?.authUser) {
+      const { data: { session: supaSession } } = await supabase.auth.getSession();
+      if (supaSession?.access_token) {
+        return {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${supaSession.access_token}`,
+          "Content-Type": "application/json",
+        };
+      }
+    }
+    // Legacy portal token
+    const portalSession = localStorage.getItem("portal_session");
+    const portalToken = portalSession ? JSON.parse(portalSession).token : "";
+    return {
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      "x-portal-token": portalToken || "",
+      "Content-Type": "application/json",
+    };
+  }, [session]);
 
   /**
    * Opens the payment agreement step first before showing payment methods.
@@ -68,17 +94,11 @@ export default function PortalPayments() {
     setShowMethodDialog(false);
 
     try {
-      const portalSession = localStorage.getItem("portal_session");
-      const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+      const headers = await getAuthHeaders();
 
-      // Record the client's payment method choice
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-stripe-payment`, {
         method: "POST",
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "x-portal-token": portalToken || "",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           paymentId: selectedPayment.id,
           returnUrl: window.location.origin + "/client/payments",
@@ -151,16 +171,11 @@ export default function PortalPayments() {
           toast.success("Affirm approved! Your agent has been notified.");
 
           try {
-            const portalSession = localStorage.getItem("portal_session");
-            const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+            const headers = await getAuthHeaders();
 
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-virtual-card`, {
               method: "POST",
-              headers: {
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                "x-portal-token": portalToken || "",
-                "Content-Type": "application/json",
-              },
+              headers,
               body: JSON.stringify({
                 paymentId: selectedPayment.id,
                 method: "affirm",
@@ -376,15 +391,10 @@ export default function PortalPayments() {
                 setShowMethodDialog(false);
                 toast.info("Preparing your authorization form...");
                 try {
-                  const portalSession = localStorage.getItem("portal_session");
-                  const portalToken = portalSession ? JSON.parse(portalSession).token : null;
+                  const headers = await getAuthHeaders();
                   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=notify-payment-method`, {
                     method: "POST",
-                    headers: {
-                      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                      "x-portal-token": portalToken || "",
-                      "Content-Type": "application/json",
-                    },
+                    headers,
                     body: JSON.stringify({
                       tripId: selectedPayment?.trip_id,
                       paymentId: selectedPayment?.id,
