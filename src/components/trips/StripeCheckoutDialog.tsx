@@ -7,8 +7,11 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Stripe publishable key — public key, safe to be in frontend code
-const stripePromise = loadStripe("pk_live_51RrgVIPJljF0WNcYMZK3XH5QGmffC4LsV0e8EdSglGdrD8SlY9akQwJhBO8N2d87i574E3ONKvbsabfgKc3SDSq500gJ96MghZ");
+// Reads from VITE_STRIPE_PUBLISHABLE_KEY env var — swap test ↔ live key there
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ??
+    "pk_live_51RrgVIPJljF0WNcYMZK3XH5QGmffC4LsV0e8EdSglGdrD8SlY9akQwJhBO8N2d87i574E3ONKvbsabfgKc3SDSq500gJ96MghZ"
+);
 
 type ResultStatus = "success" | "failed" | "cancelled";
 
