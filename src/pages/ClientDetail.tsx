@@ -1265,54 +1265,7 @@ const ClientDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Travel Companions */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-medium flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Travel Companions
-            </CardTitle>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setEditingCompanion(null);
-                setCompanionDialogOpen(true);
-              }}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Companion
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {companionsLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : companions.length === 0 ? (
-              <p className="text-muted-foreground text-sm italic">No travel companions added</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {companions.map((companion) => (
-                  <CompanionCard
-                    key={companion.id}
-                    companion={companion}
-                    onEdit={() => {
-                      setEditingCompanion(companion);
-                      setCompanionDialogOpen(true);
-                    }}
-                    onDelete={() => {
-                      if (clientId) {
-                        deleteCompanion.mutate({ id: companion.id, clientId });
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Travel Companions - managed via TravelersInfoCard above */}
 
         {/* Portal Messages & Email History - Side by Side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
