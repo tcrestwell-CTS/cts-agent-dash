@@ -54,6 +54,18 @@ serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       const { data } = await anonClient.auth.getUser(token);
       if (!data.user) throw new Error("Not authenticated");
+
+      // Check if this is a portal client (has client_profiles link)
+      const { data: profile } = await supabase
+        .from("client_profiles")
+        .select("client_id")
+        .eq("auth_user_id", data.user.id)
+        .maybeSingle();
+
+      if (profile) {
+        clientId = profile.client_id;
+        isPortal = true;
+      }
     } else {
       throw new Error("No authentication provided");
     }
