@@ -523,26 +523,6 @@ const ClientDetail = () => {
         </div>
       </PageBanner>
 
-      <div className="space-y-6">
-        {/* Travelers Card */}
-        {!isEditing && (
-          <TravelersInfoCard
-            client={client}
-            companions={companions}
-            companionsLoading={companionsLoading}
-            onAddCompanion={() => {
-              setEditingCompanion(null);
-              setCompanionDialogOpen(true);
-            }}
-            onEditCompanion={(c) => {
-              setEditingCompanion(c);
-              setCompanionDialogOpen(true);
-            }}
-            onDeleteCompanion={(c) => {
-              if (clientId) deleteCompanion.mutate({ id: c.id, clientId });
-            }}
-          />
-        )}
 
         {/* Row 1: Personal Info + Contact + Address */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
