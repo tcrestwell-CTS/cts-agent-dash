@@ -358,7 +358,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 px-2 text-xs shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => {
                           createTraveler.mutate({
                             trip_id: tripId,
