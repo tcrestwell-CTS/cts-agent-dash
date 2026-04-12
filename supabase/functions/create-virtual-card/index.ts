@@ -152,25 +152,7 @@ serve(async (req) => {
 
         // Step 2: Create a virtual card with spending limit and controls
         // Travel-related MCC categories
-        const defaultTravelMCCs = [
-          "airlines_air_carriers",
-          "lodging_hotels_motels_resorts",
-          "travel_agencies_tour_operators",
-          "transportation_services",
-          "car_rental_agencies",
-          "cruise_lines",
-          "steamship_cruise_lines",
-          "boat_rentals_and_leases",
-          "tourist_attractions_and_exhibits",
-          "bus_lines",
-          "railroads",
-          "limousines_and_taxicabs",
-          "passenger_railways",
-        ];
-        const allowedCategories = mccRestrictions && mccRestrictions.length > 0
-          ? mccRestrictions
-          : defaultTravelMCCs;
-
+        // Use only spending_limits (no allowed_categories at top level to avoid invalid MCC errors)
         const cardParams: any = {
           cardholder: cardholder.id,
           currency: "usd",
@@ -180,10 +162,8 @@ serve(async (req) => {
               {
                 amount: Math.round(payment.amount * 100),
                 interval: "all_time",
-                categories: allowedCategories,
               },
             ],
-            allowed_categories: allowedCategories,
           },
           metadata: {
             trip_payment_id: paymentId,
