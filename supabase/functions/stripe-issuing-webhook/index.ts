@@ -47,7 +47,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
     } else {
       // In development/testing without webhook secret
       event = JSON.parse(body);
