@@ -118,6 +118,21 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingTraveler, setEditingTraveler] = useState<TripTraveler | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
+
+  const formatDob = (birthday: string | null | undefined) => {
+    if (!birthday) return null;
+    const d = new Date(birthday);
+    const age = differenceInYears(new Date(), d);
+    return `${format(d, "MM/dd/yyyy")} · ${format(d, "MMMM d, yyyy")} · ${age} years old`;
+  };
+
+  const getAddress = (c: Client) => {
+    return [c.address_line_1, c.address_line_2, [c.address_city, c.address_state, c.address_zip_code].filter(Boolean).join(", "), c.address_country]
+      .filter(Boolean)
+      .join(", ");
+  };
   const [nameSearch, setNameSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
