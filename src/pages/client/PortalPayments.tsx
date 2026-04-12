@@ -176,9 +176,6 @@ export default function PortalPayments() {
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-virtual-card`, {
               method: "POST",
               headers,
-                "x-portal-token": portalToken || "",
-                "Content-Type": "application/json",
-              },
               body: JSON.stringify({
                 paymentId: selectedPayment.id,
                 method: "affirm",
