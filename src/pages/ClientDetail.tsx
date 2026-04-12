@@ -1579,4 +1579,191 @@ function EmailLogItem({ log }: { log: EmailLog }) {
   );
 }
 
+
+function TravelerDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="pl-14">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-sm select-all">{value}</p>
+    </div>
+  );
+}
+
+function TravelersInfoCard({
+  client,
+  companions,
+  companionsLoading,
+  onAddCompanion,
+  onEditCompanion,
+  onDeleteCompanion,
+}: {
+  client: any;
+  companions: Companion[];
+  companionsLoading: boolean;
+  onAddCompanion: () => void;
+  onEditCompanion: (c: Companion) => void;
+  onDeleteCompanion: (c: Companion) => void;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const toggle = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
+
+  const formatDob = (birthday: string | null) => {
+    if (!birthday) return null;
+    const d = new Date(birthday);
+    const age = differenceInYears(new Date(), d);
+    return {
+      short: format(d, "MM/dd/yyyy"),
+      long: `${format(d, "MMMM d, yyyy")} · ${age} years old`,
+    };
+  };
+
+  const fullAddress = [
+    client.address_line_1,
+    client.address_line_2,
+    [client.address_city, client.address_state, client.address_zip_code].filter(Boolean).join(", "),
+    client.address_country,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const clientId = "client";
+
+  return (
+    <Card>
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <CardTitle className="text-lg font-medium">Travelers</CardTitle>
+        <Button size="sm" variant="outline" onClick={onAddCompanion}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Manage Travelers
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        {/* Primary client */}
+        <div>
+          <button
+            onClick={() => toggle(clientId)}
+            className="w-full flex items-center gap-3 py-3 text-left hover:bg-muted/50 rounded-lg px-2 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-semibold text-primary">
+                {(client.first_name?.[0] || client.name[0] || "").toUpperCase()}
+                {(client.last_name?.[0] || "").toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">{client.name}</p>
+              {client.email && (
+                <p className="text-xs text-muted-foreground truncate">{client.email}</p>
+              )}
+            </div>
+            <Badge variant="secondary" className="text-xs shrink-0">Primary</Badge>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform ${
+                expandedId === clientId ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          {expandedId === clientId && (
+            <div className="space-y-2 pb-3">
+              {client.birthday && (
+                <TravelerDetailRow
+                  label="Birthday"
+                  value={`${formatDob(client.birthday)?.short} · ${formatDob(client.birthday)?.long?.split("· ")[1]}`}
+                />
+              )}
+              {fullAddress && <TravelerDetailRow label="Address" value={fullAddress} />}
+              {client.email && <TravelerDetailRow label="Email" value={client.email} />}
+              {client.phone && <TravelerDetailRow label="Phone" value={client.phone} />}
+              {client.known_traveler_number && (
+                <TravelerDetailRow label="Known Traveler #" value={client.known_traveler_number} />
+              )}
+              {client.passport_info && (
+                <TravelerDetailRow label="Passport" value={client.passport_info} />
+              )}
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Companions */}
+        {companionsLoading ? (
+          <div className="space-y-3 pt-2">
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : companions.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic py-3 text-center">
+            No travel companions added
+          </p>
+        ) : (
+          companions.map((c) => {
+            const dob = formatDob(c.birthday);
+            return (
+              <div key={c.id}>
+                <button
+                  onClick={() => toggle(c.id)}
+                  className="w-full flex items-center gap-3 py-3 text-left hover:bg-muted/50 rounded-lg px-2 transition-colors"
+                >
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <span className="text-sm font-semibold text-muted-foreground">
+                      {(c.first_name[0] || "").toUpperCase()}
+                      {(c.last_name?.[0] || "").toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">
+                      {c.first_name} {c.last_name || ""}
+                    </p>
+                    {c.email && (
+                      <p className="text-xs text-muted-foreground truncate">{c.email}</p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="text-xs shrink-0 capitalize">
+                    {c.relationship.replace(/_/g, " ")}
+                  </Badge>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      expandedId === c.id ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {expandedId === c.id && (
+                  <div className="space-y-2 pb-3">
+                    {dob && (
+                      <TravelerDetailRow label="Birthday" value={`${dob.short} · ${dob.long?.split("· ")[1]}`} />
+                    )}
+                    {c.email && <TravelerDetailRow label="Email" value={c.email} />}
+                    {c.phone && <TravelerDetailRow label="Phone" value={c.phone} />}
+                    {c.known_traveler_number && (
+                      <TravelerDetailRow label="Known Traveler #" value={c.known_traveler_number} />
+                    )}
+                    {c.passport_info && (
+                      <TravelerDetailRow label="Passport" value={c.passport_info} />
+                    )}
+                    <div className="pl-14 pt-1 flex gap-2">
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onEditCompanion(c)}>
+                        <Edit2 className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs text-destructive hover:text-destructive"
+                        onClick={() => onDeleteCompanion(c)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default ClientDetail;
