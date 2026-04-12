@@ -114,6 +114,28 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
+  const copyToClipboard = (value: string, label: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  };
+
+  const DetailRow = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs select-all">{value}</p>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-5 w-5 shrink-0 mt-1"
+        onClick={(e) => { e.stopPropagation(); copyToClipboard(value, label); }}
+      >
+        <Copy className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+
   const formatDob = (birthday: string | null | undefined) => {
     if (!birthday) return null;
     const d = new Date(birthday);
