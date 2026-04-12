@@ -462,7 +462,7 @@ export default function PortalPayments() {
                     return (
                       <tr key={p.id} className="hover:bg-muted/50">
                         <td className="py-3 text-sm">
-                          {format(new Date(p.payment_date), "MMM d, yyyy")}
+                          {p.payment_date ? format(new Date(p.payment_date), "MMM d, yyyy") : "—"}
                         </td>
                         <td className="py-3">
                           <p className="font-medium text-sm">{formatPaymentType(p.payment_type)}</p>
