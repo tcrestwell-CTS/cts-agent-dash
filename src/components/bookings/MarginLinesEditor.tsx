@@ -454,6 +454,13 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
   const totalCost = lines.reduce((s, l) => s + l._preview_total_cost, 0);
   const totalMargin = lines.reduce((s, l) => s + l._preview_margin, 0);
   const marginPct = totalSell > 0 ? (totalMargin / totalSell) * 100 : 0;
+  const hasPassThrough = lines.some(l => l.is_pass_through);
+  const needsMargin = hasPassThrough && totalMargin <= 0 && lines.length > 0;
+
+  // Notify parent of margin validity
+  useEffect(() => {
+    onMarginValid?.(!needsMargin);
+  }, [needsMargin, onMarginValid]);
 
   return (
     <div className="space-y-3">
