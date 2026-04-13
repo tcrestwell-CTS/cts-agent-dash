@@ -291,7 +291,7 @@ export default function CruiseSearch() {
       if (results.length > 0) {
         try {
           const refs = results.map((h: any) => h.holiday_ref).filter(Boolean);
-          const priceData = await callWidgety({ action: "get_prices", refs });
+          const priceData = await callPriceSync({ action: "get_prices", refs });
           const cache: Record<string, number | null> = {};
           for (const p of (priceData.prices || [])) {
             cache[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
@@ -300,8 +300,8 @@ export default function CruiseSearch() {
           // Background sync for refs not yet cached
           const missing = refs.filter((r: string) => !(r in cache));
           if (missing.length > 0) {
-            callWidgety({ action: "sync_prices", refs: missing.slice(0, 20) })
-              .then(() => callWidgety({ action: "get_prices", refs: missing.slice(0, 20) }))
+            callPriceSync({ action: "sync_prices", refs: missing.slice(0, 20) })
+              .then(() => callPriceSync({ action: "get_prices", refs: missing.slice(0, 20) }))
               .then((r2: any) => {
                 const newCache: Record<string, number | null> = {};
                 for (const p of (r2.prices || [])) {
