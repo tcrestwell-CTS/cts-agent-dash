@@ -179,6 +179,13 @@ export default function CruiseSearch() {
     return data;
   };
 
+  const callPriceSync = async (body: Record<string, any>) => {
+    const { data, error } = await supabase.functions.invoke("widgety-price-sync", { body });
+    if (error) return null;
+    if (data?.error) return null;
+    return data;
+  };
+
   const extractShipSlug = (ship: any) => {
     const href = ship?.href || ship?.ship || ship?.url || ship?._links?.self?.href;
     if (typeof href === "string") {
