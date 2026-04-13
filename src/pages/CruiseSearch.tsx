@@ -286,6 +286,33 @@ export default function CruiseSearch() {
       setSailings(results);
       setTotalResults(shipFilter && shipFilter !== "all" ? results.length : (data.total || results.length));
       if (!results.length) toast.info("No cruises found. Try adjusting your search.");
+
+      // Fetch cached prices then background-sync any missing ones
+      if (results.length > 0) {
+        try {
+          const refs = results.map((h: any) => h.holiday_ref).filter(Boolean);
+          const priceData = await callWidgety({ action: "get_prices", refs });
+          const cache: Record<string, number | null> = {};
+          for (const p of (priceData.prices || [])) {
+            cache[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
+          }
+          setPriceCache(cache);
+          // Background sync for refs not yet cached
+          const missing = refs.filter((r: string) => !(r in cache));
+          if (missing.length > 0) {
+            callWidgety({ action: "sync_prices", refs: missing.slice(0, 20) })
+              .then(() => callWidgety({ action: "get_prices", refs: missing.slice(0, 20) }))
+              .then((r2: any) => {
+                const newCache: Record<string, number | null> = {};
+                for (const p of (r2.prices || [])) {
+                  newCache[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
+                }
+                setPriceCache(prev => ({ ...prev, ...newCache }));
+              })
+              .catch(() => {});
+          }
+        } catch (_e) {}
+      }
     } catch (err) {
       console.error("Search error:", err);
       toast.error("Search failed: " + (err instanceof Error ? err.message : "Unknown error"));
