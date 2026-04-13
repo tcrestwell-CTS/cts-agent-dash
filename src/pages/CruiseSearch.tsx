@@ -170,6 +170,7 @@ export default function CruiseSearch() {
   const [selectedCabin, setSelectedCabin] = useState<{ deal_name: string; cabin: WidgetyCabinPrice; room_type: string } | null>(null);
   const [previewItems, setPreviewItems] = useState<WidgetyItineraryItem[]>([]);
   const [meta, setMeta] = useState<{ ship_title?: string; operator_title?: string; holiday_name?: string }>({});
+  const [priceCache, setPriceCache] = useState<Record<string, number | null>>({});
 
   const callWidgety = async (body: Record<string, any>) => {
     const { data, error } = await supabase.functions.invoke("widgety-cruise", { body });
@@ -621,6 +622,18 @@ export default function CruiseSearch() {
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
                             <span>{formatDate(s.date_from)} - {formatDate(s.date_to)}</span>
+                          </div>
+                        )}
+                        {priceCache[s.holiday_ref] != null ? (
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-xs text-muted-foreground">From</span>
+                            <span className="text-base font-bold text-primary">
+                              ${priceCache[s.holiday_ref]!.toLocaleString()}<span className="text-xs font-normal text-muted-foreground">/pp</span>
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="h-6 flex items-center">
+                            <span className="text-xs text-muted-foreground italic">Pricing loading...</span>
                           </div>
                         )}
                         <div className="flex flex-col gap-1.5 pt-2">
