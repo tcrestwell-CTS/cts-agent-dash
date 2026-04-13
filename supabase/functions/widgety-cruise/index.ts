@@ -655,6 +655,88 @@ serve(async (req: Request) => {
       );
     }
 
+    if (action === "sync_prices") {
+      // Fetch detail for each holiday_ref and cache pricing in widgety_cruise_prices
+      const refs: string[] = params.refs || [];
+      const market = params.market || "us";
+      if (!refs.length) throw new Error("refs array is required");
+
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const results: any[] = [];
+      const BATCH = 5; // fetch 5 at a time to avoid rate limits
+
+      for (let i = 0; i < refs.length; i += BATCH) {
+        const batch = refs.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (ref: string) => {
+          try {
+            const detailParams = new URLSearchParams({
+              app_id: WIDGETY_APP_ID,
+              token: WIDGETY_TOKEN,
+              market,
+            });
+            const url = `${WIDGETY_BASE}/holidays/${encodeURIComponent(ref)}.json?${detailParams.toString()}`;
+            const resp = await fetch(url, { headers: { Accept: "application/json; api_version=2" } });
+            if (!resp.ok) { results.push({ ref, error: resp.status }); return; }
+            const d = await resp.json();
+
+            // Extract lowest from_double across all seasons
+            let minDouble: number | null = null;
+            let minSingle: number | null = null;
+            let minTriple: number | null = null;
+            let season = "";
+
+            for (const s of (d.operating_seasons || [])) {
+              const hp = s.season_headline_prices;
+              if (!hp) continue;
+              season = s.operating_season || season;
+              const dbl = hp.from_double ? parseFloat(hp.from_double) : null;
+              const sgl = hp.from_single ? parseFloat(hp.from_single) : null;
+              const tri = hp.from_triple ? parseFloat(hp.from_triple) : null;
+              if (dbl !== null && (minDouble === null || dbl < minDouble)) minDouble = dbl;
+              if (sgl !== null && (minSingle === null || sgl < minSingle)) minSingle = sgl;
+              if (tri !== null && (minTriple === null || tri < minTriple)) minTriple = tri;
+            }
+
+            const row = {
+              holiday_ref: ref,
+              name: d.name || "",
+              operator_title: d.operator_title || "",
+              price_from_double: minDouble,
+              price_from_single: minSingle,
+              price_from_triple: minTriple,
+              operating_season: season,
+              updated_at: new Date().toISOString(),
+            };
+
+            await supabaseAdmin.from("widgety_cruise_prices").upsert(row, { onConflict: "holiday_ref" });
+            results.push({ ref, price_from_double: minDouble });
+          } catch (e: any) {
+            results.push({ ref, error: e.message });
+          }
+        }));
+      }
+
+      return new Response(JSON.stringify({ synced: results.length, results }), { headers: JSON_HEADERS });
+    }
+
+    if (action === "get_prices") {
+      // Return cached prices for a list of holiday_refs
+      const refs: string[] = params.refs || [];
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: prices } = await supabaseAdmin
+        .from("widgety_cruise_prices")
+        .select("holiday_ref, price_from_double, price_from_single, price_from_triple, operating_season, updated_at")
+        .in("holiday_ref", refs);
+      return new Response(JSON.stringify({ prices: prices || [] }), { headers: JSON_HEADERS });
+    }
+
     throw new Error(`Unknown action: ${action}`);
   } catch (e) {
     console.error("widgety-cruise error:", e);
