@@ -4800,6 +4800,42 @@ export type Database = {
         }
         Relationships: []
       }
+      widgety_cruise_prices: {
+        Row: {
+          currency: string | null
+          holiday_ref: string
+          name: string | null
+          operating_season: string | null
+          operator_title: string | null
+          price_from_double: number | null
+          price_from_single: number | null
+          price_from_triple: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          currency?: string | null
+          holiday_ref: string
+          name?: string | null
+          operating_season?: string | null
+          operator_title?: string | null
+          price_from_double?: number | null
+          price_from_single?: number | null
+          price_from_triple?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          currency?: string | null
+          holiday_ref?: string
+          name?: string | null
+          operating_season?: string | null
+          operator_title?: string | null
+          price_from_double?: number | null
+          price_from_single?: number | null
+          price_from_triple?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       workflow_tasks: {
         Row: {
           completed_at: string | null
