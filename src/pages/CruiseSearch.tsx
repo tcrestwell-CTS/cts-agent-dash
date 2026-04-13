@@ -179,6 +179,14 @@ export default function CruiseSearch() {
     return data;
   };
 
+  // Dedicated pricing function — calls widgety-cruise-prices directly (deployed separately)
+  const callPrices = async (body: Record<string, any>) => {
+    const { data, error } = await supabase.functions.invoke("widgety-cruise-prices", { body });
+    if (error) throw new Error(error.message || "Failed to call price service");
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
   const callPriceSync = async (body: Record<string, any>) => {
     const { data, error } = await supabase.functions.invoke("widgety-price-sync", { body });
     if (error) return null;
