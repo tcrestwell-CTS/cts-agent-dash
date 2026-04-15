@@ -2672,6 +2672,33 @@ export type Database = {
           },
         ]
       }
+      lead_magnet_subscribers: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          source: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          name?: string | null
+          source?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       loan_applications: {
         Row: {
           address_line1: string
