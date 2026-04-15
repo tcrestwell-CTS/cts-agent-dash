@@ -12,7 +12,6 @@ import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
-import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
