@@ -12,7 +12,6 @@ import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
-import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
@@ -543,21 +542,9 @@ export function TripPayments({
                           </Badge>
                         </td>
                         {/* Virtual Card Actions:
-                            - Stripe Issuing: shown when payment_method_choice is 'stripe' and card is ready
                             - Affirm VCN: shown for paid payments where agent can issue an Affirm card */}
                         <td className="py-3">
                           <div className="flex items-center gap-1">
-                            <StripeVirtualCardButton
-                              paymentId={payment.id}
-                              paymentStatus={payment.status}
-                              virtualCardStatus={payment.virtual_card_status}
-                              virtualCardId={payment.virtual_card_id}
-                              paymentMethodChoice={payment.payment_method_choice}
-                              paymentMethod={payment.payment_method}
-                              amount={payment.amount}
-                              clientName={clientName}
-                              tripName={tripName}
-                            />
                             {/* Only show Affirm button for explicit Affirm payments or non-Stripe paid payments */}
                             {payment.payment_method_choice === "affirm" && (
                               <AffirmVirtualCardButton
