@@ -316,6 +316,100 @@ serve(async (req) => {
       });
     }
 
+    // ── Pay with Duffel balance (server-side passenger resolution) ──
+    if (action === "pay_with_balance") {
+      const { booking_id } = body;
+      if (!booking_id) throw new Error("booking_id is required");
+
+      const serviceSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      // Fetch booking with offer ID and trip
+      const { data: booking, error: bErr } = await serviceSupabase
+        .from("bookings")
+        .select("id, duffel_offer_id, trip_id, gross_sales, user_id")
+        .eq("id", booking_id)
+        .single();
+      if (bErr || !booking) throw new Error("Booking not found");
+      if (!booking.duffel_offer_id) throw new Error("No Duffel offer ID on this booking");
+
+      // Get the client from the trip
+      const { data: trip } = await serviceSupabase
+        .from("trips")
+        .select("client_id, clients!trips_client_id_fkey(name, email, phone)")
+        .eq("id", booking.trip_id)
+        .single();
+
+      const client = (trip as any)?.clients;
+      if (!client?.name || !client?.email) {
+        throw new Error("Trip client must have a name and email for Duffel orders");
+      }
+
+      // Build a minimal passenger from the client
+      const nameParts = client.name.trim().split(/\s+/);
+      const givenName = nameParts[0];
+      const familyName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : givenName;
+
+      // Fetch offer to get required passenger fields
+      const offerRes = await fetch(
+        `${DUFFEL_BASE}/air/offers/${booking.duffel_offer_id}`,
+        { headers: duffelHeaders }
+      );
+      const offerData = await offerRes.json();
+      if (!offerRes.ok) throw new Error(`Failed to fetch offer: ${JSON.stringify(offerData)}`);
+
+      const offer = offerData?.data;
+      const passengerIds = offer?.passengers?.map((p: any) => p.id) || [];
+
+      const passengers = passengerIds.map((pid: string) => ({
+        id: pid,
+        given_name: givenName,
+        family_name: familyName,
+        gender: "m",
+        title: "mr",
+        born_on: "1990-01-01",
+        email: client.email,
+        phone_number: client.phone || "+10000000000",
+        type: "adult",
+      }));
+
+      const totalAmount = offer?.total_amount || String(booking.gross_sales);
+      const totalCurrency = offer?.total_currency || "USD";
+
+      const orderPayload = {
+        type: "instant",
+        selected_offers: [booking.duffel_offer_id],
+        passengers,
+        payments: [{
+          type: "balance",
+          currency: totalCurrency,
+          amount: totalAmount,
+        }],
+      };
+
+      const orderRes = await fetch(`${DUFFEL_BASE}/air/orders`, {
+        method: "POST",
+        headers: duffelHeaders,
+        body: JSON.stringify({ data: orderPayload }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) {
+        throw new Error(`Duffel order failed [${orderRes.status}]: ${JSON.stringify(orderData)}`);
+      }
+
+      // Update booking to confirmed
+      await serviceSupabase.from("bookings").update({
+        status: "confirmed",
+        confirmation_number: orderData?.data?.booking_reference || booking.duffel_offer_id,
+      }).eq("id", booking_id);
+
+      return new Response(JSON.stringify(orderData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── Create Component Client Key (for DuffelCardForm) ──
     if (action === "create_component_client_key") {
       const response = await fetch(
