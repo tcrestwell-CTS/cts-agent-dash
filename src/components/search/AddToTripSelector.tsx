@@ -136,7 +136,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
             user_id: user.id,
             line_type: "flight",
             description: `${flightOffer.airlineName} — ${flightOffer.confirmationLabel}`,
-            source: "manual",
+            source: "duffel",
             quantity: 1,
             unit_cost: flightOffer.totalAmount,
             unit_sell: flightOffer.totalAmount,
