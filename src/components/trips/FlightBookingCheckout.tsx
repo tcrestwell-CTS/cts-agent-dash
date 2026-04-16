@@ -122,7 +122,7 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
   const baseAmount = parseFloat(offer.total_amount);
   const totalAmount = baseAmount + seatCost + bagCost;
 
-  const handleConfirm = () => {
+  const buildPassengersAndServices = () => {
     const mapped: OrderPassenger[] = passengers.map((p) => ({
       id: p.id,
       given_name: p.given_name.trim(),
@@ -135,7 +135,6 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       ...(p.infant_passenger_id ? { infant_passenger_id: p.infant_passenger_id } : {}),
     }));
 
-    // Combine seat + baggage services
     const services: ServiceSelection[] = [];
     Object.values(seatSelections).forEach((id) => {
       services.push({ id, quantity: 1 });
@@ -144,6 +143,60 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       if (qty > 0) services.push({ id, quantity: qty });
     });
 
+    return { mapped, services };
+  };
+
+  // Start customer card payment flow
+  const handleInitiateCardPayment = useCallback(async () => {
+    if (!onCreatePaymentIntent) return;
+    setCardPaymentState("creating_intent");
+    try {
+      const intent = await onCreatePaymentIntent(
+        totalAmount.toFixed(2),
+        offer.total_currency
+      );
+      if (!intent) throw new Error("Failed to create payment intent");
+      setPaymentIntentId(intent.id);
+      setPaymentIntentClientToken(intent.client_token);
+      setCardPaymentState("collecting");
+    } catch (err: any) {
+      console.error("Card payment init error:", err);
+      toast.error(err.message || "Failed to initialize card payment");
+      setCardPaymentState("error");
+    }
+  }, [onCreatePaymentIntent, totalAmount, offer.total_currency]);
+
+  // Called when Duffel card component reports success
+  const handleCardPaymentSuccess = useCallback(async () => {
+    if (!onConfirmPaymentIntent || !paymentIntentId) return;
+    setCardPaymentState("confirming");
+    try {
+      const confirmed = await onConfirmPaymentIntent(paymentIntentId);
+      if (!confirmed) throw new Error("Failed to confirm payment intent");
+      setCardPaymentState("paid");
+      toast.success("Card payment collected successfully!");
+      // Now create the order using balance (topped up by payment intent)
+      const { mapped, services } = buildPassengersAndServices();
+      onConfirm(mapped, "balance", services, paymentIntentId);
+    } catch (err: any) {
+      console.error("Card payment confirm error:", err);
+      toast.error(err.message || "Failed to confirm card payment");
+      setCardPaymentState("error");
+    }
+  }, [onConfirmPaymentIntent, paymentIntentId, passengers, seatSelections, baggageSelections]);
+
+  const handleCardPaymentError = useCallback((error: any) => {
+    console.error("Card payment error:", error);
+    toast.error("Card payment failed. Please try again.");
+    setCardPaymentState("error");
+  }, []);
+
+  const handleConfirm = () => {
+    if (paymentType === "customer_card") {
+      handleInitiateCardPayment();
+      return;
+    }
+    const { mapped, services } = buildPassengersAndServices();
     onConfirm(mapped, paymentType, services);
   };
 
