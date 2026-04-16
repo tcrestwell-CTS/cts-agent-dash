@@ -37,6 +37,7 @@ export interface FlightOfferMeta {
   confirmationLabel: string;
   departureDate: string | null;
   returnDate: string | null;
+  offerId?: string;
 }
 
 interface AddToTripSelectorProps {
@@ -127,6 +128,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
           total_price: flightOffer.totalAmount,
           net_sales: flightOffer.totalAmount,
           commissionable_amount: flightOffer.totalAmount,
+          duffel_offer_id: flightOffer.offerId || null,
         }).select("id").single();
 
         if (newBooking) {
