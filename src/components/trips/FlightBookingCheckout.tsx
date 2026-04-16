@@ -106,7 +106,7 @@ type SeatSelections = Record<string, string>;
 // key = baggage service id, value = quantity
 type BaggageSelections = Record<string, number>;
 
-export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, onBack, onConfirm, onCreatePaymentIntent, onConfirmPaymentIntent }: Props) {
+export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, tripId, onBack, onConfirm }: Props) {
   const [passengers, setPassengers] = useState<PassengerForm[]>([]);
   const [paymentType, setPaymentType] = useState<"balance" | "arc_bsp_cash" | "customer_card">("balance");
   const [seatSelections, setSeatSelections] = useState<SeatSelections>({});
