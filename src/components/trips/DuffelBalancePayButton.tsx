@@ -53,11 +53,6 @@ export function DuffelBalancePayButton({
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      await supabase
-        .from("bookings")
-        .update({ status: "confirmed" })
-        .eq("id", bookingId);
-
       setState("done");
       toast.success("Balance payment completed!");
       onPaymentComplete?.();
