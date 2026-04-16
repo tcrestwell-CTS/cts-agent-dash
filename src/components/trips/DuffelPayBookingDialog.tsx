@@ -181,7 +181,7 @@ export function DuffelPayBookingDialog({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
               <div>
                 <p className="text-sm font-medium">Booking {confirmationNumber}</p>
