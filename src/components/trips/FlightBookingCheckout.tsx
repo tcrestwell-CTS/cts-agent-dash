@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plane, ArrowLeft, AlertTriangle, CheckCircle2, Clock, ArrowRight, Luggage, Armchair } from "lucide-react";
+import { Loader2, Plane, ArrowLeft, AlertTriangle, CheckCircle2, Clock, ArrowRight, Luggage, Armchair, CreditCard } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 import type { FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection, SeatMapElement } from "@/hooks/useFlightSearch";
 
 interface Props {
@@ -16,7 +17,9 @@ interface Props {
   baggageServices: AvailableService[];
   loading: boolean;
   onBack: () => void;
-  onConfirm: (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[]) => void;
+  onConfirm: (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => void;
+  onCreatePaymentIntent?: (amount: string, currency: string) => Promise<{ id: string; client_token: string } | null>;
+  onConfirmPaymentIntent?: (paymentIntentId: string) => Promise<any>;
 }
 
 function formatDuration(iso: string) {
