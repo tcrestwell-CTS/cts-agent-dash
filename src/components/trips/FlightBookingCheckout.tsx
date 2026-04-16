@@ -627,7 +627,3 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
     </div>
   );
 }
-      </div>
-    </div>
-  );
-}
