@@ -138,14 +138,26 @@ serve(async (req) => {
 async function handleBookingConfirmed(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
 ) {
-  // 1. Ensure client is synced as a QBO Customer
+  // 1. Resolve client via the trip (bookings don't have client_id directly)
+  let clientId = booking.client_id;
+  if (!clientId && booking.trip_id) {
+    const { data: trip } = await supabase
+      .from("trips")
+      .select("client_id")
+      .eq("id", booking.trip_id)
+      .single();
+    clientId = trip?.client_id;
+  }
+
+  if (!clientId) throw new Error("No client linked to booking (no trip or trip has no client)");
+
   const { data: client } = await supabase
     .from("clients")
     .select("*")
-    .eq("id", booking.client_id)
+    .eq("id", clientId)
     .single();
 
-  if (!client) throw new Error("Client not found for booking");
+  if (!client) throw new Error(`Client ${clientId} not found`);
 
   const qboCustomerId = await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
 
@@ -442,7 +454,7 @@ async function handleSupplierPaid(
 
   // 2. Auto-provision the Accounts Payable account (QBO usually has one by default)
   const apAccountId = await ensureQBOAccount(qboBase, qboHeaders, "Accounts Payable (A/P)", "Accounts Payable", "AccountsPayable");
-  const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "Expense");
+  const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "OtherMiscellaneousServiceCost");
 
   const amount = booking.supplier_paid_amount || booking.supplier_payout || 0;
   const txnDate = booking.supplier_paid_date || new Date().toISOString().split("T")[0];
@@ -548,7 +560,7 @@ async function handleSupplierPaid(
 async function handleTripCompleted(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, trip: any
 ) {
-  const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiability");
+  const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiabilities");
   const commissionRevenueId = await ensureQBOAccount(qboBase, qboHeaders, "Commission Revenue", "Income", "ServiceFeeIncome");
 
   // Phase 4: Prefer agency_gross_margin (margin engine) over legacy commission_revenue
