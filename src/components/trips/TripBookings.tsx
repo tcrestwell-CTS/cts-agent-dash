@@ -100,6 +100,24 @@ export function TripBookings({
     enabled: !!user && bookingIds.length > 0,
   });
 
+  // Identify Duffel-originated bookings via margin lines with source = 'duffel'
+  const { data: duffelBookingIds = [] } = useQuery({
+    queryKey: ["duffel-bookings", tripId, bookingIds],
+    queryFn: async () => {
+      if (bookingIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("booking_margin_lines")
+        .select("booking_id")
+        .in("booking_id", bookingIds)
+        .eq("source", "duffel");
+      if (error) throw error;
+      return [...new Set((data || []).map((r) => r.booking_id))];
+    },
+    enabled: !!user && bookingIds.length > 0,
+  });
+
+  const isDuffelBooking = (bookingId: string) => duffelBookingIds.includes(bookingId);
+
   // Get commission record for a booking
   const getBookingCommission = (bookingId: string) => {
     return commissions.find((c) => c.booking_id === bookingId);
