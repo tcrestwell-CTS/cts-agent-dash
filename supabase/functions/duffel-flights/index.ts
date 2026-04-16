@@ -369,6 +369,18 @@ serve(async (req) => {
       const offerData = await offerRes.json();
       if (!offerRes.ok) throw new Error(`Failed to fetch offer: ${JSON.stringify(offerData)}`);
 
+      // Check if offer has expired
+      const offerExpiresAt = offerData?.data?.expires_at;
+      if (offerExpiresAt && new Date(offerExpiresAt) < new Date()) {
+        return new Response(JSON.stringify({
+          error: "This Duffel offer has expired. Please search for a new flight and re-add it to the trip.",
+          expired: true,
+        }), {
+          status: 410,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const offer = offerData?.data;
       const passengerIds = offer?.passengers?.map((p: any) => p.id) || [];
 
