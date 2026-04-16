@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,8 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plane, ArrowLeft, AlertTriangle, CheckCircle2, Clock, ArrowRight, Luggage, Armchair } from "lucide-react";
+import { Loader2, Plane, ArrowLeft, AlertTriangle, CheckCircle2, Clock, ArrowRight, Luggage, Armchair, CreditCard } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
+import { DuffelPayments } from "@duffel/components";
 import type { FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection, SeatMapElement } from "@/hooks/useFlightSearch";
 
 interface Props {
@@ -16,7 +18,9 @@ interface Props {
   baggageServices: AvailableService[];
   loading: boolean;
   onBack: () => void;
-  onConfirm: (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[]) => void;
+  onConfirm: (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => void;
+  onCreatePaymentIntent?: (amount: string, currency: string) => Promise<{ id: string; client_token: string } | null>;
+  onConfirmPaymentIntent?: (paymentIntentId: string) => Promise<any>;
 }
 
 function formatDuration(iso: string) {
@@ -46,11 +50,15 @@ type SeatSelections = Record<string, string>;
 // key = baggage service id, value = quantity
 type BaggageSelections = Record<string, number>;
 
-export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, onBack, onConfirm }: Props) {
+export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, onBack, onConfirm, onCreatePaymentIntent, onConfirmPaymentIntent }: Props) {
   const [passengers, setPassengers] = useState<PassengerForm[]>([]);
-  const [paymentType, setPaymentType] = useState<"balance" | "arc_bsp_cash">("balance");
+  const [paymentType, setPaymentType] = useState<"balance" | "arc_bsp_cash" | "customer_card">("balance");
   const [seatSelections, setSeatSelections] = useState<SeatSelections>({});
   const [baggageSelections, setBaggageSelections] = useState<BaggageSelections>({});
+  const [cardPaymentState, setCardPaymentState] = useState<"idle" | "creating_intent" | "collecting" | "confirming" | "paid" | "error">("idle");
+  const [paymentIntentClientToken, setPaymentIntentClientToken] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPassengers(
@@ -115,7 +123,7 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
   const baseAmount = parseFloat(offer.total_amount);
   const totalAmount = baseAmount + seatCost + bagCost;
 
-  const handleConfirm = () => {
+  const buildPassengersAndServices = () => {
     const mapped: OrderPassenger[] = passengers.map((p) => ({
       id: p.id,
       given_name: p.given_name.trim(),
@@ -128,7 +136,6 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       ...(p.infant_passenger_id ? { infant_passenger_id: p.infant_passenger_id } : {}),
     }));
 
-    // Combine seat + baggage services
     const services: ServiceSelection[] = [];
     Object.values(seatSelections).forEach((id) => {
       services.push({ id, quantity: 1 });
@@ -137,6 +144,60 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       if (qty > 0) services.push({ id, quantity: qty });
     });
 
+    return { mapped, services };
+  };
+
+  // Start customer card payment flow
+  const handleInitiateCardPayment = useCallback(async () => {
+    if (!onCreatePaymentIntent) return;
+    setCardPaymentState("creating_intent");
+    try {
+      const intent = await onCreatePaymentIntent(
+        totalAmount.toFixed(2),
+        offer.total_currency
+      );
+      if (!intent) throw new Error("Failed to create payment intent");
+      setPaymentIntentId(intent.id);
+      setPaymentIntentClientToken(intent.client_token);
+      setCardPaymentState("collecting");
+    } catch (err: any) {
+      console.error("Card payment init error:", err);
+      toast.error(err.message || "Failed to initialize card payment");
+      setCardPaymentState("error");
+    }
+  }, [onCreatePaymentIntent, totalAmount, offer.total_currency]);
+
+  // Called when Duffel card component reports success
+  const handleCardPaymentSuccess = useCallback(async () => {
+    if (!onConfirmPaymentIntent || !paymentIntentId) return;
+    setCardPaymentState("confirming");
+    try {
+      const confirmed = await onConfirmPaymentIntent(paymentIntentId);
+      if (!confirmed) throw new Error("Failed to confirm payment intent");
+      setCardPaymentState("paid");
+      toast.success("Card payment collected successfully!");
+      // Now create the order using balance (topped up by payment intent)
+      const { mapped, services } = buildPassengersAndServices();
+      onConfirm(mapped, "balance", services, paymentIntentId);
+    } catch (err: any) {
+      console.error("Card payment confirm error:", err);
+      toast.error(err.message || "Failed to confirm card payment");
+      setCardPaymentState("error");
+    }
+  }, [onConfirmPaymentIntent, paymentIntentId, passengers, seatSelections, baggageSelections]);
+
+  const handleCardPaymentError = useCallback((error: any) => {
+    console.error("Card payment error:", error);
+    toast.error("Card payment failed. Please try again.");
+    setCardPaymentState("error");
+  }, []);
+
+  const handleConfirm = () => {
+    if (paymentType === "customer_card") {
+      handleInitiateCardPayment();
+      return;
+    }
+    const { mapped, services } = buildPassengersAndServices();
     onConfirm(mapped, paymentType, services);
   };
 
@@ -437,21 +498,85 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       {/* Payment Type */}
       <Card>
         <CardHeader className="py-3 px-4">
-          <CardTitle className="text-sm">Payment Method</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" />
+            Payment Method
+          </CardTitle>
         </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <Select value={paymentType} onValueChange={(v: "balance" | "arc_bsp_cash") => setPaymentType(v)}>
+        <CardContent className="px-4 pb-4 space-y-3">
+          <Select value={paymentType} onValueChange={(v: "balance" | "arc_bsp_cash" | "customer_card") => {
+            setPaymentType(v);
+            // Reset card payment state when switching away
+            if (v !== "customer_card") {
+              setCardPaymentState("idle");
+              setPaymentIntentClientToken(null);
+              setPaymentIntentId(null);
+            }
+          }}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="balance">Duffel Balance</SelectItem>
               <SelectItem value="arc_bsp_cash">ARC/BSP Cash</SelectItem>
+              {onCreatePaymentIntent && (
+                <SelectItem value="customer_card">Customer Card (Duffel Payments)</SelectItem>
+              )}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground">
             {paymentType === "balance"
               ? "Payment will be charged to your Duffel balance."
-              : "For IATA-registered agents using their own airline relationships."}
+              : paymentType === "arc_bsp_cash"
+              ? "For IATA-registered agents using their own airline relationships."
+              : "Collect payment directly from the customer's card via Duffel Payments."}
           </p>
+
+          {/* Duffel Card Payment Component */}
+          {paymentType === "customer_card" && cardPaymentState === "collecting" && paymentIntentClientToken && (
+            <div className="mt-3 border rounded-lg p-4">
+              <p className="text-sm font-medium mb-3">Enter card details</p>
+              <div ref={cardContainerRef}>
+                <DuffelPayments
+                  paymentIntentClientToken={paymentIntentClientToken}
+                  onSuccessfulPayment={handleCardPaymentSuccess}
+                  onFailedPayment={handleCardPaymentError}
+                />
+              </div>
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "creating_intent" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Initializing payment...
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "confirming" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Confirming payment...
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "paid" && (
+            <div className="flex items-center gap-2 text-sm text-primary mt-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Payment collected! Creating order...
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "error" && (
+            <div className="space-y-2 mt-2">
+              <p className="text-sm text-destructive">Payment failed. Please try again.</p>
+              <Button variant="outline" size="sm" onClick={() => {
+                setCardPaymentState("idle");
+                setPaymentIntentClientToken(null);
+                setPaymentIntentId(null);
+              }}>
+                Reset
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -476,9 +601,23 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
         )}
         <div className="flex gap-3 ml-auto">
           <Button variant="outline" onClick={onBack}>Cancel</Button>
-          <Button onClick={handleConfirm} disabled={!isValid || loading} className="gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            {loading ? "Booking..." : `Confirm — $${totalAmount.toFixed(2)}`}
+          <Button
+            onClick={handleConfirm}
+            disabled={!isValid || loading || (paymentType === "customer_card" && !["idle", "error"].includes(cardPaymentState))}
+            className="gap-2"
+          >
+            {loading || cardPaymentState === "creating_intent" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            {paymentType === "customer_card"
+              ? cardPaymentState === "idle" || cardPaymentState === "error"
+                ? `Pay with Card — $${totalAmount.toFixed(2)}`
+                : "Processing..."
+              : loading
+                ? "Booking..."
+                : `Confirm — $${totalAmount.toFixed(2)}`}
           </Button>
         </div>
       </div>

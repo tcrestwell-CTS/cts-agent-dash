@@ -119,7 +119,7 @@ serve(async (req) => {
 
     // ── Create order (with optional services for seats & bags) ──
     if (action === "create_order") {
-      const { selected_offers, passengers, payments, services, trip_id, supplier_name, client_id } = body;
+      const { selected_offers, passengers, payments, services, trip_id, supplier_name, client_id, metadata } = body;
       const orderPayload: Record<string, unknown> = {
         type: "instant",
         selected_offers,
@@ -128,6 +128,9 @@ serve(async (req) => {
       };
       if (services && services.length > 0) {
         orderPayload.services = services;
+      }
+      if (metadata) {
+        orderPayload.metadata = metadata;
       }
 
       const response = await fetch(`${DUFFEL_BASE}/air/orders`, {
@@ -306,6 +309,51 @@ serve(async (req) => {
       const data = await response.json();
       if (!response.ok) {
         throw new Error(`Duffel change confirm failed [${response.status}]: ${JSON.stringify(data)}`);
+      }
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Create Duffel PaymentIntent (for customer card payments) ──
+    if (action === "create_payment_intent") {
+      const { amount, currency } = body;
+      if (!amount || !currency) {
+        return new Response(JSON.stringify({ error: "amount and currency are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const response = await fetch(`${DUFFEL_BASE}/payments/payment_intents`, {
+        method: "POST",
+        headers: duffelHeaders,
+        body: JSON.stringify({ data: { amount: String(amount), currency } }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Duffel create payment intent failed [${response.status}]: ${JSON.stringify(data)}`);
+      }
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Confirm Duffel PaymentIntent ──
+    if (action === "confirm_payment_intent") {
+      const { payment_intent_id } = body;
+      if (!payment_intent_id) {
+        return new Response(JSON.stringify({ error: "payment_intent_id is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const response = await fetch(
+        `${DUFFEL_BASE}/payments/payment_intents/${payment_intent_id}/actions/confirm`,
+        { method: "POST", headers: duffelHeaders }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Duffel confirm payment intent failed [${response.status}]: ${JSON.stringify(data)}`);
       }
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

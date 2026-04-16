@@ -92,7 +92,7 @@ type SelectionStep = "all" | "outbound" | "return";
 export default function FlightSearch() {
   const [searchParams] = useSearchParams();
   const tripIdFromQuery = searchParams.get("tripId") || undefined;
-  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, createPaymentIntent, confirmPaymentIntent } = useFlightSearch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [departDate, setDepartDate] = useState("");
@@ -225,7 +225,7 @@ export default function FlightSearch() {
     }
   };
 
-  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[]) => {
+  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => {
     if (!checkoutOffer) return;
     const baseCost = parseFloat(checkoutOffer.total_amount);
     const ancillaryCost = services.reduce((sum, svc) => {
@@ -257,6 +257,7 @@ export default function FlightSearch() {
       }],
       services: services.length > 0 ? services : undefined,
       trip_id: tripIdFromQuery,
+      ...(paymentIntentId ? { metadata: { payment_intent_id: paymentIntentId } } : {}),
     });
     setCheckoutOffer(null);
   };
@@ -273,6 +274,8 @@ export default function FlightSearch() {
             loading={bookingLoading}
             onBack={() => setCheckoutOffer(null)}
             onConfirm={handleConfirmBooking}
+            onCreatePaymentIntent={createPaymentIntent}
+            onConfirmPaymentIntent={confirmPaymentIntent}
           />
         </div>
       </DashboardLayout>

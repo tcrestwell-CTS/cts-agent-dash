@@ -48,7 +48,7 @@ export function FlightSearchDialog({
   onAddFlightToItinerary,
 }: Props) {
   const { user } = useAuth();
-  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, createPaymentIntent, confirmPaymentIntent } = useFlightSearch();
   const [step, setStep] = useState<Step>("search");
   const [selectedOffers, setSelectedOffers] = useState<Set<string>>(new Set());
   const [checkoutOffer, setCheckoutOffer] = useState<FlightOffer | null>(null);
@@ -225,7 +225,7 @@ export function FlightSearchDialog({
     }
   };
 
-  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[]) => {
+  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => {
     if (!checkoutOffer) return;
     // Calculate total including ancillaries
     const baseCost = parseFloat(checkoutOffer.total_amount);
@@ -259,6 +259,7 @@ export function FlightSearchDialog({
       }],
       services: services.length > 0 ? services : undefined,
       trip_id: tripId,
+      ...(paymentIntentId ? { metadata: { payment_intent_id: paymentIntentId } } : {}),
     });
     if (order) {
       // Update trip departure/return dates from flight slices
@@ -542,6 +543,8 @@ export function FlightSearchDialog({
             loading={bookingLoading}
             onBack={() => setStep("results")}
             onConfirm={handleConfirmBooking}
+            onCreatePaymentIntent={createPaymentIntent}
+            onConfirmPaymentIntent={confirmPaymentIntent}
           />
         )}
 
