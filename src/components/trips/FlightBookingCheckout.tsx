@@ -535,14 +535,10 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
             <div className="mt-3 border rounded-lg p-4">
               <p className="text-sm font-medium mb-3">Enter card details</p>
               <div ref={cardContainerRef}>
-                <duffel-payments
-                  client-token={paymentIntentClientToken}
-                  // @ts-ignore – Duffel web component events
-                  ref={(el: any) => {
-                    if (!el) return;
-                    el.addEventListener("onSuccessfulPayment", handleCardPaymentSuccess);
-                    el.addEventListener("onFailedPayment", handleCardPaymentError);
-                  }}
+                <DuffelPayments
+                  paymentIntentClientToken={paymentIntentClientToken}
+                  onSuccessfulPayment={handleCardPaymentSuccess}
+                  onFailedPayment={handleCardPaymentError}
                 />
               </div>
             </div>
