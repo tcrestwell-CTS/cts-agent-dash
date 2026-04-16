@@ -508,6 +508,89 @@ serve(async (req) => {
       });
     }
 
+    // ── Refetch order by booking reference (backfill e-ticket data) ──
+    if (action === "refetch_order") {
+      const { booking_reference, booking_id, trip_id, client_id } = body;
+      if (!booking_reference) throw new Error("booking_reference is required");
+
+      // List orders filtered by booking_reference
+      const listRes = await fetch(
+        `${DUFFEL_BASE}/air/orders?booking_reference=${encodeURIComponent(booking_reference)}&limit=1`,
+        { headers: duffelHeaders }
+      );
+      const listData = await listRes.json();
+      if (!listRes.ok) {
+        throw new Error(`Duffel list orders failed [${listRes.status}]: ${JSON.stringify(listData)}`);
+      }
+
+      const order = listData?.data?.[0];
+      if (!order) {
+        return new Response(JSON.stringify({ error: "No Duffel order found for this booking reference" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Extract e-ticket data
+      const documents = order.documents || [];
+      const eticketNumbers = documents.map((d: any) => d.unique_identifier).filter(Boolean);
+      const eticketData = documents.map((d: any) => ({
+        ticket_number: d.unique_identifier || null,
+        passenger_id: d.passenger_id || null,
+        type: d.type || "electronic_ticket",
+      }));
+
+      const slices = order.slices || [];
+      const firstSlice = slices[0];
+      const lastSlice = slices[slices.length - 1];
+      const flightNumbers = slices.flatMap((s: any) =>
+        (s.segments || []).map((seg: any) => `${seg.operating_carrier?.iata_code || ""}${seg.operating_carrier_flight_number || ""}`)
+      );
+      const passengerNames = (order.passengers || []).map((p: any) => `${p.given_name} ${p.family_name}`);
+
+      const serviceSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      await serviceSupabase.from("flight_orders").upsert({
+        user_id: user.id,
+        duffel_order_id: order.id,
+        booking_reference: order.booking_reference || null,
+        trip_id: trip_id || null,
+        client_id: client_id || null,
+        passenger_names: passengerNames,
+        passenger_emails: (order.passengers || []).map((p: any) => p.email).filter(Boolean),
+        origin_iata: firstSlice?.origin?.iata_code || null,
+        destination_iata: lastSlice?.destination?.iata_code || null,
+        departure_at: firstSlice?.segments?.[0]?.departing_at || null,
+        arrival_at: lastSlice?.segments?.slice(-1)?.[0]?.arriving_at || null,
+        airline_name: order.owner?.name || null,
+        flight_numbers: flightNumbers,
+        total_amount: parseFloat(order.total_amount || "0"),
+        total_currency: order.total_currency || "USD",
+        order_status: order.status || "confirmed",
+        eticket_numbers: eticketNumbers,
+        eticket_data: eticketData,
+      }, { onConflict: "duffel_order_id" });
+
+      // Update booking with supplier confirmation number if missing
+      if (booking_id) {
+        await serviceSupabase.from("bookings").update({
+          supplier_confirmation_number: order.booking_reference,
+        }).eq("id", booking_id).is("supplier_confirmation_number", null);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        eticket_numbers: eticketNumbers,
+        order_id: order.id,
+        booking_reference: order.booking_reference,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
