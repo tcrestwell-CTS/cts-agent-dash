@@ -34,6 +34,7 @@ function buildFlightOfferMeta(offer: FlightOffer): FlightOfferMeta {
     confirmationLabel: `${seg?.operating_carrier?.iata_code || ""}${seg?.operating_carrier_flight_number || ""} ${firstSlice?.origin?.iata_code || ""}-${lastSlice?.destination?.iata_code || ""}`,
     departureDate,
     returnDate,
+    offerId: offer.id,
   };
 }
 
