@@ -369,6 +369,18 @@ serve(async (req) => {
       const offerData = await offerRes.json();
       if (!offerRes.ok) throw new Error(`Failed to fetch offer: ${JSON.stringify(offerData)}`);
 
+      // Check if offer has expired
+      const offerExpiresAt = offerData?.data?.expires_at;
+      if (offerExpiresAt && new Date(offerExpiresAt) < new Date()) {
+        return new Response(JSON.stringify({
+          error: "This Duffel offer has expired. Please search for a new flight and re-add it to the trip.",
+          expired: true,
+        }), {
+          status: 410,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const offer = offerData?.data;
       const passengerIds = offer?.passengers?.map((p: any) => p.id) || [];
 
@@ -405,7 +417,15 @@ serve(async (req) => {
       });
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
-        throw new Error(`Duffel order failed [${orderRes.status}]: ${JSON.stringify(orderData)}`);
+        const duffelErrors = orderData?.errors || [];
+        const isOfferExpired = duffelErrors.some((e: any) => e.code === "not_found" && e.source?.field === "selected_offers");
+        const userMessage = isOfferExpired
+          ? "This flight offer has expired. Please search for a new flight and re-add it to the trip."
+          : `Duffel order failed: ${duffelErrors.map((e: any) => e.message).join("; ") || "Unknown error"}`;
+        return new Response(JSON.stringify({ error: userMessage, expired: isOfferExpired }), {
+          status: isOfferExpired ? 410 : 422,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Update booking to confirmed
