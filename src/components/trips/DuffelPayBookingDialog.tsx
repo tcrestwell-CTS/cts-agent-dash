@@ -173,7 +173,7 @@ export function DuffelPayBookingDialog({
           }
         }}
       >
-        <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+        <DialogContent className="sm:max-w-4xl" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-primary" />
