@@ -312,6 +312,51 @@ serve(async (req) => {
       });
     }
 
+    // ── Create Duffel PaymentIntent (for customer card payments) ──
+    if (action === "create_payment_intent") {
+      const { amount, currency } = body;
+      if (!amount || !currency) {
+        return new Response(JSON.stringify({ error: "amount and currency are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const response = await fetch(`${DUFFEL_BASE}/payments/payment_intents`, {
+        method: "POST",
+        headers: duffelHeaders,
+        body: JSON.stringify({ data: { amount: String(amount), currency } }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Duffel create payment intent failed [${response.status}]: ${JSON.stringify(data)}`);
+      }
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Confirm Duffel PaymentIntent ──
+    if (action === "confirm_payment_intent") {
+      const { payment_intent_id } = body;
+      if (!payment_intent_id) {
+        return new Response(JSON.stringify({ error: "payment_intent_id is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const response = await fetch(
+        `${DUFFEL_BASE}/payments/payment_intents/${payment_intent_id}/actions/confirm`,
+        { method: "POST", headers: duffelHeaders }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Duffel confirm payment intent failed [${response.status}]: ${JSON.stringify(data)}`);
+      }
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
