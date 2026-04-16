@@ -785,6 +785,7 @@ export type Database = {
           commissionable_amount: number
           confirmation_number: string
           created_at: string
+          duffel_offer_id: string | null
           gross_sales: number
           id: string
           margin_locked: boolean
@@ -823,6 +824,7 @@ export type Database = {
           commissionable_amount?: number
           confirmation_number: string
           created_at?: string
+          duffel_offer_id?: string | null
           gross_sales?: number
           id?: string
           margin_locked?: boolean
@@ -861,6 +863,7 @@ export type Database = {
           commissionable_amount?: number
           confirmation_number?: string
           created_at?: string
+          duffel_offer_id?: string | null
           gross_sales?: number
           id?: string
           margin_locked?: boolean
