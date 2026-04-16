@@ -163,6 +163,7 @@ serve(async (req) => {
             total_price: totalAmount,
             net_sales: totalAmount,
             commissionable_amount: totalAmount,
+            duffel_offer_id: selected_offers?.[0] || null,
           }).select("id").single();
 
           // Phase 4: auto-create margin line with source "duffel"
