@@ -836,7 +836,7 @@ serve(async (req) => {
 
       // Auto-provision required QBO accounts
       const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
-      const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "Expense");
+      const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "OtherMiscellaneousServiceCost");
 
       const date = txn_date || new Date().toISOString().split("T")[0];
       const note = memo || "Stripe/Affirm deposit";
@@ -980,7 +980,7 @@ serve(async (req) => {
 
       // Auto-provision accounts once
       const stripeClearingId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Clearing", "Other Current Asset", "OtherCurrentAsset");
-      const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "Expense");
+      const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "OtherMiscellaneousServiceCost");
 
       let synced = 0;
       let skipped = 0;
