@@ -207,6 +207,7 @@ export function DuffelPayBookingDialog({
                     ref={ref}
                     tokenProxyEnvironment="production"
                     clientKey={clientKey}
+                    intent="to-create-card-for-temporary-use"
                     onValidateSuccess={() => {}}
                     onValidateFailure={() => {}}
                     onCreateCardForTemporaryUseSuccess={handleCardCreated}
