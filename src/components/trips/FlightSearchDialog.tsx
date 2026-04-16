@@ -259,6 +259,7 @@ export function FlightSearchDialog({
       }],
       services: services.length > 0 ? services : undefined,
       trip_id: tripId,
+      ...(paymentIntentId ? { metadata: { payment_intent_id: paymentIntentId } } : {}),
     });
     if (order) {
       // Update trip departure/return dates from flight slices
