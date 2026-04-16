@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2 } from "lucide-react";
+import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2, CreditCard } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +28,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTripBookingDialog } from "./AddTripBookingDialog";
+import { DuffelPayBookingDialog } from "./DuffelPayBookingDialog";
 
 interface Commission {
   id: string;
