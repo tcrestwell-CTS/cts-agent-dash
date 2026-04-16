@@ -31,6 +31,7 @@ import {
   Wrench,
   Ship,
   Star,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -123,6 +124,7 @@ const adminNavigation: NavItem[] = [
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
   { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
   { name: "Portal Management", href: "/portal-management", icon: Globe },
+  { name: "Task Monitor", href: "/task-monitor", icon: Activity },
 ];
 
 interface SidebarProps {

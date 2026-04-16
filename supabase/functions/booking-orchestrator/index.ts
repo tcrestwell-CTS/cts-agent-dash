@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
  */
 async function handleSupplierWebhook(
   req: Request,
-  adminClient: ReturnType<typeof createClient>
+  adminClient: any
 ): Promise<Response> {
   console.log("Processing supplier webhook");
 
@@ -246,7 +246,7 @@ async function handleSupplierWebhook(
  */
 async function handleAutomateStatus(
   req: Request,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   supabaseUrl: string,
   supabaseAnonKey: string
 ): Promise<Response> {
@@ -292,7 +292,7 @@ async function handleAutomateStatus(
       .in("role", ["admin", "office_admin"])
       .limit(1);
 
-    isAdmin = roleData && roleData.length > 0;
+    isAdmin = !!(roleData && roleData.length > 0);
     mode = isAdmin ? "system" : "user";
     
     console.log(`Running status automation - mode: ${mode}, user: ${user.id}, isAdmin: ${isAdmin}`);
@@ -443,7 +443,7 @@ async function handleAutomateStatus(
  */
 async function handleSyncBooking(
   req: Request,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   supabaseUrl: string,
   supabaseAnonKey: string
 ): Promise<Response> {
