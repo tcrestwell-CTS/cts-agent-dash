@@ -417,7 +417,15 @@ serve(async (req) => {
       });
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
-        throw new Error(`Duffel order failed [${orderRes.status}]: ${JSON.stringify(orderData)}`);
+        const duffelErrors = orderData?.errors || [];
+        const isOfferExpired = duffelErrors.some((e: any) => e.code === "not_found" && e.source?.field === "selected_offers");
+        const userMessage = isOfferExpired
+          ? "This flight offer has expired. Please search for a new flight and re-add it to the trip."
+          : `Duffel order failed: ${duffelErrors.map((e: any) => e.message).join("; ") || "Unknown error"}`;
+        return new Response(JSON.stringify({ error: userMessage, expired: isOfferExpired }), {
+          status: isOfferExpired ? 410 : 422,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Update booking to confirmed
