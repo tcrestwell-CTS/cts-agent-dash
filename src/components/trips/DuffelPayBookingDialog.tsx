@@ -205,9 +205,8 @@ export function DuffelPayBookingDialog({
                   <p className="text-sm font-medium mb-3">Enter card details</p>
                   <DuffelCardForm
                     ref={ref}
-                    tokenProxyEnvironment="live"
+                    tokenProxyEnvironment="production"
                     clientKey={clientKey}
-                    intent={{ amount: amount.toFixed(2), currency }}
                     onValidateSuccess={() => {}}
                     onValidateFailure={() => {}}
                     onCreateCardForTemporaryUseSuccess={handleCardCreated}
