@@ -46,24 +46,12 @@ export function DuffelBalancePayButton({
     try {
       const { data, error } = await supabase.functions.invoke("duffel-flights", {
         body: {
-          action: "create_order",
-          selected_offers: [offerId],
-          passengers: [],
-          payments: [
-            {
-              type: "balance",
-              currency,
-              amount: amount.toFixed(2),
-            },
-          ],
+          action: "pay_with_balance",
+          booking_id: bookingId,
         },
       });
       if (error) throw error;
-
-      await supabase
-        .from("bookings")
-        .update({ status: "confirmed" })
-        .eq("id", bookingId);
+      if (data?.error) throw new Error(data.error);
 
       setState("done");
       toast.success("Balance payment completed!");
