@@ -497,21 +497,89 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       {/* Payment Type */}
       <Card>
         <CardHeader className="py-3 px-4">
-          <CardTitle className="text-sm">Payment Method</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" />
+            Payment Method
+          </CardTitle>
         </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <Select value={paymentType} onValueChange={(v: "balance" | "arc_bsp_cash") => setPaymentType(v)}>
+        <CardContent className="px-4 pb-4 space-y-3">
+          <Select value={paymentType} onValueChange={(v: "balance" | "arc_bsp_cash" | "customer_card") => {
+            setPaymentType(v);
+            // Reset card payment state when switching away
+            if (v !== "customer_card") {
+              setCardPaymentState("idle");
+              setPaymentIntentClientToken(null);
+              setPaymentIntentId(null);
+            }
+          }}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="balance">Duffel Balance</SelectItem>
               <SelectItem value="arc_bsp_cash">ARC/BSP Cash</SelectItem>
+              {onCreatePaymentIntent && (
+                <SelectItem value="customer_card">Customer Card (Duffel Payments)</SelectItem>
+              )}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground">
             {paymentType === "balance"
               ? "Payment will be charged to your Duffel balance."
-              : "For IATA-registered agents using their own airline relationships."}
+              : paymentType === "arc_bsp_cash"
+              ? "For IATA-registered agents using their own airline relationships."
+              : "Collect payment directly from the customer's card via Duffel Payments."}
           </p>
+
+          {/* Duffel Card Payment Component */}
+          {paymentType === "customer_card" && cardPaymentState === "collecting" && paymentIntentClientToken && (
+            <div className="mt-3 border rounded-lg p-4">
+              <p className="text-sm font-medium mb-3">Enter card details</p>
+              <div ref={cardContainerRef}>
+                <duffel-payments
+                  client-token={paymentIntentClientToken}
+                  // @ts-ignore – Duffel web component events
+                  ref={(el: any) => {
+                    if (!el) return;
+                    el.addEventListener("onSuccessfulPayment", handleCardPaymentSuccess);
+                    el.addEventListener("onFailedPayment", handleCardPaymentError);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "creating_intent" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Initializing payment...
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "confirming" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Confirming payment...
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "paid" && (
+            <div className="flex items-center gap-2 text-sm text-primary mt-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Payment collected! Creating order...
+            </div>
+          )}
+
+          {paymentType === "customer_card" && cardPaymentState === "error" && (
+            <div className="space-y-2 mt-2">
+              <p className="text-sm text-destructive">Payment failed. Please try again.</p>
+              <Button variant="outline" size="sm" onClick={() => {
+                setCardPaymentState("idle");
+                setPaymentIntentClientToken(null);
+                setPaymentIntentId(null);
+              }}>
+                Reset
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -536,11 +604,29 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
         )}
         <div className="flex gap-3 ml-auto">
           <Button variant="outline" onClick={onBack}>Cancel</Button>
-          <Button onClick={handleConfirm} disabled={!isValid || loading} className="gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            {loading ? "Booking..." : `Confirm — $${totalAmount.toFixed(2)}`}
+          <Button
+            onClick={handleConfirm}
+            disabled={!isValid || loading || (paymentType === "customer_card" && !["idle", "error"].includes(cardPaymentState))}
+            className="gap-2"
+          >
+            {loading || cardPaymentState === "creating_intent" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            {paymentType === "customer_card"
+              ? cardPaymentState === "idle" || cardPaymentState === "error"
+                ? `Pay with Card — $${totalAmount.toFixed(2)}`
+                : "Processing..."
+              : loading
+                ? "Booking..."
+                : `Confirm — $${totalAmount.toFixed(2)}`}
           </Button>
         </div>
+      </div>
+    </div>
+  );
+}
       </div>
     </div>
   );
