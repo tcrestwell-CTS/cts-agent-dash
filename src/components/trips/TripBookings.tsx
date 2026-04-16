@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2 } from "lucide-react";
+import { Plus, Building2, Plane, Ship, Car, Hotel, Umbrella, Trash2, CreditCard } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +28,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTripBookingDialog } from "./AddTripBookingDialog";
+import { DuffelPayBookingDialog } from "./DuffelPayBookingDialog";
 
 interface Commission {
   id: string;
@@ -98,6 +99,24 @@ export function TripBookings({
     },
     enabled: !!user && bookingIds.length > 0,
   });
+
+  // Identify Duffel-originated bookings via margin lines with source = 'duffel'
+  const { data: duffelBookingIds = [] } = useQuery({
+    queryKey: ["duffel-bookings", tripId, bookingIds],
+    queryFn: async () => {
+      if (bookingIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("booking_margin_lines")
+        .select("booking_id")
+        .in("booking_id", bookingIds)
+        .eq("source", "duffel");
+      if (error) throw error;
+      return [...new Set((data || []).map((r) => r.booking_id))];
+    },
+    enabled: !!user && bookingIds.length > 0,
+  });
+
+  const isDuffelBooking = (bookingId: string) => duffelBookingIds.includes(bookingId);
 
   // Get commission record for a booking
   const getBookingCommission = (bookingId: string) => {
@@ -382,7 +401,23 @@ export function TripBookings({
                       <td className="py-3 font-mono text-sm text-muted-foreground">
                         {booking.supplier_confirmation_number || "-"}
                       </td>
-                      <td className="py-3">{getPaymentStatus(booking)}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          {getPaymentStatus(booking)}
+                          {isDuffelBooking(booking.id) && booking.status !== "cancelled" && (
+                            <DuffelPayBookingDialog
+                              bookingId={booking.id}
+                              amount={Number(booking.gross_sales)}
+                              confirmationNumber={booking.confirmation_number || booking.booking_reference || booking.id.slice(0, 8)}
+                              onPaymentComplete={() => {
+                                queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+                                queryClient.invalidateQueries({ queryKey: ["bookings"] });
+                                onDataChange?.();
+                              }}
+                            />
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>
                       <td className="py-3">
                         {getBookingPaymentInfo(booking.id).hasPayments ? (
