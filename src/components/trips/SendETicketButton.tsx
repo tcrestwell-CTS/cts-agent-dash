@@ -26,9 +26,38 @@ export function SendETicketButton({ bookingId, tripId, confirmationNumber }: Sen
         .maybeSingle();
 
       if (foErr) throw foErr;
-      if (!flightOrder) {
-        toast.error("No flight order record found for this booking.");
-        return;
+
+      let resolvedFlightOrder = flightOrder;
+
+      // If no local record, refetch from Duffel API
+      if (!resolvedFlightOrder) {
+        toast.info("Fetching e-ticket from Duffel...");
+        const { data: refetchData, error: refetchErr } = await supabase.functions.invoke("duffel-flights", {
+          body: {
+            action: "refetch_order",
+            booking_reference: confirmationNumber,
+            booking_id: bookingId,
+            trip_id: tripId,
+          },
+        });
+        if (refetchErr) throw refetchErr;
+        if (!refetchData?.success) {
+          toast.error("Could not find this order in Duffel.");
+          return;
+        }
+
+        // Re-query the now-created flight_orders record
+        const { data: retried } = await supabase
+          .from("flight_orders")
+          .select("*")
+          .eq("trip_id", tripId)
+          .eq("booking_reference", confirmationNumber)
+          .maybeSingle();
+        resolvedFlightOrder = retried;
+        if (!resolvedFlightOrder) {
+          toast.error("E-ticket record not found after refetch.");
+          return;
+        }
       }
 
       // Get trip + client info
@@ -47,31 +76,31 @@ export function SendETicketButton({ bookingId, tripId, confirmationNumber }: Sen
       }
 
       const eticketNumbers = (flightOrder as any).eticket_numbers || [];
-      const route = [flightOrder.origin_iata, flightOrder.destination_iata].filter(Boolean).join(" → ");
-      const departureDate = flightOrder.departure_at
-        ? new Date(flightOrder.departure_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      const route = [resolvedFlightOrder.origin_iata, resolvedFlightOrder.destination_iata].filter(Boolean).join(" → ");
+      const departureDate = resolvedFlightOrder.departure_at
+        ? new Date(resolvedFlightOrder.departure_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
         : "";
-      const arrivalDate = flightOrder.arrival_at
-        ? new Date(flightOrder.arrival_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      const arrivalDate = resolvedFlightOrder.arrival_at
+        ? new Date(resolvedFlightOrder.arrival_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
         : "";
 
       const { error: emailErr } = await supabase.functions.invoke("send-email", {
         body: {
           to: client.email,
-          subject: `Your E-Ticket Confirmation — ${flightOrder.booking_reference || confirmationNumber}`,
+          subject: `Your E-Ticket Confirmation — ${resolvedFlightOrder.booking_reference || confirmationNumber}`,
           template: "eticket",
           clientId: trip.client_id,
           data: {
             clientName: client.name,
-            passengerName: (flightOrder.passenger_names || []).join(", ") || client.name,
-            bookingReference: flightOrder.booking_reference || confirmationNumber,
-            airline: flightOrder.airline_name || "Airline",
-            flightNumbers: (flightOrder.flight_numbers || []).join(", "),
+            passengerName: (resolvedFlightOrder.passenger_names || []).join(", ") || client.name,
+            bookingReference: resolvedFlightOrder.booking_reference || confirmationNumber,
+            airline: resolvedFlightOrder.airline_name || "Airline",
+            flightNumbers: (resolvedFlightOrder.flight_numbers || []).join(", "),
             route,
             departureDate,
             arrivalDate,
             ticketNumbers: eticketNumbers.join(","),
-            totalAmount: `$${(flightOrder.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+            totalAmount: `$${(resolvedFlightOrder.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
             tripName: trip.trip_name || "",
           },
         },
