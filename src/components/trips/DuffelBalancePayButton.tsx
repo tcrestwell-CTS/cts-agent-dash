@@ -50,7 +50,11 @@ export function DuffelBalancePayButton({
           booking_id: bookingId,
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Try to parse the response for a user-friendly message
+        const body = typeof error === "object" && "context" in error ? error.context : null;
+        throw new Error(data?.error || "Balance payment failed");
+      }
       if (data?.error) throw new Error(data.error);
 
       setState("done");
