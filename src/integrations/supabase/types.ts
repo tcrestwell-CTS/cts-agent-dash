@@ -2085,6 +2085,8 @@ export type Database = {
           departure_at: string | null
           destination_iata: string | null
           duffel_order_id: string
+          eticket_data: Json | null
+          eticket_numbers: string[] | null
           event_log: Json | null
           flight_numbers: string[] | null
           id: string
@@ -2109,6 +2111,8 @@ export type Database = {
           departure_at?: string | null
           destination_iata?: string | null
           duffel_order_id: string
+          eticket_data?: Json | null
+          eticket_numbers?: string[] | null
           event_log?: Json | null
           flight_numbers?: string[] | null
           id?: string
@@ -2133,6 +2137,8 @@ export type Database = {
           departure_at?: string | null
           destination_iata?: string | null
           duffel_order_id?: string
+          eticket_data?: Json | null
+          eticket_numbers?: string[] | null
           event_log?: Json | null
           flight_numbers?: string[] | null
           id?: string
