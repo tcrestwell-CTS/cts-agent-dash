@@ -92,7 +92,7 @@ type SelectionStep = "all" | "outbound" | "return";
 export default function FlightSearch() {
   const [searchParams] = useSearchParams();
   const tripIdFromQuery = searchParams.get("tripId") || undefined;
-  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder } = useFlightSearch();
+  const { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, createPaymentIntent, confirmPaymentIntent } = useFlightSearch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [departDate, setDepartDate] = useState("");
