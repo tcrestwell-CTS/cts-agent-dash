@@ -26,9 +26,38 @@ export function SendETicketButton({ bookingId, tripId, confirmationNumber }: Sen
         .maybeSingle();
 
       if (foErr) throw foErr;
-      if (!flightOrder) {
-        toast.error("No flight order record found for this booking.");
-        return;
+
+      let resolvedFlightOrder = flightOrder;
+
+      // If no local record, refetch from Duffel API
+      if (!resolvedFlightOrder) {
+        toast.info("Fetching e-ticket from Duffel...");
+        const { data: refetchData, error: refetchErr } = await supabase.functions.invoke("duffel-flights", {
+          body: {
+            action: "refetch_order",
+            booking_reference: confirmationNumber,
+            booking_id: bookingId,
+            trip_id: tripId,
+          },
+        });
+        if (refetchErr) throw refetchErr;
+        if (!refetchData?.success) {
+          toast.error("Could not find this order in Duffel.");
+          return;
+        }
+
+        // Re-query the now-created flight_orders record
+        const { data: retried } = await supabase
+          .from("flight_orders")
+          .select("*")
+          .eq("trip_id", tripId)
+          .eq("booking_reference", confirmationNumber)
+          .maybeSingle();
+        resolvedFlightOrder = retried;
+        if (!resolvedFlightOrder) {
+          toast.error("E-ticket record not found after refetch.");
+          return;
+        }
       }
 
       // Get trip + client info
