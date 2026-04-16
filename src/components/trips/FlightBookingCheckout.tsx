@@ -9,18 +9,74 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plane, ArrowLeft, AlertTriangle, CheckCircle2, Clock, ArrowRight, Luggage, Armchair, CreditCard } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { DuffelPayments } from "@duffel/components";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { supabase } from "@/integrations/supabase/client";
 import type { FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection, SeatMapElement } from "@/hooks/useFlightSearch";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
 
 interface Props {
   offer: FlightOffer;
   seatMaps: SeatMap[];
   baggageServices: AvailableService[];
   loading: boolean;
+  tripId?: string;
   onBack: () => void;
   onConfirm: (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => void;
-  onCreatePaymentIntent?: (amount: string, currency: string) => Promise<{ id: string; client_token: string } | null>;
-  onConfirmPaymentIntent?: (paymentIntentId: string) => Promise<any>;
+}
+
+// Inline Stripe checkout form for customer_card payment
+function StripeInlineCheckout({ 
+  clientSecret, 
+  amount, 
+  currency, 
+  onSuccess, 
+  onError 
+}: { 
+  clientSecret: string; 
+  amount: number; 
+  currency: string; 
+  onSuccess: () => void; 
+  onError: (msg: string) => void; 
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: window.location.href },
+        redirect: "if_required",
+      });
+      if (error) {
+        onError(error.message || "Payment failed");
+      } else if (paymentIntent?.status === "succeeded") {
+        onSuccess();
+      } else {
+        onError(`Unexpected status: ${paymentIntent?.status}`);
+      }
+    } catch (err: any) {
+      onError(err.message || "Payment error");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+      <PaymentElement />
+      <Button type="submit" disabled={!stripe || processing} className="w-full gap-2" size="sm">
+        {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+        {processing ? "Processing..." : `Pay $${amount.toFixed(2)} ${currency}`}
+      </Button>
+    </form>
+  );
 }
 
 function formatDuration(iso: string) {
@@ -50,15 +106,13 @@ type SeatSelections = Record<string, string>;
 // key = baggage service id, value = quantity
 type BaggageSelections = Record<string, number>;
 
-export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, onBack, onConfirm, onCreatePaymentIntent, onConfirmPaymentIntent }: Props) {
+export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, tripId, onBack, onConfirm }: Props) {
   const [passengers, setPassengers] = useState<PassengerForm[]>([]);
   const [paymentType, setPaymentType] = useState<"balance" | "arc_bsp_cash" | "customer_card">("balance");
   const [seatSelections, setSeatSelections] = useState<SeatSelections>({});
   const [baggageSelections, setBaggageSelections] = useState<BaggageSelections>({});
-  const [cardPaymentState, setCardPaymentState] = useState<"idle" | "creating_intent" | "collecting" | "confirming" | "paid" | "error">("idle");
-  const [paymentIntentClientToken, setPaymentIntentClientToken] = useState<string | null>(null);
-  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
-  const cardContainerRef = useRef<HTMLDivElement>(null);
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+  const [cardPaymentState, setCardPaymentState] = useState<"idle" | "creating_intent" | "collecting" | "paid" | "error">("idle");
 
   useEffect(() => {
     setPassengers(
@@ -147,48 +201,39 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
     return { mapped, services };
   };
 
-  // Start customer card payment flow
+  // Start Stripe card payment flow
   const handleInitiateCardPayment = useCallback(async () => {
-    if (!onCreatePaymentIntent) return;
     setCardPaymentState("creating_intent");
     try {
-      const intent = await onCreatePaymentIntent(
-        totalAmount.toFixed(2),
-        offer.total_currency
-      );
-      if (!intent) throw new Error("Failed to create payment intent");
-      setPaymentIntentId(intent.id);
-      setPaymentIntentClientToken(intent.client_token);
+      const { data, error } = await supabase.functions.invoke("create-flight-payment-intent", {
+        body: {
+          amount_cents: Math.round(totalAmount * 100),
+          currency: offer.total_currency.toLowerCase(),
+          trip_id: tripId || "",
+          description: `Flight booking`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setStripeClientSecret(data.client_secret);
       setCardPaymentState("collecting");
     } catch (err: any) {
-      console.error("Card payment init error:", err);
+      console.error("Stripe payment init error:", err);
       toast.error(err.message || "Failed to initialize card payment");
       setCardPaymentState("error");
     }
-  }, [onCreatePaymentIntent, totalAmount, offer.total_currency]);
+  }, [totalAmount, offer.total_currency, tripId]);
 
-  // Called when Duffel card component reports success
-  const handleCardPaymentSuccess = useCallback(async () => {
-    if (!onConfirmPaymentIntent || !paymentIntentId) return;
-    setCardPaymentState("confirming");
-    try {
-      const confirmed = await onConfirmPaymentIntent(paymentIntentId);
-      if (!confirmed) throw new Error("Failed to confirm payment intent");
-      setCardPaymentState("paid");
-      toast.success("Card payment collected successfully!");
-      // Now create the order using balance (topped up by payment intent)
-      const { mapped, services } = buildPassengersAndServices();
-      onConfirm(mapped, "balance", services, paymentIntentId);
-    } catch (err: any) {
-      console.error("Card payment confirm error:", err);
-      toast.error(err.message || "Failed to confirm card payment");
-      setCardPaymentState("error");
-    }
-  }, [onConfirmPaymentIntent, paymentIntentId, passengers, seatSelections, baggageSelections]);
+  const handleStripePaymentSuccess = useCallback(() => {
+    setCardPaymentState("paid");
+    toast.success("Card payment collected!");
+    // Now create the order using Duffel balance
+    const { mapped, services } = buildPassengersAndServices();
+    onConfirm(mapped, "balance", services);
+  }, [passengers, seatSelections, baggageSelections]);
 
-  const handleCardPaymentError = useCallback((error: any) => {
-    console.error("Card payment error:", error);
-    toast.error("Card payment failed. Please try again.");
+  const handleStripePaymentError = useCallback((msg: string) => {
+    toast.error(msg || "Card payment failed.");
     setCardPaymentState("error");
   }, []);
 
@@ -506,20 +551,16 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
         <CardContent className="px-4 pb-4 space-y-3">
           <Select value={paymentType} onValueChange={(v: "balance" | "arc_bsp_cash" | "customer_card") => {
             setPaymentType(v);
-            // Reset card payment state when switching away
             if (v !== "customer_card") {
               setCardPaymentState("idle");
-              setPaymentIntentClientToken(null);
-              setPaymentIntentId(null);
+              setStripeClientSecret(null);
             }
           }}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="balance">Duffel Balance</SelectItem>
               <SelectItem value="arc_bsp_cash">ARC/BSP Cash</SelectItem>
-              {onCreatePaymentIntent && (
-                <SelectItem value="customer_card">Customer Card (Duffel Payments)</SelectItem>
-              )}
+              <SelectItem value="customer_card">Customer Card (Stripe)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
@@ -527,41 +568,35 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
               ? "Payment will be charged to your Duffel balance."
               : paymentType === "arc_bsp_cash"
               ? "For IATA-registered agents using their own airline relationships."
-              : "Collect payment directly from the customer's card via Duffel Payments."}
+              : "Collect payment from the customer's card via Stripe, then auto-issue ticket via Duffel balance."}
           </p>
 
-          {/* Duffel Card Payment Component */}
-          {paymentType === "customer_card" && cardPaymentState === "collecting" && paymentIntentClientToken && (
+          {/* Stripe Card Payment */}
+          {paymentType === "customer_card" && cardPaymentState === "collecting" && stripeClientSecret && (
             <div className="mt-3 border rounded-lg p-4">
-              <p className="text-sm font-medium mb-3">Enter card details</p>
-              <div ref={cardContainerRef}>
-                <DuffelPayments
-                  paymentIntentClientToken={paymentIntentClientToken}
-                  onSuccessfulPayment={handleCardPaymentSuccess}
-                  onFailedPayment={handleCardPaymentError}
+              <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret, appearance: { theme: "stripe" } }}>
+                <StripeInlineCheckout
+                  clientSecret={stripeClientSecret}
+                  amount={totalAmount}
+                  currency={offer.total_currency}
+                  onSuccess={handleStripePaymentSuccess}
+                  onError={handleStripePaymentError}
                 />
-              </div>
+              </Elements>
             </div>
           )}
 
           {paymentType === "customer_card" && cardPaymentState === "creating_intent" && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Initializing payment...
-            </div>
-          )}
-
-          {paymentType === "customer_card" && cardPaymentState === "confirming" && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Confirming payment...
+              Initializing Stripe payment...
             </div>
           )}
 
           {paymentType === "customer_card" && cardPaymentState === "paid" && (
             <div className="flex items-center gap-2 text-sm text-primary mt-2">
               <CheckCircle2 className="h-4 w-4" />
-              Payment collected! Creating order...
+              Payment collected! Booking flight...
             </div>
           )}
 
@@ -570,8 +605,7 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
               <p className="text-sm text-destructive">Payment failed. Please try again.</p>
               <Button variant="outline" size="sm" onClick={() => {
                 setCardPaymentState("idle");
-                setPaymentIntentClientToken(null);
-                setPaymentIntentId(null);
+                setStripeClientSecret(null);
               }}>
                 Reset
               </Button>
