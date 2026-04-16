@@ -408,8 +408,9 @@ export function TripBookings({
                           {getPaymentStatus(booking)}
                           {isDuffelBooking(booking.id) && booking.status !== "cancelled" && (
                             <>
-                              <DuffelPayBookingDialog
+                              <StripePayBookingDialog
                                 bookingId={booking.id}
+                                tripId={tripId}
                                 amount={Number(booking.gross_sales)}
                                 confirmationNumber={booking.confirmation_number || booking.booking_reference || booking.id.slice(0, 8)}
                                 offerId={(booking as any).duffel_offer_id || undefined}
