@@ -100,16 +100,16 @@ export function TripBookings({
     enabled: !!user && bookingIds.length > 0,
   });
 
-  // Identify Duffel-originated bookings via margin lines with source = 'duffel'
+  // Identify Duffel-eligible bookings: margin lines with source='duffel' OR flight line_type
   const { data: duffelBookingIds = [] } = useQuery({
     queryKey: ["duffel-bookings", tripId, bookingIds],
     queryFn: async () => {
       if (bookingIds.length === 0) return [];
       const { data, error } = await supabase
         .from("booking_margin_lines")
-        .select("booking_id")
+        .select("booking_id, source, line_type")
         .in("booking_id", bookingIds)
-        .eq("source", "duffel");
+        .or("source.eq.duffel,line_type.eq.flight");
       if (error) throw error;
       return [...new Set((data || []).map((r) => r.booking_id))];
     },
