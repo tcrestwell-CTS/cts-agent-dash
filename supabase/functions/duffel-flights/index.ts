@@ -209,6 +209,15 @@ serve(async (req) => {
         const passengerNames = (order.passengers || []).map((p: any) => `${p.given_name} ${p.family_name}`);
         const passengerEmails = (passengers || []).map((p: any) => p.email).filter(Boolean);
 
+        // Extract e-ticket data from documents
+        const documents = order.documents || [];
+        const eticketNumbers = documents.map((d: any) => d.unique_identifier).filter(Boolean);
+        const eticketData = documents.map((d: any) => ({
+          ticket_number: d.unique_identifier || null,
+          passenger_id: d.passenger_id || null,
+          type: d.type || "electronic_ticket",
+        }));
+
         await serviceSupabase.from("flight_orders").insert({
           user_id: user.id,
           duffel_order_id: order.id,
@@ -226,6 +235,8 @@ serve(async (req) => {
           total_amount: totalAmount,
           total_currency: order.total_currency || "USD",
           order_status: "confirmed",
+          eticket_numbers: eticketNumbers,
+          eticket_data: eticketData,
         });
       }
 
@@ -428,11 +439,50 @@ serve(async (req) => {
         });
       }
 
+      // Extract e-ticket data
+      const balOrder = orderData?.data;
+      const balDocuments = balOrder?.documents || [];
+      const balEticketNumbers = balDocuments.map((d: any) => d.unique_identifier).filter(Boolean);
+      const balEticketData = balDocuments.map((d: any) => ({
+        ticket_number: d.unique_identifier || null,
+        passenger_id: d.passenger_id || null,
+        type: d.type || "electronic_ticket",
+      }));
+
       // Update booking to confirmed
       await serviceSupabase.from("bookings").update({
         status: "confirmed",
-        confirmation_number: orderData?.data?.booking_reference || booking.duffel_offer_id,
+        confirmation_number: balOrder?.booking_reference || booking.duffel_offer_id,
       }).eq("id", booking_id);
+
+      // Save flight_order with e-ticket data
+      const balSlices = balOrder?.slices || [];
+      const balFirstSlice = balSlices[0];
+      const balLastSlice = balSlices[balSlices.length - 1];
+      const balFlightNumbers = balSlices.flatMap((s: any) =>
+        (s.segments || []).map((seg: any) => `${seg.operating_carrier?.iata_code || ""}${seg.operating_carrier_flight_number || ""}`)
+      );
+
+      await serviceSupabase.from("flight_orders").upsert({
+        user_id: booking.user_id,
+        duffel_order_id: balOrder?.id,
+        booking_reference: balOrder?.booking_reference || null,
+        trip_id: booking.trip_id || null,
+        client_id: (trip as any)?.client_id || null,
+        passenger_names: [client.name],
+        passenger_emails: [client.email],
+        origin_iata: balFirstSlice?.origin?.iata_code || null,
+        destination_iata: balLastSlice?.destination?.iata_code || null,
+        departure_at: balFirstSlice?.segments?.[0]?.departing_at || null,
+        arrival_at: balLastSlice?.segments?.slice(-1)?.[0]?.arriving_at || null,
+        airline_name: balOrder?.owner?.name || null,
+        flight_numbers: balFlightNumbers,
+        total_amount: parseFloat(balOrder?.total_amount || String(booking.gross_sales)),
+        total_currency: balOrder?.total_currency || "USD",
+        order_status: "confirmed",
+        eticket_numbers: balEticketNumbers,
+        eticket_data: balEticketData,
+      }, { onConflict: "duffel_order_id" });
 
       return new Response(JSON.stringify(orderData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

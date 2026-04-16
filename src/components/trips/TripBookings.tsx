@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AddTripBookingDialog } from "./AddTripBookingDialog";
 import { DuffelPayBookingDialog } from "./DuffelPayBookingDialog";
 import { DuffelBalancePayButton } from "./DuffelBalancePayButton";
+import { SendETicketButton } from "./SendETicketButton";
 
 interface Commission {
   id: string;
@@ -429,6 +430,13 @@ export function TripBookings({
                                   onDataChange?.();
                                 }}
                               />
+                              {booking.status === "confirmed" && (
+                                <SendETicketButton
+                                  bookingId={booking.id}
+                                  tripId={tripId}
+                                  confirmationNumber={booking.confirmation_number || booking.booking_reference || ""}
+                                />
+                              )}
                             </>
                           )}
                         </div>

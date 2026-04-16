@@ -1,0 +1,114 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Ticket, Loader2, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface SendETicketButtonProps {
+  bookingId: string;
+  tripId: string;
+  confirmationNumber: string;
+}
+
+export function SendETicketButton({ bookingId, tripId, confirmationNumber }: SendETicketButtonProps) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      // Get flight order data with e-ticket info
+      const { data: flightOrder, error: foErr } = await supabase
+        .from("flight_orders")
+        .select("*")
+        .eq("trip_id", tripId)
+        .eq("booking_reference", confirmationNumber)
+        .maybeSingle();
+
+      if (foErr) throw foErr;
+      if (!flightOrder) {
+        toast.error("No flight order record found for this booking.");
+        return;
+      }
+
+      // Get trip + client info
+      const { data: trip, error: tErr } = await supabase
+        .from("trips")
+        .select("trip_name, client_id, clients!trips_client_id_fkey(name, email)")
+        .eq("id", tripId)
+        .single();
+
+      if (tErr || !trip) throw tErr || new Error("Trip not found");
+
+      const client = (trip as any)?.clients;
+      if (!client?.email) {
+        toast.error("Client email not found — cannot send e-ticket.");
+        return;
+      }
+
+      const eticketNumbers = (flightOrder as any).eticket_numbers || [];
+      const route = [flightOrder.origin_iata, flightOrder.destination_iata].filter(Boolean).join(" → ");
+      const departureDate = flightOrder.departure_at
+        ? new Date(flightOrder.departure_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "";
+      const arrivalDate = flightOrder.arrival_at
+        ? new Date(flightOrder.arrival_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "";
+
+      const { error: emailErr } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: client.email,
+          subject: `Your E-Ticket Confirmation — ${flightOrder.booking_reference || confirmationNumber}`,
+          template: "eticket",
+          clientId: trip.client_id,
+          data: {
+            clientName: client.name,
+            passengerName: (flightOrder.passenger_names || []).join(", ") || client.name,
+            bookingReference: flightOrder.booking_reference || confirmationNumber,
+            airline: flightOrder.airline_name || "Airline",
+            flightNumbers: (flightOrder.flight_numbers || []).join(", "),
+            route,
+            departureDate,
+            arrivalDate,
+            ticketNumbers: eticketNumbers.join(","),
+            totalAmount: `$${(flightOrder.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+            tripName: trip.trip_name || "",
+          },
+        },
+      });
+
+      if (emailErr) throw emailErr;
+
+      setSent(true);
+      toast.success(`E-ticket sent to ${client.email}`);
+      setTimeout(() => setSent(false), 5000);
+    } catch (err: any) {
+      console.error("Send e-ticket error:", err);
+      toast.error(err.message || "Failed to send e-ticket");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-1.5 h-7 text-xs"
+      onClick={(e) => {
+        e.stopPropagation();
+        handleSend();
+      }}
+      disabled={sending || sent}
+    >
+      {sending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : sent ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+      ) : (
+        <Ticket className="h-3.5 w-3.5" />
+      )}
+      {sent ? "Sent!" : "Send E-Ticket"}
+    </Button>
+  );
+}
