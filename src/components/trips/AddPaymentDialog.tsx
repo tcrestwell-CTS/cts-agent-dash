@@ -18,11 +18,12 @@ import {
 } from "@/components/ui/select";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
-import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StripeCheckoutDialog } from "@/components/trips/StripeCheckoutDialog";
+import { addMonths, format } from "date-fns";
 
 interface AddPaymentDialogProps {
   open: boolean;
@@ -32,7 +33,7 @@ interface AddPaymentDialogProps {
   onPaymentCreated?: () => void;
 }
 
-type PaymentMode = null | "stripe_agent" | "stripe_link" | "manual";
+type PaymentMode = null | "stripe_agent" | "stripe_link" | "manual" | "schedule";
 
 const MODES = [
   {
@@ -52,6 +53,12 @@ const MODES = [
     icon: FileText,
     title: "Log Manually",
     description: "Record a cash, check, or already-processed payment",
+  },
+  {
+    id: "schedule" as const,
+    icon: CalendarClock,
+    title: "Schedule Payments",
+    description: "Split balance into equal monthly installments",
   },
 ];
 
@@ -173,11 +180,24 @@ export function AddPaymentDialog({
   const [checkoutPaymentId, setCheckoutPaymentId] = useState<string | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
+  // Schedule payments state
+  const [scheduleTotal, setScheduleTotal] = useState("");
+  const [scheduleMonths, setScheduleMonths] = useState("3");
+  const [scheduleStartDate, setScheduleStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [scheduleBookingId, setScheduleBookingId] = useState("none");
+  const [scheduleNotes, setScheduleNotes] = useState("");
+  const [scheduleCreating, setScheduleCreating] = useState(false);
+
   const handleClose = (val: boolean) => {
     if (!val) {
       setMode(null);
       setFormData({ ...defaultForm });
       setGeneratedLink(null);
+      setScheduleTotal("");
+      setScheduleMonths("3");
+      setScheduleStartDate(new Date().toISOString().split("T")[0]);
+      setScheduleBookingId("none");
+      setScheduleNotes("");
     }
     onOpenChange(val);
   };
@@ -206,7 +226,6 @@ export function AddPaymentDialog({
     try {
       const record = await createPendingRecord();
       if (!record) return;
-      // Close the mode dialog and open embedded checkout
       onOpenChange(false);
       setCheckoutPaymentId(record.id);
       setCheckoutOpen(true);
@@ -273,6 +292,54 @@ export function AddPaymentDialog({
       onPaymentCreated?.();
     }
   };
+
+  // MODE: Schedule Payments
+  const scheduleMonthsNum = parseInt(scheduleMonths) || 0;
+  const scheduleTotalNum = parseFloat(scheduleTotal) || 0;
+  const perPayment = scheduleMonthsNum > 0 ? Math.round((scheduleTotalNum / scheduleMonthsNum) * 100) / 100 : 0;
+  const lastPayment = scheduleMonthsNum > 0 ? Math.round((scheduleTotalNum - perPayment * (scheduleMonthsNum - 1)) * 100) / 100 : 0;
+
+  const getBookingLabel = (b: TripBooking) => {
+    const supplier = b.suppliers?.name || "";
+    const dest = b.destination || "";
+    const name = b.trip_name || "";
+    return name || `${supplier} - ${dest}`.trim() || b.booking_reference;
+  };
+
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (scheduleTotalNum <= 0 || scheduleMonthsNum < 2) return;
+
+    setScheduleCreating(true);
+    try {
+      const startDate = new Date(scheduleStartDate + "T12:00:00");
+      for (let i = 0; i < scheduleMonthsNum; i++) {
+        const dueDate = addMonths(startDate, i);
+        const amount = i < scheduleMonthsNum - 1 ? perPayment : lastPayment;
+        await createPayment({
+          trip_id: tripId,
+          booking_id: scheduleBookingId === "none" ? null : scheduleBookingId,
+          amount,
+          due_date: format(dueDate, "yyyy-MM-dd"),
+          payment_type: i === 0 ? "deposit" : i === scheduleMonthsNum - 1 ? "final_balance" : "payment",
+          status: "pending",
+          details: `Installment ${i + 1} of ${scheduleMonthsNum}`,
+          notes: scheduleNotes || null,
+        });
+      }
+      toast.success(`${scheduleMonthsNum} scheduled payments created`);
+      handleClose(false);
+      onPaymentCreated?.();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create scheduled payments");
+    } finally {
+      setScheduleCreating(false);
+    }
+  };
+
+  const formatCurrency = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
   return (
     <>
@@ -439,6 +506,106 @@ export function AddPaymentDialog({
               <Button type="submit" disabled={creating || !formData.amount}>
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Log Payment
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* ── SCHEDULE PAYMENTS ── */}
+        {mode === "schedule" && (
+          <form onSubmit={handleScheduleSubmit} className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Link to Booking (Optional)</Label>
+              <Select value={scheduleBookingId} onValueChange={setScheduleBookingId}>
+                <SelectTrigger><SelectValue placeholder="Select a booking" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific booking</SelectItem>
+                  {bookings.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{getBookingLabel(b)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Total Amount *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={scheduleTotal}
+                  onChange={(e) => setScheduleTotal(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Number of Payments *</Label>
+                <Select value={scheduleMonths} onValueChange={setScheduleMonths}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n} payments</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>First Payment Due Date *</Label>
+              <Input
+                type="date"
+                value={scheduleStartDate}
+                onChange={(e) => setScheduleStartDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Additional notes for all payments..."
+                value={scheduleNotes}
+                onChange={(e) => setScheduleNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            {/* Preview */}
+            {scheduleTotalNum > 0 && scheduleMonthsNum >= 2 && (
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+                <p className="text-sm font-medium text-foreground">Payment Schedule Preview</p>
+                <div className="space-y-1">
+                  {Array.from({ length: scheduleMonthsNum }).map((_, i) => {
+                    const dueDate = addMonths(new Date(scheduleStartDate + "T12:00:00"), i);
+                    const amt = i < scheduleMonthsNum - 1 ? perPayment : lastPayment;
+                    return (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {i === 0 ? "Deposit" : i === scheduleMonthsNum - 1 ? "Final Balance" : `Payment ${i + 1}`}
+                          {" · "}
+                          {format(dueDate, "MMM d, yyyy")}
+                        </span>
+                        <span className="font-medium">{formatCurrency(amt)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="border-t pt-2 mt-2 flex justify-between text-sm font-semibold">
+                  <span>Total</span>
+                  <span>{formatCurrency(scheduleTotalNum)}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+              <Button type="submit" disabled={scheduleCreating || scheduleTotalNum <= 0 || scheduleMonthsNum < 2}>
+                {scheduleCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <CalendarClock className="mr-2 h-4 w-4" />
+                Create {scheduleMonthsNum} Payments
               </Button>
             </div>
           </form>
