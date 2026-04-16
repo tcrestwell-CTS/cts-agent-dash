@@ -435,6 +435,7 @@ export function useTrip(tripId: string | undefined) {
           supplier_paid_amount,
           supplier_paid_method,
           supplier_paid_reference,
+          duffel_offer_id,
           suppliers (
             id,
             name,
