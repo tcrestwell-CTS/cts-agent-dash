@@ -28,7 +28,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTripBookingDialog } from "./AddTripBookingDialog";
-import { DuffelPayBookingDialog } from "./DuffelPayBookingDialog";
+import { StripePayBookingDialog } from "./StripePayBookingDialog";
 import { DuffelBalancePayButton } from "./DuffelBalancePayButton";
 import { SendETicketButton } from "./SendETicketButton";
 
