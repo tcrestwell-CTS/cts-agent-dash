@@ -3828,6 +3828,51 @@ export type Database = {
         }
         Relationships: []
       }
+      task_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          result_summary: string | null
+          started_at: string
+          status: string
+          task_name: string
+          task_type: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          result_summary?: string | null
+          started_at?: string
+          status?: string
+          task_name: string
+          task_type?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          result_summary?: string | null
+          started_at?: string
+          status?: string
+          task_name?: string
+          task_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       training_modules: {
         Row: {
           category: string
