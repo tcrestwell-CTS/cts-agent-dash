@@ -138,14 +138,26 @@ serve(async (req) => {
 async function handleBookingConfirmed(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
 ) {
-  // 1. Ensure client is synced as a QBO Customer
+  // 1. Resolve client via the trip (bookings don't have client_id directly)
+  let clientId = booking.client_id;
+  if (!clientId && booking.trip_id) {
+    const { data: trip } = await supabase
+      .from("trips")
+      .select("client_id")
+      .eq("id", booking.trip_id)
+      .single();
+    clientId = trip?.client_id;
+  }
+
+  if (!clientId) throw new Error("No client linked to booking (no trip or trip has no client)");
+
   const { data: client } = await supabase
     .from("clients")
     .select("*")
-    .eq("id", booking.client_id)
+    .eq("id", clientId)
     .single();
 
-  if (!client) throw new Error("Client not found for booking");
+  if (!client) throw new Error(`Client ${clientId} not found`);
 
   const qboCustomerId = await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
 
