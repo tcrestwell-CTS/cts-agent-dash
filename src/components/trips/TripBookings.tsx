@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTripBookingDialog } from "./AddTripBookingDialog";
 import { DuffelPayBookingDialog } from "./DuffelPayBookingDialog";
+import { DuffelBalancePayButton } from "./DuffelBalancePayButton";
 
 interface Commission {
   id: string;
