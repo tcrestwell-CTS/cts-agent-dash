@@ -21,10 +21,62 @@ interface Props {
   seatMaps: SeatMap[];
   baggageServices: AvailableService[];
   loading: boolean;
+  tripId?: string;
   onBack: () => void;
   onConfirm: (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => void;
-  onCreatePaymentIntent?: (amount: string, currency: string) => Promise<{ id: string; client_token: string } | null>;
-  onConfirmPaymentIntent?: (paymentIntentId: string) => Promise<any>;
+}
+
+// Inline Stripe checkout form for customer_card payment
+function StripeInlineCheckout({ 
+  clientSecret, 
+  amount, 
+  currency, 
+  onSuccess, 
+  onError 
+}: { 
+  clientSecret: string; 
+  amount: number; 
+  currency: string; 
+  onSuccess: () => void; 
+  onError: (msg: string) => void; 
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: window.location.href },
+        redirect: "if_required",
+      });
+      if (error) {
+        onError(error.message || "Payment failed");
+      } else if (paymentIntent?.status === "succeeded") {
+        onSuccess();
+      } else {
+        onError(`Unexpected status: ${paymentIntent?.status}`);
+      }
+    } catch (err: any) {
+      onError(err.message || "Payment error");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+      <PaymentElement />
+      <Button type="submit" disabled={!stripe || processing} className="w-full gap-2" size="sm">
+        {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+        {processing ? "Processing..." : `Pay $${amount.toFixed(2)} ${currency}`}
+      </Button>
+    </form>
+  );
 }
 
 function formatDuration(iso: string) {
