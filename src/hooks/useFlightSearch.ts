@@ -125,6 +125,15 @@ export interface CreateOrderParams {
   }>;
   services?: ServiceSelection[];
   trip_id?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface DuffelPaymentIntent {
+  id: string;
+  client_token: string;
+  amount: string;
+  currency: string;
+  status: string;
 }
 
 export interface DuffelOrder {
@@ -275,5 +284,33 @@ export function useFlightSearch() {
     }
   };
 
-  return { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, getOrder, cancelOrder, createOrderChange, confirmOrderChange, offerRequestId };
+  const createPaymentIntent = async (amount: string, currency: string): Promise<DuffelPaymentIntent | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "create_payment_intent", amount, currency },
+      });
+      if (error) throw error;
+      return data?.data ?? null;
+    } catch (err: any) {
+      console.error("Create payment intent error:", err);
+      toast.error(err.message || "Failed to create payment intent");
+      return null;
+    }
+  };
+
+  const confirmPaymentIntent = async (paymentIntentId: string): Promise<DuffelPaymentIntent | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("duffel-flights", {
+        body: { action: "confirm_payment_intent", payment_intent_id: paymentIntentId },
+      });
+      if (error) throw error;
+      return data?.data ?? null;
+    } catch (err: any) {
+      console.error("Confirm payment intent error:", err);
+      toast.error(err.message || "Failed to confirm payment intent");
+      return null;
+    }
+  };
+
+  return { offers, loading, bookingLoading, searchFlights, getOffer, getSeatMaps, createOrder, getOrder, cancelOrder, createOrderChange, confirmOrderChange, createPaymentIntent, confirmPaymentIntent, offerRequestId };
 }
