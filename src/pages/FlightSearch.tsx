@@ -225,7 +225,7 @@ export default function FlightSearch() {
     }
   };
 
-  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[]) => {
+  const handleConfirmBooking = async (passengers: OrderPassenger[], paymentType: "balance" | "arc_bsp_cash", services: ServiceSelection[], paymentIntentId?: string) => {
     if (!checkoutOffer) return;
     const baseCost = parseFloat(checkoutOffer.total_amount);
     const ancillaryCost = services.reduce((sum, svc) => {
