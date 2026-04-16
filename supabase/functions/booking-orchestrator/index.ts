@@ -443,7 +443,7 @@ async function handleAutomateStatus(
  */
 async function handleSyncBooking(
   req: Request,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   supabaseUrl: string,
   supabaseAnonKey: string
 ): Promise<Response> {
