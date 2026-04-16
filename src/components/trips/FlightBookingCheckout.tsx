@@ -49,11 +49,15 @@ type SeatSelections = Record<string, string>;
 // key = baggage service id, value = quantity
 type BaggageSelections = Record<string, number>;
 
-export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, onBack, onConfirm }: Props) {
+export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loading, onBack, onConfirm, onCreatePaymentIntent, onConfirmPaymentIntent }: Props) {
   const [passengers, setPassengers] = useState<PassengerForm[]>([]);
-  const [paymentType, setPaymentType] = useState<"balance" | "arc_bsp_cash">("balance");
+  const [paymentType, setPaymentType] = useState<"balance" | "arc_bsp_cash" | "customer_card">("balance");
   const [seatSelections, setSeatSelections] = useState<SeatSelections>({});
   const [baggageSelections, setBaggageSelections] = useState<BaggageSelections>({});
+  const [cardPaymentState, setCardPaymentState] = useState<"idle" | "creating_intent" | "collecting" | "confirming" | "paid" | "error">("idle");
+  const [paymentIntentClientToken, setPaymentIntentClientToken] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPassengers(
