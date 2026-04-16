@@ -57,6 +57,7 @@ const PortalManagement   = lazy(() => import("./pages/PortalManagement"));
 const AdminPortalPreview = lazy(() => import("./pages/AdminPortalPreview"));
 const BusinessContacts   = lazy(() => import("./pages/BusinessContacts"));
 const Excursions         = lazy(() => import("./pages/Excursions"));
+const TaskMonitor        = lazy(() => import("./pages/TaskMonitor"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
@@ -141,6 +142,7 @@ const App = () => (
                 <Route path="/portal-preview/:clientId" element={<ProtectedRoute><AdminPortalPreview /></ProtectedRoute>} />
                 <Route path="/business-contacts" element={<ProtectedRoute><BusinessContacts /></ProtectedRoute>} />
                 <Route path="/excursions" element={<ProtectedRoute><Excursions /></ProtectedRoute>} />
+                <Route path="/task-monitor" element={<ProtectedRoute><TaskMonitor /></ProtectedRoute>} />
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
