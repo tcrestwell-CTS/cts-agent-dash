@@ -454,7 +454,7 @@ async function handleSupplierPaid(
 
   // 2. Auto-provision the Accounts Payable account (QBO usually has one by default)
   const apAccountId = await ensureQBOAccount(qboBase, qboHeaders, "Accounts Payable (A/P)", "Accounts Payable", "AccountsPayable");
-  const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "Expense");
+  const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "OtherMiscellaneousServiceCost");
 
   const amount = booking.supplier_paid_amount || booking.supplier_payout || 0;
   const txnDate = booking.supplier_paid_date || new Date().toISOString().split("T")[0];
@@ -560,7 +560,7 @@ async function handleSupplierPaid(
 async function handleTripCompleted(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, trip: any
 ) {
-  const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiability");
+  const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiabilities");
   const commissionRevenueId = await ensureQBOAccount(qboBase, qboHeaders, "Commission Revenue", "Income", "ServiceFeeIncome");
 
   // Phase 4: Prefer agency_gross_margin (margin engine) over legacy commission_revenue
