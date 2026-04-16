@@ -371,7 +371,7 @@ serve(async (req) => {
         title: "mr",
         born_on: "1990-01-01",
         email: client.email,
-        phone_number: client.phone || "+10000000000",
+        phone_number: formatPhoneE164(client.phone),
         type: "adult",
       }));
 
