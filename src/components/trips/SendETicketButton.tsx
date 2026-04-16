@@ -75,7 +75,7 @@ export function SendETicketButton({ bookingId, tripId, confirmationNumber }: Sen
         return;
       }
 
-      const eticketNumbers = (flightOrder as any).eticket_numbers || [];
+      const eticketNumbers = (resolvedFlightOrder as any).eticket_numbers || [];
       const route = [resolvedFlightOrder.origin_iata, resolvedFlightOrder.destination_iata].filter(Boolean).join(" → ");
       const departureDate = resolvedFlightOrder.departure_at
         ? new Date(resolvedFlightOrder.departure_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
