@@ -9,6 +9,15 @@ const corsHeaders = {
 
 const DUFFEL_BASE = "https://api.duffel.com";
 
+function formatPhoneE164(phone?: string | null): string {
+  if (!phone) return "+10000000000";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("1") && digits.length === 11) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (phone.startsWith("+")) return phone;
+  return `+${digits}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
