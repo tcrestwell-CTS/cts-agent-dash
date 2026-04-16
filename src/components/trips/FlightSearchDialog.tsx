@@ -543,6 +543,8 @@ export function FlightSearchDialog({
             loading={bookingLoading}
             onBack={() => setStep("results")}
             onConfirm={handleConfirmBooking}
+            onCreatePaymentIntent={createPaymentIntent}
+            onConfirmPaymentIntent={confirmPaymentIntent}
           />
         )}
 

@@ -274,6 +274,8 @@ export default function FlightSearch() {
             loading={bookingLoading}
             onBack={() => setCheckoutOffer(null)}
             onConfirm={handleConfirmBooking}
+            onCreatePaymentIntent={createPaymentIntent}
+            onConfirmPaymentIntent={confirmPaymentIntent}
           />
         </div>
       </DashboardLayout>
