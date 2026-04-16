@@ -16,7 +16,7 @@ interface Attachment {
 interface EmailRequest {
   to: string;
   subject: string;
-  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "loan_approval" | "custom";
+  template: "welcome" | "booking_confirmation" | "itinerary" | "quote" | "trip_completed" | "agent_invitation" | "commission_override_approval" | "invoice" | "proposal_ready" | "loan_approval" | "eticket" | "custom";
   data?: Record<string, string>;
   customHtml?: string;
   clientId?: string;
@@ -454,6 +454,93 @@ const handler = async (req: Request): Promise<Response> => {
               <a href="${clientPortalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Access Your Portal</a>
             </div>
             <p style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin-top: 24px;">This financing offer is subject to the terms and conditions outlined in your agreement. The APR of ${loanRate}% is fixed for the duration of the loan term. Payments are due monthly from the date of financing activation.</p>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+
+      case "eticket":
+        const eticketPassengerName = templateData?.passengerName || clientName;
+        const eticketBookingRef = templateData?.bookingReference || "N/A";
+        const eticketAirline = templateData?.airline || "Airline";
+        const eticketFlightNumbers = templateData?.flightNumbers || "";
+        const eticketRoute = templateData?.route || "";
+        const eticketDepartureDate = templateData?.departureDate || "";
+        const eticketArrivalDate = templateData?.arrivalDate || "";
+        const eticketTicketNumbers = templateData?.ticketNumbers || "";
+        const eticketTotalAmount = templateData?.totalAmount || "$0.00";
+        const eticketTripName = templateData?.tripName || "";
+
+        // Build ticket rows
+        const ticketNumberList = eticketTicketNumbers.split(",").filter(Boolean);
+        const ticketRowsHtml = ticketNumberList.map((tn: string, idx: number) => `
+          <tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px;">Passenger ${idx + 1}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; font-family: 'Courier New', monospace; font-weight: 600;">${tn.trim()}</td>
+          </tr>
+        `).join("");
+
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            ${buildBannerHtml("Your E-Ticket Confirmation ✈️")}
+            <div style="padding: 24px;">
+            <p style="color: #4b5563; line-height: 1.6;">Dear ${eticketPassengerName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">Your flight has been booked and confirmed. Below are your e-ticket details — please save this email for your records.</p>
+            
+            <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #1e40af; font-size: 15px;">Flight Details</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Airline</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${eticketAirline}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Booking Reference (PNR)</td>
+                  <td style="padding: 6px 0; text-align: right; color: #1e40af; font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace;">${eticketBookingRef}</td>
+                </tr>
+                ${eticketFlightNumbers ? `<tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Flight(s)</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${eticketFlightNumbers}</td>
+                </tr>` : ""}
+                ${eticketRoute ? `<tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Route</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${eticketRoute}</td>
+                </tr>` : ""}
+                ${eticketDepartureDate ? `<tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Departure</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${eticketDepartureDate}</td>
+                </tr>` : ""}
+                ${eticketArrivalDate ? `<tr>
+                  <td style="padding: 6px 0; color: #374151; font-size: 14px;">Arrival</td>
+                  <td style="padding: 6px 0; text-align: right; color: #374151; font-weight: 600;">${eticketArrivalDate}</td>
+                </tr>` : ""}
+                <tr style="border-top: 2px solid #93c5fd;">
+                  <td style="padding: 10px 0 6px; color: #374151; font-size: 14px; font-weight: 600;">Total</td>
+                  <td style="padding: 10px 0 6px; text-align: right; color: #166534; font-size: 18px; font-weight: 700;">${eticketTotalAmount}</td>
+                </tr>
+              </table>
+            </div>
+
+            ${ticketNumberList.length > 0 ? `
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #166534; font-size: 15px;">E-Ticket Number(s)</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background-color: #dcfce7;">
+                    <th style="padding: 8px 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #166534;">Passenger</th>
+                    <th style="padding: 8px 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #166534;">Ticket Number</th>
+                  </tr>
+                </thead>
+                <tbody>${ticketRowsHtml}</tbody>
+              </table>
+            </div>
+            ` : ""}
+
+            ${eticketTripName ? `<p style="color: #4b5563; line-height: 1.6;"><strong>Trip:</strong> ${eticketTripName}</p>` : ""}
+            <p style="color: #4b5563; line-height: 1.6;">Please present this confirmation at check-in. If you have any questions, don't hesitate to reach out to your travel advisor.</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${clientPortalUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">View in Portal</a>
+            </div>
             ${footerHtml}
           </div>
         `;
