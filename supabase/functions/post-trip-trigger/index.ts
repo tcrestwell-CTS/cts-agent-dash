@@ -24,51 +24,75 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
-  const today = new Date().toISOString().split('T')[0];
+  const runId = crypto.randomUUID();
+  const startTime = Date.now();
 
-  const { data: trips, error } = await supabase
-    .from('trips')
-    .select('id, user_id, client_id, trip_name, destination, return_date, status')
-    .lt('return_date', today)
-    .eq('post_trip_email_sent', false)
-    .not('status', 'in', '("cancelled","archived")')
-    .not('client_id', 'is', null)
-    .order('return_date', { ascending: true })
-    .limit(50);
+  await supabase.from('task_runs').insert({
+    id: runId,
+    task_name: 'post-trip-trigger',
+    task_type: 'cron',
+    status: 'running',
+    started_at: new Date().toISOString(),
+  });
 
-  if (error) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: trips, error } = await supabase
+      .from('trips')
+      .select('id, user_id, client_id, trip_name, destination, return_date, status')
+      .lt('return_date', today)
+      .eq('post_trip_email_sent', false)
+      .not('status', 'in', '("cancelled","archived")')
+      .not('client_id', 'is', null)
+      .order('return_date', { ascending: true })
+      .limit(50);
+
+    if (error) {
+      await supabase.from('task_runs').update({ status: 'failed', completed_at: new Date().toISOString(), duration_ms: Date.now() - startTime, error_message: error.message }).eq('id', runId);
+      return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: CORS });
+    }
+
+    if (!trips?.length) {
+      await supabase.from('task_runs').update({ status: 'success', completed_at: new Date().toISOString(), duration_ms: Date.now() - startTime, result_summary: 'No trips to follow up', metadata: { processed: 0 } }).eq('id', runId);
+      return new Response(JSON.stringify({ processed: 0, message: 'No trips to follow up' }), { headers: CORS });
+    }
+
+    console.log(`Found ${trips.length} trips needing post-trip follow-up`);
+
+    const results: any[] = [];
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    for (const trip of trips) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/post-trip-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE_KEY}`, 'apikey': SERVICE_KEY },
+          body: JSON.stringify({ record: trip }),
+        });
+        const data = await res.json();
+        results.push({ trip_id: trip.id, trip_name: trip.trip_name, status: res.ok ? 'sent' : 'failed', ...data });
+        await new Promise(r => setTimeout(r, 500));
+      } catch (err: any) {
+        results.push({ trip_id: trip.id, trip_name: trip.trip_name, status: 'error', error: err.message });
+      }
+    }
+
+    const sent = results.filter(r => r.status === 'sent').length;
+    const failed = results.length - sent;
+
+    await supabase.from('task_runs').update({
+      status: failed > 0 ? 'failed' : 'success',
+      completed_at: new Date().toISOString(),
+      duration_ms: Date.now() - startTime,
+      result_summary: `Processed ${trips.length} trips: ${sent} sent, ${failed} failed`,
+      metadata: { processed: trips.length, sent, failed, results },
+    }).eq('id', runId);
+
+    return new Response(JSON.stringify({ processed: trips.length, sent, failed, results }), { headers: CORS });
+  } catch (error: any) {
+    await supabase.from('task_runs').update({ status: 'failed', completed_at: new Date().toISOString(), duration_ms: Date.now() - startTime, error_message: error.message }).eq('id', runId);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: CORS });
   }
-
-  if (!trips?.length) {
-    return new Response(JSON.stringify({ processed: 0, message: 'No trips to follow up' }), { headers: CORS });
-  }
-
-  console.log(`Found ${trips.length} trips needing post-trip follow-up`);
-
-  const results: any[] = [];
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-  const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  for (const trip of trips) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/post-trip-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-          'apikey': SERVICE_KEY,
-        },
-        body: JSON.stringify({ record: trip }),
-      });
-      const data = await res.json();
-      results.push({ trip_id: trip.id, trip_name: trip.trip_name, status: res.ok ? 'sent' : 'failed', ...data });
-      await new Promise(r => setTimeout(r, 500));
-    } catch (err: any) {
-      results.push({ trip_id: trip.id, trip_name: trip.trip_name, status: 'error', error: err.message });
-    }
-  }
-
-  const sent = results.filter(r => r.status === 'sent').length;
-  return new Response(JSON.stringify({ processed: trips.length, sent, failed: results.length - sent, results }), { headers: CORS });
 });
