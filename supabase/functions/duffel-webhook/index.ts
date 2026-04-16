@@ -95,11 +95,43 @@ serve(async (req) => {
         notificationMessage = `Flight booking for ${route} (${paxNames}) failed. Please retry or contact support.`;
         break;
 
-      case "air.payment.succeeded":
+      case "air.payment.succeeded": {
         eventSummary = "Payment processed successfully";
         notificationTitle = `💳 Payment Confirmed: ${route}`;
         notificationMessage = `Payment for flight ${(flightOrder.flight_numbers || []).join("/")} (${route}) for ${paxNames} was processed successfully.`;
+
+        // Auto-create trip_payments record for the Duffel payment
+        if (flightOrder.trip_id && flightOrder.booking_id) {
+          const paymentAmount = flightOrder.total_amount || 0;
+          const today = new Date().toISOString().split("T")[0];
+
+          // Check if a payment record already exists for this booking
+          const { data: existingPayment } = await supabase
+            .from("trip_payments")
+            .select("id")
+            .eq("booking_id", flightOrder.booking_id)
+            .eq("status", "paid")
+            .maybeSingle();
+
+          if (!existingPayment) {
+            await supabase.from("trip_payments").insert({
+              trip_id: flightOrder.trip_id,
+              booking_id: flightOrder.booking_id,
+              user_id: flightOrder.user_id,
+              amount: paymentAmount,
+              payment_date: today,
+              due_date: today,
+              payment_type: "payment",
+              payment_method: "duffel_balance",
+              status: "paid",
+              details: `Duffel flight payment – ${(flightOrder.flight_numbers || []).join("/")} (${route})`,
+              notes: `Auto-recorded from Duffel webhook. Order: ${orderId}`,
+            });
+            console.log(`Created trip_payment for booking ${flightOrder.booking_id}, amount: ${paymentAmount}`);
+          }
+        }
         break;
+      }
 
       case "air.payment.failed":
         eventSummary = "Payment failed";
