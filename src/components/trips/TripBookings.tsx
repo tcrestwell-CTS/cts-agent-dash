@@ -401,7 +401,23 @@ export function TripBookings({
                       <td className="py-3 font-mono text-sm text-muted-foreground">
                         {booking.supplier_confirmation_number || "-"}
                       </td>
-                      <td className="py-3">{getPaymentStatus(booking)}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          {getPaymentStatus(booking)}
+                          {isDuffelBooking(booking.id) && booking.status !== "cancelled" && (
+                            <DuffelPayBookingDialog
+                              bookingId={booking.id}
+                              amount={Number(booking.gross_sales)}
+                              confirmationNumber={booking.confirmation_number || booking.booking_reference || booking.id.slice(0, 8)}
+                              onPaymentComplete={() => {
+                                queryClient.invalidateQueries({ queryKey: ["trip", tripId] });
+                                queryClient.invalidateQueries({ queryKey: ["bookings"] });
+                                onDataChange?.();
+                              }}
+                            />
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>
                       <td className="py-3">
                         {getBookingPaymentInfo(booking.id).hasPayments ? (
