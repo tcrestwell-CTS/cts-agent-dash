@@ -119,7 +119,7 @@ serve(async (req) => {
 
     // ── Create order (with optional services for seats & bags) ──
     if (action === "create_order") {
-      const { selected_offers, passengers, payments, services, trip_id, supplier_name, client_id } = body;
+      const { selected_offers, passengers, payments, services, trip_id, supplier_name, client_id, metadata } = body;
       const orderPayload: Record<string, unknown> = {
         type: "instant",
         selected_offers,
@@ -128,6 +128,9 @@ serve(async (req) => {
       };
       if (services && services.length > 0) {
         orderPayload.services = services;
+      }
+      if (metadata) {
+        orderPayload.metadata = metadata;
       }
 
       const response = await fetch(`${DUFFEL_BASE}/air/orders`, {
