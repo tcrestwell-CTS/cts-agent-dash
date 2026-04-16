@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plane, ArrowLeft, AlertTriangle, CheckCircle2, Clock, ArrowRight, Luggage, Armchair, CreditCard } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
+import { DuffelPayments } from "@duffel/components";
 import type { FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection, SeatMapElement } from "@/hooks/useFlightSearch";
 
 interface Props {
