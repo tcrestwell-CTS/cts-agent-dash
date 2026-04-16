@@ -36,7 +36,12 @@ const BOOKING_FIELDS = `
   margin_locked,
   margin_version,
   supplier_payout,
-  supplier_confirmation_number
+  supplier_confirmation_number,
+  supplier_paid_status,
+  supplier_paid_date,
+  supplier_paid_method,
+  supplier_paid_reference,
+  supplier_paid_amount
 `;
 
 const BOOKING_SELECT_LIST = `
