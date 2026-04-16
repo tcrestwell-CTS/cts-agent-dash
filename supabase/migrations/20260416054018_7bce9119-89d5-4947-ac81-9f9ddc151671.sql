@@ -1,0 +1,1 @@
+ALTER TABLE public.bookings ADD COLUMN duffel_offer_id TEXT;
