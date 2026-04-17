@@ -355,22 +355,42 @@ serve(async (req) => {
       if (bErr || !booking) throw new Error("Booking not found");
       if (!booking.duffel_offer_id) throw new Error("No Duffel offer ID on this booking");
 
-      // Get the client from the trip
+      // Get the client from the trip (need real legal name + DOB for ticketing)
       const { data: trip } = await serviceSupabase
         .from("trips")
-        .select("client_id, clients!trips_client_id_fkey(name, email, phone)")
+        .select("client_id, clients!trips_client_id_fkey(name, first_name, last_name, email, phone, birthday)")
         .eq("id", booking.trip_id)
         .single();
 
       const client = (trip as any)?.clients;
-      if (!client?.name || !client?.email) {
-        throw new Error("Trip client must have a name and email for Duffel orders");
+      if (!client?.email) {
+        throw new Error("Trip client must have an email for Duffel orders");
       }
 
-      // Build a minimal passenger from the client
-      const nameParts = client.name.trim().split(/\s+/);
-      const givenName = nameParts[0];
-      const familyName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : givenName;
+      // SAFEGUARD: Require real legal first + last name (no single-word placeholders)
+      const rawFirst = (client.first_name || "").trim();
+      const rawLast = (client.last_name || "").trim();
+      let givenName = rawFirst;
+      let familyName = rawLast;
+      if (!givenName || !familyName) {
+        const parts = (client.name || "").trim().split(/\s+/);
+        if (parts.length < 2) {
+          throw new Error(
+            "Cannot ticket flight: client is missing a legal first and last name. Update the client profile before paying."
+          );
+        }
+        givenName = givenName || parts[0];
+        familyName = familyName || parts.slice(1).join(" ");
+      }
+
+      // SAFEGUARD: Require real DOB. Reject missing or known placeholder values.
+      const PLACEHOLDER_DOBS = new Set(["1990-01-01", "1900-01-01", "2000-01-01", "1970-01-01"]);
+      const bornOn = (client.birthday || "").toString().slice(0, 10);
+      if (!bornOn || !/^\d{4}-\d{2}-\d{2}$/.test(bornOn) || PLACEHOLDER_DOBS.has(bornOn)) {
+        throw new Error(
+          "Cannot ticket flight: client is missing a real date of birth. Update the client profile (no placeholder DOBs) before paying."
+        );
+      }
 
       // Fetch offer to get required passenger fields
       const offerRes = await fetch(
@@ -401,7 +421,7 @@ serve(async (req) => {
         family_name: familyName,
         gender: "m",
         title: "mr",
-        born_on: "1990-01-01",
+        born_on: bornOn,
         email: client.email,
         phone_number: formatPhoneE164(client.phone),
         type: "adult",
