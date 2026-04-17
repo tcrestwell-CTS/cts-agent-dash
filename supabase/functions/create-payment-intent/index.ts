@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         amount: String(amount_cents),
         currency,
-        'payment_method_types[]': 'card',
+        'automatic_payment_methods[enabled]': 'true',
+        'automatic_payment_methods[allow_redirects]': 'never',
         'metadata[customer_name]': customer_name || '',
         'metadata[customer_email]': customer_email || '',
         'metadata[booking_ref]': booking_ref || '',
