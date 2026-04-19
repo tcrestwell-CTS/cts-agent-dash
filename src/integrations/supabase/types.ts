@@ -4917,6 +4917,51 @@ export type Database = {
         }
         Relationships: []
       }
+      win_entries: {
+        Row: {
+          budget: string | null
+          city: string | null
+          created_at: string | null
+          destination: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          party_size: string | null
+          phone: string | null
+          source: string | null
+          timeline: string | null
+        }
+        Insert: {
+          budget?: string | null
+          city?: string | null
+          created_at?: string | null
+          destination?: string | null
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          party_size?: string | null
+          phone?: string | null
+          source?: string | null
+          timeline?: string | null
+        }
+        Update: {
+          budget?: string | null
+          city?: string | null
+          created_at?: string | null
+          destination?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          party_size?: string | null
+          phone?: string | null
+          source?: string | null
+          timeline?: string | null
+        }
+        Relationships: []
+      }
       workflow_tasks: {
         Row: {
           completed_at: string | null
