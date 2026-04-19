@@ -5172,6 +5172,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      reveal_cw_agent_secret: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "office_admin"
