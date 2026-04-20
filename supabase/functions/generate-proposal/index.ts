@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { lead_id } = await req.json();
+    const { lead_id, force } = await req.json();
     if (!lead_id) {
       return new Response(JSON.stringify({ error: 'lead_id required' }), {
         status: 400,
@@ -42,7 +42,7 @@ serve(async (req) => {
     }
 
     // Skip if proposal already generated
-    if (lead.proposal_status === 'draft' || lead.proposal_status === 'sent') {
+    if (!force && (lead.proposal_status === 'draft' || lead.proposal_status === 'sent')) {
       return new Response(JSON.stringify({ success: true, skipped: true, reason: 'Proposal already exists' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
