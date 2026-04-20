@@ -32,7 +32,6 @@ export default function AgentHealthPanel() {
     try {
       const { data: result, error: fnError } = await supabase.functions.invoke('health-check', {
         body: {},
-        headers: { 'x-agent-secret': 'crestwell-agent-2024' },
       });
       if (fnError) throw fnError;
       setData(result as HealthData);

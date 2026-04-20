@@ -7,7 +7,8 @@ const AGENT_SECRET = Deno.env.get("CW_AGENT_SECRET") || "crestwell-agent-2024";
 const RESEND_KEY   = Deno.env.get("RESEND_API_KEY") ?? "";
 
 const CORS = {
-  "Access-Control-Allow-Origin": "https://portal.crestwelltravels.com",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-agent-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Content-Type": "application/json",
 };
 
@@ -26,8 +27,22 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const incomingSecret = req.headers.get("x-agent-secret") ?? "";
-  if (incomingSecret !== AGENT_SECRET) {
-    return new Response("Unauthorized", { status: 401, headers: CORS });
+  let authed = incomingSecret === AGENT_SECRET;
+
+  // Also allow authenticated Supabase users (so the dashboard panel works without knowing the secret)
+  if (!authed) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (authHeader.startsWith("Bearer ")) {
+      const sb = createClient(SUPA_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) authed = true;
+    }
+  }
+
+  if (!authed) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS });
   }
 
   const results: any[] = [];
