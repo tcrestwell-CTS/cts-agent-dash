@@ -136,14 +136,14 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("id", clientId)
         .single();
 
-      if (!client?.email) return [clientId];
+      if (!client?.email) return [clientId] as string[];
 
       const { data: siblings } = await supabase
         .from("clients")
         .select("id")
         .eq("email", client.email);
 
-      if (!siblings?.length) return [clientId];
+      if (!siblings?.length) return [clientId] as string[];
 
       return [...new Set(siblings.map((c: any) => c.id))];
     }
@@ -1330,7 +1330,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
   } catch (error) {
-    console.error("Portal data error:", error?.message || error, error?.stack || "");
+    console.error("Portal data error:", error instanceof Error ? error.message : error, error instanceof Error ? error.stack : "");
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
