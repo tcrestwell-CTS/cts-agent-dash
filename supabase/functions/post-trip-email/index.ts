@@ -129,7 +129,7 @@ serve(async (req: Request) => {
     `;
 
     // Send email via Resend
-    const { Resend } = await import("npm:resend@4.0.0");
+    const { Resend } = await import("https://esm.sh/resend@4.0.0");
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
     const { error: sendError } = await resend.emails.send({
