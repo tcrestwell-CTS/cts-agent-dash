@@ -194,7 +194,7 @@ function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, 
   table { border-spacing:0; mso-table-lspace:0pt; mso-table-rspace:0pt; }
   td { border-collapse:collapse; }
   .email-outer { background:#f0ede6; width:100%; padding:32px 0; }
-  .email-wrap { width:680px; margin:0 auto; }
+  .email-wrap { width:100%; max-width:900px; margin:0 auto; }
   .email-body { background:#ffffff; border-radius:10px; overflow:hidden; }
   .pad { padding-left:48px; padding-right:48px; }
   .btn-gold { background:#C9A84C; color:#0D1B2A !important; padding:14px 36px; text-decoration:none; font-family:Arial,sans-serif; font-size:13px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; border-radius:5px; display:inline-block; }
@@ -212,7 +212,7 @@ function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, 
 <body>
 <div class="email-outer">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;background:#f0ede6;">
-<table role="presentation" class="email-wrap" width="680" cellpadding="0" cellspacing="0" style="width:680px;max-width:680px;margin:0 auto;">
+<table role="presentation" class="email-wrap" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:900px;margin:0 auto;">
 <tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-body" style="background:#ffffff;border-radius:10px;overflow:hidden;">
 
