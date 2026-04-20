@@ -33,7 +33,7 @@ serve(async (req: Request) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const { lead_id } = body;
+  const { lead_id, to_override } = body;
   if (!lead_id)
     return new Response(JSON.stringify({ error: 'lead_id required' }), { status: 400, headers: CORS });
 
@@ -61,7 +61,7 @@ serve(async (req: Request) => {
     headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: 'Tim Crestwell <info@crestwellgetaways.com>',
-      to: [lead.email],
+      to: [to_override || lead.email],
       reply_to: 'info@crestwellgetaways.com',
       subject: `Your ${destination} Travel Quote — Crestwell Travel Services`,
       html,
