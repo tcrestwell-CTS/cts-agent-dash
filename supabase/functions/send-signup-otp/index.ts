@@ -42,7 +42,7 @@ serve(async (req: Request) => {
     const emailLower = email.toLowerCase().trim();
 
     if (action === "verify") {
-      if (!code || code.length !== 6) {
+      if (!inputCode || inputCode.length !== 6) {
         return new Response(JSON.stringify({ error: "Valid 6-digit code is required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,7 +53,7 @@ serve(async (req: Request) => {
         .from("signup_verification_codes")
         .select("id, expires_at, verified")
         .eq("email", emailLower)
-        .eq("code", code)
+        .eq("code", inputCode)
         .maybeSingle();
 
       if (!codeRecord) {
@@ -165,7 +165,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in send-signup-otp:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
