@@ -46,7 +46,7 @@ A new travel inquiry has come in. Analyze it and return a JSON object with these
   "score": <integer 1-100, lead quality score>,
   "stage": <"Qualified" | "Quote Needed" | "Call Needed" | "Unqualified">,
   "summary": <one sentence describing the lead for Tim's dashboard>,
-  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area", "cruise", "all-inclusive", "resort", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
+  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area", "cruise", "all-inclusive", "resort", "vacation-rental", "domestic-travel", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
   "next_action": <one specific sentence telling Tim exactly what to do next>,
   "wants_financing": <boolean>
 }
@@ -74,11 +74,13 @@ SERVICE AREA RULES — CRITICAL:
 1. CRUISES: ALL destinations worldwide are in service area. Crestwell works with cruise lines that sail everywhere — Caribbean, Mediterranean, Alaska, Asia, Europe, Africa, South America, etc.
    Cruise lines include: Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, Disney, Holland America, Princess, Ritz-Carlton Yacht Collection, and others.
 
-2. RESORTS / ALL-INCLUSIVE / LAND-BASED: Only the following regions are in service area:
+ 2. RESORTS / ALL-INCLUSIVE / LAND-BASED / VACATION RENTALS / DOMESTIC TRAVEL: Only the following regions are in service area:
    - Caribbean islands (Jamaica, DR, Aruba, Turks & Caicos, St. Lucia, etc.)
    - Mexico (Cancun, Riviera Maya, Cabo, Puerto Vallarta, etc.)
    - Bahamas
    - Domestic US (group travel, family trips)
+   - Custom domestic travel anywhere in the US: vacation rentals, vacation homes, hotels, and tour packages (e.g. Portland ME, Savannah GA, Asheville NC, etc.)
+   - IMPORTANT: Domestic US vacation rentals and hotels are FULLY IN SERVICE AREA. Do NOT mark them as out-of-service-area.
 
 3. OUT-OF-SERVICE-AREA (auto-Unqualified, score 10-20):
    - Land-based / resort / tour requests to: Asia, Europe, Africa, Middle East, South America, Australia/New Zealand, Antarctica
