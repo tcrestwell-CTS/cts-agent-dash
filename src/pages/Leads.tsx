@@ -342,21 +342,6 @@ function LeadProposalSheet({
               <span>✓</span> Quote Sent to Client
             </span>
           )}
-          {canSend && (
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={sendingProposal}
-              onClick={handleSendProposal}
-            >
-              {sendingProposal ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              Send Proposal
-            </Button>
-          )}
           <Button variant="outline" size="sm" disabled={markingContacted} onClick={handleMarkContacted}>
             {markingContacted ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 mr-1.5" />}
             Mark as Contacted
