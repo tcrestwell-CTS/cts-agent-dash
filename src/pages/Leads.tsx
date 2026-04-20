@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, Send, CheckCircle, Info } from "lucide-react";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -77,7 +77,6 @@ function LeadProposalSheet({
   requalifyingId: string | null;
   refetch: () => void;
 }) {
-  const [sendingProposal, setSendingProposal] = useState(false);
   const [markingContacted, setMarkingContacted] = useState(false);
   const [sendingQuote, setSendingQuote] = useState(false);
 
@@ -85,34 +84,6 @@ function LeadProposalSheet({
 
   const stage = lead.ai_stage || "new";
   const cfg = stageConfig[stage] || stageConfig["new"];
-
-  const handleSendProposal = async () => {
-    if (!lead.proposal_draft || !lead.email) return;
-    setSendingProposal(true);
-    try {
-      const { error: emailError } = await supabase.functions.invoke("send-email", {
-        body: {
-          to: lead.email,
-          subject: `Your Travel Proposal from Crestwell — ${lead.destination || lead.trip_type}`,
-          template: "custom",
-          customHtml: lead.proposal_draft,
-        },
-      });
-      if (emailError) throw emailError;
-
-      await supabase
-        .from("quote_requests")
-        .update({ proposal_status: "sent", status: "contacted" })
-        .eq("id", lead.id);
-
-      toast.success("Proposal sent to " + lead.email);
-      refetch();
-    } catch {
-      toast.error("Failed to send proposal");
-    } finally {
-      setSendingProposal(false);
-    }
-  };
 
   const handleMarkContacted = async () => {
     setMarkingContacted(true);
