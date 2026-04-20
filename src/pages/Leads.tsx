@@ -172,7 +172,7 @@ function LeadProposalSheet({
           <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
-              {lead.proposal_status === "sent" && (
+              {(lead.proposal_status === "sent" || lead.proposal_status === "quote_sent") && (
                 <Badge variant="outline" className="bg-blue-500/15 text-blue-700 border-blue-500/30">Proposal Sent</Badge>
               )}
               {lead.wants_financing && (
@@ -259,7 +259,7 @@ function LeadProposalSheet({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold">Proposal</h3>
-              {lead.proposal_status === "sent" && (
+              {(lead.proposal_status === "sent" || lead.proposal_status === "quote_sent") && (
                 <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Sent
