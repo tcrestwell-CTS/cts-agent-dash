@@ -129,7 +129,7 @@ function LeadProposalSheet({
     }
   };
 
-  const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft_ready" || lead.proposal_status === "sent");
+  const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft_ready" || lead.proposal_status === "sent" || lead.proposal_status === "quote_sent");
   const canSend = lead.proposal_status === "draft_ready" && lead.proposal_draft;
   const needsCall = !lead.proposal_draft && lead.ai_stage === "Call Needed";
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
@@ -147,7 +147,8 @@ function LeadProposalSheet({
       });
       if (error) throw error;
       if (result?.success) {
-        toast.success(\`✅ Ashley sent quote to \${lead.first_name || "client"}\`);
+        toast.success(`✅ Ashley sent quote to ${lead.first_name || "client"}`);
+        refetch();
       } else {
         toast.error(result?.error || "Ashley failed to send quote");
       }
@@ -322,6 +323,26 @@ function LeadProposalSheet({
 
         {/* Sticky Footer Actions */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background flex flex-wrap items-center gap-2">
+          {canApproveQuote && !quoteAlreadySent && (
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              disabled={sendingQuote}
+              onClick={handleApproveQuote}
+            >
+              {sendingQuote ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <span className="mr-1.5">✅</span>
+              )}
+              {sendingQuote ? "Sending Quote..." : "Approve & Send Quote to Client"}
+            </Button>
+          )}
+          {quoteAlreadySent && (
+            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+              <span>✓</span> Quote Sent to Client
+            </span>
+          )}
           {canSend && (
             <Button
               size="sm"
