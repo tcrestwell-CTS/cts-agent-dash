@@ -27,8 +27,22 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const incomingSecret = req.headers.get("x-agent-secret") ?? "";
-  if (incomingSecret !== AGENT_SECRET) {
-    return new Response("Unauthorized", { status: 401, headers: CORS });
+  let authed = incomingSecret === AGENT_SECRET;
+
+  // Also allow authenticated Supabase users (so the dashboard panel works without knowing the secret)
+  if (!authed) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (authHeader.startsWith("Bearer ")) {
+      const sb = createClient(SUPA_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) authed = true;
+    }
+  }
+
+  if (!authed) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS });
   }
 
   const results: any[] = [];
