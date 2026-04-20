@@ -11,9 +11,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, Send, CheckCircle, Info } from "lucide-react";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+
+// Simple Markdown to HTML converter for proposal preview
+function simpleMarkdownToHtml(md: string): string {
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+    .replace(/^\|(.+)\|$/gm, (_, row) => {
+      const cells = row.split('|').map((c: string) => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    })
+    .replace(/(<tr>.*<\/tr>\n?)+/g, (m) => `<table class="border-collapse w-full">${m}</table>`)
+    .replace(/\|[-:]+\|/g, '')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)/, '<p>$1')
+    .replace(/(.+)$/, '$1</p>');
+}
 
 type QuoteRequest = {
   id: string;
@@ -77,7 +100,6 @@ function LeadProposalSheet({
   requalifyingId: string | null;
   refetch: () => void;
 }) {
-  const [sendingProposal, setSendingProposal] = useState(false);
   const [markingContacted, setMarkingContacted] = useState(false);
   const [sendingQuote, setSendingQuote] = useState(false);
 
@@ -85,34 +107,6 @@ function LeadProposalSheet({
 
   const stage = lead.ai_stage || "new";
   const cfg = stageConfig[stage] || stageConfig["new"];
-
-  const handleSendProposal = async () => {
-    if (!lead.proposal_draft || !lead.email) return;
-    setSendingProposal(true);
-    try {
-      const { error: emailError } = await supabase.functions.invoke("send-email", {
-        body: {
-          to: lead.email,
-          subject: `Your Travel Proposal from Crestwell — ${lead.destination || lead.trip_type}`,
-          template: "custom",
-          customHtml: lead.proposal_draft,
-        },
-      });
-      if (emailError) throw emailError;
-
-      await supabase
-        .from("quote_requests")
-        .update({ proposal_status: "sent", status: "contacted" })
-        .eq("id", lead.id);
-
-      toast.success("Proposal sent to " + lead.email);
-      refetch();
-    } catch {
-      toast.error("Failed to send proposal");
-    } finally {
-      setSendingProposal(false);
-    }
-  };
 
   const handleMarkContacted = async () => {
     setMarkingContacted(true);
@@ -131,7 +125,6 @@ function LeadProposalSheet({
   };
 
   const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft_ready" || lead.proposal_status === "sent" || lead.proposal_status === "quote_sent");
-  const canSend = lead.proposal_status === "draft_ready" && lead.proposal_draft;
   const needsCall = !lead.proposal_draft && lead.ai_stage === "Call Needed";
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
   const canApproveQuote = lead.proposal_status === "draft_ready" && lead.proposal_draft;
@@ -143,7 +136,6 @@ function LeadProposalSheet({
     try {
       const { data: result, error } = await supabase.functions.invoke("ashley", {
         body: { lead_id: lead.id },
-        headers: { "x-agent-secret": "crestwell-agent-2024" },
       });
       if (error) throw error;
       if (result?.success) {
@@ -272,9 +264,10 @@ function LeadProposalSheet({
               <Card className="border">
                 <CardContent className="p-4">
                   <div className="max-h-[40vh] overflow-y-auto">
-                    <pre className="text-xs sm:text-sm font-mono whitespace-pre-wrap text-foreground leading-relaxed">
-                      {lead.proposal_draft}
-                    </pre>
+                    <div
+                      className="prose prose-sm max-w-none text-foreground [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h3]:font-semibold [&_table]:text-xs [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left"
+                      dangerouslySetInnerHTML={{ __html: simpleMarkdownToHtml(lead.proposal_draft || "") }}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -342,21 +335,6 @@ function LeadProposalSheet({
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
               <span>✓</span> Quote Sent to Client
             </span>
-          )}
-          {canSend && (
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={sendingProposal}
-              onClick={handleSendProposal}
-            >
-              {sendingProposal ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              Send Proposal
-            </Button>
           )}
           <Button variant="outline" size="sm" disabled={markingContacted} onClick={handleMarkContacted}>
             {markingContacted ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 mr-1.5" />}

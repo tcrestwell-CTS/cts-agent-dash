@@ -7,13 +7,29 @@ const SUPA_URL     = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPA_SVC     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const RESEND_KEY   = Deno.env.get('RESEND_API_KEY') ?? '';
 const AGENT_SECRET = Deno.env.get('CW_AGENT_SECRET') ?? '';
+const ANON_KEY    = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
+  // Auth: accept x-agent-secret OR a valid user session token
+  let authed = false;
   const secret = req.headers.get('x-agent-secret') || '';
-  if (secret !== AGENT_SECRET)
+  if (secret && AGENT_SECRET && secret === AGENT_SECRET) authed = true;
+
+  if (!authed) {
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (authHeader.startsWith('Bearer ')) {
+      const sb = createClient(SUPA_URL, ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) authed = true;
+    }
+  }
+
+  if (!authed)
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
 
   const body = await req.json().catch(() => ({}));
