@@ -6,6 +6,7 @@ const SUPA_URL     = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPA_SVC     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const RESEND_KEY   = Deno.env.get('RESEND_API_KEY') ?? '';
 const AGENT_SECRET = Deno.env.get('CW_AGENT_SECRET') ?? '';
+const INTERNAL_QUOTE_COPY_EMAIL = 'tcrestwell@crestwellgetaways.com';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 
 serve(async (req: Request) => {
@@ -57,7 +58,11 @@ serve(async (req: Request) => {
   const html = buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections });
 
   const recipientEmail = to_override || lead.email;
-  console.log(`[Ashley] Sending quote to: ${recipientEmail} (to_override=${to_override}, lead.email=${lead.email})`);
+  const internalQuoteCopy = recipientEmail.toLowerCase() === INTERNAL_QUOTE_COPY_EMAIL
+    ? undefined
+    : [INTERNAL_QUOTE_COPY_EMAIL];
+
+  console.log(`[Ashley] Sending quote to: ${recipientEmail} (to_override=${to_override}, lead.email=${lead.email}, internal_copy=${internalQuoteCopy?.join(',') || 'none'})`);
 
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -65,6 +70,7 @@ serve(async (req: Request) => {
     body: JSON.stringify({
       from: 'Tim Crestwell <info@crestwellgetaways.com>',
       to: [recipientEmail],
+      bcc: internalQuoteCopy,
       reply_to: 'info@crestwellgetaways.com',
       subject: `Your ${destination} Travel Quote — Crestwell Travel Services`,
       html,
