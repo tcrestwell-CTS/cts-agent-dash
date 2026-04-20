@@ -7,7 +7,8 @@ const AGENT_SECRET = Deno.env.get("CW_AGENT_SECRET") || "crestwell-agent-2024";
 const RESEND_KEY   = Deno.env.get("RESEND_API_KEY") ?? "";
 
 const CORS = {
-  "Access-Control-Allow-Origin": "https://portal.crestwelltravels.com",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-agent-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Content-Type": "application/json",
 };
 
