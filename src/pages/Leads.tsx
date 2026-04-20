@@ -79,6 +79,7 @@ function LeadProposalSheet({
 }) {
   const [sendingProposal, setSendingProposal] = useState(false);
   const [markingContacted, setMarkingContacted] = useState(false);
+  const [sendingQuote, setSendingQuote] = useState(false);
 
   if (!lead) return null;
 
@@ -136,7 +137,6 @@ function LeadProposalSheet({
   const canApproveQuote = lead.proposal_status === "draft_ready" && lead.proposal_draft;
   const quoteAlreadySent = lead.proposal_status === "quote_sent";
 
-  const [sendingQuote, setSendingQuote] = useState(false);
   const handleApproveQuote = async () => {
     if (!lead.id) return;
     setSendingQuote(true);
