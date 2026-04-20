@@ -10,9 +10,27 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+
+  // Accept either x-agent-secret OR a valid Supabase JWT
   const secret = req.headers.get('x-agent-secret') || '';
-  if (secret !== AGENT_SECRET)
+  const authHeader = req.headers.get('authorization') || '';
+  let authenticated = false;
+
+  if (secret && AGENT_SECRET && secret === AGENT_SECRET) {
+    authenticated = true;
+  } else if (authHeader.startsWith('Bearer ')) {
+    // Validate JWT via Supabase auth
+    const token = authHeader.replace('Bearer ', '');
+    const authDb = createClient(SUPA_URL, SUPA_SVC);
+    const { data: { user }, error: authError } = await authDb.auth.getUser(token);
+    if (user && !authError) {
+      authenticated = true;
+    }
+  }
+
+  if (!authenticated) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+  }
 
   const body = await req.json().catch(() => ({}));
   const { lead_id } = body;
