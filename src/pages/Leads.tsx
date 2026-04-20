@@ -15,6 +15,29 @@ import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, Map
 import { format } from "date-fns";
 import { toast } from "sonner";
 
+// Simple Markdown to HTML converter for proposal preview
+function simpleMarkdownToHtml(md: string): string {
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+    .replace(/^\|(.+)\|$/gm, (_, row) => {
+      const cells = row.split('|').map((c: string) => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    })
+    .replace(/(<tr>.*<\/tr>\n?)+/g, (m) => `<table class="border-collapse w-full">${m}</table>`)
+    .replace(/\|[-:]+\|/g, '')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)/, '<p>$1')
+    .replace(/(.+)$/, '$1</p>');
+}
+
 type QuoteRequest = {
   id: string;
   first_name: string;
