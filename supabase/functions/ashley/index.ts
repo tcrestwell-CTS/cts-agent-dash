@@ -211,20 +211,20 @@ function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, 
 </head>
 <body>
 <div class="email-outer">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" class="email-wrap" cellpadding="0" cellspacing="0">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;background:#f0ede6;">
+<table role="presentation" class="email-wrap" width="680" cellpadding="0" cellspacing="0" style="width:680px;max-width:680px;margin:0 auto;">
 <tr><td>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-body">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-body" style="background:#ffffff;border-radius:10px;overflow:hidden;">
 
 <!-- HEADER -->
-<tr><td class="pad" style="background:#0D1B2A;padding-top:36px;padding-bottom:28px;">
+<tr><td class="pad" style="background:#0D1B2A;padding:36px 48px 28px 48px;">
   <div style="font-family:Georgia,serif;font-size:36px;color:#ffffff;font-weight:normal;">Crestwell</div>
   <div style="font-family:Arial,sans-serif;font-size:11px;color:#C9A84C;letter-spacing:0.28em;text-transform:uppercase;margin-top:5px;">Travel Services</div>
   <div style="height:2px;background:linear-gradient(90deg,#C9A84C,rgba(201,168,76,0));margin-top:18px;"></div>
 </td></tr>
 
 <!-- GREETING -->
-<tr><td class="pad" style="padding-top:36px;padding-bottom:0;">
+<tr><td class="pad" style="padding:36px 48px 0 48px;">
   <p style="font-family:Georgia,serif;font-size:26px;color:#0D1B2A;margin:0 0 16px;font-weight:normal;">Hi ${firstName},</p>
   <p style="font-family:Arial,sans-serif;font-size:15px;color:#4A5568;line-height:1.8;margin:0 0 10px;">Thank you for your interest in a <strong style="color:#0D1B2A;">${destination}</strong> ${tripType.toLowerCase()}! ${budget ? `Based on your budget of <strong style="color:#0D1B2A;">${budget}</strong>` : 'Based on your travel goals'}${travelers ? ` for <strong style="color:#0D1B2A;">${travelers}</strong>` : ''}, I have put together my recommended options below.</p>
   <p style="font-family:Arial,sans-serif;font-size:15px;color:#4A5568;line-height:1.8;margin:0;">There is <strong>no booking fee</strong> &mdash; I am here to make planning easy for you.</p>
