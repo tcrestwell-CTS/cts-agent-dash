@@ -945,7 +945,7 @@ serve(async (req) => {
         .eq("user_id", userId)
         .eq("status", "completed");
 
-      if (depErr) throw new Error(`Failed to fetch deposits: ${depErr.message}`);
+      if (depErr) throw new Error(`Failed to fetch deposits: ${(depErr as any).message}`);
       
       // Filter to Stripe-related payments (has stripe_session_id, or payment method is stripe)
       const deposits = (allCompleted || []).filter((p: any) =>
