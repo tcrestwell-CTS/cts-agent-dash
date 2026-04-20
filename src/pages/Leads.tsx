@@ -143,7 +143,6 @@ function LeadProposalSheet({
     try {
       const { data: result, error } = await supabase.functions.invoke("ashley", {
         body: { lead_id: lead.id },
-        headers: { "x-agent-secret": "crestwell-agent-2024" },
       });
       if (error) throw error;
       if (result?.success) {
