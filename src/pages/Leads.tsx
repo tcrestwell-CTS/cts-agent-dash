@@ -94,8 +94,8 @@ function LeadProposalSheet({
         body: {
           to: lead.email,
           subject: `Your Travel Proposal from Crestwell — ${lead.destination || lead.trip_type}`,
-          body: lead.proposal_draft,
-          from_name: "Crestwell Getaways",
+          template: "custom",
+          customHtml: lead.proposal_draft,
         },
       });
       if (emailError) throw emailError;
