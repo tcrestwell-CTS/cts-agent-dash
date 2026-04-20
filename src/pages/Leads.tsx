@@ -133,6 +133,30 @@ function LeadProposalSheet({
   const canSend = lead.proposal_status === "draft_ready" && lead.proposal_draft;
   const needsCall = !lead.proposal_draft && lead.ai_stage === "Call Needed";
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
+  const canApproveQuote = lead.proposal_status === "draft_ready" && lead.proposal_draft;
+  const quoteAlreadySent = lead.proposal_status === "quote_sent";
+
+  const [sendingQuote, setSendingQuote] = useState(false);
+  const handleApproveQuote = async () => {
+    if (!lead.id) return;
+    setSendingQuote(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("ashley", {
+        body: { lead_id: lead.id },
+        headers: { "x-agent-secret": "crestwell-agent-2024" },
+      });
+      if (error) throw error;
+      if (result?.success) {
+        toast.success(\`✅ Ashley sent quote to \${lead.first_name || "client"}\`);
+      } else {
+        toast.error(result?.error || "Ashley failed to send quote");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to invoke Ashley");
+    } finally {
+      setSendingQuote(false);
+    }
+  };
 
   return (
     <Sheet open={!!lead} onOpenChange={(open) => !open && onClose()}>
