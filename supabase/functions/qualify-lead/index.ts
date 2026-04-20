@@ -46,22 +46,28 @@ A new travel inquiry has come in. Analyze it and return a JSON object with these
   "score": <integer 1-100, lead quality score>,
   "stage": <"Qualified" | "Quote Needed" | "Call Needed" | "Unqualified">,
   "summary": <one sentence describing the lead for Tim's dashboard>,
-  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area", "cruise", "all-inclusive", "resort", "vacation-rental", "domestic-travel", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
+  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area", "cruise", "all-inclusive", "resort", "vacation-rental", "domestic-travel", "hotel-stay", "vacation-home", "destination-package", "vacations-by-rail", "disney-theme-park", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
   "next_action": <one specific sentence telling Tim exactly what to do next>,
   "wants_financing": <boolean>
 }
 
 RECOGNIZED TRIP TYPES (use for tagging and scoring context):
+- Cruise Vacation (ocean cruises, river cruises — all destinations worldwide)
+- All-Inclusive Resort (resorts in Mexico, Jamaica, DR, Cancun, Punta Cana, Aruba, etc.)
+- Vacations by Rail (train-based travel packages)
+- Destination Package (curated destination experiences)
+- Domestic Travel (US-based travel — vacation rentals, hotels, tours)
+- Hotel Stay (hotel-only bookings)
+- Vacation Home (vacation rental properties)
+- Family Vacation (family vacation packages)
+- Disney / Theme Park (Disney, Universal, theme park trips)
+- Group Trip (church groups, corporate retreats, family reunions, etc.)
+- Luxury Travel (premium/luxury experiences)
+- Honeymoon (romantic getaways)
 - Caribbean (cruises & resorts)
 - Mediterranean (cruise)
 - Alaska (cruise)
-- All-Inclusive (resorts in Mexico, Jamaica, DR, Cancun, Punta Cana, Aruba, etc.)
-- Family (family vacation packages)
 - Mexico (all-inclusive resorts, Cancun, Riviera Maya, Cabo, etc.)
-- North America (domestic US travel)
-- Group (church groups, corporate retreats, family reunions, etc.)
-- Honeymoon (romantic getaways)
-- Cruise (ocean cruises)
 - Europe (cruise)
 - Asia (cruise)
 - Africa (cruise)
