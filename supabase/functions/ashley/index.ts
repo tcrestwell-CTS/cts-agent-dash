@@ -211,40 +211,40 @@ function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, 
 </head>
 <body>
 <div class="email-outer">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" class="email-wrap" cellpadding="0" cellspacing="0">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;background:#f0ede6;">
+<table role="presentation" class="email-wrap" width="680" cellpadding="0" cellspacing="0" style="width:680px;max-width:680px;margin:0 auto;">
 <tr><td>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-body">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-body" style="background:#ffffff;border-radius:10px;overflow:hidden;">
 
 <!-- HEADER -->
-<tr><td class="pad" style="background:#0D1B2A;padding-top:36px;padding-bottom:28px;">
+<tr><td class="pad" style="background:#0D1B2A;padding:36px 48px 28px 48px;">
   <div style="font-family:Georgia,serif;font-size:36px;color:#ffffff;font-weight:normal;">Crestwell</div>
   <div style="font-family:Arial,sans-serif;font-size:11px;color:#C9A84C;letter-spacing:0.28em;text-transform:uppercase;margin-top:5px;">Travel Services</div>
   <div style="height:2px;background:linear-gradient(90deg,#C9A84C,rgba(201,168,76,0));margin-top:18px;"></div>
 </td></tr>
 
 <!-- GREETING -->
-<tr><td class="pad" style="padding-top:36px;padding-bottom:0;">
+<tr><td class="pad" style="padding:36px 48px 0 48px;">
   <p style="font-family:Georgia,serif;font-size:26px;color:#0D1B2A;margin:0 0 16px;font-weight:normal;">Hi ${firstName},</p>
   <p style="font-family:Arial,sans-serif;font-size:15px;color:#4A5568;line-height:1.8;margin:0 0 10px;">Thank you for your interest in a <strong style="color:#0D1B2A;">${destination}</strong> ${tripType.toLowerCase()}! ${budget ? `Based on your budget of <strong style="color:#0D1B2A;">${budget}</strong>` : 'Based on your travel goals'}${travelers ? ` for <strong style="color:#0D1B2A;">${travelers}</strong>` : ''}, I have put together my recommended options below.</p>
   <p style="font-family:Arial,sans-serif;font-size:15px;color:#4A5568;line-height:1.8;margin:0;">There is <strong>no booking fee</strong> &mdash; I am here to make planning easy for you.</p>
 </td></tr>
 
 <!-- DIVIDER -->
-<tr><td class="pad" style="padding-top:28px;padding-bottom:0;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
+<tr><td class="pad" style="padding:28px 48px 0 48px;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
 
 <!-- QUOTE DETAILS -->
-<tr><td class="pad" style="padding-top:28px;padding-bottom:0;">
+<tr><td class="pad" style="padding:28px 48px 0 48px;">
   <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Your Quote Details</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden;border:1px solid #e2e8f0;">${detailRows}</table>
 </td></tr>
 
-${optionCards ? `<tr><td class="pad" style="padding-top:32px;padding-bottom:0;">
+${optionCards ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Recommended Options</div>
   ${optionCards}
 </td></tr>` : ''}
 
-${itinRows ? `<tr><td class="pad" style="padding-top:32px;padding-bottom:0;">
+${itinRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Sample Itinerary</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden;border:1px solid #e2e8f0;">
     <tr style="background:#0D1B2A;">
@@ -256,13 +256,13 @@ ${itinRows ? `<tr><td class="pad" style="padding-top:32px;padding-bottom:0;">
   </table>
 </td></tr>` : ''}
 
-${inclusionRows ? `<tr><td class="pad" style="padding-top:32px;padding-bottom:0;">
+${inclusionRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">What is Included</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${inclusionRows}</table>
 </td></tr>` : ''}
 
 <!-- ADD-ONS -->
-<tr><td class="pad" style="padding-top:32px;padding-bottom:0;">
+<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #C9A84C;background:#fdf9ee;border-radius:0 8px 8px 0;">
     <tr><td style="padding:18px 24px;">
       <div style="font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#0D1B2A;margin-bottom:8px;">Also Available</div>
@@ -272,18 +272,18 @@ ${inclusionRows ? `<tr><td class="pad" style="padding-top:32px;padding-bottom:0;
 </td></tr>
 
 <!-- DIVIDER -->
-<tr><td class="pad" style="padding-top:28px;padding-bottom:0;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
+<tr><td class="pad" style="padding:28px 48px 0 48px;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
 
 <!-- CTA -->
-<tr><td class="pad" style="padding-top:28px;padding-bottom:44px;">
+<tr><td class="pad" style="padding:28px 48px 44px 48px;">
   <p style="font-family:Arial,sans-serif;font-size:15px;color:#4A5568;line-height:1.8;margin:0 0 24px;">Ready to move forward or have questions? Reply to this email or give me a call &mdash; I will lock in your pricing right away.</p>
   <table role="presentation" cellpadding="0" cellspacing="0">
     <tr>
       <td class="btn-cell" style="padding-right:14px;">
-        <a href="mailto:info@crestwellgetaways.com?subject=Quote%20Reply%20%E2%80%93%20${encodeURIComponent(destination)}" class="btn-gold">Reply to Tim</a>
+        <a href="mailto:info@crestwellgetaways.com?subject=Quote%20Reply%20%E2%80%93%20${encodeURIComponent(destination)}" class="btn-gold" style="background:#C9A84C;color:#0D1B2A;padding:14px 36px;text-decoration:none;font-family:Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;border-radius:5px;display:inline-block;">Reply to Tim</a>
       </td>
       <td class="btn-cell">
-        <a href="tel:8885086893" class="btn-navy">Call 888.508.6893</a>
+        <a href="tel:8885086893" class="btn-navy" style="background:#0D1B2A;color:#ffffff;padding:14px 36px;text-decoration:none;font-family:Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;border-radius:5px;display:inline-block;">Call 888.508.6893</a>
       </td>
     </tr>
   </table>
