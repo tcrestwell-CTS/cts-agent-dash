@@ -17,6 +17,7 @@ const AGENTS = [
   { agent: "Terrance",   slug: "terrance",              role: "Proposal Draft",     method: "POST", expect401: true  },
   { agent: "Chris",      slug: "chris",                 role: "Pre-trip Nurture",   method: "POST", expect401: true  },
   { agent: "Kandi",      slug: "kandi",                 role: "Reconciliation",     method: "POST", expect401: true  },
+  { agent: "Ashley",     slug: "ashley",                role: "Quote Generator",    method: "POST", expect401: true  },
   { agent: "Google Ads", slug: "google-ads-conversion", role: "Ads Conversion",     method: "POST", expect401: true  },
   { agent: "Portal DB",  slug: "portal-leads",          role: "DB Connectivity",    method: "GET",  expect401: false },
 ];
