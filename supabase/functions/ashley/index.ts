@@ -56,12 +56,15 @@ serve(async (req: Request) => {
 
   const html = buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections });
 
+  const recipientEmail = to_override || lead.email;
+  console.log(`[Ashley] Sending quote to: ${recipientEmail} (to_override=${to_override}, lead.email=${lead.email})`);
+
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: 'Tim Crestwell <info@crestwellgetaways.com>',
-      to: [to_override || lead.email],
+      to: [recipientEmail],
       reply_to: 'info@crestwellgetaways.com',
       subject: `Your ${destination} Travel Quote — Crestwell Travel Services`,
       html,
@@ -90,8 +93,8 @@ serve(async (req: Request) => {
   }
 
   return new Response(JSON.stringify({
-    success: emailOk, lead_id, client: clientName,
-    email: lead.email, email_id: emailData?.id, agent: 'Ashley',
+    success: emailOk, lead_id, client: clientName, sent_to: recipientEmail,
+    email: lead.email, email_id: emailData?.id, agent: 'Ashley', to_override: to_override || null,
   }), { status: 200, headers: CORS });
 });
 
