@@ -102,7 +102,6 @@ function LeadProposalSheet({
   };
 
   const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft_ready" || lead.proposal_status === "sent" || lead.proposal_status === "quote_sent");
-  const canSend = lead.proposal_status === "draft_ready" && lead.proposal_draft;
   const needsCall = !lead.proposal_draft && lead.ai_stage === "Call Needed";
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
   const canApproveQuote = lead.proposal_status === "draft_ready" && lead.proposal_draft;
@@ -242,9 +241,10 @@ function LeadProposalSheet({
               <Card className="border">
                 <CardContent className="p-4">
                   <div className="max-h-[40vh] overflow-y-auto">
-                    <pre className="text-xs sm:text-sm font-mono whitespace-pre-wrap text-foreground leading-relaxed">
-                      {lead.proposal_draft}
-                    </pre>
+                    <div
+                      className="prose prose-sm max-w-none text-foreground [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h3]:font-semibold [&_table]:text-xs [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left"
+                      dangerouslySetInnerHTML={{ __html: simpleMarkdownToHtml(lead.proposal_draft || "") }}
+                    />
                   </div>
                 </CardContent>
               </Card>
