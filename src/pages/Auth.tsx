@@ -455,11 +455,11 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col justify-between">
-        <div className="bg-white/95 rounded-xl p-4 w-fit">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col items-center justify-center">
+        <div className="bg-white/95 rounded-2xl p-6 mb-12 max-w-md w-full flex items-center justify-center">
           <img
             alt="Crestwell Travel Network"
-            className="h-16 w-auto object-contain"
+            className="h-24 w-auto object-contain"
             src={crestwellLogo}
           />
         </div>
@@ -485,7 +485,7 @@ const Auth = () => {
           </div>
         </div>
 
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-white/60 absolute bottom-8 left-12">
           © 2026 Crestwell Travel Services. All rights reserved.
         </p>
       </div>
