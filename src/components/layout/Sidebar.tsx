@@ -38,7 +38,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import crestwellLogo from "@/assets/crestwell-logo.png";
+import crestwellLogo from "@/assets/CTN-Logo.png";
 import { useState, useEffect, createContext, useContext, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAgentNotifications } from "@/hooks/useAgentNotifications";
