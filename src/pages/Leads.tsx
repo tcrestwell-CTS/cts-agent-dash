@@ -124,10 +124,10 @@ function LeadProposalSheet({
     }
   };
 
-  const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft_ready" || lead.proposal_status === "sent" || lead.proposal_status === "quote_sent");
+  const hasProposal = lead.proposal_draft && (lead.proposal_status === "draft" || lead.proposal_status === "draft_ready" || lead.proposal_status === "sent" || lead.proposal_status === "quote_sent");
   const needsCall = !lead.proposal_draft && lead.ai_stage === "Call Needed";
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
-  const canApproveQuote = lead.proposal_status === "draft_ready" && lead.proposal_draft;
+  const canApproveQuote = (lead.proposal_status === "draft" || lead.proposal_status === "draft_ready") && lead.proposal_draft;
   const quoteAlreadySent = lead.proposal_status === "quote_sent";
 
   const handleApproveQuote = async () => {
