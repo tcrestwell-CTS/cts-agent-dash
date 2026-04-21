@@ -456,10 +456,10 @@ const Auth = () => {
     <div className="min-h-screen flex bg-background">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-ocean p-12 flex-col items-center justify-center">
-        <div className="bg-white/95 rounded-2xl p-6 mb-12 max-w-md w-full flex items-center justify-center">
+        <div className="mb-12 max-w-lg w-full flex items-center justify-center">
           <img
             alt="Crestwell Travel Network"
-            className="h-24 w-auto object-contain"
+            className="h-40 w-auto object-contain"
             src={crestwellLogo}
           />
         </div>
