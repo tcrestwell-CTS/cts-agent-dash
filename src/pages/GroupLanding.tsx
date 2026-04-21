@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import crestwellLogo from "@/assets/crestwell-logo.png";
+import crestwellLogo from "@/assets/CTN-Logo.png";
 import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";

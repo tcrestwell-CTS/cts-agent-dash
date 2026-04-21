@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
-import crestwellLogo from "@/assets/crestwell-logo.png";
+import crestwellLogo from "@/assets/CTN-Logo.png";
 import { devLog, devError } from "@/lib/logger";
 
 const emailSchema = z.string().email("Please enter a valid email address");

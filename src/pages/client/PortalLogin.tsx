@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Mail, Loader2, CheckCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import portalHero from "@/assets/portal-hero.jpg";
-import crestwellLogo from "@/assets/crestwell-logo.png";
+import crestwellLogo from "@/assets/CTN-Logo.png";
 
 type Mode = "choose" | "magic-link" | "sign-in" | "sign-up";
 
