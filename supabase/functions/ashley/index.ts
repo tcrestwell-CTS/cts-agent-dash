@@ -7,7 +7,11 @@ const SUPA_SVC     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const RESEND_KEY   = Deno.env.get('RESEND_API_KEY') ?? '';
 const AGENT_SECRET = Deno.env.get('CW_AGENT_SECRET') ?? '';
 const INTERNAL_QUOTE_COPY_EMAIL = 'tcrestwell@crestwellgetaways.com';
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-agent-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Content-Type': 'application/json',
+};
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
