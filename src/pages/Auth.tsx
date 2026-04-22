@@ -91,7 +91,7 @@ const Auth = () => {
 
         if (existingProfile) {
           devLog("[Auth] User has existing profile, redirecting to agent dashboard");
-          navigate("/", { replace: true });
+          window.location.href = "https://app.crestwelltravels.com/";
           return;
         }
 
@@ -208,7 +208,7 @@ const Auth = () => {
         }
 
         devLog("[Auth] Invitation accepted successfully, redirecting to agent dashboard");
-        navigate("/", { replace: true });
+        window.location.href = "https://app.crestwelltravels.com/";
       } catch (err) {
         devError("[Auth] Unexpected error during validation:", err);
         toast.error("An error occurred while validating your access.");
