@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatLocalDate } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -65,8 +66,8 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
     const result = await createTrip({
       ...formData,
       client_id: formData.client_id || undefined,
-      depart_date: dateRange?.from?.toISOString().split("T")[0],
-      return_date: dateRange?.to?.toISOString().split("T")[0],
+      depart_date: dateRange?.from ? formatLocalDate(dateRange.from) : undefined,
+      return_date: dateRange?.to ? formatLocalDate(dateRange.to) : undefined,
       ...(parentTripId ? { parent_trip_id: parentTripId } : {}),
     } as any);
 
