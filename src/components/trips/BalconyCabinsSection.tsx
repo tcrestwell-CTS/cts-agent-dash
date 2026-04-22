@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Ship, Users, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, Ship, Users, CheckCircle2, AlertTriangle, BedDouble } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CabinOption {
   id: string;
@@ -16,34 +17,30 @@ interface CabinOption {
   sort_order: number;
 }
 
-interface BalconyCabinsSectionProps {
+interface CabinAvailabilitySectionProps {
   tripId: string;
 }
 
-export function BalconyCabinsSection({ tripId }: BalconyCabinsSectionProps) {
-  const [cabins, setCabins] = useState<CabinOption[]>([]);
+export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) {
+  const [allCabins, setAllCabins] = useState<CabinOption[]>([]);
   const [bookingCounts, setBookingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "balcony">("all");
 
   useEffect(() => {
     async function fetch() {
       setLoading(true);
 
-      // Fetch all cabin options for this trip that contain "balcony" (case-insensitive)
-      const { data: allCabins } = await supabase
+      const { data: cabinData } = await supabase
         .from("trip_cabin_options")
         .select("*")
         .eq("trip_id", tripId)
         .order("sort_order", { ascending: true });
 
-      const balconyCabins = (allCabins || []).filter((c: any) =>
-        c.category_name.toLowerCase().includes("balcony")
-      ) as CabinOption[];
+      const fetched = (cabinData || []) as CabinOption[];
+      setAllCabins(fetched);
 
-      setCabins(balconyCabins);
-
-      if (balconyCabins.length > 0) {
-        // Count sub-trips that selected each balcony cabin option
+      if (fetched.length > 0) {
         const { data: subTrips } = await supabase
           .from("trips")
           .select("selected_cabin_option_id")
@@ -67,14 +64,23 @@ export function BalconyCabinsSection({ tripId }: BalconyCabinsSectionProps) {
   if (loading) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
+        <CardContent className="py-8 text-center">
           <Loader2 className="h-5 w-5 animate-spin mx-auto" />
         </CardContent>
       </Card>
     );
   }
 
-  if (cabins.length === 0) return null;
+  if (allCabins.length === 0) return null;
+
+  const hasBalcony = allCabins.some((c) =>
+    c.category_name.toLowerCase().includes("balcony")
+  );
+
+  const displayedCabins =
+    filter === "balcony"
+      ? allCabins.filter((c) => c.category_name.toLowerCase().includes("balcony"))
+      : allCabins;
 
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
@@ -82,16 +88,29 @@ export function BalconyCabinsSection({ tripId }: BalconyCabinsSectionProps) {
   return (
     <Card>
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Ship className="h-5 w-5" />
-          Balcony Cabins
-          <Badge variant="secondary" className="ml-auto text-xs">
-            {cabins.length} {cabins.length === 1 ? "option" : "options"}
-          </Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <BedDouble className="h-5 w-5" />
+            Cabin Availability
+            <Badge variant="secondary" className="text-xs">
+              {displayedCabins.length} {displayedCabins.length === 1 ? "option" : "options"}
+            </Badge>
+          </CardTitle>
+          {hasBalcony && (
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "balcony")}>
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs px-3 h-7">All Cabins</TabsTrigger>
+                <TabsTrigger value="balcony" className="text-xs px-3 h-7">
+                  <Ship className="h-3 w-3 mr-1" />
+                  Balcony
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {cabins.map((cabin) => {
+        {displayedCabins.map((cabin) => {
           const booked = bookingCounts[cabin.id] || 0;
           const cap = cabin.capacity;
           const remaining = cap != null ? Math.max(0, cap - booked) : null;
