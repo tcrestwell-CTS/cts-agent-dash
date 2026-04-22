@@ -672,10 +672,9 @@ const handler = async (req: Request): Promise<Response> => {
       optionBlocks,
       bookings: bookingsForResponse,
       pricingLines,
-      termsAccepted: false, // TODO: check compliance_audit_log for terms_accepted event
       branding,
       advisor,
-    }), {
+    } as any), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
