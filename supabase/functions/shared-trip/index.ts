@@ -473,6 +473,7 @@ const handler = async (req: Request): Promise<Response> => {
         notes: item.notes,
         sort_order: item.sort_order,
         option_block_id: item.option_block_id ?? null,
+        item_price: item.item_price ?? null,
       }));
 
       bookingsForResponse = (snapshot.bookings || []).map((b: any) => ({
