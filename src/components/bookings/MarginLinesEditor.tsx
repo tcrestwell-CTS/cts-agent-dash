@@ -40,6 +40,8 @@ export interface LocalMarginLine {
   unit_sell: number;
   is_pass_through: boolean;
   sort_order: number;
+  deposit_amount: number;
+  is_optional: boolean;
   // Preview-only computed fields (not source of truth)
   _preview_total_cost: number;
   _preview_total_sell: number;
@@ -64,6 +66,8 @@ export function createEmptyLine(sortOrder: number): LocalMarginLine {
     unit_sell: 0,
     is_pass_through: false,
     sort_order: sortOrder,
+    deposit_amount: 0,
+    is_optional: false,
   });
 }
 
@@ -78,6 +82,8 @@ export function fromDbLine(line: BookingMarginLine): LocalMarginLine {
     unit_sell: line.unit_sell,
     is_pass_through: line.is_pass_through,
     sort_order: line.sort_order,
+    deposit_amount: (line as any).deposit_amount || 0,
+    is_optional: (line as any).is_optional || false,
     _preview_total_cost: line.total_cost,
     _preview_total_sell: line.total_sell,
     _preview_margin: line.margin_amount,
