@@ -703,11 +703,12 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
+      const allClientIds = await getAllClientIds();
       const { data: invoice } = await supabase
         .from("invoices")
         .select("id, invoice_number, invoice_date, total_amount, amount_paid, amount_remaining, status, trip_name, client_name, trip_id, created_at, user_id")
         .eq("id", invoiceId)
-        .eq("client_id", clientId)
+        .in("client_id", allClientIds)
         .single();
 
       if (!invoice) {
