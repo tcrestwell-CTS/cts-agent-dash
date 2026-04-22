@@ -40,6 +40,7 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
     flight_number: (item as any).flight_number || "",
     departure_city_code: (item as any).departure_city_code || "",
     arrival_city_code: (item as any).arrival_city_code || "",
+    item_price: (item as any).item_price != null ? String((item as any).item_price) : "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,6 +58,7 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
       flight_number: form.flight_number || null,
       departure_city_code: form.departure_city_code || null,
       arrival_city_code: form.arrival_city_code || null,
+      item_price: form.item_price ? parseFloat(form.item_price) : null,
     });
     setSaving(false);
     if (success) {
@@ -123,6 +125,17 @@ export function EditItineraryItemDialog({ item, open, onOpenChange, onUpdate }: 
           <div>
             <Label>Notes</Label>
             <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+          </div>
+          <div>
+            <Label>Client-Facing Price (Optional)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.item_price}
+              onChange={(e) => setForm({ ...form, item_price: e.target.value })}
+              placeholder="Shown to client for option selection pricing"
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
