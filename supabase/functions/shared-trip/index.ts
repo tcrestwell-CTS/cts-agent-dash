@@ -608,6 +608,19 @@ const handler = async (req: Request): Promise<Response> => {
     }
     let branding = null;
     let advisor = null;
+    let termsAccepted = false;
+
+    // Check if terms have been accepted for this trip
+    const { data: termsLog } = await supabase
+      .from("compliance_audit_log")
+      .select("id")
+      .eq("entity_id", trip.id)
+      .eq("entity_type", "trip")
+      .eq("event_type", "terms_accepted")
+      .limit(1);
+    if (termsLog && termsLog.length > 0) {
+      termsAccepted = true;
+    }
 
     if (trip.user_id) {
       const [brandingRes, profileRes] = await Promise.all([
@@ -674,7 +687,8 @@ const handler = async (req: Request): Promise<Response> => {
       pricingLines,
       branding,
       advisor,
-    } as any), {
+      termsAccepted,
+    }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
