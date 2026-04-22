@@ -70,6 +70,49 @@ export function useCreateTripTraveler() {
         .single();
       if (error) throw error;
 
+      // Auto-add traveler to CRM clients if they don't already exist (match by email)
+      const travelerEmail = travelerData.email?.trim() || null;
+      const travelerName = `${travelerData.first_name} ${travelerData.last_name || ""}`.trim();
+      if (travelerEmail) {
+        const { data: existingClient } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("email", travelerEmail)
+          .maybeSingle();
+
+        if (!existingClient) {
+          await supabase.from("clients").insert({
+            user_id: user.id,
+            name: travelerName,
+            first_name: travelerData.first_name,
+            last_name: travelerData.last_name || null,
+            email: travelerEmail,
+            phone: travelerData.phone || null,
+            status: "active",
+          });
+        }
+      } else if (!client_id) {
+        // No email — check by name match to avoid duplicates
+        const { data: existingClient } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("name", travelerName)
+          .maybeSingle();
+
+        if (!existingClient && travelerName) {
+          await supabase.from("clients").insert({
+            user_id: user.id,
+            name: travelerName,
+            first_name: travelerData.first_name,
+            last_name: travelerData.last_name || null,
+            phone: travelerData.phone || null,
+            status: "active",
+          });
+        }
+      }
+
       // Also create as a client companion if trip has a client
       if (client_id) {
         await supabase
@@ -95,6 +138,7 @@ export function useCreateTripTraveler() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["trip-travelers", data.trip_id] });
       queryClient.invalidateQueries({ queryKey: ["companions"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success("Traveler added");
     },
     onError: (error: Error) => {
