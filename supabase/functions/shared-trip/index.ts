@@ -583,7 +583,7 @@ const handler = async (req: Request): Promise<Response> => {
       const bIds = tripBookingIds.map((b: any) => b.id);
       const { data: marginLines } = await supabase
         .from("booking_margin_lines")
-        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
+        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order, deposit_amount, is_optional")
         .in("booking_id", bIds)
         .order("sort_order", { ascending: true });
 
@@ -601,6 +601,8 @@ const handler = async (req: Request): Promise<Response> => {
           is_addon: l.is_pass_through || l.line_type === "addon",
           sort_order: l.sort_order,
           travelers: parentBooking?.travelers || 1,
+          deposit_amount: l.deposit_amount || 0,
+          is_optional: l.is_optional || false,
         };
       });
     }
@@ -670,6 +672,7 @@ const handler = async (req: Request): Promise<Response> => {
       optionBlocks,
       bookings: bookingsForResponse,
       pricingLines,
+      termsAccepted: false, // TODO: check compliance_audit_log for terms_accepted event
       branding,
       advisor,
     }), {
