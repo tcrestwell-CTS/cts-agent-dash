@@ -668,8 +668,10 @@ export type Database = {
         Row: {
           booking_id: string
           created_at: string
+          deposit_amount: number
           description: string
           id: string
+          is_optional: boolean
           is_pass_through: boolean
           line_type: string
           margin_amount: number | null
@@ -687,8 +689,10 @@ export type Database = {
         Insert: {
           booking_id: string
           created_at?: string
+          deposit_amount?: number
           description?: string
           id?: string
+          is_optional?: boolean
           is_pass_through?: boolean
           line_type?: string
           margin_amount?: number | null
@@ -706,8 +710,10 @@ export type Database = {
         Update: {
           booking_id?: string
           created_at?: string
+          deposit_amount?: number
           description?: string
           id?: string
+          is_optional?: boolean
           is_pass_through?: boolean
           line_type?: string
           margin_amount?: number | null
@@ -2552,6 +2558,7 @@ export type Database = {
           flight_number: string | null
           id: string
           item_date: string | null
+          item_price: number | null
           itinerary_id: string | null
           location: string | null
           notes: string | null
@@ -2575,6 +2582,7 @@ export type Database = {
           flight_number?: string | null
           id?: string
           item_date?: string | null
+          item_price?: number | null
           itinerary_id?: string | null
           location?: string | null
           notes?: string | null
@@ -2598,6 +2606,7 @@ export type Database = {
           flight_number?: string | null
           id?: string
           item_date?: string | null
+          item_price?: number | null
           itinerary_id?: string | null
           location?: string | null
           notes?: string | null

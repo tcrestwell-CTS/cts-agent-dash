@@ -22,11 +22,27 @@ function OptionBlockClient({ block, items, primaryColor }: { block: any; items: 
 
   if (items.length === 0) return null;
 
+  // Find the cheapest option as the "starting from" price
+  const pricedItems = items.filter((i: any) => i.item_price != null);
+  const cheapestPrice = pricedItems.length > 0 ? Math.min(...pricedItems.map((i: any) => i.item_price)) : null;
+  const selectedItem = items.find((i: any) => i.id === selected);
+  const selectedPrice = selectedItem?.item_price;
+
   return (
     <div className="rounded-xl border-2 border-dashed p-4 space-y-3" style={{ borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}08` }}>
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-gray-700">{block.title}</span>
         <span className="text-xs text-gray-400">· {items.length} options</span>
+        {cheapestPrice != null && !selected && (
+          <span className="text-xs font-medium ml-auto" style={{ color: primaryColor }}>
+            from ${cheapestPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </span>
+        )}
+        {selectedPrice != null && selected && (
+          <span className="text-xs font-bold ml-auto" style={{ color: primaryColor }}>
+            ${selectedPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </span>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -57,6 +73,11 @@ function OptionBlockClient({ block, items, primaryColor }: { block: any; items: 
                   <div className="flex items-center gap-2">
                     <span className="text-base">{categoryIcons[item.category] || "📌"}</span>
                     <h5 className="font-semibold text-gray-900">{item.title}</h5>
+                    {item.item_price != null && (
+                      <span className="text-xs font-medium ml-auto whitespace-nowrap" style={{ color: isSelected ? primaryColor : '#6b7280' }}>
+                        +${item.item_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
                   </div>
                   {item.description && (
                     <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>

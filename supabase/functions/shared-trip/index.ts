@@ -473,6 +473,7 @@ const handler = async (req: Request): Promise<Response> => {
         notes: item.notes,
         sort_order: item.sort_order,
         option_block_id: item.option_block_id ?? null,
+        item_price: item.item_price ?? null,
       }));
 
       bookingsForResponse = (snapshot.bookings || []).map((b: any) => ({
@@ -522,7 +523,7 @@ const handler = async (req: Request): Promise<Response> => {
       const [itineraryRes, bookingsRes, optionBlocksRes] = await Promise.all([
         supabase
           .from("itinerary_items")
-          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id")
+          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id, item_price")
           .eq("trip_id", trip.id)
           .order("day_number", { ascending: true })
           .order("sort_order", { ascending: true }),
@@ -583,7 +584,7 @@ const handler = async (req: Request): Promise<Response> => {
       const bIds = tripBookingIds.map((b: any) => b.id);
       const { data: marginLines } = await supabase
         .from("booking_margin_lines")
-        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
+        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order, deposit_amount, is_optional")
         .in("booking_id", bIds)
         .order("sort_order", { ascending: true });
 
@@ -601,11 +602,26 @@ const handler = async (req: Request): Promise<Response> => {
           is_addon: l.is_pass_through || l.line_type === "addon",
           sort_order: l.sort_order,
           travelers: parentBooking?.travelers || 1,
+          deposit_amount: l.deposit_amount || 0,
+          is_optional: l.is_optional || false,
         };
       });
     }
     let branding = null;
     let advisor = null;
+    let termsAccepted = false;
+
+    // Check if terms have been accepted for this trip
+    const { data: termsLog } = await supabase
+      .from("compliance_audit_log")
+      .select("id")
+      .eq("entity_id", trip.id)
+      .eq("entity_type", "trip")
+      .eq("event_type", "terms_accepted")
+      .limit(1);
+    if (termsLog && termsLog.length > 0) {
+      termsAccepted = true;
+    }
 
     if (trip.user_id) {
       const [brandingRes, profileRes] = await Promise.all([
@@ -672,6 +688,7 @@ const handler = async (req: Request): Promise<Response> => {
       pricingLines,
       branding,
       advisor,
+      termsAccepted,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

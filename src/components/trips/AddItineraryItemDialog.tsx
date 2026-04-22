@@ -40,6 +40,7 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
     title: "", description: "", category: defaultCategory || "activity", location: "",
     start_time: "", end_time: "", notes: "",
     flight_number: "", departure_city_code: "", arrival_city_code: "",
+    item_price: "",
   });
 
   // Sync defaultCategory when controlled dialog opens
@@ -66,10 +67,11 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
       flight_number: form.flight_number || undefined,
       departure_city_code: form.departure_city_code || undefined,
       arrival_city_code: form.arrival_city_code || undefined,
+      item_price: form.item_price ? parseFloat(form.item_price) : undefined,
     });
     setSaving(false);
     if (success) {
-      setForm({ title: "", description: "", category: "activity", location: "", start_time: "", end_time: "", notes: "", flight_number: "", departure_city_code: "", arrival_city_code: "" });
+      setForm({ title: "", description: "", category: "activity", location: "", start_time: "", end_time: "", notes: "", flight_number: "", departure_city_code: "", arrival_city_code: "", item_price: "" });
       setOpen(false);
     }
   };
@@ -140,6 +142,17 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
           <div>
             <Label>Notes</Label>
             <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes" rows={2} />
+          </div>
+          <div>
+            <Label>Client-Facing Price (Optional)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.item_price}
+              onChange={(e) => setForm({ ...form, item_price: e.target.value })}
+              placeholder="Shown to client for option selection pricing"
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
