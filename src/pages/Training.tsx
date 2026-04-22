@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   Plus,
   Loader2,
+  Anchor,
 } from "lucide-react";
 import {
   useTrainingModules,
@@ -298,6 +299,74 @@ const Training = () => {
               </Button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* CLIA Training Modules */}
+      <div className="bg-card rounded-xl shadow-card border border-border/50 mb-6 overflow-hidden">
+        <div className="bg-gradient-ocean p-5 flex items-center gap-3">
+          <Anchor className="h-6 w-6 text-white" />
+          <div>
+            <h2 className="text-lg font-semibold text-white">CLIA Certification & Training</h2>
+            <p className="text-white/80 text-sm">Official Cruise Lines International Association courses</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+          {[
+            {
+              title: "CLIA Course Catalogue",
+              desc: "Browse all available CLIA training courses and electives",
+              url: "https://clia.getlearnworlds.com/learningacademy-catalogue",
+              emoji: "📖",
+            },
+            {
+              title: "CLIA Certification Levels",
+              desc: "Certified, ACC, MCC, and ECC certification programs",
+              url: "https://clia.getlearnworlds.com/learningacademy-certs",
+              emoji: "🏆",
+            },
+            {
+              title: "Accredited Cruise Counsellor",
+              desc: "ACC designation — the first step in CLIA certification",
+              url: "https://clia.getlearnworlds.com/learningacademy-accredited",
+              emoji: "🎓",
+            },
+            {
+              title: "Cruise Line & Partner Training",
+              desc: "Brand-specific training from CLIA cruise line members",
+              url: "https://clia.getlearnworlds.com/cruiselinespartners",
+              emoji: "🚢",
+            },
+            {
+              title: "Certificate Programs",
+              desc: "Specialty certificates in river, luxury, family & more",
+              url: "https://cruising.org/en/travel-agent-center/professional-development-training/certificate-programs",
+              emoji: "📜",
+            },
+            {
+              title: "CLIA Cruise Toolbox",
+              desc: "Sales tools, marketing assets, and selling resources",
+              url: "https://clia.getlearnworlds.com/toolbox-home",
+              emoji: "🧰",
+            },
+          ].map((item) => (
+            <a
+              key={item.title}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 p-4 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+            >
+              <span className="text-2xl mt-0.5">{item.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="font-medium text-sm text-card-foreground group-hover:text-primary transition-colors">{item.title}</h4>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.desc}</p>
+              </div>
+            </a>
+          ))}
         </div>
       </div>
 
