@@ -222,13 +222,11 @@ const Auth = () => {
     handlePostAuth();
   }, [user, loading, navigate, inviteToken, signOut]);
 
-  const APP_ORIGIN = "https://app.crestwelltravels.com";
-
   const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: APP_ORIGIN + "/auth" + (inviteToken ? `?invite=${inviteToken}` : ""),
+        redirect_uri: window.location.origin,
         extraParams: {
           prompt: "select_account",
         },
