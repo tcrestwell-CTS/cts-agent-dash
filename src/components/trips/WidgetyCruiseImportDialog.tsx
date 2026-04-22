@@ -737,8 +737,6 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                     // Group prices by room_type
                     const grouped: Record<string, WidgetyCabinPrice[]> = {};
                     for (const p of deal.prices) {
-                      const pp = parseFloat(p.double_price_pp || "0");
-                      if (pp <= 0) continue;
                       const type = p.room_type || "Other";
                       if (!grouped[type]) grouped[type] = [];
                       grouped[type].push(p);
@@ -777,6 +775,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                                     )}
                                     {cabins.map((cabin, ci) => {
                                       const dblPrice = parseFloat(cabin.double_price_pp);
+                                      const hasPrice = dblPrice > 0;
                                       const sglPrice = cabin.single_price_pp ? parseFloat(cabin.single_price_pp) : 0;
                                       const trpPrice = cabin.triple_price_pp ? parseFloat(cabin.triple_price_pp) : 0;
                                       const fees = parseFloat(cabin.non_comm_charges || "0");
@@ -813,8 +812,8 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                                                 {sglPrice > 0 ? fmt(sglPrice) : "—"}
                                               </span>
                                             )}
-                                            <span className="w-16 text-right font-semibold text-primary">
-                                              {fmt(dblPrice)}
+                                            <span className={`w-16 text-right font-semibold ${hasPrice ? "text-primary" : "text-muted-foreground"}`}>
+                                              {hasPrice ? fmt(dblPrice) : "—"}
                                             </span>
                                             {hasTriple && (
                                               <span className="w-16 text-right text-muted-foreground">
