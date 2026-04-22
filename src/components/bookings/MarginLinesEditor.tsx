@@ -40,8 +40,8 @@ export interface LocalMarginLine {
   unit_sell: number;
   is_pass_through: boolean;
   sort_order: number;
-  deposit_amount: number;
-  is_optional: boolean;
+  deposit_amount?: number;
+  is_optional?: boolean;
   // Preview-only computed fields (not source of truth)
   _preview_total_cost: number;
   _preview_total_sell: number;
