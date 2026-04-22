@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatLocalDate } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -103,8 +104,8 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           notes: formData.notes || null,
           client_id: formData.client_id || null,
           budget_range: formData.budget_range || null,
-          depart_date: dateRange?.from?.toISOString().split("T")[0] || null,
-          return_date: dateRange?.to?.toISOString().split("T")[0] || null,
+          depart_date: dateRange?.from ? formatLocalDate(dateRange.from) : null,
+          return_date: dateRange?.to ? formatLocalDate(dateRange.to) : null,
         } as any)
         .eq("id", trip.id);
 
