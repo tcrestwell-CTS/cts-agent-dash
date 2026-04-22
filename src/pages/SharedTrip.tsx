@@ -278,6 +278,7 @@ export default function SharedTrip() {
             pricingLines={(data as any).pricingLines || []}
             totalCost={data.trip.total_cost || 0}
             primaryColor={primaryColor}
+            termsAccepted={(data as any).termsAccepted || false}
           />
         )}
 
