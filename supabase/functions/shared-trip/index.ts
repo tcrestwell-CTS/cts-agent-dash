@@ -523,7 +523,7 @@ const handler = async (req: Request): Promise<Response> => {
       const [itineraryRes, bookingsRes, optionBlocksRes] = await Promise.all([
         supabase
           .from("itinerary_items")
-          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id")
+          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id, item_price")
           .eq("trip_id", trip.id)
           .order("day_number", { ascending: true })
           .order("sort_order", { ascending: true }),
