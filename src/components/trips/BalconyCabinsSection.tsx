@@ -2,9 +2,19 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Ship, Users, CheckCircle2, AlertTriangle, BedDouble } from "lucide-react";
+import { Loader2, Ship, Users, CheckCircle2, AlertTriangle, BedDouble, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+interface SubTripInfo {
+  id: string;
+  trip_name: string;
+  status: string;
+  client_id: string | null;
+  client_name?: string;
+}
 
 interface CabinOption {
   id: string;
@@ -24,8 +34,11 @@ interface CabinAvailabilitySectionProps {
 export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) {
   const [allCabins, setAllCabins] = useState<CabinOption[]>([]);
   const [bookingCounts, setBookingCounts] = useState<Record<string, number>>({});
+  const [subTripsByOption, setSubTripsByOption] = useState<Record<string, SubTripInfo[]>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "balcony">("all");
+  const [expandedCabin, setExpandedCabin] = useState<string | null>(null);
+  const [drillLoading, setDrillLoading] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetch() {
@@ -43,17 +56,38 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
       if (fetched.length > 0) {
         const { data: subTrips } = await supabase
           .from("trips")
-          .select("selected_cabin_option_id")
+          .select("id, trip_name, status, client_id, selected_cabin_option_id")
           .eq("parent_trip_id", tripId)
           .not("selected_cabin_option_id", "is", null);
 
         const counts: Record<string, number> = {};
+        const grouped: Record<string, SubTripInfo[]> = {};
         (subTrips || []).forEach((t: any) => {
           if (t.selected_cabin_option_id) {
             counts[t.selected_cabin_option_id] = (counts[t.selected_cabin_option_id] || 0) + 1;
+            if (!grouped[t.selected_cabin_option_id]) grouped[t.selected_cabin_option_id] = [];
+            grouped[t.selected_cabin_option_id].push(t);
           }
         });
         setBookingCounts(counts);
+
+        // Fetch client names for all sub-trips
+        const clientIds = [...new Set((subTrips || []).map((t: any) => t.client_id).filter(Boolean))];
+        if (clientIds.length > 0) {
+          const { data: clients } = await supabase
+            .from("clients")
+            .select("id, name")
+            .in("id", clientIds);
+          const clientMap: Record<string, string> = {};
+          (clients || []).forEach((c: any) => { clientMap[c.id] = c.name; });
+          for (const key of Object.keys(grouped)) {
+            grouped[key] = grouped[key].map((st) => ({
+              ...st,
+              client_name: st.client_id ? clientMap[st.client_id] || "Unknown" : "No client",
+            }));
+          }
+        }
+        setSubTripsByOption(grouped);
       }
 
       setLoading(false);
@@ -117,75 +151,111 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
           const pct = cap != null && cap > 0 ? Math.min(100, (booked / cap) * 100) : 0;
           const soldOut = cap != null && remaining === 0;
 
+          const isExpanded = expandedCabin === cabin.id;
+          const subTrips = subTripsByOption[cabin.id] || [];
+
           return (
-            <div
+            <Collapsible
               key={cabin.id}
-              className={`flex items-start gap-4 p-4 rounded-lg border transition-colors ${
-                soldOut ? "bg-destructive/5 border-destructive/20" : "bg-card hover:bg-muted/30"
+              open={isExpanded}
+              onOpenChange={(open) => setExpandedCabin(open ? cabin.id : null)}
+            >
+            <div
+              className={`rounded-lg border transition-colors ${
+                soldOut ? "bg-destructive/5 border-destructive/20" : "bg-card"
               }`}
             >
-              {cabin.image_url && (
-                <img
-                  src={cabin.image_url}
-                  alt={cabin.category_name}
-                  className="w-24 h-16 rounded-md object-cover shrink-0"
-                />
-              )}
-              <div className="flex-1 min-w-0 space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold">{cabin.category_name}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {formatCurrency(cabin.price_per_person)} / person
-                  </Badge>
-                  {cabin.deposit_amount != null && cabin.deposit_amount > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {formatCurrency(cabin.deposit_amount)} deposit
-                    </Badge>
-                  )}
-                  {soldOut && (
-                    <Badge variant="destructive" className="text-xs">Sold Out</Badge>
-                  )}
-                </div>
-
-                {cabin.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{cabin.description}</p>
-                )}
-
-                {/* Availability bar */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {booked} booked
-                      {cap != null && <span>of {cap}</span>}
-                    </span>
-                    {remaining != null ? (
-                      <span className="flex items-center gap-1">
-                        {remaining > 0 ? (
-                          <>
-                            <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            {remaining} remaining
-                          </>
-                        ) : (
-                          <>
-                            <AlertTriangle className="h-3 w-3 text-destructive" />
-                            No availability
-                          </>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="italic">Unlimited</span>
-                    )}
-                  </div>
-                  {cap != null && cap > 0 && (
-                    <Progress
-                      value={pct}
-                      className="h-2"
+              <CollapsibleTrigger asChild>
+                <button className="w-full text-left flex items-start gap-4 p-4 hover:bg-muted/30 transition-colors rounded-lg">
+                  {cabin.image_url && (
+                    <img
+                      src={cabin.image_url}
+                      alt={cabin.category_name}
+                      className="w-24 h-16 rounded-md object-cover shrink-0"
                     />
                   )}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold">{cabin.category_name}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {formatCurrency(cabin.price_per_person)} / person
+                      </Badge>
+                      {cabin.deposit_amount != null && cabin.deposit_amount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {formatCurrency(cabin.deposit_amount)} deposit
+                        </Badge>
+                      )}
+                      {soldOut && (
+                        <Badge variant="destructive" className="text-xs">Sold Out</Badge>
+                      )}
+                    </div>
+
+                    {cabin.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">{cabin.description}</p>
+                    )}
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {booked} booked
+                          {cap != null && <span>of {cap}</span>}
+                        </span>
+                        {remaining != null ? (
+                          <span className="flex items-center gap-1">
+                            {remaining > 0 ? (
+                              <>
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                {remaining} remaining
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle className="h-3 w-3 text-destructive" />
+                                No availability
+                              </>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="italic">Unlimited</span>
+                        )}
+                      </div>
+                      {cap != null && cap > 0 && (
+                        <Progress value={pct} className="h-2" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="shrink-0 mt-1 text-muted-foreground">
+                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </div>
+                </button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent>
+                <div className="border-t px-4 py-3 space-y-2">
+                  {subTrips.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic py-2">No sub-trips booked for this cabin yet.</p>
+                  ) : (
+                    subTrips.map((st) => (
+                      <Link
+                        key={st.id}
+                        to={`/trips/${st.id}`}
+                        className="flex items-center justify-between p-2.5 rounded-md border bg-muted/20 hover:bg-muted/40 transition-colors group"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{st.trip_name}</p>
+                          <p className="text-xs text-muted-foreground">{st.client_name || "No client"}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="outline" className="text-xs capitalize">{st.status}</Badge>
+                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </Link>
+                    ))
+                  )}
                 </div>
-              </div>
+              </CollapsibleContent>
             </div>
+            </Collapsible>
           );
         })}
       </CardContent>
