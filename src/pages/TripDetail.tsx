@@ -42,6 +42,7 @@ import { SupplierPaymentStatus } from "@/components/trips/SupplierPaymentStatus"
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { CabinOptionsManager } from "@/components/trips/CabinOptionsManager";
+import { BalconyCabinsSection } from "@/components/trips/BalconyCabinsSection";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
@@ -638,6 +639,11 @@ const TripDetail = () => {
             {/* Cabin Options — GROUP TRIPS */}
             {isGroupTrip && (
               <CabinOptionsManager tripId={trip.id} onDataChange={fetchTrip} />
+            )}
+
+            {/* Balcony Cabins Availability */}
+            {isGroupTrip && (
+              <BalconyCabinsSection tripId={trip.id} />
             )}
 
             {/* Sub-Trips — GROUP TRIPS: primary section, prominent placement */}
