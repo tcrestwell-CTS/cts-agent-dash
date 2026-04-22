@@ -230,6 +230,8 @@ export function EditBookingDialog({
           source: "manual" as const, quantity: l.quantity,
           unit_cost: l.unit_cost, unit_sell: l.unit_sell,
           is_pass_through: l.is_pass_through, sort_order: i,
+          deposit_amount: l.deposit_amount || 0,
+          is_optional: l.is_optional || false,
         }));
 
         const { error: insertError } = await (supabase as any).from("booking_margin_lines").insert(inserts);
