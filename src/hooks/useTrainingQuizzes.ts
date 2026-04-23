@@ -43,7 +43,7 @@ export function useSubmitQuizAttempt() {
   return useMutation({
     mutationFn: async (attempt: { quiz_id: string; score: number; passed: boolean; answers: unknown[] }) => {
       if (!user) throw new Error("Not authenticated");
-      const row = { quiz_id: attempt.quiz_id, score: attempt.score, passed: attempt.passed, answers: attempt.answers as unknown, user_id: user.id };
+      const row = { quiz_id: attempt.quiz_id, score: attempt.score, passed: attempt.passed, answers: attempt.answers as import("@/integrations/supabase/types").Json, user_id: user.id };
       const { data, error } = await supabase
         .from("training_quiz_attempts")
         .insert([row])
