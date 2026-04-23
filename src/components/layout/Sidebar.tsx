@@ -104,8 +104,16 @@ const navGroups: NavGroup[] = [
       { name: "Hotel Search", href: "/hotels", icon: Hotel },
       { name: "Cruise Search", href: "/cruises", icon: Ship },
       { name: "Excursions", href: "/excursions", icon: Compass },
-      { name: "Training", href: "/training", icon: GraduationCap },
       { name: "Loan Applications", href: "/loan-applications", icon: CreditCard },
+    ],
+  },
+  {
+    label: "Training",
+    icon: GraduationCap,
+    items: [
+      { name: "Dashboard", href: "/training", icon: LayoutDashboard },
+      { name: "Library", href: "/training/library", icon: Library },
+      { name: "My Badges", href: "/training", icon: Award },
     ],
   },
   {
