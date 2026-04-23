@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { useTrainingLesson } from "@/hooks/useTrainingLessons";
 import { useTrainingLessons } from "@/hooks/useTrainingLessons";
-import { useMyTrainingProgressV2, useUpsertProgress } from "@/hooks/useTrainingProgress";
+import { useMyTrainingProgressV2, useUpsertProgress, useAutoRollupProgress } from "@/hooks/useTrainingProgress";
+import { TrainingQuiz } from "@/components/training/TrainingQuiz";
 import { toast } from "sonner";
 
 const TrainingLessonDetail = () => {
@@ -29,6 +30,7 @@ const TrainingLessonDetail = () => {
   const { data: allLessons } = useTrainingLessons(moduleId);
   const { data: progress } = useMyTrainingProgressV2();
   const upsertProgress = useUpsertProgress();
+  const autoRollup = useAutoRollupProgress();
   const [notes, setNotes] = useState("");
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const savedRef = useRef(false);
@@ -44,6 +46,11 @@ const TrainingLessonDetail = () => {
     }
   }, [lessonId]);
 
+  // Reset saved ref on lesson change
+  useEffect(() => {
+    savedRef.current = false;
+  }, [lessonId]);
+
   // Load notes from progress
   useEffect(() => {
     if (lessonProgress?.notes) setNotes(lessonProgress.notes);
@@ -55,11 +62,25 @@ const TrainingLessonDetail = () => {
   const prevLesson = currentIdx > 0 ? sortedLessons[currentIdx - 1] : null;
   const nextLesson = currentIdx < sortedLessons.length - 1 ? sortedLessons[currentIdx + 1] : null;
 
+  const modInfo = lesson?.training_modules_v2 as { id: string; title: string; phase_id: string; training_phases: { title: string } } | undefined;
+
   const handleToggleComplete = async () => {
     if (!lessonId) return;
     const newStatus = isCompleted ? "in_progress" : "completed";
     await upsertProgress.mutateAsync({ lesson_id: lessonId, status: newStatus, notes: notes || undefined });
+
+    if (newStatus === "completed" && modInfo) {
+      // Trigger auto-rollup for module and phase
+      autoRollup.mutate({ lesson_id: lessonId, module_id: modInfo.id, phase_id: modInfo.phase_id });
+    }
+
     toast.success(newStatus === "completed" ? "Lesson completed! ✅" : "Lesson marked as in progress");
+  };
+
+  const handleQuizPass = () => {
+    if (!lessonId || isCompleted) return;
+    // Auto-complete lesson on quiz pass
+    handleToggleComplete();
   };
 
   const handleSaveNotes = async () => {
@@ -67,9 +88,6 @@ const TrainingLessonDetail = () => {
     await upsertProgress.mutateAsync({ lesson_id: lessonId, status: isCompleted ? "completed" : "in_progress", notes });
     toast.success("Notes saved");
   };
-
-  // Lesson metadata from join
-  const modInfo = lesson?.training_modules_v2 as { id: string; title: string; phase_id: string; training_phases: { title: string } } | undefined;
 
   const checklist = Array.isArray(lesson?.checklist_items) ? lesson.checklist_items as { label: string; id: string }[] : [];
   const files = Array.isArray(lesson?.file_attachments) ? lesson.file_attachments as { name: string; url: string }[] : [];
@@ -173,6 +191,11 @@ const TrainingLessonDetail = () => {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Quiz */}
+          {lesson.quiz_id && (
+            <TrainingQuiz quizId={lesson.quiz_id} onPass={handleQuizPass} />
           )}
 
           {/* Navigation */}
