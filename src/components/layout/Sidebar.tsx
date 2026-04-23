@@ -131,6 +131,7 @@ const bottomNav: NavItem[] = [
 
 const adminNavigation: NavItem[] = [
   { name: "Team Management", href: "/team", icon: UserPlus },
+  { name: "Training Admin", href: "/training/admin", icon: GraduationCap },
   { name: "Reconciliation", href: "/reconciliation", icon: FileSpreadsheet },
   { name: "AI Agents Health", href: "/kandi", icon: BarChart3 },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
