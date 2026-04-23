@@ -399,6 +399,13 @@ export default function CruiseSearch() {
           onOpenChange={setDetailsOpen}
           dateFrom={dateFrom}
           dateTo={dateTo}
+          priceCache={priceCache}
+          alternateSailings={
+            detailsSailing
+              ? filteredSailings.filter((s) => s.holiday_ref !== detailsSailing.holiday_ref)
+              : []
+          }
+          onSelectAlternateSailing={(s) => setDetailsSailing(s)}
         />
       </div>
     </DashboardLayout>
