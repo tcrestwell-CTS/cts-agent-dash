@@ -102,7 +102,7 @@ export function CruiseCard({
                 <Badge variant="secondary" className="text-[10px]">Family Friendly</Badge>
               )}
               {tags.includes("luxury") && (
-                <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">Luxury</Badge>
+                <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">Luxury</Badge>
               )}
               {tags.includes("adults") && (
                 <Badge variant="secondary" className="text-[10px]">Adults Only</Badge>
