@@ -64,7 +64,7 @@ export function FilterSidebar({
         </Button>
       </div>
       <Separator className="mb-2" />
-      <ScrollArea className="h-[calc(100vh-280px)] pr-3">
+      <ScrollArea className="h-[calc(100vh-180px)] min-h-[600px] pr-3">
         <Accordion
           type="multiple"
           defaultValue={["destination", "line", "duration", "price"]}
