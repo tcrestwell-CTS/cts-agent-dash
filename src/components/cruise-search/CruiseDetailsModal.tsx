@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Ship, Calendar, MapPin, DollarSign, ChevronRight } from "lucide-react";
+import { Loader2, Ship, Calendar, MapPin, DollarSign, ChevronRight, Anchor, Clock, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
@@ -23,6 +23,9 @@ interface CruiseDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   dateFrom?: string;
   dateTo?: string;
+  onSelectAlternateSailing?: (sailing: WidgetySailing) => void;
+  alternateSailings?: WidgetySailing[];
+  priceCache?: Record<string, number | null>;
 }
 
 export function CruiseDetailsModal({
@@ -31,8 +34,11 @@ export function CruiseDetailsModal({
   onOpenChange,
   dateFrom,
   dateTo,
+  onSelectAlternateSailing,
+  alternateSailings = [],
+  priceCache = {},
 }: CruiseDetailsModalProps) {
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("summary");
   const [datesLoading, setDatesLoading] = useState(false);
   const [dates, setDates] = useState<WidgetyDate[]>([]);
   const [selectedDate, setSelectedDate] = useState<WidgetyDate | null>(null);
@@ -46,7 +52,7 @@ export function CruiseDetailsModal({
 
   useEffect(() => {
     if (!open || !sailing) return;
-    setTab("overview");
+    setTab("summary");
     setSelectedDate(null);
     setSelectedCabin(null);
     setItinerary([]);
@@ -109,36 +115,60 @@ export function CruiseDetailsModal({
 
   if (!sailing) return null;
 
+  // Compute lowest rates per room type from first available date with pricing
+  const lowestRates = (() => {
+    const dateWithPricing = dates.find(
+      (d) => d.headline_prices?.cruise?.double || d.pricing?.length,
+    );
+    if (!dateWithPricing) return null;
+    const dbl = dateWithPricing.headline_prices?.cruise?.double;
+    const parse = (v?: string) => {
+      const n = parseFloat(v || "0");
+      return n > 0 ? n : null;
+    };
+    return {
+      inside: parse(dbl?.from_inside),
+      outside: parse(dbl?.from_outside),
+      balcony: parse(dbl?.from_balcony),
+      suite: parse(dbl?.from_suite),
+    };
+  })();
+
+  const fromPrice = (() => {
+    if (!lowestRates) return null;
+    const vals = Object.values(lowestRates).filter((v): v is number => v != null);
+    return vals.length ? Math.min(...vals) : null;
+  })();
+
+  const perNight = fromPrice && sailing.nights ? fromPrice / sailing.nights : null;
+  const portStops = getPortPreview(sailing);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        {/* Header */}
-        <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5 shrink-0">
-          {sailing.image_url ? (
-            <img src={sailing.image_url} alt={sailing.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Ship className="h-20 w-20 text-primary/20" />
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/95 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
-              {sailing.operator_title}
-            </p>
-            <DialogHeader>
-              <DialogTitle className="text-xl">{sailing.name}</DialogTitle>
-            </DialogHeader>
-            {sailing.ship_title && (
-              <p className="text-sm text-muted-foreground italic">{sailing.ship_title}</p>
-            )}
-          </div>
+      <DialogContent className="max-w-6xl max-h-[92vh] flex flex-col p-0 overflow-hidden gap-0">
+        {/* Top metadata bar — matches reference: nights | region | line | ship | name */}
+        <div className="px-6 py-3 border-b bg-muted/20 shrink-0">
+          <DialogHeader className="space-y-0">
+            <DialogTitle className="text-base font-medium text-primary flex items-center gap-2 flex-wrap">
+              {sailing.nights && <span>{sailing.nights} Nights</span>}
+              {sailing.nights && <span className="text-muted-foreground">|</span>}
+              <span>{sailing.operator_title}</span>
+              {sailing.ship_title && (
+                <>
+                  <span className="text-muted-foreground">|</span>
+                  <span>{sailing.ship_title}</span>
+                </>
+              )}
+              <span className="text-muted-foreground">|</span>
+              <span className="text-foreground">{sailing.name}</span>
+            </DialogTitle>
+          </DialogHeader>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
           <div className="px-6 border-b">
             <TabsList className="bg-transparent h-11">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="dates">Sailing Dates</TabsTrigger>
               <TabsTrigger value="itinerary" disabled={!selectedDate}>Itinerary</TabsTrigger>
               <TabsTrigger value="pricing" disabled={!selectedDate}>Pricing</TabsTrigger>
@@ -147,34 +177,104 @@ export function CruiseDetailsModal({
 
           <ScrollArea className="flex-1">
             <div className="p-6">
-              <TabsContent value="overview" className="mt-0 space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {sailing.date_from && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {formatShortDate(sailing.date_from)}
-                        {sailing.date_to && ` – ${formatShortDate(sailing.date_to)}`}
-                      </span>
+              <TabsContent value="summary" className="mt-0">
+                <div className="grid grid-cols-12 gap-6">
+                  {/* Map / Image — left */}
+                  <div className="col-span-12 md:col-span-4">
+                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-muted/30">
+                      {sailing.image_url ? (
+                        <img
+                          src={sailing.image_url}
+                          alt={sailing.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Ship className="h-16 w-16 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-foreground/80 to-transparent p-3">
+                        <p className="text-xs font-medium text-background/95">
+                          {sailing.nights} Night {sailing.name}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  {sailing.nights && (
-                    <div className="flex items-center gap-2">
-                      <Ship className="h-4 w-4 text-muted-foreground" />
-                      <span>{sailing.nights} nights</span>
+                  </div>
+
+                  {/* Cruise meta — middle */}
+                  <div className="col-span-12 md:col-span-4 space-y-3 text-sm">
+                    <p className="text-base font-semibold text-primary">{sailing.operator_title}</p>
+                    {sailing.ship_title && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Ship className="h-4 w-4 shrink-0" />
+                        <span className="text-foreground">{sailing.ship_title}</span>
+                      </div>
+                    )}
+                    {sailing.starts_at?.name && (
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span className="text-foreground">{sailing.starts_at.name}</span>
+                      </div>
+                    )}
+                    {sailing.nights && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4 shrink-0" />
+                        <span className="text-foreground">{sailing.nights} Nights</span>
+                      </div>
+                    )}
+                    {portStops && (
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <Anchor className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span className="text-foreground leading-relaxed">{portStops}</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground italic pt-2">
+                      Ports of Call may vary by departure date and subject to weather and other conditions.
+                    </p>
+                  </div>
+
+                  {/* Lowest rate table + From price — right */}
+                  <div className="col-span-12 md:col-span-4 space-y-3">
+                    <div className="border rounded-lg p-4 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Lowest Rate</p>
+                      {datesLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : lowestRates ? (
+                        <div className="space-y-1.5 text-sm">
+                          <RateRow label="INSIDE" value={lowestRates.inside} />
+                          <RateRow label="OUTSIDE" value={lowestRates.outside} />
+                          <RateRow label="BALCONY" value={lowestRates.balcony} />
+                          <RateRow label="SUITE" value={lowestRates.suite} />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground py-3">
+                          Pricing not yet available. Check Sailing Dates tab.
+                        </p>
+                      )}
                     </div>
-                  )}
-                  {getPortPreview(sailing) && (
-                    <div className="flex items-center gap-2 col-span-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{getPortPreview(sailing)}</span>
-                    </div>
-                  )}
+                    {fromPrice && (
+                      <div className="text-right space-y-0.5">
+                        <p className="text-xs text-muted-foreground">From</p>
+                        <p className="text-2xl font-bold text-primary">{formatPrice(fromPrice)}</p>
+                        {perNight && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatPrice(perNight)}/ night(s)
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Includes taxes and fees</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 {sailing.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                    {sailing.description}
-                  </p>
+                  <div className="mt-6 pt-4 border-t">
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {sailing.description}
+                    </p>
+                  </div>
                 )}
               </TabsContent>
 
@@ -281,8 +381,40 @@ export function CruiseDetailsModal({
             </div>
           </ScrollArea>
 
-          {/* Footer */}
-          <div className="border-t p-4 flex items-center justify-between gap-3 flex-wrap bg-muted/20">
+          {/* Alternate sailings strip + footer */}
+          {alternateSailings.length > 0 && (
+            <div className="border-t bg-muted/20 px-4 py-3 shrink-0">
+              <div className="flex items-center gap-3 overflow-x-auto">
+                {alternateSailings.slice(0, 6).map((alt) => {
+                  const altPrice = priceCache[alt.holiday_ref];
+                  return (
+                    <button
+                      key={alt.holiday_ref}
+                      onClick={() => onSelectAlternateSailing?.(alt)}
+                      className="group relative shrink-0 text-left bg-card border rounded-md px-3 py-2 hover:border-primary transition-colors min-w-52"
+                    >
+                      <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-foreground/80 text-background flex items-center justify-center">
+                        <X className="h-2.5 w-2.5" />
+                      </span>
+                      <p className="text-xs font-medium truncate">
+                        {alt.operator_title}: {alt.ship_title || alt.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {alt.date_from ? formatShortDate(alt.date_from) : ""}
+                      </p>
+                      {altPrice != null && (
+                        <p className="text-sm font-semibold text-primary mt-0.5">
+                          {formatPrice(altPrice)}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="border-t p-4 flex items-center justify-between gap-3 flex-wrap bg-card shrink-0">
             <div className="text-sm">
               {selectedCabin && (
                 <span className="text-primary font-medium">
@@ -290,7 +422,11 @@ export function CruiseDetailsModal({
                 </span>
               )}
             </div>
-            <AddToTripSelector
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                <X className="h-3.5 w-3.5 mr-1" /> Clear
+              </Button>
+              <AddToTripSelector
               label="Add to Trip"
               items={(itinerary.length ? itinerary : []).map((item) => ({
                 day_number: item.day_number,
@@ -309,11 +445,23 @@ export function CruiseDetailsModal({
                 ].filter(Boolean).join(" • ") || undefined,
               }))}
               disabled={itinerary.length === 0}
-            />
+              />
+            </div>
           </div>
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RateRow({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="flex items-center justify-between border-b last:border-0 py-1">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className={`text-sm font-semibold ${value ? "text-primary" : "text-muted-foreground"}`}>
+        {value ? formatPrice(value) : "—"}
+      </span>
+    </div>
   );
 }
 
