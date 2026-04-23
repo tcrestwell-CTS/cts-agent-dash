@@ -32,6 +32,10 @@ import {
   Ship,
   Star,
   Activity,
+  BookOpen,
+  Award,
+  Library,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
