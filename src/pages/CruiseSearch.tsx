@@ -1,1011 +1,403 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ship, Search, ChevronRight, Loader2, MapPin, Calendar, DollarSign, Check, Eye, Plus, ArrowLeft, Filter, X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AddToTripSelector } from "@/components/search/AddToTripSelector";
-import { format, parseISO } from "date-fns";
 
-interface WidgetySailing {
-  holiday_ref: string;
-  name: string;
-  operator_title: string;
-  holiday: string;
-  ship_title?: string;
-  image_url?: string;
-  date_from?: string;
-  date_to?: string;
-  nights?: number;
-}
+import { CruiseSearchHeader } from "@/components/cruise-search/CruiseSearchHeader";
+import { SearchBar, type SearchBarValues } from "@/components/cruise-search/SearchBar";
+import { FilterSidebar } from "@/components/cruise-search/FilterSidebar";
+import { CruiseResults } from "@/components/cruise-search/CruiseResults";
+import { CompareDrawer } from "@/components/cruise-search/CompareDrawer";
+import { CruiseDetailsModal } from "@/components/cruise-search/CruiseDetailsModal";
+import {
+  AVAILABLE_DESTINATIONS,
+  DEFAULT_FILTERS,
+  type CruiseFilterState,
+  type SortOption,
+  type WidgetySailing,
+} from "@/components/cruise-search/types";
+import {
+  getAudienceTags,
+  getCruiseType,
+  getMonthKey,
+  operatorSlugFromTitle,
+} from "@/components/cruise-search/utils";
 
-interface WidgetyCabinPrice {
-  availability: string;
-  double_price_pp: string;
-  single_price_pp: string | null;
-  triple_price_pp: string | null;
-  quad_price_pp: string | null;
-  grade_code: string;
-  grade_name: string;
-  room_type: string;
-  non_comm_charges: string | null;
-  onboard_credit: string | null;
-  child_price: string | null;
-}
-
-interface WidgetyPricingDeal {
-  name: string;
-  description: string | null;
-  prices: WidgetyCabinPrice[];
-}
-
-interface WidgetyDate {
-  date_ref: string;
-  date_from: string;
-  date_to: string;
-  ship_title: string;
-  starts_at?: { name: string; country: string };
-  ends_at?: { name: string; country: string };
-  itinerary_code: string;
-  availability_string?: string;
-  headline_prices?: {
-    cruise?: {
-      double?: {
-        from_inside?: string;
-        from_outside?: string;
-        from_balcony?: string;
-        from_suite?: string;
-      };
-    };
-  };
-  pricing?: WidgetyPricingDeal[];
-}
-
-interface WidgetyItineraryItem {
-  day_number: number;
-  title: string;
-  description: string;
-  category: string;
-  location: string;
-  start_time: string | null;
-  end_time: string | null;
-  notes: string | null;
-}
-
-const AVAILABLE_OPERATORS = [
-  { slug: "american-cruise-lines", label: "American Cruise Lines" },
-  { slug: "amawaterways", label: "AmaWaterways" },
-  { slug: "avalon-waterways", label: "Avalon Waterways" },
-  { slug: "carnival-cruise-lines-operator", label: "Carnival Cruise Line" },
-  { slug: "celebrity-cruises", label: "Celebrity Cruises" },
-  { slug: "celebrity-river-cruises", label: "Celebrity River Cruises" },
-  { slug: "cunard-line", label: "Cunard Line" },
-  { slug: "disney-cruise-line", label: "Disney Cruise Line" },
-  { slug: "explora-journeys", label: "Explora Journeys" },
-  { slug: "holland-america-line", label: "Holland America Line" },
-  { slug: "msc-cruises", label: "MSC Cruises" },
-  { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
-  { slug: "princess-cruises", label: "Princess Cruises" },
-  { slug: "ritz-carlton-yacht-collection", label: "Ritz-Carlton Yacht Collection" },
-  { slug: "royal-caribbean-international", label: "Royal Caribbean International" },
-  { slug: "seabourn-cruise-line", label: "Seabourn Cruise Line" },
-  { slug: "silversea-cruises", label: "Silversea Cruises" },
-  { slug: "tauck", label: "Tauck" },
-  { slug: "uniworld-boutique-river-cruises", label: "Uniworld Boutique River Cruises" },
-  { slug: "virgin-voyages", label: "Virgin Voyages" },
-];
-
-const AVAILABLE_DESTINATIONS = [
-  { value: "caribbean", label: "Caribbean" },
-  { value: "mediterranean", label: "Mediterranean" },
-  { value: "alaska", label: "Alaska" },
-  { value: "bahamas", label: "Bahamas" },
-  { value: "bermuda", label: "Bermuda" },
-  { value: "hawaii", label: "Hawaii" },
-  { value: "new-england", label: "New England" },
-  { value: "europe", label: "Europe" },
-  { value: "asia", label: "Asia" },
-  { value: "africa", label: "Africa" },
-  { value: "south-america", label: "South America" },
-  { value: "central-america", label: "Central America" },
-  { value: "pacific", label: "Pacific" },
-  { value: "north-america", label: "North America" },
-  { value: "middle-east", label: "Middle East" },
-  { value: "scandinavia", label: "Scandinavia" },
-  { value: "transatlantic", label: "Transatlantic" },
-  { value: "indian-ocean", label: "Indian Ocean" },
-];
-type Step = "search" | "sailings" | "dates" | "pricing" | "itinerary";
+const DEFAULT_SEARCH: SearchBarValues = {
+  destination: "",
+  cruiseLine: "",
+  ship: "",
+  fromYear: "",
+  fromMonth: "",
+  toYear: "",
+  toMonth: "",
+  departurePort: "",
+  travelers: "2",
+};
 
 export default function CruiseSearch() {
-  const [step, setStep] = useState<Step>("search");
+  const [searchValues, setSearchValues] = useState<SearchBarValues>(DEFAULT_SEARCH);
+  const [filters, setFilters] = useState<CruiseFilterState>(DEFAULT_FILTERS);
+  const [sort, setSort] = useState<SortOption>("recommended");
+
   const [loading, setLoading] = useState(false);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [destination, setDestination] = useState("");
-  const [cruiseType, setCruiseType] = useState("");
-  const [shipFilter, setShipFilter] = useState("");
-  const [departurePort, setDeparturePort] = useState("");
-  const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
-  const [shipsLoading, setShipsLoading] = useState(false);
-  const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear, currentYear + 1, currentYear + 2];
-  const monthOptions = [
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ];
-
-  const [fromYear, setFromYear] = useState("");
-  const [fromMonth, setFromMonth] = useState("");
-  const [toYear, setToYear] = useState("");
-  const [toMonth, setToMonth] = useState("");
-
-  // Derive dateFrom / dateTo from year+month selectors
-  const dateFrom = fromYear && fromYear !== "all" && fromMonth ? `${fromYear}-${fromMonth}-01` : "";
-  const dateTo = toYear && toYear !== "all" && toMonth
-    ? `${toYear}-${toMonth}-${new Date(Number(toYear), Number(toMonth), 0).getDate()}`
-    : "";
-
+  const [hasSearched, setHasSearched] = useState(false);
   const [sailings, setSailings] = useState<WidgetySailing[]>([]);
   const [totalResults, setTotalResults] = useState(0);
-  const [selectedHoliday, setSelectedHoliday] = useState<WidgetySailing | null>(null);
-  const [dates, setDates] = useState<WidgetyDate[]>([]);
-  const [selectedDate, setSelectedDate] = useState<WidgetyDate | null>(null);
-  const [selectedCabin, setSelectedCabin] = useState<{ deal_name: string; cabin: WidgetyCabinPrice; room_type: string } | null>(null);
-  const [previewItems, setPreviewItems] = useState<WidgetyItineraryItem[]>([]);
-  const [meta, setMeta] = useState<{ ship_title?: string; operator_title?: string; holiday_name?: string }>({});
   const [priceCache, setPriceCache] = useState<Record<string, number | null>>({});
+  const [comparingRefs, setComparingRefs] = useState<string[]>([]);
 
-  const callWidgety = async (body: Record<string, any>) => {
-    const { data, error } = await supabase.functions.invoke("widgety-cruise", { body });
-    if (error) throw new Error(error.message || "Failed to call Widgety");
-    if (data?.error) throw new Error(data.error);
-    return data;
-  };
+  const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
+  const [shipsLoading, setShipsLoading] = useState(false);
 
-  // Dedicated pricing function — calls widgety-cruise-prices directly (deployed separately)
-  const callPrices = async (body: Record<string, any>) => {
-    const { data, error } = await supabase.functions.invoke("widgety-cruise-prices", { body });
-    if (error) throw new Error(error.message || "Failed to call price service");
-    if (data?.error) throw new Error(data.error);
-    return data;
-  };
+  const [detailsSailing, setDetailsSailing] = useState<WidgetySailing | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const callPriceSync = async (body: Record<string, any>) => {
-    const { data, error } = await supabase.functions.invoke("widgety-price-sync", { body });
-    if (error) return null;
-    if (data?.error) return null;
-    return data;
-  };
+  // Date helpers
+  const dateFrom =
+    searchValues.fromYear && searchValues.fromYear !== "all" && searchValues.fromMonth
+      ? `${searchValues.fromYear}-${searchValues.fromMonth}-01`
+      : "";
+  const dateTo =
+    searchValues.toYear && searchValues.toYear !== "all" && searchValues.toMonth
+      ? `${searchValues.toYear}-${searchValues.toMonth}-${new Date(
+          Number(searchValues.toYear),
+          Number(searchValues.toMonth),
+          0,
+        ).getDate()}`
+      : "";
 
-  const extractShipSlug = (ship: any) => {
-    const href = ship?.href || ship?.ship || ship?.url || ship?._links?.self?.href;
-    if (typeof href === "string") {
-      const match = href.match(/\/ships\/([^.\/?]+)\.json/i);
-      if (match?.[1]) return match[1];
-    }
-    return ship?.slug || "";
-  };
-
-  // Fetch ships only when a specific operator is selected
+  // Cascade ships when cruise line changes
   useEffect(() => {
-    if (!searchQuery || searchQuery === "all") {
+    if (!searchValues.cruiseLine || searchValues.cruiseLine === "all") {
       setAvailableShips([]);
-      setShipFilter("");
-      setShipsLoading(false);
       return;
     }
     let cancelled = false;
-    const fetchShips = async () => {
-      setShipsLoading(true);
-      setShipFilter("");
-      try {
-        const data = await callWidgety({ action: "ships", operator: searchQuery });
-        if (cancelled) return;
-        const ships = (data.ships || [])
-          .map((s: any) => ({
-            title: s.title || s.name || "",
-            slug: extractShipSlug(s),
-          }))
+    setShipsLoading(true);
+    supabase.functions
+      .invoke("widgety-cruise", { body: { action: "ships", operator: searchValues.cruiseLine } })
+      .then(({ data, error }) => {
+        if (cancelled || error || data?.error) return;
+        const list = (data.ships || [])
+          .map((s: any) => {
+            const href = s?.href || s?.ship || s?.url || s?._links?.self?.href;
+            const slug =
+              typeof href === "string"
+                ? href.match(/\/ships\/([^.\/?]+)\.json/i)?.[1] || s.slug || ""
+                : s.slug || "";
+            return { title: s.title || s.name || "", slug };
+          })
           .filter((s: any) => s.title && s.slug);
-        const uniqueShips: { title: string; slug: string }[] = Array.from(
-          new Map<string, { title: string; slug: string }>(ships.map((s: { title: string; slug: string }) => [s.slug, s])).values(),
-        );
-        setAvailableShips(uniqueShips);
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Failed to fetch ships:", err);
-          setAvailableShips([]);
-        }
-      } finally {
-        if (!cancelled) setShipsLoading(false);
-      }
+        const unique = Array.from(new Map(list.map((s: any) => [s.slug, s])).values()) as { title: string; slug: string }[];
+        setAvailableShips(unique);
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setShipsLoading(false));
+    return () => {
+      cancelled = true;
     };
-    fetchShips();
-    return () => { cancelled = true; };
-  }, [searchQuery]);
-
-  const formatDate = (d: string) => {
-    try { return format(parseISO(d), "MM/dd/yyyy"); }
-    catch { return d; }
-  };
-
-  const formatDateLong = (d: string) => {
-    try { return format(parseISO(d), "MMM d, yyyy"); }
-    catch { return d; }
-  };
+  }, [searchValues.cruiseLine]);
 
   const handleSearch = async () => {
     if (dateFrom && dateTo && dateTo < dateFrom) {
-      toast.error("'Date To' cannot be before 'Date From'.");
+      toast.error("'To' date cannot be before 'From' date.");
       return;
     }
     setLoading(true);
-    setStep("sailings");
+    setHasSearched(true);
     try {
       const params: Record<string, any> = { action: "search", market: "us", limit: 50 };
-      if (searchQuery && searchQuery !== "all") params.operators = searchQuery;
-
-      const normalizedDestination = destination?.trim().toLowerCase();
-      if (
-        normalizedDestination &&
-        normalizedDestination !== "all" &&
-        AVAILABLE_DESTINATIONS.some((d) => d.value === normalizedDestination)
-      ) {
-        params.regions = normalizedDestination;
+      if (searchValues.cruiseLine && searchValues.cruiseLine !== "all") {
+        params.operators = searchValues.cruiseLine;
       }
-
-      if (cruiseType && cruiseType !== "all") params.holiday_type = cruiseType.toLowerCase();
-      if (departurePort) params.locations = departurePort;
+      const dest = searchValues.destination?.trim().toLowerCase();
+      if (dest && dest !== "all" && AVAILABLE_DESTINATIONS.some((d) => d.value === dest)) {
+        params.regions = dest;
+      }
+      if (searchValues.departurePort && searchValues.departurePort !== "all") {
+        params.locations = searchValues.departurePort;
+      }
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
-      const data = await callWidgety(params);
+
+      const { data, error } = await supabase.functions.invoke("widgety-cruise", { body: params });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
       let results: WidgetySailing[] = data.holidays || [];
-      if (shipFilter && shipFilter !== "all" && results.length) {
+
+      // Optional ship narrowing (server-side via per-holiday call)
+      if (searchValues.ship && searchValues.ship !== "all" && results.length) {
         const filtered = await Promise.all(
-          results.map(async (holiday) => {
+          results.map(async (h) => {
             try {
-              const details = await callWidgety({
-                action: "holiday",
-                holiday_ref: holiday.holiday_ref,
-                market: "us",
+              const { data: detail } = await supabase.functions.invoke("widgety-cruise", {
+                body: { action: "holiday", holiday_ref: h.holiday_ref, market: "us" },
               });
-              const seasonDates = (details.operating_seasons || []).flatMap((season: any) => season.dates || []);
-              const matchesShip = seasonDates.some((d: any) =>
-                typeof d.ship === "string" && d.ship.includes(`/ships/${shipFilter}.json`),
+              const seasonDates = (detail?.operating_seasons || []).flatMap((s: any) => s.dates || []);
+              const matches = seasonDates.some(
+                (d: any) =>
+                  typeof d.ship === "string" && d.ship.includes(`/ships/${searchValues.ship}.json`),
               );
-              return matchesShip ? holiday : null;
+              return matches ? h : null;
             } catch {
               return null;
             }
           }),
         );
-        results = filtered.filter((holiday): holiday is WidgetySailing => holiday !== null);
+        results = filtered.filter((h): h is WidgetySailing => h !== null);
       }
+
       setSailings(results);
-      setTotalResults(shipFilter && shipFilter !== "all" ? results.length : (data.total || results.length));
+      setTotalResults(
+        searchValues.ship && searchValues.ship !== "all" ? results.length : data.total || results.length,
+      );
       if (!results.length) toast.info("No cruises found. Try adjusting your search.");
 
-      // Fetch cached prices then background-sync any missing ones
-      if (results.length > 0) {
+      // Pricing
+      if (results.length) {
         try {
-          const refs = results.map((h: any) => h.holiday_ref).filter(Boolean);
-          const priceData = await callPriceSync({ action: "get_prices", refs });
+          const refs = results.map((h) => h.holiday_ref).filter(Boolean);
+          const { data: priceData } = await supabase.functions.invoke("widgety-price-sync", {
+            body: { action: "get_prices", refs },
+          });
           const cache: Record<string, number | null> = {};
-          for (const p of (priceData.prices || [])) {
+          for (const p of priceData?.prices || []) {
             cache[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
           }
           setPriceCache(cache);
-          // Background sync for refs not yet cached
-          const missing = refs.filter((r: string) => !(r in cache));
-          if (missing.length > 0) {
-            callPriceSync({ action: "sync_prices", refs: missing.slice(0, 20) })
-              .then(() => callPriceSync({ action: "get_prices", refs: missing.slice(0, 20) }))
-              .then((r2: any) => {
-                const newCache: Record<string, number | null> = {};
-                for (const p of (r2.prices || [])) {
-                  newCache[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
+
+          const missing = refs.filter((r) => !(r in cache));
+          if (missing.length) {
+            supabase.functions
+              .invoke("widgety-price-sync", { body: { action: "sync_prices", refs: missing.slice(0, 20) } })
+              .then(() =>
+                supabase.functions.invoke("widgety-price-sync", {
+                  body: { action: "get_prices", refs: missing.slice(0, 20) },
+                }),
+              )
+              .then(({ data: r2 }) => {
+                const next: Record<string, number | null> = {};
+                for (const p of r2?.prices || []) {
+                  next[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
                 }
-                setPriceCache(prev => ({ ...prev, ...newCache }));
+                setPriceCache((prev) => ({ ...prev, ...next }));
               })
               .catch(() => {});
           }
-        } catch (_e) {}
+        } catch {
+          // pricing failures are non-fatal
+        }
       }
     } catch (err) {
-      console.error("Search error:", err);
+      console.error("Cruise search error:", err);
       toast.error("Search failed: " + (err instanceof Error ? err.message : "Unknown error"));
-      setStep("search");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectHoliday = async (holiday: WidgetySailing) => {
-    setSelectedHoliday(holiday);
-    setLoading(true);
-    setStep("dates");
-    try {
-      const data = await callWidgety({
-        action: "holiday",
-        holiday_ref: holiday.holiday_ref,
-        market: "us",
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-      });
-      const allDates: WidgetyDate[] = [];
-      for (const season of data.operating_seasons || []) {
-        for (const d of season.dates || []) allDates.push(d);
-      }
-      setDates(allDates);
-      if (!allDates.length) toast.info("No sailing dates found for this cruise.");
-    } catch (err) {
-      console.error("Holiday fetch error:", err);
-      toast.error("Failed to load sailing dates");
-      setStep("sailings");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelectDate = (dateInfo: WidgetyDate) => {
-    setSelectedDate(dateInfo);
-    setSelectedCabin(null);
-    setStep("pricing");
-  };
-
-  const handleViewItinerary = async () => {
-    if (!selectedDate) return;
-    setLoading(true);
-    setStep("itinerary");
-    try {
-      const data = await callWidgety({ action: "itinerary", date_ref: selectedDate.date_ref, itinerary_code: selectedDate.itinerary_code, market: "us" });
-      setPreviewItems(data.items || []);
-      setMeta({ ship_title: data.ship_title, operator_title: data.operator_title, holiday_name: data.holiday_name });
-      if (!(data.items || []).length) toast.info("No itinerary data available for this sailing.");
-    } catch (err) {
-      console.error("Itinerary fetch error:", err);
-      toast.error("Failed to load itinerary");
-      setStep("pricing");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetSearch = () => {
-    setStep("search");
+  const handleReset = () => {
+    setSearchValues(DEFAULT_SEARCH);
+    setFilters(DEFAULT_FILTERS);
     setSailings([]);
-    setDates([]);
-    setPreviewItems([]);
-    setSelectedHoliday(null);
-    setSelectedDate(null);
-    setSelectedCabin(null);
-    setMeta({});
+    setHasSearched(false);
+    setComparingRefs([]);
+    setPriceCache({});
   };
 
-  const clearFilters = () => {
-    setSearchQuery("");
-    setDestination("");
-    setCruiseType("");
-    setShipFilter("");
-    setDeparturePort("");
-    setFromYear("");
-    setFromMonth("");
-    setToYear("");
-    setToMonth("");
+  // Derive available filter options from current results
+  const priceBounds = useMemo<[number, number]>(() => {
+    const prices = Object.values(priceCache).filter((p): p is number => p != null && p > 0);
+    if (!prices.length) return [0, 20000];
+    const min = Math.floor(Math.min(...prices) / 100) * 100;
+    const max = Math.ceil(Math.max(...prices) / 100) * 100;
+    return [min, Math.max(max, min + 1000)];
+  }, [priceCache]);
+
+  // Initialize price slider when bounds change
+  useEffect(() => {
+    setFilters((f) => ({ ...f, priceRange: priceBounds }));
+  }, [priceBounds]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    for (const s of sailings) {
+      const k = getMonthKey(s.date_from);
+      if (k) months.add(k);
+    }
+    return Array.from(months).sort();
+  }, [sailings]);
+
+  // Apply client-side filters + sort
+  const filteredSailings = useMemo(() => {
+    let out = sailings.filter((s) => {
+      const op = operatorSlugFromTitle(s.operator_title);
+      // Cruise line
+      if (filters.cruiseLines.length && !filters.cruiseLines.includes(op)) return false;
+      // Type
+      if (filters.cruiseType !== "all" && getCruiseType(op) !== filters.cruiseType) return false;
+      // Audience
+      if (filters.audience.length) {
+        const tags = getAudienceTags(op);
+        if (!filters.audience.some((a) => tags.includes(a))) return false;
+      }
+      // Months
+      if (filters.months.length && !filters.months.includes(getMonthKey(s.date_from))) return false;
+      // Duration
+      const n = s.nights || 0;
+      if (n > 0 && (n < filters.durationRange[0] || (n > filters.durationRange[1] && filters.durationRange[1] < 30))) {
+        return false;
+      }
+      // Price
+      const price = priceCache[s.holiday_ref];
+      if (price != null && (price < filters.priceRange[0] || price > filters.priceRange[1])) {
+        return false;
+      }
+      return true;
+    });
+
+    // Sort
+    const arr = [...out];
+    if (sort === "price_asc") {
+      arr.sort((a, b) => {
+        const pa = priceCache[a.holiday_ref] ?? Infinity;
+        const pb = priceCache[b.holiday_ref] ?? Infinity;
+        return pa - pb;
+      });
+    } else if (sort === "date_asc") {
+      arr.sort((a, b) => (a.date_from || "").localeCompare(b.date_from || ""));
+    } else if (sort === "duration_asc") {
+      arr.sort((a, b) => (a.nights || 999) - (b.nights || 999));
+    } else {
+      // recommended: priced first, then earliest
+      arr.sort((a, b) => {
+        const ap = priceCache[a.holiday_ref] != null ? 0 : 1;
+        const bp = priceCache[b.holiday_ref] != null ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        return (a.date_from || "").localeCompare(b.date_from || "");
+      });
+    }
+    return arr;
+  }, [sailings, filters, priceCache, sort]);
+
+  const toggleCompare = (ref: string) => {
+    setComparingRefs((prev) => {
+      if (prev.includes(ref)) return prev.filter((r) => r !== ref);
+      if (prev.length >= 4) {
+        toast.info("You can compare up to 4 cruises at once.");
+        return prev;
+      }
+      return [...prev, ref];
+    });
   };
 
-  const fmt = (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const comparingSailings = useMemo(
+    () => sailings.filter((s) => comparingRefs.includes(s.holiday_ref)),
+    [sailings, comparingRefs],
+  );
 
-  const getOperatorLabel = (slug: string) => {
-    const op = AVAILABLE_OPERATORS.find((o) => o.slug === slug);
-    return op?.label || slug;
-  };
+  const sidebarFilters = (
+    <FilterSidebar
+      filters={filters}
+      onChange={setFilters}
+      availableMonths={availableMonths}
+      availableShips={availableShips}
+      priceBounds={priceBounds}
+    />
+  );
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header with Back button on sub-steps */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {step !== "search" && step !== "sailings" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (step === "dates") setStep("sailings");
-                  else if (step === "pricing") setStep("dates");
-                  else if (step === "itinerary") setStep("pricing");
-                }}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
-              </Button>
-            )}
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Find a Cruise</h1>
-              {step === "dates" && selectedHoliday && (
-                <p className="text-muted-foreground text-sm">{selectedHoliday.name}</p>
-              )}
-              {step === "pricing" && selectedHoliday && (
-                <p className="text-muted-foreground text-sm">{selectedHoliday.name} — Select cabin</p>
-              )}
-              {step === "itinerary" && (
-                <p className="text-muted-foreground text-sm">Itinerary Preview</p>
-              )}
+      <div className="space-y-5 pb-24">
+        <CruiseSearchHeader />
+
+        <SearchBar
+          values={searchValues}
+          onChange={setSearchValues}
+          onSearch={handleSearch}
+          onReset={handleReset}
+          loading={loading}
+          availableShips={availableShips}
+          shipsLoading={shipsLoading}
+        />
+
+        {hasSearched ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
+            {/* Desktop sidebar */}
+            <div className="hidden lg:block">{sidebarFilters}</div>
+
+            {/* Mobile filter trigger */}
+            <div className="lg:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Filter className="h-4 w-4 mr-2" /> Filters
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[320px] sm:w-[380px] overflow-y-auto">
+                  <SheetHeader>
+                    <SheetTitle>Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-4">{sidebarFilters}</div>
+                </SheetContent>
+              </Sheet>
             </div>
+
+            <CruiseResults
+              sailings={filteredSailings}
+              totalResults={loading ? 0 : filteredSailings.length}
+              loading={loading}
+              sort={sort}
+              onSortChange={setSort}
+              priceCache={priceCache}
+              comparingRefs={comparingRefs}
+              onToggleCompare={toggleCompare}
+              onViewDetails={(s) => {
+                setDetailsSailing(s);
+                setDetailsOpen(true);
+              }}
+              onSelect={(s) => {
+                setDetailsSailing(s);
+                setDetailsOpen(true);
+              }}
+              onResetFilters={() => setFilters({ ...DEFAULT_FILTERS, priceRange: priceBounds })}
+            />
           </div>
-          {step === "sailings" && (
-            <Button variant="ghost" size="sm" onClick={resetSearch}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-          )}
-        </div>
-
-        {/* Inline Search Bar — visible on search + sailings */}
-        {(step === "search" || step === "sailings") && (
-          <div className="flex flex-col sm:flex-row items-end gap-3 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <Label className="text-xs text-muted-foreground">Cruise Line</Label>
-              <Select value={searchQuery} onValueChange={setSearchQuery}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="All cruise lines" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cruise Lines</SelectItem>
-                  {AVAILABLE_OPERATORS.map((op) => (
-                    <SelectItem key={op.slug} value={op.slug}>{op.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center py-20 border rounded-lg bg-card">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Filter className="h-7 w-7 text-primary" />
             </div>
-            <div className="flex-1 min-w-0">
-              <Label className="text-xs text-muted-foreground">Destination</Label>
-              <Select value={destination} onValueChange={setDestination}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="All destinations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Destinations</SelectItem>
-                  {AVAILABLE_DESTINATIONS.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 min-w-0">
-              <Label className="text-xs text-muted-foreground">Ship</Label>
-              <Select
-                value={shipFilter}
-                onValueChange={setShipFilter}
-                disabled={shipsLoading || (!searchQuery || searchQuery === "all")}
-              >
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder={
-                    !searchQuery || searchQuery === "all"
-                      ? "Select cruise line first"
-                      : shipsLoading
-                        ? "Loading ships…"
-                        : "All ships"
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ships</SelectItem>
-                  {availableShips.map((s) => (
-                    <SelectItem key={s.slug} value={s.slug}>{s.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 min-w-0">
-              <Label className="text-xs text-muted-foreground">Departure Port</Label>
-              <Select value={departurePort} onValueChange={setDeparturePort}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="All ports" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ports</SelectItem>
-                  <SelectItem value="USMIA">Miami, FL</SelectItem>
-                  <SelectItem value="USFLL">Fort Lauderdale, FL</SelectItem>
-                  <SelectItem value="USPCV">Port Canaveral, FL</SelectItem>
-                  <SelectItem value="USTPA">Tampa, FL</SelectItem>
-                  <SelectItem value="USJAX">Jacksonville, FL</SelectItem>
-                  <SelectItem value="USNYC">New York, NY</SelectItem>
-                  <SelectItem value="FRBAY">Bayonne, NJ</SelectItem>
-                  <SelectItem value="USBAL">Baltimore, MD</SelectItem>
-                  <SelectItem value="USBOS">Boston, MA</SelectItem>
-                  <SelectItem value="USCHS">Charleston, SC</SelectItem>
-                  <SelectItem value="USGLS">Galveston, TX</SelectItem>
-                  <SelectItem value="USHOU">Houston, TX</SelectItem>
-                  <SelectItem value="USMSY">New Orleans, LA</SelectItem>
-                  <SelectItem value="USLAX">Los Angeles, CA</SelectItem>
-                  <SelectItem value="USSFO">San Francisco, CA</SelectItem>
-                  <SelectItem value="USSAN">San Diego, CA</SelectItem>
-                  <SelectItem value="USSEA">Seattle, WA</SelectItem>
-                  <SelectItem value="USHNL">Honolulu, HI</SelectItem>
-                  <SelectItem value="PRSJU">San Juan, PR</SelectItem>
-                  <SelectItem value="ESBCN">Barcelona, Spain</SelectItem>
-                  <SelectItem value="ITROM">Rome (Civitavecchia), Italy</SelectItem>
-                  <SelectItem value="ITVCE">Venice, Italy</SelectItem>
-                  <SelectItem value="GRPIR">Athens (Piraeus), Greece</SelectItem>
-                  <SelectItem value="GBSOU">Southampton, UK</SelectItem>
-                  <SelectItem value="NLAMS">Amsterdam, Netherlands</SelectItem>
-                  <SelectItem value="DKCPH">Copenhagen, Denmark</SelectItem>
-                  <SelectItem value="SGSIN">Singapore</SelectItem>
-                  <SelectItem value="AUSYD">Sydney, Australia</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full sm:w-36">
-              <Label className="text-xs text-muted-foreground">Cruise Type</Label>
-              <Select value={cruiseType} onValueChange={setCruiseType}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="ocean">Ocean</SelectItem>
-                  <SelectItem value="river">River</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full sm:w-32">
-              <Label className="text-xs text-muted-foreground">From Year</Label>
-              <Select value={fromYear} onValueChange={setFromYear}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  {yearOptions.map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full sm:w-36">
-              <Label className="text-xs text-muted-foreground">From Month</Label>
-              <Select value={fromMonth} onValueChange={setFromMonth} disabled={!fromYear || fromYear === "all"}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full sm:w-32">
-              <Label className="text-xs text-muted-foreground">To Year</Label>
-              <Select value={toYear} onValueChange={setToYear}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  {yearOptions.map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full sm:w-36">
-              <Label className="text-xs text-muted-foreground">To Month</Label>
-              <Select value={toMonth} onValueChange={setToMonth} disabled={!toYear || toYear === "all"}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleSearch} disabled={loading} className="shrink-0">
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Filter className="h-4 w-4 mr-2" />}
-              Filter
-            </Button>
-            {(searchQuery || destination || cruiseType || shipFilter || departurePort || dateFrom || dateTo) && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0 text-muted-foreground">
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* Sailings Results — Card Grid */}
-        {step === "sailings" && (
-          <>
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">{totalResults} cruises found</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {sailings.map((s) => (
-                    <Card key={s.holiday_ref} className="overflow-hidden group hover:shadow-md transition-shadow">
-                      {/* Cruise image placeholder */}
-                      <div className="relative h-44 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
-                        {s.image_url ? (
-                          <img src={s.image_url} alt={s.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <Ship className="h-16 w-16 text-primary/20" />
-                        )}
-                      </div>
-                      <CardContent className="p-4 space-y-2">
-                        <h3 className="font-semibold text-sm leading-snug line-clamp-2">{s.name}</h3>
-                        {s.ship_title && (
-                          <p className="text-sm text-muted-foreground italic">{s.ship_title}</p>
-                        )}
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Ship className="h-3 w-3" />
-                          <span>{s.operator_title}</span>
-                        </div>
-                        {s.date_from && s.date_to && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{formatDate(s.date_from)} - {formatDate(s.date_to)}</span>
-                          </div>
-                        )}
-                        {priceCache[s.holiday_ref] != null ? (
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-xs text-muted-foreground">From</span>
-                            <span className="text-base font-bold text-primary">
-                              ${priceCache[s.holiday_ref]!.toLocaleString()}<span className="text-xs font-normal text-muted-foreground">/pp</span>
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="h-6 flex items-center">
-                            <span className="text-xs text-muted-foreground italic">Pricing loading...</span>
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-1.5 pt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full text-xs"
-                            onClick={() => handleSelectHoliday(s)}
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1.5" />
-                            Preview Sailings
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full text-xs text-primary"
-                            onClick={() => handleSelectHoliday(s)}
-                          >
-                            <Plus className="h-3.5 w-3.5 mr-1.5" />
-                            Add to Itinerary
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                {sailings.length === 0 && (
-                  <p className="text-muted-foreground text-center py-12">No cruises found. Try adjusting your filters.</p>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-        {/* Date Selection */}
-        {step === "dates" && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" /> Sailing Dates
-                </CardTitle>
-                <span className="text-sm text-muted-foreground">{dates.length} departures</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {dates.map((d) => {
-                    const prices = d.headline_prices?.cruise?.double;
-                    const lowestPrice = prices
-                      ? Math.min(
-                          ...[prices.from_inside, prices.from_outside, prices.from_balcony, prices.from_suite]
-                            .map(p => parseFloat(p || "0"))
-                            .filter(p => p > 0)
-                        )
-                      : null;
-
-                    return (
-                      <button
-                        key={d.date_ref}
-                        onClick={() => handleSelectDate(d)}
-                        className="w-full text-left p-4 rounded-lg border hover:bg-accent/50 transition-colors group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="font-medium">{formatDateLong(d.date_from)} — {formatDateLong(d.date_to)}</span>
-                            </div>
-                            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                              {d.ship_title && <span>🚢 {d.ship_title}</span>}
-                              {d.starts_at && (
-                                <span className="flex items-center gap-0.5">
-                                  <MapPin className="h-3 w-3" />
-                                  {d.starts_at.name} → {d.ends_at?.name || ""}
-                                </span>
-                              )}
-                            </div>
-                            {lowestPrice && lowestPrice < Infinity && (
-                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                                <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
-                                  <DollarSign className="h-3 w-3" />
-                                  From {fmt(lowestPrice)} pp
-                                </span>
-                                {prices?.from_inside && parseFloat(prices.from_inside) > 0 && (
-                                  <Badge variant="outline" className="text-xs">Inside {fmt(parseFloat(prices.from_inside))}</Badge>
-                                )}
-                                {prices?.from_balcony && parseFloat(prices.from_balcony) > 0 && (
-                                  <Badge variant="outline" className="text-xs">Balcony {fmt(parseFloat(prices.from_balcony))}</Badge>
-                                )}
-                                {prices?.from_suite && parseFloat(prices.from_suite) > 0 && (
-                                  <Badge variant="outline" className="text-xs">Suite {fmt(parseFloat(prices.from_suite))}</Badge>
-                                )}
-                              </div>
-                            )}
-                            {d.availability_string && d.availability_string !== "available" && (
-                              <Badge variant="secondary" className="mt-1 text-xs">{d.availability_string}</Badge>
-                            )}
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground shrink-0" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {dates.length === 0 && (
-                    <p className="text-muted-foreground text-center py-8">No departures found</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pricing */}
-        {step === "pricing" && selectedDate && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" /> Cabin Pricing
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 p-3 bg-accent/30 rounded-md">
-                <p className="font-medium">{selectedHoliday?.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatDateLong(selectedDate.date_from)} — {formatDateLong(selectedDate.date_to)}
-                  {selectedDate.ship_title && ` • 🚢 ${selectedDate.ship_title}`}
-                  {selectedDate.starts_at && ` • ${selectedDate.starts_at.name} → ${selectedDate.ends_at?.name || ""}`}
-                </p>
-              </div>
-
-              {selectedDate.pricing && selectedDate.pricing.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedDate.pricing.map((deal, di) => {
-                    const grouped: Record<string, WidgetyCabinPrice[]> = {};
-                    for (const p of deal.prices) {
-                      const pp = parseFloat(p.double_price_pp || "0");
-                      if (pp <= 0) continue;
-                      const type = p.room_type || "Other";
-                      if (!grouped[type]) grouped[type] = [];
-                      grouped[type].push(p);
-                    }
-                    for (const type of Object.keys(grouped)) {
-                      grouped[type].sort((a, b) => parseFloat(a.double_price_pp) - parseFloat(b.double_price_pp));
-                    }
-                    const roomOrder = ["Inside", "Outside", "Balcony", "Suite", "Other"];
-                    const sortedTypes = Object.keys(grouped).sort(
-                      (a, b) => (roomOrder.indexOf(a) === -1 ? 99 : roomOrder.indexOf(a)) - (roomOrder.indexOf(b) === -1 ? 99 : roomOrder.indexOf(b))
-                    );
-
-                    return (
-                      <div key={di}>
-                        {deal.name && (
-                          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">{deal.name}</p>
-                        )}
-                        {sortedTypes.map((roomType) => (
-                          <div key={roomType} className="mb-3">
-                            <p className="text-sm font-medium mb-1">{roomType}</p>
-                            <div className="space-y-1">
-                              {grouped[roomType].map((cabin, ci) => {
-                                const dblPrice = parseFloat(cabin.double_price_pp);
-                                const fees = parseFloat(cabin.non_comm_charges || "0");
-                                const isSelected = selectedCabin?.cabin.grade_code === cabin.grade_code && selectedCabin?.room_type === roomType;
-                                return (
-                                  <button
-                                    key={ci}
-                                    onClick={() => setSelectedCabin({ deal_name: deal.name || "", cabin, room_type: roomType })}
-                                    className={`w-full flex items-center justify-between py-2 px-3 rounded border text-sm transition-colors ${
-                                      isSelected
-                                        ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                                        : "hover:bg-accent/50"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      {isSelected ? (
-                                        <Check className="h-4 w-4 text-primary shrink-0" />
-                                      ) : (
-                                        <span className="w-4 shrink-0" />
-                                      )}
-                                      <span className="font-mono text-muted-foreground">{cabin.grade_code}</span>
-                                      <span className="truncate">{cabin.grade_name}</span>
-                                      {cabin.availability && cabin.availability !== "available" && (
-                                        <Badge variant="secondary" className="text-xs">{cabin.availability}</Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <span className="font-semibold text-primary">{fmt(dblPrice)} pp</span>
-                                      {fees > 0 && (
-                                        <span className="text-muted-foreground text-xs">+{fmt(fees)} fees</span>
-                                      )}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">No detailed cabin pricing available for this sailing</p>
-              )}
-
-              {selectedCabin && (
-                <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-md">
-                  <p className="text-sm font-medium text-primary">
-                    Selected: {selectedCabin.room_type} — {selectedCabin.cabin.grade_code} {selectedCabin.cabin.grade_name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {fmt(parseFloat(selectedCabin.cabin.double_price_pp))} pp (double)
-                    {selectedCabin.cabin.non_comm_charges && parseFloat(selectedCabin.cabin.non_comm_charges) > 0
-                      ? ` + ${fmt(parseFloat(selectedCabin.cabin.non_comm_charges))} port fees`
-                      : ""}
-                  </p>
-                </div>
-              )}
-
-              <Separator className="my-4" />
-              <div className="flex justify-end">
-                <Button onClick={handleViewItinerary} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Ship className="h-4 w-4 mr-2" />}
-                  View Itinerary
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Itinerary Preview */}
-        {step === "itinerary" && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Ship className="h-5 w-5" /> Itinerary Preview
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <>
-                  {meta.operator_title && (
-                    <div className="mb-4 p-3 bg-accent/30 rounded-md">
-                      <p className="font-medium">{meta.holiday_name || selectedHoliday?.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {meta.operator_title}{meta.ship_title ? ` • ${meta.ship_title}` : ""}
-                      </p>
-                      {selectedCabin && (
-                        <p className="text-sm text-primary mt-1">
-                          Cabin: {selectedCabin.room_type} — {selectedCabin.cabin.grade_code} {selectedCabin.cabin.grade_name} • {fmt(parseFloat(selectedCabin.cabin.double_price_pp))} pp
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    {previewItems.map((item, idx) => (
-                      <div key={idx} className="flex gap-3 py-2 border-b last:border-0">
-                        <span className="text-sm font-mono text-muted-foreground w-10 shrink-0 pt-0.5">D{item.day_number}</span>
-                        <div className="min-w-0">
-                          <p className="font-medium">{item.title}</p>
-                          {item.location && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> {item.location}
-                            </p>
-                          )}
-                          {item.description && <p className="text-sm text-muted-foreground mt-0.5">{item.description}</p>}
-                          {item.notes && <p className="text-xs text-muted-foreground/70 mt-0.5">{item.notes}</p>}
-                        </div>
-                      </div>
-                    ))}
-                    {previewItems.length === 0 && (
-                      <p className="text-muted-foreground text-center py-8">No itinerary data available for this sailing</p>
-                    )}
-                  </div>
-                  <Separator className="my-4" />
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <AddToTripSelector
-                      label="Add to Trip"
-                      items={previewItems.map((item) => ({
-                        day_number: item.day_number,
-                        title: item.title,
-                        description: item.description || undefined,
-                        category: item.category || "cruise",
-                        location: item.location || undefined,
-                        start_time: item.start_time || undefined,
-                        end_time: item.end_time || undefined,
-                        notes: [
-                          item.notes,
-                          selectedCabin ? `Cabin: ${selectedCabin.room_type} ${selectedCabin.cabin.grade_code} — ${fmt(parseFloat(selectedCabin.cabin.double_price_pp))} pp` : null,
-                          meta.ship_title ? `Ship: ${meta.ship_title}` : null,
-                        ].filter(Boolean).join(" • ") || undefined,
-                      }))}
-                    />
-                    <Button variant="outline" onClick={resetSearch}>
-                      <Search className="h-4 w-4 mr-2" /> New Search
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Initial search prompt */}
-        {step === "search" && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Ship className="h-16 w-16 text-muted-foreground/30 mb-4" />
-            <h2 className="text-lg font-semibold text-muted-foreground">Search Cruise Itineraries</h2>
-            <p className="text-sm text-muted-foreground/70 max-w-md mt-1">
-              Select a cruise line and date range above, then click Filter to browse available sailings from 16+ operators.
+            <h2 className="text-lg font-semibold">Search the world's cruises</h2>
+            <p className="text-sm text-muted-foreground max-w-md mt-1">
+              Pick a destination, cruise line, or sail date and we'll find the best options from
+              20+ premium operators.
             </p>
-            <Button onClick={handleSearch} className="mt-6" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-              Search All Cruises
+            <Button onClick={handleSearch} className="mt-6">
+              Browse all cruises
             </Button>
           </div>
         )}
+
+        <CompareDrawer
+          sailings={comparingSailings}
+          priceCache={priceCache}
+          onRemove={(ref) => setComparingRefs((p) => p.filter((r) => r !== ref))}
+          onClear={() => setComparingRefs([])}
+        />
+
+        <CruiseDetailsModal
+          sailing={detailsSailing}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
       </div>
     </DashboardLayout>
   );
