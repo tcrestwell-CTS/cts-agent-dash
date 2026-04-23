@@ -329,7 +329,9 @@ export default function CruiseSearch() {
         {hasSearched ? (
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
             {/* Desktop sidebar */}
-            <div className="hidden lg:block">{sidebarFilters}</div>
+            <div className="hidden lg:block lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)]">
+              {sidebarFilters}
+            </div>
 
             {/* Mobile filter trigger */}
             <div className="lg:hidden">
