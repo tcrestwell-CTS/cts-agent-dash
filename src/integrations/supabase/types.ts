@@ -3888,6 +3888,156 @@ export type Database = {
         }
         Relationships: []
       }
+      training_announcements: {
+        Row: {
+          audience: string
+          body: string | null
+          created_at: string
+          created_by: string
+          end_date: string | null
+          id: string
+          is_pinned: boolean
+          start_date: string
+          status: string
+          title: string
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          created_by: string
+          end_date?: string | null
+          id?: string
+          is_pinned?: boolean
+          start_date?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          created_by?: string
+          end_date?: string | null
+          id?: string
+          is_pinned?: boolean
+          start_date?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      training_badges: {
+        Row: {
+          badge_type: string
+          created_at: string
+          criteria_id: string | null
+          criteria_type: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          badge_type?: string
+          created_at?: string
+          criteria_id?: string | null
+          criteria_type?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          badge_type?: string
+          created_at?: string
+          criteria_id?: string | null
+          criteria_type?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      training_lessons: {
+        Row: {
+          checklist_items: Json | null
+          content_body: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_minutes: number | null
+          external_url: string | null
+          file_attachments: Json | null
+          id: string
+          is_required: boolean
+          lesson_type: string
+          module_id: string
+          quiz_id: string | null
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          checklist_items?: Json | null
+          content_body?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_minutes?: number | null
+          external_url?: string | null
+          file_attachments?: Json | null
+          id?: string
+          is_required?: boolean
+          lesson_type?: string
+          module_id: string
+          quiz_id?: string | null
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          checklist_items?: Json | null
+          content_body?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_minutes?: number | null
+          external_url?: string | null
+          file_attachments?: Json | null
+          id?: string
+          is_required?: boolean
+          lesson_type?: string
+          module_id?: string
+          quiz_id?: string | null
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_lessons_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "training_quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_modules: {
         Row: {
           category: string
@@ -3929,6 +4079,330 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      training_modules_v2: {
+        Row: {
+          badge_id: string | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_minutes: number | null
+          id: string
+          is_required: boolean
+          phase_id: string
+          sort_order: number
+          status: string
+          title: string
+          unlock_rule: string
+          updated_at: string
+        }
+        Insert: {
+          badge_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_required?: boolean
+          phase_id: string
+          sort_order?: number
+          status?: string
+          title: string
+          unlock_rule?: string
+          updated_at?: string
+        }
+        Update: {
+          badge_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_required?: boolean
+          phase_id?: string
+          sort_order?: number
+          status?: string
+          title?: string
+          unlock_rule?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_modules_v2_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "training_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_modules_v2_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "training_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_phases: {
+        Row: {
+          badge_id: string | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_minutes: number | null
+          id: string
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          badge_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          badge_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_phases_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "training_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quiz_attempts: {
+        Row: {
+          answers: Json | null
+          id: string
+          passed: boolean
+          quiz_id: string
+          score: number
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          id?: string
+          passed?: boolean
+          quiz_id: string
+          score?: number
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          id?: string
+          passed?: boolean
+          quiz_id?: string
+          score?: number
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "training_quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quiz_questions: {
+        Row: {
+          answer_options: Json
+          correct_answer: string
+          explanation: string | null
+          id: string
+          question_text: string
+          quiz_id: string
+          sort_order: number
+        }
+        Insert: {
+          answer_options?: Json
+          correct_answer: string
+          explanation?: string | null
+          id?: string
+          question_text: string
+          quiz_id: string
+          sort_order?: number
+        }
+        Update: {
+          answer_options?: Json
+          correct_answer?: string
+          explanation?: string | null
+          id?: string
+          question_text?: string
+          quiz_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "training_quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quizzes: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          passing_score: number
+          retry_limit: number
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          passing_score?: number
+          retry_limit?: number
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          passing_score?: number
+          retry_limit?: number
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      training_user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          issued_by: string | null
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          issued_by?: string | null
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          issued_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "training_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_user_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_viewed_at: string | null
+          lesson_id: string | null
+          module_id: string | null
+          notes: string | null
+          percent_complete: number
+          phase_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_viewed_at?: string | null
+          lesson_id?: string | null
+          module_id?: string | null
+          notes?: string | null
+          percent_complete?: number
+          phase_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_viewed_at?: string | null
+          lesson_id?: string | null
+          module_id?: string | null
+          notes?: string | null
+          percent_complete?: number
+          phase_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_user_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "training_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_user_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules_v2"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_user_progress_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "training_phases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trip_cabin_options: {
         Row: {

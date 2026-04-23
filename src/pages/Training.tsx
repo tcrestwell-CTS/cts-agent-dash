@@ -1,136 +1,74 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Search,
-  Play,
+  GraduationCap,
   Clock,
   Award,
   BookOpen,
-  ExternalLink,
-  CheckCircle2,
-  Plus,
-  Loader2,
-  Anchor,
+  ChevronRight,
+  Megaphone,
+  Library,
+  Settings,
+  Play,
 } from "lucide-react";
-import {
-  useTrainingModules,
-  useMyTrainingProgress,
-  useUpdateTrainingProgress,
-  useCreateTrainingModule,
-} from "@/hooks/useTrainingModules";
+import { useTrainingPhases } from "@/hooks/useTrainingPhases";
+import { useTrainingModulesV2 } from "@/hooks/useTrainingModulesV2";
+import { useMyTrainingProgressV2 } from "@/hooks/useTrainingProgress";
+import { useActiveAnnouncements } from "@/hooks/useTrainingAnnouncements";
+import { useMyBadges } from "@/hooks/useTrainingBadges";
 import { usePermissions } from "@/hooks/usePermissions";
-import { toast } from "sonner";
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  general: "📚",
-  destinations: "🌍",
-  cruises: "🚢",
-  specialty: "⭐",
-  compliance: "🛡️",
-  technology: "💻",
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 const Training = () => {
-  const { data: modules, isLoading: modulesLoading } = useTrainingModules();
-  const { data: myProgress, isLoading: progressLoading } = useMyTrainingProgress();
-  const updateProgress = useUpdateTrainingProgress();
-  const createModule = useCreateTrainingModule();
+  const { user } = useAuth();
+  const { data: phases, isLoading: phasesLoading } = useTrainingPhases();
+  const { data: modules } = useTrainingModulesV2();
+  const { data: progress, isLoading: progressLoading } = useMyTrainingProgressV2();
+  const { data: announcements } = useActiveAnnouncements();
+  const { data: badges } = useMyBadges();
   const { isAdmin } = usePermissions();
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "in_progress" | "completed" | "new">("all");
-  const [addOpen, setAddOpen] = useState(false);
-  const [newModule, setNewModule] = useState({
-    title: "",
-    description: "",
-    category: "general",
-    is_required: false,
-    estimated_minutes: 30,
-    resource_url: "",
+
+  const loading = phasesLoading || progressLoading;
+
+  const userName = user?.user_metadata?.full_name?.split(" ")[0] || "Agent";
+
+  // Calculate overall progress
+  const lessonProgress = (progress || []).filter(p => p.lesson_id);
+  const completedLessons = lessonProgress.filter(p => p.status === "completed").length;
+  const inProgressLessons = lessonProgress.filter(p => p.status === "in_progress").length;
+  const totalModules = modules?.length || 0;
+  const moduleProgress = (progress || []).filter(p => p.module_id && !p.lesson_id);
+  const completedModules = moduleProgress.filter(p => p.status === "completed").length;
+  const overallPct = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
+  // Find current phase (first non-completed)
+  const currentPhase = (phases || []).find(phase => {
+    const phaseModules = (modules || []).filter(m => m.phase_id === phase.id);
+    const allCompleted = phaseModules.length > 0 && phaseModules.every(m => {
+      const mp = moduleProgress.find(p => p.module_id === m.id);
+      return mp?.status === "completed";
+    });
+    return !allCompleted;
   });
 
-  const loading = modulesLoading || progressLoading;
-
-  const getModuleStatus = (moduleId: string) => {
-    const p = myProgress?.find((pr) => pr.module_id === moduleId);
-    return p?.status || "not_started";
+  // Find next recommended lesson
+  const getNextLesson = () => {
+    const inProgressItem = (progress || []).find(p => p.lesson_id && p.status === "in_progress");
+    return inProgressItem;
   };
-
-  const enrichedModules = (modules || [])
-    .map((m) => ({
-      ...m,
-      status: getModuleStatus(m.id),
-    }))
-    .filter((m) => {
-      if (search && !m.title.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filter === "in_progress") return m.status === "in_progress";
-      if (filter === "completed") return m.status === "completed";
-      if (filter === "new") return m.status === "not_started";
-      return true;
-    });
-
-  const stats = {
-    total: modules?.length || 0,
-    completed: myProgress?.filter((p) => p.status === "completed").length || 0,
-    inProgress: myProgress?.filter((p) => p.status === "in_progress").length || 0,
-    totalMinutes: (modules || []).reduce((sum, m) => sum + (m.estimated_minutes || 0), 0),
-  };
-
-  const handleStartOrContinue = async (moduleId: string, currentStatus: string) => {
-    if (currentStatus === "not_started") {
-      await updateProgress.mutateAsync({ moduleId, status: "in_progress" });
-      toast.success("Module started!");
-    }
-  };
-
-  const handleComplete = async (moduleId: string) => {
-    await updateProgress.mutateAsync({ moduleId, status: "completed" });
-    toast.success("Module completed! 🎉");
-  };
-
-  const handleAddModule = async () => {
-    if (!newModule.title) return;
-    try {
-      await createModule.mutateAsync(newModule);
-      toast.success("Training module added");
-      setAddOpen(false);
-      setNewModule({ title: "", description: "", category: "general", is_required: false, estimated_minutes: 30, resource_url: "" });
-    } catch {
-      toast.error("Failed to add module");
-    }
-  };
+  const nextLesson = getNextLesson();
 
   if (loading) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
-          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-64" />)}
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
           </div>
         </div>
       </DashboardLayout>
@@ -139,343 +77,216 @@ const Training = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Training Library</h1>
-          <p className="text-muted-foreground text-sm mt-1">Expand your expertise and earn certifications</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+            <GraduationCap className="h-8 w-8 text-accent" />
+            Crestwell Academy
+          </h1>
+          <p className="text-muted-foreground mt-1">Welcome back, {userName}! Continue your training journey.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-primary" />
-            <span className="font-semibold">{stats.completed} Completed</span>
-          </div>
+          <Link to="/training/library">
+            <Button variant="outline" className="gap-2">
+              <Library className="h-4 w-4" />
+              Training Library
+            </Button>
+          </Link>
           {isAdmin && (
-            <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Module
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Training Module</DialogTitle>
-                  <DialogDescription>Create a new training module for your team</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label>Title *</Label>
-                    <Input
-                      value={newModule.title}
-                      onChange={(e) => setNewModule((p) => ({ ...p, title: e.target.value }))}
-                      placeholder="e.g. Caribbean Specialist Certification"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Input
-                      value={newModule.description}
-                      onChange={(e) => setNewModule((p) => ({ ...p, description: e.target.value }))}
-                      placeholder="Brief description of the module"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Category</Label>
-                      <Select
-                        value={newModule.category}
-                        onValueChange={(v) => setNewModule((p) => ({ ...p, category: v }))}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="general">General</SelectItem>
-                          <SelectItem value="destinations">Destinations</SelectItem>
-                          <SelectItem value="cruises">Cruises</SelectItem>
-                          <SelectItem value="specialty">Specialty</SelectItem>
-                          <SelectItem value="compliance">Compliance</SelectItem>
-                          <SelectItem value="technology">Technology</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Duration (minutes)</Label>
-                      <Input
-                        type="number"
-                        value={newModule.estimated_minutes}
-                        onChange={(e) => setNewModule((p) => ({ ...p, estimated_minutes: parseInt(e.target.value) || 30 }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Resource URL</Label>
-                    <Input
-                      value={newModule.resource_url}
-                      onChange={(e) => setNewModule((p) => ({ ...p, resource_url: e.target.value }))}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={newModule.is_required}
-                      onCheckedChange={(v) => setNewModule((p) => ({ ...p, is_required: v }))}
-                    />
-                    <Label>Required for all agents</Label>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-                    <Button onClick={handleAddModule} disabled={createModule.isPending || !newModule.title}>
-                      {createModule.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Add Module
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Link to="/training/admin">
+              <Button variant="outline" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Admin
+              </Button>
+            </Link>
           )}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-            <BookOpen className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-card-foreground">{stats.total}</p>
-            <p className="text-sm text-muted-foreground">Courses Available</p>
-          </div>
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
-            <Award className="h-6 w-6 text-success" />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-card-foreground">{stats.completed}</p>
-            <p className="text-sm text-muted-foreground">Completed</p>
-          </div>
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Clock className="h-6 w-6 text-accent" />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-card-foreground">{stats.inProgress}</p>
-            <p className="text-sm text-muted-foreground">In Progress</p>
-          </div>
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow-card border border-border/50 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Clock className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-card-foreground">{Math.round(stats.totalMinutes / 60)}h</p>
-            <p className="text-sm text-muted-foreground">Total Learning</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Search & Filter */}
-      <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search courses..."
-              className="pl-10"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            {(["all", "in_progress", "completed", "new"] as const).map((f) => (
-              <Button
-                key={f}
-                variant={filter === f ? "outline" : "ghost"}
-                size="sm"
-                onClick={() => setFilter(f)}
-              >
-                {f === "all" ? "All" : f === "in_progress" ? "In Progress" : f === "completed" ? "Completed" : "New"}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* CLIA Training Modules */}
-      <div className="bg-card rounded-xl shadow-card border border-border/50 mb-6 overflow-hidden">
-        <div className="bg-gradient-ocean p-5 flex items-center gap-3">
-          <Anchor className="h-6 w-6 text-white" />
-          <div>
-            <h2 className="text-lg font-semibold text-white">CLIA Certification & Training</h2>
-            <p className="text-white/80 text-sm">Official Cruise Lines International Association courses</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
-          {[
-            {
-              title: "CLIA Course Catalogue",
-              desc: "Browse all available CLIA training courses and electives",
-              url: "https://clia.getlearnworlds.com/learningacademy-catalogue",
-              emoji: "📖",
-            },
-            {
-              title: "CLIA Certification Levels",
-              desc: "Certified, ACC, MCC, and ECC certification programs",
-              url: "https://clia.getlearnworlds.com/learningacademy-certs",
-              emoji: "🏆",
-            },
-            {
-              title: "Accredited Cruise Counsellor",
-              desc: "ACC designation — the first step in CLIA certification",
-              url: "https://clia.getlearnworlds.com/learningacademy-accredited",
-              emoji: "🎓",
-            },
-            {
-              title: "Cruise Line & Partner Training",
-              desc: "Brand-specific training from CLIA cruise line members",
-              url: "https://clia.getlearnworlds.com/cruiselinespartners",
-              emoji: "🚢",
-            },
-            {
-              title: "Certificate Programs",
-              desc: "Specialty certificates in river, luxury, family & more",
-              url: "https://cruising.org/en/travel-agent-center/professional-development-training/certificate-programs",
-              emoji: "📜",
-            },
-            {
-              title: "CLIA Cruise Toolbox",
-              desc: "Sales tools, marketing assets, and selling resources",
-              url: "https://clia.getlearnworlds.com/toolbox-home",
-              emoji: "🧰",
-            },
-          ].map((item) => (
-            <a
-              key={item.title}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-3 p-4 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors"
-            >
-              <span className="text-2xl mt-0.5">{item.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h4 className="font-medium text-sm text-card-foreground group-hover:text-primary transition-colors">{item.title}</h4>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.desc}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-
-      {/* Modules Grid */}
-      {enrichedModules.length === 0 ? (
-        <div className="bg-card rounded-xl p-12 shadow-card border border-border/50 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-card-foreground mb-1">
-            {modules?.length === 0 ? "No training modules yet" : "No matching modules"}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {modules?.length === 0
-              ? isAdmin
-                ? "Add your first training module to get started."
-                : "Your admin hasn't added any training modules yet."
-              : "Try adjusting your search or filters."}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {enrichedModules.map((module) => (
-            <div
-              key={module.id}
-              className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <div className="h-28 bg-gradient-ocean flex items-center justify-center">
-                <span className="text-4xl">
-                  {CATEGORY_EMOJI[module.category] || "📚"}
-                </span>
-              </div>
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-2">
-                  <Badge variant="secondary" className="text-xs capitalize">
-                    {module.category}
-                  </Badge>
-                  {module.is_required && (
-                    <Badge variant="destructive" className="text-xs">Required</Badge>
-                  )}
-                  {module.status === "completed" && (
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-success/10 text-success flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Done
-                    </span>
-                  )}
-                </div>
-                <h3 className="font-semibold text-card-foreground mb-2">{module.title}</h3>
-                {module.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {module.description}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {module.estimated_minutes}m
-                  </span>
-                </div>
-
-                {module.status === "in_progress" && (
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">In Progress</span>
-                    </div>
-                    <Progress value={50} className="h-2" />
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  {module.status === "completed" ? (
-                    <Button variant="outline" className="w-full gap-2" disabled>
-                      <Award className="h-4 w-4" />
-                      Completed
-                    </Button>
-                  ) : module.status === "in_progress" ? (
-                    <>
-                      {module.resource_url && (
-                        <Button variant="outline" className="flex-1 gap-2" asChild>
-                          <a href={module.resource_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                            Open
-                          </a>
-                        </Button>
-                      )}
-                      <Button
-                        className="flex-1 gap-2"
-                        onClick={() => handleComplete(module.id)}
-                        disabled={updateProgress.isPending}
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Mark Done
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      className="w-full gap-2"
-                      onClick={() => handleStartOrContinue(module.id, module.status)}
-                      disabled={updateProgress.isPending}
-                    >
-                      <Play className="h-4 w-4" />
-                      Start
-                    </Button>
-                  )}
-                </div>
+      {/* Announcements */}
+      {announcements && announcements.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {announcements.filter(a => a.is_pinned).slice(0, 2).map(ann => (
+            <div key={ann.id} className="bg-accent/10 border border-accent/20 rounded-xl p-4 flex items-start gap-3">
+              <Megaphone className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm text-foreground">{ann.title}</p>
+                {ann.body && <p className="text-sm text-muted-foreground mt-1">{ann.body}</p>}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Overall Progress</span>
+            <BookOpen className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-3xl font-bold text-foreground">{overallPct}%</p>
+          <Progress value={overallPct} className="h-2 mt-2" />
+        </div>
+        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Modules Completed</span>
+            <Award className="h-5 w-5 text-accent" />
+          </div>
+          <p className="text-3xl font-bold text-foreground">{completedModules}<span className="text-lg text-muted-foreground">/{totalModules}</span></p>
+        </div>
+        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Lessons Completed</span>
+            <BookOpen className="h-5 w-5 text-success" />
+          </div>
+          <p className="text-3xl font-bold text-foreground">{completedLessons}</p>
+          <p className="text-xs text-muted-foreground mt-1">{inProgressLessons} in progress</p>
+        </div>
+        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Badges Earned</span>
+            <Award className="h-5 w-5 text-accent" />
+          </div>
+          <p className="text-3xl font-bold text-foreground">{badges?.length || 0}</p>
+        </div>
+      </div>
+
+      {/* Current Phase & Next Step */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2 bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
+          <div className="bg-gradient-ocean p-6">
+            <h2 className="text-lg font-semibold text-primary-foreground">Current Phase</h2>
+            <p className="text-primary-foreground/80 text-2xl font-bold mt-1">
+              {currentPhase?.title || "All Phases Complete! 🎉"}
+            </p>
+            {currentPhase?.description && (
+              <p className="text-primary-foreground/60 text-sm mt-2 max-w-xl">{currentPhase.description}</p>
+            )}
+          </div>
+          <div className="p-5">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Modules in this Phase</h3>
+            <div className="space-y-2">
+              {(modules || [])
+                .filter(m => m.phase_id === currentPhase?.id)
+                .map(mod => {
+                  const mp = moduleProgress.find(p => p.module_id === mod.id);
+                  const status = mp?.status || "not_started";
+                  return (
+                    <Link
+                      key={mod.id}
+                      to={`/training/module/${mod.id}`}
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-sm ${
+                          status === "completed" ? "bg-success/10 text-success" :
+                          status === "in_progress" ? "bg-accent/10 text-accent" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {status === "completed" ? "✓" : mod.sort_order}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-card-foreground">{mod.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <Clock className="h-3 w-3" />
+                            <span>{mod.estimated_minutes} min</span>
+                            {mod.is_required && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Required</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </Link>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right sidebar */}
+        <div className="space-y-6">
+          {/* Resume */}
+          {nextLesson && (
+            <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Resume Learning</h3>
+              <Link
+                to={`/training/lesson/${nextLesson.lesson_id}`}
+                className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors"
+              >
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Play className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-card-foreground">Continue lesson</p>
+                  <p className="text-xs text-muted-foreground">Pick up where you left off</p>
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Earned Badges</h3>
+            {badges && badges.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {badges.map(b => (
+                  <div key={b.id} className="flex items-center gap-2 bg-accent/10 rounded-full px-3 py-1.5">
+                    <span className="text-lg">{(b.training_badges as { icon: string } | null)?.icon || "🏆"}</span>
+                    <span className="text-xs font-medium text-foreground">{(b.training_badges as { title: string } | null)?.title || "Badge"}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Complete modules and phases to earn badges!</p>
+            )}
+          </div>
+
+          {/* Quick Links */}
+          <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Links</h3>
+            <div className="space-y-2">
+              <Link to="/training/library" className="flex items-center gap-2 text-sm text-card-foreground hover:text-primary transition-colors">
+                <Library className="h-4 w-4" /> Full Training Library
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* All Phases Overview */}
+      <div className="bg-card rounded-xl shadow-card border border-border/50 p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">All Phases</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(phases || []).map(phase => {
+            const phaseModules = (modules || []).filter(m => m.phase_id === phase.id);
+            const completedInPhase = phaseModules.filter(m => {
+              const mp = moduleProgress.find(p => p.module_id === m.id);
+              return mp?.status === "completed";
+            }).length;
+            const phasePct = phaseModules.length > 0 ? Math.round((completedInPhase / phaseModules.length) * 100) : 0;
+            return (
+              <Link
+                key={phase.id}
+                to={`/training/phase/${phase.id}`}
+                className="flex items-center gap-4 p-4 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors group"
+              >
+                <div className="h-12 w-12 rounded-xl bg-gradient-ocean flex items-center justify-center text-primary-foreground font-bold text-lg shrink-0">
+                  {phase.sort_order}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-card-foreground group-hover:text-primary transition-colors">{phase.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Progress value={phasePct} className="h-1.5 flex-1" />
+                    <span className="text-xs text-muted-foreground shrink-0">{completedInPhase}/{phaseModules.length}</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </DashboardLayout>
   );
 };

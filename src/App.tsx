@@ -20,6 +20,11 @@ const ClientDetail        = lazy(() => import("./pages/ClientDetail"));
 const Bookings            = lazy(() => import("./pages/Bookings"));
 const BookingDetail       = lazy(() => import("./pages/BookingDetail"));
 const Training            = lazy(() => import("./pages/Training"));
+const TrainingLibrary     = lazy(() => import("./pages/TrainingLibrary"));
+const TrainingPhaseDetail = lazy(() => import("./pages/TrainingPhaseDetail"));
+const TrainingModuleDetail = lazy(() => import("./pages/TrainingModuleDetail"));
+const TrainingLessonDetail = lazy(() => import("./pages/TrainingLessonDetail"));
+const TrainingAdmin       = lazy(() => import("./pages/TrainingAdmin"));
 const Commissions         = lazy(() => import("./pages/Commissions"));
 const CommissionReport    = lazy(() => import("./pages/CommissionReport"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
@@ -113,6 +118,11 @@ const App = () => (
                 <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
                 <Route path="/bookings/:bookingId" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
+                <Route path="/training/library" element={<ProtectedRoute><TrainingLibrary /></ProtectedRoute>} />
+                <Route path="/training/phase/:phaseId" element={<ProtectedRoute><TrainingPhaseDetail /></ProtectedRoute>} />
+                <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
+                <Route path="/training/lesson/:lessonId" element={<ProtectedRoute><TrainingLessonDetail /></ProtectedRoute>} />
+                <Route path="/training/admin" element={<ProtectedRoute><TrainingAdmin /></ProtectedRoute>} />
                 <Route path="/commissions" element={<ProtectedRoute><Commissions /></ProtectedRoute>} />
                 <Route path="/commission-report" element={<ProtectedRoute><CommissionReport /></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
