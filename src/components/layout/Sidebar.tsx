@@ -32,6 +32,10 @@ import {
   Ship,
   Star,
   Activity,
+  BookOpen,
+  Award,
+  Library,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -100,8 +104,16 @@ const navGroups: NavGroup[] = [
       { name: "Hotel Search", href: "/hotels", icon: Hotel },
       { name: "Cruise Search", href: "/cruises", icon: Ship },
       { name: "Excursions", href: "/excursions", icon: Compass },
-      { name: "Training", href: "/training", icon: GraduationCap },
       { name: "Loan Applications", href: "/loan-applications", icon: CreditCard },
+    ],
+  },
+  {
+    label: "Training",
+    icon: GraduationCap,
+    items: [
+      { name: "Dashboard", href: "/training", icon: LayoutDashboard },
+      { name: "Library", href: "/training/library", icon: Library },
+      { name: "My Badges", href: "/training", icon: Award },
     ],
   },
   {
@@ -119,6 +131,7 @@ const bottomNav: NavItem[] = [
 
 const adminNavigation: NavItem[] = [
   { name: "Team Management", href: "/team", icon: UserPlus },
+  { name: "Training Admin", href: "/training/admin", icon: GraduationCap },
   { name: "Reconciliation", href: "/reconciliation", icon: FileSpreadsheet },
   { name: "AI Agents Health", href: "/kandi", icon: BarChart3 },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },

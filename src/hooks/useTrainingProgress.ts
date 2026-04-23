@@ -88,3 +88,162 @@ export function useUpsertProgress() {
     },
   });
 }
+
+/**
+ * After a lesson is marked complete, check if all required lessons in the module
+ * are done. If so, auto-complete the module. Then check if all required modules
+ * in the phase are done. If so, auto-complete the phase. Then auto-award badges.
+ */
+export function useAutoRollupProgress() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: { lesson_id: string; module_id: string; phase_id: string }) => {
+      if (!user) throw new Error("Not authenticated");
+      const now = new Date().toISOString();
+
+      // 1. Check module completion: are all required lessons in this module completed?
+      const { data: moduleLessons } = await supabase
+        .from("training_lessons")
+        .select("id, is_required")
+        .eq("module_id", params.module_id);
+
+      const requiredLessons = (moduleLessons || []).filter(l => l.is_required);
+      if (requiredLessons.length > 0) {
+        const { data: lessonProgress } = await supabase
+          .from("training_user_progress")
+          .select("lesson_id, status")
+          .eq("user_id", user.id)
+          .in("lesson_id", requiredLessons.map(l => l.id));
+
+        const completedIds = new Set((lessonProgress || []).filter(p => p.status === "completed").map(p => p.lesson_id));
+        const allRequiredDone = requiredLessons.every(l => completedIds.has(l.id));
+
+        if (allRequiredDone) {
+          // Auto-complete module
+          const { data: existingMod } = await supabase
+            .from("training_user_progress")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("module_id", params.module_id)
+            .is("lesson_id", null)
+            .maybeSingle();
+
+          const modBase = {
+            user_id: user.id,
+            module_id: params.module_id,
+            phase_id: params.phase_id,
+            status: "completed" as const,
+            percent_complete: 100,
+            completed_at: now,
+            last_viewed_at: now,
+          };
+
+          if (existingMod) {
+            await supabase.from("training_user_progress").update(modBase).eq("id", existingMod.id);
+          } else {
+            await supabase.from("training_user_progress").insert([modBase]);
+          }
+
+          // Auto-award module badge
+          const { data: moduleBadge } = await supabase
+            .from("training_badges")
+            .select("id")
+            .eq("criteria_type", "module")
+            .eq("criteria_id", params.module_id)
+            .maybeSingle();
+
+          if (moduleBadge) {
+            const { data: alreadyEarned } = await supabase
+              .from("training_user_badges")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("badge_id", moduleBadge.id)
+              .maybeSingle();
+
+            if (!alreadyEarned) {
+              await supabase.from("training_user_badges").insert([{
+                user_id: user.id,
+                badge_id: moduleBadge.id,
+              }]);
+            }
+          }
+
+          // 2. Check phase completion
+          const { data: phaseModules } = await supabase
+            .from("training_modules_v2")
+            .select("id, is_required")
+            .eq("phase_id", params.phase_id);
+
+          const requiredModules = (phaseModules || []).filter(m => m.is_required);
+          if (requiredModules.length > 0) {
+            const { data: modProgress } = await supabase
+              .from("training_user_progress")
+              .select("module_id, status")
+              .eq("user_id", user.id)
+              .is("lesson_id", null)
+              .in("module_id", requiredModules.map(m => m.id));
+
+            const completedModIds = new Set((modProgress || []).filter(p => p.status === "completed").map(p => p.module_id));
+            const allModsDone = requiredModules.every(m => completedModIds.has(m.id));
+
+            if (allModsDone) {
+              const { data: existingPhase } = await supabase
+                .from("training_user_progress")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("phase_id", params.phase_id)
+                .is("module_id", null)
+                .is("lesson_id", null)
+                .maybeSingle();
+
+              const phaseBase = {
+                user_id: user.id,
+                phase_id: params.phase_id,
+                status: "completed" as const,
+                percent_complete: 100,
+                completed_at: now,
+                last_viewed_at: now,
+              };
+
+              if (existingPhase) {
+                await supabase.from("training_user_progress").update(phaseBase).eq("id", existingPhase.id);
+              } else {
+                await supabase.from("training_user_progress").insert([phaseBase]);
+              }
+
+              // Auto-award phase badge
+              const { data: phaseBadge } = await supabase
+                .from("training_badges")
+                .select("id")
+                .eq("criteria_type", "phase")
+                .eq("criteria_id", params.phase_id)
+                .maybeSingle();
+
+              if (phaseBadge) {
+                const { data: alreadyEarned } = await supabase
+                  .from("training_user_badges")
+                  .select("id")
+                  .eq("user_id", user.id)
+                  .eq("badge_id", phaseBadge.id)
+                  .maybeSingle();
+
+                if (!alreadyEarned) {
+                  await supabase.from("training_user_badges").insert([{
+                    user_id: user.id,
+                    badge_id: phaseBadge.id,
+                  }]);
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["training-progress-v2"] });
+      qc.invalidateQueries({ queryKey: ["training-user-badges"] });
+    },
+  });
+}
