@@ -34,20 +34,28 @@ interface SearchBarProps {
   shipsLoading?: boolean;
 }
 
-const monthOptions = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
+const lengthOptions = [
+  { value: "any", label: "Any length" },
+  { value: "1-3", label: "1–3 nights" },
+  { value: "4-6", label: "4–6 nights" },
+  { value: "7-9", label: "7–9 nights" },
+  { value: "10-14", label: "10–14 nights" },
+  { value: "15+", label: "15+ nights" },
 ];
+
+function toIsoDate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function fromIsoDate(s: string): Date | undefined {
+  if (!s) return undefined;
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+}
 
 export function SearchBar({
   values,
