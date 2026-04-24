@@ -67,7 +67,6 @@ export function SearchBar({
   shipsLoading,
 }: SearchBarProps) {
   const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear, currentYear + 1, currentYear + 2];
 
   const set = <K extends keyof SearchBarValues>(key: K, val: SearchBarValues[K]) =>
     onChange({ ...values, [key]: val });
