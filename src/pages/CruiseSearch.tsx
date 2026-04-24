@@ -325,7 +325,7 @@ export default function CruiseSearch() {
 
         <SearchBar
           values={searchValues}
-          onChange={setSearchValues}
+          onChange={handleSearchValuesChange}
           onSearch={handleSearch}
           onReset={handleReset}
           loading={loading}
