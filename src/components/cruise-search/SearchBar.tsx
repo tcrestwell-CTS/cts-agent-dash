@@ -133,49 +133,70 @@ export function SearchBar({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">From Year</Label>
-          <Select value={values.fromYear} onValueChange={(v) => set("fromYear", v)}>
-            <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any</SelectItem>
-              {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="col-span-2 md:col-span-3">
+          <Label className="text-xs text-muted-foreground">Departure Window</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !values.dateFrom && !values.dateTo && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                {values.dateFrom ? (
+                  values.dateTo ? (
+                    <span className="truncate">
+                      {format(fromIsoDate(values.dateFrom)!, "MMM d, yyyy")} – {format(fromIsoDate(values.dateTo)!, "MMM d, yyyy")}
+                    </span>
+                  ) : (
+                    <span className="truncate">{format(fromIsoDate(values.dateFrom)!, "MMM d, yyyy")} – pick end</span>
+                  )
+                ) : (
+                  <span>Any dates</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={fromIsoDate(values.dateFrom) ?? new Date()}
+                selected={{
+                  from: fromIsoDate(values.dateFrom),
+                  to: fromIsoDate(values.dateTo),
+                } as DateRange}
+                onSelect={(range) => {
+                  onChange({
+                    ...values,
+                    dateFrom: range?.from ? toIsoDate(range.from) : "",
+                    dateTo: range?.to ? toIsoDate(range.to) : "",
+                  });
+                }}
+                disabled={(d) => d < new Date(currentYear, 0, 1) || d > new Date(currentYear + 2, 11, 31)}
+                className={cn("p-3 pointer-events-auto")}
+              />
+              <div className="flex justify-end gap-2 p-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onChange({ ...values, dateFrom: "", dateTo: "" })}
+                >
+                  Clear
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">From Month</Label>
-          <Select
-            value={values.fromMonth}
-            onValueChange={(v) => set("fromMonth", v)}
-            disabled={!values.fromYear || values.fromYear === "all"}
-          >
-            <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
+          <Label className="text-xs text-muted-foreground">Length</Label>
+          <Select value={values.lengthPreset || "any"} onValueChange={(v) => set("lengthPreset", v)}>
+            <SelectTrigger><SelectValue placeholder="Any length" /></SelectTrigger>
             <SelectContent>
-              {monthOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">To Year</Label>
-          <Select value={values.toYear} onValueChange={(v) => set("toYear", v)}>
-            <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any</SelectItem>
-              {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">To Month</Label>
-          <Select
-            value={values.toMonth}
-            onValueChange={(v) => set("toMonth", v)}
-            disabled={!values.toYear || values.toYear === "all"}
-          >
-            <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              {lengthOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
