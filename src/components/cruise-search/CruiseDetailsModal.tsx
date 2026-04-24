@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Ship, Calendar, MapPin, DollarSign, ChevronRight, Anchor, Clock, X } from "lucide-react";
+import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
@@ -288,47 +288,7 @@ export function CruiseDetailsModal({
                     No sailing dates available.
                   </p>
                 ) : (
-                  <div className="space-y-2">
-                    {dates.map((d) => {
-                      const prices = d.headline_prices?.cruise?.double;
-                      const lowest = prices
-                        ? Math.min(
-                            ...[prices.from_inside, prices.from_outside, prices.from_balcony, prices.from_suite]
-                              .map((p) => parseFloat(p || "0"))
-                              .filter((p) => p > 0),
-                          )
-                        : null;
-                      return (
-                        <button
-                          key={d.date_ref}
-                          onClick={() => loadItinerary(d)}
-                          className="w-full text-left p-3 border rounded-lg hover:bg-accent/50 transition-colors group"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm">
-                                {formatShortDate(d.date_from)} – {formatShortDate(d.date_to)}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
-                                {d.ship_title && <span>🚢 {d.ship_title}</span>}
-                                {d.starts_at && (
-                                  <span>{d.starts_at.name} → {d.ends_at?.name || ""}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {lowest && lowest < Infinity && (
-                                <span className="text-sm font-semibold text-primary">
-                                  {formatPrice(lowest)} pp
-                                </span>
-                              )}
-                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <SailingDateCalendar dates={dates} onSelect={loadItinerary} selectedRef={selectedDate?.date_ref} />
                 )}
               </TabsContent>
 
@@ -461,6 +421,108 @@ function RateRow({ label, value }: { label: string; value: number | null }) {
       <span className={`text-sm font-semibold ${value ? "text-primary" : "text-muted-foreground"}`}>
         {value ? formatPrice(value) : "—"}
       </span>
+    </div>
+  );
+}
+
+function SailingDateCalendar({
+  dates,
+  onSelect,
+  selectedRef,
+}: {
+  dates: WidgetyDate[];
+  onSelect: (d: WidgetyDate) => void;
+  selectedRef?: string;
+}) {
+  // Map "YYYY-MM-DD" → WidgetyDate (first sailing wins for that day)
+  const dateMap = new Map<string, WidgetyDate>();
+  for (const d of dates) {
+    if (!d.date_from) continue;
+    const key = d.date_from.slice(0, 10);
+    if (!dateMap.has(key)) dateMap.set(key, d);
+  }
+
+  // Group sailings by year-month so we render one mini-calendar per active month
+  const monthKeys = Array.from(
+    new Set(Array.from(dateMap.keys()).map((k) => k.slice(0, 7))),
+  ).sort();
+
+  if (monthKeys.length === 0) {
+    return (
+      <p className="text-center text-muted-foreground py-12">No sailing dates available.</p>
+    );
+  }
+
+  const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {monthKeys.map((mk) => {
+        const [yearStr, monthStr] = mk.split("-");
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10) - 1;
+        const first = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startWeekday = first.getDay();
+        const monthLabel = first.toLocaleDateString("en-US", { month: "long" });
+
+        const cells: (number | null)[] = [];
+        for (let i = 0; i < startWeekday; i++) cells.push(null);
+        for (let day = 1; day <= daysInMonth; day++) cells.push(day);
+        while (cells.length % 7 !== 0) cells.push(null);
+
+        return (
+          <div key={mk} className="border rounded-lg overflow-hidden bg-card">
+            <div className="bg-primary text-primary-foreground px-4 py-2.5 flex items-center justify-between">
+              <span className="text-sm font-semibold tracking-wide">{monthLabel}</span>
+              <span className="text-sm font-semibold">{year}</span>
+            </div>
+            <div className="grid grid-cols-7 gap-y-1 px-3 py-3">
+              {WEEKDAYS.map((w, i) => (
+                <div
+                  key={`wd-${i}`}
+                  className="text-[10px] uppercase font-medium text-muted-foreground text-center pb-1"
+                >
+                  {w}
+                </div>
+              ))}
+              {cells.map((day, i) => {
+                if (day === null) return <div key={`empty-${i}`} />;
+                const key = `${yearStr}-${monthStr}-${String(day).padStart(2, "0")}`;
+                const sailing = dateMap.get(key);
+                const isSelected = sailing && sailing.date_ref === selectedRef;
+                if (!sailing) {
+                  return (
+                    <div
+                      key={key}
+                      className="h-8 flex items-center justify-center text-xs text-muted-foreground/40"
+                    >
+                      {day}
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    key={key}
+                    onClick={() => onSelect(sailing)}
+                    title={`Depart ${formatShortDate(sailing.date_from)} • ${sailing.ship_title || ""}`}
+                    className={`h-8 flex items-center justify-center text-xs font-semibold rounded-md transition-colors ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
+                        : "bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <p className="md:col-span-2 text-xs text-muted-foreground text-center pt-1">
+        Click a highlighted date to load its itinerary and pricing.
+      </p>
     </div>
   );
 }
