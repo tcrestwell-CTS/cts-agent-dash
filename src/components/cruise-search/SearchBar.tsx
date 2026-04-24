@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RotateCcw, Loader2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, RotateCcw, Loader2, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 import {
   AVAILABLE_DESTINATIONS,
   AVAILABLE_OPERATORS,
@@ -13,10 +17,9 @@ export interface SearchBarValues {
   destination: string;
   cruiseLine: string;
   ship: string;
-  fromYear: string;
-  fromMonth: string;
-  toYear: string;
-  toMonth: string;
+  dateFrom: string; // YYYY-MM-DD
+  dateTo: string;   // YYYY-MM-DD
+  lengthPreset: string; // "any" | "1-3" | "4-6" | "7-9" | "10-14" | "15+"
   departurePort: string;
   travelers: string;
 }
@@ -31,20 +34,28 @@ interface SearchBarProps {
   shipsLoading?: boolean;
 }
 
-const monthOptions = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
+const lengthOptions = [
+  { value: "any", label: "Any length" },
+  { value: "1-3", label: "1–3 nights" },
+  { value: "4-6", label: "4–6 nights" },
+  { value: "7-9", label: "7–9 nights" },
+  { value: "10-14", label: "10–14 nights" },
+  { value: "15+", label: "15+ nights" },
 ];
+
+function toIsoDate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function fromIsoDate(s: string): Date | undefined {
+  if (!s) return undefined;
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+}
 
 export function SearchBar({
   values,
@@ -56,7 +67,6 @@ export function SearchBar({
   shipsLoading,
 }: SearchBarProps) {
   const currentYear = new Date().getFullYear();
-  const yearOptions = [currentYear, currentYear + 1, currentYear + 2];
 
   const set = <K extends keyof SearchBarValues>(key: K, val: SearchBarValues[K]) =>
     onChange({ ...values, [key]: val });
@@ -122,49 +132,70 @@ export function SearchBar({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">From Year</Label>
-          <Select value={values.fromYear} onValueChange={(v) => set("fromYear", v)}>
-            <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any</SelectItem>
-              {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="col-span-2 md:col-span-3">
+          <Label className="text-xs text-muted-foreground">Departure Window</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !values.dateFrom && !values.dateTo && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                {values.dateFrom ? (
+                  values.dateTo ? (
+                    <span className="truncate">
+                      {format(fromIsoDate(values.dateFrom)!, "MMM d, yyyy")} – {format(fromIsoDate(values.dateTo)!, "MMM d, yyyy")}
+                    </span>
+                  ) : (
+                    <span className="truncate">{format(fromIsoDate(values.dateFrom)!, "MMM d, yyyy")} – pick end</span>
+                  )
+                ) : (
+                  <span>Any dates</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={fromIsoDate(values.dateFrom) ?? new Date()}
+                selected={{
+                  from: fromIsoDate(values.dateFrom),
+                  to: fromIsoDate(values.dateTo),
+                } as DateRange}
+                onSelect={(range) => {
+                  onChange({
+                    ...values,
+                    dateFrom: range?.from ? toIsoDate(range.from) : "",
+                    dateTo: range?.to ? toIsoDate(range.to) : "",
+                  });
+                }}
+                disabled={(d) => d < new Date(currentYear, 0, 1) || d > new Date(currentYear + 2, 11, 31)}
+                className={cn("p-3 pointer-events-auto")}
+              />
+              <div className="flex justify-end gap-2 p-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onChange({ ...values, dateFrom: "", dateTo: "" })}
+                >
+                  Clear
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">From Month</Label>
-          <Select
-            value={values.fromMonth}
-            onValueChange={(v) => set("fromMonth", v)}
-            disabled={!values.fromYear || values.fromYear === "all"}
-          >
-            <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
+          <Label className="text-xs text-muted-foreground">Length</Label>
+          <Select value={values.lengthPreset || "any"} onValueChange={(v) => set("lengthPreset", v)}>
+            <SelectTrigger><SelectValue placeholder="Any length" /></SelectTrigger>
             <SelectContent>
-              {monthOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">To Year</Label>
-          <Select value={values.toYear} onValueChange={(v) => set("toYear", v)}>
-            <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any</SelectItem>
-              {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">To Month</Label>
-          <Select
-            value={values.toMonth}
-            onValueChange={(v) => set("toMonth", v)}
-            disabled={!values.toYear || values.toYear === "all"}
-          >
-            <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              {lengthOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

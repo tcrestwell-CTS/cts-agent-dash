@@ -30,10 +30,9 @@ const DEFAULT_SEARCH: SearchBarValues = {
   destination: "",
   cruiseLine: "",
   ship: "",
-  fromYear: "",
-  fromMonth: "",
-  toYear: "",
-  toMonth: "",
+  dateFrom: "",
+  dateTo: "",
+  lengthPreset: "any",
   departurePort: "",
   travelers: "2",
 };
@@ -56,19 +55,27 @@ export default function CruiseSearch() {
   const [detailsSailing, setDetailsSailing] = useState<WidgetySailing | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Date helpers
-  const dateFrom =
-    searchValues.fromYear && searchValues.fromYear !== "all" && searchValues.fromMonth
-      ? `${searchValues.fromYear}-${searchValues.fromMonth}-01`
-      : "";
-  const dateTo =
-    searchValues.toYear && searchValues.toYear !== "all" && searchValues.toMonth
-      ? `${searchValues.toYear}-${searchValues.toMonth}-${new Date(
-          Number(searchValues.toYear),
-          Number(searchValues.toMonth),
-          0,
-        ).getDate()}`
-      : "";
+  // Date helpers (now driven directly by date-range calendar)
+  const dateFrom = searchValues.dateFrom || "";
+  const dateTo = searchValues.dateTo || "";
+
+  // Map length preset → duration range for live filtering
+  const LENGTH_RANGES: Record<string, [number, number]> = {
+    any: [1, 30],
+    "1-3": [1, 3],
+    "4-6": [4, 6],
+    "7-9": [7, 9],
+    "10-14": [10, 14],
+    "15+": [15, 30],
+  };
+
+  const handleSearchValuesChange = (next: SearchBarValues) => {
+    if (next.lengthPreset !== searchValues.lengthPreset) {
+      const range = LENGTH_RANGES[next.lengthPreset] ?? [1, 30];
+      setFilters((f) => ({ ...f, durationRange: range }));
+    }
+    setSearchValues(next);
+  };
 
   // Cascade ships when cruise line changes
   useEffect(() => {
@@ -318,7 +325,7 @@ export default function CruiseSearch() {
 
         <SearchBar
           values={searchValues}
-          onChange={setSearchValues}
+          onChange={handleSearchValuesChange}
           onSearch={handleSearch}
           onReset={handleReset}
           loading={loading}
