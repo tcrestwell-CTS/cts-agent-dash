@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X } from "lucide-react";
+import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X, Info, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
@@ -326,10 +326,35 @@ export function CruiseDetailsModal({
               </TabsContent>
 
               <TabsContent value="pricing" className="mt-0">
-                {!selectedDate?.pricing?.length ? (
+                {!selectedDate ? (
                   <p className="text-center text-muted-foreground py-12">
-                    No detailed cabin pricing available.
+                    Select a sailing date to view cabin pricing.
                   </p>
+                ) : !selectedDate.pricing?.length ? (
+                  <div className="py-10 px-4 max-w-xl mx-auto text-center space-y-4">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <Info className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="font-medium">
+                        Live cabin pricing isn't published for {sailing.operator_title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Some cruise lines (including Celebrity, Royal Caribbean, and Princess)
+                        don't expose real-time cabin rates through our search feed. You can still
+                        add this sailing to a trip and quote the supplier directly for the most
+                        current rates and promotions.
+                      </p>
+                    </div>
+                    {sailing.url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={sailing.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                          View on {sailing.operator_title}
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <PricingTable
                     deals={selectedDate.pricing}
