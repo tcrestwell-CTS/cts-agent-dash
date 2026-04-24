@@ -30,10 +30,9 @@ const DEFAULT_SEARCH: SearchBarValues = {
   destination: "",
   cruiseLine: "",
   ship: "",
-  fromYear: "",
-  fromMonth: "",
-  toYear: "",
-  toMonth: "",
+  dateFrom: "",
+  dateTo: "",
+  lengthPreset: "any",
   departurePort: "",
   travelers: "2",
 };
@@ -56,19 +55,9 @@ export default function CruiseSearch() {
   const [detailsSailing, setDetailsSailing] = useState<WidgetySailing | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Date helpers
-  const dateFrom =
-    searchValues.fromYear && searchValues.fromYear !== "all" && searchValues.fromMonth
-      ? `${searchValues.fromYear}-${searchValues.fromMonth}-01`
-      : "";
-  const dateTo =
-    searchValues.toYear && searchValues.toYear !== "all" && searchValues.toMonth
-      ? `${searchValues.toYear}-${searchValues.toMonth}-${new Date(
-          Number(searchValues.toYear),
-          Number(searchValues.toMonth),
-          0,
-        ).getDate()}`
-      : "";
+  // Date helpers (now driven directly by date-range calendar)
+  const dateFrom = searchValues.dateFrom || "";
+  const dateTo = searchValues.dateTo || "";
 
   // Cascade ships when cruise line changes
   useEffect(() => {
