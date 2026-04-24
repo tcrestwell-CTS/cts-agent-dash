@@ -289,47 +289,7 @@ export function CruiseDetailsModal({
                     No sailing dates available.
                   </p>
                 ) : (
-                  <div className="space-y-2">
-                    {dates.map((d) => {
-                      const prices = d.headline_prices?.cruise?.double;
-                      const lowest = prices
-                        ? Math.min(
-                            ...[prices.from_inside, prices.from_outside, prices.from_balcony, prices.from_suite]
-                              .map((p) => parseFloat(p || "0"))
-                              .filter((p) => p > 0),
-                          )
-                        : null;
-                      return (
-                        <button
-                          key={d.date_ref}
-                          onClick={() => loadItinerary(d)}
-                          className="w-full text-left p-3 border rounded-lg hover:bg-accent/50 transition-colors group"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm">
-                                {formatShortDate(d.date_from)} – {formatShortDate(d.date_to)}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
-                                {d.ship_title && <span>🚢 {d.ship_title}</span>}
-                                {d.starts_at && (
-                                  <span>{d.starts_at.name} → {d.ends_at?.name || ""}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {lowest && lowest < Infinity && (
-                                <span className="text-sm font-semibold text-primary">
-                                  {formatPrice(lowest)} pp
-                                </span>
-                              )}
-                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <SailingDateCalendar dates={dates} onSelect={loadItinerary} selectedRef={selectedDate?.date_ref} />
                 )}
               </TabsContent>
 
