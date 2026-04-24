@@ -16,6 +16,7 @@ import type {
   WidgetyPricingDeal,
 } from "./types";
 import { formatShortDate, formatPrice, getPortPreview } from "./utils";
+import { parseLocalDate } from "@/lib/utils";
 
 interface CruiseDetailsModalProps {
   sailing: WidgetySailing | null;
