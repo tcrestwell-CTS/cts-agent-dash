@@ -59,6 +59,24 @@ export default function CruiseSearch() {
   const dateFrom = searchValues.dateFrom || "";
   const dateTo = searchValues.dateTo || "";
 
+  // Map length preset → duration range for live filtering
+  const LENGTH_RANGES: Record<string, [number, number]> = {
+    any: [1, 30],
+    "1-3": [1, 3],
+    "4-6": [4, 6],
+    "7-9": [7, 9],
+    "10-14": [10, 14],
+    "15+": [15, 30],
+  };
+
+  const handleSearchValuesChange = (next: SearchBarValues) => {
+    if (next.lengthPreset !== searchValues.lengthPreset) {
+      const range = LENGTH_RANGES[next.lengthPreset] ?? [1, 30];
+      setFilters((f) => ({ ...f, durationRange: range }));
+    }
+    setSearchValues(next);
+  };
+
   // Cascade ships when cruise line changes
   useEffect(() => {
     if (!searchValues.cruiseLine || searchValues.cruiseLine === "all") {
