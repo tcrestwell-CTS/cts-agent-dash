@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X, Info, ExternalLink } from "lucide-react";
+import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
@@ -346,14 +346,11 @@ export function CruiseDetailsModal({
                         current rates and promotions.
                       </p>
                     </div>
-                    {sailing.url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={sailing.url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                          View on {sailing.operator_title}
-                        </a>
-                      </Button>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Tip: Use the <span className="font-medium">Add to Trip</span> button below
+                      to save this sailing, then enter the supplier-quoted cabin rate in the
+                      booking.
+                    </p>
                   </div>
                 ) : (
                   <PricingTable
