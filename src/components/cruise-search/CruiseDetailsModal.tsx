@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Ship, Calendar, MapPin, DollarSign, ChevronRight, Anchor, Clock, X } from "lucide-react";
+import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
@@ -16,7 +16,6 @@ import type {
   WidgetyPricingDeal,
 } from "./types";
 import { formatShortDate, formatPrice, getPortPreview } from "./utils";
-import { parseLocalDate } from "@/lib/utils";
 
 interface CruiseDetailsModalProps {
   sailing: WidgetySailing | null;
@@ -474,7 +473,7 @@ function SailingDateCalendar({
 
         return (
           <div key={mk} className="border rounded-lg overflow-hidden bg-card">
-            <div className="bg-sky-500 text-white px-4 py-2.5 flex items-center justify-between">
+            <div className="bg-primary text-primary-foreground px-4 py-2.5 flex items-center justify-between">
               <span className="text-sm font-semibold tracking-wide">{monthLabel}</span>
               <span className="text-sm font-semibold">{year}</span>
             </div>
@@ -509,8 +508,8 @@ function SailingDateCalendar({
                     title={`Depart ${formatShortDate(sailing.date_from)} • ${sailing.ship_title || ""}`}
                     className={`h-8 flex items-center justify-center text-xs font-semibold rounded-md transition-colors ${
                       isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-sky-500/10 text-sky-700 hover:bg-sky-500 hover:text-white"
+                        ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
+                        : "bg-accent text-accent-foreground hover:bg-primary hover:text-primary-foreground"
                     }`}
                   >
                     {day}
