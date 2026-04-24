@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RotateCcw, Loader2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, RotateCcw, Loader2, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 import {
   AVAILABLE_DESTINATIONS,
   AVAILABLE_OPERATORS,
@@ -13,10 +17,9 @@ export interface SearchBarValues {
   destination: string;
   cruiseLine: string;
   ship: string;
-  fromYear: string;
-  fromMonth: string;
-  toYear: string;
-  toMonth: string;
+  dateFrom: string; // YYYY-MM-DD
+  dateTo: string;   // YYYY-MM-DD
+  lengthPreset: string; // "any" | "1-3" | "4-6" | "7-9" | "10-14" | "15+"
   departurePort: string;
   travelers: string;
 }
