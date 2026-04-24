@@ -426,6 +426,108 @@ function RateRow({ label, value }: { label: string; value: number | null }) {
   );
 }
 
+function SailingDateCalendar({
+  dates,
+  onSelect,
+  selectedRef,
+}: {
+  dates: WidgetyDate[];
+  onSelect: (d: WidgetyDate) => void;
+  selectedRef?: string;
+}) {
+  // Map "YYYY-MM-DD" → WidgetyDate (first sailing wins for that day)
+  const dateMap = new Map<string, WidgetyDate>();
+  for (const d of dates) {
+    if (!d.date_from) continue;
+    const key = d.date_from.slice(0, 10);
+    if (!dateMap.has(key)) dateMap.set(key, d);
+  }
+
+  // Group sailings by year-month so we render one mini-calendar per active month
+  const monthKeys = Array.from(
+    new Set(Array.from(dateMap.keys()).map((k) => k.slice(0, 7))),
+  ).sort();
+
+  if (monthKeys.length === 0) {
+    return (
+      <p className="text-center text-muted-foreground py-12">No sailing dates available.</p>
+    );
+  }
+
+  const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {monthKeys.map((mk) => {
+        const [yearStr, monthStr] = mk.split("-");
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10) - 1;
+        const first = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startWeekday = first.getDay();
+        const monthLabel = first.toLocaleDateString("en-US", { month: "long" });
+
+        const cells: (number | null)[] = [];
+        for (let i = 0; i < startWeekday; i++) cells.push(null);
+        for (let day = 1; day <= daysInMonth; day++) cells.push(day);
+        while (cells.length % 7 !== 0) cells.push(null);
+
+        return (
+          <div key={mk} className="border rounded-lg overflow-hidden bg-card">
+            <div className="bg-sky-500 text-white px-4 py-2.5 flex items-center justify-between">
+              <span className="text-sm font-semibold tracking-wide">{monthLabel}</span>
+              <span className="text-sm font-semibold">{year}</span>
+            </div>
+            <div className="grid grid-cols-7 gap-y-1 px-3 py-3">
+              {WEEKDAYS.map((w, i) => (
+                <div
+                  key={`wd-${i}`}
+                  className="text-[10px] uppercase font-medium text-muted-foreground text-center pb-1"
+                >
+                  {w}
+                </div>
+              ))}
+              {cells.map((day, i) => {
+                if (day === null) return <div key={`empty-${i}`} />;
+                const key = `${yearStr}-${monthStr}-${String(day).padStart(2, "0")}`;
+                const sailing = dateMap.get(key);
+                const isSelected = sailing && sailing.date_ref === selectedRef;
+                if (!sailing) {
+                  return (
+                    <div
+                      key={key}
+                      className="h-8 flex items-center justify-center text-xs text-muted-foreground/40"
+                    >
+                      {day}
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    key={key}
+                    onClick={() => onSelect(sailing)}
+                    title={`Depart ${formatShortDate(sailing.date_from)} • ${sailing.ship_title || ""}`}
+                    className={`h-8 flex items-center justify-center text-xs font-semibold rounded-md transition-colors ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-sky-500/10 text-sky-700 hover:bg-sky-500 hover:text-white"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      <p className="md:col-span-2 text-xs text-muted-foreground text-center pt-1">
+        Click a highlighted date to load its itinerary and pricing.
+      </p>
+    </div>
+  );
+}
+
 function PricingTable({
   deals,
   selectedCabin,
