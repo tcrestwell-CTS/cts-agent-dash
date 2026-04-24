@@ -162,7 +162,33 @@ export function FilterSidebar({
           <AccordionItem value="duration">
             <AccordionTrigger className="text-sm py-2">Duration (nights)</AccordionTrigger>
             <AccordionContent>
-              <div className="px-1 pt-2">
+              <div className="px-1 pt-2 space-y-3">
+                <div className="grid grid-cols-2 gap-1.5">
+                  {([
+                    { label: "Any length", range: [1, 30] as [number, number] },
+                    { label: "1–3 nights", range: [1, 3] as [number, number] },
+                    { label: "4–6 nights", range: [4, 6] as [number, number] },
+                    { label: "7–9 nights", range: [7, 9] as [number, number] },
+                    { label: "10–14 nights", range: [10, 14] as [number, number] },
+                    { label: "15+ nights", range: [15, 30] as [number, number] },
+                  ]).map((preset) => {
+                    const isActive =
+                      filters.durationRange[0] === preset.range[0] &&
+                      filters.durationRange[1] === preset.range[1];
+                    return (
+                      <Button
+                        key={preset.label}
+                        type="button"
+                        size="sm"
+                        variant={isActive ? "default" : "outline"}
+                        className="h-7 text-xs px-2"
+                        onClick={() => onChange({ ...filters, durationRange: preset.range })}
+                      >
+                        {preset.label}
+                      </Button>
+                    );
+                  })}
+                </div>
                 <Slider
                   value={filters.durationRange}
                   min={1}
