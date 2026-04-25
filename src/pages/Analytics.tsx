@@ -7,6 +7,7 @@ import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
 import { AgencySalesTab } from "@/components/analytics/AgencySalesTab";
 import { AgentIntelligenceTab } from "@/components/analytics/AgentIntelligenceTab";
@@ -135,6 +136,46 @@ const Analytics = () => {
     from: subMonths(new Date(), 12),
     to: addMonths(new Date(), 24),
   });
+
+  // Tern → QBO invoice generation state
+  const [generatingInvoices, setGeneratingInvoices] = useState(false);
+
+  const handleGenerateTernInvoices = async () => {
+    setGeneratingInvoices(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-tern-invoices",
+        { body: {} }
+      );
+      if (error) throw error;
+      const created = data?.invoicesCreated ?? 0;
+      const synced = data?.invoicesSynced ?? 0;
+      const failed = data?.invoicesSyncFailed ?? 0;
+      const candidates = data?.candidateTrips ?? 0;
+
+      if (created === 0 && candidates === 0) {
+        toast.info("No eligible Tern bookings found to invoice.");
+      } else if (created === 0) {
+        toast.info(
+          `All ${candidates} eligible Tern trip(s) already have invoices.`
+        );
+      } else {
+        toast.success(
+          `Created ${created} invoice(s) · ${synced} synced to QuickBooks${
+            failed > 0 ? ` · ${failed} sync failure(s)` : ""
+          }`
+        );
+      }
+      if (data?.errors?.length) {
+        console.warn("[generate-tern-invoices] errors:", data.errors);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to generate invoices: ${msg}`);
+    } finally {
+      setGeneratingInvoices(false);
+    }
+  };
 
   const loading = bookingsLoading || clientsLoading || commissionsLoading;
 
