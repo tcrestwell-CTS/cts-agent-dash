@@ -52,6 +52,8 @@ import {
   Download,
   Brain,
   Database,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
