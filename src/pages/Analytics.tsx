@@ -7,6 +7,7 @@ import { useClients } from "@/hooks/useClients";
 import { useCommissions } from "@/hooks/useCommissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 import { AgentPerformanceSection } from "@/components/analytics/AgentPerformanceSection";
 import { AgencySalesTab } from "@/components/analytics/AgencySalesTab";
 import { AgentIntelligenceTab } from "@/components/analytics/AgentIntelligenceTab";
@@ -52,6 +53,8 @@ import {
   Download,
   Brain,
   Database,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -133,6 +136,46 @@ const Analytics = () => {
     from: subMonths(new Date(), 12),
     to: addMonths(new Date(), 24),
   });
+
+  // Tern → QBO invoice generation state
+  const [generatingInvoices, setGeneratingInvoices] = useState(false);
+
+  const handleGenerateTernInvoices = async () => {
+    setGeneratingInvoices(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-tern-invoices",
+        { body: {} }
+      );
+      if (error) throw error;
+      const created = data?.invoicesCreated ?? 0;
+      const synced = data?.invoicesSynced ?? 0;
+      const failed = data?.invoicesSyncFailed ?? 0;
+      const candidates = data?.candidateTrips ?? 0;
+
+      if (created === 0 && candidates === 0) {
+        toast.info("No eligible Tern bookings found to invoice.");
+      } else if (created === 0) {
+        toast.info(
+          `All ${candidates} eligible Tern trip(s) already have invoices.`
+        );
+      } else {
+        toast.success(
+          `Created ${created} invoice(s) · ${synced} synced to QuickBooks${
+            failed > 0 ? ` · ${failed} sync failure(s)` : ""
+          }`
+        );
+      }
+      if (data?.errors?.length) {
+        console.warn("[generate-tern-invoices] errors:", data.errors);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to generate invoices: ${msg}`);
+    } finally {
+      setGeneratingInvoices(false);
+    }
+  };
 
   const loading = bookingsLoading || clientsLoading || commissionsLoading;
 
@@ -650,13 +693,33 @@ const Analytics = () => {
         {/* Data Sources Breakdown — Tern import vs native CRM records */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Data Sources
-            </CardTitle>
-            <CardDescription>
-              Breakdown of records in this period by origin (Tern.travel import vs native CRM entries)
-            </CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Data Sources
+                </CardTitle>
+                <CardDescription>
+                  Breakdown of records in this period by origin (Tern.travel import vs native CRM entries)
+                </CardDescription>
+              </div>
+              {(isAdmin || isOfficeAdmin) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateTernInvoices}
+                  disabled={generatingInvoices}
+                  className="shrink-0"
+                >
+                  {generatingInvoices ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  {generatingInvoices ? "Generating…" : "Invoice Tern bookings → QBO"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

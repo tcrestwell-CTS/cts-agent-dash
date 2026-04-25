@@ -1,5 +1,3 @@
--- Retag records imported via the Tern importer that were inadvertently saved with source='native'.
--- Matches the burst window from the actual import on 2026-04-25 ~12:48 UTC.
 update public.clients
    set source = 'tern_import'
  where source = 'native'
