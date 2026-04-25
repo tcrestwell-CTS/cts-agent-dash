@@ -385,6 +385,7 @@ async function commit(
       last_name: c.last,
       status: "active",
       notes: "Imported from Tern.travel",
+      source: "tern_import",
     }));
     const { data, error } = await supabase.from("clients").insert(rows).select("id, name, first_name, last_name");
     if (error) result.errors.push(`Clients: ${error.message}`);
@@ -437,6 +438,7 @@ async function commit(
         trip_page_url: t.trip_page_url,
         currency: t.currency || "USD",
         notes: `Imported from Tern.travel${t.tern_trip_id ? ` (Tern ID: ${t.tern_trip_id})` : ""}${t.advisor ? ` · Advisor: ${t.advisor}` : ""}`,
+        source: "tern_import",
       },
     });
   }
@@ -513,6 +515,7 @@ async function commit(
       calculated_commission: commissionRevenue,
       supplier_payout: supplierPayout,
       pricing_mode: "commission",
+      source: "tern_import",
     };
 
     const { error } = await supabase.from("bookings").insert(insertRow);
