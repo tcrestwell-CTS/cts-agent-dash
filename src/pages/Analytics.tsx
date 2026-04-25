@@ -693,13 +693,33 @@ const Analytics = () => {
         {/* Data Sources Breakdown — Tern import vs native CRM records */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Data Sources
-            </CardTitle>
-            <CardDescription>
-              Breakdown of records in this period by origin (Tern.travel import vs native CRM entries)
-            </CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Data Sources
+                </CardTitle>
+                <CardDescription>
+                  Breakdown of records in this period by origin (Tern.travel import vs native CRM entries)
+                </CardDescription>
+              </div>
+              {(isAdmin || isOfficeAdmin) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateTernInvoices}
+                  disabled={generatingInvoices}
+                  className="shrink-0"
+                >
+                  {generatingInvoices ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  {generatingInvoices ? "Generating…" : "Invoice Tern bookings → QBO"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
