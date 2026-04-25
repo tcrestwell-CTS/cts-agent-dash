@@ -34,6 +34,7 @@ import {
   format,
   parseISO,
   subMonths,
+  addMonths,
   isWithinInterval,
   eachMonthOfInterval,
 } from "date-fns";
@@ -50,6 +51,7 @@ import {
   Trophy,
   Download,
   Brain,
+  Database,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -125,10 +127,11 @@ const Analytics = () => {
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
   const canViewIntelligence = isAdmin || isOfficeAdmin;
 
-  // Default to last 12 months
+  // Default range: last 12 months → 24 months ahead, so future-dated trips
+  // (e.g. Tern-imported cruises through 2027) appear by default.
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subMonths(new Date(), 12),
-    to: new Date(),
+    to: addMonths(new Date(), 24),
   });
 
   const loading = bookingsLoading || clientsLoading || commissionsLoading;
@@ -315,6 +318,23 @@ const Analytics = () => {
       totalCommissionRevenue,
     };
   }, [filteredBookings, filteredClients, commissions, bookings?.length, clients?.length]);
+
+  // Tern vs native data source breakdown (period-scoped)
+  const sourceBreakdown = useMemo(() => {
+    const tally = (arr: Array<{ source?: string | null }>) => {
+      let tern = 0;
+      let native = 0;
+      for (const r of arr) {
+        if (r.source === "tern_import") tern++;
+        else native++;
+      }
+      return { tern, native, total: tern + native };
+    };
+    return {
+      bookings: tally(filteredBookings as Array<{ source?: string | null }>),
+      clients: tally(filteredClients as Array<{ source?: string | null }>),
+    };
+  }, [filteredBookings, filteredClients]);
 
   // Export functions
   const handleExportBookings = () => {
