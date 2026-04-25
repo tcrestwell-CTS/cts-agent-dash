@@ -647,6 +647,64 @@ const Analytics = () => {
           </Card>
         </div>
 
+        {/* Data Sources Breakdown — Tern import vs native CRM records */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Data Sources
+            </CardTitle>
+            <CardDescription>
+              Breakdown of records in this period by origin (Tern.travel import vs native CRM entries)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {([
+                { label: "Bookings", data: sourceBreakdown.bookings },
+                { label: "Clients", data: sourceBreakdown.clients },
+              ]).map(({ label, data }) => {
+                const ternPct = data.total > 0 ? Math.round((data.tern / data.total) * 100) : 0;
+                const nativePct = data.total > 0 ? 100 - ternPct : 0;
+                return (
+                  <div key={label} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="text-sm text-muted-foreground">{data.total} total</p>
+                    </div>
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-muted flex">
+                      <div
+                        className="bg-primary transition-all"
+                        style={{ width: `${ternPct}%` }}
+                        title={`Tern import: ${data.tern}`}
+                      />
+                      <div
+                        className="bg-success transition-all"
+                        style={{ width: `${nativePct}%` }}
+                        title={`Native: ${data.native}`}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-primary" />
+                        <span className="text-muted-foreground">
+                          Tern import: <span className="font-medium text-foreground">{data.tern}</span> ({ternPct}%)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-success" />
+                        <span className="text-muted-foreground">
+                          Native: <span className="font-medium text-foreground">{data.native}</span> ({nativePct}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Trend */}
