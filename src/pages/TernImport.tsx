@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
+import { Loader2, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowRight, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ interface CommitResult {
 
 export default function TernImport() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tripsCsv, setTripsCsv] = useState<string>("");
   const [bookingsCsv, setBookingsCsv] = useState<string>("");
   const [tripsFile, setTripsFile] = useState<string | null>(null);
@@ -44,6 +46,29 @@ export default function TernImport() {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewPlan | null>(null);
   const [committed, setCommitted] = useState<CommitResult | null>(null);
+  const [redirectIn, setRedirectIn] = useState<number | null>(null);
+
+  // Auto-redirect to /analytics ~5s after a successful commit so the user
+  // can immediately verify the updated KPIs. Only fires when there are no errors.
+  useEffect(() => {
+    if (!committed) return;
+    if (committed.result.errors.length > 0) return;
+    setRedirectIn(5);
+    const interval = setInterval(() => {
+      setRedirectIn((s) => {
+        if (s === null) return s;
+        if (s <= 1) {
+          clearInterval(interval);
+          navigate("/analytics");
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [committed, navigate]);
+
+  const cancelRedirect = () => setRedirectIn(null);
 
   const readFile = (f: File): Promise<string> =>
     new Promise((res, rej) => {
@@ -113,6 +138,7 @@ export default function TernImport() {
     setBookingsFile(null);
     setPreview(null);
     setCommitted(null);
+    setRedirectIn(null);
   };
 
   return (
@@ -275,8 +301,25 @@ export default function TernImport() {
               </Alert>
             )}
 
-            <div className="flex justify-end">
+            {redirectIn !== null && redirectIn > 0 && (
+              <Alert>
+                <BarChart3 className="h-4 w-4" />
+                <AlertTitle>Redirecting to Analytics in {redirectIn}s…</AlertTitle>
+                <AlertDescription>
+                  Verify the updated KPIs and Tern data source breakdown.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={reset}>Import another file</Button>
+              {redirectIn !== null && redirectIn > 0 && (
+                <Button variant="ghost" onClick={cancelRedirect}>Stay here</Button>
+              )}
+              <Button onClick={() => navigate("/analytics")}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Go to Analytics
+              </Button>
             </div>
           </CardContent>
         </Card>
