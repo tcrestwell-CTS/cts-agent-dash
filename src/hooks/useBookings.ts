@@ -41,7 +41,8 @@ const BOOKING_FIELDS = `
   supplier_paid_date,
   supplier_paid_method,
   supplier_paid_reference,
-  supplier_paid_amount
+  supplier_paid_amount,
+  source
 `;
 
 const BOOKING_SELECT_LIST = `

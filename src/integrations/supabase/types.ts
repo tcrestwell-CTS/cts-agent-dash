@@ -803,6 +803,7 @@ export type Database = {
           override_notes: string | null
           override_pending_approval: boolean | null
           pricing_mode: string
+          source: string
           status: string
           supplier_confirmation_number: string | null
           supplier_id: string | null
@@ -842,6 +843,7 @@ export type Database = {
           override_notes?: string | null
           override_pending_approval?: boolean | null
           pricing_mode?: string
+          source?: string
           status?: string
           supplier_confirmation_number?: string | null
           supplier_id?: string | null
@@ -881,6 +883,7 @@ export type Database = {
           override_notes?: string | null
           override_pending_approval?: boolean | null
           pricing_mode?: string
+          source?: string
           status?: string
           supplier_confirmation_number?: string | null
           supplier_id?: string | null
@@ -1573,6 +1576,7 @@ export type Database = {
           redress_number: string | null
           secondary_email: string | null
           secondary_phone: string | null
+          source: string
           status: string
           tags: string | null
           title: string | null
@@ -1614,6 +1618,7 @@ export type Database = {
           redress_number?: string | null
           secondary_email?: string | null
           secondary_phone?: string | null
+          source?: string
           status?: string
           tags?: string | null
           title?: string | null
@@ -1655,6 +1660,7 @@ export type Database = {
           redress_number?: string | null
           secondary_email?: string | null
           secondary_phone?: string | null
+          source?: string
           status?: string
           tags?: string | null
           title?: string | null
@@ -4989,6 +4995,7 @@ export type Database = {
           return_date: string | null
           selected_cabin_option_id: string | null
           share_token: string
+          source: string
           status: string
           tags: string[] | null
           title: string | null
@@ -5053,6 +5060,7 @@ export type Database = {
           return_date?: string | null
           selected_cabin_option_id?: string | null
           share_token?: string
+          source?: string
           status?: string
           tags?: string[] | null
           title?: string | null
@@ -5117,6 +5125,7 @@ export type Database = {
           return_date?: string | null
           selected_cabin_option_id?: string | null
           share_token?: string
+          source?: string
           status?: string
           tags?: string[] | null
           title?: string | null
