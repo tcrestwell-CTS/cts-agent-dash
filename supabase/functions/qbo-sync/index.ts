@@ -956,7 +956,6 @@ serve(async (req) => {
         p.payment_type === "deposit"
       );
 
-      if (depErr) throw new Error(`Failed to fetch deposits: ${depErr.message}`);
       if (!deposits || deposits.length === 0) {
         return new Response(
           JSON.stringify({ success: true, synced: 0, skipped: 0, message: "No completed Stripe deposits found" }),
