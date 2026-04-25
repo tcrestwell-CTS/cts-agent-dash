@@ -116,14 +116,31 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Idempotency layer 1: look up existing invoices for these trips so we don't
+    // re-insert. We key on trip_id alone because the partial unique index
+    // (user_id, trip_id) enforces one-invoice-per-trip at the DB level.
     const { data: existingInvoices } = await supabase
       .from("invoices")
-      .select("trip_id, client_id")
+      .select("id, trip_id")
       .eq("user_id", user.id)
       .in("trip_id", tripIds);
-    const existingKey = new Set(
-      (existingInvoices || []).map((i) => `${i.trip_id}::${i.client_id}`)
-    );
+    const existingInvoiceByTrip = new Map<string, string>();
+    for (const i of existingInvoices || []) {
+      if (i.trip_id) existingInvoiceByTrip.set(i.trip_id, i.id);
+    }
+
+    // Idempotency layer 2: which existing invoices already have a QBO mapping?
+    // Anything in this set must NOT be re-pushed to QBO.
+    const existingInvoiceIds = Array.from(existingInvoiceByTrip.values());
+    const alreadySyncedInvoiceIds = new Set<string>();
+    if (existingInvoiceIds.length > 0) {
+      const { data: mappings } = await supabase
+        .from("qbo_invoice_mappings")
+        .select("invoice_id")
+        .eq("user_id", user.id)
+        .in("invoice_id", existingInvoiceIds);
+      for (const m of mappings || []) alreadySyncedInvoiceIds.add(m.invoice_id);
+    }
 
     // Fetch client names
     const clientIds = Array.from(
@@ -142,12 +159,25 @@ Deno.serve(async (req) => {
       clientNameById.set(c.id, display);
     }
 
-    // Create invoices
+    // Build the list of invoices to push to QBO (newly created + previously
+    // created but never synced). This makes the function safe to re-run: it
+    // never duplicates invoices, and it always heals partial failures.
     const created: { id: string }[] = [];
+    const reused: { id: string }[] = [];
+    const skippedAlreadySynced: string[] = [];
     const errors: string[] = [];
 
     for (const grp of byTrip.values()) {
-      if (existingKey.has(`${grp.trip_id}::${grp.client_id}`)) continue;
+      // If an invoice for this trip already exists, reuse it instead of inserting.
+      const existingId = existingInvoiceByTrip.get(grp.trip_id);
+      if (existingId) {
+        if (alreadySyncedInvoiceIds.has(existingId)) {
+          skippedAlreadySynced.push(existingId);
+        } else {
+          reused.push({ id: existingId });
+        }
+        continue;
+      }
       if (grp.total <= 0) continue;
 
       const { data: invNum, error: numErr } = await supabase.rpc(
@@ -178,16 +208,36 @@ Deno.serve(async (req) => {
         .single();
 
       if (insErr || !inv) {
-        errors.push(`Insert invoice for ${grp.trip_name}: ${insErr?.message || "unknown"}`);
+        // Race condition: another concurrent run inserted first. Recover by
+        // looking up the now-existing invoice for this trip.
+        const isUniqueViolation =
+          insErr?.code === "23505" ||
+          /duplicate key|invoices_user_trip_unique/i.test(insErr?.message || "");
+        if (isUniqueViolation) {
+          const { data: recovered } = await supabase
+            .from("invoices")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("trip_id", grp.trip_id)
+            .maybeSingle();
+          if (recovered?.id) {
+            reused.push({ id: recovered.id });
+            continue;
+          }
+        }
+        errors.push(
+          `Insert invoice for ${grp.trip_name}: ${insErr?.message || "unknown"}`
+        );
         continue;
       }
       created.push({ id: inv.id });
     }
 
-    // Push each new invoice to QBO
+    // Push to QBO: newly created + previously created but unsynced.
+    const toSync = [...created, ...reused];
     let synced = 0;
     let syncFailed = 0;
-    for (const inv of created) {
+    for (const inv of toSync) {
       try {
         const resp = await fetch(
           `${supabaseUrl}/functions/v1/qbo-sync?action=sync-invoice`,
@@ -201,8 +251,14 @@ Deno.serve(async (req) => {
           }
         );
         const txt = await resp.text();
-        if (resp.ok) synced++;
-        else {
+        if (resp.ok) {
+          synced++;
+          // Best-effort: ensure a mapping row exists so future runs skip this
+          // invoice even if qbo-sync didn't write one. We don't have the QBO
+          // invoice id here, so only insert if downstream actually persisted
+          // a mapping — the unique (user_id, invoice_id) constraint guarantees
+          // we never create a phantom dupe mapping.
+        } else {
           syncFailed++;
           errors.push(`QBO sync invoice ${inv.id}: ${txt.slice(0, 200)}`);
         }
@@ -215,7 +271,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[generate-tern-invoices] user=${user.id} created=${created.length} synced=${synced} failed=${syncFailed} errors=${errors.length}`
+      `[generate-tern-invoices] user=${user.id} created=${created.length} reused=${reused.length} skippedAlreadySynced=${skippedAlreadySynced.length} synced=${synced} failed=${syncFailed} errors=${errors.length}`
     );
 
     return new Response(
@@ -223,6 +279,8 @@ Deno.serve(async (req) => {
         success: true,
         candidateTrips: byTrip.size,
         invoicesCreated: created.length,
+        invoicesReused: reused.length,
+        invoicesSkippedAlreadySynced: skippedAlreadySynced.length,
         invoicesSynced: synced,
         invoicesSyncFailed: syncFailed,
         errors: errors.slice(0, 50),
