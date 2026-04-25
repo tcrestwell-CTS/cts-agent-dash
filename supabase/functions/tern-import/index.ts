@@ -582,12 +582,14 @@ Deno.serve(async (req) => {
 
     if (mode === "preview") {
       const plan = await buildPlan(supabase, targetUserId, trips, bookings);
+      console.log(`[tern-import] PREVIEW user=${user.id} target=${targetUserId} parsedTrips=${trips.length} parsedBookings=${bookings.length} rawTripRows=${tripRowsRaw.length} rawBookingRows=${bookingRowsRaw.length}`);
       return new Response(JSON.stringify({
         parsed: { trips: trips.length, bookings: bookings.length, tripRowsRaw: tripRowsRaw.length, bookingRowsRaw: bookingRowsRaw.length },
         plan,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } else {
       const result = await commit(supabase, targetUserId, trips, bookings);
+      console.log(`[tern-import] COMMIT user=${user.id} target=${targetUserId} parsedTrips=${trips.length} parsedBookings=${bookings.length} result=${JSON.stringify(result)}`);
       return new Response(JSON.stringify({
         parsed: { trips: trips.length, bookings: bookings.length },
         result,
