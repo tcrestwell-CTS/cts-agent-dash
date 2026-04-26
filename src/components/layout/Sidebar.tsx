@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/CTN-Logo.png";
