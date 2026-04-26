@@ -1,163 +1,102 @@
 
+# Audit: CTS Travel CRM vs. Pasted Spec
 
-# Cruise Search — Polished Results Portal Redesign
-
-Recreate `/cruises` to look and feel like a professional cruise booking portal (Oasis Travel Network reference), powered by the existing **Widgety** integration. We'll keep the current step-based wizard logic available under the hood for cabin pricing/itinerary deep-dives, but the primary UX becomes a **filters-left + results-right** page with rich cruise cards, sorting, comparison, and a polished loading state.
-
----
-
-## Visual & Brand Direction
-
-- White canvas, navy primary (`#0B2340`-ish via existing tokens), subtle gold accents already in the theme, sky-blue/teal interactive accents.
-- Card-based results with cover image, rounded corners, subtle shadow, hover lift.
-- Light gray filter rail on the left (sticky on desktop, drawer on mobile).
-- Clean typography (existing Inter/Playfair tokens — no new fonts).
-
-All colors will use existing semantic tokens (`bg-card`, `text-primary`, `border`) rather than hardcoded hex, with a small additional set of cruise-portal accents added to `index.css` if needed.
+**Scope:** Read-only audit. No code changes. The app already exists as a mature production CRM (Crestwell Travel Services) — the spec largely overlaps with what's built. This audit focuses on the four priorities you selected.
 
 ---
 
-## Page Structure
+## What the spec asks for vs. what exists
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  Header (logo • nav • phone/contact)            [DashLayout] │
-├──────────────────────────────────────────────────────────────┤
-│  Search Bar  [Destination][Line][Ship][Month][Nights][Pax]  │
-│              [ Search ] [ Reset ]                            │
-├──────────────┬───────────────────────────────────────────────┤
-│              │  Sort: Recommended ▼   123 cruises found      │
-│  Filters     ├───────────────────────────────────────────────┤
-│  ──────      │  ┌───────────────────────────────────────┐   │
-│  Destination │  │ [img] Title • Line • Ship             │   │
-│  Port        │  │ Dates • Nights • Ports                │   │
-│  Cruise Line │  │ From $X pp   ☐ Compare  [View][Select]│   │
-│  Ship        │  └───────────────────────────────────────┘   │
-│  Month       │  ...more cards...                             │
-│  Duration    │                                               │
-│  Price       │  [ Compare bar pinned bottom when ≥1 ticked ]│
-│  Promotions  │                                               │
-│  Type tags   │                                               │
-│              │                                               │
-│  [Reset]     │                                               │
-└──────────────┴───────────────────────────────────────────────┘
-```
+| Spec area | Status | Notes |
+|---|---|---|
+| Tech stack (React + Vite + Tailwind + Supabase + React Query) | ✅ Matches exactly | |
+| Data models: clients, trips, quotes, bookings, payments, tasks, activities, profiles | ✅ All exist | Tables: `clients`, `trips`, `quotes`, `bookings`, `trip_payments`, `workflow_tasks`, `activities`, `profiles` |
+| Top bar: global search + New Trip / Send Quote / Add Client | ✅ Built | `TopBar.tsx` + `QuickActions.tsx` |
+| Section 1 — TODAY (tasks, payments, departures) | ✅ Built | `TodayPanel.tsx` + `NextActions.tsx` |
+| Section 2 — PIPELINE cards | ✅ Built | `PipelineCards.tsx` (Quotes / Pending / Confirmed) |
+| Section 3 — CONVERSION (Quotes Sent, Bookings Confirmed, Conversion %) | ⚠️ Partial | Dashboard computes `quotesSent`, `confirmedTrips`, and a conversion %, but the conversion % is *clients-with-bookings / total clients*, not *bookings / quotes sent*. No dedicated Conversion card. |
+| Section 4 — REVENUE SNAPSHOT (Revenue MTD, Avg Booking Value) | ⚠️ Partial | `BusinessSnapshot` shows Revenue MTD but no Avg Booking Value. |
+| Section 5 — FOLLOW-UP list (>48h since quote sent) | ⚠️ Partial | Counted in `computed.followUps` (using >3 days, not 48h) and surfaced in `NextActions`, but there is no dedicated row-level list with client name / trip value / last contacted / "Send Reminder" CTA. `OpsAlerts.tsx` has a 7-day variant. |
+| Section 6 — RECENT ACTIVITY feed | ✅ Built (non-realtime) | `ActivityFeed.tsx` driven by a 5-min staleTime React Query, not Supabase Realtime |
+| Quote funnel: sent_at / viewed_at / approved_at | ❌ Missing two of three | `quotes.sent_at` exists; **no `viewed_at`, no `approved_at`** on `quotes`. Trip-level approvals use `itinerary_approved_at`, but quote-level funnel timestamps are not tracked. |
+| Auto-create follow-up task when quote is sent | ⚠️ Partial | `useWorkflowAutomation.processStatusChange("proposal_sent")` already creates a workflow task **due in 7 days**. Spec asks for **2 days**. Also only fires on the trip status transition to `proposal_sent`, not on every quote send. |
+| Realtime activity feed | ❌ Not realtime | No `supabase.channel(...).on('postgres_changes', …)` for activities/bookings on the dashboard. |
+| Global search (clients, trips, bookings) | ⚠️ Partial | Search box just navigates to `/contacts?search=…` — does not search trips or bookings. |
+
+Legend: ✅ done · ⚠️ partial / drift from spec · ❌ missing
 
 ---
 
-## Components (new)
+## Priority gaps (the four you flagged)
 
-Created under `src/components/cruise-search/`:
+### 1. Quote funnel tracking (sent / viewed / approved) — ❌ biggest gap
+**Current:** `quotes` table has only `sent_at`. There is no `viewed_at` or `approved_at`. The shared-trip page (`/shared/:token`) does not log views back to the database, and client approvals on shared/portal pages write to `trips.itinerary_approved_at`, not back to a quote row.
 
-1. **`CruiseSearchHeader.tsx`** — agency name/logo, contact phone, simple nav (in-app, sits inside `DashboardLayout`).
-2. **`SearchBar.tsx`** — top horizontal search row: Destination, Cruise Line, Ship (cascades from line), Departure Month/Year, Duration range, Travelers. Search + Reset buttons.
-3. **`FilterSidebar.tsx`** — all filters (see below). Collapsible groups, "Reset filters" button. Renders inline on desktop and inside a `Sheet` drawer on mobile (trigger via "Filters" button).
-4. **`CruiseCard.tsx`** — image, title, line, ship, depart date, nights, ports preview, "from $" price, taxes/fees note, Compare checkbox, View Details + Select buttons. Expand chevron reveals an inline day-by-day mini itinerary.
-5. **`CruiseResults.tsx`** — sort dropdown, results count, list of `CruiseCard`s, empty state, paginate/load-more.
-6. **`CruiseDetailsModal.tsx`** — Dialog showing full itinerary days, ship details, available sailing dates, cabin pricing tiers. Wraps the existing `holiday`/`itinerary`/`pricing` Widgety calls. Includes "Add to Trip" via existing `AddToTripSelector`.
-7. **`CompareDrawer.tsx`** — fixed-bottom bar showing up to 4 selected cruises with an "Compare (n)" button that opens a side-by-side modal.
-8. **`CruiseLoadingState.tsx`** — full-bleed overlay with spinner + the exact reference copy:
-   - "Please wait while we are searching the best cruise options for you"
-   - "Please wait. Do not close this window."
-   Plus a row of skeleton cards behind the overlay so the layout doesn't pop.
-9. **`CruiseCardSkeleton.tsx`** — shimmer placeholder for individual cards.
+**To close:**
+- Add `viewed_at`, `approved_at`, and (optional) `view_count` columns to `quotes`.
+- Stamp `viewed_at` when the shared trip / portal proposal page is opened (first view only).
+- Stamp `approved_at` when the client approves the itinerary/budget on the portal.
+- Add a **Conversion / Funnel** card to the dashboard: Sent → Viewed → Approved → Booked, with %s.
 
----
+### 2. Auto follow-up task on quote sent — ⚠️ exists but drifted
+**Current:** `useWorkflowAutomation.ts` (line 67) creates a follow-up task **7 days** out, only when a trip moves to `proposal_sent`. Dashboard's "follow-ups" computation uses **>3 days** since `proposal_sent_at`. Spec wants **2 days**.
 
-## Filters (client-side over the current Widgety result set)
+**To close:**
+- Decide the canonical interval (spec says 48h / 2 days). Recommend **2 days**.
+- Update both: the task `due_at` in `useWorkflowAutomation` and the `>3 days` filter in `DashboardContent.tsx` (line 85) and `OpsAlerts.tsx` (`>7 days`, line 118).
+- Optionally trigger from `quotes.sent_at` updates as well, so individual quote sends (not just trip status changes) create the task.
 
-| Filter | Source |
-|---|---|
-| Destination (region) | `AVAILABLE_DESTINATIONS` constant + Widgety `regions` param on search |
-| Departure port | Derived from results' `starts_at` / locations + Widgety `locations` param |
-| Cruise line | `AVAILABLE_OPERATORS` + Widgety `operators` param |
-| Ship | Cascades from cruise line via existing `action: "ships"` call |
-| Departure month/year | Derived from `date_from` (existing Year+Month selectors) |
-| Duration | Slider 1–30+ nights, filters by `nights` |
-| Price range | Slider over `priceCache` from `widgety-price-sync` |
-| Promotions | Checkboxes for "Onboard credit", "Reduced deposit" — derived from `pricing[].name` keywords |
-| Ocean / River | Derived from operator slug (rivers: ama, avalon, uniworld, tauck, celebrity-river) |
-| Family / Luxury / Adults-only | Curated tags mapped from operator slug (e.g., Disney/Carnival = family; Seabourn/Silversea/Ritz = luxury; Virgin = adults) |
+### 3. Realtime activity feed — ❌ missing
+**Current:** `ActivityFeed` is a React Query call with `staleTime: 5 min` over recent bookings. It does not subscribe to Supabase Realtime. (Other parts of the app do — `useAgentNotifications`, `useAgentMessages`.)
 
-Server-side params used when triggering a new search: `operators`, `regions`, `locations`, `date_from`, `date_to`. All other filters apply client-side to the returned set for instant feedback.
+**To close:**
+- Enable realtime publication on `activities` (and/or `bookings`).
+- In `DashboardContent` / `ActivityFeed`, subscribe to `postgres_changes` and either prepend new rows or invalidate the query on insert.
+- Consider switching the feed source from `bookings` to the dedicated `activities` table for a true unified feed (quote_sent, booking_confirmed, payment_received, client_added) — that table already exists via `useActivities`.
 
----
+### 4. Conversion + Revenue snapshot cards — ⚠️ partial
+**Current:**
+- `BusinessSnapshot` shows Revenue MTD but no Avg Booking Value.
+- Conversion is computed as *clients with bookings / total clients*, which is a customer-conversion metric, not the spec's *quote → booking* funnel.
 
-## Sorting
-
-Implemented client-side over the loaded sailings:
-
-- **Recommended** (default) — has-price first, then earliest depart date.
-- **Price low to high** — uses `priceCache[holiday_ref]`.
-- **Departure date** — earliest first.
-- **Duration** — shortest first.
+**To close:**
+- Add **Average Booking Value** to `BusinessSnapshot` (sum of confirmed booking gross / count).
+- Add a **Conversion** card: `bookings_confirmed_this_period / quotes_sent_this_period` with a small Sent / Booked breakdown. This pairs naturally with the funnel work in #1.
+- Optionally add MTD/QTD/YTD toggles.
 
 ---
 
-## Compare Functionality
+## Other notable drift (not in your priority list, flagged for awareness)
 
-- Each card has a Compare checkbox (max 4 selected — show toast if exceeded).
-- Selected refs stored in component state.
-- `CompareDrawer` pinned to bottom shows thumbnails + "Compare" button.
-- Comparison modal renders a horizontal table: image, line, ship, depart, nights, ports, lowest cabin price.
-
----
-
-## View Details Modal
-
-`CruiseDetailsModal` reuses existing wizard logic but in a single dialog with tabs:
-- **Overview** — image, description, ports preview.
-- **Sailing Dates** — list from `action: "holiday"` (existing `WidgetyDate[]`).
-- **Itinerary** — day-by-day from `action: "itinerary"` for the selected date.
-- **Pricing** — cabin tiers from `selectedDate.pricing` (existing `WidgetyPricingDeal[]`).
-- **Add to Trip** — existing `AddToTripSelector`.
+- **Global search** only searches clients. Spec calls for clients + trips + bookings. Easy upgrade if you want it later.
+- **Status vocabulary mismatch:** spec uses `lead/quoted/booked/completed`; codebase mixes `quoted`, `proposal_sent`, `booked`, `confirmed`, `completed`. `DashboardContent` filters on `"quoted"` while `OpsAlerts` and `useWorkflowAutomation` use `"proposal_sent"`. Worth normalizing in a future pass.
+- **Follow-up list UI:** the spec's "row per client with Send Reminder CTA" is not built. It's currently only a count in the Today panel.
 
 ---
 
-## Loading & Empty States
+## Recommendation (proposed next implementation pass)
 
-- **Initial / on Search**: full overlay (`CruiseLoadingState`) covering the results column; sidebar stays interactive but disabled visually.
-- **Filter changes (client-side)**: no spinner — instant.
-- **Empty result**: illustration + "No cruises match your filters" + Reset CTA.
-- **Card skeletons**: shown on first paint while results load.
+If you want to act on this audit, a focused, low-risk follow-up build would be:
 
----
+1. **Migration:** add `viewed_at`, `approved_at`, `view_count` to `quotes`.
+2. **Wire view/approval stamping** on the shared trip + portal approval flows.
+3. **Normalize the follow-up interval to 2 days** in `useWorkflowAutomation`, `DashboardContent`, and `OpsAlerts`.
+4. **Add a Funnel/Conversion card and Avg Booking Value** to the dashboard.
+5. **Subscribe `ActivityFeed` to Supabase Realtime** on `activities` (after enabling the publication).
+6. *(Optional)* Build the dedicated **Follow-up list** with "Send Reminder" CTA that calls `send-email` with the existing reminder template.
 
-## Mobile Behavior
-
-- < `md`: Search bar stacks vertically (current behavior).
-- Filter sidebar replaced by a "Filters" button that opens a right-side `Sheet` (already in shadcn).
-- Cards stack full-width.
-- Compare bar collapses to a floating button.
+Approve this audit and I can either (a) stop here, or (b) immediately scope the implementation pass above into a separate plan to switch into build mode.
 
 ---
 
-## Files
+## Technical reference (files touched if you proceed)
 
-**New:**
-- `src/components/cruise-search/CruiseSearchHeader.tsx`
-- `src/components/cruise-search/SearchBar.tsx`
-- `src/components/cruise-search/FilterSidebar.tsx`
-- `src/components/cruise-search/CruiseCard.tsx`
-- `src/components/cruise-search/CruiseCardSkeleton.tsx`
-- `src/components/cruise-search/CruiseResults.tsx`
-- `src/components/cruise-search/CruiseDetailsModal.tsx`
-- `src/components/cruise-search/CompareDrawer.tsx`
-- `src/components/cruise-search/CruiseLoadingState.tsx`
-- `src/components/cruise-search/types.ts` — shared Widgety type defs (extracted from current `CruiseSearch.tsx`)
-- `src/components/cruise-search/utils.ts` — shared formatters (date, price, port join, tag derivation)
-
-**Edited:**
-- `src/pages/CruiseSearch.tsx` — rewritten as a thin orchestration page. Keeps all existing Widgety calls (`search`, `holiday`, `itinerary`, `ships`, `widgety-cruise-prices`, `widgety-price-sync`) and state, but renders the new component layout. The legacy step-based wizard is removed in favor of the modal-driven flow.
-
-**No backend changes** — all data continues to flow through the existing `widgety-cruise`, `widgety-cruise-prices`, and `widgety-price-sync` edge functions. No DB migration, no new secrets.
-
----
-
-## Out of Scope (stays as-is)
-
-- Widgety edge functions and pricing sync logic.
-- `WidgetyCruiseImportDialog` (separate trip-level import flow).
-- Auth/routing — `/cruises` route already exists.
-- Old wizard behavior — fully replaced; pricing & itinerary now live inside the details modal.
-
+- DB migration: `quotes` add `viewed_at timestamptz`, `approved_at timestamptz`, `view_count int default 0`. Enable realtime on `public.activities`.
+- `src/pages/SharedTrip.tsx`, `src/lib/publishedTrip.ts` — stamp `viewed_at` on first load.
+- `src/components/client/PaymentAgreementStep.tsx` / portal approval handlers — stamp `approved_at`.
+- `src/hooks/useWorkflowAutomation.ts` (line 67) — change `+7` to `+2` days.
+- `src/components/dashboard/DashboardContent.tsx` (line 85) — change `> 3` to `>= 2`.
+- `src/components/dashboard/OpsAlerts.tsx` (line 118) — align threshold.
+- `src/components/dashboard/BusinessSnapshot.tsx` — add Avg Booking Value tile.
+- New `src/components/dashboard/ConversionFunnelCard.tsx`.
+- `src/components/dashboard/ActivityFeed.tsx` — add `supabase.channel('dashboard-activity').on('postgres_changes', …)`.
