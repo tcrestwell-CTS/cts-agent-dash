@@ -89,6 +89,24 @@ export function DashboardContent() {
 
   const loading = bookingsLoading || clientsLoading || tripsLoading;
 
+  // Realtime: refresh activity feed when bookings change
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("dashboard-activity")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-recent-activity"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   const computed = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
