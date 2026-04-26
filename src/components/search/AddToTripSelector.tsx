@@ -40,15 +40,30 @@ export interface FlightOfferMeta {
   offerId?: string;
 }
 
+export interface CruiseOfferMeta {
+  totalAmount: number;
+  currency: string;
+  cruiseLineName: string;
+  shipName?: string | null;
+  sailingName: string;
+  cabinDescription?: string | null;
+  holidayRef?: string | null;
+  dateRef?: string | null;
+  departureDate: string | null;
+  returnDate: string | null;
+  destination?: string | null;
+}
+
 interface AddToTripSelectorProps {
   items: ItineraryItemData[];
   disabled?: boolean;
   label?: string;
   defaultTripId?: string;
   flightOffer?: FlightOfferMeta;
+  cruiseOffer?: CruiseOfferMeta;
 }
 
-export function AddToTripSelector({ items, disabled, label = "Add to Trip", defaultTripId, flightOffer }: AddToTripSelectorProps) {
+export function AddToTripSelector({ items, disabled, label = "Add to Trip", defaultTripId, flightOffer, cruiseOffer }: AddToTripSelectorProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [trips, setTrips] = useState<TripOption[]>([]);
@@ -72,7 +87,9 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
   }, [user]);
 
   const handleAdd = async () => {
-    if (!selectedTripId || !user || items.length === 0) return;
+    if (!selectedTripId || !user) return;
+    // Allow adding when we have either itinerary items OR a cruise/flight offer to record
+    if (items.length === 0 && !cruiseOffer && !flightOffer) return;
     setAdding(true);
     try {
       // Get the first itinerary for this trip so items appear in the builder
@@ -95,7 +112,23 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
       
       let nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
 
-      const inserts = items.map((item, idx) => ({
+      const itemsToInsert = items.length > 0
+        ? items
+        : cruiseOffer
+          ? [
+              {
+                day_number: 1,
+                title: `${cruiseOffer.cruiseLineName}${cruiseOffer.shipName ? ` — ${cruiseOffer.shipName}` : ""}: ${cruiseOffer.sailingName}`,
+                description: cruiseOffer.cabinDescription || undefined,
+                category: "cruise",
+                location: cruiseOffer.destination || undefined,
+                item_date: cruiseOffer.departureDate || undefined,
+                notes: cruiseOffer.holidayRef ? `Widgety ref: ${cruiseOffer.holidayRef}` : undefined,
+              } as ItineraryItemData,
+            ]
+          : [];
+
+      const inserts = itemsToInsert.map((item, idx) => ({
         trip_id: selectedTripId,
         user_id: user.id,
         itinerary_id: itineraryId,
@@ -114,8 +147,10 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
         sort_order: nextOrder + idx,
       }));
 
-      const { error } = await supabase.from("itinerary_items").insert(inserts);
-      if (error) throw error;
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("itinerary_items").insert(inserts);
+        if (error) throw error;
+      }
 
       // Create a booking with cost information if flight offer data is provided
       if (flightOffer && flightOffer.totalAmount > 0) {
@@ -155,6 +190,46 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
         }
       }
 
+      // Create a booking with cost information for a cruise offer
+      if (cruiseOffer && cruiseOffer.totalAmount > 0) {
+        const { data: newBooking } = await supabase.from("bookings").insert({
+          user_id: user.id,
+          trip_id: selectedTripId,
+          confirmation_number: cruiseOffer.holidayRef || cruiseOffer.dateRef || `CRUISE-${Date.now()}`,
+          status: "pending",
+          gross_sales: cruiseOffer.totalAmount,
+          total_price: cruiseOffer.totalAmount,
+          net_sales: cruiseOffer.totalAmount,
+          commissionable_amount: cruiseOffer.totalAmount,
+          source: "widgety_search",
+        }).select("id").single();
+
+        if (newBooking) {
+          await supabase.from("booking_margin_lines").insert({
+            booking_id: newBooking.id,
+            user_id: user.id,
+            line_type: "cruise",
+            description: [
+              `${cruiseOffer.cruiseLineName}${cruiseOffer.shipName ? ` — ${cruiseOffer.shipName}` : ""}`,
+              cruiseOffer.sailingName,
+              cruiseOffer.cabinDescription,
+            ].filter(Boolean).join(" • "),
+            source: "widgety",
+            quantity: 1,
+            unit_cost: cruiseOffer.totalAmount,
+            unit_sell: cruiseOffer.totalAmount,
+            is_pass_through: false,
+            sort_order: 0,
+          });
+
+          await supabase.rpc("calculate_booking_margin", {
+            p_booking_id: newBooking.id,
+            p_advisor_split: null,
+            p_force_recalc: false,
+          });
+        }
+      }
+
       // Update trip departure/return dates from flight dates
       if (flightOffer) {
         const dateUpdates: Record<string, string> = {};
@@ -165,8 +240,21 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
         }
       }
 
+      // Update trip departure/return dates from cruise dates
+      if (cruiseOffer) {
+        const dateUpdates: Record<string, string> = {};
+        if (cruiseOffer.departureDate) dateUpdates.depart_date = cruiseOffer.departureDate;
+        if (cruiseOffer.returnDate) dateUpdates.return_date = cruiseOffer.returnDate;
+        if (Object.keys(dateUpdates).length > 0) {
+          await supabase.from("trips").update(dateUpdates).eq("id", selectedTripId);
+        }
+      }
+
       const tripName = trips.find(t => t.id === selectedTripId)?.trip_name || "trip";
-      toast.success(`Added ${items.length} flight${items.length > 1 ? "s" : ""} to ${tripName}${flightOffer ? " with booking" : ""}`, {
+      const summary = cruiseOffer
+        ? `Added cruise to ${tripName}${cruiseOffer.totalAmount > 0 ? " with booking" : ""}`
+        : `Added ${items.length} item${items.length === 1 ? "" : "s"} to ${tripName}${flightOffer ? " with booking" : ""}`;
+      toast.success(summary, {
         action: {
           label: "View Trip",
           onClick: () => navigate(`/trips/${selectedTripId}`),
@@ -202,7 +290,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
       </Select>
       <Button
         onClick={handleAdd}
-        disabled={!selectedTripId || disabled || adding || items.length === 0}
+        disabled={!selectedTripId || disabled || adding || (items.length === 0 && !cruiseOffer && !flightOffer)}
         size="sm"
         className="gap-1.5"
       >
