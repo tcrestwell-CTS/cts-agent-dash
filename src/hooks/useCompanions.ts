@@ -17,6 +17,7 @@ export interface Companion {
   known_traveler_number: string | null;
   redress_number: string | null;
   notes: string | null;
+  linked_client_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,7 @@ export interface CompanionInsert {
   known_traveler_number?: string | null;
   redress_number?: string | null;
   notes?: string | null;
+  linked_client_id?: string | null;
 }
 
 export function useCompanions(clientId: string | undefined) {

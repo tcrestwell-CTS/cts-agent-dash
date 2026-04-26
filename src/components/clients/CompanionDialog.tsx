@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useCreateCompanion, useUpdateCompanion, Companion, CompanionInsert } from "@/hooks/useCompanions";
+import { ClientSearchCombobox, type SelectedClient } from "@/components/shared/ClientSearchCombobox";
+import { useCreateClient } from "@/hooks/useClients";
+import { Separator } from "@/components/ui/separator";
 
 interface CompanionDialogProps {
   open: boolean;
@@ -42,6 +45,7 @@ const RELATIONSHIPS = [
 export function CompanionDialog({ open, onOpenChange, clientId, companion }: CompanionDialogProps) {
   const createCompanion = useCreateCompanion();
   const updateCompanion = useUpdateCompanion();
+  const createClient = useCreateClient();
   const isEditing = !!companion;
 
   const [formData, setFormData] = useState({
@@ -56,6 +60,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
     redress_number: "",
     notes: "",
   });
+  const [linkedClient, setLinkedClient] = useState<SelectedClient | null>(null);
 
   useEffect(() => {
     if (companion) {
@@ -71,6 +76,23 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
         redress_number: companion.redress_number || "",
         notes: companion.notes || "",
       });
+      // If editing and already linked, we don't have the full client object loaded here.
+      // Show as linked using the companion's own fields as a stand-in.
+      if (companion.linked_client_id) {
+        setLinkedClient({
+          id: companion.linked_client_id,
+          name: `${companion.first_name} ${companion.last_name || ""}`.trim(),
+          first_name: companion.first_name,
+          last_name: companion.last_name,
+          email: companion.email,
+          phone: companion.phone,
+          birthday: companion.birthday,
+          known_traveler_number: companion.known_traveler_number,
+          passport_info: companion.passport_info,
+        });
+      } else {
+        setLinkedClient(null);
+      }
     } else {
       setFormData({
         first_name: "",
@@ -84,8 +106,51 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
         redress_number: "",
         notes: "",
       });
+      setLinkedClient(null);
     }
   }, [companion, open]);
+
+  const applyClientToForm = (c: SelectedClient) => {
+    setLinkedClient(c);
+    setFormData((f) => ({
+      ...f,
+      first_name: c.first_name || c.name.split(" ")[0] || f.first_name,
+      last_name: c.last_name || c.name.split(" ").slice(1).join(" ") || f.last_name,
+      email: c.email || f.email,
+      phone: c.phone || f.phone,
+      birthday: c.birthday || f.birthday,
+      known_traveler_number: c.known_traveler_number || f.known_traveler_number,
+      passport_info: c.passport_info || f.passport_info,
+    }));
+  };
+
+  const handleCreateNewClient = async (query: string) => {
+    const parts = query.split(" ");
+    const firstName = parts[0] || query;
+    const lastName = parts.slice(1).join(" ") || null;
+    try {
+      const newClient = await createClient.mutateAsync({
+        name: query,
+        first_name: firstName,
+        last_name: lastName,
+        status: "active",
+        source: "companion",
+      } as any);
+      applyClientToForm({
+        id: newClient.id,
+        name: newClient.name,
+        first_name: newClient.first_name,
+        last_name: newClient.last_name,
+        email: newClient.email,
+        phone: newClient.phone,
+        birthday: newClient.birthday,
+        known_traveler_number: newClient.known_traveler_number,
+        passport_info: newClient.passport_info,
+      });
+    } catch {
+      // toast handled in hook
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +171,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
       known_traveler_number: formData.known_traveler_number.trim() || null,
       redress_number: formData.redress_number.trim() || null,
       notes: formData.notes.trim() || null,
+      linked_client_id: linkedClient?.id || null,
     };
 
     try {
@@ -130,6 +196,18 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!isEditing && (
+            <>
+              <ClientSearchCombobox
+                value={linkedClient}
+                onSelect={applyClientToForm}
+                onClear={() => setLinkedClient(null)}
+                onCreateNew={handleCreateNewClient}
+                excludeClientIds={[clientId]}
+              />
+              <Separator />
+            </>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name *</Label>
@@ -139,6 +217,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                 placeholder="First name"
                 required
+                disabled={!!linkedClient}
               />
             </div>
             <div className="space-y-2">
@@ -148,6 +227,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                 value={formData.last_name}
                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 placeholder="Last name"
+                disabled={!!linkedClient}
               />
             </div>
           </div>
@@ -178,6 +258,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
               type="date"
               value={formData.birthday}
               onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+              disabled={!!linkedClient}
             />
           </div>
 
@@ -190,6 +271,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="email@example.com"
+                disabled={!!linkedClient}
               />
             </div>
             <div className="space-y-2">
@@ -200,6 +282,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+1 (555) 000-0000"
+                disabled={!!linkedClient}
               />
             </div>
           </div>
@@ -216,6 +299,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                   value={formData.known_traveler_number}
                   onChange={(e) => setFormData({ ...formData, known_traveler_number: e.target.value })}
                   placeholder="KTN"
+                  disabled={!!linkedClient}
                 />
               </div>
               <div className="space-y-2">
@@ -240,6 +324,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
               onChange={(e) => setFormData({ ...formData, passport_info: e.target.value })}
               placeholder="Passport number, expiry, country..."
               rows={2}
+              disabled={!!linkedClient}
             />
           </div>
 

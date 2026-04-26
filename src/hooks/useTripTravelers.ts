@@ -17,6 +17,7 @@ export interface TripTraveler {
   known_traveler_number: string | null;
   passport_info: string | null;
   birthday: string | null;
+  linked_client_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,7 @@ export interface TripTravelerInsert {
   known_traveler_number?: string | null;
   passport_info?: string | null;
   birthday?: string | null;
+  linked_client_id?: string | null;
 }
 
 export function useTripTravelers(tripId: string | undefined) {
@@ -70,50 +72,7 @@ export function useCreateTripTraveler() {
         .single();
       if (error) throw error;
 
-      // Auto-add traveler to CRM clients if they don't already exist (match by email)
-      const travelerEmail = travelerData.email?.trim() || null;
-      const travelerName = `${travelerData.first_name} ${travelerData.last_name || ""}`.trim();
-      if (travelerEmail) {
-        const { data: existingClient } = await supabase
-          .from("clients")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("email", travelerEmail)
-          .maybeSingle();
-
-        if (!existingClient) {
-          await supabase.from("clients").insert({
-            user_id: user.id,
-            name: travelerName,
-            first_name: travelerData.first_name,
-            last_name: travelerData.last_name || null,
-            email: travelerEmail,
-            phone: travelerData.phone || null,
-            status: "active",
-          });
-        }
-      } else if (!client_id) {
-        // No email — check by name match to avoid duplicates
-        const { data: existingClient } = await supabase
-          .from("clients")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("name", travelerName)
-          .maybeSingle();
-
-        if (!existingClient && travelerName) {
-          await supabase.from("clients").insert({
-            user_id: user.id,
-            name: travelerName,
-            first_name: travelerData.first_name,
-            last_name: travelerData.last_name || null,
-            phone: travelerData.phone || null,
-            status: "active",
-          });
-        }
-      }
-
-      // Also create as a client companion if trip has a client
+      // Also create as a client companion if trip has a client (carry over the linked client id)
       if (client_id) {
         await supabase
           .from("client_companions")
@@ -129,6 +88,7 @@ export function useCreateTripTraveler() {
             known_traveler_number: travelerData.known_traveler_number || null,
             passport_info: travelerData.passport_info || null,
             notes: travelerData.notes || null,
+            linked_client_id: travelerData.linked_client_id || null,
           });
         // Don't throw on companion insert failure — it's a best-effort sync
       }
