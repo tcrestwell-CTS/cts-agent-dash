@@ -155,7 +155,7 @@ export function CruiseDetailsModal({
           const roomType = p.room_type || "Cabin";
           const gradeName = p.grade_name || p.grade_code || "";
           return {
-            category_name: `${roomType} — ${gradeName || p.grade_code || ""}`.trim(),
+            category_name: `${roomType} — ${[p.grade_code, gradeName].filter(Boolean).join(" ")}`.trim(),
             description: [
               deal.name || null,
               p.grade_code ? `Grade ${p.grade_code}` : null,
