@@ -426,7 +426,21 @@ export function CruiseDetailsModal({
                   sailing.ship_title ? `Ship: ${sailing.ship_title}` : null,
                 ].filter(Boolean).join(" • ") || undefined,
               }))}
-              disabled={itinerary.length === 0}
+              cruiseOffer={{
+                totalAmount: selectedCabin ? parseFloat(selectedCabin.cabin.double_price_pp) * 2 : 0,
+                currency: "USD",
+                cruiseLineName: sailing.operator_title,
+                shipName: sailing.ship_title || null,
+                sailingName: sailing.name,
+                cabinDescription: selectedCabin
+                  ? `${selectedCabin.room_type} ${selectedCabin.cabin.grade_code} — ${formatPrice(parseFloat(selectedCabin.cabin.double_price_pp))} pp (double occ.)`
+                  : null,
+                holidayRef: sailing.holiday_ref || null,
+                dateRef: selectedDate?.date_ref || null,
+                departureDate: selectedDate?.date_from || sailing.date_from || null,
+                returnDate: selectedDate?.date_to || sailing.date_to || null,
+                destination: [sailing.starts_at?.name, sailing.ends_at?.name].filter(Boolean).join(" → ") || null,
+              }}
               />
             </div>
           </div>
