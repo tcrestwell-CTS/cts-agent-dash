@@ -213,10 +213,14 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
           }
         }
 
+        const cruiseRef = [cruiseOffer.holidayRef, cruiseOffer.dateRef, selectedTripId]
+          .filter(Boolean)
+          .join("-") || `CRUISE-${Date.now()}`;
+
         const { data: newBooking, error: bookingErr } = await supabase.from("bookings").insert({
           user_id: user.id,
           trip_id: selectedTripId,
-          confirmation_number: cruiseOffer.holidayRef || cruiseOffer.dateRef || `CRUISE-${Date.now()}`,
+          confirmation_number: cruiseRef,
           status: "pending",
           gross_sales: bookingAmount,
           total_price: bookingAmount,
@@ -227,7 +231,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
 
         if (bookingErr) {
           console.error("Cruise booking insert failed:", bookingErr);
-          toast.error(`Failed to create booking: ${bookingErr.message}`);
+          throw new Error(`Failed to create cruise booking: ${bookingErr.message}`);
         }
 
         if (newBooking) {
@@ -240,14 +244,14 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
               cruiseOffer.sailingName,
               cruiseOffer.cabinDescription,
             ].filter(Boolean).join(" • "),
-            source: "widgety",
+            source: "manual",
             quantity: 1,
             unit_cost: bookingAmount,
             unit_sell: bookingAmount,
             is_pass_through: false,
             sort_order: 0,
           });
-          if (lineErr) console.warn("Margin line insert failed:", lineErr);
+          if (lineErr) throw new Error(`Failed to create cruise margin line: ${lineErr.message}`);
 
           await supabase.rpc("calculate_booking_margin", {
             p_booking_id: newBooking.id,
