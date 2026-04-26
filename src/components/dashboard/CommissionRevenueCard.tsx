@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, TrendingUp, Receipt, Building2 } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -21,6 +22,7 @@ interface FinancialMetric {
 
 export function CommissionRevenueCard() {
   const { bookings, loading } = useBookings();
+  const earnings = useEarningsLabel();
 
   const financials = useMemo(() => {
     if (!bookings?.length) {
@@ -103,7 +105,7 @@ export function CommissionRevenueCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Commission Revenue
+            {earnings.revenue}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -123,7 +125,7 @@ export function CommissionRevenueCard() {
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Commission Revenue
+            {earnings.revenue}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -144,16 +146,16 @@ export function CommissionRevenueCard() {
       colorClass: "text-primary",
     },
     {
-      label: "Commission Revenue",
+      label: earnings.revenue,
       value: financials.thisMonthCommission,
-      description: "Your earned commission",
+      description: earnings.earned,
       icon: TrendingUp,
       colorClass: "text-success",
     },
     {
       label: "Net Booking Sales",
       value: financials.thisMonthNet,
-      description: "After commission deduction",
+      description: `After ${earnings.singularLower} deduction`,
       icon: Building2,
       colorClass: "text-muted-foreground",
     },
@@ -190,7 +192,7 @@ export function CommissionRevenueCard() {
 
         <div className="pt-2 border-t border-border">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">All-time commission revenue</span>
+            <span className="text-muted-foreground">All-time {earnings.singularLower} revenue</span>
             <span className="font-semibold text-success">
               {formatCurrency(financials.totalCommission)}
             </span>
