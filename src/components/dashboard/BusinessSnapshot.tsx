@@ -1,10 +1,11 @@
-import { DollarSign, Users, TrendingUp } from "lucide-react";
+import { DollarSign, Users, TrendingUp, Receipt } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface BusinessSnapshotProps {
   revenueMTD: number;
   totalClients: number;
   conversionRate: number;
+  avgBookingValue?: number;
   loading?: boolean;
 }
 
@@ -13,13 +14,15 @@ const formatCurrency = (amount: number) =>
 
 const stats = [
   { key: "revenue" as const, label: "Revenue MTD", icon: DollarSign },
+  { key: "avg" as const, label: "Avg Booking", icon: Receipt },
   { key: "clients" as const, label: "Clients", icon: Users },
   { key: "conversion" as const, label: "Conversion", icon: TrendingUp },
 ];
 
-export function BusinessSnapshot({ revenueMTD, totalClients, conversionRate, loading }: BusinessSnapshotProps) {
+export function BusinessSnapshot({ revenueMTD, totalClients, conversionRate, avgBookingValue = 0, loading }: BusinessSnapshotProps) {
   const values = {
     revenue: formatCurrency(revenueMTD),
+    avg: formatCurrency(avgBookingValue),
     clients: String(totalClients),
     conversion: `${conversionRate}%`,
   };

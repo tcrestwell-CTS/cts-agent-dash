@@ -112,10 +112,10 @@ export function OpsAlerts() {
     const result: OpsAlert[] = [];
     const now = new Date();
 
-    // 1. Proposals > 7 days without response
+    // 1. Proposals > 2 days without response
     const staleProposals = (trips || []).filter((t) => {
       if (t.status !== "proposal_sent" || !t.proposal_sent_at) return false;
-      return differenceInDays(now, parseISO(t.proposal_sent_at)) > 7;
+      return differenceInDays(now, parseISO(t.proposal_sent_at)) >= 2;
     });
     if (staleProposals.length > 0) {
       result.push({
@@ -124,7 +124,7 @@ export function OpsAlerts() {
         icon: Send,
         title: "Stale Proposals",
         count: staleProposals.length,
-        description: `${staleProposals.length} trip${staleProposals.length > 1 ? "s" : ""} in Proposal Sent > 7 days`,
+        description: `${staleProposals.length} trip${staleProposals.length > 1 ? "s" : ""} awaiting follow-up (≥ 2 days)`,
         action: () => navigate("/trips"),
       });
     }

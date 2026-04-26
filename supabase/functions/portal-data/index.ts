@@ -470,6 +470,27 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (updateError) throw updateError;
 
+      // Stamp quote funnel: approved_at on the latest sent/viewed quote for this trip
+      try {
+        const { data: latestQuote } = await supabase
+          .from("quotes")
+          .select("id, approved_at")
+          .eq("trip_id", tripId)
+          .not("sent_at", "is", null)
+          .order("sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestQuote && !latestQuote.approved_at) {
+          await supabase
+            .from("quotes")
+            .update({ approved_at: new Date().toISOString(), status: "approved" })
+            .eq("id", latestQuote.id);
+        }
+      } catch (_) {
+        // non-fatal
+      }
+
       // Auto-create pending payment records based on payment_mode
       const { data: existingPayments } = await supabase
         .from("trip_payments")
