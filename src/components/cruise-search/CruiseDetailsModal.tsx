@@ -441,7 +441,11 @@ export function CruiseDetailsModal({
                 returnDate: selectedDate?.date_to || sailing.date_to || null,
                 destination: [sailing.starts_at?.name, sailing.ends_at?.name].filter(Boolean).join(" → ") || null,
               }}
-              cruiseCabinChoices={(selectedDate?.pricing || []).flatMap((deal) =>
+              cruiseCabinChoices={(
+                selectedDate?.pricing?.length
+                  ? selectedDate.pricing
+                  : (dates.find((d) => d.pricing?.length)?.pricing || [])
+              ).flatMap((deal) =>
                 (deal.prices || [])
                   .filter((p) => parseFloat(p.double_price_pp || "0") > 0)
                   .map((p) => {
