@@ -285,7 +285,7 @@ const Settings = () => {
                       <div className="bg-background rounded-lg p-3 border">
                         <p className="text-xs text-muted-foreground mb-1">Tier Level</p>
                         <p className="text-lg font-semibold text-foreground">
-                          {getTierConfig(profile.commission_tier).label}
+                          {isAdmin ? "Owner / Company" : getTierConfig(profile.commission_tier).label}
                         </p>
                       </div>
                       <div className="bg-background rounded-lg p-3 border">
@@ -294,7 +294,7 @@ const Settings = () => {
                           Your {earnings.singular}
                         </div>
                         <p className="text-lg font-semibold text-success">
-                          {getTierConfig(profile.commission_tier).agentSplit}%
+                          {isAdmin ? 0 : getTierConfig(profile.commission_tier).agentSplit}%
                         </p>
                       </div>
                       <div className="bg-background rounded-lg p-3 border">
@@ -303,14 +303,15 @@ const Settings = () => {
                           Agency Split
                         </div>
                         <p className="text-lg font-semibold text-foreground">
-                          {getTierConfig(profile.commission_tier).agencySplit}%
+                          {isAdmin ? 100 : getTierConfig(profile.commission_tier).agencySplit}%
                         </p>
                       </div>
                     </div>
                     
                     <p className="text-xs text-muted-foreground">
-                      Your {earnings.singularLower} tier determines how booking {earnings.pluralLower} are split between you and the agency.
-                      Contact an administrator if you believe your tier should be changed.
+                      {isAdmin
+                        ? `As the agency owner, all booking ${earnings.pluralLower} are retained as company income (100% agency).`
+                        : `Your ${earnings.singularLower} tier determines how booking ${earnings.pluralLower} are split between you and the agency. Contact an administrator if you believe your tier should be changed.`}
                     </p>
                   </div>
 
