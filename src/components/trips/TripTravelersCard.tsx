@@ -565,6 +565,18 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
           </DialogHeader>
 
           <div className="space-y-4">
+            {clientId && (
+              <>
+                <ClientSearchCombobox
+                  value={linkedClient}
+                  onSelect={applyClientToForm}
+                  onClear={() => setLinkedClient(null)}
+                  onCreateNew={handleCreateNewClient}
+                  excludeClientIds={clientId ? [clientId] : []}
+                />
+                <Separator />
+              </>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">First Name *</Label>
@@ -575,8 +587,9 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                     onChange={(e) => handleNameChange(e.target.value)}
                     onFocus={() => nameSearch.trim().length >= 2 && setShowSuggestions(true)}
                     autoComplete="off"
+                    disabled={!!linkedClient}
                   />
-                  {showSuggestions && clientSuggestions.length > 0 && (
+                  {showSuggestions && !linkedClient && clientSuggestions.length > 0 && (
                     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
                       {clientSuggestions.map((c) => (
                         <button
@@ -604,6 +617,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                   placeholder="Doe"
                   value={form.last_name}
                   onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                  disabled={!!linkedClient}
                 />
               </div>
             </div>
@@ -635,6 +649,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                   placeholder="jane@example.com"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  disabled={!!linkedClient}
                 />
               </div>
               <div className="space-y-1.5">
@@ -644,6 +659,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                   placeholder="+1 555 000 0000"
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  disabled={!!linkedClient}
                 />
               </div>
             </div>
@@ -655,6 +671,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                   type="date"
                   value={form.birthday}
                   onChange={(e) => setForm((f) => ({ ...f, birthday: e.target.value }))}
+                  disabled={!!linkedClient}
                 />
               </div>
               <div className="space-y-1.5">
@@ -663,6 +680,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                   placeholder="KTN..."
                   value={form.known_traveler_number}
                   onChange={(e) => setForm((f) => ({ ...f, known_traveler_number: e.target.value }))}
+                  disabled={!!linkedClient}
                 />
               </div>
             </div>
@@ -673,6 +691,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 placeholder="Passport number, expiry, etc."
                 value={form.passport_info}
                 onChange={(e) => setForm((f) => ({ ...f, passport_info: e.target.value }))}
+                disabled={!!linkedClient}
               />
             </div>
 
