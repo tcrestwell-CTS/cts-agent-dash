@@ -435,6 +435,30 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Stamp quote funnel: viewed_at + view_count for the latest sent quote on this trip
+    try {
+      const { data: latestQuote } = await supabase
+        .from("quotes")
+        .select("id, viewed_at, view_count")
+        .eq("trip_id", trip.id)
+        .not("sent_at", "is", null)
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestQuote) {
+        await supabase
+          .from("quotes")
+          .update({
+            viewed_at: latestQuote.viewed_at ?? new Date().toISOString(),
+            view_count: (latestQuote.view_count ?? 0) + 1,
+          })
+          .eq("id", latestQuote.id);
+      }
+    } catch (_) {
+      // non-fatal: never block the public view on telemetry
+    }
+
     const snapshot = trip.published_snapshot as any;
 
     // Use snapshot data if available, otherwise fall back to live data
