@@ -718,11 +718,13 @@ const TripDetail = () => {
                 hasSupplierBooking={bookings.some((b: any) => b.supplier_id)}
                 totalCommissionRevenue={trip.total_commission_revenue}
               />
-              <TripTravelersCard
-                client={trip.clients}
-                clientId={trip.client_id}
-                tripId={trip.id}
-              />
+              {!(trip.trip_type === "group" && !trip.parent_trip_id) && (
+                <TripTravelersCard
+                  client={trip.clients}
+                  clientId={trip.client_id}
+                  tripId={trip.id}
+                />
+              )}
               <TripSettingsSidebar
                 tripId={trip.id}
                 settings={tripSettings}
