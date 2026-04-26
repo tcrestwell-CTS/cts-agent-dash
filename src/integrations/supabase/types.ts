@@ -3586,6 +3586,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          approved_at: string | null
           created_at: string
           currency: string
           id: string
@@ -3596,8 +3597,11 @@ export type Database = {
           trip_id: string | null
           updated_at: string
           user_id: string
+          view_count: number
+          viewed_at: string | null
         }
         Insert: {
+          approved_at?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -3608,8 +3612,11 @@ export type Database = {
           trip_id?: string | null
           updated_at?: string
           user_id: string
+          view_count?: number
+          viewed_at?: string | null
         }
         Update: {
+          approved_at?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -3620,6 +3627,8 @@ export type Database = {
           trip_id?: string | null
           updated_at?: string
           user_id?: string
+          view_count?: number
+          viewed_at?: string | null
         }
         Relationships: [
           {
