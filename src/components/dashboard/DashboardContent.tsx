@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useTrips } from "@/hooks/useTrips";
 import { useCanViewTeam } from "@/hooks/useAdmin";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, isFuture, isWithinInterval, startOfMonth, endOfMonth, differenceInDays, parseISO, isPast } from "date-fns";
 import { cn, parseLocalDate } from "@/lib/utils";
@@ -25,6 +25,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"my" | "agency">("agency");
   const { canView: canViewAgencyMetrics } = useCanViewTeam();
   const { isComplete: onboardingComplete, isLoading: onboardingLoading } = useOnboarding();
