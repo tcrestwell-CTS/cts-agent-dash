@@ -441,6 +441,28 @@ export function CruiseDetailsModal({
                 returnDate: selectedDate?.date_to || sailing.date_to || null,
                 destination: [sailing.starts_at?.name, sailing.ends_at?.name].filter(Boolean).join(" → ") || null,
               }}
+              cruiseCabinChoices={(selectedDate?.pricing || []).flatMap((deal) =>
+                (deal.prices || [])
+                  .filter((p) => parseFloat(p.double_price_pp || "0") > 0)
+                  .map((p) => {
+                    const pp = parseFloat(p.double_price_pp);
+                    const fees = parseFloat(p.non_comm_charges || "0");
+                    const roomType = p.room_type || "Cabin";
+                    const gradeName = p.grade_name || p.grade_code || "";
+                    return {
+                      category_name: `${roomType} — ${gradeName || p.grade_code || ""}`.trim(),
+                      description: [
+                        deal.name || null,
+                        p.grade_code ? `Grade ${p.grade_code}` : null,
+                        sailing.ship_title ? `Ship: ${sailing.ship_title}` : null,
+                        fees > 0 ? `Non-commissionable fees: ${formatPrice(fees)} pp` : null,
+                      ].filter(Boolean).join(" • ") || null,
+                      price_per_person: pp,
+                      deposit_amount: 0,
+                      capacity: null,
+                    };
+                  }),
+              )}
               />
             </div>
           </div>
