@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
+import { useAdminUserIds } from "@/hooks/useAdminUserIds";
 import { calculateAgencyCommission, CommissionTier } from "@/lib/commissionTiers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
@@ -51,6 +52,7 @@ export function AgencyMetrics() {
   const { data: commissions, isLoading: commissionsLoading } = useCommissions();
   const { data: clients } = useClients();
   const { data: teamProfiles } = useTeamProfiles();
+  const { data: adminUserIds } = useAdminUserIds();
 
   const loading = bookingsLoading || commissionsLoading;
 
@@ -64,6 +66,11 @@ export function AgencyMetrics() {
   }, [teamProfiles]);
 
   const getAgencyShare = (commissionRevenue: number, userId: string) => {
+    // Admin/owner bookings: 100% of the margin is company income
+    // (the owner IS the company, so there is no advisor split to pay out).
+    if (adminUserIds?.has(userId)) {
+      return commissionRevenue;
+    }
     const tier = agentTierMap.get(userId);
     return calculateAgencyCommission(commissionRevenue, tier);
   };
@@ -92,13 +99,18 @@ export function AgencyMetrics() {
     // Phase 4: Use agency_gross_margin (margin engine) with fallback to commission_revenue
     const grossMargin = filteredBookings.reduce((s, b) => s + (b.agency_gross_margin || b.commission_revenue || 0), 0);
 
-    // Agency income uses margin engine's agency_margin_amount when available
+    // Agency income: for admin-owned bookings the full margin is company income;
+    // for everyone else use the margin engine's agency_margin_amount when available.
     const agencyIncome = filteredBookings.reduce((s, b) => {
+      const isAdminOwned = adminUserIds?.has(b.user_id);
+      if (isAdminOwned) {
+        return s + (b.agency_gross_margin || b.commission_revenue || 0);
+      }
       return s + (b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id));
     }, 0);
 
     return { bookingCount, salesVolume, grossMargin, agencyIncome };
-  }, [filteredBookings, agentTierMap]);
+  }, [filteredBookings, agentTierMap, adminUserIds]);
 
   // Monthly chart data for the selected range
   const chartData = useMemo(() => {
@@ -124,7 +136,10 @@ export function AgencyMetrics() {
       const key = format(parsedDepartDate, "yyyy-MM");
       if (commMap[key] !== undefined) {
         commMap[key] += b.agency_gross_margin || b.commission_revenue || 0;
-        agencyMap[key] += b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id);
+        const isAdminOwned = adminUserIds?.has(b.user_id);
+        agencyMap[key] += isAdminOwned
+          ? (b.agency_gross_margin || b.commission_revenue || 0)
+          : (b.agency_margin_amount || getAgencyShare(b.commission_revenue || 0, b.user_id));
         grossMap[key] += b.gross_sales || b.total_amount || 0;
       }
     });
@@ -140,7 +155,7 @@ export function AgencyMetrics() {
       agencyIncome: toArr(agencyMap),
       grossSales: toArr(grossMap),
     };
-  }, [bookings, range]);
+  }, [bookings, range, adminUserIds, agentTierMap]);
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(v);
