@@ -17,11 +17,13 @@ import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
 import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings";
 import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
   const { preferences, loading: notifLoading, updatePreference } = useNotificationPreferences();
   const { isAdmin } = usePermissions();
+  const earnings = useEarningsLabel();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -276,7 +278,7 @@ const Settings = () => {
                   <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-4">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-primary" />
-                      <h3 className="font-medium text-card-foreground">Your Commission Tier</h3>
+                      <h3 className="font-medium text-card-foreground">Your {earnings.singular} Tier</h3>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -289,7 +291,7 @@ const Settings = () => {
                       <div className="bg-background rounded-lg p-3 border">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                           <Percent className="h-3 w-3" />
-                          Your Commission
+                          Your {earnings.singular}
                         </div>
                         <p className="text-lg font-semibold text-success">
                           {getTierConfig(profile.commission_tier).agentSplit}%
@@ -307,7 +309,7 @@ const Settings = () => {
                     </div>
                     
                     <p className="text-xs text-muted-foreground">
-                      Your commission tier determines how booking commissions are split between you and the agency.
+                      Your {earnings.singularLower} tier determines how booking {earnings.pluralLower} are split between you and the agency.
                       Contact an administrator if you believe your tier should be changed.
                     </p>
                   </div>
@@ -363,10 +365,10 @@ const Settings = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-card-foreground">
-                        Commission Updates
+                        {earnings.singular} Updates
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Notifications about commission payments
+                        Notifications about {earnings.singularLower} payments
                       </p>
                     </div>
                     <Switch 

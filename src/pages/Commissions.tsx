@@ -25,6 +25,7 @@ import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
 import { CommissionAgingReport } from "@/components/commissions/CommissionAgingReport";
@@ -43,6 +44,7 @@ const Commissions = () => {
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { profile, loading: profileLoading } = useProfile();
   const { data: isAdmin } = useIsAdmin();
+  const earnings = useEarningsLabel();
   const { data: teamProfiles, isLoading: teamProfilesLoading } = useTeamProfiles();
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -272,7 +274,7 @@ const Commissions = () => {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{isAdmin ? "Team Commissions" : "My Commissions"}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{isAdmin ? earnings.teamTitle : earnings.myTitle}</h1>
           <p className="text-muted-foreground text-sm mt-1">{isAdmin
             ? "View and manage all agent commission earnings"
             : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}</p>
@@ -476,7 +478,7 @@ const Commissions = () => {
         <div className="lg:col-span-2 bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold text-card-foreground">
-              Your Commission History
+              Your {earnings.singular} History
             </h3>
             {enrichedCommissions.length > ITEMS_PER_PAGE && (
               <p className="text-sm text-muted-foreground">

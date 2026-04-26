@@ -6,6 +6,7 @@ import { Download, FileSpreadsheet, DollarSign, TrendingUp, Users, Percent } fro
 import { useCommissionReport } from "@/hooks/useCommissionReport";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { CommissionReportFilters } from "@/components/reports/CommissionReportFilters";
 import { CommissionReportTable } from "@/components/reports/CommissionReportTable";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
@@ -20,6 +21,7 @@ export default function CommissionReport() {
   const { suppliers, isLoading: suppliersLoading } = useSuppliers();
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const earnings = useEarningsLabel();
 
   const canViewAll = isAdmin || isOfficeAdmin;
   const loading = reportLoading || suppliersLoading;
@@ -220,10 +222,10 @@ export default function CommissionReport() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Commission Report</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">{earnings.reportTitle}</h1>
             <p className="text-muted-foreground text-sm mt-1">{canViewAll
               ? "Organization-wide commission analysis and export"
-              : "Your commission history and analysis"}</p>
+              : `Your ${earnings.singularLower} history and analysis`}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={handleExport} className="gap-2">

@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/CTN-Logo.png";
@@ -156,6 +157,15 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const notifRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useAgentNotifications();
+  const earnings = useEarningsLabel();
+
+  // Apply owner-vs-agent label for the personal earnings nav entry.
+  const localizedNavGroups = navGroups.map((g) => ({
+    ...g,
+    items: g.items.map((i) =>
+      i.href === "/commissions" ? { ...i, name: earnings.plural } : i
+    ),
+  }));
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -341,7 +351,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
           ))}
 
           {/* Grouped nav sections */}
-          {navGroups.map((group) => (
+          {localizedNavGroups.map((group) => (
             <NavGroupSection key={group.label} group={group} />
           ))}
 

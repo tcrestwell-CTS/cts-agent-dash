@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, Clock, Calendar } from "lucide-react";
 import { useBookings } from "@/hooks/useBookings";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { format, subDays, differenceInDays, isWithinInterval, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +18,7 @@ interface UpcomingCommission {
 
 export function UpcomingCommissions() {
   const { bookings, loading } = useBookings();
+  const earnings = useEarningsLabel();
   const navigate = useNavigate();
 
   // Calculate upcoming commissions (expected within next 30 days)
@@ -73,7 +75,7 @@ export function UpcomingCommissions() {
         <CardHeader>
           <CardTitle className="text-lg font-medium flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-success" />
-            Upcoming Commissions
+            {earnings.upcoming}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -93,7 +95,7 @@ export function UpcomingCommissions() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-medium flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-success" />
-            Upcoming Commissions
+            {earnings.upcoming}
           </CardTitle>
           <Badge variant="secondary" className="text-xs">
             Next 30 days
@@ -109,7 +111,7 @@ export function UpcomingCommissions() {
         {upcomingCommissions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No commissions expected in the next 30 days</p>
+            <p className="text-sm">No {earnings.pluralLower} expected in the next 30 days</p>
           </div>
         ) : (
           <div className="space-y-3">

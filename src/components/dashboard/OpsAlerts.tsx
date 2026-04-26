@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { differenceInDays, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 
 interface OpsAlert {
   id: string;
@@ -22,6 +23,7 @@ interface OpsAlert {
 export function OpsAlerts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const earnings = useEarningsLabel();
 
   // Fetch all trips for ops monitoring
   const { data: trips } = useQuery({
@@ -165,9 +167,9 @@ export function OpsAlerts() {
         id: "missing-comm-date",
         severity: "warning",
         icon: Calendar,
-        title: "Missing Commission Date",
+        title: `Missing ${earnings.singular} Date`,
         count: bookedMissingCommDate.length,
-        description: `${bookedMissingCommDate.length} booked trip${bookedMissingCommDate.length > 1 ? "s" : ""} without expected commission date`,
+        description: `${bookedMissingCommDate.length} booked trip${bookedMissingCommDate.length > 1 ? "s" : ""} without expected ${earnings.singularLower} date`,
         action: () => navigate("/trips"),
       });
     }
@@ -178,9 +180,9 @@ export function OpsAlerts() {
         id: "stale-comm-pending",
         severity: "critical",
         icon: DollarSign,
-        title: "Overdue Commission",
+        title: `Overdue ${earnings.singular}`,
         count: stalePendingCommissions.length,
-        description: `${stalePendingCommissions.length} trip${stalePendingCommissions.length > 1 ? "s" : ""} with commission pending > 14 days`,
+        description: `${stalePendingCommissions.length} trip${stalePendingCommissions.length > 1 ? "s" : ""} with ${earnings.singularLower} pending > 14 days`,
         action: () => navigate("/trips"),
       });
     }

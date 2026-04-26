@@ -56,6 +56,7 @@ import { useTrip, useTrips } from "@/hooks/useTrips";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { useProfile } from "@/hooks/useProfile";
+import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import {
@@ -94,6 +95,7 @@ const TripDetail = () => {
   const { deleteTrip } = useTrips();
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
+  const earnings = useEarningsLabel();
   const { data: tripTravelers = [] } = useTripTravelers(tripId);
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
@@ -545,7 +547,7 @@ const TripDetail = () => {
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Total Commission</span>
+                    <span className="text-sm text-muted-foreground">Total {earnings.singular}</span>
                     <span className="font-semibold text-primary">
                       {formatCurrency(trip.total_commission_revenue)}
                     </span>
@@ -606,7 +608,7 @@ const TripDetail = () => {
                     return (
                       <div className="pt-2 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Commission Split ({tierConfig.label}: {tierConfig.agentSplit}/{tierConfig.agencySplit})
+                          {earnings.singular} Split ({tierConfig.label}: {tierConfig.agentSplit}/{tierConfig.agencySplit})
                         </p>
                         <div className="flex justify-between items-center py-1">
                           <span className="text-sm text-muted-foreground">Advisor Payout</span>
