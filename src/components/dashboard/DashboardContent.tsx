@@ -81,8 +81,8 @@ export function DashboardContent() {
     const activeBookings = (bookings || []).filter((b) => !isBookingArchived(b));
 
     const followUps = (trips || []).filter((t) => {
-      if (t.status !== "quoted" || !t.proposal_sent_at) return false;
-      return differenceInDays(now, parseISO(t.proposal_sent_at)) > 3;
+      if (!["quoted", "proposal_sent"].includes(t.status as string) || !t.proposal_sent_at) return false;
+      return differenceInDays(now, parseISO(t.proposal_sent_at)) >= 2;
     }).length;
 
     const paymentsDue = (pendingPayments || []).filter((p) => {
