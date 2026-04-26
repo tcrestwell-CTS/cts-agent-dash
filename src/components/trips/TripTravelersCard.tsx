@@ -45,6 +45,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useClients } from "@/hooks/useClients";
 import { useCompanions } from "@/hooks/useCompanions";
+import { useCreateClient } from "@/hooks/useClients";
+import { ClientSearchCombobox, type SelectedClient } from "@/components/shared/ClientSearchCombobox";
+import { Separator } from "@/components/ui/separator";
 import { format, differenceInYears } from "date-fns";
 import {
   useTripTravelers,
@@ -100,6 +103,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const { data: travelers = [], isLoading } = useTripTravelers(tripId);
   const { data: companions = [] } = useCompanions(clientId || undefined);
   const { data: allClients = [] } = useClients();
+  const createClient = useCreateClient();
   const createTraveler = useCreateTripTraveler();
   const updateTraveler = useUpdateTripTraveler();
   const deleteTraveler = useDeleteTripTraveler();
@@ -110,6 +114,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const [nameSearch, setNameSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [linkedClient, setLinkedClient] = useState<SelectedClient | null>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
@@ -191,6 +196,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
   const openAdd = () => {
     setForm(emptyForm);
     setNameSearch("");
+    setLinkedClient(null);
     setEditingTraveler(null);
     setShowAddDialog(true);
   };
@@ -209,8 +215,66 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
       is_primary: t.is_primary,
     });
     setNameSearch(t.first_name);
+    if (t.linked_client_id) {
+      setLinkedClient({
+        id: t.linked_client_id,
+        name: `${t.first_name} ${t.last_name || ""}`.trim(),
+        first_name: t.first_name,
+        last_name: t.last_name,
+        email: t.email,
+        phone: t.phone,
+        birthday: t.birthday,
+        known_traveler_number: t.known_traveler_number,
+        passport_info: t.passport_info,
+      });
+    } else {
+      setLinkedClient(null);
+    }
     setEditingTraveler(t);
     setShowAddDialog(true);
+  };
+
+  const applyClientToForm = (c: SelectedClient) => {
+    setLinkedClient(c);
+    setForm((f) => ({
+      ...f,
+      first_name: c.first_name || c.name.split(" ")[0] || f.first_name,
+      last_name: c.last_name || c.name.split(" ").slice(1).join(" ") || f.last_name,
+      email: c.email || f.email,
+      phone: c.phone || f.phone,
+      birthday: c.birthday || f.birthday,
+      known_traveler_number: c.known_traveler_number || f.known_traveler_number,
+      passport_info: c.passport_info || f.passport_info,
+    }));
+    setNameSearch(c.first_name || c.name);
+  };
+
+  const handleCreateNewClient = async (query: string) => {
+    const parts = query.split(" ");
+    const firstName = parts[0] || query;
+    const lastName = parts.slice(1).join(" ") || null;
+    try {
+      const newClient = await createClient.mutateAsync({
+        name: query,
+        first_name: firstName,
+        last_name: lastName,
+        status: "active",
+        source: "trip_traveler",
+      } as any);
+      applyClientToForm({
+        id: newClient.id,
+        name: newClient.name,
+        first_name: newClient.first_name,
+        last_name: newClient.last_name,
+        email: newClient.email,
+        phone: newClient.phone,
+        birthday: newClient.birthday,
+        known_traveler_number: newClient.known_traveler_number,
+        passport_info: newClient.passport_info,
+      });
+    } catch {
+      /* toast handled in hook */
+    }
   };
 
   const handleSave = async () => {
@@ -228,6 +292,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
         passport_info: form.passport_info.trim() || null,
         notes: form.notes.trim() || null,
         is_primary: form.is_primary,
+        linked_client_id: linkedClient?.id || null,
       });
     } else {
       await createTraveler.mutateAsync({
@@ -243,10 +308,12 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
         passport_info: form.passport_info.trim() || null,
         notes: form.notes.trim() || null,
         is_primary: form.is_primary,
+        linked_client_id: linkedClient?.id || null,
       });
     }
     setShowAddDialog(false);
     setEditingTraveler(null);
+    setLinkedClient(null);
   };
 
   const getInitials = (first: string, last?: string | null) =>
