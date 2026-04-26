@@ -23,6 +23,22 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useTrips } from "@/hooks/useTrips";
 import { useClients } from "@/hooks/useClients";
 import { DateRange } from "react-day-picker";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown, UserPlus } from "lucide-react";
+import { QuickAddClientForm } from "@/components/trips/QuickAddClientForm";
 
 const TRIP_TYPES = [
   { value: "regular", label: "Regular Trip" },
@@ -55,6 +71,10 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
     budget_range: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  const selectedClient = clients.find((c) => c.id === formData.client_id);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,27 +117,110 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client Selector */}
+          {/* Client Selector — searchable */}
           <div className="space-y-2">
             <Label>Client</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={(value) =>
-                setFormData({ ...formData, client_id: value === "none" ? "" : value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={clientsLoading ? "Loading clients..." : "Select a client (optional)"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No client yet</SelectItem>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} {client.email ? `(${client.email})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {quickAddOpen ? (
+              <QuickAddClientForm
+                onClientCreated={(id) => {
+                  setFormData({ ...formData, client_id: id });
+                  setQuickAddOpen(false);
+                }}
+                onCancel={() => setQuickAddOpen(false)}
+              />
+            ) : (
+              <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientPickerOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className={cn("truncate", !selectedClient && "text-muted-foreground")}>
+                      {clientsLoading
+                        ? "Loading clients..."
+                        : selectedClient
+                          ? `${selectedClient.name}${selectedClient.email ? ` (${selectedClient.email})` : ""}`
+                          : "Search for a client (optional)"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command
+                    filter={(value, search) => {
+                      if (!search) return 1;
+                      return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+                    }}
+                  >
+                    <CommandInput placeholder="Search by name or email..." />
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="py-2 text-sm text-muted-foreground">
+                          No clients found.
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__none__"
+                          onSelect={() => {
+                            setFormData({ ...formData, client_id: "" });
+                            setClientPickerOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !formData.client_id ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          No client yet
+                        </CommandItem>
+                        {clients.map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={`${client.name} ${client.email ?? ""} ${client.phone ?? ""}`}
+                            onSelect={() => {
+                              setFormData({ ...formData, client_id: client.id });
+                              setClientPickerOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.client_id === client.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span>{client.name}</span>
+                              {client.email && (
+                                <span className="text-xs text-muted-foreground">
+                                  {client.email}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__add_new__"
+                          onSelect={() => {
+                            setClientPickerOpen(false);
+                            setQuickAddOpen(true);
+                          }}
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Add new client
+                        </CommandItem>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           <div className="space-y-2">
