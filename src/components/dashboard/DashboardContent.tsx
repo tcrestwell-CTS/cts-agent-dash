@@ -20,6 +20,7 @@ import { BusinessSnapshot } from "@/components/dashboard/BusinessSnapshot";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { NextActions } from "@/components/dashboard/NextActions";
 import { AdvisorAssistant } from "@/components/dashboard/AdvisorAssistant";
+import { ConversionFunnelCard } from "@/components/dashboard/ConversionFunnelCard";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
@@ -62,6 +63,22 @@ export function DashboardContent() {
         .select("id, confirmation_number, status, created_at, updated_at, trip_id, supplier_id, trips(trip_name, destination, client_id, clients!trips_client_id_fkey(name))")
         .order("updated_at", { ascending: false })
         .limit(5);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: quoteFunnel } = useQuery({
+    queryKey: ["dashboard-quote-funnel", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quotes")
+        .select("id, sent_at, viewed_at, approved_at, status, trip_id")
+        .not("sent_at", "is", null)
+        .order("sent_at", { ascending: false })
+        .limit(500);
       if (error) throw error;
       return data || [];
     },
@@ -115,12 +132,33 @@ export function DashboardContent() {
       return isWithinInterval(d, thisMonth) && b.status !== "cancelled";
     });
     const revenueMTD = thisMonthBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+    const confirmedActiveBookings = activeBookings.filter((b) => b.status === "confirmed");
+    const avgBookingValue = confirmedActiveBookings.length > 0
+      ? confirmedActiveBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0) / confirmedActiveBookings.length
+      : 0;
     const totalClients = (clients || []).length;
     const clientsWithBookings = new Set(activeBookings.map((b) => b.client_id)).size;
     const conversionRate = totalClients > 0 ? Math.round((clientsWithBookings / totalClients) * 100) : 0;
 
-    return { followUps, paymentsDue, departuresSoon, quotesSent, pendingBookingsCount, confirmedTrips, upcomingTrips, revenueMTD, totalClients, conversionRate };
-  }, [bookings, clients, trips, pendingPayments]);
+    // Quote funnel (last 90 days)
+    const ninetyDaysAgo = addDays(now, -90);
+    const recentQuotes = (quoteFunnel || []).filter((q) =>
+      q.sent_at && parseISO(q.sent_at) >= ninetyDaysAgo
+    );
+    const funnelSent = recentQuotes.length;
+    const funnelViewed = recentQuotes.filter((q) => !!q.viewed_at).length;
+    const funnelApproved = recentQuotes.filter((q) => !!q.approved_at).length;
+    const recentTripIds = new Set(recentQuotes.map((q) => q.trip_id));
+    const funnelBooked = (trips || []).filter(
+      (t) => recentTripIds.has(t.id) && (t.status === "booked" || t.status === "confirmed" || t.status === "completed")
+    ).length;
+
+    return {
+      followUps, paymentsDue, departuresSoon, quotesSent, pendingBookingsCount, confirmedTrips,
+      upcomingTrips, revenueMTD, totalClients, conversionRate, avgBookingValue,
+      funnelSent, funnelViewed, funnelApproved, funnelBooked,
+    };
+  }, [bookings, clients, trips, pendingPayments, quoteFunnel]);
 
   const showOnboarding = !onboardingLoading && !onboardingComplete;
 
@@ -135,6 +173,7 @@ export function DashboardContent() {
           revenueMTD={computed.revenueMTD}
           totalClients={computed.totalClients}
           conversionRate={computed.conversionRate}
+          avgBookingValue={computed.avgBookingValue}
           loading={loading}
         />
       </div>
@@ -216,6 +255,13 @@ export function DashboardContent() {
                   loading={loading}
                 />
               )}
+              <ConversionFunnelCard
+                sent={computed.funnelSent}
+                viewed={computed.funnelViewed}
+                approved={computed.funnelApproved}
+                booked={computed.funnelBooked}
+                loading={loading}
+              />
               <ActivityFeed items={(recentActivity || []) as any} />
               <AdvisorAssistant
                 followUps={computed.followUps}
