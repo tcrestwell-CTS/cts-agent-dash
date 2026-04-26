@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Ship, Calendar, MapPin, DollarSign, Anchor, Clock, X, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AddToTripSelector } from "@/components/search/AddToTripSelector";
+import { AddToTripSelector, type CruiseCabinChoice } from "@/components/search/AddToTripSelector";
 import type {
   WidgetySailing,
   WidgetyDate,
@@ -142,6 +142,59 @@ export function CruiseDetailsModal({
 
   const perNight = fromPrice && sailing.nights ? fromPrice / sailing.nights : null;
   const portStops = getPortPreview(sailing);
+  const cruiseCabinChoices: CruiseCabinChoice[] = (() => {
+    const pricing = selectedDate?.pricing?.length
+      ? selectedDate.pricing
+      : (dates.find((d) => d.pricing?.length)?.pricing || []);
+    const detailedChoices = pricing.flatMap((deal) =>
+      (deal.prices || [])
+        .filter((p) => parseFloat(p.double_price_pp || "0") > 0)
+        .map((p) => {
+          const pp = parseFloat(p.double_price_pp);
+          const fees = parseFloat(p.non_comm_charges || "0");
+          const roomType = p.room_type || "Cabin";
+          const gradeName = p.grade_name || p.grade_code || "";
+          return {
+            category_name: `${roomType} — ${gradeName || p.grade_code || ""}`.trim(),
+            description: [
+              deal.name || null,
+              p.grade_code ? `Grade ${p.grade_code}` : null,
+              sailing.ship_title ? `Ship: ${sailing.ship_title}` : null,
+              fees > 0 ? `Non-commissionable fees: ${formatPrice(fees)} pp` : null,
+            ].filter(Boolean).join(" • ") || null,
+            price_per_person: pp,
+            deposit_amount: 0,
+            capacity: null,
+          };
+        }),
+    );
+    if (detailedChoices.length > 0) return detailedChoices;
+
+    const headlineDate = selectedDate?.headline_prices?.cruise?.double
+      ? selectedDate
+      : dates.find((d) => d.headline_prices?.cruise?.double);
+    const headline = headlineDate?.headline_prices?.cruise?.double;
+    if (!headline) return [];
+
+    return [
+      ["Inside", headline.from_inside],
+      ["Outside", headline.from_outside],
+      ["Balcony", headline.from_balcony],
+      ["Suite", headline.from_suite],
+    ].flatMap(([roomType, value]) => {
+      const pp = parseFloat(value || "0");
+      if (pp <= 0) return [];
+      return [{
+        category_name: `${roomType} — Lead rate`,
+        description: ["Lead rate from cruise feed", sailing.ship_title ? `Ship: ${sailing.ship_title}` : null]
+          .filter(Boolean)
+          .join(" • "),
+        price_per_person: pp,
+        deposit_amount: 0,
+        capacity: null,
+      }];
+    });
+  })();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
