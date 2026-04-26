@@ -258,6 +258,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
               type="date"
               value={formData.birthday}
               onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+              disabled={!!linkedClient}
             />
           </div>
 
@@ -270,6 +271,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="email@example.com"
+                disabled={!!linkedClient}
               />
             </div>
             <div className="space-y-2">
@@ -280,6 +282,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+1 (555) 000-0000"
+                disabled={!!linkedClient}
               />
             </div>
           </div>
@@ -296,6 +299,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
                   value={formData.known_traveler_number}
                   onChange={(e) => setFormData({ ...formData, known_traveler_number: e.target.value })}
                   placeholder="KTN"
+                  disabled={!!linkedClient}
                 />
               </div>
               <div className="space-y-2">
@@ -320,6 +324,7 @@ export function CompanionDialog({ open, onOpenChange, clientId, companion }: Com
               onChange={(e) => setFormData({ ...formData, passport_info: e.target.value })}
               placeholder="Passport number, expiry, country..."
               rows={2}
+              disabled={!!linkedClient}
             />
           </div>
 
