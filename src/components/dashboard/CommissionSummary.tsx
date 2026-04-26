@@ -70,6 +70,14 @@ export function CommissionSummary() {
         profiles?.map(p => [p.user_id, p.commission_tier as CommissionTier | null]) || []
       );
 
+      // Owner/admin-owned bookings count fully as company income
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .in("user_id", userIds);
+      const adminUserIds = new Set<string>((adminRoles ?? []).map((r) => r.user_id));
+
       let totalCommission = 0;
       let agentShare = 0;
       let agencyShare = 0;
@@ -79,17 +87,28 @@ export function CommissionSummary() {
       commissions.forEach((commission) => {
         const amount = commission.amount || 0;
         const margins = marginMap.get(commission.booking_id);
+        const isAdminOwned = adminUserIds.has(commission.user_id);
         
         // Phase 4: Use margin engine values when available
         if (margins && (margins.advisor_margin_amount || margins.agency_margin_amount)) {
-          totalCommission += margins.agency_gross_margin || amount;
-          agentShare += margins.advisor_margin_amount || 0;
-          agencyShare += margins.agency_margin_amount || 0;
+          const gross = margins.agency_gross_margin || amount;
+          totalCommission += gross;
+          if (isAdminOwned) {
+            // Owner: 100% to company, 0 to advisor
+            agencyShare += gross;
+          } else {
+            agentShare += margins.advisor_margin_amount || 0;
+            agencyShare += margins.agency_margin_amount || 0;
+          }
         } else {
           const tier = profileMap.get(commission.user_id);
           totalCommission += amount;
-          agentShare += calculateAgentCommission(amount, tier);
-          agencyShare += calculateAgencyCommission(amount, tier);
+          if (isAdminOwned) {
+            agencyShare += amount;
+          } else {
+            agentShare += calculateAgentCommission(amount, tier);
+            agencyShare += calculateAgencyCommission(amount, tier);
+          }
         }
         
         if (commission.status === "pending") {
