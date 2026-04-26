@@ -201,21 +201,37 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
       }
 
       // Create a booking with cost information for a cruise offer
-      if (cruiseOffer && cruiseOffer.totalAmount > 0) {
-        const { data: newBooking } = await supabase.from("bookings").insert({
+      if (cruiseOffer) {
+        // Fallback: if no specific cabin selected, use lowest cabin choice price (×2 for double occ)
+        let bookingAmount = cruiseOffer.totalAmount;
+        if (bookingAmount <= 0 && cruiseCabinChoices && cruiseCabinChoices.length > 0) {
+          const cheapestPP = Math.min(
+            ...cruiseCabinChoices.map((c) => c.price_per_person).filter((p) => p > 0),
+          );
+          if (Number.isFinite(cheapestPP) && cheapestPP > 0) {
+            bookingAmount = cheapestPP * 2;
+          }
+        }
+
+        const { data: newBooking, error: bookingErr } = await supabase.from("bookings").insert({
           user_id: user.id,
           trip_id: selectedTripId,
           confirmation_number: cruiseOffer.holidayRef || cruiseOffer.dateRef || `CRUISE-${Date.now()}`,
           status: "pending",
-          gross_sales: cruiseOffer.totalAmount,
-          total_price: cruiseOffer.totalAmount,
-          net_sales: cruiseOffer.totalAmount,
-          commissionable_amount: cruiseOffer.totalAmount,
+          gross_sales: bookingAmount,
+          total_price: bookingAmount,
+          net_sales: bookingAmount,
+          commissionable_amount: bookingAmount,
           source: "widgety_search",
         }).select("id").single();
 
+        if (bookingErr) {
+          console.error("Cruise booking insert failed:", bookingErr);
+          toast.error(`Failed to create booking: ${bookingErr.message}`);
+        }
+
         if (newBooking) {
-          await supabase.from("booking_margin_lines").insert({
+          const { error: lineErr } = await supabase.from("booking_margin_lines").insert({
             booking_id: newBooking.id,
             user_id: user.id,
             line_type: "cruise",
@@ -226,11 +242,12 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
             ].filter(Boolean).join(" • "),
             source: "widgety",
             quantity: 1,
-            unit_cost: cruiseOffer.totalAmount,
-            unit_sell: cruiseOffer.totalAmount,
+            unit_cost: bookingAmount,
+            unit_sell: bookingAmount,
             is_pass_through: false,
             sort_order: 0,
           });
+          if (lineErr) console.warn("Margin line insert failed:", lineErr);
 
           await supabase.rpc("calculate_booking_margin", {
             p_booking_id: newBooking.id,
@@ -262,8 +279,9 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
 
       // For GROUP trips, populate trip_cabin_options with every available cabin choice
       const selectedTrip = trips.find((t) => t.id === selectedTripId);
+      const isGroupTrip = selectedTrip?.trip_type === "group";
       if (
-        selectedTrip?.trip_type === "group" &&
+        isGroupTrip &&
         cruiseCabinChoices &&
         cruiseCabinChoices.length > 0
       ) {
@@ -307,9 +325,14 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
             .from("trip_cabin_options")
             .insert(cabinInserts);
           if (cabinErr) {
-            console.warn("Failed to seed cabin options:", cabinErr);
+            console.error("Failed to seed cabin options:", cabinErr);
+            toast.error(`Cabin options not added: ${cabinErr.message}`);
           }
         }
+      } else if (isGroupTrip && cruiseOffer && (!cruiseCabinChoices || cruiseCabinChoices.length === 0)) {
+        toast.warning(
+          "No cabin pricing available to import. Open the Pricing tab on the cruise to load cabin choices first.",
+        );
       }
 
       const tripName = trips.find(t => t.id === selectedTripId)?.trip_name || "trip";
