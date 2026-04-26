@@ -64,7 +64,7 @@ export function useWorkflowAutomation() {
         }
 
         const followUpDate = new Date();
-        followUpDate.setDate(followUpDate.getDate() + 7);
+        followUpDate.setDate(followUpDate.getDate() + 2);
 
         await supabase
           .from("trips")
@@ -78,13 +78,13 @@ export function useWorkflowAutomation() {
           trip.id,
           `Follow up on proposal for ${trip.trip_name}`,
           "follow_up",
-          "7-day follow-up: check if client has reviewed the proposal",
+          "2-day follow-up: check if client has reviewed the proposal",
           followUpDate
         );
 
         await createNotification(
           "Proposal Sent",
-          `Proposal sent for "${trip.trip_name}". Follow-up due in 7 days.`,
+          `Proposal sent for "${trip.trip_name}". Follow-up due in 2 days.`,
           trip.id
         );
 
