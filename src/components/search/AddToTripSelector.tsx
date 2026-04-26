@@ -12,6 +12,7 @@ interface TripOption {
   trip_name: string;
   destination: string | null;
   status: string;
+  trip_type?: string | null;
   clients?: { name: string } | null;
 }
 
@@ -54,6 +55,14 @@ export interface CruiseOfferMeta {
   destination?: string | null;
 }
 
+export interface CruiseCabinChoice {
+  category_name: string;   // e.g. "Balcony — BA Deluxe Balcony"
+  description?: string | null;
+  price_per_person: number;
+  deposit_amount?: number;
+  capacity?: number | null;
+}
+
 interface AddToTripSelectorProps {
   items: ItineraryItemData[];
   disabled?: boolean;
@@ -61,9 +70,10 @@ interface AddToTripSelectorProps {
   defaultTripId?: string;
   flightOffer?: FlightOfferMeta;
   cruiseOffer?: CruiseOfferMeta;
+  cruiseCabinChoices?: CruiseCabinChoice[];
 }
 
-export function AddToTripSelector({ items, disabled, label = "Add to Trip", defaultTripId, flightOffer, cruiseOffer }: AddToTripSelectorProps) {
+export function AddToTripSelector({ items, disabled, label = "Add to Trip", defaultTripId, flightOffer, cruiseOffer, cruiseCabinChoices }: AddToTripSelectorProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [trips, setTrips] = useState<TripOption[]>([]);
@@ -76,7 +86,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
     setLoading(true);
     supabase
       .from("trips")
-      .select("id, trip_name, destination, status, clients!trips_client_id_fkey(name)")
+      .select("id, trip_name, destination, status, trip_type, clients!trips_client_id_fkey(name)")
       .in("status", ["lead", "planning", "quoting", "booked", "active"])
       .order("updated_at", { ascending: false })
       .limit(50)
@@ -250,9 +260,65 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
         }
       }
 
+      // For GROUP trips, populate trip_cabin_options with every available cabin choice
+      const selectedTrip = trips.find((t) => t.id === selectedTripId);
+      if (
+        selectedTrip?.trip_type === "group" &&
+        cruiseCabinChoices &&
+        cruiseCabinChoices.length > 0
+      ) {
+        // Read existing options to avoid creating duplicates
+        const { data: existingOpts } = await supabase
+          .from("trip_cabin_options")
+          .select("category_name, sort_order")
+          .eq("trip_id", selectedTripId);
+
+        const existingNames = new Set(
+          (existingOpts || []).map((o: any) => (o.category_name || "").trim().toLowerCase()),
+        );
+        const baseSort = (existingOpts || []).reduce(
+          (max: number, o: any) => Math.max(max, o.sort_order ?? 0),
+          -1,
+        ) + 1;
+
+        // Dedupe incoming choices by category name (keep the cheapest)
+        const uniqueByName = new Map<string, CruiseCabinChoice>();
+        for (const c of cruiseCabinChoices) {
+          const key = c.category_name.trim().toLowerCase();
+          if (!key || existingNames.has(key)) continue;
+          const prev = uniqueByName.get(key);
+          if (!prev || c.price_per_person < prev.price_per_person) {
+            uniqueByName.set(key, c);
+          }
+        }
+
+        const cabinInserts = Array.from(uniqueByName.values()).map((c, idx) => ({
+          trip_id: selectedTripId,
+          category_name: c.category_name,
+          description: c.description ?? null,
+          price_per_person: c.price_per_person,
+          deposit_amount: c.deposit_amount ?? 0,
+          capacity: c.capacity ?? null,
+          sort_order: baseSort + idx,
+        }));
+
+        if (cabinInserts.length > 0) {
+          const { error: cabinErr } = await supabase
+            .from("trip_cabin_options")
+            .insert(cabinInserts);
+          if (cabinErr) {
+            console.warn("Failed to seed cabin options:", cabinErr);
+          }
+        }
+      }
+
       const tripName = trips.find(t => t.id === selectedTripId)?.trip_name || "trip";
+      const isGroupCruise =
+        selectedTrip?.trip_type === "group" &&
+        cruiseCabinChoices &&
+        cruiseCabinChoices.length > 0;
       const summary = cruiseOffer
-        ? `Added cruise to ${tripName}${cruiseOffer.totalAmount > 0 ? " with booking" : ""}`
+        ? `Added cruise to ${tripName}${cruiseOffer.totalAmount > 0 ? " with booking" : ""}${isGroupCruise ? " — cabin options populated" : ""}`
         : `Added ${items.length} item${items.length === 1 ? "" : "s"} to ${tripName}${flightOffer ? " with booking" : ""}`;
       toast.success(summary, {
         action: {
