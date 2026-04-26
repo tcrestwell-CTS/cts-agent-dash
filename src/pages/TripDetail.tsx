@@ -57,6 +57,7 @@ import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { useProfile } from "@/hooks/useProfile";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
+import { usePermissions } from "@/hooks/usePermissions";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import {
@@ -96,6 +97,7 @@ const TripDetail = () => {
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
   const earnings = useEarningsLabel();
+  const { isAdmin } = usePermissions();
   const { data: tripTravelers = [] } = useTripTravelers(tripId);
   const hasPayments = payments.length > 0;
   const [isSendingPortalLink, setIsSendingPortalLink] = useState(false);
@@ -594,12 +596,15 @@ const TripDetail = () => {
 
                   {trip.total_commission_revenue > 0 && profile && (() => {
                     const tierKey = profile.commission_tier || "tier_1";
-                    const tierConfig = {
+                    const baseTierConfig = {
                       none: { label: "None", agentSplit: 0, agencySplit: 100 },
                       tier_1: { label: "Tier 1", agentSplit: 70, agencySplit: 30 },
                       tier_2: { label: "Tier 2", agentSplit: 80, agencySplit: 20 },
                       tier_3: { label: "Tier 3", agentSplit: 95, agencySplit: 5 },
                     }[tierKey] || { label: "Tier 1", agentSplit: 70, agencySplit: 30 };
+                    const tierConfig = isAdmin
+                      ? { label: "Owner", agentSplit: 0, agencySplit: 100 }
+                      : baseTierConfig;
 
                     const agentCommissionBase = trip.total_commission_revenue;
                     const advisorPayout = agentCommissionBase * (tierConfig.agentSplit / 100);
