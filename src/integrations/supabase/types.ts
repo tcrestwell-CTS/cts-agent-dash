@@ -744,6 +744,7 @@ export type Database = {
           companion_id: string
           created_at: string
           id: string
+          linked_client_id: string | null
           user_id: string
         }
         Insert: {
@@ -751,6 +752,7 @@ export type Database = {
           companion_id: string
           created_at?: string
           id?: string
+          linked_client_id?: string | null
           user_id: string
         }
         Update: {
@@ -758,6 +760,7 @@ export type Database = {
           companion_id?: string
           created_at?: string
           id?: string
+          linked_client_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -773,6 +776,13 @@ export type Database = {
             columns: ["companion_id"]
             isOneToOne: false
             referencedRelation: "client_companions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_travelers_linked_client_id_fkey"
+            columns: ["linked_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -1267,6 +1277,7 @@ export type Database = {
           id: string
           known_traveler_number: string | null
           last_name: string | null
+          linked_client_id: string | null
           notes: string | null
           passport_info: string | null
           phone: string | null
@@ -1284,6 +1295,7 @@ export type Database = {
           id?: string
           known_traveler_number?: string | null
           last_name?: string | null
+          linked_client_id?: string | null
           notes?: string | null
           passport_info?: string | null
           phone?: string | null
@@ -1301,6 +1313,7 @@ export type Database = {
           id?: string
           known_traveler_number?: string | null
           last_name?: string | null
+          linked_client_id?: string | null
           notes?: string | null
           passport_info?: string | null
           phone?: string | null
@@ -1313,6 +1326,13 @@ export type Database = {
           {
             foreignKeyName: "client_companions_client_id_fkey"
             columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companions_linked_client_id_fkey"
+            columns: ["linked_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
@@ -4893,6 +4913,7 @@ export type Database = {
           is_primary: boolean | null
           known_traveler_number: string | null
           last_name: string | null
+          linked_client_id: string | null
           notes: string | null
           passport_info: string | null
           phone: string | null
@@ -4910,6 +4931,7 @@ export type Database = {
           is_primary?: boolean | null
           known_traveler_number?: string | null
           last_name?: string | null
+          linked_client_id?: string | null
           notes?: string | null
           passport_info?: string | null
           phone?: string | null
@@ -4927,6 +4949,7 @@ export type Database = {
           is_primary?: boolean | null
           known_traveler_number?: string | null
           last_name?: string | null
+          linked_client_id?: string | null
           notes?: string | null
           passport_info?: string | null
           phone?: string | null
@@ -4936,6 +4959,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trip_travelers_linked_client_id_fkey"
+            columns: ["linked_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trip_travelers_trip_id_fkey"
             columns: ["trip_id"]
