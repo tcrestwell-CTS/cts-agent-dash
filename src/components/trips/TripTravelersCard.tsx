@@ -47,7 +47,6 @@ import { useClients } from "@/hooks/useClients";
 import { useCompanions } from "@/hooks/useCompanions";
 import { useCreateClient } from "@/hooks/useClients";
 import { ClientSearchCombobox, type SelectedClient } from "@/components/shared/ClientSearchCombobox";
-import { Separator } from "@/components/ui/separator";
 import { format, differenceInYears } from "date-fns";
 import {
   useTripTravelers,
