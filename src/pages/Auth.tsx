@@ -491,19 +491,19 @@ const Auth = () => {
       </div>
 
       {/* Right side - Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md space-y-6">
+      <div className="flex-1 flex items-center justify-center px-4 py-6 sm:p-8">
+        <div className="w-full max-w-md space-y-5 sm:space-y-6">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex justify-center mb-8">
+          <div className="lg:hidden flex justify-center mb-4 sm:mb-8">
             <img
               src={crestwellLogo}
               alt="Crestwell Travel Network"
-              className="h-16 w-auto object-contain"
+              className="h-12 sm:h-16 w-auto object-contain"
             />
           </div>
 
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-semibold text-foreground tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
               {inviteToken 
                 ? (authMode === "email" && emailMode === "signup" && signupStep === "otp" 
                     ? "Verify Your Email"
@@ -512,7 +512,7 @@ const Auth = () => {
                     : "Accept Your Invitation")
                 : (emailMode === "signup" ? "Create your account" : "Welcome back")}
             </h2>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-sm sm:text-base text-muted-foreground mt-2">
               {inviteToken 
                 ? (authMode === "email" && emailMode === "signup" && signupStep === "otp"
                     ? "Enter the 6-digit code sent to your email"
@@ -602,13 +602,17 @@ const Auth = () => {
                     <Input
                       id="email"
                       type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
                         setEmailError("");
                       }}
-                      className={emailError ? "border-destructive" : ""}
+                      className={`h-12 text-base ${emailError ? "border-destructive" : ""}`}
                     />
                     {emailError && (
                       <p className="text-sm text-destructive">{emailError}</p>
@@ -623,13 +627,14 @@ const Auth = () => {
                           <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => {
                               setPassword(e.target.value);
                               setPasswordError("");
                             }}
-                            className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                            className={`h-12 text-base pr-10 ${passwordError ? "border-destructive" : ""}`}
                           />
                           <button
                             type="button"
@@ -678,19 +683,19 @@ const Auth = () => {
                     </p>
                   </div>
 
-                  <div className="flex justify-center">
+                  <div className="flex justify-center w-full">
                     <InputOTP
                       maxLength={6}
                       value={otpCode}
                       onChange={setOtpCode}
                     >
                       <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
+                        <InputOTPSlot index={0} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={1} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={2} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={3} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={4} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={5} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
@@ -746,13 +751,14 @@ const Auth = () => {
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => {
                           setPassword(e.target.value);
                           setPasswordError("");
                         }}
-                        className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                        className={`h-12 text-base pr-10 ${passwordError ? "border-destructive" : ""}`}
                       />
                       <button
                         type="button"
@@ -772,9 +778,11 @@ const Auth = () => {
                     <Input
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="h-12 text-base"
                     />
                   </div>
 
