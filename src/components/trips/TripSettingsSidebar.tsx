@@ -111,6 +111,7 @@ export function TripSettingsSidebar({
       toast.error("Failed to update setting");
       setLocalSettings(settings); // revert
     } else {
+      await syncDepositPaymentIfNeeded(updated);
       onSettingsChange();
     }
   };
@@ -128,7 +129,37 @@ export function TripSettingsSidebar({
       toast.error("Failed to update settings");
       setLocalSettings(settings);
     } else {
+      await syncDepositPaymentIfNeeded(updated);
       onSettingsChange();
+    }
+  };
+
+  // Keep the pending deposit row in trip_payments aligned with the trip's deposit settings.
+  const syncDepositPaymentIfNeeded = async (next: TripSettings) => {
+    const newDeposit = next.deposit_required
+      ? (next.deposit_override ? next.deposit_amount : autoDepositAmount)
+      : 0;
+
+    const { data: depositRows, error: fetchErr } = await supabase
+      .from("trip_payments")
+      .select("id, amount, status")
+      .eq("trip_id", tripId)
+      .eq("payment_type", "deposit")
+      .neq("status", "paid")
+      .neq("status", "completed");
+
+    if (fetchErr || !depositRows || depositRows.length === 0) return;
+
+    const target = depositRows[0];
+    if (Number(target.amount) === Number(newDeposit)) return;
+
+    const { error: updErr } = await supabase
+      .from("trip_payments")
+      .update({ amount: newDeposit })
+      .eq("id", target.id);
+
+    if (!updErr) {
+      toast.success(`Deposit due updated to ${formatCurrency(newDeposit)}`);
     }
   };
 
