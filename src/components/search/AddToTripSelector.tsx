@@ -87,9 +87,9 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
     supabase
       .from("trips")
       .select("id, trip_name, destination, status, trip_type, clients!trips_client_id_fkey(name)")
-      .in("status", ["lead", "planning", "quoting", "booked", "active"])
+      .not("status", "in", "(archived,cancelled,completed)")
       .order("updated_at", { ascending: false })
-      .limit(50)
+      .limit(1000)
       .then(({ data, error }) => {
         if (!error && data) setTrips(data as TripOption[]);
         setLoading(false);
