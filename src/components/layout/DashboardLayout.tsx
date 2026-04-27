@@ -21,7 +21,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             ? "pt-14"
             : collapsed
             ? "pl-16 transition-all duration-300"
-            : "pl-64 transition-all duration-300"
+            : "pl-72 transition-all duration-300"
         }
       >
         <div className={isMobile ? "p-4" : "p-8"}>{children}</div>

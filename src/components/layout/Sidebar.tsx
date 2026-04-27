@@ -565,8 +565,8 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
         className={cn(
           "fixed left-0 top-0 z-50 h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
           isMobile
-            ? cn("w-64", mobileOpen ? "translate-x-0" : "-translate-x-full")
-            : collapsed ? "w-16" : "w-64"
+            ? cn("w-72", mobileOpen ? "translate-x-0" : "-translate-x-full")
+            : collapsed ? "w-16" : "w-72"
         )}
       >
         {sidebarContent}
