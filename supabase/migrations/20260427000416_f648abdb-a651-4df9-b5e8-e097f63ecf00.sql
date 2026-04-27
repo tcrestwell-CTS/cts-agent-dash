@@ -1,0 +1,1 @@
+UPDATE public.clients SET email = 'bettyrogers35@gmail.com', updated_at = now() WHERE id = '66da6e3a-1e66-49e1-a3cd-b647093ffe40';
