@@ -602,13 +602,17 @@ const Auth = () => {
                     <Input
                       id="email"
                       type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
                         setEmailError("");
                       }}
-                      className={emailError ? "border-destructive" : ""}
+                      className={`h-12 text-base ${emailError ? "border-destructive" : ""}`}
                     />
                     {emailError && (
                       <p className="text-sm text-destructive">{emailError}</p>
@@ -623,13 +627,14 @@ const Auth = () => {
                           <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => {
                               setPassword(e.target.value);
                               setPasswordError("");
                             }}
-                            className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                            className={`h-12 text-base pr-10 ${passwordError ? "border-destructive" : ""}`}
                           />
                           <button
                             type="button"
@@ -678,19 +683,19 @@ const Auth = () => {
                     </p>
                   </div>
 
-                  <div className="flex justify-center">
+                  <div className="flex justify-center w-full">
                     <InputOTP
                       maxLength={6}
                       value={otpCode}
                       onChange={setOtpCode}
                     >
                       <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
+                        <InputOTPSlot index={0} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={1} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={2} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={3} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={4} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
+                        <InputOTPSlot index={5} className="h-11 w-10 sm:h-12 sm:w-12 text-base" />
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
@@ -746,13 +751,14 @@ const Auth = () => {
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => {
                           setPassword(e.target.value);
                           setPasswordError("");
                         }}
-                        className={passwordError ? "border-destructive pr-10" : "pr-10"}
+                        className={`h-12 text-base pr-10 ${passwordError ? "border-destructive" : ""}`}
                       />
                       <button
                         type="button"
@@ -772,9 +778,11 @@ const Auth = () => {
                     <Input
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="h-12 text-base"
                     />
                   </div>
 
