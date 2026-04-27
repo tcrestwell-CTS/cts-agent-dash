@@ -75,15 +75,28 @@ serve(async (req) => {
       const { data } = await anonClient.auth.getUser(token);
       if (!data.user) throw new Error("Not authenticated");
 
-      const { data: profile } = await supabase
-        .from("client_profiles")
-        .select("client_id")
-        .eq("auth_user_id", data.user.id)
-        .maybeSingle();
+      // If the authenticated user is an agent (has any role in user_roles),
+      // treat this as an agent-initiated payment and skip portal access checks.
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .limit(1);
 
-      if (profile) {
-        clientId = profile.client_id;
-        isPortal = true;
+      if (roles && roles.length > 0) {
+        // Agent context — full access
+        isPortal = false;
+      } else {
+        const { data: profile } = await supabase
+          .from("client_profiles")
+          .select("client_id")
+          .eq("auth_user_id", data.user.id)
+          .maybeSingle();
+
+        if (profile) {
+          clientId = profile.client_id;
+          isPortal = true;
+        }
       }
     } else {
       throw new Error("No authentication provided");
