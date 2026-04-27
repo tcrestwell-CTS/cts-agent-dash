@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ship, Search, ChevronRight, Loader2, Anchor, MapPin, Calendar, DollarSign, Check } from "lucide-react";
+import { Ship, Search, ChevronRight, ChevronDown, Loader2, Anchor, MapPin, Calendar, DollarSign, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -198,6 +198,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   const [previewItems, setPreviewItems] = useState<WidgetyItineraryItem[]>([]);
   const [meta, setMeta] = useState<{ ship_title?: string; operator_title?: string; holiday_name?: string }>({});
   const [selectedCabin, setSelectedCabin] = useState<{ deal_name: string; cabin: WidgetyCabinPrice; room_type: string } | null>(null);
+  const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
 
   // Auto-match on open
   useEffect(() => {
@@ -730,7 +731,7 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                 {selectedDate.starts_at && ` • ${selectedDate.starts_at.name} → ${selectedDate.ends_at?.name || ""}`}
               </p>
             </div>
-            <ScrollArea className="flex-1 h-[320px]">
+            <ScrollArea className="flex-1 min-h-0">
               {selectedDate.pricing && selectedDate.pricing.length > 0 ? (
                 <div className="space-y-4 pr-3">
                   {selectedDate.pricing.map((deal, di) => {
@@ -755,12 +756,47 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                         {deal.name && (
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{deal.name}</p>
                         )}
-                        {sortedTypes.map((roomType) => (
-                          <div key={roomType} className="mb-3">
-                            <p className="text-xs font-medium text-foreground mb-1">{roomType}</p>
-                            <div className="space-y-1">
+                        {sortedTypes.map((roomType) => {
+                          const key = `${di}:${roomType}`;
+                          const isExpanded = expandedRoomTypes.has(key);
+                          const cabins = grouped[roomType];
+                          const minPrice = Math.min(
+                            ...cabins
+                              .map((c) => parseFloat(c.double_price_pp))
+                              .filter((n) => !isNaN(n) && n > 0)
+                          );
+                          return (
+                          <div key={roomType} className="mb-2 border border-border/50 rounded-md overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedRoomTypes((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(key)) next.delete(key);
+                                  else next.add(key);
+                                  return next;
+                                })
+                              }
+                              className="w-full flex items-center justify-between px-2 py-1.5 bg-accent/30 hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                )}
+                                <p className="text-xs font-medium text-foreground">{roomType}</p>
+                                <Badge variant="secondary" className="text-[9px] px-1 py-0">{cabins.length}</Badge>
+                              </div>
+                              {isFinite(minPrice) && minPrice > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  from <span className="text-primary font-semibold">${minPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                </span>
+                              )}
+                            </button>
+                            {isExpanded && (
+                            <div className="space-y-1 p-2">
                               {(() => {
-                                const cabins = grouped[roomType];
                                 const hasSingle = cabins.some(c => c.single_price_pp && parseFloat(c.single_price_pp) > 0);
                                 const hasTriple = cabins.some(c => c.triple_price_pp && parseFloat(c.triple_price_pp) > 0);
                                 return (
@@ -831,8 +867,10 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
                                 );
                               })()}
                             </div>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     );
                   })}
