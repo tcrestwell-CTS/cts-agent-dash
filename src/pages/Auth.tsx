@@ -491,19 +491,19 @@ const Auth = () => {
       </div>
 
       {/* Right side - Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md space-y-6">
+      <div className="flex-1 flex items-center justify-center px-4 py-6 sm:p-8">
+        <div className="w-full max-w-md space-y-5 sm:space-y-6">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex justify-center mb-8">
+          <div className="lg:hidden flex justify-center mb-4 sm:mb-8">
             <img
               src={crestwellLogo}
               alt="Crestwell Travel Network"
-              className="h-16 w-auto object-contain"
+              className="h-12 sm:h-16 w-auto object-contain"
             />
           </div>
 
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-semibold text-foreground tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
               {inviteToken 
                 ? (authMode === "email" && emailMode === "signup" && signupStep === "otp" 
                     ? "Verify Your Email"
@@ -512,7 +512,7 @@ const Auth = () => {
                     : "Accept Your Invitation")
                 : (emailMode === "signup" ? "Create your account" : "Welcome back")}
             </h2>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-sm sm:text-base text-muted-foreground mt-2">
               {inviteToken 
                 ? (authMode === "email" && emailMode === "signup" && signupStep === "otp"
                     ? "Enter the 6-digit code sent to your email"
