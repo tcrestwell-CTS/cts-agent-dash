@@ -752,9 +752,9 @@ export default function GroupLanding() {
       {/* ─── Signup Form Modal ────────────────────── */}
       {showSignupForm && signupEnabled && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md shadow-2xl border-0 overflow-hidden rounded-2xl">
+          <Card className="w-full max-w-md shadow-2xl border-0 overflow-hidden rounded-2xl flex flex-col max-h-[90vh]">
             <div
-              className="p-6 text-white"
+              className="p-6 text-white shrink-0"
               style={{
                 background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
               }}
@@ -769,7 +769,7 @@ export default function GroupLanding() {
                 </p>
               )}
             </div>
-            <CardContent className="p-6">
+            <CardContent className="p-6 overflow-y-auto flex-1">
               {submitted ? (
                 <div className="text-center py-6 space-y-4">
                   <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
