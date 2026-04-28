@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, Cake } from "lucide-react";
 import { Client } from "@/hooks/useClients";
 import { format, differenceInYears } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { parseLocalDate } from "@/lib/utils";
 
 interface ClientCardProps {
   client: Client & {
@@ -36,7 +37,7 @@ export function ClientCard({ client }: ClientCardProps) {
 
   const formatBirthday = (birthday: string | null) => {
     if (!birthday) return null;
-    const date = new Date(birthday);
+    const date = parseLocalDate(birthday);
     const age = differenceInYears(new Date(), date);
     return `${format(date, "MMM d")} (${age}y)`;
   };
