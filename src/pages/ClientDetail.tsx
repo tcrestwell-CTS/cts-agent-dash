@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
+import { parseLocalDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -298,7 +299,7 @@ const ClientDetail = () => {
 
   const formatBirthdayWithAge = (birthday: string | null) => {
     if (!birthday) return null;
-    const date = new Date(birthday);
+    const date = parseLocalDate(birthday);
     const age = differenceInYears(new Date(), date);
     return `${format(date, "MMMM d, yyyy")} (${age} years old)`;
   };
@@ -1478,7 +1479,7 @@ function CompanionCard({
 
   const formatBirthday = (birthday: string | null) => {
     if (!birthday) return null;
-    const date = new Date(birthday);
+    const date = parseLocalDate(birthday);
     const age = differenceInYears(new Date(), date);
     return `${format(date, "MMM d, yyyy")} (${age} years)`;
   };
