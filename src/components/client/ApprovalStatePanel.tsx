@@ -1,6 +1,5 @@
 import { CheckCircle2, Clock, Lock, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 type Kind = "itinerary" | "budget";
@@ -19,8 +18,8 @@ interface Props {
    * Defaults to true (viewer is the client).
    */
   canApprove?: boolean;
-  /** Tab key to switch to when prompting the user where the button lives. */
-  approveTabHref?: string;
+  /** Click handler to switch the user to the tab where Approve lives (Overview/Itinerary). */
+  onGoToApproveTab?: () => void;
 }
 
 /**
@@ -33,7 +32,7 @@ export function ApprovalStatePanel({
   approved,
   approvedName,
   canApprove = true,
-  approveTabHref,
+  onGoToApproveTab,
 }: Props) {
   const label = kind === "itinerary" ? "Itinerary" : "Budget";
 
@@ -106,9 +105,9 @@ export function ApprovalStatePanel({
               ? "Review the itinerary options below, then approve your preferred one to unlock payment."
               : "This budget is tied to your itinerary. Approve your preferred itinerary to lock in pricing and unlock Pay Now options."}
           </p>
-          {approveTabHref && kind === "budget" && (
-            <Button asChild size="sm" variant="outline" className="mt-2">
-              <Link to={approveTabHref}>Go to Itinerary</Link>
+          {onGoToApproveTab && (
+            <Button size="sm" variant="outline" className="mt-2" onClick={onGoToApproveTab}>
+              {kind === "budget" ? "Go to Itinerary Options" : "View Itinerary Options"}
             </Button>
           )}
         </div>
