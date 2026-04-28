@@ -65,9 +65,37 @@ export function useCreateTripTraveler() {
     mutationFn: async (traveler: TripTravelerInsert & { client_id?: string | null }) => {
       if (!user) throw new Error("Not authenticated");
       const { client_id, ...travelerData } = traveler;
+
+      // Auto-create a client record if none is linked, so the traveler shows
+      // up in Client Management as a contact.
+      let linkedClientId = travelerData.linked_client_id || null;
+      if (!linkedClientId) {
+        const fullName = `${travelerData.first_name} ${travelerData.last_name || ""}`.trim();
+        const { data: newClient, error: clientError } = await supabase
+          .from("clients")
+          .insert({
+            user_id: user.id,
+            name: fullName,
+            first_name: travelerData.first_name,
+            last_name: travelerData.last_name || null,
+            email: travelerData.email || null,
+            phone: travelerData.phone || null,
+            birthday: travelerData.birthday || null,
+            known_traveler_number: travelerData.known_traveler_number || null,
+            passport_info: travelerData.passport_info || null,
+            status: "active",
+            source: "trip_traveler",
+          })
+          .select("id")
+          .single();
+        if (!clientError && newClient) {
+          linkedClientId = newClient.id;
+        }
+      }
+
       const { data, error } = await supabase
         .from("trip_travelers")
-        .insert({ ...travelerData, user_id: user.id })
+        .insert({ ...travelerData, linked_client_id: linkedClientId, user_id: user.id })
         .select()
         .single();
       if (error) throw error;
@@ -88,7 +116,7 @@ export function useCreateTripTraveler() {
             known_traveler_number: travelerData.known_traveler_number || null,
             passport_info: travelerData.passport_info || null,
             notes: travelerData.notes || null,
-            linked_client_id: travelerData.linked_client_id || null,
+            linked_client_id: linkedClientId,
           });
         // Don't throw on companion insert failure — it's a best-effort sync
       }

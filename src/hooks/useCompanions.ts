@@ -66,9 +66,36 @@ export function useCreateCompanion() {
     mutationFn: async (companion: CompanionInsert) => {
       if (!user) throw new Error("User not authenticated");
 
+      // Auto-create a client record if none is linked, so the companion shows
+      // up in Client Management as a contact.
+      let linkedClientId = companion.linked_client_id || null;
+      if (!linkedClientId) {
+        const fullName = `${companion.first_name} ${companion.last_name || ""}`.trim();
+        const { data: newClient, error: clientError } = await supabase
+          .from("clients")
+          .insert({
+            user_id: user.id,
+            name: fullName,
+            first_name: companion.first_name,
+            last_name: companion.last_name || null,
+            email: companion.email || null,
+            phone: companion.phone || null,
+            birthday: companion.birthday || null,
+            known_traveler_number: companion.known_traveler_number || null,
+            passport_info: companion.passport_info || null,
+            status: "active",
+            source: "companion",
+          })
+          .select("id")
+          .single();
+        if (!clientError && newClient) {
+          linkedClientId = newClient.id;
+        }
+      }
+
       const { data, error } = await supabase
         .from("client_companions")
-        .insert({ ...companion, user_id: user.id })
+        .insert({ ...companion, linked_client_id: linkedClientId, user_id: user.id })
         .select()
         .single();
 
@@ -77,6 +104,7 @@ export function useCreateCompanion() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["companions", data.client_id] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success("Companion added successfully");
     },
     onError: (error) => {
