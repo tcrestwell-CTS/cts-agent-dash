@@ -23,6 +23,7 @@ import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { TravelDocChecklist } from "@/components/client/TravelDocChecklist";
 import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocationTimeline";
 import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
+import { ApprovalStatePanel } from "@/components/client/ApprovalStatePanel";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -842,6 +843,13 @@ export default function PortalTripDetail() {
       {/* Itinerary Tab */}
       {activeTab === "itinerary" && (
         <div className="space-y-6">
+          <ApprovalStatePanel
+            kind="itinerary"
+            published={Boolean(trip.published_at)}
+            approved={Boolean(approvedId)}
+            approvedName={itineraries.find((i: any) => i.id === approvedId)?.name}
+            onGoToApproveTab={() => setActiveTab("overview")}
+          />
           {itinerary.length > 0 && <ItineraryLocationTimeline items={itinerary} />}
           {itineraries.length > 0 ? (
             itineraries.map((itin: any) => {
@@ -869,7 +877,15 @@ export default function PortalTripDetail() {
 
       {/* Pricing Tab */}
       {activeTab === "pricing" && (
-        <Card>
+        <div className="space-y-6">
+          <ApprovalStatePanel
+            kind="budget"
+            published={Boolean(trip.published_at) && (pricingLines.length > 0 || totalCost > 0)}
+            approved={Boolean(approvedId)}
+            approvedName={itineraries.find((i: any) => i.id === approvedId)?.name}
+            onGoToApproveTab={() => setActiveTab("overview")}
+          />
+          <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4" /> Pricing Breakdown</CardTitle></CardHeader>
           <CardContent>
             {pricingLines.length > 0 ? (
@@ -927,7 +943,8 @@ export default function PortalTripDetail() {
               <p className="text-sm text-muted-foreground text-center py-4">Pricing details are not yet available.</p>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       )}
       <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
         <DialogContent className="max-w-lg">
