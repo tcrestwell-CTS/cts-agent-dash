@@ -583,7 +583,7 @@ const handler = async (req: Request): Promise<Response> => {
       to: string[];
       subject: string;
       html: string;
-      attachments?: Array<{ filename: string; content: Uint8Array }>;
+      attachments?: Array<{ filename: string; content: string }>;
     } = {
       from: `${fromName} <${fromEmail}>`,
       to: [to],
@@ -593,9 +593,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Add attachments if provided
     if (attachments && attachments.length > 0) {
+      // Resend's REST API requires attachment content as a base64-encoded string.
+      // Strip any data URL prefix (e.g. "data:application/pdf;base64,") if present.
       emailOptions.attachments = attachments.map((att) => ({
         filename: att.filename,
-        content: base64ToUint8Array(att.content),
+        content: (att.content || "").replace(/^data:[^;]+;base64,/, ""),
       }));
       console.log(`Adding ${attachments.length} attachment(s) to email`);
     }
