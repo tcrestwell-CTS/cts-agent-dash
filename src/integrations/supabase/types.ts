@@ -671,6 +671,7 @@ export type Database = {
           deposit_amount: number
           description: string
           id: string
+          is_internal: boolean
           is_optional: boolean
           is_pass_through: boolean
           line_type: string
@@ -692,6 +693,7 @@ export type Database = {
           deposit_amount?: number
           description?: string
           id?: string
+          is_internal?: boolean
           is_optional?: boolean
           is_pass_through?: boolean
           line_type?: string
@@ -713,6 +715,7 @@ export type Database = {
           deposit_amount?: number
           description?: string
           id?: string
+          is_internal?: boolean
           is_optional?: boolean
           is_pass_through?: boolean
           line_type?: string
@@ -2343,6 +2346,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      invoice_line_items: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          booking_name: string | null
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          is_optional: boolean
+          sort_order: number
+        }
+        Insert: {
+          amount?: number
+          booking_id?: string | null
+          booking_name?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          is_optional?: boolean
+          sort_order?: number
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          booking_name?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          is_optional?: boolean
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoice_sequences: {
         Row: {

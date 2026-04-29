@@ -42,6 +42,7 @@ export interface LocalMarginLine {
   sort_order: number;
   deposit_amount?: number;
   is_optional?: boolean;
+  is_internal?: boolean;
   // Preview-only computed fields (not source of truth)
   _preview_total_cost: number;
   _preview_total_sell: number;
@@ -68,6 +69,7 @@ export function createEmptyLine(sortOrder: number): LocalMarginLine {
     sort_order: sortOrder,
     deposit_amount: 0,
     is_optional: false,
+    is_internal: false,
   });
 }
 
@@ -84,6 +86,7 @@ export function fromDbLine(line: BookingMarginLine): LocalMarginLine {
     sort_order: line.sort_order,
     deposit_amount: (line as any).deposit_amount || 0,
     is_optional: (line as any).is_optional || false,
+    is_internal: (line as any).is_internal || false,
     _preview_total_cost: line.total_cost,
     _preview_total_sell: line.total_sell,
     _preview_margin: line.margin_amount,
@@ -499,8 +502,8 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
 
       {/* Lines */}
       {lines.map((line) => (
+        <div key={line.id} className="space-y-1">
         <div
-          key={line.id}
           className="grid grid-cols-1 md:grid-cols-[100px_1fr_60px_90px_90px_80px_80px_60px_32px] gap-2 items-center p-2 md:p-0 rounded-lg md:rounded-none bg-muted/30 md:bg-transparent"
         >
           <Select
@@ -611,6 +614,31 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
               <Trash2 className="h-3.5 w-3.5 text-destructive" />
             </Button>
           )}
+        </div>
+
+        {/* Per-line visibility flags */}
+        <div className="flex items-center gap-4 px-1 -mt-1 mb-1 text-xs text-muted-foreground md:col-span-9">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Switch
+              checked={!!line.is_internal}
+              onCheckedChange={(v) => updateLine(line.id, { is_internal: v })}
+              disabled={readOnly}
+              className="scale-75"
+            />
+            <span>Internal only (hide from client)</span>
+            {line.is_internal && <Badge variant="secondary" className="text-[10px]">Hidden</Badge>}
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Switch
+              checked={!!line.is_optional}
+              onCheckedChange={(v) => updateLine(line.id, { is_optional: v })}
+              disabled={readOnly}
+              className="scale-75"
+            />
+            <span>Optional add-on (client can opt in/out)</span>
+            {line.is_optional && <Badge variant="outline" className="text-[10px]">Optional</Badge>}
+          </label>
+        </div>
         </div>
       ))}
 

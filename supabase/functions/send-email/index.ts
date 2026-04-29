@@ -130,11 +130,25 @@ const handler = async (req: Request): Promise<Response> => {
     let emailHtml = "";
     const clientName = templateData?.clientName || "[Client Name]";
 
-    // Replace {{portal_url}} placeholder in any templateData values
+    // Derive first/last name from clientName for {{first_name}} / {{last_name}}
+    const trimmedName = String(clientName || "").trim();
+    const firstName = trimmedName.split(/\s+/)[0] || "";
+    const lastName = trimmedName.includes(" ")
+      ? trimmedName.slice(trimmedName.lastIndexOf(" ") + 1)
+      : "";
+
+    // Replace {{portal_url}}, {{first_name}}, {{last_name}}, {{full_name}} placeholders in any templateData values
+    const substituteVars = (input: string): string =>
+      input
+        .replace(/\{\{portal_url\}\}/g, clientPortalUrl)
+        .replace(/\{\{first_name\}\}/gi, firstName)
+        .replace(/\{\{last_name\}\}/gi, lastName)
+        .replace(/\{\{full_name\}\}/gi, trimmedName);
+
     if (templateData) {
       for (const key of Object.keys(templateData)) {
         if (typeof templateData[key] === "string") {
-          templateData[key] = templateData[key].replace(/\{\{portal_url\}\}/g, clientPortalUrl);
+          templateData[key] = substituteVars(templateData[key]);
         }
       }
     }

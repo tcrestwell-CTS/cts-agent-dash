@@ -348,12 +348,20 @@ const handler = async (req: Request): Promise<Response> => {
       if (bookingIds.length > 0) {
         const { data: marginLines } = await supabase
           .from("booking_margin_lines")
-          .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order")
+          .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order, is_internal, is_optional, deposit_amount")
           .in("booking_id", bookingIds)
           .order("sort_order", { ascending: true });
-        pricingLines = (marginLines || []).map((l: any) => {
+        const visibleLines: any[] = [];
+        const internalTotalsByBooking: Record<string, number> = {};
+
+        (marginLines || []).forEach((l: any) => {
           const parentBooking = portalBookings.find((b: any) => b.id === l.booking_id);
-          return {
+          if (l.is_internal) {
+            internalTotalsByBooking[l.booking_id] =
+              (internalTotalsByBooking[l.booking_id] || 0) + Number(l.total_sell || 0);
+            return;
+          }
+          visibleLines.push({
             id: l.id,
             booking_id: l.booking_id,
             booking_name: parentBooking?.trip_name || "",
@@ -365,8 +373,29 @@ const handler = async (req: Request): Promise<Response> => {
             is_addon: l.is_pass_through || l.line_type === 'addon',
             sort_order: l.sort_order,
             travelers: parentBooking?.travelers || 1,
-          };
+            is_optional: l.is_optional || false,
+          });
         });
+
+        Object.entries(internalTotalsByBooking).forEach(([bookingId, total]) => {
+          const parentBooking = portalBookings.find((b: any) => b.id === bookingId);
+          visibleLines.unshift({
+            id: `internal-rollup-${bookingId}`,
+            booking_id: bookingId,
+            booking_name: parentBooking?.trip_name || "",
+            description: "Package",
+            line_type: "package",
+            unit_price: total,
+            quantity: 1,
+            total_price: total,
+            is_addon: false,
+            sort_order: -1,
+            travelers: parentBooking?.travelers || 1,
+            is_optional: false,
+          });
+        });
+
+        pricingLines = visibleLines;
       }
 
       // Verify the client has access (either owner, sibling client record, or companion)

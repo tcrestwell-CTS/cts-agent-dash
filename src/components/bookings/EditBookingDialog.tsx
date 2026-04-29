@@ -232,6 +232,7 @@ export function EditBookingDialog({
           is_pass_through: l.is_pass_through, sort_order: i,
           deposit_amount: l.deposit_amount || 0,
           is_optional: l.is_optional || false,
+          is_internal: (l as any).is_internal || false,
         }));
 
         const { error: insertError } = await (supabase as any).from("booking_margin_lines").insert(inserts);

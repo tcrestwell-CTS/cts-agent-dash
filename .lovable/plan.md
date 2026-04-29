@@ -1,102 +1,121 @@
 
-# Audit: CTS Travel CRM vs. Pasted Spec
+## Goal
 
-**Scope:** Read-only audit. No code changes. The app already exists as a mature production CRM (Crestwell Travel Services) — the spec largely overlaps with what's built. This audit focuses on the four priorities you selected.
+Bring four Tern release-note features into the agent dashboard:
 
----
-
-## What the spec asks for vs. what exists
-
-| Spec area | Status | Notes |
-|---|---|---|
-| Tech stack (React + Vite + Tailwind + Supabase + React Query) | ✅ Matches exactly | |
-| Data models: clients, trips, quotes, bookings, payments, tasks, activities, profiles | ✅ All exist | Tables: `clients`, `trips`, `quotes`, `bookings`, `trip_payments`, `workflow_tasks`, `activities`, `profiles` |
-| Top bar: global search + New Trip / Send Quote / Add Client | ✅ Built | `TopBar.tsx` + `QuickActions.tsx` |
-| Section 1 — TODAY (tasks, payments, departures) | ✅ Built | `TodayPanel.tsx` + `NextActions.tsx` |
-| Section 2 — PIPELINE cards | ✅ Built | `PipelineCards.tsx` (Quotes / Pending / Confirmed) |
-| Section 3 — CONVERSION (Quotes Sent, Bookings Confirmed, Conversion %) | ⚠️ Partial | Dashboard computes `quotesSent`, `confirmedTrips`, and a conversion %, but the conversion % is *clients-with-bookings / total clients*, not *bookings / quotes sent*. No dedicated Conversion card. |
-| Section 4 — REVENUE SNAPSHOT (Revenue MTD, Avg Booking Value) | ⚠️ Partial | `BusinessSnapshot` shows Revenue MTD but no Avg Booking Value. |
-| Section 5 — FOLLOW-UP list (>48h since quote sent) | ⚠️ Partial | Counted in `computed.followUps` (using >3 days, not 48h) and surfaced in `NextActions`, but there is no dedicated row-level list with client name / trip value / last contacted / "Send Reminder" CTA. `OpsAlerts.tsx` has a 7-day variant. |
-| Section 6 — RECENT ACTIVITY feed | ✅ Built (non-realtime) | `ActivityFeed.tsx` driven by a 5-min staleTime React Query, not Supabase Realtime |
-| Quote funnel: sent_at / viewed_at / approved_at | ❌ Missing two of three | `quotes.sent_at` exists; **no `viewed_at`, no `approved_at`** on `quotes`. Trip-level approvals use `itinerary_approved_at`, but quote-level funnel timestamps are not tracked. |
-| Auto-create follow-up task when quote is sent | ⚠️ Partial | `useWorkflowAutomation.processStatusChange("proposal_sent")` already creates a workflow task **due in 7 days**. Spec asks for **2 days**. Also only fires on the trip status transition to `proposal_sent`, not on every quote send. |
-| Realtime activity feed | ❌ Not realtime | No `supabase.channel(...).on('postgres_changes', …)` for activities/bookings on the dashboard. |
-| Global search (clients, trips, bookings) | ⚠️ Partial | Search box just navigates to `/contacts?search=…` — does not search trips or bookings. |
-
-Legend: ✅ done · ⚠️ partial / drift from spec · ❌ missing
+1. Itemized package pricing (internal vs visible vs optional → one rolled-up price)
+2. Package line items on invoices
+3. AI chat: create group trips and manage tasks
+4. Quality-of-life bundle (Branding auto-save, `{{last_name}}` email var, resend pending invites, Project Expedition transfer notes)
 
 ---
 
-## Priority gaps (the four you flagged)
+## 1. Itemized package pricing
 
-### 1. Quote funnel tracking (sent / viewed / approved) — ❌ biggest gap
-**Current:** `quotes` table has only `sent_at`. There is no `viewed_at` or `approved_at`. The shared-trip page (`/shared/:token`) does not log views back to the database, and client approvals on shared/portal pages write to `trips.itinerary_approved_at`, not back to a quote row.
+Add a per-line "internal only" flag and surface options/add-ons separately from internal cost lines, then roll everything into a single client-facing package price.
 
-**To close:**
-- Add `viewed_at`, `approved_at`, and (optional) `view_count` columns to `quotes`.
-- Stamp `viewed_at` when the shared trip / portal proposal page is opened (first view only).
-- Stamp `approved_at` when the client approves the itinerary/budget on the portal.
-- Add a **Conversion / Funnel** card to the dashboard: Sent → Viewed → Approved → Booked, with %s.
+**DB migration** (`booking_margin_lines`):
+- Add `is_internal BOOLEAN NOT NULL DEFAULT false` — line counts toward total but is hidden from the client.
+- (`is_optional` and `is_pass_through` already exist.)
 
-### 2. Auto follow-up task on quote sent — ⚠️ exists but drifted
-**Current:** `useWorkflowAutomation.ts` (line 67) creates a follow-up task **7 days** out, only when a trip moves to `proposal_sent`. Dashboard's "follow-ups" computation uses **>3 days** since `proposal_sent_at`. Spec wants **2 days**.
+**MarginLinesEditor (`src/components/bookings/MarginLinesEditor.tsx`)**:
+- Add an "Internal only (hide from client)" checkbox on each line and on the add-line form.
+- Show a small "Hidden" badge on internal lines and an "Optional" badge on optional ones.
+- Insert/update payloads include `is_internal`.
 
-**To close:**
-- Decide the canonical interval (spec says 48h / 2 days). Recommend **2 days**.
-- Update both: the task `due_at` in `useWorkflowAutomation` and the `>3 days` filter in `DashboardContent.tsx` (line 85) and `OpsAlerts.tsx` (`>7 days`, line 118).
-- Optionally trigger from `quotes.sent_at` updates as well, so individual quote sends (not just trip status changes) create the task.
+**Client-facing roll-up** (used by `SharedTripPricing.tsx`, `PortalTripDetail.tsx`, `portal-data` and `shared-trip` edge functions):
+- Internal lines: NOT rendered in the breakdown, but their `total_sell` is added into a "Package base price" row at the top of the booking group, and into the grand total. Matches Tern: client sees one package price, internal items hidden.
+- Visible non-optional, non-addon lines: render as today.
+- Optional lines (`is_optional = true`): render with the existing toggle so travelers can opt in/out; default ON; toggle updates the rolled-up total.
+- Add-ons (`is_pass_through` or `line_type = 'addon'`): keep current toggle behavior.
 
-### 3. Realtime activity feed — ❌ missing
-**Current:** `ActivityFeed` is a React Query call with `staleTime: 5 min` over recent bookings. It does not subscribe to Supabase Realtime. (Other parts of the app do — `useAgentNotifications`, `useAgentMessages`.)
+**Edge functions**:
+- `supabase/functions/shared-trip/index.ts` and `supabase/functions/portal-data/index.ts`: include `is_internal` in the `booking_margin_lines` select; in the response, collapse internal lines into a single synthetic "Package" line per booking (sum of `total_sell`) so the client never sees individual hidden items but the total stays correct.
 
-**To close:**
-- Enable realtime publication on `activities` (and/or `bookings`).
-- In `DashboardContent` / `ActivityFeed`, subscribe to `postgres_changes` and either prepend new rows or invalidate the query on insert.
-- Consider switching the feed source from `bookings` to the dedicated `activities` table for a true unified feed (quote_sent, booking_confirmed, payment_received, client_added) — that table already exists via `useActivities`.
-
-### 4. Conversion + Revenue snapshot cards — ⚠️ partial
-**Current:**
-- `BusinessSnapshot` shows Revenue MTD but no Avg Booking Value.
-- Conversion is computed as *clients with bookings / total clients*, which is a customer-conversion metric, not the spec's *quote → booking* funnel.
-
-**To close:**
-- Add **Average Booking Value** to `BusinessSnapshot` (sum of confirmed booking gross / count).
-- Add a **Conversion** card: `bookings_confirmed_this_period / quotes_sent_this_period` with a small Sent / Booked breakdown. This pairs naturally with the funnel work in #1.
-- Optionally add MTD/QTD/YTD toggles.
+**No financial behavior change**: `calculate_booking_margin` already sums all lines, so internal lines remain in `agency_gross_margin`, commissions, and reports.
 
 ---
 
-## Other notable drift (not in your priority list, flagged for awareness)
+## 2. Package line items on invoices
 
-- **Global search** only searches clients. Spec calls for clients + trips + bookings. Easy upgrade if you want it later.
-- **Status vocabulary mismatch:** spec uses `lead/quoted/booked/completed`; codebase mixes `quoted`, `proposal_sent`, `booked`, `confirmed`, `completed`. `DashboardContent` filters on `"quoted"` while `OpsAlerts` and `useWorkflowAutomation` use `"proposal_sent"`. Worth normalizing in a future pass.
-- **Follow-up list UI:** the spec's "row per client with Send Reminder CTA" is not built. It's currently only a count in the Today panel.
+Goal: invoices list every visible package line so the client sees the package name, total, and what's included.
+
+**Files**:
+- `src/lib/invoiceGenerator.ts`: when generating the invoice for a trip, fetch `booking_margin_lines` for each booking on that trip, filter out `is_internal` lines, and persist them as invoice line items. Show the booking name as a section header and each visible line as a row (description + amount). Optional/add-on lines render with an "Optional" tag.
+- `supabase/functions/generate-tern-invoices/index.ts`: same change so Tern-imported invoices include the line breakdown.
+- `src/pages/client/PortalInvoiceDetail.tsx`: render the new grouped line items (booking name → lines → subtotal) above the existing pricing schedule. The pricing schedule (deposit/balance milestones) stays as-is.
+- `src/components/trips/InvoicePreviewDialog.tsx`: same grouped rendering for the agent-side preview.
+
+If the invoice schema doesn't already store grouped line items, add a lightweight `invoice_line_items` table:
+
+```text
+invoice_line_items
+  id uuid pk
+  invoice_id uuid fk -> invoices(id) on delete cascade
+  booking_id uuid null
+  booking_name text
+  description text
+  amount numeric
+  is_optional boolean default false
+  sort_order int
+```
+
+with RLS mirroring `invoices` (owner read/write, plus the existing portal access path used by `PortalInvoiceDetail`).
 
 ---
 
-## Recommendation (proposed next implementation pass)
+## 3. AI chat — group trips and tasks
 
-If you want to act on this audit, a focused, low-risk follow-up build would be:
+The current `AgentChatWidget` is human↔human only. Add an AI assistant view backed by the existing `mcp-server` edge function plus a thin chat endpoint.
 
-1. **Migration:** add `viewed_at`, `approved_at`, `view_count` to `quotes`.
-2. **Wire view/approval stamping** on the shared trip + portal approval flows.
-3. **Normalize the follow-up interval to 2 days** in `useWorkflowAutomation`, `DashboardContent`, and `OpsAlerts`.
-4. **Add a Funnel/Conversion card and Avg Booking Value** to the dashboard.
-5. **Subscribe `ActivityFeed` to Supabase Realtime** on `activities` (after enabling the publication).
-6. *(Optional)* Build the dedicated **Follow-up list** with "Send Reminder" CTA that calls `send-email` with the existing reminder template.
+**Frontend (`AgentChatWidget.tsx`)**:
+- Add a new "Ask AI" entry alongside Team / DMs.
+- Chat panel renders messages with `react-markdown`.
+- Conversations stored in a new `ai_chat_conversations` + `ai_chat_messages` table (owner-scoped RLS) so context survives across sessions.
 
-Approve this audit and I can either (a) stop here, or (b) immediately scope the implementation pass above into a separate plan to switch into build mode.
+**Backend (new edge function `ai-chat`)**:
+- Uses Lovable AI Gateway (`LOVABLE_API_KEY` already configured) with `google/gemini-2.5-pro` and tool-calling.
+- System prompt: "You are the Crestwell agent assistant. Use tools to read tasks, search trips/leads, and create group trips on behalf of the signed-in agent."
+- Tools exposed (call into existing patterns):
+  - `list_today_tasks(filter?)` — pulls from `workflow_tasks`, sorted by urgency / departure proximity.
+  - `search_tasks({ query, trip_id?, status? })`.
+  - `create_task({ title, due_at, trip_id?, assignee_id? })` — inserts into `workflow_tasks`.
+  - `create_group_trip({ destination, rough_dates, notes, parent_trip_id? })` — inserts a parent trip with `is_group = true` (using existing groups hierarchy pattern), then asks the user to confirm the spun-up details. Reuses the existing trip insertion logic from `AddTripDialog` patterns.
+- All writes go through the user's auth context (forward `Authorization` header to a `userClient`) so RLS still applies.
+
+**Memory / streaming**: full message history sent on each call (per chatbot best practices). Non-streaming response is fine for v1.
 
 ---
 
-## Technical reference (files touched if you proceed)
+## 4. Quality-of-life bundle
 
-- DB migration: `quotes` add `viewed_at timestamptz`, `approved_at timestamptz`, `view_count int default 0`. Enable realtime on `public.activities`.
-- `src/pages/SharedTrip.tsx`, `src/lib/publishedTrip.ts` — stamp `viewed_at` on first load.
-- `src/components/client/PaymentAgreementStep.tsx` / portal approval handlers — stamp `approved_at`.
-- `src/hooks/useWorkflowAutomation.ts` (line 67) — change `+7` to `+2` days.
-- `src/components/dashboard/DashboardContent.tsx` (line 85) — change `> 3` to `>= 2`.
-- `src/components/dashboard/OpsAlerts.tsx` (line 118) — align threshold.
-- `src/components/dashboard/BusinessSnapshot.tsx` — add Avg Booking Value tile.
-- New `src/components/dashboard/ConversionFunnelCard.tsx`.
-- `src/components/dashboard/ActivityFeed.tsx` — add `supabase.channel('dashboard-activity').on('postgres_changes', …)`.
+**a) Standalone Branding page**
+- `src/pages/Branding.tsx` already exists at its own route. Switch from explicit "Save" buttons to debounced auto-save (~600ms after last change) via `saveSettings`. Show a small "Saved" indicator. Logo/cover photo upload remain explicit actions.
+
+**b) `{{last_name}}` email variable**
+- `supabase/functions/send-email/index.ts`: when rendering templates, also substitute `{{first_name}}` and `{{last_name}}` derived from the recipient's client/profile record (split `full_name` on the last space when no dedicated columns exist).
+- `src/components/clients/SendEmailDialog.tsx` + email Library UI: list `{{last_name}}` in the variables picker.
+
+**c) Resend pending agency invitations**
+- `useInvitations.resendInvitation` already exists. Verify the "Resend" button is wired on `src/pages/TeamManagement.tsx` for pending rows; if missing, add it next to Revoke. (Plan keeps this small — likely a one-line UI addition.)
+
+**d) Project Expedition transfer notes**
+- Project Expedition isn't currently integrated. For this release, add a generic "Supplier notes" prepend behavior to transfer-type bookings: when a booking with `line_type = 'transfer'` has `metadata.supplier_notes` (meeting point, contact info), prepend it to the booking description shown in `BookingCard.tsx`, `PortalTripDetail.tsx` itinerary, and `SharedTripItinerary.tsx`. Wire-up to a real Project Expedition feed can be a follow-up once that connector exists.
+
+---
+
+## Technical details
+
+- **Migrations**: one migration for `booking_margin_lines.is_internal` + `invoice_line_items` table with RLS.
+- **Edge functions to redeploy**: `shared-trip`, `portal-data`, `generate-tern-invoices`, `send-email`, plus new `ai-chat`.
+- **No changes to** `calculate_booking_margin` — internal lines already roll into totals because they live in `booking_margin_lines`.
+- **AI provider**: Lovable AI Gateway (`google/gemini-2.5-pro`) — no new secrets required.
+- **No new third-party connectors** — Project Expedition stays a local "supplier notes" passthrough until a real feed is added.
+
+---
+
+## Out of scope
+
+- Real Project Expedition API integration (would need a dedicated connector + secrets).
+- Streaming AI responses.
+- Editing existing legacy invoices to backfill the new grouped line items — only newly generated invoices get the breakdown.
