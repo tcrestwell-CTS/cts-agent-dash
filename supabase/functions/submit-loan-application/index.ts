@@ -93,13 +93,13 @@ Deno.serve(async (req) => {
         stripe_payment_method_id:   body.stripe_payment_method_id   || null,
         autopay_active:             false,  // Never active until manually approved
       })
-      .select('application_number')
+      .select('id, application_number')
       .single();
 
     if (error) throw new Error(error.message);
 
     return new Response(
-      JSON.stringify({ success: true, application_number: data?.application_number }),
+      JSON.stringify({ success: true, application_number: data?.application_number, id: data?.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
