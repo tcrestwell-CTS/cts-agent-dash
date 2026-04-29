@@ -608,13 +608,26 @@ const handler = async (req: Request): Promise<Response> => {
       const bIds = tripBookingIds.map((b: any) => b.id);
       const { data: marginLines } = await supabase
         .from("booking_margin_lines")
-        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order, deposit_amount, is_optional")
+        .select("id, booking_id, description, line_type, unit_sell, quantity, total_sell, is_pass_through, sort_order, deposit_amount, is_optional, is_internal")
         .in("booking_id", bIds)
         .order("sort_order", { ascending: true });
 
-      pricingLines = (marginLines || []).map((l: any) => {
+      // Map visible lines as-is; collapse internal lines into one synthetic
+      // "Package" line per booking so the client sees a single rolled-up
+      // base price instead of internal cost items.
+      const visibleLines: any[] = [];
+      const internalTotalsByBooking: Record<string, { total: number; deposit: number }> = {};
+
+      (marginLines || []).forEach((l: any) => {
         const parentBooking = tripBookingIds.find((b: any) => b.id === l.booking_id);
-        return {
+        if (l.is_internal) {
+          const acc = internalTotalsByBooking[l.booking_id] || { total: 0, deposit: 0 };
+          acc.total += Number(l.total_sell || 0);
+          acc.deposit += Number(l.deposit_amount || 0);
+          internalTotalsByBooking[l.booking_id] = acc;
+          return;
+        }
+        visibleLines.push({
           id: l.id,
           booking_id: l.booking_id,
           booking_name: parentBooking?.trip_name || "",
@@ -628,8 +641,30 @@ const handler = async (req: Request): Promise<Response> => {
           travelers: parentBooking?.travelers || 1,
           deposit_amount: l.deposit_amount || 0,
           is_optional: l.is_optional || false,
-        };
+        });
       });
+
+      // Prepend a single rolled-up Package line per booking that has internals.
+      Object.entries(internalTotalsByBooking).forEach(([bookingId, totals]) => {
+        const parentBooking = tripBookingIds.find((b: any) => b.id === bookingId);
+        visibleLines.unshift({
+          id: `internal-rollup-${bookingId}`,
+          booking_id: bookingId,
+          booking_name: parentBooking?.trip_name || "",
+          description: "Package",
+          line_type: "package",
+          unit_price: totals.total,
+          quantity: 1,
+          total_price: totals.total,
+          is_addon: false,
+          sort_order: -1,
+          travelers: parentBooking?.travelers || 1,
+          deposit_amount: totals.deposit,
+          is_optional: false,
+        });
+      });
+
+      pricingLines = visibleLines;
     }
     let branding = null;
     let advisor = null;
