@@ -181,7 +181,7 @@ async function runTool(name: string, args: any, userId: string, supabase: any) {
         client_id: args.client_id ?? null,
         notes: args.notes ?? null,
         trip_type: "group",
-        status: "planning",
+        status: "lead",
       };
       const { data: parent, error: pErr } = await supabase
         .from("trips")
@@ -201,8 +201,8 @@ async function runTool(name: string, args: any, userId: string, supabase: any) {
           client_id: s.client_id ?? null,
           notes: s.notes ?? null,
           parent_trip_id: parent.id,
-          trip_type: "group",
-          status: "planning",
+          trip_type: "regular",
+          status: "lead",
         }));
         const { data: subs, error: sErr } = await supabase
           .from("trips")
