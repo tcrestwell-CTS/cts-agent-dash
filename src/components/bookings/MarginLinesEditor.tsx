@@ -615,6 +615,30 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
             </Button>
           )}
         </div>
+
+        {/* Per-line visibility flags */}
+        <div className="flex items-center gap-4 px-1 -mt-1 mb-1 text-xs text-muted-foreground md:col-span-9">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Switch
+              checked={!!line.is_internal}
+              onCheckedChange={(v) => updateLine(line.id, { is_internal: v })}
+              disabled={readOnly}
+              className="scale-75"
+            />
+            <span>Internal only (hide from client)</span>
+            {line.is_internal && <Badge variant="secondary" className="text-[10px]">Hidden</Badge>}
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Switch
+              checked={!!line.is_optional}
+              onCheckedChange={(v) => updateLine(line.id, { is_optional: v })}
+              disabled={readOnly}
+              className="scale-75"
+            />
+            <span>Optional add-on (client can opt in/out)</span>
+            {line.is_optional && <Badge variant="outline" className="text-[10px]">Optional</Badge>}
+          </label>
+        </div>
       ))}
 
       {/* Add button */}
