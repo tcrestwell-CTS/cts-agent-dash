@@ -106,6 +106,13 @@ type LoanApplication = {
   autopay_active: boolean | null;
   autopay_start_date: string | null;
   stripe_payment_method_id: string | null;
+  // Equifax pre-qualification
+  equifax_score: number | null;
+  equifax_decision: string | null;
+  equifax_reasons: string[] | null;
+  equifax_client_message: string | null;
+  equifax_error: string | null;
+  equifax_checked_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
 };
