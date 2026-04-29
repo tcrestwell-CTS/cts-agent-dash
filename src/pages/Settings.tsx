@@ -578,6 +578,7 @@ const Settings = () => {
             <div className="space-y-8">
               <AgencySettingsTab />
               <MarginEngineSettings />
+              <BackfillPlanningTripsCard />
             </div>
           </TabsContent>
         )}
