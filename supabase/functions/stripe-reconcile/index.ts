@@ -296,6 +296,185 @@ serve(async (req) => {
       }
     }
 
+    // ── 9b. Per-payment Stripe ↔ QBO deposit/sales-receipt matching ──
+    let qboPaymentMatching: any = null;
+    if (qboConn) {
+      try {
+        // Re-derive accessToken & base from qboConn (token already refreshed above if needed)
+        const accessToken2 = qboConn.access_token; // refreshed in admin update above when applicable
+        const qboBase2 = `https://quickbooks.api.intuit.com/v3/company/${qboConn.realm_id}`;
+        const qboHeaders2 = {
+          Authorization: `Bearer ${accessToken2}`,
+          Accept: "application/json",
+        };
+
+        const sinceIso = new Date(ninetyDaysAgo * 1000).toISOString().split("T")[0];
+
+        // Pull SalesReceipts, Deposits, and Payments from QBO in window
+        const [srResp, depResp, payResp] = await Promise.all([
+          fetch(
+            `${qboBase2}/query?query=${encodeURIComponent(
+              `SELECT Id, DocNumber, TxnDate, TotalAmt, PaymentRefNum, CustomerRef, PrivateNote FROM SalesReceipt WHERE TxnDate >= '${sinceIso}' MAXRESULTS 500`
+            )}`,
+            { headers: qboHeaders2 }
+          ),
+          fetch(
+            `${qboBase2}/query?query=${encodeURIComponent(
+              `SELECT Id, TxnDate, TotalAmt, PrivateNote FROM Deposit WHERE TxnDate >= '${sinceIso}' MAXRESULTS 500`
+            )}`,
+            { headers: qboHeaders2 }
+          ),
+          fetch(
+            `${qboBase2}/query?query=${encodeURIComponent(
+              `SELECT Id, TxnDate, TotalAmt, PaymentRefNum, CustomerRef, PrivateNote FROM Payment WHERE TxnDate >= '${sinceIso}' MAXRESULTS 500`
+            )}`,
+            { headers: qboHeaders2 }
+          ),
+        ]);
+
+        const srJson = srResp.ok ? await srResp.json() : { QueryResponse: {} };
+        const depJson = depResp.ok ? await depResp.json() : { QueryResponse: {} };
+        const payJson = payResp.ok ? await payResp.json() : { QueryResponse: {} };
+
+        const salesReceipts = srJson?.QueryResponse?.SalesReceipt || [];
+        const deposits = depJson?.QueryResponse?.Deposit || [];
+        const qboPayments = payJson?.QueryResponse?.Payment || [];
+
+        // Build flat QBO entry list with normalized ref/amount/date
+        type QboEntry = {
+          type: "SalesReceipt" | "Deposit" | "Payment";
+          id: string;
+          ref: string | null;
+          note: string | null;
+          amount: number;
+          date: string;
+          customer_ref?: string | null;
+        };
+        const qboEntries: QboEntry[] = [
+          ...salesReceipts.map((r: any) => ({
+            type: "SalesReceipt" as const,
+            id: r.Id,
+            ref: r.PaymentRefNum || r.DocNumber || null,
+            note: r.PrivateNote || null,
+            amount: Number(r.TotalAmt || 0),
+            date: r.TxnDate,
+            customer_ref: r.CustomerRef?.name || r.CustomerRef?.value || null,
+          })),
+          ...qboPayments.map((p: any) => ({
+            type: "Payment" as const,
+            id: p.Id,
+            ref: p.PaymentRefNum || null,
+            note: p.PrivateNote || null,
+            amount: Number(p.TotalAmt || 0),
+            date: p.TxnDate,
+            customer_ref: p.CustomerRef?.name || p.CustomerRef?.value || null,
+          })),
+          ...deposits.map((d: any) => ({
+            type: "Deposit" as const,
+            id: d.Id,
+            ref: null,
+            note: d.PrivateNote || null,
+            amount: Number(d.TotalAmt || 0),
+            date: d.TxnDate,
+          })),
+        ];
+
+        // Index by PI id (if it appears in ref/note) for fast lookup
+        const qboByPi = new Map<string, QboEntry>();
+        for (const e of qboEntries) {
+          const blob = `${e.ref || ""} ${e.note || ""}`;
+          const m = blob.match(/pi_[A-Za-z0-9]+/);
+          if (m) qboByPi.set(m[0], e);
+        }
+
+        // Match each succeeded Stripe PI against QBO
+        const succeededPIs = paymentIntents.filter((pi: any) => pi.status === "succeeded");
+        const stripeMatched: any[] = [];
+        const stripeUnmatchedInQbo: any[] = [];
+        const qboMatchedIds = new Set<string>();
+
+        for (const pi of succeededPIs) {
+          const piAmount = pi.amount / 100;
+          const piDate = new Date(pi.created * 1000);
+          const piEmail = (pi.receipt_email || pi.metadata?.customer_email || "").toLowerCase();
+
+          // 1. Direct PI-id reference
+          let match: QboEntry | undefined = qboByPi.get(pi.id);
+          let matchReason = match ? "pi_id_in_ref" : "";
+
+          // 2. Amount + date (±3 days) + optional email in note
+          if (!match) {
+            for (const e of qboEntries) {
+              if (qboMatchedIds.has(`${e.type}:${e.id}`)) continue;
+              if (Math.abs(e.amount - piAmount) > 0.01) continue;
+              const eDate = new Date(e.date + "T00:00:00");
+              const dayDiff = Math.abs((eDate.getTime() - piDate.getTime()) / 86400000);
+              if (dayDiff > 3) continue;
+              const noteBlob = `${e.ref || ""} ${e.note || ""} ${e.customer_ref || ""}`.toLowerCase();
+              if (piEmail && noteBlob.includes(piEmail)) {
+                match = e; matchReason = "amount_date_email"; break;
+              }
+              // Fallback: amount+date alone — weaker, store as candidate
+              if (!match) { match = e; matchReason = "amount_date_only"; }
+            }
+          }
+
+          if (match) {
+            qboMatchedIds.add(`${match.type}:${match.id}`);
+            stripeMatched.push({
+              pi_id: pi.id,
+              amount: piAmount,
+              created: piDate.toISOString(),
+              customer_email: piEmail || null,
+              qbo_type: match.type,
+              qbo_id: match.id,
+              qbo_ref: match.ref,
+              qbo_amount: match.amount,
+              qbo_date: match.date,
+              match_reason: matchReason,
+              confidence: matchReason === "pi_id_in_ref" ? "high"
+                : matchReason === "amount_date_email" ? "medium" : "low",
+            });
+          } else {
+            stripeUnmatchedInQbo.push({
+              pi_id: pi.id,
+              amount: piAmount,
+              created: piDate.toISOString(),
+              customer_email: piEmail || null,
+              description: pi.description || pi.metadata?.trip_name || null,
+              message: "Stripe payment has no matching QBO Sales Receipt, Payment, or Deposit",
+            });
+          }
+        }
+
+        // QBO entries with no Stripe counterpart
+        const qboUnmatched = qboEntries
+          .filter((e) => !qboMatchedIds.has(`${e.type}:${e.id}`))
+          .map((e) => ({
+            qbo_type: e.type,
+            qbo_id: e.id,
+            ref: e.ref,
+            amount: e.amount,
+            date: e.date,
+            note: e.note,
+          }));
+
+        qboPaymentMatching = {
+          window_days: 90,
+          stripe_succeeded_count: succeededPIs.length,
+          qbo_entry_count: qboEntries.length,
+          matched_count: stripeMatched.length,
+          unmatched_in_qbo_count: stripeUnmatchedInQbo.length,
+          unmatched_in_stripe_count: qboUnmatched.length,
+          matched: stripeMatched,
+          unmatched_in_qbo: stripeUnmatchedInQbo,
+          unmatched_in_stripe: qboUnmatched,
+        };
+      } catch (matchErr: any) {
+        qboPaymentMatching = { error: true, message: `QBO matching failed: ${matchErr.message}` };
+      }
+    }
+
     // ── 10. Build summary ──
     const totalDiscrepancies = checkoutDiscrepancies.length + tripDiscrepancies.length + orphanedPIs.length;
     const totalMatched = matchedCheckout.length + matchedTrip.length;
@@ -339,6 +518,7 @@ serve(async (req) => {
         trip_discrepancies: tripDiscrepancies,
         orphaned_stripe_payments: orphanedPIs,
         qbo_clearing: qboClearing,
+        qbo_payment_matching: qboPaymentMatching,
       }),
       { headers: corsHeaders }
     );

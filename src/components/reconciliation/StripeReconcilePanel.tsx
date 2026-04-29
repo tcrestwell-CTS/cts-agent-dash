@@ -40,6 +40,19 @@ interface ReconcileResult {
   trip_discrepancies: any[];
   orphaned_stripe_payments: any[];
   qbo_clearing: any;
+  qbo_payment_matching?: {
+    window_days: number;
+    stripe_succeeded_count: number;
+    qbo_entry_count: number;
+    matched_count: number;
+    unmatched_in_qbo_count: number;
+    unmatched_in_stripe_count: number;
+    matched: any[];
+    unmatched_in_qbo: any[];
+    unmatched_in_stripe: any[];
+    error?: boolean;
+    message?: string;
+  };
 }
 
 type ActionType = "link" | "create" | "adjust" | "dismiss";
@@ -591,6 +604,139 @@ export default function StripeReconcilePanel() {
               <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${data.qbo_clearing.is_balanced ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
                 {data.qbo_clearing.is_balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                 {data.qbo_clearing.message}
+              </div>
+            )}
+
+            {/* Stripe ↔ QBO per-payment matching */}
+            {data.qbo_payment_matching && !data.qbo_payment_matching.error && (
+              <div className="space-y-2 border rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-sm flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Stripe payments ↔ QuickBooks deposits
+                  </div>
+                  <div className="flex gap-2 text-xs">
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+                      {data.qbo_payment_matching.matched_count} matched
+                    </Badge>
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                      {data.qbo_payment_matching.unmatched_in_qbo_count} not in QBO
+                    </Badge>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                      {data.qbo_payment_matching.unmatched_in_stripe_count} QBO-only
+                    </Badge>
+                  </div>
+                </div>
+
+                <Tabs defaultValue="matched" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="matched">Matched</TabsTrigger>
+                    <TabsTrigger value="missing-qbo">Missing in QBO</TabsTrigger>
+                    <TabsTrigger value="qbo-only">QBO-only</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="matched" className="mt-2">
+                    {data.qbo_payment_matching.matched.length === 0 ? (
+                      <div className="text-sm text-muted-foreground py-4 text-center">No matches yet</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Stripe PI</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>QBO Type</TableHead>
+                            <TableHead>QBO Ref</TableHead>
+                            <TableHead>Confidence</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data.qbo_payment_matching.matched.slice(0, 50).map((m: any) => (
+                            <TableRow key={m.pi_id}>
+                              <TableCell className="font-mono text-xs">{m.pi_id.slice(0, 18)}…</TableCell>
+                              <TableCell>{fmt(m.amount)}</TableCell>
+                              <TableCell className="text-xs">{format(new Date(m.created), "MMM d")}</TableCell>
+                              <TableCell>{m.qbo_type}</TableCell>
+                              <TableCell className="text-xs">{m.qbo_ref || "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant={m.confidence === "high" ? "default" : m.confidence === "medium" ? "secondary" : "outline"}>
+                                  {m.confidence}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="missing-qbo" className="mt-2">
+                    {data.qbo_payment_matching.unmatched_in_qbo.length === 0 ? (
+                      <div className="text-sm text-success py-4 text-center flex items-center justify-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" /> Every Stripe payment has a QBO entry
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Stripe PI</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Description</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data.qbo_payment_matching.unmatched_in_qbo.slice(0, 50).map((u: any) => (
+                            <TableRow key={u.pi_id}>
+                              <TableCell className="font-mono text-xs">{u.pi_id.slice(0, 18)}…</TableCell>
+                              <TableCell>{fmt(u.amount)}</TableCell>
+                              <TableCell className="text-xs">{format(new Date(u.created), "MMM d")}</TableCell>
+                              <TableCell className="text-xs">{u.customer_email || "—"}</TableCell>
+                              <TableCell className="text-xs">{u.description || "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="qbo-only" className="mt-2">
+                    {data.qbo_payment_matching.unmatched_in_stripe.length === 0 ? (
+                      <div className="text-sm text-muted-foreground py-4 text-center">All QBO entries reconciled</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>QBO Type</TableHead>
+                            <TableHead>Ref</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Note</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data.qbo_payment_matching.unmatched_in_stripe.slice(0, 50).map((q: any) => (
+                            <TableRow key={`${q.qbo_type}:${q.qbo_id}`}>
+                              <TableCell>{q.qbo_type}</TableCell>
+                              <TableCell className="text-xs">{q.ref || "—"}</TableCell>
+                              <TableCell>{fmt(q.amount)}</TableCell>
+                              <TableCell className="text-xs">{q.date}</TableCell>
+                              <TableCell className="text-xs max-w-xs truncate">{q.note || "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+
+            {data.qbo_payment_matching?.error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg text-sm bg-destructive/10 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                {data.qbo_payment_matching.message}
               </div>
             )}
           </>
