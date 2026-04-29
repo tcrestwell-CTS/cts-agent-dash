@@ -502,8 +502,8 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
 
       {/* Lines */}
       {lines.map((line) => (
+        <div key={line.id} className="space-y-1">
         <div
-          key={line.id}
           className="grid grid-cols-1 md:grid-cols-[100px_1fr_60px_90px_90px_80px_80px_60px_32px] gap-2 items-center p-2 md:p-0 rounded-lg md:rounded-none bg-muted/30 md:bg-transparent"
         >
           <Select
@@ -638,6 +638,7 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
             <span>Optional add-on (client can opt in/out)</span>
             {line.is_optional && <Badge variant="outline" className="text-[10px]">Optional</Badge>}
           </label>
+        </div>
         </div>
       ))}
 
