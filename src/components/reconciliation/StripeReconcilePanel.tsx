@@ -40,6 +40,19 @@ interface ReconcileResult {
   trip_discrepancies: any[];
   orphaned_stripe_payments: any[];
   qbo_clearing: any;
+  qbo_payment_matching?: {
+    window_days: number;
+    stripe_succeeded_count: number;
+    qbo_entry_count: number;
+    matched_count: number;
+    unmatched_in_qbo_count: number;
+    unmatched_in_stripe_count: number;
+    matched: any[];
+    unmatched_in_qbo: any[];
+    unmatched_in_stripe: any[];
+    error?: boolean;
+    message?: string;
+  };
 }
 
 type ActionType = "link" | "create" | "adjust" | "dismiss";
