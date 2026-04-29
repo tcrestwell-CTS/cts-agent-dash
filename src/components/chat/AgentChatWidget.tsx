@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, Users, ArrowLeft, Circle } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Users, ArrowLeft, Circle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,8 +9,12 @@ import { useAgentMessages, useOnlineAgents } from "@/hooks/useAgentMessages";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-type View = "closed" | "menu" | "team" | "dm";
+type View = "closed" | "menu" | "team" | "dm" | "ai";
+
+type AiMsg = { role: "user" | "assistant"; content: string };
 
 export function AgentChatWidget() {
   const { user } = useAuth();
@@ -22,6 +26,10 @@ export function AgentChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const onlineAgents = useOnlineAgents();
 
+  const [aiMessages, setAiMessages] = useState<AiMsg[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiSending, setAiSending] = useState(false);
+
   const channel = view === "dm" ? "dm" : "team";
   const { messages, loading, sendMessage } = useAgentMessages(
     channel as "team" | "dm",
@@ -30,7 +38,7 @@ export function AgentChatWidget() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, view]);
+  }, [messages.length, view, aiMessages.length]);
 
   if (!user) return null;
 
@@ -45,7 +53,8 @@ export function AgentChatWidget() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (view === "ai") handleAiSend();
+      else handleSend();
     }
   };
 
@@ -53,6 +62,28 @@ export function AgentChatWidget() {
     setDmPartnerId(agentId);
     setDmPartnerName(agentName);
     setView("dm");
+  };
+
+  const handleAiSend = async () => {
+    const text = aiInput.trim();
+    if (!text || aiSending) return;
+    const next: AiMsg[] = [...aiMessages, { role: "user", content: text }];
+    setAiMessages(next);
+    setAiInput("");
+    setAiSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-chat", {
+        body: { messages: next },
+      });
+      if (error) throw error;
+      const reply = (data as any)?.reply ?? "(no reply)";
+      setAiMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    } catch (e: any) {
+      toast.error(e?.message ?? "AI request failed");
+      setAiMessages((prev) => [...prev, { role: "assistant", content: "Sorry, that failed. Try again." }]);
+    } finally {
+      setAiSending(false);
+    }
   };
 
   if (view === "closed") {
@@ -75,7 +106,7 @@ export function AgentChatWidget() {
     <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/50">
-        {(view === "team" || view === "dm") && (
+        {(view === "team" || view === "dm" || view === "ai") && (
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setView("menu")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -84,6 +115,13 @@ export function AgentChatWidget() {
           {view === "menu" && "Agent Chat"}
           {view === "team" && "Team Chat"}
           {view === "dm" && dmPartnerName}
+          {view === "ai" && (
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              AI Assistant
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
+            </span>
+          )}
         </h3>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setView("closed")}>
           <X className="h-4 w-4" />
@@ -93,6 +131,22 @@ export function AgentChatWidget() {
       {/* Menu View */}
       {view === "menu" && (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <button
+            onClick={() => setView("ai")}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
+          >
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                AI Assistant
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
+              </p>
+              <p className="text-xs text-muted-foreground">Create group trips, manage tasks</p>
+            </div>
+          </button>
+
           <button
             onClick={() => setView("team")}
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
@@ -140,6 +194,67 @@ export function AgentChatWidget() {
             </p>
           )}
         </div>
+      )}
+
+      {/* AI View */}
+      {view === "ai" && (
+        <>
+          <ScrollArea className="flex-1 p-3">
+            {aiMessages.length === 0 ? (
+              <div className="text-xs text-muted-foreground py-6 space-y-2">
+                <p className="font-medium text-foreground">Try asking:</p>
+                <ul className="space-y-1.5 list-disc pl-4">
+                  <li>"Create a group trip to Cabo for the Smith family with 3 cabins"</li>
+                  <li>"What tasks are due this week?"</li>
+                  <li>"Add a follow-up task on the Johnson trip for Friday"</li>
+                </ul>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {aiMessages.map((m, i) => (
+                  <div key={i} className={cn("flex gap-2", m.role === "user" && "flex-row-reverse")}>
+                    <div
+                      className={cn(
+                        "max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                        m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+                      )}
+                    >
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {aiSending && (
+                  <div className="flex gap-2">
+                    <div className="bg-muted rounded-xl px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" /> thinking…
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </ScrollArea>
+          <div className="p-3 border-t">
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="Ask the AI assistant…"
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                className="resize-none min-h-[36px] text-sm"
+              />
+              <Button
+                size="icon"
+                className="shrink-0 h-9 w-9"
+                onClick={handleAiSend}
+                disabled={!aiInput.trim() || aiSending}
+              >
+                {aiSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Chat View (Team or DM) */}
