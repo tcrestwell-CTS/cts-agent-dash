@@ -2774,6 +2774,13 @@ export type Database = {
           email: string
           employer_name: string | null
           employment_status: string
+          equifax_checked_at: string | null
+          equifax_client_message: string | null
+          equifax_decision: string | null
+          equifax_error: string | null
+          equifax_raw_response: Json | null
+          equifax_reasons: Json | null
+          equifax_score: number | null
           esignature: string | null
           first_name: string
           housing_status: string | null
@@ -2845,6 +2852,13 @@ export type Database = {
           email: string
           employer_name?: string | null
           employment_status: string
+          equifax_checked_at?: string | null
+          equifax_client_message?: string | null
+          equifax_decision?: string | null
+          equifax_error?: string | null
+          equifax_raw_response?: Json | null
+          equifax_reasons?: Json | null
+          equifax_score?: number | null
           esignature?: string | null
           first_name: string
           housing_status?: string | null
@@ -2916,6 +2930,13 @@ export type Database = {
           email?: string
           employer_name?: string | null
           employment_status?: string
+          equifax_checked_at?: string | null
+          equifax_client_message?: string | null
+          equifax_decision?: string | null
+          equifax_error?: string | null
+          equifax_raw_response?: Json | null
+          equifax_reasons?: Json | null
+          equifax_score?: number | null
           esignature?: string | null
           first_name?: string
           housing_status?: string | null
