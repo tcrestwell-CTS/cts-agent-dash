@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,9 @@ const Branding = () => {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const initialBrandSyncRef = useRef(false);
+  const initialContactSyncRef = useRef(false);
 
   // Local form state
   const [brandForm, setBrandForm] = useState({
@@ -98,6 +101,40 @@ const Branding = () => {
     await saveSettings(contactForm);
   };
 
+  // Auto-save brand form (debounced)
+  useEffect(() => {
+    if (loading) return;
+    if (!initialBrandSyncRef.current) {
+      initialBrandSyncRef.current = true;
+      return;
+    }
+    setAutoSaveStatus("saving");
+    const t = setTimeout(async () => {
+      await saveSettings(brandForm);
+      setAutoSaveStatus("saved");
+      setTimeout(() => setAutoSaveStatus("idle"), 1500);
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandForm, loading]);
+
+  // Auto-save contact form (debounced)
+  useEffect(() => {
+    if (loading) return;
+    if (!initialContactSyncRef.current) {
+      initialContactSyncRef.current = true;
+      return;
+    }
+    setAutoSaveStatus("saving");
+    const t = setTimeout(async () => {
+      await saveSettings(contactForm);
+      setAutoSaveStatus("saved");
+      setTimeout(() => setAutoSaveStatus("idle"), 1500);
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactForm, loading]);
+
   const templateInfo: Record<EmailTemplate, { title: string; description: string }> = {
     welcome: { title: "Welcome Email", description: "New client onboarding" },
     booking_confirmation: { title: "Booking Confirmation", description: "Sent after booking" },
@@ -118,8 +155,24 @@ const Branding = () => {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Email & Branding</h1>
-        <p className="text-muted-foreground text-sm mt-1">Customize your communications and brand identity</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Email & Branding</h1>
+            <p className="text-muted-foreground text-sm mt-1">Customize your communications and brand identity</p>
+          </div>
+          {autoSaveStatus !== "idle" && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              {autoSaveStatus === "saving" ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>✓ Saved</>
+              )}
+            </span>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="templates" className="space-y-6">
