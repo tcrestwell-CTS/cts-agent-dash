@@ -42,6 +42,7 @@ export interface LocalMarginLine {
   sort_order: number;
   deposit_amount?: number;
   is_optional?: boolean;
+  is_internal?: boolean;
   // Preview-only computed fields (not source of truth)
   _preview_total_cost: number;
   _preview_total_sell: number;
@@ -68,6 +69,7 @@ export function createEmptyLine(sortOrder: number): LocalMarginLine {
     sort_order: sortOrder,
     deposit_amount: 0,
     is_optional: false,
+    is_internal: false,
   });
 }
 
@@ -84,6 +86,7 @@ export function fromDbLine(line: BookingMarginLine): LocalMarginLine {
     sort_order: line.sort_order,
     deposit_amount: (line as any).deposit_amount || 0,
     is_optional: (line as any).is_optional || false,
+    is_internal: (line as any).is_internal || false,
     _preview_total_cost: line.total_cost,
     _preview_total_sell: line.total_sell,
     _preview_margin: line.margin_amount,
