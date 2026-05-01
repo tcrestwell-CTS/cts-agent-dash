@@ -286,7 +286,7 @@ async function handlePayoutApproved(
  *   Result: Clearing account zeroes out, fees tracked, bank reflects net deposit
  */
 async function handleDepositPosted(
-  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, connection?: any
 ) {
   // Try to find the client via the trip
   let qboCustomerId = "1"; // fallback
@@ -320,7 +320,9 @@ async function handleDepositPosted(
   const stripeFee = Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
   const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
   const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
-  const memo = `Stripe/Affirm deposit – ${payment.details || payment.notes || "Trip payment"}`;
+  // Include PI id in memo so the Stripe ↔ QBO reconciler can match by reference.
+  const piTag = payment.stripe_payment_intent_id ? ` [${payment.stripe_payment_intent_id}]` : "";
+  const memo = `Stripe/Affirm deposit – ${payment.details || payment.notes || "Trip payment"}${piTag}`;
 
   // ── Step 1: Gross → Stripe Clearing ──
   const step1 = {
@@ -392,6 +394,11 @@ async function handleDepositPosted(
   }
 
   // ── Step 3: Net → Bank ──
+  const bankAccount = await resolvePaymentAccount(
+    qboBase, qboHeaders,
+    connection?.default_bank_account_id, connection?.default_bank_account_name,
+    "Bank"
+  );
   const step3 = {
     TxnDate: txnDate,
     PrivateNote: `${memo} – Net payout to bank`,
@@ -401,7 +408,7 @@ async function handleDepositPosted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Debit",
-          AccountRef: { name: "Checking" },
+          AccountRef: { value: bankAccount.id, name: bankAccount.name },
         },
         Description: `Net Stripe payout to bank`,
       },
