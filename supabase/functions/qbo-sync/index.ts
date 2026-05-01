@@ -106,6 +106,63 @@ serve(async (req) => {
   const urlPath = syncUrl.searchParams.get("action") || syncUrl.pathname.split("/").filter(Boolean).pop();
 
   try {
+    // ── GET ?action=list-payment-accounts ───────────────────────────
+    // Returns Bank + CreditCard accounts so the UI can let admins pick the
+    // default account used for BillPayment + Stripe net-deposit postings.
+    if (urlPath === "list-payment-accounts" && req.method === "GET") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+      const r = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent(
+          `SELECT Id, Name, AccountType, AccountSubType, Active FROM Account WHERE AccountType IN ('Bank','CreditCard') AND Active = true MAXRESULTS 200`
+        )}`,
+        { headers: qboHeaders }
+      );
+      if (!r.ok) {
+        const errBody = await r.text();
+        return new Response(JSON.stringify({ error: `QBO query failed: ${errBody}` }), {
+          status: 502, headers: jsonHeaders,
+        });
+      }
+      const j = await r.json();
+      const accounts = (j?.QueryResponse?.Account || []).map((a: any) => ({
+        id: a.Id,
+        name: a.Name,
+        type: a.AccountType,
+        subtype: a.AccountSubType,
+      }));
+      return new Response(JSON.stringify({ accounts }), { headers: jsonHeaders });
+    }
+
+    // ── POST ?action=set-default-accounts ───────────────────────────
+    if (urlPath === "set-default-accounts" && req.method === "POST") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+      const body = await req.json();
+      const updates: Record<string, string | null> = {};
+      if ("default_bank_account_id" in body) {
+        updates.default_bank_account_id = body.default_bank_account_id || null;
+        updates.default_bank_account_name = body.default_bank_account_name || null;
+      }
+      if ("default_cc_account_id" in body) {
+        updates.default_cc_account_id = body.default_cc_account_id || null;
+        updates.default_cc_account_name = body.default_cc_account_name || null;
+      }
+      if (Object.keys(updates).length === 0) {
+        return new Response(JSON.stringify({ error: "No fields to update" }), {
+          status: 400, headers: jsonHeaders,
+        });
+      }
+      const { error: updErr } = await supabaseAdmin
+        .from("qbo_connections")
+        .update(updates)
+        .eq("id", connection.id);
+      if (updErr) {
+        return new Response(JSON.stringify({ error: updErr.message }), {
+          status: 500, headers: jsonHeaders,
+        });
+      }
+      return new Response(JSON.stringify({ success: true, updated: updates }), { headers: jsonHeaders });
+    }
+
     // ── POST ?action=sync-clients ────────────────────────────────────
     if (urlPath === "sync-clients" && req.method === "POST") {
       const { client_ids } = await req.json();

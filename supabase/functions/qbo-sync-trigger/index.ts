@@ -110,10 +110,10 @@ serve(async (req) => {
         await handlePayoutApproved(supabase, qboBase, qboHeaders, userId, record);
         break;
       case "deposit_posted":
-        await handleDepositPosted(supabase, qboBase, qboHeaders, userId, record);
+        await handleDepositPosted(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
       case "supplier_paid":
-        await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record);
+        await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
       case "trip_completed":
         await handleTripCompleted(supabase, qboBase, qboHeaders, userId, record);
@@ -286,7 +286,7 @@ async function handlePayoutApproved(
  *   Result: Clearing account zeroes out, fees tracked, bank reflects net deposit
  */
 async function handleDepositPosted(
-  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, connection?: any
 ) {
   // Try to find the client via the trip
   let qboCustomerId = "1"; // fallback
@@ -320,7 +320,9 @@ async function handleDepositPosted(
   const stripeFee = Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
   const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
   const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
-  const memo = `Stripe/Affirm deposit – ${payment.details || payment.notes || "Trip payment"}`;
+  // Include PI id in memo so the Stripe ↔ QBO reconciler can match by reference.
+  const piTag = payment.stripe_payment_intent_id ? ` [${payment.stripe_payment_intent_id}]` : "";
+  const memo = `Stripe/Affirm deposit – ${payment.details || payment.notes || "Trip payment"}${piTag}`;
 
   // ── Step 1: Gross → Stripe Clearing ──
   const step1 = {
@@ -392,6 +394,11 @@ async function handleDepositPosted(
   }
 
   // ── Step 3: Net → Bank ──
+  const bankAccount = await resolvePaymentAccount(
+    qboBase, qboHeaders,
+    connection?.default_bank_account_id, connection?.default_bank_account_name,
+    "Bank"
+  );
   const step3 = {
     TxnDate: txnDate,
     PrivateNote: `${memo} – Net payout to bank`,
@@ -401,7 +408,7 @@ async function handleDepositPosted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Debit",
-          AccountRef: { name: "Checking" },
+          AccountRef: { value: bankAccount.id, name: bankAccount.name },
         },
         Description: `Net Stripe payout to bank`,
       },
@@ -436,7 +443,7 @@ async function handleDepositPosted(
  * The supplier is auto-synced as a QBO Vendor if not already mapped.
  */
 async function handleSupplierPaid(
-  supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any, connection?: any
 ) {
   // 1. Ensure supplier exists as a QBO Vendor
   let qboVendorId: string | null = null;
@@ -519,12 +526,24 @@ async function handleSupplierPaid(
   };
 
   if (paymentMethod === "credit_card") {
+    // Resolve credit card account: prefer configured, then auto-detect first CreditCard, else fallback
+    const ccAccount = await resolvePaymentAccount(
+      qboBase, qboHeaders,
+      connection?.default_cc_account_id, connection?.default_cc_account_name,
+      "CreditCard"
+    );
     billPaymentData.CreditCardPayment = {
-      CCAccountRef: { name: "Checking" },
+      CCAccountRef: { value: ccAccount.id, name: ccAccount.name },
     };
   } else {
+    // Resolve bank account: prefer configured, then auto-detect first Bank, else fallback
+    const bankAccount = await resolvePaymentAccount(
+      qboBase, qboHeaders,
+      connection?.default_bank_account_id, connection?.default_bank_account_name,
+      "Bank"
+    );
     billPaymentData.CheckPayment = {
-      BankAccountRef: { name: "Checking" },
+      BankAccountRef: { value: bankAccount.id, name: bankAccount.name },
     };
   }
 
@@ -830,4 +849,75 @@ async function logSync(
     error_message: errorMessage || null,
     details: details || null,
   });
+}
+
+/**
+ * Resolve a QBO payment account (Bank or CreditCard) by:
+ *   1. Configured ID on qbo_connections (default_bank_account_id / default_cc_account_id)
+ *   2. Configured name (looked up in QBO)
+ *   3. First active account of the requested type in QBO
+ *   4. Hardcoded fallback "Checking" by name (last resort, may still fail)
+ */
+const _payAcctCache = new Map<string, { id: string; name: string }>();
+async function resolvePaymentAccount(
+  qboBase: string,
+  qboHeaders: any,
+  configuredId: string | null | undefined,
+  configuredName: string | null | undefined,
+  accountType: "Bank" | "CreditCard",
+): Promise<{ id: string; name: string }> {
+  const cacheKey = `${accountType}:${configuredId || configuredName || "auto"}`;
+  if (_payAcctCache.has(cacheKey)) return _payAcctCache.get(cacheKey)!;
+
+  // 1. By configured ID
+  if (configuredId) {
+    const r = await fetch(`${qboBase}/account/${configuredId}`, { headers: qboHeaders });
+    if (r.ok) {
+      const j = await r.json();
+      const acct = j?.Account;
+      if (acct) {
+        const out = { id: acct.Id, name: acct.Name };
+        _payAcctCache.set(cacheKey, out);
+        return out;
+      }
+    }
+  }
+
+  // 2. By configured name
+  if (configuredName) {
+    const escaped = configuredName.replace(/'/g, "\\'");
+    const r = await fetch(
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${escaped}' AND AccountType = '${accountType}'`)}`,
+      { headers: qboHeaders }
+    );
+    if (r.ok) {
+      const j = await r.json();
+      const acct = j?.QueryResponse?.Account?.[0];
+      if (acct) {
+        const out = { id: acct.Id, name: acct.Name };
+        _payAcctCache.set(cacheKey, out);
+        return out;
+      }
+    }
+  }
+
+  // 3. Auto-detect first active account of requested type
+  const r = await fetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE AccountType = '${accountType}' AND Active = true MAXRESULTS 1`)}`,
+    { headers: qboHeaders }
+  );
+  if (r.ok) {
+    const j = await r.json();
+    const acct = j?.QueryResponse?.Account?.[0];
+    if (acct) {
+      const out = { id: acct.Id, name: acct.Name };
+      _payAcctCache.set(cacheKey, out);
+      return out;
+    }
+  }
+
+  // 4. Last-resort fallback (will likely fail but preserves prior behavior)
+  throw new Error(
+    `No QBO ${accountType} account found. Configure a default ${accountType === "Bank" ? "bank" : "credit card"} account in Settings → Integrations → QuickBooks.`
+  );
 }

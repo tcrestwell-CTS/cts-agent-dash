@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format, formatDistanceToNow, isPast, isBefore, addDays } from "date-fns";
 import { QBOSetupWizard } from "./QBOSetupWizard";
+import { QBOPaymentAccountsCard } from "./QBOPaymentAccountsCard";
 
 // FinancialSummary removed – now lives on QBO Health page
 
@@ -298,6 +299,9 @@ export function QBOIntegrationCard() {
           </div>
         )}
       </div>
+
+      {/* Default Bank / CC accounts for BillPayments + Stripe deposits */}
+      <QBOPaymentAccountsCard />
 
     </div>
   );
