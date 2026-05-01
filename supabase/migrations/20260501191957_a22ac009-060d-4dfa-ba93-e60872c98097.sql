@@ -1,0 +1,1 @@
+UPDATE public.qbo_connections SET default_bank_account_id='160', default_bank_account_name='Mercury Checking (4832) - 5', updated_at=now() WHERE is_active=true AND user_id='5c2d70a4-a902-47fa-aaf0-f29fc2eb1562';
