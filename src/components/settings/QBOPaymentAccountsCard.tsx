@@ -9,7 +9,7 @@ import { toast } from "sonner";
 interface QboAccount {
   id: string;
   name: string;
-  type: "Bank" | "CreditCard" | string;
+  type: "Bank" | "Credit Card" | string;
   subtype?: string;
 }
 
@@ -73,7 +73,7 @@ export function QBOPaymentAccountsCard() {
   useEffect(() => { loadAll(); }, []);
 
   const banks = accounts.filter((a) => a.type === "Bank");
-  const cards = accounts.filter((a) => a.type === "CreditCard");
+  const cards = accounts.filter((a) => a.type === "Credit Card" || a.type === "CreditCard");
   const dirty = bankId !== initial.bankId || ccId !== initial.ccId;
 
   const handleSave = async () => {

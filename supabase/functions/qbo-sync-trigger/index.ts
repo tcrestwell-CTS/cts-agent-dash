@@ -526,11 +526,11 @@ async function handleSupplierPaid(
   };
 
   if (paymentMethod === "credit_card") {
-    // Resolve credit card account: prefer configured, then auto-detect first CreditCard, else fallback
+    // Resolve credit card account: prefer configured, then auto-detect first QBO "Credit Card" account
     const ccAccount = await resolvePaymentAccount(
       qboBase, qboHeaders,
       connection?.default_cc_account_id, connection?.default_cc_account_name,
-      "CreditCard"
+      "Credit Card"
     );
     billPaymentData.CreditCardPayment = {
       CCAccountRef: { value: ccAccount.id, name: ccAccount.name },
@@ -852,7 +852,7 @@ async function logSync(
 }
 
 /**
- * Resolve a QBO payment account (Bank or CreditCard) by:
+ * Resolve a QBO payment account (Bank or Credit Card) by:
  *   1. Configured ID on qbo_connections (default_bank_account_id / default_cc_account_id)
  *   2. Configured name (looked up in QBO)
  *   3. First active account of the requested type in QBO
@@ -864,7 +864,7 @@ async function resolvePaymentAccount(
   qboHeaders: any,
   configuredId: string | null | undefined,
   configuredName: string | null | undefined,
-  accountType: "Bank" | "CreditCard",
+  accountType: "Bank" | "Credit Card",
 ): Promise<{ id: string; name: string }> {
   const cacheKey = `${accountType}:${configuredId || configuredName || "auto"}`;
   if (_payAcctCache.has(cacheKey)) return _payAcctCache.get(cacheKey)!;
