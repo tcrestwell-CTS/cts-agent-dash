@@ -12,7 +12,6 @@ import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTierConfig } from "@/lib/commissionTiers";
 import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
-import { StripeConnectCard } from "@/components/settings/StripeConnectCard";
 import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
 import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings";
 import { BackfillPlanningTripsCard } from "@/components/admin/BackfillPlanningTripsCard";
@@ -564,7 +563,6 @@ const Settings = () => {
                 <Button size="sm">Connect</Button>
               </div>
 
-              <StripeConnectCard />
               <QBOIntegrationCard />
             </CardContent>
           </Card>

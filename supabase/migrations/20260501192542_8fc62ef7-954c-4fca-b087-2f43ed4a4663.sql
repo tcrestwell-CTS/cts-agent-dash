@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.stripe_connected_accounts CASCADE;

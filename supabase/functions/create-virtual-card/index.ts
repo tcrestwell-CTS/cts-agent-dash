@@ -110,23 +110,10 @@ serve(async (req) => {
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
       try {
-        // Check if agent has a Stripe Connect connected account
-        const { data: connectedAccount } = await supabase
-          .from("stripe_connected_accounts")
-          .select("stripe_account_id, card_issuing_status")
-          .eq("user_id", agentUserId)
-          .maybeSingle();
-
-        const stripeAccountHeader = connectedAccount?.card_issuing_status === "active"
-          ? connectedAccount.stripe_account_id
-          : null;
-
         // Step 1: Create or find a cardholder
         let cardholder: any;
         const listParams: any = { email: agentEmail || undefined, limit: 1 };
-        const existingCardholders = stripeAccountHeader
-          ? await stripe.issuing.cardholders.list(listParams, { stripeAccount: stripeAccountHeader })
-          : await stripe.issuing.cardholders.list(listParams);
+        const existingCardholders = await stripe.issuing.cardholders.list(listParams);
 
         if (existingCardholders.data.length > 0) {
           cardholder = existingCardholders.data[0];
@@ -145,9 +132,7 @@ serve(async (req) => {
               },
             },
           };
-          cardholder = stripeAccountHeader
-            ? await stripe.issuing.cardholders.create(createParams, { stripeAccount: stripeAccountHeader })
-            : await stripe.issuing.cardholders.create(createParams);
+          cardholder = await stripe.issuing.cardholders.create(createParams);
         }
 
         // Step 2: Create a virtual card with spending limit and controls
@@ -173,15 +158,12 @@ serve(async (req) => {
           },
         };
 
-        const card = stripeAccountHeader
-          ? await stripe.issuing.cards.create(cardParams, { stripeAccount: stripeAccountHeader })
-          : await stripe.issuing.cards.create(cardParams);
+        const card = await stripe.issuing.cards.create(cardParams);
 
         virtualCardId = card.id;
 
-        const accountLabel = stripeAccountHeader ? " (Connected Account)" : "";
         notificationTitle = `💳 Stripe Virtual Card Ready`;
-        notificationMessage = `A Stripe Issuing virtual card${accountLabel} has been created for ${clientName}'s ${formattedAmount} payment on "${tripName}". Retrieve the card details from your dashboard.`;
+        notificationMessage = `A Stripe Issuing virtual card has been created for ${clientName}'s ${formattedAmount} payment on "${tripName}". Retrieve the card details from your dashboard.`;
       } catch (stripeErr: any) {
         console.error("Stripe Issuing error:", stripeErr.message);
 
