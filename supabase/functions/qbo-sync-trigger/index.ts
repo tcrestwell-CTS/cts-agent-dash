@@ -436,7 +436,7 @@ async function handleDepositPosted(
  * The supplier is auto-synced as a QBO Vendor if not already mapped.
  */
 async function handleSupplierPaid(
-  supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any, connection?: any
 ) {
   // 1. Ensure supplier exists as a QBO Vendor
   let qboVendorId: string | null = null;
@@ -519,12 +519,24 @@ async function handleSupplierPaid(
   };
 
   if (paymentMethod === "credit_card") {
+    // Resolve credit card account: prefer configured, then auto-detect first CreditCard, else fallback
+    const ccAccount = await resolvePaymentAccount(
+      qboBase, qboHeaders,
+      connection?.default_cc_account_id, connection?.default_cc_account_name,
+      "CreditCard"
+    );
     billPaymentData.CreditCardPayment = {
-      CCAccountRef: { name: "Checking" },
+      CCAccountRef: { value: ccAccount.id, name: ccAccount.name },
     };
   } else {
+    // Resolve bank account: prefer configured, then auto-detect first Bank, else fallback
+    const bankAccount = await resolvePaymentAccount(
+      qboBase, qboHeaders,
+      connection?.default_bank_account_id, connection?.default_bank_account_name,
+      "Bank"
+    );
     billPaymentData.CheckPayment = {
-      BankAccountRef: { name: "Checking" },
+      BankAccountRef: { value: bankAccount.id, name: bankAccount.name },
     };
   }
 
