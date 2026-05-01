@@ -110,10 +110,10 @@ serve(async (req) => {
         await handlePayoutApproved(supabase, qboBase, qboHeaders, userId, record);
         break;
       case "deposit_posted":
-        await handleDepositPosted(supabase, qboBase, qboHeaders, userId, record);
+        await handleDepositPosted(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
       case "supplier_paid":
-        await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record);
+        await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
       case "trip_completed":
         await handleTripCompleted(supabase, qboBase, qboHeaders, userId, record);
