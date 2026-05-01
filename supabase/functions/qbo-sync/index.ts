@@ -113,7 +113,7 @@ serve(async (req) => {
       const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
       const r = await fetch(
         `${qboBase}/query?query=${encodeURIComponent(
-          `SELECT Id, Name, AccountType, AccountSubType, Active FROM Account WHERE AccountType IN ('Bank','CreditCard') AND Active = true MAXRESULTS 200`
+          `SELECT Id, Name, AccountType, AccountSubType, Active FROM Account WHERE AccountType IN ('Bank','Credit Card') AND Active = true MAXRESULTS 200`
         )}`,
         { headers: qboHeaders }
       );
