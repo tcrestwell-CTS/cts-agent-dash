@@ -110,6 +110,7 @@ serve(async (req) => {
     // Returns Bank + CreditCard accounts so the UI can let admins pick the
     // default account used for BillPayment + Stripe net-deposit postings.
     if (urlPath === "list-payment-accounts" && req.method === "GET") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
       const r = await fetch(
         `${qboBase}/query?query=${encodeURIComponent(
           `SELECT Id, Name, AccountType, AccountSubType, Active FROM Account WHERE AccountType IN ('Bank','CreditCard') AND Active = true MAXRESULTS 200`
@@ -119,7 +120,7 @@ serve(async (req) => {
       if (!r.ok) {
         const errBody = await r.text();
         return new Response(JSON.stringify({ error: `QBO query failed: ${errBody}` }), {
-          status: 502, headers: corsHeaders,
+          status: 502, headers: jsonHeaders,
         });
       }
       const j = await r.json();
@@ -129,11 +130,12 @@ serve(async (req) => {
         type: a.AccountType,
         subtype: a.AccountSubType,
       }));
-      return new Response(JSON.stringify({ accounts }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ accounts }), { headers: jsonHeaders });
     }
 
     // ── POST ?action=set-default-accounts ───────────────────────────
     if (urlPath === "set-default-accounts" && req.method === "POST") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
       const body = await req.json();
       const updates: Record<string, string | null> = {};
       if ("default_bank_account_id" in body) {
@@ -146,7 +148,7 @@ serve(async (req) => {
       }
       if (Object.keys(updates).length === 0) {
         return new Response(JSON.stringify({ error: "No fields to update" }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: jsonHeaders,
         });
       }
       const { error: updErr } = await supabaseAdmin
@@ -155,10 +157,10 @@ serve(async (req) => {
         .eq("id", connection.id);
       if (updErr) {
         return new Response(JSON.stringify({ error: updErr.message }), {
-          status: 500, headers: corsHeaders,
+          status: 500, headers: jsonHeaders,
         });
       }
-      return new Response(JSON.stringify({ success: true, updated: updates }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ success: true, updated: updates }), { headers: jsonHeaders });
     }
 
     // ── POST ?action=sync-clients ────────────────────────────────────
