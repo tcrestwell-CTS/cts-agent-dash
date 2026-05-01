@@ -31,8 +31,6 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.send-signup-otp]
     verify_jwt = false
-  [functions.stripe-connect-onboarding]
-    verify_jwt = false
   [functions.stripe-issuing-webhook]
     verify_jwt = false
   [functions.stripe-dispute-webhook]
