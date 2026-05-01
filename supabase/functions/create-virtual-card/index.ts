@@ -110,23 +110,10 @@ serve(async (req) => {
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
       try {
-        // Check if agent has a Stripe Connect connected account
-        const { data: connectedAccount } = await supabase
-          .from("stripe_connected_accounts")
-          .select("stripe_account_id, card_issuing_status")
-          .eq("user_id", agentUserId)
-          .maybeSingle();
-
-        const stripeAccountHeader = connectedAccount?.card_issuing_status === "active"
-          ? connectedAccount.stripe_account_id
-          : null;
-
         // Step 1: Create or find a cardholder
         let cardholder: any;
         const listParams: any = { email: agentEmail || undefined, limit: 1 };
-        const existingCardholders = stripeAccountHeader
-          ? await stripe.issuing.cardholders.list(listParams, { stripeAccount: stripeAccountHeader })
-          : await stripe.issuing.cardholders.list(listParams);
+        const existingCardholders = await stripe.issuing.cardholders.list(listParams);
 
         if (existingCardholders.data.length > 0) {
           cardholder = existingCardholders.data[0];
