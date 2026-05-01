@@ -147,27 +147,7 @@ serve(async (req) => {
       if (payment) {
         // 1. Cancel/lock the card to prevent further use
         try {
-          // Determine if card is on a connected account
-          const { data: connectedAccount } = await supabase
-            .from("stripe_connected_accounts")
-            .select("stripe_account_id, card_issuing_status")
-            .eq("user_id", payment.user_id)
-            .maybeSingle();
-
-          const stripeAccountHeader =
-            connectedAccount?.card_issuing_status === "active"
-              ? connectedAccount.stripe_account_id
-              : null;
-
-          const cancelOpts = stripeAccountHeader
-            ? { stripeAccount: stripeAccountHeader }
-            : undefined;
-
-          await stripe.issuing.cards.update(
-            cardId,
-            { status: "canceled" },
-            cancelOpts,
-          );
+          await stripe.issuing.cards.update(cardId, { status: "canceled" });
           console.log(`Card ${cardId} canceled after successful transaction`);
         } catch (cancelErr: any) {
           console.error(`Failed to cancel card ${cardId}:`, cancelErr.message);
