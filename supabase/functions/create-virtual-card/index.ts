@@ -132,9 +132,7 @@ serve(async (req) => {
               },
             },
           };
-          cardholder = stripeAccountHeader
-            ? await stripe.issuing.cardholders.create(createParams, { stripeAccount: stripeAccountHeader })
-            : await stripe.issuing.cardholders.create(createParams);
+          cardholder = await stripe.issuing.cardholders.create(createParams);
         }
 
         // Step 2: Create a virtual card with spending limit and controls
@@ -160,15 +158,12 @@ serve(async (req) => {
           },
         };
 
-        const card = stripeAccountHeader
-          ? await stripe.issuing.cards.create(cardParams, { stripeAccount: stripeAccountHeader })
-          : await stripe.issuing.cards.create(cardParams);
+        const card = await stripe.issuing.cards.create(cardParams);
 
         virtualCardId = card.id;
 
-        const accountLabel = stripeAccountHeader ? " (Connected Account)" : "";
         notificationTitle = `💳 Stripe Virtual Card Ready`;
-        notificationMessage = `A Stripe Issuing virtual card${accountLabel} has been created for ${clientName}'s ${formattedAmount} payment on "${tripName}". Retrieve the card details from your dashboard.`;
+        notificationMessage = `A Stripe Issuing virtual card has been created for ${clientName}'s ${formattedAmount} payment on "${tripName}". Retrieve the card details from your dashboard.`;
       } catch (stripeErr: any) {
         console.error("Stripe Issuing error:", stripeErr.message);
 
