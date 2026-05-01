@@ -850,3 +850,74 @@ async function logSync(
     details: details || null,
   });
 }
+
+/**
+ * Resolve a QBO payment account (Bank or CreditCard) by:
+ *   1. Configured ID on qbo_connections (default_bank_account_id / default_cc_account_id)
+ *   2. Configured name (looked up in QBO)
+ *   3. First active account of the requested type in QBO
+ *   4. Hardcoded fallback "Checking" by name (last resort, may still fail)
+ */
+const _payAcctCache = new Map<string, { id: string; name: string }>();
+async function resolvePaymentAccount(
+  qboBase: string,
+  qboHeaders: any,
+  configuredId: string | null | undefined,
+  configuredName: string | null | undefined,
+  accountType: "Bank" | "CreditCard",
+): Promise<{ id: string; name: string }> {
+  const cacheKey = `${accountType}:${configuredId || configuredName || "auto"}`;
+  if (_payAcctCache.has(cacheKey)) return _payAcctCache.get(cacheKey)!;
+
+  // 1. By configured ID
+  if (configuredId) {
+    const r = await fetch(`${qboBase}/account/${configuredId}`, { headers: qboHeaders });
+    if (r.ok) {
+      const j = await r.json();
+      const acct = j?.Account;
+      if (acct) {
+        const out = { id: acct.Id, name: acct.Name };
+        _payAcctCache.set(cacheKey, out);
+        return out;
+      }
+    }
+  }
+
+  // 2. By configured name
+  if (configuredName) {
+    const escaped = configuredName.replace(/'/g, "\\'");
+    const r = await fetch(
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${escaped}' AND AccountType = '${accountType}'`)}`,
+      { headers: qboHeaders }
+    );
+    if (r.ok) {
+      const j = await r.json();
+      const acct = j?.QueryResponse?.Account?.[0];
+      if (acct) {
+        const out = { id: acct.Id, name: acct.Name };
+        _payAcctCache.set(cacheKey, out);
+        return out;
+      }
+    }
+  }
+
+  // 3. Auto-detect first active account of requested type
+  const r = await fetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE AccountType = '${accountType}' AND Active = true MAXRESULTS 1`)}`,
+    { headers: qboHeaders }
+  );
+  if (r.ok) {
+    const j = await r.json();
+    const acct = j?.QueryResponse?.Account?.[0];
+    if (acct) {
+      const out = { id: acct.Id, name: acct.Name };
+      _payAcctCache.set(cacheKey, out);
+      return out;
+    }
+  }
+
+  // 4. Last-resort fallback (will likely fail but preserves prior behavior)
+  throw new Error(
+    `No QBO ${accountType} account found. Configure a default ${accountType === "Bank" ? "bank" : "credit card"} account in Settings → Integrations → QuickBooks.`
+  );
+}
