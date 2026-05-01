@@ -887,12 +887,12 @@ async function resolvePaymentAccount(
   if (configuredName) {
     const escaped = configuredName.replace(/'/g, "\\'");
     const r = await fetch(
-      `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${escaped}' AND AccountType = '${accountType}'`)}`,
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${escaped}' AND Active = true`)}`,
       { headers: qboHeaders }
     );
     if (r.ok) {
       const j = await r.json();
-      const acct = j?.QueryResponse?.Account?.[0];
+      const acct = (j?.QueryResponse?.Account || []).find((a: any) => accountMatchesPaymentType(a, accountType));
       if (acct) {
         const out = { id: acct.Id, name: acct.Name };
         _payAcctCache.set(cacheKey, out);
@@ -903,12 +903,12 @@ async function resolvePaymentAccount(
 
   // 3. Auto-detect first active account of requested type
   const r = await fetch(
-    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE AccountType = '${accountType}' AND Active = true MAXRESULTS 1`)}`,
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Active = true MAXRESULTS 200`)}`,
     { headers: qboHeaders }
   );
   if (r.ok) {
     const j = await r.json();
-    const acct = j?.QueryResponse?.Account?.[0];
+    const acct = (j?.QueryResponse?.Account || []).find((a: any) => accountMatchesPaymentType(a, accountType));
     if (acct) {
       const out = { id: acct.Id, name: acct.Name };
       _payAcctCache.set(cacheKey, out);
@@ -920,4 +920,9 @@ async function resolvePaymentAccount(
   throw new Error(
     `No QBO ${accountType} account found. Configure a default ${accountType === "Bank" ? "bank" : "credit card"} account in Settings → Integrations → QuickBooks.`
   );
+}
+
+function accountMatchesPaymentType(account: any, accountType: "Bank" | "Credit Card") {
+  const qboType = String(account?.AccountType || "").toLowerCase();
+  return accountType === "Bank" ? qboType === "bank" : qboType.includes("credit");
 }
