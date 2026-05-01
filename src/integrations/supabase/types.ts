@@ -3404,6 +3404,10 @@ export type Database = {
           access_token: string
           company_name: string | null
           created_at: string
+          default_bank_account_id: string | null
+          default_bank_account_name: string | null
+          default_cc_account_id: string | null
+          default_cc_account_name: string | null
           id: string
           is_active: boolean
           realm_id: string
@@ -3416,6 +3420,10 @@ export type Database = {
           access_token: string
           company_name?: string | null
           created_at?: string
+          default_bank_account_id?: string | null
+          default_bank_account_name?: string | null
+          default_cc_account_id?: string | null
+          default_cc_account_name?: string | null
           id?: string
           is_active?: boolean
           realm_id: string
@@ -3428,6 +3436,10 @@ export type Database = {
           access_token?: string
           company_name?: string | null
           created_at?: string
+          default_bank_account_id?: string | null
+          default_bank_account_name?: string | null
+          default_cc_account_id?: string | null
+          default_cc_account_name?: string | null
           id?: string
           is_active?: boolean
           realm_id?: string
