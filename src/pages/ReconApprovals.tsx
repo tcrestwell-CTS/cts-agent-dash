@@ -110,7 +110,7 @@ export function ReconApprovals() {
                         )}
                       </div>
                       <div className="mt-2 font-mono text-xs text-muted-foreground truncate">
-                        Amount: ${(task.action_payload as Record<string, unknown>)?.TotalAmt ?? "—"}
+                        Amount: ${String((task.action_payload as Record<string, unknown>)?.TotalAmt ?? "—")}
                         {" · "}
                         Date: {(task.action_payload as Record<string, unknown>)?.TxnDate as string ?? "—"}
                       </div>
