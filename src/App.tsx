@@ -137,6 +137,12 @@ const App = () => (
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
                 <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
+                <Route path="/recon"            element={<ProtectedRoute><ReconDashboard /></ProtectedRoute>} />
+                <Route path="/recon/matches"    element={<ProtectedRoute><ReconMatches /></ProtectedRoute>} />
+                <Route path="/recon/exceptions" element={<ProtectedRoute><ReconExceptions /></ProtectedRoute>} />
+                <Route path="/recon/approvals"  element={<ProtectedRoute><ReconApprovals /></ProtectedRoute>} />
+                <Route path="/recon/payouts"    element={<ProtectedRoute><ReconPayouts /></ProtectedRoute>} />
+                <Route path="/recon/settings"   element={<ProtectedRoute><ReconSettings /></ProtectedRoute>} />
                 <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
                 <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
