@@ -288,7 +288,47 @@ serve(async (req) => {
                 : `Variance of $${Math.abs(balance - stripePending).toFixed(2)} between QBO ($${balance.toFixed(2)}) and Stripe pending ($${stripePending.toFixed(2)})`,
             };
           } else {
-            qboClearing = { account_exists: false, message: "Stripe Clearing account not found in QBO" };
+            // Auto-provision the Stripe Clearing account so the health check
+            // and subsequent JE postings have somewhere to land.
+            try {
+              const createResp = await fetch(`${qboBase}/account`, {
+                method: "POST",
+                headers: { ...qboHeaders, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  Name: "Stripe Clearing",
+                  AccountType: "Other Current Asset",
+                  AccountSubType: "OtherCurrentAssets",
+                }),
+              });
+              if (createResp.ok) {
+                const created = await createResp.json();
+                const acct = created?.Account;
+                const stripePending = balData?.pending?.[0]?.amount
+                  ? balData.pending[0].amount / 100
+                  : 0;
+                qboClearing = {
+                  account_id: acct?.Id,
+                  account_name: acct?.Name,
+                  qbo_balance: 0,
+                  stripe_pending: stripePending,
+                  variance: Math.round((0 - stripePending) * 100) / 100,
+                  is_balanced: Math.abs(stripePending) < 1.0,
+                  auto_created: true,
+                  message: "Stripe Clearing account auto-created in QBO (zero balance).",
+                };
+              } else {
+                const errText = await createResp.text();
+                qboClearing = {
+                  account_exists: false,
+                  message: `Stripe Clearing account not found and auto-create failed: ${errText}`,
+                };
+              }
+            } catch (createErr: any) {
+              qboClearing = {
+                account_exists: false,
+                message: `Stripe Clearing account not found; auto-create error: ${createErr.message}`,
+              };
+            }
           }
         }
       } catch (qboErr: any) {
