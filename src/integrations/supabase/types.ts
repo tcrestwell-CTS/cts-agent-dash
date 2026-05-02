@@ -400,6 +400,78 @@ export type Database = {
           },
         ]
       }
+      approval_tasks: {
+        Row: {
+          action_payload: Json | null
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          exception_id: string | null
+          id: string
+          qbo_object_id: string | null
+          qbo_response: Json | null
+          recon_match_id: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requires_admin: boolean | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_payload?: Json | null
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          exception_id?: string | null
+          id?: string
+          qbo_object_id?: string | null
+          qbo_response?: Json | null
+          recon_match_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requires_admin?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_payload?: Json | null
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          exception_id?: string | null
+          id?: string
+          qbo_object_id?: string | null
+          qbo_response?: Json | null
+          recon_match_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requires_admin?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_tasks_exception_id_fkey"
+            columns: ["exception_id"]
+            isOneToOne: false
+            referencedRelation: "exception_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_tasks_recon_match_id_fkey"
+            columns: ["recon_match_id"]
+            isOneToOne: false
+            referencedRelation: "recon_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           content_html: string | null
@@ -2092,6 +2164,68 @@ export type Database = {
         }
         Relationships: []
       }
+      exception_queue: {
+        Row: {
+          amount: number | null
+          assigned_to: string | null
+          created_at: string | null
+          description: string | null
+          exception_type: string
+          id: string
+          recon_match_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_record_id: string | null
+          source_record_type: string | null
+          source_system: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          exception_type: string
+          id?: string
+          recon_match_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string | null
+          exception_type?: string
+          id?: string
+          recon_match_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exception_queue_recon_match_id_fkey"
+            columns: ["recon_match_id"]
+            isOneToOne: false
+            referencedRelation: "recon_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_trips: {
         Row: {
           cover_image_url: string | null
@@ -3424,6 +3558,141 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_accounts: {
+        Row: {
+          account_sub_type: string | null
+          account_type: string | null
+          active: boolean | null
+          created_at: string | null
+          id: string
+          name: string | null
+          qbo_id: string
+          raw_payload: Json | null
+          synced_at: string | null
+        }
+        Insert: {
+          account_sub_type?: string | null
+          account_type?: string | null
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          qbo_id: string
+          raw_payload?: Json | null
+          synced_at?: string | null
+        }
+        Update: {
+          account_sub_type?: string | null
+          account_type?: string | null
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          qbo_id?: string
+          raw_payload?: Json | null
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
+      qbo_bill_payments: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_ref_num: string | null
+          qbo_bill_id: string | null
+          qbo_id: string
+          qbo_vendor_id: string | null
+          raw_payload: Json | null
+          sync_token: string | null
+          synced_at: string | null
+          total_amt: number | null
+          trigger_managed: boolean | null
+          txn_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_ref_num?: string | null
+          qbo_bill_id?: string | null
+          qbo_id: string
+          qbo_vendor_id?: string | null
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_ref_num?: string | null
+          qbo_bill_id?: string | null
+          qbo_id?: string
+          qbo_vendor_id?: string | null
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Relationships: []
+      }
+      qbo_bills: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          crm_supplier_payment_id: string | null
+          doc_number: string | null
+          due_date: string | null
+          id: string
+          qbo_id: string
+          qbo_vendor_id: string | null
+          raw_payload: Json | null
+          status: string | null
+          sync_token: string | null
+          synced_at: string | null
+          total_amt: number | null
+          trigger_managed: boolean | null
+          txn_date: string | null
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          crm_supplier_payment_id?: string | null
+          doc_number?: string | null
+          due_date?: string | null
+          id?: string
+          qbo_id: string
+          qbo_vendor_id?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          crm_supplier_payment_id?: string | null
+          doc_number?: string | null
+          due_date?: string | null
+          id?: string
+          qbo_id?: string
+          qbo_vendor_id?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Relationships: []
+      }
       qbo_client_mappings: {
         Row: {
           client_id: string
@@ -3510,6 +3779,95 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_customers: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          crm_client_id: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          qbo_id: string
+          raw_payload: Json | null
+          sync_token: string | null
+          synced_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          crm_client_id?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          qbo_id: string
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          crm_client_id?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          qbo_id?: string
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_customers_crm_client_id_fkey"
+            columns: ["crm_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qbo_deposits: {
+        Row: {
+          created_at: string | null
+          deposit_to_account_id: string | null
+          id: string
+          memo: string | null
+          qbo_id: string
+          raw_payload: Json | null
+          sync_token: string | null
+          synced_at: string | null
+          total_amt: number | null
+          trigger_managed: boolean | null
+          txn_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deposit_to_account_id?: string | null
+          id?: string
+          memo?: string | null
+          qbo_id: string
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deposit_to_account_id?: string | null
+          id?: string
+          memo?: string | null
+          qbo_id?: string
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Relationships: []
+      }
       qbo_invoice_mappings: {
         Row: {
           created_at: string
@@ -3544,6 +3902,116 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      qbo_invoices: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          crm_booking_id: string | null
+          doc_number: string | null
+          due_date: string | null
+          id: string
+          qbo_customer_id: string | null
+          qbo_id: string
+          raw_payload: Json | null
+          status: string | null
+          sync_token: string | null
+          synced_at: string | null
+          total_amt: number | null
+          trigger_managed: boolean | null
+          txn_date: string | null
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          crm_booking_id?: string | null
+          doc_number?: string | null
+          due_date?: string | null
+          id?: string
+          qbo_customer_id?: string | null
+          qbo_id: string
+          raw_payload?: Json | null
+          status?: string | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          crm_booking_id?: string | null
+          doc_number?: string | null
+          due_date?: string | null
+          id?: string
+          qbo_customer_id?: string | null
+          qbo_id?: string
+          raw_payload?: Json | null
+          status?: string | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_invoices_crm_booking_id_fkey"
+            columns: ["crm_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qbo_payments: {
+        Row: {
+          created_at: string | null
+          crm_payment_id: string | null
+          id: string
+          payment_ref_num: string | null
+          qbo_customer_id: string | null
+          qbo_id: string
+          qbo_invoice_id: string | null
+          raw_payload: Json | null
+          sync_token: string | null
+          synced_at: string | null
+          total_amt: number | null
+          trigger_managed: boolean | null
+          txn_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          crm_payment_id?: string | null
+          id?: string
+          payment_ref_num?: string | null
+          qbo_customer_id?: string | null
+          qbo_id: string
+          qbo_invoice_id?: string | null
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          crm_payment_id?: string | null
+          id?: string
+          payment_ref_num?: string | null
+          qbo_customer_id?: string | null
+          qbo_id?: string
+          qbo_invoice_id?: string | null
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+          total_amt?: number | null
+          trigger_managed?: boolean | null
+          txn_date?: string | null
+        }
+        Relationships: []
       }
       qbo_supplier_mappings: {
         Row: {
@@ -3610,6 +4078,45 @@ export type Database = {
           status?: string
           sync_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      qbo_vendors: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          crm_supplier_id: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          qbo_id: string
+          raw_payload: Json | null
+          sync_token: string | null
+          synced_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          crm_supplier_id?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          qbo_id: string
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          crm_supplier_id?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          qbo_id?: string
+          raw_payload?: Json | null
+          sync_token?: string | null
+          synced_at?: string | null
         }
         Relationships: []
       }
@@ -3787,6 +4294,351 @@ export type Database = {
           },
         ]
       }
+      recon_account_config: {
+        Row: {
+          allow_auto_post: boolean | null
+          amount_tolerance: number | null
+          ap_account_id: string | null
+          approval_required_above: number | null
+          ar_account_id: string | null
+          auto_match_threshold: number | null
+          closed_period_cutoff: string | null
+          company_id: string | null
+          date_window_days: number | null
+          default_vendor_payment_account_id: string | null
+          id: string
+          qbo_bank_account_id: string | null
+          stripe_clearing_account_id: string | null
+          stripe_fees_account_id: string | null
+          undeposited_funds_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          allow_auto_post?: boolean | null
+          amount_tolerance?: number | null
+          ap_account_id?: string | null
+          approval_required_above?: number | null
+          ar_account_id?: string | null
+          auto_match_threshold?: number | null
+          closed_period_cutoff?: string | null
+          company_id?: string | null
+          date_window_days?: number | null
+          default_vendor_payment_account_id?: string | null
+          id?: string
+          qbo_bank_account_id?: string | null
+          stripe_clearing_account_id?: string | null
+          stripe_fees_account_id?: string | null
+          undeposited_funds_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          allow_auto_post?: boolean | null
+          amount_tolerance?: number | null
+          ap_account_id?: string | null
+          approval_required_above?: number | null
+          ar_account_id?: string | null
+          auto_match_threshold?: number | null
+          closed_period_cutoff?: string | null
+          company_id?: string | null
+          date_window_days?: number | null
+          default_vendor_payment_account_id?: string | null
+          id?: string
+          qbo_bank_account_id?: string | null
+          stripe_clearing_account_id?: string | null
+          stripe_fees_account_id?: string | null
+          undeposited_funds_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      recon_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          qbo_object_id: string | null
+          qbo_response_id: string | null
+          record_id: string | null
+          record_type: string | null
+          source_event_id: string | null
+          source_system: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          qbo_object_id?: string | null
+          qbo_response_id?: string | null
+          record_id?: string | null
+          record_type?: string | null
+          source_event_id?: string | null
+          source_system?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          qbo_object_id?: string | null
+          qbo_response_id?: string | null
+          record_id?: string | null
+          record_type?: string | null
+          source_event_id?: string | null
+          source_system?: string | null
+        }
+        Relationships: []
+      }
+      recon_dead_letter_queue: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string
+          last_retry_at: string | null
+          max_retries: number | null
+          payload: Json | null
+          retry_count: number | null
+          source_system: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          last_retry_at?: string | null
+          max_retries?: number | null
+          payload?: Json | null
+          retry_count?: number | null
+          source_system?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          last_retry_at?: string | null
+          max_retries?: number | null
+          payload?: Json | null
+          retry_count?: number | null
+          source_system?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      recon_entity_mappings: {
+        Row: {
+          created_at: string | null
+          crm_id: string | null
+          id: string
+          mapping_type: string
+          qbo_id: string | null
+          stripe_id: string | null
+          updated_at: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          crm_id?: string | null
+          id?: string
+          mapping_type: string
+          qbo_id?: string | null
+          stripe_id?: string | null
+          updated_at?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          crm_id?: string | null
+          id?: string
+          mapping_type?: string
+          qbo_id?: string | null
+          stripe_id?: string | null
+          updated_at?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      recon_matches: {
+        Row: {
+          amount_variance: number | null
+          approved_at: string | null
+          approved_by: string | null
+          auto_matched: boolean | null
+          confidence_score: number | null
+          created_at: string | null
+          crm_amount: number | null
+          crm_booking_id: string | null
+          crm_date: string | null
+          crm_payment_id: string | null
+          crm_supplier_payment_id: string | null
+          date_variance_days: number | null
+          id: string
+          match_explanation: string | null
+          match_type: string
+          qbo_amount: number | null
+          qbo_bill_id: string | null
+          qbo_bill_payment_id: string | null
+          qbo_date: string | null
+          qbo_deposit_id: string | null
+          qbo_invoice_id: string | null
+          qbo_payment_id: string | null
+          recommended_action: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score_breakdown: Json | null
+          status: string | null
+          stripe_amount: number | null
+          stripe_date: string | null
+          stripe_payment_id: string | null
+          stripe_payout_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_variance?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_matched?: boolean | null
+          confidence_score?: number | null
+          created_at?: string | null
+          crm_amount?: number | null
+          crm_booking_id?: string | null
+          crm_date?: string | null
+          crm_payment_id?: string | null
+          crm_supplier_payment_id?: string | null
+          date_variance_days?: number | null
+          id?: string
+          match_explanation?: string | null
+          match_type: string
+          qbo_amount?: number | null
+          qbo_bill_id?: string | null
+          qbo_bill_payment_id?: string | null
+          qbo_date?: string | null
+          qbo_deposit_id?: string | null
+          qbo_invoice_id?: string | null
+          qbo_payment_id?: string | null
+          recommended_action?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score_breakdown?: Json | null
+          status?: string | null
+          stripe_amount?: number | null
+          stripe_date?: string | null
+          stripe_payment_id?: string | null
+          stripe_payout_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_variance?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_matched?: boolean | null
+          confidence_score?: number | null
+          created_at?: string | null
+          crm_amount?: number | null
+          crm_booking_id?: string | null
+          crm_date?: string | null
+          crm_payment_id?: string | null
+          crm_supplier_payment_id?: string | null
+          date_variance_days?: number | null
+          id?: string
+          match_explanation?: string | null
+          match_type?: string
+          qbo_amount?: number | null
+          qbo_bill_id?: string | null
+          qbo_bill_payment_id?: string | null
+          qbo_date?: string | null
+          qbo_deposit_id?: string | null
+          qbo_invoice_id?: string | null
+          qbo_payment_id?: string | null
+          recommended_action?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score_breakdown?: Json | null
+          status?: string | null
+          stripe_amount?: number | null
+          stripe_date?: string | null
+          stripe_payment_id?: string | null
+          stripe_payout_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recon_matches_crm_booking_id_fkey"
+            columns: ["crm_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_qbo_bill_id_fkey"
+            columns: ["qbo_bill_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_qbo_bill_payment_id_fkey"
+            columns: ["qbo_bill_payment_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_bill_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_qbo_deposit_id_fkey"
+            columns: ["qbo_deposit_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_qbo_invoice_id_fkey"
+            columns: ["qbo_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_qbo_payment_id_fkey"
+            columns: ["qbo_payment_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_stripe_payment_id_fkey"
+            columns: ["stripe_payment_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recon_matches_stripe_payout_id_fkey"
+            columns: ["stripe_payout_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reconciliation_alerts: {
         Row: {
           alert_type: string
@@ -3922,6 +4774,301 @@ export type Database = {
           expires_at?: string
           id?: string
           verified?: boolean
+        }
+        Relationships: []
+      }
+      stripe_disputes: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          raw_payload: Json | null
+          reason: string | null
+          status: string | null
+          stripe_charge_id: string | null
+          stripe_dispute_id: string
+          stripe_payment_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          raw_payload?: Json | null
+          reason?: string | null
+          status?: string | null
+          stripe_charge_id?: string | null
+          stripe_dispute_id: string
+          stripe_payment_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          raw_payload?: Json | null
+          reason?: string | null
+          status?: string | null
+          stripe_charge_id?: string | null
+          stripe_dispute_id?: string
+          stripe_payment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_disputes_stripe_payment_id_fkey"
+            columns: ["stripe_payment_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_payments: {
+        Row: {
+          created_at: string | null
+          crm_booking_id: string | null
+          crm_client_id: string | null
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          gross_amount: number | null
+          id: string
+          invoice_number: string | null
+          net_amount: number | null
+          payment_method: string | null
+          raw_payload: Json | null
+          status: string | null
+          stripe_available_at: string | null
+          stripe_charge_id: string | null
+          stripe_created_at: string | null
+          stripe_customer_id: string | null
+          stripe_fee: number | null
+          stripe_payment_intent_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          crm_booking_id?: string | null
+          crm_client_id?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          gross_amount?: number | null
+          id?: string
+          invoice_number?: string | null
+          net_amount?: number | null
+          payment_method?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          stripe_available_at?: string | null
+          stripe_charge_id?: string | null
+          stripe_created_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_fee?: number | null
+          stripe_payment_intent_id: string
+        }
+        Update: {
+          created_at?: string | null
+          crm_booking_id?: string | null
+          crm_client_id?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          gross_amount?: number | null
+          id?: string
+          invoice_number?: string | null
+          net_amount?: number | null
+          payment_method?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          stripe_available_at?: string | null
+          stripe_charge_id?: string | null
+          stripe_created_at?: string | null
+          stripe_customer_id?: string | null
+          stripe_fee?: number | null
+          stripe_payment_intent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payments_crm_booking_id_fkey"
+            columns: ["crm_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_payments_crm_client_id_fkey"
+            columns: ["crm_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_payout_payments: {
+        Row: {
+          created_at: string | null
+          fee_amount: number | null
+          gross_amount: number | null
+          id: string
+          net_contribution: number | null
+          stripe_payment_id: string | null
+          stripe_payout_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fee_amount?: number | null
+          gross_amount?: number | null
+          id?: string
+          net_contribution?: number | null
+          stripe_payment_id?: string | null
+          stripe_payout_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fee_amount?: number | null
+          gross_amount?: number | null
+          id?: string
+          net_contribution?: number | null
+          stripe_payment_id?: string | null
+          stripe_payout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payout_payments_stripe_payment_id_fkey"
+            columns: ["stripe_payment_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_payout_payments_stripe_payout_id_fkey"
+            columns: ["stripe_payout_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_payouts: {
+        Row: {
+          amount: number | null
+          arrival_date: string | null
+          created_at: string | null
+          fee_total: number | null
+          id: string
+          net_amount: number | null
+          qbo_deposit_id: string | null
+          raw_payload: Json | null
+          reconciled: boolean | null
+          refund_total: number | null
+          status: string | null
+          stripe_payout_id: string
+        }
+        Insert: {
+          amount?: number | null
+          arrival_date?: string | null
+          created_at?: string | null
+          fee_total?: number | null
+          id?: string
+          net_amount?: number | null
+          qbo_deposit_id?: string | null
+          raw_payload?: Json | null
+          reconciled?: boolean | null
+          refund_total?: number | null
+          status?: string | null
+          stripe_payout_id: string
+        }
+        Update: {
+          amount?: number | null
+          arrival_date?: string | null
+          created_at?: string | null
+          fee_total?: number | null
+          id?: string
+          net_amount?: number | null
+          qbo_deposit_id?: string | null
+          raw_payload?: Json | null
+          reconciled?: boolean | null
+          refund_total?: number | null
+          status?: string | null
+          stripe_payout_id?: string
+        }
+        Relationships: []
+      }
+      stripe_refunds: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          raw_payload: Json | null
+          reason: string | null
+          status: string | null
+          stripe_charge_id: string | null
+          stripe_payment_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_refund_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          raw_payload?: Json | null
+          reason?: string | null
+          status?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          raw_payload?: Json | null
+          reason?: string | null
+          status?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_refunds_stripe_payment_id_fkey"
+            columns: ["stripe_payment_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          event_type: string
+          id: string
+          processed: boolean | null
+          processed_at: string | null
+          raw_payload: Json
+          stripe_event_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          event_type: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload: Json
+          stripe_event_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          event_type?: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          raw_payload?: Json
+          stripe_event_id?: string
         }
         Relationships: []
       }
