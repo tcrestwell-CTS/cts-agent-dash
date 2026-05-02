@@ -135,6 +135,12 @@ function AccountConfigTab() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const missing = REQUIRED_ACCOUNT_FIELDS.filter((f) => !form[f.field]);
+      if (missing.length > 0) {
+        throw new Error(
+          `Please select an account for: ${missing.map((m) => m.label).join(", ")}`
+        );
+      }
       const { error } = await supabase
         .from("recon_account_config")
         .update({ ...form, updated_at: new Date().toISOString() })
@@ -148,6 +154,8 @@ function AccountConfigTab() {
     },
     onError: (e) => toast.error(`Save failed: ${e.message}`),
   });
+
+  const missingRequired = REQUIRED_ACCOUNT_FIELDS.filter((f) => !form[f.field]);
 
   const bankAccounts = accounts?.filter((a) =>
     ["Bank", "Credit Card"].includes(a.account_type)
@@ -352,7 +360,7 @@ function AccountConfigTab() {
       <div className="flex justify-end">
         <Button
           onClick={() => save.mutate()}
-          disabled={!dirty || save.isPending}
+          disabled={!dirty || save.isPending || missingRequired.length > 0}
           className="min-w-32"
         >
           {save.isPending ? (
