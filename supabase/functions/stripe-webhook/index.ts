@@ -105,7 +105,11 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (loan) {
-        const amountPaid = (invoice.amount_paid || 0) / 100;
+        // Stripe's invoice.amount_paid is grossed-up to cover processing fees.
+        // The customer's true payment toward the loan is the schedule row's
+        // total_payment (principal + interest). Use that for balance/QBO so
+        // the processing fee never inflates the customer's loan balance.
+        const stripeGross = (invoice.amount_paid || 0) / 100;
         const txnDate = new Date((invoice.status_transitions?.paid_at || invoice.created || Date.now() / 1000) * 1000)
           .toISOString().split('T')[0];
 
@@ -120,6 +124,11 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (nextRow) {
+          const scheduledPayment = Number(nextRow.total_payment) || 0;
+          const principal = Number(nextRow.principal_amount) || 0;
+          const interest = Number(nextRow.interest_amount) || 0;
+          const processingFee = Math.max(0, +(stripeGross - scheduledPayment).toFixed(2));
+
           await supabase.from('loan_payment_schedules').update({
             status: 'paid',
             paid_date: txnDate,
@@ -129,7 +138,10 @@ Deno.serve(async (req) => {
           // Post a QBO Payment against the linked invoice (if any)
           if (nextRow.qbo_invoice_id) {
             await postQBOPaymentForLoan(
-              supabase, loan.user_id, nextRow.qbo_invoice_id, amountPaid, txnDate, loan.application_number
+              // Post the scheduled amount (principal + interest) — NOT the
+              // grossed-up Stripe charge. Processing fees are recorded
+              // separately by the QBO sync trigger flow.
+              supabase, loan.user_id, nextRow.qbo_invoice_id, scheduledPayment, txnDate, loan.application_number
             );
           }
 
@@ -145,20 +157,44 @@ Deno.serve(async (req) => {
               payment_number: nextRow.payment_number,
               qbo_invoice_id: nextRow.qbo_invoice_id,
               stripe_invoice_id: invoice.id,
-              amount_paid: amountPaid,
+              scheduled_payment: scheduledPayment,
+              principal,
+              interest,
+              stripe_gross: stripeGross,
+              processing_fee: processingFee,
             },
           });
+
+          // Receipt email to borrower — show scheduled (principal+interest)
+          if (loan.email) {
+            await sendEmail(loan.email,
+              `✅ Loan Payment Received — ${loan.application_number}`,
+              `${emailHeader(loan.first_name || 'there')}
+              <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${scheduledPayment.toFixed(2)}</strong> has been received and applied to your account.</p>
+              <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
+                <p style="margin:4px 0;font-size:14px;"><strong>Loan:</strong> ${loan.application_number}</p>
+                <p style="margin:4px 0;font-size:14px;"><strong>Principal:</strong> $${principal.toFixed(2)}</p>
+                <p style="margin:4px 0;font-size:14px;"><strong>Interest:</strong> $${interest.toFixed(2)}</p>
+                <p style="margin:4px 0;font-size:14px;"><strong>Payment:</strong> $${scheduledPayment.toFixed(2)}</p>
+                ${processingFee > 0 ? `<p style="margin:4px 0;font-size:12px;color:#777;">Card processing fee of $${processingFee.toFixed(2)} was added at checkout and is not part of your loan balance.</p>` : ''}
+                <p style="margin:4px 0;font-size:14px;"><strong>Date:</strong> ${txnDate}</p>
+              </div>
+              ${emailFooter}`,
+            RESEND_API_KEY);
+          }
+
+          return new Response('ok', { status: 200 });
         }
 
-        // Receipt email to borrower
+        // Fallback receipt (no schedule row matched) — keep using Stripe gross
         if (loan.email) {
           await sendEmail(loan.email,
             `✅ Loan Payment Received — ${loan.application_number}`,
             `${emailHeader(loan.first_name || 'there')}
-            <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${amountPaid.toFixed(2)}</strong> has been received and applied to your account.</p>
+            <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${stripeGross.toFixed(2)}</strong> has been received and applied to your account.</p>
             <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
               <p style="margin:4px 0;font-size:14px;"><strong>Loan:</strong> ${loan.application_number}</p>
-              <p style="margin:4px 0;font-size:14px;"><strong>Amount:</strong> $${amountPaid.toFixed(2)}</p>
+              <p style="margin:4px 0;font-size:14px;"><strong>Amount:</strong> $${stripeGross.toFixed(2)}</p>
               <p style="margin:4px 0;font-size:14px;"><strong>Date:</strong> ${txnDate}</p>
             </div>
             ${emailFooter}`,
