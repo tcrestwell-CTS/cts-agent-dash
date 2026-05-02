@@ -112,6 +112,9 @@ serve(async (req) => {
       case "deposit_posted":
         await handleDepositPosted(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
+      case "client_payment_received":
+        await handleClientPaymentReceived(supabase, qboBase, qboHeaders, userId, record, connection);
+        break;
       case "supplier_paid":
         await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
