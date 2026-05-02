@@ -319,10 +319,31 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Authenticate: accept either an admin user JWT or the agent secret (for cron)
   const secret = req.headers.get("x-agent-secret");
   const expected = Deno.env.get("AGENT_SECRET") ?? Deno.env.get("CW_AGENT_SECRET");
-  if (!expected || secret !== expected) {
-    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  const hasValidSecret = expected && secret === expected;
+
+  if (!hasValidSecret) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwt = authHeader.replace(/^Bearer\s+/i, "");
+    if (!jwt) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+    const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+    if (userErr || !userData?.user) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const isAdmin = (roles ?? []).some((r: { role: string }) =>
+      r.role === "admin" || r.role === "office_admin"
+    );
+    if (!isAdmin) {
+      return new Response("Forbidden", { status: 403, headers: corsHeaders });
+    }
   }
 
   const body = await req.json().catch(() => ({}));
