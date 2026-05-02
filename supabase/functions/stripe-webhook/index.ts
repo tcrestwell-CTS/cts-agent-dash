@@ -97,6 +97,77 @@ Deno.serve(async (req) => {
       const subId = invoice.subscription;
       if (!subId) return new Response('ok', { status: 200 });
 
+      // ── Branch A: Loan subscription (loan_applications.stripe_subscription_id) ──
+      const { data: loan } = await supabase
+        .from('loan_applications')
+        .select('id, user_id, application_number, first_name, last_name, email, stripe_subscription_id')
+        .eq('stripe_subscription_id', subId)
+        .maybeSingle();
+
+      if (loan) {
+        const amountPaid = (invoice.amount_paid || 0) / 100;
+        const txnDate = new Date((invoice.status_transitions?.paid_at || invoice.created || Date.now() / 1000) * 1000)
+          .toISOString().split('T')[0];
+
+        // Find next pending schedule row for this loan
+        const { data: nextRow } = await supabase
+          .from('loan_payment_schedules')
+          .select('*')
+          .eq('loan_application_id', loan.id)
+          .eq('status', 'pending')
+          .order('payment_number', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (nextRow) {
+          await supabase.from('loan_payment_schedules').update({
+            status: 'paid',
+            paid_date: txnDate,
+            updated_at: new Date().toISOString(),
+          }).eq('id', nextRow.id);
+
+          // Post a QBO Payment against the linked invoice (if any)
+          if (nextRow.qbo_invoice_id) {
+            await postQBOPaymentForLoan(
+              supabase, loan.user_id, nextRow.qbo_invoice_id, amountPaid, txnDate, loan.application_number
+            );
+          }
+
+          await supabase.from('qbo_sync_logs').insert({
+            user_id: loan.user_id,
+            sync_type: 'loan_payment',
+            direction: 'push',
+            status: 'success',
+            records_processed: 1,
+            details: {
+              source: 'stripe_webhook',
+              schedule_id: nextRow.id,
+              payment_number: nextRow.payment_number,
+              qbo_invoice_id: nextRow.qbo_invoice_id,
+              stripe_invoice_id: invoice.id,
+              amount_paid: amountPaid,
+            },
+          });
+        }
+
+        // Receipt email to borrower
+        if (loan.email) {
+          await sendEmail(loan.email,
+            `✅ Loan Payment Received — ${loan.application_number}`,
+            `${emailHeader(loan.first_name || 'there')}
+            <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${amountPaid.toFixed(2)}</strong> has been received and applied to your account.</p>
+            <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
+              <p style="margin:4px 0;font-size:14px;"><strong>Loan:</strong> ${loan.application_number}</p>
+              <p style="margin:4px 0;font-size:14px;"><strong>Amount:</strong> $${amountPaid.toFixed(2)}</p>
+              <p style="margin:4px 0;font-size:14px;"><strong>Date:</strong> ${txnDate}</p>
+            </div>
+            ${emailFooter}`,
+          RESEND_API_KEY);
+        }
+
+        return new Response('ok', { status: 200 });
+      }
+
       const { data: plan } = await supabase
         .from('checkout_payments')
         .select('*')
@@ -109,6 +180,10 @@ Deno.serve(async (req) => {
       await supabase.from('checkout_payments')
         .update({ months_paid: newMonthsPaid, status: 'active' })
         .eq('stripe_subscription_id', subId);
+
+      // Mark the next open CRM trip_payments installment as paid so the
+      // existing trigger_qbo_client_payment trigger posts the payment in QBO.
+      await markNextCrmInstallmentPaid(supabase, plan, invoice);
 
       // Receipt email
       await sendEmail(plan.customer_email,
