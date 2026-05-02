@@ -885,7 +885,11 @@ const Analytics = () => {
                         tick={{ fontSize: 12 }}
                         tickLine={false}
                         axisLine={false}
-                        width={100}
+                        width={160}
+                        interval={0}
+                        tickFormatter={(value: string) =>
+                          value && value.length > 22 ? `${value.slice(0, 20)}…` : value
+                        }
                       />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
