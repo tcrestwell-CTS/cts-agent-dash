@@ -113,6 +113,16 @@ function useEntityMappings(type?: string) {
 
 // ─── Account Config Tab ───────────────────────────────────────
 
+const REQUIRED_ACCOUNT_FIELDS: { field: keyof AccountConfig; label: string }[] = [
+  { field: "qbo_bank_account_id", label: "Operating Bank Account" },
+  { field: "stripe_clearing_account_id", label: "Stripe Clearing Account" },
+  { field: "stripe_fees_account_id", label: "Stripe Fees Expense" },
+  { field: "undeposited_funds_account_id", label: "Undeposited Funds" },
+  { field: "ar_account_id", label: "Accounts Receivable (A/R)" },
+  { field: "ap_account_id", label: "Accounts Payable (A/P)" },
+  { field: "default_vendor_payment_account_id", label: "Default Vendor Payment Account" },
+];
+
 function AccountConfigTab() {
   const { data: config, isLoading } = useAccountConfig();
   const { data: accounts } = useQBOAccounts();
@@ -135,6 +145,12 @@ function AccountConfigTab() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const missing = REQUIRED_ACCOUNT_FIELDS.filter((f) => !form[f.field]);
+      if (missing.length > 0) {
+        throw new Error(
+          `Please select an account for: ${missing.map((m) => m.label).join(", ")}`
+        );
+      }
       const { error } = await supabase
         .from("recon_account_config")
         .update({ ...form, updated_at: new Date().toISOString() })
@@ -148,6 +164,8 @@ function AccountConfigTab() {
     },
     onError: (e) => toast.error(`Save failed: ${e.message}`),
   });
+
+  const missingRequired = REQUIRED_ACCOUNT_FIELDS.filter((f) => !form[f.field]);
 
   const bankAccounts = accounts?.filter((a) =>
     ["Bank", "Credit Card"].includes(a.account_type)
@@ -349,10 +367,21 @@ function AccountConfigTab() {
       </Card>
 
       {/* Save */}
+      {missingRequired.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Required account mappings are missing</p>
+            <p className="text-xs mt-1">
+              {missingRequired.map((m) => m.label).join(", ")}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex justify-end">
         <Button
           onClick={() => save.mutate()}
-          disabled={!dirty || save.isPending}
+          disabled={!dirty || save.isPending || missingRequired.length > 0}
           className="min-w-32"
         >
           {save.isPending ? (
