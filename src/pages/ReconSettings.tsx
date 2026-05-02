@@ -367,6 +367,17 @@ function AccountConfigTab() {
       </Card>
 
       {/* Save */}
+      {missingRequired.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Required account mappings are missing</p>
+            <p className="text-xs mt-1">
+              {missingRequired.map((m) => m.label).join(", ")}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex justify-end">
         <Button
           onClick={() => save.mutate()}
