@@ -1692,6 +1692,66 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          commission_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          paid_date: string
+          payment_method: string | null
+          payment_reference: string | null
+          supplier_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          commission_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_date: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          commission_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_date?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_payments_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commissions: {
         Row: {
           amount: number
