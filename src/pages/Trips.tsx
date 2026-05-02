@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Compass,
   Plus,
@@ -447,10 +448,11 @@ const Trips = () => {
   const [searchParams] = useSearchParams();
   const { trips, loading, fetchTrips, updateTrip } = useTrips();
   const { processStatusChange } = useWorkflowAutomation();
-  const { kanbanColumns, getStatusLabel, getStatusColor, getKanbanStatus, loading: statusesLoading } = useTripStatuses();
+  const { statuses, kanbanColumns, getStatusLabel, getStatusColor, getKanbanStatus, statusToSlug, loading: statusesLoading } = useTripStatuses();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const handleTripCreated = () => {
     setIsAddDialogOpen(false);
@@ -471,11 +473,12 @@ const Trips = () => {
 
   const filteredTrips = trips.filter((trip) => {
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       trip.trip_name.toLowerCase().includes(searchLower) ||
       trip.destination?.toLowerCase().includes(searchLower) ||
-      trip.clients?.name.toLowerCase().includes(searchLower)
-    );
+      trip.clients?.name.toLowerCase().includes(searchLower);
+    const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const filteredPortalSuppliers = selectedCategory === "all" 
@@ -579,6 +582,21 @@ const Trips = () => {
                   className="pl-10"
                 />
               </div>
+              {viewMode === "list" && (
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    {statuses.map((s) => (
+                      <SelectItem key={s.id} value={statusToSlug(s.name)}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <div className="flex border rounded-lg overflow-hidden">
                 <Button
                   variant={viewMode === "kanban" ? "default" : "ghost"}
