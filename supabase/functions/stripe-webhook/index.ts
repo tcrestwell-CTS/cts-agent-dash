@@ -1,551 +1,396 @@
 // supabase/functions/stripe-webhook/index.ts
-// Handles Stripe webhook events for payment plan enforcement:
-//   invoice.payment_succeeded  → increment months_paid, send receipt
-//   invoice.payment_failed     → track missed payments, apply $25 late fee after 5-day grace, cancel at 2 misses
-//   customer.subscription.deleted → mark plan completed or cancelled
+// Ingests Stripe events into stripe_webhook_events + stripe_payments/refunds/disputes/payouts
+// Idempotency: stripe_event_id must be unique — duplicate events are silently ignored
+// Never writes to QBO directly — that is recon-engine's job
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-const STRIPE_BASE = 'https://api.stripe.com/v1';
-
-async function stripePost(endpoint: string, params: Record<string, string>, key: string) {
-  const res = await fetch(`${STRIPE_BASE}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params),
-  });
-  const json = await res.json();
-  if (!res.ok) throw new Error(`Stripe: ${json.error?.message}`);
-  return json;
-}
-
-async function verifyStripeSignature(payload: string, sigHeader: string, secret: string): Promise<boolean> {
-  const parts = sigHeader.split(',').reduce((acc: Record<string, string>, part) => {
-    const [k, v] = part.split('=');
-    acc[k] = v;
-    return acc;
-  }, {});
-  const timestamp = parts['t'];
-  const sig = parts['v1'];
-  if (!timestamp || !sig) return false;
-  const signed = `${timestamp}.${payload}`;
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const buf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signed));
-  const computed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return computed === sig;
-}
-
-async function sendEmail(to: string, subject: string, html: string, resendKey: string) {
-  try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Crestwell Travel Services <noreply@crestwellgetaways.com>', to, subject, html }),
-    });
-  } catch (e) { console.error('Email send failed:', e); }
-}
-
-function emailHeader(name: string) {
-  return `
-    <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#0d1b2a,#1b3a5c);padding:30px;text-align:center;">
-        <h1 style="color:#c9a96e;font-size:24px;margin:0;font-weight:700;letter-spacing:1px;">Crestwell</h1>
-        <p style="color:#ffffff;font-size:13px;margin:4px 0 0;letter-spacing:3px;text-transform:uppercase;">Travel Services</p>
-      </div>
-      <div style="padding:30px;">
-      <p style="font-size:16px;color:#333;">Hi ${name},</p>`;
-}
-
-const emailFooter = `
-      </div>
-      <div style="background:#f8f8f8;padding:20px;text-align:center;font-size:12px;color:#999;border-top:1px solid #e0e0e0;">
-        <p>Crestwell Travel Services &middot; 888.508.6893 &middot; <a href="mailto:info@crestwellgetaways.com" style="color:#0d1b2a;">info@crestwellgetaways.com</a></p>
-      </div>
-    </div>`;
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-
-  const STRIPE_SECRET_KEY     = Deno.env.get('STRIPE_SECRET_KEY')!;
-  const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
-  const RESEND_API_KEY        = Deno.env.get('RESEND_API_KEY')!;
-
-  const payload = await req.text();
-  const sigHeader = req.headers.get('stripe-signature') || '';
-
-  if (STRIPE_WEBHOOK_SECRET && sigHeader) {
-    const valid = await verifyStripeSignature(payload, sigHeader, STRIPE_WEBHOOK_SECRET);
-    if (!valid) return new Response('Invalid signature', { status: 400 });
-  }
-
-  const event = JSON.parse(payload);
-  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-
-  console.log(`Event: ${event.type}`);
-
-  try {
-
-    // ─── Payment succeeded ────────────────────────────────────────────────────
-    if (event.type === 'invoice.payment_succeeded') {
-      const invoice = event.data.object;
-      const subId = invoice.subscription;
-      if (!subId) return new Response('ok', { status: 200 });
-
-      // ── Branch A: Loan subscription (loan_applications.stripe_subscription_id) ──
-      const { data: loan } = await supabase
-        .from('loan_applications')
-        .select('id, user_id, application_number, first_name, last_name, email, stripe_subscription_id')
-        .eq('stripe_subscription_id', subId)
-        .maybeSingle();
-
-      if (loan) {
-        // Stripe's invoice.amount_paid is grossed-up to cover processing fees.
-        // The customer's true payment toward the loan is the schedule row's
-        // total_payment (principal + interest). Use that for balance/QBO so
-        // the processing fee never inflates the customer's loan balance.
-        const stripeGross = (invoice.amount_paid || 0) / 100;
-        const txnDate = new Date((invoice.status_transitions?.paid_at || invoice.created || Date.now() / 1000) * 1000)
-          .toISOString().split('T')[0];
-
-        // Find next pending schedule row for this loan
-        const { data: nextRow } = await supabase
-          .from('loan_payment_schedules')
-          .select('*')
-          .eq('loan_application_id', loan.id)
-          .eq('status', 'pending')
-          .order('payment_number', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (nextRow) {
-          const scheduledPayment = Number(nextRow.total_payment) || 0;
-          const principal = Number(nextRow.principal_amount) || 0;
-          const interest = Number(nextRow.interest_amount) || 0;
-          const processingFee = Math.max(0, +(stripeGross - scheduledPayment).toFixed(2));
-
-          await supabase.from('loan_payment_schedules').update({
-            status: 'paid',
-            paid_date: txnDate,
-            updated_at: new Date().toISOString(),
-          }).eq('id', nextRow.id);
-
-          // Post a QBO Payment against the linked invoice (if any)
-          if (nextRow.qbo_invoice_id) {
-            await postQBOPaymentForLoan(
-              // Post the scheduled amount (principal + interest) — NOT the
-              // grossed-up Stripe charge. Processing fees are recorded
-              // separately by the QBO sync trigger flow.
-              supabase, loan.user_id, nextRow.qbo_invoice_id, scheduledPayment, txnDate, loan.application_number
-            );
-          }
-
-          await supabase.from('qbo_sync_logs').insert({
-            user_id: loan.user_id,
-            sync_type: 'loan_payment',
-            direction: 'push',
-            status: 'success',
-            records_processed: 1,
-            details: {
-              source: 'stripe_webhook',
-              schedule_id: nextRow.id,
-              payment_number: nextRow.payment_number,
-              qbo_invoice_id: nextRow.qbo_invoice_id,
-              stripe_invoice_id: invoice.id,
-              scheduled_payment: scheduledPayment,
-              principal,
-              interest,
-              stripe_gross: stripeGross,
-              processing_fee: processingFee,
-            },
-          });
-
-          // Receipt email to borrower — show scheduled (principal+interest)
-          if (loan.email) {
-            await sendEmail(loan.email,
-              `✅ Loan Payment Received — ${loan.application_number}`,
-              `${emailHeader(loan.first_name || 'there')}
-              <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${scheduledPayment.toFixed(2)}</strong> has been received and applied to your account.</p>
-              <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
-                <p style="margin:4px 0;font-size:14px;"><strong>Loan:</strong> ${loan.application_number}</p>
-                <p style="margin:4px 0;font-size:14px;"><strong>Principal:</strong> $${principal.toFixed(2)}</p>
-                <p style="margin:4px 0;font-size:14px;"><strong>Interest:</strong> $${interest.toFixed(2)}</p>
-                <p style="margin:4px 0;font-size:14px;"><strong>Payment:</strong> $${scheduledPayment.toFixed(2)}</p>
-                ${processingFee > 0 ? `<p style="margin:4px 0;font-size:12px;color:#777;">Card processing fee of $${processingFee.toFixed(2)} was added at checkout and is not part of your loan balance.</p>` : ''}
-                <p style="margin:4px 0;font-size:14px;"><strong>Date:</strong> ${txnDate}</p>
-              </div>
-              ${emailFooter}`,
-            RESEND_API_KEY);
-          }
-
-          return new Response('ok', { status: 200 });
-        }
-
-        // Fallback receipt (no schedule row matched) — keep using Stripe gross
-        if (loan.email) {
-          await sendEmail(loan.email,
-            `✅ Loan Payment Received — ${loan.application_number}`,
-            `${emailHeader(loan.first_name || 'there')}
-            <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${stripeGross.toFixed(2)}</strong> has been received and applied to your account.</p>
-            <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
-              <p style="margin:4px 0;font-size:14px;"><strong>Loan:</strong> ${loan.application_number}</p>
-              <p style="margin:4px 0;font-size:14px;"><strong>Amount:</strong> $${stripeGross.toFixed(2)}</p>
-              <p style="margin:4px 0;font-size:14px;"><strong>Date:</strong> ${txnDate}</p>
-            </div>
-            ${emailFooter}`,
-          RESEND_API_KEY);
-        }
-
-        return new Response('ok', { status: 200 });
-      }
-
-      const { data: plan } = await supabase
-        .from('checkout_payments')
-        .select('*')
-        .eq('stripe_subscription_id', subId)
-        .single();
-
-      if (!plan) return new Response('no plan', { status: 200 });
-
-      const newMonthsPaid = (plan.months_paid || 0) + 1;
-      await supabase.from('checkout_payments')
-        .update({ months_paid: newMonthsPaid, status: 'active' })
-        .eq('stripe_subscription_id', subId);
-
-      // Mark the next open CRM trip_payments installment as paid so the
-      // existing trigger_qbo_client_payment trigger posts the payment in QBO.
-      await markNextCrmInstallmentPaid(supabase, plan, invoice);
-
-      // Receipt email
-      await sendEmail(plan.customer_email,
-        `✅ Payment ${newMonthsPaid} of ${plan.total_months} Received — ${plan.trip_name || 'Travel Plan'}`,
-        `${emailHeader(plan.customer_name)}
-        <p style="font-size:15px;color:#333;">Your payment of <strong>$${(invoice.amount_paid / 100).toFixed(2)}</strong> has been received.</p>
-        <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
-          <h3 style="margin:0 0 12px;color:#0d1b2a;">Payment Summary</h3>
-          ${[
-            ['Trip', plan.trip_name || '—'],
-            ['Payment', `${newMonthsPaid} of ${plan.total_months}`],
-            ['Amount', `$${(invoice.amount_paid / 100).toFixed(2)}`],
-            ['Remaining Payments', `${(plan.total_months || 0) - newMonthsPaid}`],
-          ].map(([l, v]) => `<p style="margin:4px 0;font-size:14px;"><strong>${l}:</strong> ${v}</p>`).join('')}
-        </div>
-        <p style="font-size:14px;color:#666;">Your next payment will be automatically drafted on your next scheduled date.</p>
-        ${emailFooter}`
-      , RESEND_API_KEY);
-    }
-
-    // ─── Payment failed ───────────────────────────────────────────────────────
-    else if (event.type === 'invoice.payment_failed') {
-      const invoice = event.data.object;
-      const subId = invoice.subscription;
-      if (!subId) return new Response('ok', { status: 200 });
-
-      const { data: plan } = await supabase
-        .from('checkout_payments')
-        .select('*')
-        .eq('stripe_subscription_id', subId)
-        .single();
-
-      if (!plan) return new Response('no plan', { status: 200 });
-
-      const retriesExhausted = invoice.next_payment_attempt === null;
-
-      if (!retriesExhausted) {
-        // Still retrying within grace period — notify customer to update card
-        const retryDate = new Date(invoice.next_payment_attempt * 1000)
-          .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-        await sendEmail(plan.customer_email,
-          `⚠️ Payment Failed — Action Required — ${plan.trip_name || 'Travel Plan'}`,
-          `${emailHeader(plan.customer_name)}
-          <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:15px 0;border-radius:4px;">
-            <p style="margin:0;font-size:15px;color:#856404;">Your scheduled payment could not be processed. We will retry on <strong>${retryDate}</strong>.</p>
-          </div>
-          <p style="font-size:14px;color:#333;">Please update your payment method before ${retryDate} to avoid a $25 late fee and protect your payment plan.</p>
-          <p style="font-size:14px;color:#333;">To update your card, contact us immediately:</p>
-          <p style="text-align:center;margin:20px 0;"><strong style="font-size:18px;">📞 Call 888.508.6893</strong></p>
-          ${emailFooter}`
-        , RESEND_API_KEY);
-
-        console.log(`Payment failed, retry scheduled at ${retryDate} — within grace period`);
-        return new Response('ok', { status: 200 });
-      }
-
-      // ── Grace period exhausted — count as missed payment ──────────────────
-      const newMissed   = (plan.missed_payments || 0) + 1;
-      const newLateFees = (plan.late_fees_applied || 0) + 1;
-
-      console.log(`Grace exhausted for sub ${subId} — missed count: ${newMissed}`);
-
-      if (newMissed >= 2) {
-        // ── TWO MISSED PAYMENTS — CANCEL ──────────────────────────────────
-        await stripePost(`/subscriptions/${subId}`, { 'cancel_at_period_end': 'false' }, STRIPE_SECRET_KEY);
-
-        await supabase.from('checkout_payments')
-          .update({
-            missed_payments: newMissed,
-            late_fees_applied: newLateFees,
-            plan_cancelled: true,
-            plan_cancelled_at: new Date().toISOString(),
-            plan_cancelled_reason: '2 missed payments — automatic cancellation per payment plan terms',
-            status: 'cancelled',
-          })
-          .eq('stripe_subscription_id', subId);
-
-        // Cancellation email to customer
-        await sendEmail(plan.customer_email,
-          `🚨 Payment Plan Cancelled — ${plan.trip_name || 'Travel Plan'}`,
-          `${emailHeader(plan.customer_name)}
-          <div style="background:#f8d7da;border-left:4px solid #dc3545;padding:15px;margin:15px 0;border-radius:4px;">
-            <p style="margin:0;font-size:15px;color:#721c24;font-weight:bold;">Your payment plan has been automatically cancelled.</p>
-          </div>
-          <p style="font-size:14px;color:#333;">Per your payment plan agreement, 2 missed payments after the 5-day grace period result in automatic cancellation of the plan.</p>
-          <p style="font-size:14px;color:#333;"><strong>What this means for your booking:</strong> Your travel booking may be affected. Please contact us immediately to discuss reinstatement options.</p>
-          <div style="background:#f8f8f8;border-radius:8px;padding:20px;margin:20px 0;">
-            ${[
-              ['Trip', plan.trip_name || '—'],
-              ['Payments Completed', `${plan.months_paid || 0} of ${plan.total_months}`],
-              ['Missed Payments', `${newMissed}`],
-              ['Booking Reference', plan.booking_ref || '—'],
-            ].map(([l, v]) => `<p style="margin:4px 0;font-size:14px;"><strong>${l}:</strong> ${v}</p>`).join('')}
-          </div>
-          <p style="text-align:center;margin:20px 0;"><strong style="font-size:18px;">📞 Call Us Now — 888.508.6893</strong></p>
-          ${emailFooter}`
-        , RESEND_API_KEY);
-
-        // Internal alert
-        await sendEmail('info@crestwellgetaways.com',
-          `🚨 PAYMENT PLAN CANCELLED — ${plan.customer_name}`,
-          `<p>${plan.customer_name} (${plan.customer_email}) — payment plan auto-cancelled after 2 missed payments.</p>
-          <p>Trip: ${plan.trip_name || '—'} | Ref: ${plan.booking_ref || '—'} | Sub: ${subId}</p>
-          <p>Months paid: ${plan.months_paid || 0}/${plan.total_months}. Review in agent console.</p>`,
-          RESEND_API_KEY
-        );
-
-      } else {
-        // ── FIRST MISS — apply $25 late fee and warn ──────────────────────
-        await supabase.from('checkout_payments')
-          .update({ missed_payments: newMissed, late_fees_applied: newLateFees })
-          .eq('stripe_subscription_id', subId);
-
-        // Add $25 late fee to next invoice
-        await stripePost('/invoiceitems', {
-          customer: plan.stripe_customer_id,
-          amount: '2500',
-          currency: 'usd',
-          description: 'Late payment fee — payment not received within 5-day grace period',
-          'metadata[subscription_id]': subId,
-          'metadata[booking_ref]': plan.booking_ref || '',
-        }, STRIPE_SECRET_KEY);
-
-        // First miss warning email
-        await sendEmail(plan.customer_email,
-          `⚠️ Missed Payment — $25 Late Fee Applied — ${plan.trip_name || 'Travel Plan'}`,
-          `${emailHeader(plan.customer_name)}
-          <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:15px 0;border-radius:4px;">
-            <p style="margin:0;font-size:15px;color:#856404;font-weight:bold;">⚠️ This is missed payment 1 of 2. A second missed payment will result in automatic cancellation of your payment plan.</p>
-          </div>
-          <p style="font-size:14px;color:#333;">Your scheduled payment could not be collected within the 5-day grace period. A <strong>$25 late fee</strong> has been added to your next draft.</p>
-          <div style="background:#f8f8f8;border-radius:8px;padding:20px;margin:20px 0;">
-            ${[
-              ['Trip', plan.trip_name || '—'],
-              ['Late Fee Added', '$25.00'],
-              ['Missed Payments', `${newMissed} of 2 (cancellation threshold)`],
-              ['Action Required', 'Update payment method immediately'],
-            ].map(([l, v]) => `<p style="margin:4px 0;font-size:14px;"><strong>${l}:</strong> ${v}</p>`).join('')}
-          </div>
-          <p style="font-size:14px;color:#333;">Please contact us immediately to update your payment method and protect your booking.</p>
-          <p style="text-align:center;margin:20px 0;"><strong style="font-size:18px;">📞 Call Now — 888.508.6893</strong></p>
-          ${emailFooter}`
-        , RESEND_API_KEY);
-
-        // Internal alert
-        await sendEmail('info@crestwellgetaways.com',
-          `⚠️ Missed Payment #${newMissed} — ${plan.customer_name}`,
-          `<p>${plan.customer_name} (${plan.customer_email}) missed payment #${newMissed}.</p>
-          <p>$25 late fee applied. Trip: ${plan.trip_name || '—'} | Sub: ${subId}</p>`,
-          RESEND_API_KEY
-        );
-      }
-    }
-
-    // ─── Subscription deleted (completed or manually cancelled) ───────────────
-    else if (event.type === 'customer.subscription.deleted') {
-      const sub = event.data.object;
-      const { data: plan } = await supabase
-        .from('checkout_payments')
-        .select('plan_cancelled')
-        .eq('stripe_subscription_id', sub.id)
-        .single();
-
-      if (plan && !plan.plan_cancelled) {
-        const isCompleted = sub.cancellation_details?.reason !== 'cancellation_requested';
-        await supabase.from('checkout_payments')
-          .update({
-            plan_cancelled: !isCompleted,
-            plan_cancelled_at: new Date().toISOString(),
-            plan_cancelled_reason: sub.cancellation_details?.reason || 'Plan term completed',
-            status: isCompleted ? 'completed' : 'cancelled',
-          })
-          .eq('stripe_subscription_id', sub.id);
-      }
-    }
-
-  } catch (err: any) {
-    console.error('Webhook handler error:', err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  return new Response(JSON.stringify({ received: true }), {
-    status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+  apiVersion: "2024-06-20",
 });
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
 
-/**
- * For a cruise/trip checkout payment plan, mark the next open trip_payments
- * installment as paid (closest amount match preferred, otherwise earliest
- * open due_date). The existing on_trip_payment_paid trigger will then post
- * the payment to QBO automatically.
- */
-async function markNextCrmInstallmentPaid(supabase: any, plan: any, invoice: any) {
-  if (!plan?.trip_name) return;
-  const amountPaid = (invoice.amount_paid || 0) / 100;
+const WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 
-  // Find the matching trip by trip_name (case-insensitive)
-  const { data: trips } = await supabase
-    .from('trips')
-    .select('id, user_id, trip_name')
-    .ilike('trip_name', plan.trip_name);
+const log = (step: string, data?: unknown) =>
+  console.log(`[stripe-webhook] ${step}`, data ? JSON.stringify(data) : "");
 
-  const trip = (trips || [])[0];
-  if (!trip) {
-    console.log(`No CRM trip found for plan trip_name="${plan.trip_name}"`);
-    return;
-  }
-
-  // Pull all open installments for this trip
-  const { data: openRows } = await supabase
-    .from('trip_payments')
-    .select('*')
-    .eq('trip_id', trip.id)
-    .neq('status', 'paid')
-    .in('payment_type', ['installment', 'final', 'final_balance'])
-    .order('due_date', { ascending: true });
-
-  if (!openRows?.length) return;
-
-  // Prefer exact-amount match within 1¢, otherwise earliest open
-  const exact = openRows.find((r: any) => Math.abs(Number(r.amount) - amountPaid) < 0.01);
-  const target = exact || openRows[0];
-
-  const txnDate = new Date((invoice.status_transitions?.paid_at || invoice.created || Date.now() / 1000) * 1000)
-    .toISOString().split('T')[0];
-
-  await supabase.from('trip_payments').update({
-    status: 'paid',
-    payment_date: txnDate,
-    stripe_payment_intent_id: invoice.payment_intent || null,
-    updated_at: new Date().toISOString(),
-  }).eq('id', target.id);
-
-  console.log(`Marked trip_payment ${target.id} ($${target.amount}) paid for trip ${trip.id}`);
+async function markProcessed(eventId: string, error?: string) {
+  await supabase
+    .from("stripe_webhook_events")
+    .update({
+      processed: true,
+      processed_at: new Date().toISOString(),
+      ...(error ? { error } : {}),
+    })
+    .eq("stripe_event_id", eventId);
 }
 
-/**
- * Post a QBO Payment row that links a loan installment Stripe charge to its
- * corresponding QBO invoice. Uses the loan owner's qbo_connections row.
- */
-async function postQBOPaymentForLoan(
-  supabase: any,
-  userId: string,
-  qboInvoiceId: string,
-  amount: number,
-  txnDate: string,
-  applicationNumber: string,
-) {
-  const { data: conn } = await supabase
-    .from('qbo_connections')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true)
+async function sendToDeadLetter(eventType: string, payload: unknown, error: string) {
+  await supabase.from("recon_dead_letter_queue").insert({
+    source_system: "stripe",
+    event_type: eventType,
+    payload,
+    error_message: error,
+    retry_count: 0,
+    status: "failed",
+  });
+}
+
+async function processPaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
+  log("processing payment_intent.succeeded", { id: pi.id });
+
+  let stripeFee = 0;
+  let chargeId = "";
+  if (pi.latest_charge) {
+    chargeId = typeof pi.latest_charge === "string"
+      ? pi.latest_charge
+      : pi.latest_charge.id;
+
+    try {
+      const charge = await stripe.charges.retrieve(chargeId, {
+        expand: ["balance_transaction"],
+      });
+      const bt = charge.balance_transaction as Stripe.BalanceTransaction;
+      if (bt?.fee) stripeFee = bt.fee / 100;
+    } catch (e) {
+      log("could not retrieve charge fee", e);
+    }
+  }
+
+  const grossAmount = pi.amount / 100;
+  const netAmount = grossAmount - stripeFee;
+  const invoiceNumber = pi.metadata?.invoice_number || null;
+
+  let crmBookingId = null;
+  let crmClientId = null;
+  if (invoiceNumber) {
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("id, client_id")
+      .or(`confirmation_number.eq.${invoiceNumber},id.eq.${invoiceNumber}`)
+      .maybeSingle();
+
+    if (booking) {
+      crmBookingId = booking.id;
+      crmClientId = booking.client_id;
+      log("matched to CRM booking", { bookingId: crmBookingId });
+    }
+  }
+
+  const { error } = await supabase.from("stripe_payments").upsert(
+    {
+      stripe_payment_intent_id: pi.id,
+      stripe_charge_id: chargeId || null,
+      stripe_customer_id: typeof pi.customer === "string" ? pi.customer : null,
+      invoice_number: invoiceNumber,
+      crm_booking_id: crmBookingId,
+      crm_client_id: crmClientId,
+      gross_amount: grossAmount,
+      stripe_fee: stripeFee,
+      net_amount: netAmount,
+      currency: pi.currency,
+      status: "succeeded",
+      payment_method: pi.metadata?.payment_method || null,
+      customer_email: pi.receipt_email || null,
+      customer_name: pi.shipping?.name || null,
+      stripe_created_at: new Date(pi.created * 1000).toISOString(),
+      raw_payload: pi as unknown as Record<string, unknown>,
+    },
+    { onConflict: "stripe_payment_intent_id" }
+  );
+
+  if (error) throw new Error(`stripe_payments upsert failed: ${error.message}`);
+  log("stripe_payments upserted", { id: pi.id });
+}
+
+async function processChargeRefunded(charge: Stripe.Charge) {
+  log("processing charge.refunded", { id: charge.id });
+
+  const { data: payment } = await supabase
+    .from("stripe_payments")
+    .select("id")
+    .eq("stripe_charge_id", charge.id)
     .maybeSingle();
 
-  if (!conn) {
-    console.log(`No active QBO connection for user ${userId}, skipping QBO payment post`);
-    return;
-  }
-
-  // Refresh access token if expired
-  let accessToken = conn.access_token;
-  if (new Date(conn.token_expires_at) <= new Date(Date.now() + 60_000)) {
-    const QBO_CLIENT_ID = Deno.env.get('QBO_CLIENT_ID')!;
-    const QBO_CLIENT_SECRET = Deno.env.get('QBO_CLIENT_SECRET')!;
-    const basic = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
-    const r = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${basic}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
+  for (const refund of charge.refunds?.data || []) {
+    const { error } = await supabase.from("stripe_refunds").upsert(
+      {
+        stripe_refund_id: refund.id,
+        stripe_payment_intent_id: typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : null,
+        stripe_charge_id: charge.id,
+        stripe_payment_id: payment?.id || null,
+        amount: refund.amount / 100,
+        reason: refund.reason || null,
+        status: refund.status,
+        raw_payload: refund as unknown as Record<string, unknown>,
       },
-      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: conn.refresh_token }),
-    });
-    if (!r.ok) { console.error('QBO refresh failed'); return; }
-    const tok = await r.json();
-    accessToken = tok.access_token;
-    await supabase.from('qbo_connections').update({
-      access_token: tok.access_token,
-      refresh_token: tok.refresh_token,
-      token_expires_at: new Date(Date.now() + tok.expires_in * 1000).toISOString(),
-    }).eq('id', conn.id);
+      { onConflict: "stripe_refund_id" }
+    );
+    if (error) throw new Error(`stripe_refunds upsert failed: ${error.message}`);
   }
 
-  const qboBase = `https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}`;
-  const qboHeaders = {
-    Authorization: `Bearer ${accessToken}`,
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  };
-
-  // Look up the invoice to get CustomerRef
-  const invResp = await fetch(`${qboBase}/invoice/${qboInvoiceId}`, { headers: qboHeaders });
-  if (!invResp.ok) {
-    console.error(`QBO invoice ${qboInvoiceId} not found:`, await invResp.text());
-    return;
-  }
-  const invData = await invResp.json();
-  const invoice = invData.Invoice;
-
-  const paymentData = {
-    TotalAmt: amount,
-    TxnDate: txnDate,
-    PrivateNote: `Stripe autopay — loan ${applicationNumber}`,
-    Line: [{
-      Amount: amount,
-      LinkedTxn: [{ TxnId: qboInvoiceId, TxnType: 'Invoice' }],
-    }],
-    CustomerRef: invoice.CustomerRef,
-  };
-
-  const payResp = await fetch(`${qboBase}/payment`, {
-    method: 'POST',
-    headers: qboHeaders,
-    body: JSON.stringify(paymentData),
-  });
-
-  if (!payResp.ok) {
-    console.error(`QBO payment post failed for invoice ${qboInvoiceId}:`, await payResp.text());
-  } else {
-    console.log(`Posted $${amount} QBO Payment to invoice ${qboInvoiceId}`);
+  if (payment) {
+    await supabase
+      .from("stripe_payments")
+      .update({ status: "refunded" })
+      .eq("id", payment.id);
   }
 }
+
+async function processDisputeCreated(dispute: Stripe.Dispute) {
+  log("processing dispute", { id: dispute.id });
+
+  const chargeId = typeof dispute.charge === "string"
+    ? dispute.charge
+    : dispute.charge?.id;
+
+  const { data: payment } = await supabase
+    .from("stripe_payments")
+    .select("id")
+    .eq("stripe_charge_id", chargeId)
+    .maybeSingle();
+
+  const { error } = await supabase.from("stripe_disputes").upsert(
+    {
+      stripe_dispute_id: dispute.id,
+      stripe_charge_id: chargeId || null,
+      stripe_payment_id: payment?.id || null,
+      amount: dispute.amount / 100,
+      reason: dispute.reason,
+      status: dispute.status,
+      raw_payload: dispute as unknown as Record<string, unknown>,
+    },
+    { onConflict: "stripe_dispute_id" }
+  );
+
+  if (error) throw new Error(`stripe_disputes upsert failed: ${error.message}`);
+
+  await supabase.from("exception_queue").insert({
+    exception_type: "stripe_dispute",
+    source_system: "stripe",
+    source_record_id: dispute.id,
+    source_record_type: "dispute",
+    description: `Stripe dispute ${dispute.id} — reason: ${dispute.reason}, amount: $${dispute.amount / 100}`,
+    amount: dispute.amount / 100,
+    status: "open",
+  });
+}
+
+async function processPayoutPaid(payout: Stripe.Payout) {
+  log("processing payout.paid", { id: payout.id });
+
+  const balanceTxns = await stripe.balanceTransactions.list({
+    payout: payout.id,
+    limit: 100,
+    type: "charge",
+  });
+
+  let feeTotal = 0;
+  const paymentLinks: Array<{
+    paymentIntentId: string;
+    grossAmount: number;
+    feeAmount: number;
+    netContribution: number;
+  }> = [];
+
+  for (const txn of balanceTxns.data) {
+    feeTotal += txn.fee / 100;
+    if (txn.source && typeof txn.source === "string") {
+      paymentLinks.push({
+        paymentIntentId: txn.source,
+        grossAmount: txn.amount / 100,
+        feeAmount: txn.fee / 100,
+        netContribution: txn.net / 100,
+      });
+    }
+  }
+
+  const { data: savedPayout, error } = await supabase
+    .from("stripe_payouts")
+    .upsert(
+      {
+        stripe_payout_id: payout.id,
+        amount: payout.amount / 100,
+        fee_total: feeTotal,
+        refund_total: 0,
+        net_amount: payout.amount / 100,
+        arrival_date: new Date(payout.arrival_date * 1000)
+          .toISOString()
+          .split("T")[0],
+        status: payout.status,
+        reconciled: false,
+        raw_payload: payout as unknown as Record<string, unknown>,
+      },
+      { onConflict: "stripe_payout_id" }
+    )
+    .select("id")
+    .single();
+
+  if (error) throw new Error(`stripe_payouts upsert failed: ${error.message}`);
+
+  for (const link of paymentLinks) {
+    const { data: sp } = await supabase
+      .from("stripe_payments")
+      .select("id")
+      .eq("stripe_charge_id", link.paymentIntentId)
+      .maybeSingle();
+
+    if (sp && savedPayout) {
+      await supabase.from("stripe_payout_payments").upsert(
+        {
+          stripe_payout_id: savedPayout.id,
+          stripe_payment_id: sp.id,
+          gross_amount: link.grossAmount,
+          fee_amount: link.feeAmount,
+          net_contribution: link.netContribution,
+        },
+        { onConflict: "stripe_payout_id,stripe_payment_id" }
+      );
+    }
+  }
+}
+
+async function processPayoutFailed(payout: Stripe.Payout) {
+  log("processing payout.failed", { id: payout.id });
+
+  await supabase.from("stripe_payouts").upsert(
+    {
+      stripe_payout_id: payout.id,
+      amount: payout.amount / 100,
+      net_amount: payout.amount / 100,
+      arrival_date: new Date(payout.arrival_date * 1000)
+        .toISOString()
+        .split("T")[0],
+      status: "failed",
+      raw_payload: payout as unknown as Record<string, unknown>,
+    },
+    { onConflict: "stripe_payout_id" }
+  );
+
+  await supabase.from("exception_queue").insert({
+    exception_type: "failed_payout",
+    source_system: "stripe",
+    source_record_id: payout.id,
+    source_record_type: "payout",
+    description: `Stripe payout ${payout.id} failed — $${payout.amount / 100}`,
+    amount: payout.amount / 100,
+    status: "open",
+  });
+}
+
+serve(async (req) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature");
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, sig!, WEBHOOK_SECRET);
+  } catch (err) {
+    log("webhook signature verification failed", err);
+    return new Response("Webhook signature invalid", { status: 400 });
+  }
+
+  log("received event", { type: event.type, id: event.id });
+
+  const { data: existing } = await supabase
+    .from("stripe_webhook_events")
+    .select("id, processed")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
+
+  if (existing?.processed) {
+    log("duplicate event — already processed", { id: event.id });
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  await supabase.from("stripe_webhook_events").upsert(
+    {
+      stripe_event_id: event.id,
+      event_type: event.type,
+      processed: false,
+      raw_payload: event as unknown as Record<string, unknown>,
+    },
+    { onConflict: "stripe_event_id" }
+  );
+
+  try {
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        await processPaymentIntentSucceeded(
+          event.data.object as Stripe.PaymentIntent
+        );
+        break;
+
+      case "charge.refunded":
+        await processChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+
+      case "charge.dispute.created":
+      case "charge.dispute.closed":
+        await processDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+
+      case "payout.paid":
+        await processPayoutPaid(event.data.object as Stripe.Payout);
+        break;
+
+      case "payout.failed":
+        await processPayoutFailed(event.data.object as Stripe.Payout);
+        break;
+
+      case "payment_intent.payment_failed": {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        await supabase.from("exception_queue").insert({
+          exception_type: "unmatched_stripe_payment",
+          source_system: "stripe",
+          source_record_id: pi.id,
+          source_record_type: "payment_intent",
+          description: `Payment failed: ${pi.id} — ${pi.last_payment_error?.message || "unknown error"}`,
+          amount: pi.amount / 100,
+          status: "open",
+        });
+        break;
+      }
+
+      default:
+        log("unhandled event type — skipping", { type: event.type });
+    }
+
+    await markProcessed(event.id);
+    log("event processed successfully", { id: event.id });
+
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log("error processing event", { id: event.id, error: errMsg });
+    await markProcessed(event.id, errMsg);
+    await sendToDeadLetter(event.type, event, errMsg);
+
+    return new Response(
+      JSON.stringify({ received: true, error: errMsg }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+});
