@@ -97,6 +97,77 @@ Deno.serve(async (req) => {
       const subId = invoice.subscription;
       if (!subId) return new Response('ok', { status: 200 });
 
+      // ── Branch A: Loan subscription (loan_applications.stripe_subscription_id) ──
+      const { data: loan } = await supabase
+        .from('loan_applications')
+        .select('id, user_id, application_number, first_name, last_name, email, stripe_subscription_id')
+        .eq('stripe_subscription_id', subId)
+        .maybeSingle();
+
+      if (loan) {
+        const amountPaid = (invoice.amount_paid || 0) / 100;
+        const txnDate = new Date((invoice.status_transitions?.paid_at || invoice.created || Date.now() / 1000) * 1000)
+          .toISOString().split('T')[0];
+
+        // Find next pending schedule row for this loan
+        const { data: nextRow } = await supabase
+          .from('loan_payment_schedules')
+          .select('*')
+          .eq('loan_application_id', loan.id)
+          .eq('status', 'pending')
+          .order('payment_number', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (nextRow) {
+          await supabase.from('loan_payment_schedules').update({
+            status: 'paid',
+            paid_date: txnDate,
+            updated_at: new Date().toISOString(),
+          }).eq('id', nextRow.id);
+
+          // Post a QBO Payment against the linked invoice (if any)
+          if (nextRow.qbo_invoice_id) {
+            await postQBOPaymentForLoan(
+              supabase, loan.user_id, nextRow.qbo_invoice_id, amountPaid, txnDate, loan.application_number
+            );
+          }
+
+          await supabase.from('qbo_sync_logs').insert({
+            user_id: loan.user_id,
+            sync_type: 'loan_payment',
+            direction: 'push',
+            status: 'success',
+            records_processed: 1,
+            details: {
+              source: 'stripe_webhook',
+              schedule_id: nextRow.id,
+              payment_number: nextRow.payment_number,
+              qbo_invoice_id: nextRow.qbo_invoice_id,
+              stripe_invoice_id: invoice.id,
+              amount_paid: amountPaid,
+            },
+          });
+        }
+
+        // Receipt email to borrower
+        if (loan.email) {
+          await sendEmail(loan.email,
+            `✅ Loan Payment Received — ${loan.application_number}`,
+            `${emailHeader(loan.first_name || 'there')}
+            <p style="font-size:15px;color:#333;">Your loan payment of <strong>$${amountPaid.toFixed(2)}</strong> has been received and applied to your account.</p>
+            <div style="background:#f0f7f0;border-radius:8px;padding:20px;margin:20px 0;">
+              <p style="margin:4px 0;font-size:14px;"><strong>Loan:</strong> ${loan.application_number}</p>
+              <p style="margin:4px 0;font-size:14px;"><strong>Amount:</strong> $${amountPaid.toFixed(2)}</p>
+              <p style="margin:4px 0;font-size:14px;"><strong>Date:</strong> ${txnDate}</p>
+            </div>
+            ${emailFooter}`,
+          RESEND_API_KEY);
+        }
+
+        return new Response('ok', { status: 200 });
+      }
+
       const { data: plan } = await supabase
         .from('checkout_payments')
         .select('*')
@@ -109,6 +180,10 @@ Deno.serve(async (req) => {
       await supabase.from('checkout_payments')
         .update({ months_paid: newMonthsPaid, status: 'active' })
         .eq('stripe_subscription_id', subId);
+
+      // Mark the next open CRM trip_payments installment as paid so the
+      // existing trigger_qbo_client_payment trigger posts the payment in QBO.
+      await markNextCrmInstallmentPaid(supabase, plan, invoice);
 
       // Receipt email
       await sendEmail(plan.customer_email,
@@ -297,3 +372,144 @@ Deno.serve(async (req) => {
     status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * For a cruise/trip checkout payment plan, mark the next open trip_payments
+ * installment as paid (closest amount match preferred, otherwise earliest
+ * open due_date). The existing on_trip_payment_paid trigger will then post
+ * the payment to QBO automatically.
+ */
+async function markNextCrmInstallmentPaid(supabase: any, plan: any, invoice: any) {
+  if (!plan?.trip_name) return;
+  const amountPaid = (invoice.amount_paid || 0) / 100;
+
+  // Find the matching trip by trip_name (case-insensitive)
+  const { data: trips } = await supabase
+    .from('trips')
+    .select('id, user_id, trip_name')
+    .ilike('trip_name', plan.trip_name);
+
+  const trip = (trips || [])[0];
+  if (!trip) {
+    console.log(`No CRM trip found for plan trip_name="${plan.trip_name}"`);
+    return;
+  }
+
+  // Pull all open installments for this trip
+  const { data: openRows } = await supabase
+    .from('trip_payments')
+    .select('*')
+    .eq('trip_id', trip.id)
+    .neq('status', 'paid')
+    .in('payment_type', ['installment', 'final', 'final_balance'])
+    .order('due_date', { ascending: true });
+
+  if (!openRows?.length) return;
+
+  // Prefer exact-amount match within 1¢, otherwise earliest open
+  const exact = openRows.find((r: any) => Math.abs(Number(r.amount) - amountPaid) < 0.01);
+  const target = exact || openRows[0];
+
+  const txnDate = new Date((invoice.status_transitions?.paid_at || invoice.created || Date.now() / 1000) * 1000)
+    .toISOString().split('T')[0];
+
+  await supabase.from('trip_payments').update({
+    status: 'paid',
+    payment_date: txnDate,
+    stripe_payment_intent_id: invoice.payment_intent || null,
+    updated_at: new Date().toISOString(),
+  }).eq('id', target.id);
+
+  console.log(`Marked trip_payment ${target.id} ($${target.amount}) paid for trip ${trip.id}`);
+}
+
+/**
+ * Post a QBO Payment row that links a loan installment Stripe charge to its
+ * corresponding QBO invoice. Uses the loan owner's qbo_connections row.
+ */
+async function postQBOPaymentForLoan(
+  supabase: any,
+  userId: string,
+  qboInvoiceId: string,
+  amount: number,
+  txnDate: string,
+  applicationNumber: string,
+) {
+  const { data: conn } = await supabase
+    .from('qbo_connections')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!conn) {
+    console.log(`No active QBO connection for user ${userId}, skipping QBO payment post`);
+    return;
+  }
+
+  // Refresh access token if expired
+  let accessToken = conn.access_token;
+  if (new Date(conn.token_expires_at) <= new Date(Date.now() + 60_000)) {
+    const QBO_CLIENT_ID = Deno.env.get('QBO_CLIENT_ID')!;
+    const QBO_CLIENT_SECRET = Deno.env.get('QBO_CLIENT_SECRET')!;
+    const basic = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
+    const r = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${basic}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: conn.refresh_token }),
+    });
+    if (!r.ok) { console.error('QBO refresh failed'); return; }
+    const tok = await r.json();
+    accessToken = tok.access_token;
+    await supabase.from('qbo_connections').update({
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token,
+      token_expires_at: new Date(Date.now() + tok.expires_in * 1000).toISOString(),
+    }).eq('id', conn.id);
+  }
+
+  const qboBase = `https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}`;
+  const qboHeaders = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  // Look up the invoice to get CustomerRef
+  const invResp = await fetch(`${qboBase}/invoice/${qboInvoiceId}`, { headers: qboHeaders });
+  if (!invResp.ok) {
+    console.error(`QBO invoice ${qboInvoiceId} not found:`, await invResp.text());
+    return;
+  }
+  const invData = await invResp.json();
+  const invoice = invData.Invoice;
+
+  const paymentData = {
+    TotalAmt: amount,
+    TxnDate: txnDate,
+    PrivateNote: `Stripe autopay — loan ${applicationNumber}`,
+    Line: [{
+      Amount: amount,
+      LinkedTxn: [{ TxnId: qboInvoiceId, TxnType: 'Invoice' }],
+    }],
+    CustomerRef: invoice.CustomerRef,
+  };
+
+  const payResp = await fetch(`${qboBase}/payment`, {
+    method: 'POST',
+    headers: qboHeaders,
+    body: JSON.stringify(paymentData),
+  });
+
+  if (!payResp.ok) {
+    console.error(`QBO payment post failed for invoice ${qboInvoiceId}:`, await payResp.text());
+  } else {
+    console.log(`Posted $${amount} QBO Payment to invoice ${qboInvoiceId}`);
+  }
+}
