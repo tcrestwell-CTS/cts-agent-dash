@@ -144,6 +144,7 @@ const adminNavigation: NavItem[] = [
       { name: "Exceptions",       href: "/recon/exceptions",  icon: AlertTriangle },
       { name: "Approvals",        href: "/recon/approvals",   icon: ShieldCheck },
       { name: "Stripe Payouts",   href: "/recon/payouts",     icon: CreditCard },
+      { name: "Recon Settings",  href: "/recon/settings",    icon: Settings },
   { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
   { name: "Portal Management", href: "/portal-management", icon: Globe },
   { name: "Task Monitor", href: "/task-monitor", icon: Activity },
