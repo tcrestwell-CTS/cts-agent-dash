@@ -6951,6 +6951,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_authenticated: { Args: never; Returns: boolean }
+      is_recon_admin: { Args: never; Returns: boolean }
       reveal_cw_agent_secret: { Args: never; Returns: string }
     }
     Enums: {

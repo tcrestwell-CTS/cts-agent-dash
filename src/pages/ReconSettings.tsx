@@ -172,14 +172,14 @@ function AccountConfigTab() {
         <Skeleton className="h-9 w-full" />
       ) : (
         <Select
-          value={(form[field] as string) || ""}
-          onValueChange={(v) => set(field, v || null)}
+          value={(form[field] as string) || "__none__"}
+          onValueChange={(v) => set(field, v === "__none__" ? null : v)}
         >
           <SelectTrigger className="font-mono text-sm">
             <SelectValue placeholder="Select QBO account..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">— Not set —</SelectItem>
+            <SelectItem value="__none__">— Not set —</SelectItem>
             {options.map((a) => (
               <SelectItem key={a.qbo_id} value={a.qbo_id}>
                 {a.name}
