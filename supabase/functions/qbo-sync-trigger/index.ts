@@ -644,6 +644,168 @@ async function handleTripCompleted(
   });
 }
 
+/**
+ * Client payment received (any trip_payment status → 'paid')
+ * → Create a QBO Payment applied to the customer's open Invoice for that trip.
+ *   1. Resolve client + QBO Customer
+ *   2. Resolve the local invoice for this trip → qbo_invoice_id via qbo_invoice_mappings
+ *      (fall back to querying QBO for an open invoice on the customer with matching DocNumber)
+ *   3. POST /payment with LinkedTxn[{ TxnId, TxnType: 'Invoice' }]
+ *   4. Deposit to configured bank account (or auto-detected). For deposits, the
+ *      separate `handleDepositPosted` flow already books gross/fees/net via
+ *      Stripe Clearing — we still create the QBO Payment so it applies to the
+ *      Invoice and reduces A/R correctly.
+ */
+async function handleClientPaymentReceived(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, connection?: any
+) {
+  const amount = Number(payment.amount) || 0;
+  if (amount <= 0) {
+    await logSync(supabase, userId, "auto-client-payment-received", "skipped", 0, "Zero amount");
+    return;
+  }
+
+  // 1. Resolve client via the trip
+  let clientId: string | null = null;
+  let qboCustomerId: string | null = null;
+  if (payment.trip_id) {
+    const { data: trip } = await supabase
+      .from("trips")
+      .select("client_id")
+      .eq("id", payment.trip_id)
+      .single();
+    clientId = trip?.client_id || null;
+  }
+
+  if (clientId) {
+    const { data: client } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("id", clientId)
+      .single();
+    if (client) {
+      qboCustomerId = await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
+    }
+  }
+
+  if (!qboCustomerId) {
+    throw new Error("Cannot apply payment to QBO: no client/customer linked to this payment");
+  }
+
+  // 2. Resolve QBO invoice for this trip
+  let qboInvoiceId: string | null = null;
+  let localInvoiceId: string | null = null;
+
+  if (payment.trip_id) {
+    const { data: localInvoices } = await supabase
+      .from("invoices")
+      .select("id, invoice_number, total_amount, amount_remaining")
+      .eq("trip_id", payment.trip_id)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+
+    if (localInvoices && localInvoices.length > 0) {
+      // Prefer an invoice that still has a balance
+      const target = localInvoices.find((i: any) => Number(i.amount_remaining || 0) > 0)
+        || localInvoices[0];
+      localInvoiceId = target.id;
+
+      const { data: mapping } = await supabase
+        .from("qbo_invoice_mappings")
+        .select("qbo_invoice_id")
+        .eq("user_id", userId)
+        .eq("invoice_id", target.id)
+        .single();
+
+      qboInvoiceId = mapping?.qbo_invoice_id || null;
+
+      // Fallback: search QBO for an open invoice on this customer matching DocNumber
+      if (!qboInvoiceId && target.invoice_number) {
+        const docNum = String(target.invoice_number).substring(0, 21).replace(/'/g, "\\'");
+        const q = await fetch(
+          `${qboBase}/query?query=${encodeURIComponent(
+            `SELECT * FROM Invoice WHERE CustomerRef = '${qboCustomerId}' AND DocNumber = '${docNum}' MAXRESULTS 1`
+          )}`,
+          { headers: qboHeaders }
+        );
+        if (q.ok) {
+          const j = await q.json();
+          const inv = j?.QueryResponse?.Invoice?.[0];
+          if (inv?.Id) {
+            qboInvoiceId = inv.Id;
+            // Persist the mapping for future payments
+            await supabase.from("qbo_invoice_mappings").upsert({
+              user_id: userId,
+              invoice_id: target.id,
+              qbo_invoice_id: inv.Id,
+              last_synced_at: new Date().toISOString(),
+            }, { onConflict: "user_id,invoice_id" });
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Resolve deposit account
+  const depositAccount = await resolvePaymentAccount(
+    qboBase, qboHeaders,
+    connection?.default_bank_account_id, connection?.default_bank_account_name,
+    "Bank"
+  );
+
+  const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
+  const piTag = payment.stripe_payment_intent_id ? ` [${payment.stripe_payment_intent_id}]` : "";
+  const memo = `Client payment – ${payment.payment_type || "payment"} – ${payment.details || payment.notes || "Trip payment"}${piTag}`;
+
+  // 4. Build QBO Payment
+  const paymentData: any = {
+    CustomerRef: { value: qboCustomerId },
+    TotalAmt: amount,
+    TxnDate: txnDate,
+    DepositToAccountRef: { value: depositAccount.id, name: depositAccount.name },
+    PrivateNote: memo,
+  };
+
+  if (qboInvoiceId) {
+    paymentData.Line = [
+      {
+        Amount: amount,
+        LinkedTxn: [{ TxnId: qboInvoiceId, TxnType: "Invoice" }],
+      },
+    ];
+  }
+
+  const resp = await fetch(`${qboBase}/payment`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(paymentData),
+  });
+
+  if (!resp.ok) {
+    const errBody = await resp.text();
+    throw new Error(`QBO Payment creation failed: ${errBody}`);
+  }
+
+  const result = await resp.json();
+  const qboPaymentId = result?.Payment?.Id;
+
+  await logSync(
+    supabase, userId, "auto-client-payment-received", "success", 1, undefined,
+    {
+      amount,
+      trip_id: payment.trip_id,
+      payment_id: payment.id,
+      payment_type: payment.payment_type,
+      qbo_customer_id: qboCustomerId,
+      qbo_invoice_id: qboInvoiceId,
+      local_invoice_id: localInvoiceId,
+      qbo_payment_id: qboPaymentId,
+      applied_to_invoice: !!qboInvoiceId,
+      deposit_account: depositAccount.name,
+    }
+  );
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ────────────────────────────────────────────────────────────────────────────
