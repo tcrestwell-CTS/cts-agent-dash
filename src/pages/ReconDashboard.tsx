@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useReconStats, useRunRecon, useRunQBOSync } from "@/hooks/useRecon";
 import { useNavigate } from "react-router-dom";
+import { SyncStatusPanel } from "@/components/recon/SyncStatusPanel";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
