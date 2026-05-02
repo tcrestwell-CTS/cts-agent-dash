@@ -980,6 +980,9 @@ export default function LoanApplicationsManager() {
                 const paid = paymentSchedule.filter((p: any) => p.status === "paid");
                 const totalPaid = paid.reduce((s: number, p: any) => s + Number(p.total_payment), 0);
                 const totalDue = paymentSchedule.reduce((s: number, p: any) => s + Number(p.total_payment), 0);
+                const principalPaid = paid.reduce((s: number, p: any) => s + Number(p.principal_amount), 0);
+                const principalTotal = paymentSchedule.reduce((s: number, p: any) => s + Number(p.principal_amount), 0);
+                const principalRemaining = Math.max(0, principalTotal - principalPaid);
                 const pctPaid = totalDue > 0 ? (totalPaid / totalDue) * 100 : 0;
                 return (
                   <div className="mb-4 space-y-2">
@@ -992,6 +995,10 @@ export default function LoanApplicationsManager() {
                       </span>
                     </div>
                     <Progress value={pctPaid} className="h-2" />
+                    <div className="flex justify-between text-[11px] text-muted-foreground pt-1">
+                      <span>Principal paid: <span className="font-medium text-foreground">{fmt$(principalPaid)}</span></span>
+                      <span>Principal remaining: <span className="font-medium text-foreground">{fmt$(principalRemaining)}</span></span>
+                    </div>
                   </div>
                 );
               })()}
