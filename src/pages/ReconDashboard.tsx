@@ -59,13 +59,13 @@ export default function ReconDashboard() {
   const [lastRun, setLastRun] = useState<Date | null>(null);
 
   const handleRunRecon = async () => {
-    await runRecon.mutateAsync();
+    await runRecon.mutateAsync(undefined);
     setLastRun(new Date());
     refetch();
   };
 
   const handleRunSync = async () => {
-    await runSync.mutateAsync();
+    await runSync.mutateAsync(undefined);
     refetch();
   };
 
