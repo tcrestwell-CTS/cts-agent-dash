@@ -507,15 +507,45 @@ async function matchSupplierPayments(config: ReconConfig) {
   log("supplier payment matching complete");
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-agent-secret",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const secret = req.headers.get("x-agent-secret");
   const expected = Deno.env.get("AGENT_SECRET") ?? Deno.env.get("CW_AGENT_SECRET");
-  if (!expected || secret !== expected) {
-    return new Response("Unauthorized", { status: 401 });
+  const hasValidSecret = expected && secret === expected;
+
+  if (!hasValidSecret) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwt = authHeader.replace(/^Bearer\s+/i, "");
+    if (!jwt) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+    const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+    if (userErr || !userData?.user) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const isAdmin = (roles ?? []).some(
+      (r: { role: string }) => r.role === "admin" || r.role === "office_admin"
+    );
+    if (!isAdmin) {
+      return new Response("Forbidden", { status: 403, headers: corsHeaders });
+    }
   }
 
   const body = await req.json().catch(() => ({}));
@@ -548,7 +578,7 @@ serve(async (req) => {
 
     log("reconciliation run complete", results);
     return new Response(JSON.stringify({ success: true, results }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -563,7 +593,7 @@ serve(async (req) => {
     });
 
     return new Response(JSON.stringify({ success: false, error: errMsg }), {
-      status: 500, headers: { "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
