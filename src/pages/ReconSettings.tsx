@@ -113,6 +113,16 @@ function useEntityMappings(type?: string) {
 
 // ─── Account Config Tab ───────────────────────────────────────
 
+const REQUIRED_ACCOUNT_FIELDS: { field: keyof AccountConfig; label: string }[] = [
+  { field: "qbo_bank_account_id", label: "Operating Bank Account" },
+  { field: "stripe_clearing_account_id", label: "Stripe Clearing Account" },
+  { field: "stripe_fees_account_id", label: "Stripe Fees Expense" },
+  { field: "undeposited_funds_account_id", label: "Undeposited Funds" },
+  { field: "ar_account_id", label: "Accounts Receivable (A/R)" },
+  { field: "ap_account_id", label: "Accounts Payable (A/P)" },
+  { field: "default_vendor_payment_account_id", label: "Default Vendor Payment Account" },
+];
+
 function AccountConfigTab() {
   const { data: config, isLoading } = useAccountConfig();
   const { data: accounts } = useQBOAccounts();
