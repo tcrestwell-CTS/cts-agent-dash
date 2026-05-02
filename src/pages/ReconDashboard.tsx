@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useReconStats, useRunRecon, useRunQBOSync } from "@/hooks/useRecon";
 import { useNavigate } from "react-router-dom";
+import { SyncStatusPanel } from "@/components/recon/SyncStatusPanel";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
@@ -229,6 +230,8 @@ export default function ReconDashboard() {
         </div>
 
         {/* Quick Nav */}
+        <SyncStatusPanel />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card
             className="cursor-pointer hover:shadow-md transition-shadow"
