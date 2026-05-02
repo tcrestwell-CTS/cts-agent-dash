@@ -479,7 +479,9 @@ const Trips = () => {
       trip.destination?.toLowerCase().includes(searchLower) ||
       trip.clients?.name.toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
-    const matchesTripName = tripNameFilter === "all" || trip.trip_name === tripNameFilter;
+    const matchesTripName =
+      tripNameFilter === "all" ||
+      trip.trip_name?.toLowerCase().startsWith(tripNameFilter.toLowerCase());
     return matchesSearch && matchesStatus && matchesTripName;
   });
 
