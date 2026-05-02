@@ -15,6 +15,12 @@ const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
 const log = (step: string, data?: unknown) =>
   console.log(`[qbo-cache-sync] ${step}`, data ? JSON.stringify(data) : "");
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-agent-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 async function getValidToken(): Promise<{ accessToken: string; realmId: string }> {
   const { data: conn, error } = await supabase
     .from("qbo_connections")
@@ -305,14 +311,18 @@ async function syncBillPayments(token: string, realmId: string) {
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
   const secret = req.headers.get("x-agent-secret");
   const expected = Deno.env.get("AGENT_SECRET") ?? Deno.env.get("CW_AGENT_SECRET");
   if (!expected || secret !== expected) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -342,7 +352,7 @@ serve(async (req) => {
 
     log("sync complete", results);
     return new Response(JSON.stringify({ success: true, results }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -357,7 +367,7 @@ serve(async (req) => {
     });
 
     return new Response(JSON.stringify({ success: false, error: errMsg }), {
-      status: 500, headers: { "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
