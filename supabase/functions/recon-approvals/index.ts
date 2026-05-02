@@ -19,14 +19,14 @@ async function getValidToken() {
   const { data: conn } = await supabase
     .from("qbo_connections")
     .select("*")
-    .eq("status", "active")
+    .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
 
   if (!conn) throw new Error("No active QBO connection");
 
-  const expiresAt = new Date(conn.expires_at).getTime();
+  const expiresAt = new Date(conn.token_expires_at).getTime();
   if (expiresAt - Date.now() < 5 * 60 * 1000) {
     const clientId = Deno.env.get("QBO_CLIENT_ID")!;
     const clientSecret = Deno.env.get("QBO_CLIENT_SECRET")!;
@@ -49,7 +49,7 @@ async function getValidToken() {
       .update({
         access_token: refreshed.access_token,
         refresh_token: refreshed.refresh_token,
-        expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+        token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
       })
       .eq("id", conn.id);
     return { accessToken: refreshed.access_token, realmId: conn.realm_id };
