@@ -110,9 +110,9 @@ export function ReconApprovals() {
                         )}
                       </div>
                       <div className="mt-2 font-mono text-xs text-muted-foreground truncate">
-                        Amount: ${(task.action_payload as Record<string, unknown>)?.TotalAmt ?? "—"}
+                        Amount: ${String((task.action_payload as Record<string, unknown>)?.TotalAmt ?? "—")}
                         {" · "}
-                        Date: {(task.action_payload as Record<string, unknown>)?.TxnDate as string ?? "—"}
+                        Date: {(((task.action_payload as Record<string, unknown>)?.TxnDate as string) ?? "—")}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Created {format(new Date(task.created_at), "MMM d, yyyy h:mm a")}
