@@ -525,7 +525,7 @@ async function matchSupplierPayments(config: ReconConfig) {
             TxnDate: sp.supplier_paid_date,
             DocNumber: sp.supplier_paid_reference || sp.supplier_confirmation_number || sp.confirmation_number,
             PrivateNote: `Created by QBO Reconciliation Agent. Source: crm_booking, Source ID: ${sp.id}, Match ID: ${match.id}`,
-            Line: [{ Amount: supplierCost, DetailType: "AccountBasedExpenseLineDetail", AccountBasedExpenseLineDetail: { AccountRef: { value: "SUPPLIER_EXPENSE_ACCOUNT" } } }],
+            Line: [{ Amount: supplierCost, DetailType: "AccountBasedExpenseLineDetail", AccountBasedExpenseLineDetail: { AccountRef: { value: "" } /* populated at approval time from recon_account_config.default_vendor_payment_account_id */ } }],
           },
           requires_admin: supplierCost > config.approval_required_above,
           status: "pending",
