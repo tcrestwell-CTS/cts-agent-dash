@@ -313,8 +313,8 @@ serve(async (req) => {
       case "create_qbo_deposit":
         writeResult = await executeCreateQBODeposit(task, accessToken, realmId, config || {});
         break;
-      case "create_qbo_billpayment":
-        writeResult = await executeCreateQBOBillPayment(task, accessToken, realmId);
+      case "create_qbo_expense":
+        writeResult = await executeCreateQBOExpense(task, accessToken, realmId);
         break;
       default:
         throw new Error(`Unknown action_type: ${task.action_type}`);
