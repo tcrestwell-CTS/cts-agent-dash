@@ -18,6 +18,8 @@ import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useReconMatches, ReconMatch, ReconMatchStatus } from "@/hooks/useRecon";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const STATUS_CONFIG: Record<ReconMatchStatus, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   new:           { label: "Needs Review",   color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
@@ -194,9 +196,263 @@ function MatchDrawer({
             {match.stripe_payout_id && <p>Stripe Payout: {match.stripe_payout_id}</p>}
             <p>Created: {format(new Date(match.created_at), "MMM d, yyyy h:mm a")}</p>
           </div>
+
+          {/* Linked Item Details */}
+          <MatchItemDetails match={match} />
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function DetailBlock({ title, rows }: { title: string; rows: Array<[string, React.ReactNode]> }) {
+  return (
+    <div className="border rounded-lg p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <div className="space-y-1 text-sm">
+        {rows.map(([k, v]) =>
+          v == null || v === "" ? null : (
+            <div key={k} className="flex justify-between gap-3">
+              <span className="text-muted-foreground">{k}</span>
+              <span className="font-medium text-right break-all">{v}</span>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MatchItemDetails({ match }: { match: ReconMatch }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["recon-match-items", match.id],
+    queryFn: async () => {
+      const out: {
+        booking?: any;
+        supplier?: any;
+        trip?: any;
+        qboInvoice?: any;
+        qboBill?: any;
+        qboPayment?: any;
+        qboDeposit?: any;
+        qboCustomer?: any;
+        qboVendor?: any;
+        stripePayment?: any;
+        stripePayout?: any;
+      } = {};
+
+      if (match.crm_booking_id) {
+        const { data: b } = await supabase
+          .from("bookings")
+          .select("id, confirmation_number, total_price, gross_sales, supplier_id, trip_id, status")
+          .eq("id", match.crm_booking_id)
+          .maybeSingle();
+        out.booking = b;
+        if (b?.supplier_id) {
+          const { data: s } = await supabase
+            .from("suppliers")
+            .select("id, name")
+            .eq("id", b.supplier_id)
+            .maybeSingle();
+          out.supplier = s;
+        }
+        if (b?.trip_id) {
+          const { data: t } = await supabase
+            .from("trips")
+            .select("id, trip_name")
+            .eq("id", b.trip_id)
+            .maybeSingle();
+          out.trip = t;
+        }
+      }
+
+      if (match.qbo_invoice_id) {
+        const { data: inv } = await supabase
+          .from("qbo_invoices")
+          .select("id, qbo_id, doc_number, total_amt, balance, txn_date, status, qbo_customer_id")
+          .eq("id", match.qbo_invoice_id)
+          .maybeSingle();
+        out.qboInvoice = inv;
+        if (inv?.qbo_customer_id) {
+          const { data: c } = await supabase
+            .from("qbo_customers")
+            .select("qbo_id, display_name")
+            .eq("qbo_id", inv.qbo_customer_id)
+            .maybeSingle();
+          out.qboCustomer = c;
+        }
+      }
+
+      if (match.qbo_bill_id) {
+        const { data: bill } = await supabase
+          .from("qbo_bills")
+          .select("id, qbo_id, doc_number, total_amt, balance, txn_date, status, qbo_vendor_id")
+          .eq("id", match.qbo_bill_id)
+          .maybeSingle();
+        out.qboBill = bill;
+        if (bill?.qbo_vendor_id) {
+          const { data: v } = await supabase
+            .from("qbo_vendors")
+            .select("qbo_id, display_name")
+            .eq("qbo_id", bill.qbo_vendor_id)
+            .maybeSingle();
+          out.qboVendor = v;
+        }
+      }
+
+      if (match.qbo_payment_id) {
+        const { data: p } = await supabase
+          .from("qbo_payments")
+          .select("id, qbo_id, total_amt, txn_date, payment_ref_num, qbo_customer_id")
+          .eq("id", match.qbo_payment_id)
+          .maybeSingle();
+        out.qboPayment = p;
+      }
+
+      if (match.qbo_deposit_id) {
+        const { data: d } = await supabase
+          .from("qbo_deposits")
+          .select("id, qbo_id, total_amt, txn_date, memo")
+          .eq("id", match.qbo_deposit_id)
+          .maybeSingle();
+        out.qboDeposit = d;
+      }
+
+      if (match.stripe_payment_id) {
+        const { data: sp } = await supabase
+          .from("stripe_payments")
+          .select("id, stripe_payment_intent_id, gross_amount, net_amount, customer_name, customer_email, stripe_created_at, invoice_number, status")
+          .eq("id", match.stripe_payment_id)
+          .maybeSingle();
+        out.stripePayment = sp;
+      }
+
+      if (match.stripe_payout_id) {
+        const { data: po } = await supabase
+          .from("stripe_payouts")
+          .select("id, stripe_payout_id, amount, net_amount, fee_total, arrival_date, status")
+          .eq("id", match.stripe_payout_id)
+          .maybeSingle();
+        out.stripePayout = po;
+      }
+
+      return out;
+    },
+    enabled: !!match.id,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <p className="text-xs font-semibold uppercase tracking-wide">Linked Items</p>
+
+      {data.booking && (
+        <DetailBlock
+          title="CRM Booking"
+          rows={[
+            ["Confirmation #", data.booking.confirmation_number],
+            ["Trip", data.trip?.trip_name],
+            ["Supplier", data.supplier?.name],
+            ["Status", data.booking.status],
+            ["Gross Sales", data.booking.gross_sales != null ? `$${Number(data.booking.gross_sales).toFixed(2)}` : null],
+            ["Total Price", data.booking.total_price != null ? `$${Number(data.booking.total_price).toFixed(2)}` : null],
+          ]}
+        />
+      )}
+
+      {data.qboInvoice && (
+        <DetailBlock
+          title="QBO Invoice"
+          rows={[
+            ["Doc #", data.qboInvoice.doc_number],
+            ["QBO ID", data.qboInvoice.qbo_id],
+            ["Customer", data.qboCustomer?.display_name],
+            ["Date", data.qboInvoice.txn_date],
+            ["Total", data.qboInvoice.total_amt != null ? `$${Number(data.qboInvoice.total_amt).toFixed(2)}` : null],
+            ["Balance", data.qboInvoice.balance != null ? `$${Number(data.qboInvoice.balance).toFixed(2)}` : null],
+            ["Status", data.qboInvoice.status],
+          ]}
+        />
+      )}
+
+      {data.qboBill && (
+        <DetailBlock
+          title="QBO Bill"
+          rows={[
+            ["Doc #", data.qboBill.doc_number],
+            ["QBO ID", data.qboBill.qbo_id],
+            ["Vendor", data.qboVendor?.display_name],
+            ["Date", data.qboBill.txn_date],
+            ["Total", data.qboBill.total_amt != null ? `$${Number(data.qboBill.total_amt).toFixed(2)}` : null],
+            ["Balance", data.qboBill.balance != null ? `$${Number(data.qboBill.balance).toFixed(2)}` : null],
+            ["Status", data.qboBill.status],
+          ]}
+        />
+      )}
+
+      {data.qboPayment && (
+        <DetailBlock
+          title="QBO Payment"
+          rows={[
+            ["QBO ID", data.qboPayment.qbo_id],
+            ["Ref #", data.qboPayment.payment_ref_num],
+            ["Date", data.qboPayment.txn_date],
+            ["Total", data.qboPayment.total_amt != null ? `$${Number(data.qboPayment.total_amt).toFixed(2)}` : null],
+          ]}
+        />
+      )}
+
+      {data.qboDeposit && (
+        <DetailBlock
+          title="QBO Deposit"
+          rows={[
+            ["QBO ID", data.qboDeposit.qbo_id],
+            ["Memo", data.qboDeposit.memo],
+            ["Date", data.qboDeposit.txn_date],
+            ["Total", data.qboDeposit.total_amt != null ? `$${Number(data.qboDeposit.total_amt).toFixed(2)}` : null],
+          ]}
+        />
+      )}
+
+      {data.stripePayment && (
+        <DetailBlock
+          title="Stripe Payment"
+          rows={[
+            ["Intent", data.stripePayment.stripe_payment_intent_id],
+            ["Invoice #", data.stripePayment.invoice_number],
+            ["Customer", data.stripePayment.customer_name || data.stripePayment.customer_email],
+            ["Date", data.stripePayment.stripe_created_at ? format(new Date(data.stripePayment.stripe_created_at), "MMM d, yyyy") : null],
+            ["Gross", data.stripePayment.gross_amount != null ? `$${Number(data.stripePayment.gross_amount).toFixed(2)}` : null],
+            ["Net", data.stripePayment.net_amount != null ? `$${Number(data.stripePayment.net_amount).toFixed(2)}` : null],
+            ["Status", data.stripePayment.status],
+          ]}
+        />
+      )}
+
+      {data.stripePayout && (
+        <DetailBlock
+          title="Stripe Payout"
+          rows={[
+            ["Payout ID", data.stripePayout.stripe_payout_id],
+            ["Arrival", data.stripePayout.arrival_date],
+            ["Amount", data.stripePayout.amount != null ? `$${Number(data.stripePayout.amount).toFixed(2)}` : null],
+            ["Net", data.stripePayout.net_amount != null ? `$${Number(data.stripePayout.net_amount).toFixed(2)}` : null],
+            ["Fees", data.stripePayout.fee_total != null ? `$${Number(data.stripePayout.fee_total).toFixed(2)}` : null],
+            ["Status", data.stripePayout.status],
+          ]}
+        />
+      )}
+    </div>
   );
 }
 
