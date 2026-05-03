@@ -8,7 +8,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-agent-secret",
 };
 
-const PAY_URL = "https://crestwellgetaways.com/payments";
+const SITE_URL = "https://crestwellgetaways.com";
+const PAY_PATH = "/payment";
+const GENERIC_PAY_URL = `${SITE_URL}${PAY_PATH}`;
+
+function generateToken(): string {
+  return crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+}
+
+function encodePayload(payload: Record<string, string>): string {
+  return btoa(JSON.stringify(payload))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
 
 interface ReqBody {
   qbo_invoice_id?: string;        // single invoice (test/manual)
@@ -39,6 +52,7 @@ function buildHtml(opts: {
   lastPaymentAmount: number | null;
   lastPaymentDate: string | null;
   isReminder: boolean;
+  payUrl: string;
 }) {
   const b = opts.brand || {};
   const navy = b.primary_color || "#0d1b2a";
@@ -98,8 +112,8 @@ function buildHtml(opts: {
       </table>
 
       <div style="text-align:center;margin:28px 0;">
-        <a href="${PAY_URL}" style="background:${gold};color:${navy};padding:14px 36px;text-decoration:none;border-radius:6px;font-weight:700;display:inline-block;letter-spacing:0.5px;">Pay Online</a>
-        <div style="color:#6b7280;font-size:12px;margin-top:10px;">${PAY_URL}</div>
+        <a href="${opts.payUrl}" style="background:${gold};color:${navy};padding:14px 36px;text-decoration:none;border-radius:6px;font-weight:700;display:inline-block;letter-spacing:0.5px;">Pay Online</a>
+        <div style="color:#6b7280;font-size:12px;margin-top:10px;">Secure single-use link</div>
       </div>
 
       <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:20px 0 0;">
@@ -272,6 +286,40 @@ const handler = async (req: Request): Promise<Response> => {
         const recipient = body.test_recipient || client.email;
         const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
 
+        // Mint a tokenized secure payment link for this recipient
+        let payUrl = GENERIC_PAY_URL;
+        try {
+          const token = generateToken();
+          const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const { error: linkErr } = await supabase.from("secure_links").insert({
+            token,
+            link_type: "payment",
+            client_name: client.name,
+            client_email: recipient,
+            booking_ref: invoiceNumber,
+            trip_name: trip.trip_name,
+            amount: Number(inv.balance || 0),
+            notes: `Auto-generated from invoice statement (${kind})`,
+            expires_at: expiresAt,
+            single_use: false,
+            active: true,
+          });
+          if (!linkErr) {
+            const payload: Record<string, string> = {
+              token,
+              ref: invoiceNumber,
+              invoice: invoiceNumber,
+              name: client.name,
+              email: recipient,
+            };
+            payUrl = `${SITE_URL}${PAY_PATH}?d=${encodePayload(payload)}`;
+          } else {
+            console.error("secure_link insert failed:", linkErr);
+          }
+        } catch (linkE) {
+          console.error("secure_link mint error:", linkE);
+        }
+
         const html = buildHtml({
           brand: brandingRow,
           clientName: client.name,
@@ -286,6 +334,7 @@ const handler = async (req: Request): Promise<Response> => {
           lastPaymentAmount: lastPay ? Number(lastPay.amount) : null,
           lastPaymentDate: lastPay?.payment_date || null,
           isReminder: kind === "reminder_7d",
+          payUrl,
         });
 
         const subject =
