@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import {
   Search, ArrowRightLeft, CheckCircle2, AlertTriangle,
   Clock, XCircle, ChevronRight, Info,
@@ -536,6 +538,9 @@ export default function ReconMatches() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ReconMatch | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const approveBulk = useApproveMatch();
 
   const { data: matches, isLoading } = useReconMatches(
     statusFilter !== "all" ? (statusFilter as ReconMatchStatus) : undefined,
@@ -553,6 +558,50 @@ export default function ReconMatches() {
         m.crm_booking_id?.includes(q)
     );
   }, [matches, search]);
+
+  const isActionable = (m: ReconMatch) =>
+    m.status === "new" || m.status === "reviewing" || m.status === "exception";
+  const actionableFiltered = useMemo(() => filtered.filter(isActionable), [filtered]);
+  const allSelected =
+    actionableFiltered.length > 0 &&
+    actionableFiltered.every((m) => selectedIds.has(m.id));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(actionableFiltered.map((m) => m.id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkApprove = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkRunning(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await approveBulk.mutateAsync(id);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setBulkRunning(false);
+    setSelectedIds(new Set());
+    if (fail === 0) toast.success(`Approved ${ok} match${ok === 1 ? "" : "es"}`);
+    else toast.error(`Approved ${ok}, failed ${fail}`);
+  };
 
   return (
     <DashboardLayout>
@@ -605,12 +654,37 @@ export default function ReconMatches() {
           </Select>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between bg-muted rounded-lg px-4 py-2">
+            <p className="text-sm">
+              <span className="font-semibold">{selectedIds.size}</span> selected
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                Clear
+              </Button>
+              <Button size="sm" disabled={bulkRunning} onClick={handleBulkApprove}>
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                {bulkRunning ? "Approving…" : `Approve ${selectedIds.size}`}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={toggleAll}
+                      disabled={actionableFiltered.length === 0}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Confidence</TableHead>
                   <TableHead>CRM Amount</TableHead>
@@ -625,7 +699,7 @@ export default function ReconMatches() {
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -634,7 +708,7 @@ export default function ReconMatches() {
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
                       No matches found
                     </TableCell>
                   </TableRow>
@@ -642,12 +716,21 @@ export default function ReconMatches() {
                   filtered.map((m) => {
                     const cfg = STATUS_CONFIG[m.status];
                     const StatusIcon = cfg.icon;
+                    const actionable = isActionable(m);
                     return (
                       <TableRow
                         key={m.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => setSelected(m)}
                       >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(m.id)}
+                            onCheckedChange={() => toggleOne(m.id)}
+                            disabled={!actionable}
+                            aria-label="Select match"
+                          />
+                        </TableCell>
                         <TableCell className="text-sm font-medium">
                           {MATCH_TYPE_LABELS[m.match_type] || m.match_type}
                         </TableCell>
