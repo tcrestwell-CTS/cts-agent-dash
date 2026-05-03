@@ -425,3 +425,56 @@ export function useResolveException() {
     },
   });
 }
+
+// ─── Match Approve/Reject ─────────────────────────────────────
+
+export function useApproveMatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (matchId: string) => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("recon_matches")
+        .update({
+          status: "approved",
+          approved_by: userRes.user?.id ?? null,
+          approved_at: new Date().toISOString(),
+          reviewed_by: userRes.user?.id ?? null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", matchId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Match approved");
+      qc.invalidateQueries({ queryKey: ["recon-matches"] });
+      qc.invalidateQueries({ queryKey: ["recon-stats"] });
+    },
+    onError: (e) => toast.error(`Approve failed: ${e.message}`),
+  });
+}
+
+export function useRejectMatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ matchId, reason }: { matchId: string; reason: string }) => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("recon_matches")
+        .update({
+          status: "rejected",
+          rejection_reason: reason,
+          reviewed_by: userRes.user?.id ?? null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", matchId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Match rejected");
+      qc.invalidateQueries({ queryKey: ["recon-matches"] });
+      qc.invalidateQueries({ queryKey: ["recon-stats"] });
+    },
+    onError: (e) => toast.error(`Reject failed: ${e.message}`),
+  });
+}
