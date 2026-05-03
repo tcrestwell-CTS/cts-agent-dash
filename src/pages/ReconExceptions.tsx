@@ -15,6 +15,8 @@ import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useExceptions, useResolveException, ExceptionQueueItem, ExceptionStatus } from "@/hooks/useRecon";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const EXCEPTION_LABELS: Record<string, { label: string; color: string }> = {
   missing_qbo_invoice:        { label: "Missing Invoice",      color: "bg-red-100 text-red-800 border-red-200" },
@@ -56,6 +58,38 @@ export function ReconExceptions() {
 
   const resolve = useResolveException();
 
+  // Fetch trip names for any booking-related exceptions
+  const bookingIds = useMemo(() => {
+    if (!exceptions) return [];
+    return Array.from(
+      new Set(
+        exceptions
+          .filter((e) => e.source_record_type?.startsWith("booking") && e.source_record_id)
+          .map((e) => e.source_record_id as string)
+      )
+    );
+  }, [exceptions]);
+
+  const { data: tripNameMap } = useQuery({
+    queryKey: ["exception-trip-names", bookingIds],
+    enabled: bookingIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("id, trips(trip_name)")
+        .in("id", bookingIds);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((b: any) => {
+        if (b.trips?.trip_name) map[b.id] = b.trips.trip_name;
+      });
+      return map;
+    },
+  });
+
+  const tripNameFor = (ex: ExceptionQueueItem) =>
+    ex.source_record_id ? tripNameMap?.[ex.source_record_id] : undefined;
+
   const filtered = useMemo(() => {
     if (!exceptions) return [];
     if (!search) return exceptions;
@@ -64,9 +98,10 @@ export function ReconExceptions() {
       (e) =>
         e.description?.toLowerCase().includes(q) ||
         e.exception_type.includes(q) ||
-        e.source_record_id?.includes(q)
+        e.source_record_id?.includes(q) ||
+        (e.source_record_id && tripNameMap?.[e.source_record_id]?.toLowerCase().includes(q))
     );
-  }, [exceptions, search]);
+  }, [exceptions, search, tripNameMap]);
 
   return (
     <DashboardLayout>
@@ -151,7 +186,14 @@ export function ReconExceptions() {
                         <TableCell>
                           <Badge className={`${typeCfg.color} text-xs`}>{typeCfg.label}</Badge>
                         </TableCell>
-                        <TableCell className="text-sm max-w-xs truncate">{ex.description}</TableCell>
+                        <TableCell className="text-sm max-w-xs">
+                          <div className="truncate">{ex.description}</div>
+                          {tripNameFor(ex) && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              Trip: {tripNameFor(ex)}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono text-sm">
                           {ex.amount != null ? `$${ex.amount.toFixed(2)}` : "—"}
                         </TableCell>
@@ -193,7 +235,12 @@ export function ReconExceptions() {
               <DialogTitle>Resolve Exception</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">{resolving?.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {resolving?.description}
+                {resolving && tripNameFor(resolving) && (
+                  <span className="block mt-1">Trip: {tripNameFor(resolving)}</span>
+                )}
+              </p>
               <Textarea
                 placeholder="Resolution notes (required)"
                 value={notes}
