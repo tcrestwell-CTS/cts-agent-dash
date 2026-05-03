@@ -154,7 +154,7 @@ serve(async (req) => {
       await new Promise((r) => setTimeout(r, 800));
     }
 
-    // Track surviving payment in qbo_payments
+    // Track surviving payment in qbo_payments (qbo_id is unique)
     if (!dryRun) {
       await supabase.from("qbo_payments").upsert({
         qbo_id: keep.details.qbo_payment_id,
@@ -165,7 +165,7 @@ serve(async (req) => {
         txn_date: new Date(keep.created_at).toISOString().split("T")[0],
         trigger_managed: true,
         synced_at: keep.created_at,
-      }, { onConflict: "crm_payment_id" });
+      }, { onConflict: "qbo_id" });
     }
 
     results.push({
