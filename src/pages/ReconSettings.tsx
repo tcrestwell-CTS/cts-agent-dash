@@ -438,6 +438,50 @@ function EntityMappingsTab() {
       return data || [];
     },
   });
+  const { data: qboVendors } = useQuery({
+    queryKey: ["qbo-vendors-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("qbo_vendors")
+        .select("qbo_id, display_name, email")
+        .eq("active", true)
+        .order("display_name");
+      return data || [];
+    },
+  });
+  const { data: crmSuppliers } = useQuery({
+    queryKey: ["suppliers-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("suppliers")
+        .select("id, name, contact_email")
+        .eq("is_active", true)
+        .order("name");
+      return data || [];
+    },
+  });
+  const { data: qboInvoices } = useQuery({
+    queryKey: ["qbo-invoices-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("qbo_invoices")
+        .select("qbo_id, doc_number, total_amt, txn_date")
+        .order("txn_date", { ascending: false })
+        .limit(500);
+      return data || [];
+    },
+  });
+  const { data: crmBookings } = useQuery({
+    queryKey: ["bookings-list-mapping"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("id, confirmation_number, total_price, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      return data || [];
+    },
+  });
 
   const qc = useQueryClient();
 
