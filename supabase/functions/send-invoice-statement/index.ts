@@ -165,26 +165,51 @@ const handler = async (req: Request): Promise<Response> => {
 
     for (const inv of qboInvoices) {
       try {
-        // Find the booking → trip → client
-        if (!inv.crm_booking_id) {
-          results.push({ qbo_id: inv.qbo_id, skipped: "no_crm_booking" });
+        // Resolve trip+client. Prefer crm_booking_id, fall back to qbo_customer_id mapping.
+        let tripId: string | null = null;
+        let bookingGross = 0;
+        if (inv.crm_booking_id) {
+          const { data: booking } = await supabase
+            .from("bookings")
+            .select("id, trip_id, gross_sales")
+            .eq("id", inv.crm_booking_id)
+            .maybeSingle();
+          if (booking?.trip_id) {
+            tripId = booking.trip_id;
+            bookingGross = Number(booking.gross_sales || 0);
+          }
+        }
+
+        let clientId: string | null = null;
+        if (!tripId && inv.qbo_customer_id) {
+          const { data: mapping } = await supabase
+            .from("qbo_client_mappings")
+            .select("client_id")
+            .eq("qbo_customer_id", inv.qbo_customer_id)
+            .maybeSingle();
+          if (mapping?.client_id) {
+            clientId = mapping.client_id;
+            // Find latest active trip for this client
+            const { data: trips } = await supabase
+              .from("trips")
+              .select("id")
+              .eq("client_id", clientId)
+              .order("created_at", { ascending: false })
+              .limit(1);
+            if (trips && trips.length) tripId = trips[0].id;
+          }
+        }
+
+        if (!tripId) {
+          results.push({ qbo_id: inv.qbo_id, skipped: "no_trip_resolved" });
           continue;
         }
-        const { data: booking } = await supabase
-          .from("bookings")
-          .select("id, trip_id, gross_sales")
-          .eq("id", inv.crm_booking_id)
-          .maybeSingle();
-        if (!booking?.trip_id) {
-          results.push({ qbo_id: inv.qbo_id, skipped: "no_trip" });
-          continue;
-        }
-        if (body.trip_id && booking.trip_id !== body.trip_id) continue;
+        if (body.trip_id && tripId !== body.trip_id) continue;
 
         const { data: trip } = await supabase
           .from("trips")
           .select("id, trip_name, destination, client_id, total_gross_sales")
-          .eq("id", booking.trip_id)
+          .eq("id", tripId)
           .maybeSingle();
         if (!trip) { results.push({ qbo_id: inv.qbo_id, skipped: "no_trip_row" }); continue; }
 
@@ -242,7 +267,7 @@ const handler = async (req: Request): Promise<Response> => {
           .neq("status", "paid");
         const totalRemaining = (unpaid || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
 
-        const openingBalance = Number(trip.total_gross_sales || booking.gross_sales || 0);
+        const openingBalance = Number(trip.total_gross_sales || bookingGross || 0);
 
         const recipient = body.test_recipient || client.email;
         const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
