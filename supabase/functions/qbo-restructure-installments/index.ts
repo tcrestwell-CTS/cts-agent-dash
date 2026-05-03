@@ -331,6 +331,19 @@ async function processTrip(
 
     // 7. If this trip_payment is paid, create a QBO Payment applied to it
     if (p.status === "paid") {
+      // Idempotency: skip if we already have a qbo_payment row for this crm_payment + invoice
+      const { data: existingPay } = await supabase
+        .from("qbo_payments")
+        .select("qbo_id")
+        .eq("crm_payment_id", p.id)
+        .eq("qbo_invoice_id", newQboInvoiceId)
+        .maybeSingle();
+      if (existingPay) {
+        result.steps.push({ op: "skip_existing_payment", qbo_id: existingPay.qbo_id });
+        created.push({ doc: docNumber, qbo_id: newQboInvoiceId });
+        await new Promise((res) => setTimeout(res, 250));
+        continue;
+      }
       const payTxnDate = (p.payment_date || p.due_date)?.slice(0, 10);
       const payPayload: any = {
         CustomerRef: { value: qboCustomerId },
