@@ -206,10 +206,20 @@ async function executeCreateQBODeposit(
 async function executeCreateQBOExpense(
   task: Record<string, unknown>,
   accessToken: string,
-  realmId: string
+  realmId: string,
+  config: Record<string, unknown>
 ) {
   log("creating QBO Expense/Purchase", { taskId: task.id });
   const payload = task.action_payload as Record<string, unknown>;
+
+  // Override AccountRef with configured expense account — falls back to whatever was in the payload
+  const expenseAccountId = (config.default_vendor_payment_account_id as string) || null;
+  if (expenseAccountId && Array.isArray(payload.Line)) {
+    (payload.Line as Record<string, unknown>[]).forEach((line) => {
+      const detail = line.AccountBasedExpenseLineDetail as Record<string, unknown> | undefined;
+      if (detail) detail.AccountRef = { value: expenseAccountId };
+    });
+  }
 
   // Duplicate check — same vendor, amount, date
   const entityRef = (payload.EntityRef as Record<string, string>)?.value;
@@ -323,7 +333,7 @@ serve(async (req) => {
         writeResult = await executeCreateQBODeposit(task, accessToken, realmId, config || {});
         break;
       case "create_qbo_expense":
-        writeResult = await executeCreateQBOExpense(task, accessToken, realmId);
+        writeResult = await executeCreateQBOExpense(task, accessToken, realmId, config || {});
         break;
       default:
         throw new Error(`Unknown action_type: ${task.action_type}`);
