@@ -203,43 +203,52 @@ async function executeCreateQBODeposit(
   return { success: true, qboId: qboDeposit.Id as string, result };
 }
 
-async function executeCreateQBOBillPayment(
+async function executeCreateQBOExpense(
   task: Record<string, unknown>,
   accessToken: string,
   realmId: string
 ) {
-  log("creating QBO BillPayment", { taskId: task.id });
+  log("creating QBO Expense/Purchase", { taskId: task.id });
   const payload = task.action_payload as Record<string, unknown>;
 
-  const { data: existing } = await supabase
-    .from("qbo_bill_payments")
-    .select("qbo_id")
-    .eq("qbo_vendor_id", (payload.VendorRef as Record<string, string>)?.value)
-    .eq("total_amt", payload.TotalAmt)
-    .eq("txn_date", payload.TxnDate)
-    .maybeSingle();
+  // Duplicate check — same vendor, amount, date
+  const entityRef = (payload.EntityRef as Record<string, string>)?.value;
+  if (entityRef) {
+    const { data: existing } = await supabase
+      .from("qbo_purchases")
+      .select("qbo_id")
+      .eq("qbo_entity_id", entityRef)
+      .eq("total_amt", payload.TotalAmt)
+      .eq("txn_date", payload.TxnDate)
+      .maybeSingle();
 
-  if (existing) {
-    log("duplicate QBO bill payment detected — skipping", { qboId: existing.qbo_id });
-    return { skipped: true, reason: "duplicate", qboId: existing.qbo_id };
+    if (existing) {
+      log("duplicate QBO expense detected — skipping", { qboId: existing.qbo_id });
+      return { skipped: true, reason: "duplicate", qboId: existing.qbo_id };
+    }
   }
 
-  const result = await qboCreate(accessToken, realmId, "billpayment", payload);
-  const qboBP = (result as Record<string, unknown>).BillPayment as Record<string, unknown>;
+  const result = await qboCreate(accessToken, realmId, "purchase", payload);
+  const qboExpense = (result as Record<string, unknown>).Purchase as Record<string, unknown>;
 
-  await supabase.from("qbo_bill_payments").insert({
-    qbo_id: qboBP.Id,
-    qbo_vendor_id: (qboBP.VendorRef as Record<string, string>)?.value,
-    total_amt: qboBP.TotalAmt,
-    txn_date: qboBP.TxnDate,
-    payment_ref_num: qboBP.DocNumber || null,
-    trigger_managed: false,
-    sync_token: qboBP.SyncToken,
-    raw_payload: qboBP,
-    synced_at: new Date().toISOString(),
-  });
+  await supabase.from("qbo_purchases").upsert(
+    {
+      qbo_id: qboExpense.Id,
+      qbo_entity_id: (qboExpense.EntityRef as Record<string, string>)?.value || null,
+      total_amt: qboExpense.TotalAmt,
+      txn_date: qboExpense.TxnDate,
+      doc_number: qboExpense.DocNumber || null,
+      payment_type: qboExpense.PaymentType || null,
+      memo: qboExpense.PrivateNote || null,
+      trigger_managed: false,
+      sync_token: qboExpense.SyncToken,
+      raw_payload: qboExpense,
+      synced_at: new Date().toISOString(),
+    },
+    { onConflict: "qbo_id" }
+  );
 
-  return { success: true, qboId: qboBP.Id as string, result };
+  return { success: true, qboId: qboExpense.Id as string, result };
 }
 
 serve(async (req) => {
