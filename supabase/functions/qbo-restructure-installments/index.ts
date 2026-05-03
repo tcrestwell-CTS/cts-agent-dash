@@ -150,16 +150,40 @@ async function processTrip(
       .eq("qbo_invoice_id", existingQboInvoiceId);
 
     for (const p of paymentsToVoid || []) {
-      const r = await qboFetch(
-        `${qboBase}/payment?operation=void`,
+      // Try DELETE first (removes cash entirely), then fall back to VOID
+      // Need fresh SyncToken
+      let syncToken = "0";
+      const getPay = await qboFetch(`${qboBase}/payment/${p.qbo_id}`, qboHeaders);
+      if (getPay.ok) {
+        const j = await getPay.json();
+        syncToken = j?.Payment?.SyncToken || "0";
+      }
+
+      const dr = await qboFetch(
+        `${qboBase}/payment?operation=delete`,
         qboHeaders,
         {
           method: "POST",
-          body: JSON.stringify({ Id: p.qbo_id, SyncToken: "0" }),
+          body: JSON.stringify({ Id: p.qbo_id, SyncToken: syncToken }),
         },
       );
-      const txt = await r.text();
-      result.steps.push({ op: "void_payment", qbo_id: p.qbo_id, status: r.status, body: txt.slice(0, 300) });
+      const dt = await dr.text();
+      result.steps.push({ op: "delete_payment", qbo_id: p.qbo_id, status: dr.status, body: dt.slice(0, 300) });
+
+      if (!dr.ok) {
+        // Fall back to void
+        const vr = await qboFetch(
+          `${qboBase}/payment?operation=void`,
+          qboHeaders,
+          {
+            method: "POST",
+            body: JSON.stringify({ Id: p.qbo_id, SyncToken: syncToken }),
+          },
+        );
+        const vt = await vr.text();
+        result.steps.push({ op: "void_payment_fallback", qbo_id: p.qbo_id, status: vr.status, body: vt.slice(0, 300) });
+      }
+
       await supabase.from("qbo_payments").delete().eq("qbo_id", p.qbo_id);
     }
 
