@@ -195,6 +195,18 @@ serve(async (req) => {
           if (client.email) customerData.PrimaryEmailAddr = { Address: client.email.substring(0, 100) };
           if (client.phone) customerData.PrimaryPhone = { FreeFormNumber: client.phone.substring(0, 30) };
 
+          // Include billing address from CRM if present
+          if (client.address_line_1 || client.address_city || client.address_state || client.address_zip_code) {
+            const billAddr: any = {};
+            if (client.address_line_1) billAddr.Line1 = String(client.address_line_1).substring(0, 500);
+            if (client.address_line_2) billAddr.Line2 = String(client.address_line_2).substring(0, 500);
+            if (client.address_city) billAddr.City = String(client.address_city).replace(/,\s*$/, "").trim().substring(0, 255);
+            if (client.address_state) billAddr.CountrySubDivisionCode = String(client.address_state).trim().substring(0, 255);
+            if (client.address_zip_code) billAddr.PostalCode = String(client.address_zip_code).trim().substring(0, 30);
+            if (client.address_country) billAddr.Country = String(client.address_country).trim().substring(0, 255);
+            customerData.BillAddr = billAddr;
+          }
+
           const existingQboId = mappingMap.get(client.id);
 
           if (existingQboId) {
