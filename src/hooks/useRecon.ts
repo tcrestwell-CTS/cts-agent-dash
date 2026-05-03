@@ -432,21 +432,31 @@ export function useApproveMatch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (matchId: string) => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("recon_matches")
-        .update({
-          status: "approved",
-          approved_by: userRes.user?.id ?? null,
-          approved_at: new Date().toISOString(),
-          reviewed_by: userRes.user?.id ?? null,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", matchId);
-      if (error) throw error;
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recon-approve-match`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ match_id: matchId }),
+        }
+      );
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || "Approve failed");
+      return data;
     },
-    onSuccess: () => {
-      toast.success("Match approved");
+    onSuccess: (data: any) => {
+      if (data?.result?.qboPurchaseId) {
+        toast.success(`Match approved — QBO Expense ${data.result.qboPurchaseId} created`);
+      } else if (data?.result?.skipped) {
+        toast.success(`Match approved (QBO write skipped: ${data.result.reason})`);
+      } else {
+        toast.success("Match approved");
+      }
       qc.invalidateQueries({ queryKey: ["recon-matches"] });
       qc.invalidateQueries({ queryKey: ["recon-stats"] });
     },
