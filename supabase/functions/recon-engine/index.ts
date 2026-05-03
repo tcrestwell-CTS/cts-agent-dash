@@ -428,14 +428,14 @@ async function matchPayoutsToDeposits(config: ReconConfig) {
 }
 
 async function matchSupplierPayments(config: ReconConfig) {
-  log("matching supplier payments to QBO bills");
+  log("matching supplier payments to QBO purchases");
 
   const { data: supplierPayments } = await supabase
     .from("bookings")
-    .select("id, supplier_id, supplier_payout, created_at, status, confirmation_number")
+    .select("id, supplier_id, supplier_payout, supplier_paid_amount, supplier_paid_date, supplier_paid_method, supplier_paid_reference, supplier_paid_status, confirmation_number, supplier_confirmation_number")
     .not("supplier_id", "is", null)
     .not("supplier_payout", "is", null)
-    .in("status", ["confirmed", "completed"])
+    .eq("supplier_paid_status", "paid")
     .limit(200);
 
   for (const sp of supplierPayments || []) {
@@ -443,10 +443,12 @@ async function matchSupplierPayments(config: ReconConfig) {
       .from("recon_matches")
       .select("id")
       .eq("crm_booking_id", sp.id)
-      .eq("match_type", "crm_supplier_to_qbo_bill")
+      .eq("match_type", "crm_supplier_to_qbo_expense")
       .maybeSingle();
 
     if (existing) continue;
+
+    const supplierCost = sp.supplier_paid_amount || sp.supplier_payout || 0;
 
     const { data: vendorMapping } = await supabase
       .from("recon_entity_mappings")
@@ -455,52 +457,90 @@ async function matchSupplierPayments(config: ReconConfig) {
       .eq("crm_id", sp.supplier_id)
       .maybeSingle();
 
-    let qboBill: any = null;
+    const purchaseQuery = supabase
+      .from("qbo_purchases")
+      .select("*")
+      .gte("total_amt", supplierCost - config.amount_tolerance)
+      .lte("total_amt", supplierCost + config.amount_tolerance);
+
     if (vendorMapping?.qbo_id) {
-      const { data: bill } = await supabase
-        .from("qbo_bills")
-        .select("*")
-        .eq("qbo_vendor_id", vendorMapping.qbo_id)
-        .gte("total_amt", (sp.supplier_payout || 0) - config.amount_tolerance)
-        .lte("total_amt", (sp.supplier_payout || 0) + config.amount_tolerance)
-        .maybeSingle();
-      qboBill = bill;
+      purchaseQuery.eq("qbo_entity_id", vendorMapping.qbo_id);
     }
 
-    if (qboBill) {
+    if (sp.supplier_paid_date) {
+      const dateFrom = new Date(new Date(sp.supplier_paid_date).getTime() - config.date_window_days * 86400000).toISOString().split("T")[0];
+      const dateTo = new Date(new Date(sp.supplier_paid_date).getTime() + config.date_window_days * 86400000).toISOString().split("T")[0];
+      purchaseQuery.gte("txn_date", dateFrom).lte("txn_date", dateTo);
+    }
+
+    const { data: qboPurchase } = await purchaseQuery.maybeSingle();
+
+    if (qboPurchase) {
       const { score, breakdown, explanation } = scoreMatch(
-        sp.supplier_payout, qboBill.total_amt, null,
-        sp.created_at?.split("T")[0], qboBill.txn_date, null,
-        !!sp.confirmation_number && qboBill.doc_number === sp.confirmation_number,
+        supplierCost, qboPurchase.total_amt, null,
+        sp.supplier_paid_date, qboPurchase.txn_date, null,
+        !!sp.supplier_paid_reference && qboPurchase.doc_number === sp.supplier_paid_reference,
         !!vendorMapping, false, config
       );
 
       await supabase.from("recon_matches").insert({
-        match_type: "crm_supplier_to_qbo_bill",
+        match_type: "crm_supplier_to_qbo_expense",
         crm_booking_id: sp.id,
-        qbo_bill_id: qboBill.id,
         confidence_score: score,
         score_breakdown: breakdown,
         match_explanation: explanation.join("; "),
-        crm_amount: sp.supplier_payout,
-        qbo_amount: qboBill.total_amt,
-        amount_variance: Math.abs((sp.supplier_payout || 0) - (qboBill.total_amt || 0)),
-        crm_date: sp.created_at?.split("T")[0],
-        qbo_date: qboBill.txn_date,
+        crm_amount: supplierCost,
+        qbo_amount: qboPurchase.total_amt,
+        amount_variance: Math.abs(supplierCost - (qboPurchase.total_amt || 0)),
+        crm_date: sp.supplier_paid_date,
+        qbo_date: qboPurchase.txn_date,
         status: score >= config.auto_match_threshold ? "approved" : "new",
-        recommended_action: score >= config.auto_match_threshold ? "No action needed — matched" : "Review supplier/bill match",
+        recommended_action: score >= config.auto_match_threshold ? "No action needed — matched" : "Review supplier/expense match",
         auto_matched: score >= config.auto_match_threshold,
       });
     } else {
-      await supabase.from("exception_queue").insert({
-        exception_type: "missing_qbo_bill",
-        source_system: "crm",
-        source_record_id: sp.id,
-        source_record_type: "booking_supplier_cost",
-        description: `Booking ${sp.confirmation_number || sp.id} supplier cost $${sp.supplier_payout} has no matching QBO Bill`,
-        amount: sp.supplier_payout,
-        status: "open",
-      });
+      const { data: match } = await supabase
+        .from("recon_matches")
+        .insert({
+          match_type: "crm_supplier_to_qbo_expense",
+          crm_booking_id: sp.id,
+          confidence_score: vendorMapping ? 50 : 20,
+          match_explanation: `Supplier paid $${supplierCost} on ${sp.supplier_paid_date || "unknown"} — ${vendorMapping ? "no matching QBO Purchase/Expense" : "no vendor mapping"}`,
+          crm_amount: supplierCost,
+          crm_date: sp.supplier_paid_date,
+          status: "new",
+          recommended_action: "Create QBO Expense",
+        })
+        .select("id")
+        .single();
+
+      if (match && vendorMapping?.qbo_id) {
+        await supabase.from("approval_tasks").insert({
+          recon_match_id: match.id,
+          action_type: "create_qbo_expense",
+          action_payload: {
+            PaymentType: sp.supplier_paid_method === "check" ? "Check" : "CreditCard",
+            EntityRef: { value: vendorMapping.qbo_id },
+            TotalAmt: supplierCost,
+            TxnDate: sp.supplier_paid_date,
+            DocNumber: sp.supplier_paid_reference || sp.supplier_confirmation_number || sp.confirmation_number,
+            PrivateNote: `Created by QBO Reconciliation Agent. Source: crm_booking, Source ID: ${sp.id}, Match ID: ${match.id}`,
+            Line: [{ Amount: supplierCost, DetailType: "AccountBasedExpenseLineDetail", AccountBasedExpenseLineDetail: { AccountRef: { value: "SUPPLIER_EXPENSE_ACCOUNT" } } }],
+          },
+          requires_admin: supplierCost > config.approval_required_above,
+          status: "pending",
+        });
+      } else {
+        await supabase.from("exception_queue").insert({
+          exception_type: "missing_qbo_expense",
+          source_system: "crm",
+          source_record_id: sp.id,
+          source_record_type: "booking_supplier_payment",
+          description: `Booking ${sp.confirmation_number} supplier payment $${supplierCost} — ${vendorMapping ? "no matching QBO Expense" : "no QBO vendor mapping"}`,
+          amount: supplierCost,
+          status: "open",
+        });
+      }
     }
   }
 
