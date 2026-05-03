@@ -2541,6 +2541,54 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_email_log: {
+        Row: {
+          amount: number | null
+          client_id: string | null
+          created_at: string
+          due_date: string | null
+          email_kind: string
+          id: string
+          invoice_id: string | null
+          meta: Json | null
+          qbo_invoice_id: string
+          recipient_email: string
+          resend_id: string | null
+          sent_at: string
+          trip_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          client_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          email_kind: string
+          id?: string
+          invoice_id?: string | null
+          meta?: Json | null
+          qbo_invoice_id: string
+          recipient_email: string
+          resend_id?: string | null
+          sent_at?: string
+          trip_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          client_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          email_kind?: string
+          id?: string
+          invoice_id?: string | null
+          meta?: Json | null
+          qbo_invoice_id?: string
+          recipient_email?: string
+          resend_id?: string | null
+          sent_at?: string
+          trip_id?: string | null
+        }
+        Relationships: []
+      }
       invoice_line_items: {
         Row: {
           amount: number
