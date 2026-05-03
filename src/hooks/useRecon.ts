@@ -124,13 +124,13 @@ export function useReconStats() {
         approvals_pending: a.filter((x) => x.status === "pending").length,
         unreconciled_stripe_payouts: p.filter((x) => !x.reconciled).length,
         missing_qbo_invoices: e.filter(
-          (x) => x.exception_type === "missing_qbo_invoice"
+          (x) => x.exception_type === "missing_qbo_invoice" && x.status === "open"
         ).length,
         missing_qbo_payments: e.filter(
-          (x) => x.exception_type === "unmatched_stripe_payment"
+          (x) => x.exception_type === "unmatched_stripe_payment" && x.status === "open"
         ).length,
         missing_qbo_bills: e.filter(
-          (x) => x.exception_type === "missing_qbo_bill"
+          (x) => x.exception_type === "missing_qbo_bill" && x.status === "open"
         ).length,
       };
     },
