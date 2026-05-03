@@ -294,7 +294,41 @@ async function processTrip(
         continue;
       }
       invJson = { Invoice: newInv };
-      result.steps.push({ op: "reuse_existing_invoice", doc: docNumber, qbo_id: newInv.Id, amount });
+      // If existing invoice amount differs, sparse-update it to the correct amount
+      const existingAmount = Number(newInv?.TotalAmt ?? 0);
+      if (Math.abs(existingAmount - amount) > 0.001) {
+        const updatePayload: any = {
+          Id: newInv.Id,
+          SyncToken: newInv.SyncToken,
+          sparse: true,
+          DocNumber: docNumber,
+          TxnDate: txnDate,
+          DueDate: dueDate,
+          Line: [
+            {
+              Amount: amount,
+              DetailType: "SalesItemLineDetail",
+              SalesItemLineDetail: { ItemRef: { value: "1", name: "Services" } },
+              Description: `${trip.trip_name} – ${label}`,
+            },
+          ],
+        };
+        const upResp = await qboFetch(`${qboBase}/invoice`, qboHeaders, {
+          method: "POST",
+          body: JSON.stringify(updatePayload),
+        });
+        const upText = await upResp.text();
+        if (upResp.ok) {
+          const upJson = JSON.parse(upText);
+          newInv = upJson.Invoice;
+          invJson = upJson;
+          result.steps.push({ op: "update_invoice_amount", doc: docNumber, qbo_id: newInv.Id, from: existingAmount, to: amount });
+        } else {
+          result.steps.push({ op: "update_invoice_failed", doc: docNumber, qbo_id: newInv.Id, status: upResp.status, body: upText.slice(0, 500) });
+        }
+      } else {
+        result.steps.push({ op: "reuse_existing_invoice", doc: docNumber, qbo_id: newInv.Id, amount });
+      }
     } else {
       invJson = JSON.parse(invText);
       newInv = invJson.Invoice;
