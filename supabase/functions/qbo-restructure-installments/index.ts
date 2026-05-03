@@ -262,18 +262,44 @@ async function processTrip(
       ],
     };
 
+    let invJson: any;
+    let newInv: any;
     const invResp = await qboFetch(`${qboBase}/invoice`, qboHeaders, {
       method: "POST",
       body: JSON.stringify(invoicePayload),
     });
     const invText = await invResp.text();
     if (!invResp.ok) {
-      result.steps.push({ op: "create_invoice_failed", payment_id: p.id, status: invResp.status, body: invText.slice(0, 500) });
-      continue;
+      // Idempotency: if it already exists from a prior partial run, reuse it
+      const isDup = invResp.status === 400 && /Duplicate Document Number/i.test(invText);
+      if (!isDup) {
+        result.steps.push({ op: "create_invoice_failed", payment_id: p.id, status: invResp.status, body: invText.slice(0, 500) });
+        continue;
+      }
+      const docEsc = docNumber.replace(/'/g, "\\'");
+      const q = await qboFetch(
+        `${qboBase}/query?query=${encodeURIComponent(
+          `SELECT * FROM Invoice WHERE CustomerRef = '${qboCustomerId}' AND DocNumber = '${docEsc}' MAXRESULTS 1`,
+        )}`,
+        qboHeaders,
+      );
+      if (!q.ok) {
+        result.steps.push({ op: "create_invoice_failed", payment_id: p.id, status: invResp.status, body: invText.slice(0, 500) });
+        continue;
+      }
+      const qj = await q.json();
+      newInv = qj?.QueryResponse?.Invoice?.[0];
+      if (!newInv) {
+        result.steps.push({ op: "create_invoice_failed", payment_id: p.id, status: invResp.status, body: invText.slice(0, 500) });
+        continue;
+      }
+      invJson = { Invoice: newInv };
+      result.steps.push({ op: "reuse_existing_invoice", doc: docNumber, qbo_id: newInv.Id, amount });
+    } else {
+      invJson = JSON.parse(invText);
+      newInv = invJson.Invoice;
+      result.steps.push({ op: "create_invoice", doc: docNumber, qbo_id: newInv.Id, amount });
     }
-    const invJson = JSON.parse(invText);
-    const newInv = invJson.Invoice;
-    result.steps.push({ op: "create_invoice", doc: docNumber, qbo_id: newInv.Id, amount });
 
     await supabase.from("qbo_invoices").upsert({
       qbo_id: newInv.Id,
