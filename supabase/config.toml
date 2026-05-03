@@ -65,3 +65,7 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.kandi]
     verify_jwt = false
+  [functions.qbo-backfill-payments]
+    verify_jwt = false
+  [functions.qbo-cleanup-duplicates]
+    verify_jwt = false
