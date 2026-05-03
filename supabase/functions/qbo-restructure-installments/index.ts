@@ -339,10 +339,29 @@ async function processTrip(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Service-role auth: caller must present the service role key
+  // Auth: accept either the service-role key OR an authenticated admin user JWT
   const auth = req.headers.get("authorization") || "";
-  const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
-  if (auth !== expected) {
+  const token = auth.replace(/^Bearer\s+/i, "");
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_URL_ENV = Deno.env.get("SUPABASE_URL")!;
+
+  let authorized = token === SERVICE_ROLE;
+  if (!authorized && token) {
+    // Validate user JWT and require admin role
+    const userClient = createClient(SUPABASE_URL_ENV, SERVICE_ROLE);
+    const { data: { user } } = await userClient.auth.getUser(token);
+    if (user) {
+      const { data: roles } = await userClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      if ((roles || []).some((r: any) => r.role === "admin" || r.role === "office_admin")) {
+        authorized = true;
+      }
+    }
+  }
+
+  if (!authorized) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
