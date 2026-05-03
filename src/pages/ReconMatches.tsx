@@ -17,9 +17,16 @@ import {
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useReconMatches, ReconMatch, ReconMatchStatus } from "@/hooks/useRecon";
+import {
+  useReconMatches,
+  ReconMatch,
+  ReconMatchStatus,
+  useApproveMatch,
+  useRejectMatch,
+} from "@/hooks/useRecon";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
 
 const STATUS_CONFIG: Record<ReconMatchStatus, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   new:           { label: "Needs Review",   color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
@@ -62,6 +69,11 @@ function MatchDrawer({
 }) {
   if (!match) return null;
   const cfg = STATUS_CONFIG[match.status];
+  const approve = useApproveMatch();
+  const reject = useRejectMatch();
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const canAct = match.status === "new" || match.status === "reviewing" || match.status === "exception";
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -199,6 +211,66 @@ function MatchDrawer({
 
           {/* Linked Item Details */}
           <MatchItemDetails match={match} />
+
+          {/* Actions */}
+          {canAct && (
+            <div className="border-t pt-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Action</p>
+              {!rejectOpen ? (
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    disabled={approve.isPending}
+                    onClick={() =>
+                      approve.mutate(match.id, { onSuccess: () => onClose() })
+                    }
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setRejectOpen(true)}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" /> Reject
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Reason for rejection..."
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={3}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      disabled={!reason.trim() || reject.isPending}
+                      onClick={() =>
+                        reject.mutate(
+                          { matchId: match.id, reason: reason.trim() },
+                          {
+                            onSuccess: () => {
+                              setRejectOpen(false);
+                              setReason("");
+                              onClose();
+                            },
+                          }
+                        )
+                      }
+                    >
+                      Confirm Reject
+                    </Button>
+                    <Button variant="ghost" onClick={() => setRejectOpen(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
