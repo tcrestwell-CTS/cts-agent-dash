@@ -117,12 +117,18 @@ serve(async (req) => {
     try {
       const p = await qboGet(accessToken, realmId, `payment/${pid}`);
       const sync = p?.Payment?.SyncToken;
-      const voided = await qboPost(accessToken, realmId, `payment?operation=void`, {
-        Id: pid,
-        SyncToken: sync,
-        sparse: true,
-      });
-      results.paymentsVoided.push({ id: pid, status: voided?.Payment?.PrivateNote || "voided" });
+      // Try void first; if QBO rejects (e.g. CC payment), fall back to delete.
+      try {
+        await qboPost(accessToken, realmId, `payment?operation=void`, {
+          Id: pid, SyncToken: sync, sparse: true,
+        });
+        results.paymentsVoided.push({ id: pid, action: "voided" });
+      } catch (_voidErr) {
+        await qboPost(accessToken, realmId, `payment?operation=delete`, {
+          Id: pid, SyncToken: sync,
+        });
+        results.paymentsVoided.push({ id: pid, action: "deleted" });
+      }
     } catch (err) {
       results.paymentsVoided.push({ id: pid, error: err instanceof Error ? err.message : String(err) });
     }
