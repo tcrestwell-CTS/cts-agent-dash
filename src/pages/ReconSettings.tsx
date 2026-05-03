@@ -647,74 +647,102 @@ function EntityMappingsTab() {
               </Select>
             </div>
 
-            {newMapping.mapping_type === "crm_client_to_qbo_customer" ? (
-              <>
-                <div className="space-y-1.5">
-                  <Label>CRM Client</Label>
-                  <Select
-                    value={newMapping.crm_id}
-                    onValueChange={(v) => setNewMapping((m) => ({ ...m, crm_id: v }))}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
-                    <SelectContent>
-                      {crmClients?.map((c: Record<string, string>) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} {c.email ? `(${c.email})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>QBO Customer</Label>
-                  <Select
-                    value={newMapping.qbo_id}
-                    onValueChange={(v) => setNewMapping((m) => ({ ...m, qbo_id: v }))}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select QBO customer..." /></SelectTrigger>
-                    <SelectContent>
-                      {qboCustomers?.map((c: Record<string, string>) => (
-                        <SelectItem key={c.qbo_id} value={c.qbo_id}>
-                          {c.display_name} {c.email ? `(${c.email})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-1.5">
-                  <Label>CRM ID</Label>
-                  <Input
-                    placeholder="CRM record UUID"
-                    value={newMapping.crm_id}
-                    onChange={(e) => setNewMapping((m) => ({ ...m, crm_id: e.target.value }))}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>QBO ID</Label>
-                  <Input
-                    placeholder="QBO object ID"
-                    value={newMapping.qbo_id}
-                    onChange={(e) => setNewMapping((m) => ({ ...m, qbo_id: e.target.value }))}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                {newMapping.mapping_type === "stripe_customer_to_crm_client" && (
+            {(() => {
+              type Opt = { value: string; label: string };
+              const toOpts = (
+                rows: Array<Record<string, unknown>> | undefined,
+                idKey: string,
+                fmt: (r: Record<string, unknown>) => string,
+              ): Opt[] =>
+                (rows || [])
+                  .map((r) => ({ value: String(r[idKey] ?? ""), label: fmt(r) }))
+                  .filter((o) => o.value);
+
+              let crmLabel = "CRM ID";
+              let crmOpts: Opt[] = [];
+              let qboLabel = "QBO ID";
+              let qboOpts: Opt[] = [];
+
+              switch (newMapping.mapping_type) {
+                case "crm_client_to_qbo_customer":
+                  crmLabel = "CRM Client";
+                  crmOpts = toOpts(crmClients, "id", (c) =>
+                    `${c.name}${c.email ? ` (${c.email})` : ""}`);
+                  qboLabel = "QBO Customer";
+                  qboOpts = toOpts(qboCustomers, "qbo_id", (c) =>
+                    `${c.display_name}${c.email ? ` (${c.email})` : ""}`);
+                  break;
+                case "crm_supplier_to_qbo_vendor":
+                  crmLabel = "CRM Supplier";
+                  crmOpts = toOpts(crmSuppliers, "id", (s) =>
+                    `${s.name}${s.contact_email ? ` (${s.contact_email})` : ""}`);
+                  qboLabel = "QBO Vendor";
+                  qboOpts = toOpts(qboVendors, "qbo_id", (v) =>
+                    `${v.display_name}${v.email ? ` (${v.email})` : ""}`);
+                  break;
+                case "crm_booking_to_qbo_invoice":
+                  crmLabel = "CRM Booking";
+                  crmOpts = toOpts(crmBookings, "id", (b) =>
+                    `${b.confirmation_number || "(no conf #)"} — $${Number(b.total_price || 0).toFixed(2)}`);
+                  qboLabel = "QBO Invoice";
+                  qboOpts = toOpts(qboInvoices, "qbo_id", (i) =>
+                    `#${i.doc_number || i.qbo_id} — $${Number(i.total_amt || 0).toFixed(2)} (${i.txn_date || ""})`);
+                  break;
+                case "stripe_customer_to_crm_client":
+                  crmLabel = "CRM Client";
+                  crmOpts = toOpts(crmClients, "id", (c) =>
+                    `${c.name}${c.email ? ` (${c.email})` : ""}`);
+                  break;
+              }
+
+              const isStripe = newMapping.mapping_type === "stripe_customer_to_crm_client";
+
+              return (
+                <>
                   <div className="space-y-1.5">
-                    <Label>Stripe ID</Label>
-                    <Input
-                      placeholder="cus_..."
-                      value={newMapping.stripe_id}
-                      onChange={(e) => setNewMapping((m) => ({ ...m, stripe_id: e.target.value }))}
-                      className="font-mono text-sm"
-                    />
+                    <Label>{crmLabel}</Label>
+                    <Select
+                      value={newMapping.crm_id}
+                      onValueChange={(v) => setNewMapping((m) => ({ ...m, crm_id: v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder={`Select ${crmLabel.toLowerCase()}...`} /></SelectTrigger>
+                      <SelectContent>
+                        {crmOpts.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </>
-            )}
+                  {!isStripe && (
+                    <div className="space-y-1.5">
+                      <Label>{qboLabel}</Label>
+                      <Select
+                        value={newMapping.qbo_id}
+                        onValueChange={(v) => setNewMapping((m) => ({ ...m, qbo_id: v }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder={`Select ${qboLabel.toLowerCase()}...`} /></SelectTrigger>
+                        <SelectContent>
+                          {qboOpts.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {isStripe && (
+                    <div className="space-y-1.5">
+                      <Label>Stripe Customer ID</Label>
+                      <Input
+                        placeholder="cus_..."
+                        value={newMapping.stripe_id}
+                        onChange={(e) => setNewMapping((m) => ({ ...m, stripe_id: e.target.value }))}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
