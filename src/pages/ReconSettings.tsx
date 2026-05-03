@@ -405,6 +405,197 @@ const MAPPING_TYPE_LABELS: Record<string, string> = {
   crm_booking_to_qbo_invoice:  "CRM Booking → QBO Invoice",
 };
 
+// ─── Suggested Supplier→Vendor Mappings (fuzzy) ───────────────
+
+function normalizeName(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\b(inc|llc|ltd|co|corp|company|the|travel|cruises?|vacations?|tours?|holidays?)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function similarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const aTokens = new Set(a.split(" ").filter(Boolean));
+  const bTokens = new Set(b.split(" ").filter(Boolean));
+  const inter = [...aTokens].filter((t) => bTokens.has(t)).length;
+  const union = new Set([...aTokens, ...bTokens]).size || 1;
+  const jaccard = inter / union;
+  // also reward substring containment
+  const contains = a.includes(b) || b.includes(a) ? 0.3 : 0;
+  return Math.min(1, jaccard + contains);
+}
+
+interface Suggestion {
+  supplier_id: string;
+  supplier_name: string;
+  supplier_email: string | null;
+  qbo_vendor_id: string;
+  qbo_vendor_name: string;
+  qbo_vendor_email: string | null;
+  score: number;
+}
+
+function SuggestedSupplierMappings() {
+  const qc = useQueryClient();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["supplier-vendor-suggestions"],
+    queryFn: async (): Promise<Suggestion[]> => {
+      const [{ data: suppliers }, { data: vendors }, { data: existingMappings }] = await Promise.all([
+        supabase.from("suppliers").select("id, name, contact_email").eq("is_active", true),
+        supabase.from("qbo_vendors").select("qbo_id, display_name, email, crm_supplier_id").eq("active", true),
+        supabase.from("qbo_supplier_mappings").select("supplier_id"),
+      ]);
+      const mappedIds = new Set((existingMappings || []).map((m: any) => m.supplier_id));
+      const vendorMappedIds = new Set((vendors || []).map((v: any) => v.crm_supplier_id).filter(Boolean));
+      const unmapped = (suppliers || []).filter(
+        (s: any) => !mappedIds.has(s.id) && !vendorMappedIds.has(s.id)
+      );
+      const suggestions: Suggestion[] = [];
+      for (const s of unmapped) {
+        const sNorm = normalizeName(s.name);
+        if (!sNorm) continue;
+        let best: { v: any; score: number } | null = null;
+        for (const v of vendors || []) {
+          const vNorm = normalizeName(v.display_name);
+          if (!vNorm) continue;
+          let score = similarity(sNorm, vNorm);
+          if (s.contact_email && v.email && s.contact_email.toLowerCase() === v.email.toLowerCase()) {
+            score = Math.max(score, 0.95);
+          }
+          if (!best || score > best.score) best = { v, score };
+        }
+        if (best && best.score >= 0.5) {
+          suggestions.push({
+            supplier_id: s.id,
+            supplier_name: s.name,
+            supplier_email: s.contact_email,
+            qbo_vendor_id: best.v.qbo_id,
+            qbo_vendor_name: best.v.display_name,
+            qbo_vendor_email: best.v.email,
+            score: best.score,
+          });
+        }
+      }
+      return suggestions.sort((a, b) => b.score - a.score);
+    },
+  });
+
+  const accept = useMutation({
+    mutationFn: async (s: Suggestion) => {
+      const { data: u } = await supabase.auth.getUser();
+      const userId = u.user?.id;
+      const { error: e1 } = await supabase
+        .from("qbo_supplier_mappings")
+        .upsert(
+          { user_id: userId, supplier_id: s.supplier_id, qbo_vendor_id: s.qbo_vendor_id },
+          { onConflict: "user_id,supplier_id" }
+        );
+      if (e1) throw e1;
+      await supabase
+        .from("qbo_vendors")
+        .update({ crm_supplier_id: s.supplier_id })
+        .eq("qbo_id", s.qbo_vendor_id);
+      await supabase.from("recon_entity_mappings").insert({
+        mapping_type: "crm_supplier_to_qbo_vendor",
+        crm_id: s.supplier_id,
+        qbo_id: s.qbo_vendor_id,
+        verified: true,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Mapping saved");
+      qc.invalidateQueries({ queryKey: ["supplier-vendor-suggestions"] });
+      qc.invalidateQueries({ queryKey: ["entity-mappings"] });
+    },
+    onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+
+  const visible = (data || []).filter((s) => !dismissed.has(s.supplier_id));
+  if (!isLoading && visible.length === 0) return null;
+
+  return (
+    <Card className="border-blue-200 bg-blue-50/30">
+      <CardHeader className="pb-2 flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-blue-600" />
+            Suggested Supplier → Vendor Mappings
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Fuzzy-matched candidates for unmapped active suppliers
+          </CardDescription>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+        </Button>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>CRM Supplier</TableHead>
+              <TableHead>QBO Vendor</TableHead>
+              <TableHead className="w-24">Confidence</TableHead>
+              <TableHead className="w-44 text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={4}><Skeleton className="h-4 w-full" /></TableCell></TableRow>
+            ) : visible.map((s) => (
+              <TableRow key={s.supplier_id}>
+                <TableCell className="text-sm">
+                  <div className="font-medium">{s.supplier_name}</div>
+                  {s.supplier_email && <div className="text-xs text-muted-foreground">{s.supplier_email}</div>}
+                </TableCell>
+                <TableCell className="text-sm">
+                  <div className="font-medium">{s.qbo_vendor_name}</div>
+                  {s.qbo_vendor_email && <div className="text-xs text-muted-foreground">{s.qbo_vendor_email}</div>}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={
+                      s.score >= 0.85 ? "bg-green-100 text-green-800 border-green-200" :
+                      s.score >= 0.65 ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
+                      "bg-orange-100 text-orange-800 border-orange-200"
+                    }
+                  >
+                    {Math.round(s.score * 100)}%
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDismissed((d) => new Set(d).add(s.supplier_id))}
+                  >
+                    Dismiss
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={accept.isPending}
+                    onClick={() => accept.mutate(s)}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                    Accept
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 function EntityMappingsTab() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
@@ -533,6 +724,7 @@ function EntityMappingsTab() {
 
   return (
     <div className="space-y-4">
+      <SuggestedSupplierMappings />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-2">
           <Select value={typeFilter} onValueChange={setTypeFilter}>
