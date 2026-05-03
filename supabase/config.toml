@@ -72,3 +72,6 @@ project_id = "zbtnulzvwreqzbmxulpv"
 
 [functions.qbo-restructure-installments]
 verify_jwt = false
+
+[functions.send-invoice-statement]
+verify_jwt = false
