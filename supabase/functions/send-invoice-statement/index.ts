@@ -1,0 +1,315 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-agent-secret",
+};
+
+const PAY_URL = "https://crestwellgetaways.com/payments";
+
+interface ReqBody {
+  qbo_invoice_id?: string;        // single invoice (test/manual)
+  trip_id?: string;               // optionally limit to one trip
+  email_kind?: "initial" | "reminder_7d" | "test" | "manual";
+  test_recipient?: string;        // override recipient (test mode)
+  dry_run?: boolean;              // run scheduler logic w/o sending
+  reminder_days_before?: number;  // default 7
+  send_initial_for_new?: boolean; // default true (cron)
+}
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n || 0));
+const fmtDate = (d: string | null | undefined) =>
+  d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—";
+
+function buildHtml(opts: {
+  brand: any;
+  clientName: string;
+  tripName: string;
+  destination: string | null;
+  invoiceNumber: string;
+  qboInvoiceId: string;
+  amountDue: number;
+  dueDate: string | null;
+  openingBalance: number;
+  totalRemaining: number;
+  lastPaymentAmount: number | null;
+  lastPaymentDate: string | null;
+  isReminder: boolean;
+}) {
+  const b = opts.brand || {};
+  const navy = b.primary_color || "#0d1b2a";
+  const gold = b.accent_color || "#c9a84c";
+  const agencyName = b.agency_name || "Crestwell Travel Services";
+  const tagline = b.tagline || "Your Journey, Our Passion";
+  const phone = b.phone || "1-888-508-6893";
+  const website = b.website || "https://crestwellgetaways.com";
+  const emailAddr = b.email_address || "info@crestwellgetaways.com";
+  const logo = b.logo_url || "";
+  const headline = opts.isReminder ? "Friendly Payment Reminder" : "New Invoice — Payment Schedule";
+
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
+    <div style="background:${navy};padding:28px 24px;text-align:center;border-radius:8px 8px 0 0;">
+      ${logo ? `<img src="${logo}" alt="${agencyName}" style="max-height:54px;margin-bottom:10px;"/>` : ""}
+      <div style="color:${gold};font-family:Georgia,serif;font-size:22px;font-weight:600;letter-spacing:0.5px;">${agencyName}</div>
+      <div style="color:#ffffff;opacity:0.75;font-size:12px;margin-top:4px;font-style:italic;">${tagline}</div>
+    </div>
+    <div style="padding:28px 28px 8px;">
+      <div style="display:inline-block;background:${gold};color:${navy};padding:6px 14px;border-radius:4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${headline}</div>
+      <h2 style="color:${navy};margin:18px 0 6px;font-family:Georgia,serif;">Invoice ${opts.invoiceNumber}</h2>
+      <p style="color:#4b5563;margin:0 0 4px;">Dear ${opts.clientName},</p>
+      <p style="color:#4b5563;line-height:1.6;margin:8px 0 18px;">
+        ${opts.isReminder
+          ? `This is a courtesy reminder that the following installment for <strong>${opts.tripName}</strong> is due in approximately 7 days.`
+          : `Below is your latest invoice and payment schedule details for <strong>${opts.tripName}</strong>.`}
+      </p>
+
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <tr style="background:#f9fafb;"><td style="padding:12px 16px;color:#6b7280;font-size:13px;">Trip</td><td style="padding:12px 16px;color:${navy};font-weight:600;text-align:right;">${opts.tripName}</td></tr>
+        ${opts.destination ? `<tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-top:1px solid #e5e7eb;">Destination</td><td style="padding:12px 16px;color:#111827;text-align:right;border-top:1px solid #e5e7eb;">${opts.destination}</td></tr>` : ""}
+        <tr style="background:#f9fafb;"><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-top:1px solid #e5e7eb;">Invoice #</td><td style="padding:12px 16px;color:#111827;text-align:right;border-top:1px solid #e5e7eb;font-family:monospace;">${opts.invoiceNumber}</td></tr>
+      </table>
+
+      <div style="background:${navy};color:#ffffff;border-radius:8px;padding:20px;margin:18px 0;">
+        <div style="color:${gold};font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Amount Due</div>
+        <div style="font-size:32px;font-weight:700;font-family:Georgia,serif;">${fmt(opts.amountDue)}</div>
+        <div style="margin-top:6px;opacity:0.85;font-size:13px;">Due ${fmtDate(opts.dueDate)}</div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;margin:8px 0 20px;">
+        <tr>
+          <td style="padding:10px 0;color:#6b7280;font-size:13px;">Opening balance (trip total)</td>
+          <td style="padding:10px 0;color:${navy};text-align:right;font-weight:600;">${fmt(opts.openingBalance)}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 0;color:#6b7280;font-size:13px;border-top:1px solid #e5e7eb;">Last payment received</td>
+          <td style="padding:10px 0;color:#111827;text-align:right;border-top:1px solid #e5e7eb;">
+            ${opts.lastPaymentAmount != null ? `${fmt(opts.lastPaymentAmount)} <span style="color:#6b7280;font-size:12px;">on ${fmtDate(opts.lastPaymentDate)}</span>` : '<span style="color:#9ca3af;">None yet</span>'}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 0;color:#6b7280;font-size:13px;border-top:1px solid #e5e7eb;">Total remaining on trip</td>
+          <td style="padding:10px 0;color:${navy};text-align:right;font-weight:700;border-top:1px solid #e5e7eb;">${fmt(opts.totalRemaining)}</td>
+        </tr>
+      </table>
+
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${PAY_URL}" style="background:${gold};color:${navy};padding:14px 36px;text-decoration:none;border-radius:6px;font-weight:700;display:inline-block;letter-spacing:0.5px;">Pay Online</a>
+        <div style="color:#6b7280;font-size:12px;margin-top:10px;">${PAY_URL}</div>
+      </div>
+
+      <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:20px 0 0;">
+        Questions about this invoice? Reply to this email or call us at <a href="tel:${phone.replace(/[^0-9]/g,'')}" style="color:${navy};">${phone}</a>.
+      </p>
+    </div>
+    <div style="background:#f9fafb;padding:18px 24px;text-align:center;color:#6b7280;font-size:12px;border-top:3px solid ${gold};border-radius:0 0 8px 8px;">
+      <div style="color:${navy};font-weight:600;margin-bottom:4px;">${agencyName}</div>
+      <div>${emailAddr} • ${phone}</div>
+      <div style="margin-top:4px;"><a href="${website}" style="color:${navy};text-decoration:none;">${website}</a></div>
+    </div>
+  </div>`;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+    const resend = new Resend(RESEND_API_KEY);
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const body: ReqBody = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const reminderDays = body.reminder_days_before ?? 7;
+    const dryRun = body.dry_run === true;
+
+    // Build the list of QBO invoices to consider
+    let invoiceQuery = supabase
+      .from("qbo_invoices")
+      .select("qbo_id, qbo_customer_id, crm_booking_id, doc_number, total_amt, balance, due_date, txn_date, status")
+      .gt("balance", 0);
+
+    if (body.qbo_invoice_id) {
+      invoiceQuery = invoiceQuery.eq("qbo_id", body.qbo_invoice_id);
+    }
+
+    const { data: qboInvoices, error: qErr } = await invoiceQuery;
+    if (qErr) throw qErr;
+
+    if (!qboInvoices || qboInvoices.length === 0) {
+      return new Response(JSON.stringify({ ok: true, processed: 0, message: "No invoices to process" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Branding (single agency)
+    const { data: brandingRow } = await supabase
+      .from("branding_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const results: any[] = [];
+    let sentCount = 0;
+
+    for (const inv of qboInvoices) {
+      try {
+        // Find the booking → trip → client
+        if (!inv.crm_booking_id) {
+          results.push({ qbo_id: inv.qbo_id, skipped: "no_crm_booking" });
+          continue;
+        }
+        const { data: booking } = await supabase
+          .from("bookings")
+          .select("id, trip_id, gross_sales")
+          .eq("id", inv.crm_booking_id)
+          .maybeSingle();
+        if (!booking?.trip_id) {
+          results.push({ qbo_id: inv.qbo_id, skipped: "no_trip" });
+          continue;
+        }
+        if (body.trip_id && booking.trip_id !== body.trip_id) continue;
+
+        const { data: trip } = await supabase
+          .from("trips")
+          .select("id, trip_name, destination, client_id, total_gross_sales")
+          .eq("id", booking.trip_id)
+          .maybeSingle();
+        if (!trip) { results.push({ qbo_id: inv.qbo_id, skipped: "no_trip_row" }); continue; }
+
+        const { data: client } = await supabase
+          .from("clients")
+          .select("id, name, email")
+          .eq("id", trip.client_id)
+          .maybeSingle();
+        if (!client?.email) { results.push({ qbo_id: inv.qbo_id, skipped: "no_client_email" }); continue; }
+
+        // Determine email kind
+        const dueDate = inv.due_date ? new Date(`${inv.due_date}T00:00:00`) : null;
+        const daysUntilDue = dueDate ? Math.round((dueDate.getTime() - today.getTime()) / 86400000) : null;
+
+        let kind: "initial" | "reminder_7d" | "test" | "manual" = body.email_kind || "manual";
+        if (!body.email_kind && !body.qbo_invoice_id) {
+          // Cron mode
+          // Check existing log for this invoice
+          const { data: prior } = await supabase
+            .from("invoice_email_log")
+            .select("email_kind")
+            .eq("qbo_invoice_id", inv.qbo_id);
+          const sentKinds = new Set((prior || []).map((p: any) => p.email_kind));
+
+          if (!sentKinds.has("initial")) {
+            kind = "initial";
+          } else if (
+            daysUntilDue !== null &&
+            daysUntilDue <= reminderDays &&
+            daysUntilDue >= 0 &&
+            !sentKinds.has("reminder_7d")
+          ) {
+            kind = "reminder_7d";
+          } else {
+            results.push({ qbo_id: inv.qbo_id, skipped: "already_sent_or_not_due" });
+            continue;
+          }
+        }
+
+        // Last payment for this trip
+        const { data: lastPay } = await supabase
+          .from("trip_payments")
+          .select("amount, payment_date")
+          .eq("trip_id", trip.id)
+          .eq("status", "paid")
+          .order("payment_date", { ascending: false, nullsFirst: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Total remaining for this trip = sum of unpaid trip_payments
+        const { data: unpaid } = await supabase
+          .from("trip_payments")
+          .select("amount")
+          .eq("trip_id", trip.id)
+          .neq("status", "paid");
+        const totalRemaining = (unpaid || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+
+        const openingBalance = Number(trip.total_gross_sales || booking.gross_sales || 0);
+
+        const recipient = body.test_recipient || client.email;
+        const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
+
+        const html = buildHtml({
+          brand: brandingRow,
+          clientName: client.name,
+          tripName: trip.trip_name,
+          destination: trip.destination,
+          invoiceNumber,
+          qboInvoiceId: inv.qbo_id,
+          amountDue: Number(inv.balance || 0),
+          dueDate: inv.due_date,
+          openingBalance,
+          totalRemaining,
+          lastPaymentAmount: lastPay ? Number(lastPay.amount) : null,
+          lastPaymentDate: lastPay?.payment_date || null,
+          isReminder: kind === "reminder_7d",
+        });
+
+        const subject =
+          kind === "reminder_7d"
+            ? `Reminder: Invoice ${invoiceNumber} due ${fmtDate(inv.due_date)} — ${fmt(Number(inv.balance))}`
+            : `Invoice ${invoiceNumber} — ${trip.trip_name} (${fmt(Number(inv.balance))} due ${fmtDate(inv.due_date)})`;
+
+        if (dryRun) {
+          results.push({ qbo_id: inv.qbo_id, kind, recipient, subject, dry_run: true });
+          continue;
+        }
+
+        const sendResp = await resend.emails.send({
+          from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
+          to: [recipient],
+          subject,
+          html,
+        });
+
+        await supabase.from("invoice_email_log").insert({
+          qbo_invoice_id: inv.qbo_id,
+          trip_id: trip.id,
+          client_id: client.id,
+          recipient_email: recipient,
+          email_kind: body.test_recipient ? "test" : kind,
+          resend_id: (sendResp as any)?.data?.id || null,
+          due_date: inv.due_date,
+          amount: Number(inv.balance || 0),
+          meta: { invoice_number: invoiceNumber, subject },
+        });
+
+        sentCount++;
+        results.push({ qbo_id: inv.qbo_id, kind, recipient, sent: true, resend_id: (sendResp as any)?.data?.id });
+      } catch (e) {
+        console.error("Failed for invoice", inv.qbo_id, e);
+        results.push({ qbo_id: inv.qbo_id, error: String(e) });
+      }
+    }
+
+    return new Response(JSON.stringify({ ok: true, sent: sentCount, processed: results.length, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error(e);
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+};
+
+serve(handler);
