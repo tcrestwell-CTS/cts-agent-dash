@@ -59,6 +59,11 @@ export function TripSettingsSidebar({
 }: TripSettingsSidebarProps) {
   const [localSettings, setLocalSettings] = useState<TripSettings>(settings);
   const [tagInput, setTagInput] = useState("");
+  const [scheduleStartDate, setScheduleStartDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
+  const [scheduleMonthsOverride, setScheduleMonthsOverride] = useState<string>("");
+  const [creatingSchedule, setCreatingSchedule] = useState(false);
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -75,12 +80,16 @@ export function TripSettingsSidebar({
     if (localSettings.payment_mode !== "payment_schedule" || !departDate || tripTotal <= 0) return null;
 
     const finalDueDate = subDays(parseLocalDate(departDate), 90);
-    const now = new Date();
+    const now = parseLocalDate(scheduleStartDate);
     const deposit = effectiveDeposit;
     const remaining = tripTotal - deposit;
     if (remaining <= 0) return null;
 
-    const monthsUntilFinal = Math.max(1, differenceInMonths(finalDueDate, now));
+    const overrideMonths = parseInt(scheduleMonthsOverride);
+    const monthsUntilFinal =
+      overrideMonths && overrideMonths > 0
+        ? overrideMonths
+        : Math.max(1, differenceInMonths(finalDueDate, now));
     const monthlyAmount = Math.round((remaining / monthsUntilFinal) * 100) / 100;
 
     const installments: { label: string; amount: number; dueDate: Date }[] = [];
@@ -96,7 +105,43 @@ export function TripSettingsSidebar({
     }
 
     return { installments, finalDueDate, monthlyAmount };
-  }, [localSettings.payment_mode, departDate, tripTotal, effectiveDeposit]);
+  }, [localSettings.payment_mode, departDate, tripTotal, effectiveDeposit, scheduleStartDate, scheduleMonthsOverride]);
+
+  const createScheduledPayments = async () => {
+    if (!schedulePreview) return;
+    setCreatingSchedule(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) {
+        toast.error("You must be logged in");
+        return;
+      }
+
+      const rows = schedulePreview.installments.map((inst, i) => ({
+        user_id: userId,
+        trip_id: tripId,
+        amount: inst.amount,
+        due_date: format(inst.dueDate, "yyyy-MM-dd"),
+        payment_date: format(inst.dueDate, "yyyy-MM-dd"),
+        payment_type:
+          i === schedulePreview.installments.length - 1 ? "final_balance" : "payment",
+        status: "pending",
+        details: `Installment ${i + 1} of ${schedulePreview.installments.length}`,
+      }));
+
+      const { error } = await supabase.from("trip_payments").insert(rows);
+      if (error) throw error;
+
+      toast.success(`${rows.length} scheduled payments created`);
+      onSettingsChange();
+    } catch (err: any) {
+      console.error("Error creating scheduled payments:", err);
+      toast.error(err?.message || "Failed to create scheduled payments");
+    } finally {
+      setCreatingSchedule(false);
+    }
+  };
 
   const updateSetting = async (field: string, value: any) => {
     const updated = { ...localSettings, [field]: value };
@@ -308,6 +353,28 @@ export function TripSettingsSidebar({
                 <Calendar className="h-3.5 w-3.5" />
                 Schedule Preview
               </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-xs">Start Date</Label>
+                  <Input
+                    type="date"
+                    value={scheduleStartDate}
+                    onChange={(e) => setScheduleStartDate(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs"># of Months</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Auto"
+                    value={scheduleMonthsOverride}
+                    onChange={(e) => setScheduleMonthsOverride(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Deposit (due now)</span>
@@ -326,6 +393,14 @@ export function TripSettingsSidebar({
                   <span>{formatCurrency(tripTotal)}</span>
                 </div>
               </div>
+              <Button
+                size="sm"
+                className="w-full mt-2"
+                onClick={createScheduledPayments}
+                disabled={creatingSchedule}
+              >
+                {creatingSchedule ? "Creating..." : "Create Scheduled Payments"}
+              </Button>
               {!departDate && (
                 <p className="text-xs text-amber-600">Set a departure date to calculate the schedule.</p>
               )}
