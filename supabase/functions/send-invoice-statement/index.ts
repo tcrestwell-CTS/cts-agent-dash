@@ -368,6 +368,30 @@ const handler = async (req: Request): Promise<Response> => {
           meta: { invoice_number: invoiceNumber, subject },
         });
 
+        // Mirror into email_logs so this send appears in the Email Activity dashboard
+        const sendError = (sendResp as any)?.error;
+        const providerId = (sendResp as any)?.data?.id || null;
+        const mirrorTemplate = kind === "reminder_7d" ? "payment_reminder" : "invoice_statement";
+        await supabase.from("email_logs").insert({
+          client_id: client.id,
+          to_email: recipient,
+          subject,
+          template: mirrorTemplate,
+          status: sendError ? "failed" : "sent",
+          provider_message_id: providerId,
+          error_message: sendError ? String(sendError?.message || sendError) : null,
+          idempotency_key: `invoice-${inv.qbo_id}-${kind}`,
+          metadata: {
+            source: "send-invoice-statement",
+            email_kind: body.test_recipient ? "test" : kind,
+            qbo_invoice_id: inv.qbo_id,
+            invoice_number: invoiceNumber,
+            trip_id: trip.id,
+            amount_due: Number(inv.balance || 0),
+            due_date: inv.due_date,
+          },
+        });
+
         sentCount++;
         results.push({ qbo_id: inv.qbo_id, kind, recipient, sent: true, resend_id: (sendResp as any)?.data?.id });
       } catch (e) {
