@@ -85,7 +85,9 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching branding:", brandingError);
     }
 
-    const { to, subject, template, data: templateData, customHtml, clientId, attachments }: EmailRequest = await req.json();
+    const { to, subject, template, data: templateData, customHtml, clientId, attachments, metadata, idempotencyKey }: EmailRequest = await req.json();
+
+    const logKey = idempotencyKey || crypto.randomUUID();
 
     if (!to || !subject || !template) {
       throw new Error("Missing required fields: to, subject, template");
