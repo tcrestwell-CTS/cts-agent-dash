@@ -331,6 +331,20 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRepullFromQBO}
+                disabled={repullingQBO}
+                title="Force re-pull invoice & payment data from QuickBooks"
+              >
+                {repullingQBO ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Re-pull from QBO
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
