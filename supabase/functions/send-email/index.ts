@@ -21,6 +21,8 @@ interface EmailRequest {
   customHtml?: string;
   clientId?: string;
   attachments?: Attachment[];
+  metadata?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -53,6 +55,14 @@ const handler = async (req: Request): Promise<Response> => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Service-role client for writing to email_logs (so system emails without
+    // clientId are still logged, and admin RLS policies don't apply to writes).
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
@@ -75,7 +85,9 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching branding:", brandingError);
     }
 
-    const { to, subject, template, data: templateData, customHtml, clientId, attachments }: EmailRequest = await req.json();
+    const { to, subject, template, data: templateData, customHtml, clientId, attachments, metadata, idempotencyKey }: EmailRequest = await req.json();
+
+    const logKey = idempotencyKey || crypto.randomUUID();
 
     if (!to || !subject || !template) {
       throw new Error("Missing required fields: to, subject, template");
@@ -616,38 +628,68 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`Adding ${attachments.length} attachment(s) to email`);
     }
 
-    const { data: emailData, error: emailError } = await resend.emails.send(emailOptions);
+    // Send via Resend with retries (up to 3 attempts) and log every attempt.
+    const MAX_ATTEMPTS = 3;
+    const backoffMs = [0, 1000, 3000];
+    let attempt = 0;
+    let lastError: string | null = null;
+    let emailData: { id?: string } | null = null;
 
-    if (emailError) {
-      console.error("Resend error:", emailError);
-      throw new Error(`Failed to send email: ${emailError.message}`);
+    while (attempt < MAX_ATTEMPTS) {
+      attempt += 1;
+      if (attempt > 1) {
+        await new Promise((r) => setTimeout(r, backoffMs[attempt - 1]));
+        console.log(`Retrying email send (attempt ${attempt}/${MAX_ATTEMPTS})`);
+      }
+
+      const result = await resend.emails.send(emailOptions);
+      if (!result.error) {
+        emailData = result.data ?? null;
+        lastError = null;
+        break;
+      }
+      lastError = result.error.message || "Unknown Resend error";
+      console.error(`Resend error (attempt ${attempt}):`, result.error);
+    }
+
+    const finalStatus = lastError ? "failed" : "sent";
+    const logRow = {
+      idempotency_key: logKey,
+      user_id: userId ?? null,
+      client_id: clientId ?? null,
+      to_email: to,
+      subject,
+      template,
+      status: finalStatus,
+      attempt_count: attempt,
+      provider_message_id: emailData?.id ?? null,
+      error_message: lastError,
+      metadata: metadata ?? null,
+      sent_at: lastError ? null : new Date().toISOString(),
+    };
+
+    const { error: logError } = await supabaseAdmin
+      .from("email_logs")
+      .upsert(logRow, { onConflict: "idempotency_key" });
+
+    if (logError) {
+      console.error("Error logging email:", logError);
+    }
+
+    if (lastError) {
+      return new Response(
+        JSON.stringify({ success: false, error: lastError, attempts: attempt }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     console.log("Email sent successfully:", emailData);
 
-    // Log the email if clientId is provided
-    if (clientId) {
-      const { error: logError } = await supabase
-        .from("email_logs")
-        .insert({
-          user_id: userId,
-          client_id: clientId,
-          to_email: to,
-          subject,
-          template,
-          status: "sent",
-        });
-
-      if (logError) {
-        console.error("Error logging email:", logError);
-        // Don't fail the request if logging fails
-      } else {
-        console.log("Email logged successfully for client:", clientId);
-      }
-    }
-
     return new Response(
-      JSON.stringify({ success: true, id: emailData?.id }),
+      JSON.stringify({ success: true, id: emailData?.id, attempts: attempt }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
