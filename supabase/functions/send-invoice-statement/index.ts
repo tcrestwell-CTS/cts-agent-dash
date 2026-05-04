@@ -174,10 +174,29 @@ const handler = async (req: Request): Promise<Response> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // SAFEGUARD: in cron mode (no specific invoice, no explicit email_kind),
+    // send at most ONE invoice statement per client per run — the soonest
+    // unpaid invoice that hasn't been emailed yet. This prevents a client
+    // from receiving a flood of separate "New Invoice" emails when they
+    // have multiple unpaid installments on a payment plan.
+    const isCronMode = !body.qbo_invoice_id && !body.email_kind && !body.test_recipient;
+    const clientsEmailedThisRun = new Set<string>();
+
+    let invoicesToProcess = qboInvoices;
+    if (isCronMode) {
+      // Sort by due date ascending (nulls last) so the next-due invoice
+      // is the first one we encounter for each client.
+      invoicesToProcess = [...qboInvoices].sort((a, b) => {
+        const ad = a.due_date ? new Date(`${a.due_date}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+        const bd = b.due_date ? new Date(`${b.due_date}T00:00:00`).getTime() : Number.POSITIVE_INFINITY;
+        return ad - bd;
+      });
+    }
+
     const results: any[] = [];
     let sentCount = 0;
 
-    for (const inv of qboInvoices) {
+    for (const inv of invoicesToProcess) {
       try {
         // Resolve trip+client. Prefer crm_booking_id, fall back to qbo_customer_id mapping.
         let tripId: string | null = null;
