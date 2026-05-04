@@ -248,7 +248,9 @@ const handler = async (req: Request): Promise<Response> => {
             .eq("qbo_invoice_id", inv.qbo_id);
           const sentKinds = new Set((prior || []).map((p: any) => p.email_kind));
 
-          if (!sentKinds.has("initial")) {
+          // Treat a prior "manual" send as satisfying the initial statement,
+          // so we don't double-send when an agent has already fired it off.
+          if (!sentKinds.has("initial") && !sentKinds.has("manual")) {
             kind = "initial";
           } else if (
             daysUntilDue !== null &&
