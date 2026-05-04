@@ -136,19 +136,28 @@ const bottomNav: NavItem[] = [
 const adminNavigation: NavItem[] = [
   { name: "Team Management", href: "/team", icon: UserPlus },
   { name: "Training Admin", href: "/training/admin", icon: GraduationCap },
-  { name: "Reconciliation", href: "/reconciliation", icon: FileSpreadsheet },
   { name: "AI Agents Health", href: "/kandi", icon: BarChart3 },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
   { name: "QBO Payment Sync", href: "/qbo-payment-sync", icon: HeartPulse },
-      { name: "Recon Dashboard",  href: "/recon",             icon: ArrowRightLeft },
-      { name: "Match Center",     href: "/recon/matches",     icon: ArrowRightLeft },
-      { name: "Exceptions",       href: "/recon/exceptions",  icon: AlertTriangle },
-      { name: "Approvals",        href: "/recon/approvals",   icon: ShieldCheck },
-      { name: "Stripe Payouts",   href: "/recon/payouts",     icon: CreditCard },
-      { name: "Recon Settings",  href: "/recon/settings",    icon: Settings },
   { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
   { name: "Portal Management", href: "/portal-management", icon: Globe },
   { name: "Task Monitor", href: "/task-monitor", icon: Activity },
+];
+
+const adminNavGroups: NavGroup[] = [
+  {
+    label: "Reconciliation",
+    icon: ArrowRightLeft,
+    items: [
+      { name: "Recon Dashboard", href: "/recon", icon: ArrowRightLeft },
+      { name: "Match Center", href: "/recon/matches", icon: ArrowRightLeft },
+      { name: "Exceptions", href: "/recon/exceptions", icon: AlertTriangle },
+      { name: "Approvals", href: "/recon/approvals", icon: ShieldCheck },
+      { name: "Stripe Payouts", href: "/recon/payouts", icon: CreditCard },
+      { name: "Monthly Recon", href: "/reconciliation", icon: FileSpreadsheet },
+      { name: "Recon Settings", href: "/recon/settings", icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -215,7 +224,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     // Auto-open the group containing the current route
     const initial: Record<string, boolean> = {};
-    navGroups.forEach((g) => {
+    [...navGroups, ...adminNavGroups].forEach((g) => {
       if (g.items.some((i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/"))) {
         initial[g.label] = true;
       }
@@ -384,6 +393,9 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
               {collapsed && !isMobile && <div className="pt-4 pb-2"><hr className="border-sidebar-border" /></div>}
               {adminNavigation.map((item) => (
                 <NavItemLink key={item.name} item={item} />
+              ))}
+              {adminNavGroups.map((group) => (
+                <NavGroupSection key={group.label} group={group} />
               ))}
             </>
           )}
