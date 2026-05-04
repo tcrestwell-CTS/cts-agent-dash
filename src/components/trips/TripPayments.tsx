@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
@@ -92,6 +92,7 @@ export function TripPayments({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
+  const [repullingQBO, setRepullingQBO] = useState(false);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
   const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
@@ -281,6 +282,23 @@ export function TripPayments({
     }).format(value);
   };
 
+  const handleRepullFromQBO = async () => {
+    setRepullingQBO(true);
+    try {
+      const { error } = await supabase.functions.invoke("qbo-cache-sync", {
+        body: { objects: ["invoices", "payments"] },
+      });
+      if (error) throw error;
+      toast.success("Refreshed invoice & payment data from QBO");
+      onDataChange?.();
+    } catch (err) {
+      console.error("QBO re-pull failed:", err);
+      toast.error("Failed to re-pull from QBO");
+    } finally {
+      setRepullingQBO(false);
+    }
+  };
+
   const getPaymentLabel = (payment: TripPayment) => {
     if (payment.bookings) {
       const supplier = payment.bookings.suppliers?.name || "";
@@ -313,6 +331,20 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRepullFromQBO}
+                disabled={repullingQBO}
+                title="Force re-pull invoice & payment data from QuickBooks"
+              >
+                {repullingQBO ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Re-pull from QBO
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
