@@ -253,6 +253,12 @@ const handler = async (req: Request): Promise<Response> => {
           .maybeSingle();
         if (!client?.email) { results.push({ qbo_id: inv.qbo_id, skipped: "no_client_email" }); continue; }
 
+        // SAFEGUARD: in cron mode, only one invoice per client per run.
+        if (isCronMode && clientsEmailedThisRun.has(client.id)) {
+          results.push({ qbo_id: inv.qbo_id, skipped: "client_already_emailed_this_run", client_id: client.id });
+          continue;
+        }
+
         // Determine email kind
         const dueDate = inv.due_date ? new Date(`${inv.due_date}T00:00:00`) : null;
         const daysUntilDue = dueDate ? Math.round((dueDate.getTime() - today.getTime()) / 86400000) : null;
