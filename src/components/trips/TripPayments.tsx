@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, CloudCheck } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
+import { useEffect } from "react";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -93,6 +94,31 @@ export function TripPayments({
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
   const [repullingQBO, setRepullingQBO] = useState(false);
+  const [qboSyncedIds, setQboSyncedIds] = useState<Set<string>>(new Set());
+
+  // Load QBO sync status for paid payments (which payments have a qbo_payments row)
+  useEffect(() => {
+    const paidIds = payments.filter((p) => p.status === "paid").map((p) => p.id);
+    if (paidIds.length === 0) {
+      setQboSyncedIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("qbo_payments")
+        .select("crm_payment_id")
+        .in("crm_payment_id", paidIds);
+      if (cancelled || error) return;
+      setQboSyncedIds(new Set((data || []).map((r: any) => r.crm_payment_id).filter(Boolean)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [payments, repullingQBO]);
+
+  const paidPayments = payments.filter((p) => p.status === "paid");
+  const unsyncedCount = paidPayments.filter((p) => !qboSyncedIds.has(p.id)).length;
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
   const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
