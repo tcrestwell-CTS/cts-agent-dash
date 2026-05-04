@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
@@ -92,6 +92,7 @@ export function TripPayments({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
+  const [repullingQBO, setRepullingQBO] = useState(false);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
   const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
