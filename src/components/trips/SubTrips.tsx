@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Briefcase, MapPin, Calendar } from "lucide-react";
+import { Plus, Search, Briefcase, MapPin, Calendar, Pencil, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { AddTripDialog } from "./AddTripDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface SubTrip {
   id: string;
@@ -39,6 +41,44 @@ export function SubTrips({ parentTripId, subTrips, onDataChange }: SubTripsProps
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (e: React.MouseEvent, st: SubTrip) => {
+    e.stopPropagation();
+    setEditingId(st.id);
+    setEditValue(st.trip_name);
+  };
+
+  const cancelEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async (e: React.MouseEvent, st: SubTrip) => {
+    e.stopPropagation();
+    const trimmed = editValue.trim();
+    if (!trimmed || trimmed === st.trip_name) {
+      cancelEdit();
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("trips")
+      .update({ trip_name: trimmed })
+      .eq("id", st.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Sub-trip renamed" });
+    setEditingId(null);
+    setEditValue("");
+    onDataChange();
+  };
 
   const filtered = subTrips.filter((st) =>
     st.trip_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -84,14 +124,47 @@ export function SubTrips({ parentTripId, subTrips, onDataChange }: SubTripsProps
                 <div
                   key={st.id}
                   className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/trips/${st.id}`)}
+                  onClick={() => editingId !== st.id && navigate(`/trips/${st.id}`)}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{st.trip_name}</span>
-                      <Badge variant="outline" className={statusColors[st.status] || ""}>
-                        {st.status.charAt(0).toUpperCase() + st.status.slice(1)}
-                      </Badge>
+                      {editingId === st.id ? (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Input
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEdit(e as any, st);
+                              if (e.key === "Escape") cancelEdit();
+                            }}
+                            className="h-8 w-64"
+                            disabled={saving}
+                          />
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => saveEdit(e, st)} disabled={saving}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit} disabled={saving}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="font-medium">{st.trip_name}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-60 hover:opacity-100"
+                            onClick={(e) => startEdit(e, st)}
+                            title="Rename sub-trip"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Badge variant="outline" className={statusColors[st.status] || ""}>
+                            {st.status.charAt(0).toUpperCase() + st.status.slice(1)}
+                          </Badge>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       {st.destination && (
