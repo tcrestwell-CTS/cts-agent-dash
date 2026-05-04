@@ -139,6 +139,7 @@ const adminNavigation: NavItem[] = [
   { name: "Reconciliation", href: "/reconciliation", icon: FileSpreadsheet },
   { name: "AI Agents Health", href: "/kandi", icon: BarChart3 },
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
+  { name: "QBO Payment Sync", href: "/qbo-payment-sync", icon: HeartPulse },
       { name: "Recon Dashboard",  href: "/recon",             icon: ArrowRightLeft },
       { name: "Match Center",     href: "/recon/matches",     icon: ArrowRightLeft },
       { name: "Exceptions",       href: "/recon/exceptions",  icon: AlertTriangle },
