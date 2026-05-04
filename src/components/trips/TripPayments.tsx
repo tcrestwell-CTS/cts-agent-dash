@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
@@ -93,6 +93,31 @@ export function TripPayments({
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
   const [repullingQBO, setRepullingQBO] = useState(false);
+  const [qboSyncedIds, setQboSyncedIds] = useState<Set<string>>(new Set());
+
+  // Load QBO sync status for paid payments (which payments have a qbo_payments row)
+  useEffect(() => {
+    const paidIds = payments.filter((p) => p.status === "paid").map((p) => p.id);
+    if (paidIds.length === 0) {
+      setQboSyncedIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("qbo_payments")
+        .select("crm_payment_id")
+        .in("crm_payment_id", paidIds);
+      if (cancelled || error) return;
+      setQboSyncedIds(new Set((data || []).map((r: any) => r.crm_payment_id).filter(Boolean)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [payments, repullingQBO]);
+
+  const paidPayments = payments.filter((p) => p.status === "paid");
+  const unsyncedCount = paidPayments.filter((p) => !qboSyncedIds.has(p.id)).length;
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
   const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
@@ -331,6 +356,28 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              {paidPayments.length > 0 && (
+                <Badge
+                  variant="outline"
+                  className={
+                    unsyncedCount > 0
+                      ? "bg-amber-100 text-amber-700 border-amber-200"
+                      : "bg-green-100 text-green-700 border-green-200"
+                  }
+                  title={
+                    unsyncedCount > 0
+                      ? `${unsyncedCount} of ${paidPayments.length} paid payments not yet pushed to QBO`
+                      : "All paid payments are synced to QBO"
+                  }
+                >
+                  {unsyncedCount > 0 ? (
+                    <CloudOff className="h-3 w-3 mr-1" />
+                  ) : (
+                    <Cloud className="h-3 w-3 mr-1" />
+                  )}
+                  QBO: {paidPayments.length - unsyncedCount}/{paidPayments.length} synced
+                </Badge>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -413,6 +460,19 @@ export function TripPayments({
                           <Badge variant="outline" className={statusColors[payment.status]}>
                             {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
+                          {payment.status === "paid" && (
+                            <div className="mt-1">
+                              {qboSyncedIds.has(payment.id) ? (
+                                <span className="inline-flex items-center text-xs text-green-700" title="Pushed to QBO">
+                                  <Cloud className="h-3 w-3 mr-1" /> QBO synced
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-xs text-amber-700" title="Not yet pushed to QBO — will be sent on next sync">
+                                  <CloudOff className="h-3 w-3 mr-1" /> Not in QBO
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-1">
