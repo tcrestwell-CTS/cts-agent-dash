@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
-import { useEffect } from "react";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
