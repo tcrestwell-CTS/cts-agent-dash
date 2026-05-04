@@ -356,6 +356,28 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              {paidPayments.length > 0 && (
+                <Badge
+                  variant="outline"
+                  className={
+                    unsyncedCount > 0
+                      ? "bg-amber-100 text-amber-700 border-amber-200"
+                      : "bg-green-100 text-green-700 border-green-200"
+                  }
+                  title={
+                    unsyncedCount > 0
+                      ? `${unsyncedCount} of ${paidPayments.length} paid payments not yet pushed to QBO`
+                      : "All paid payments are synced to QBO"
+                  }
+                >
+                  {unsyncedCount > 0 ? (
+                    <CloudOff className="h-3 w-3 mr-1" />
+                  ) : (
+                    <Cloud className="h-3 w-3 mr-1" />
+                  )}
+                  QBO: {paidPayments.length - unsyncedCount}/{paidPayments.length} synced
+                </Badge>
+              )}
               <Button
                 variant="outline"
                 size="sm"
