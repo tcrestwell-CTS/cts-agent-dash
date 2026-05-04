@@ -2086,37 +2086,52 @@ export type Database = {
       }
       email_logs: {
         Row: {
-          client_id: string
+          attempt_count: number
+          client_id: string | null
           created_at: string
+          error_message: string | null
           id: string
+          idempotency_key: string | null
+          metadata: Json | null
+          provider_message_id: string | null
           sent_at: string
           status: string
           subject: string
           template: string
           to_email: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
-          client_id: string
+          attempt_count?: number
+          client_id?: string | null
           created_at?: string
+          error_message?: string | null
           id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          provider_message_id?: string | null
           sent_at?: string
           status?: string
           subject: string
           template: string
           to_email: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
-          client_id?: string
+          attempt_count?: number
+          client_id?: string | null
           created_at?: string
+          error_message?: string | null
           id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          provider_message_id?: string | null
           sent_at?: string
           status?: string
           subject?: string
           template?: string
           to_email?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
