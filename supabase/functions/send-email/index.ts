@@ -21,6 +21,8 @@ interface EmailRequest {
   customHtml?: string;
   clientId?: string;
   attachments?: Attachment[];
+  metadata?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -51,6 +53,14 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Service-role client for writing to email_logs (so system emails without
+    // clientId are still logged, and admin RLS policies don't apply to writes).
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
     );
 
     const token = authHeader.replace("Bearer ", "");
