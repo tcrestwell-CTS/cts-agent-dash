@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatLocalDate } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -75,6 +76,31 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const selectedClient = clients.find((c) => c.id === formData.client_id);
+
+  // Pre-fill sub-trip with parent trip info
+  useEffect(() => {
+    if (!open || !parentTripId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("trips")
+        .select("trip_name, destination, trip_type, budget_range")
+        .eq("id", parentTripId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setFormData((prev) => ({
+        ...prev,
+        trip_name: prev.trip_name || data.trip_name || "",
+        destination: prev.destination || data.destination || "",
+        trip_type:
+          data.trip_type && data.trip_type !== "group" ? data.trip_type : prev.trip_type,
+        budget_range: prev.budget_range || data.budget_range || "",
+      }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, parentTripId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
