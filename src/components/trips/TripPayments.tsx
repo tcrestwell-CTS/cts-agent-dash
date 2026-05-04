@@ -460,6 +460,19 @@ export function TripPayments({
                           <Badge variant="outline" className={statusColors[payment.status]}>
                             {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
+                          {payment.status === "paid" && (
+                            <div className="mt-1">
+                              {qboSyncedIds.has(payment.id) ? (
+                                <span className="inline-flex items-center text-xs text-green-700" title="Pushed to QBO">
+                                  <Cloud className="h-3 w-3 mr-1" /> QBO synced
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-xs text-amber-700" title="Not yet pushed to QBO — will be sent on next sync">
+                                  <CloudOff className="h-3 w-3 mr-1" /> Not in QBO
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-1">
