@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, CloudCheck } from "lucide-react";
+import { Plus, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { useEffect } from "react";
 import { TripBooking } from "@/hooks/useTrips";
