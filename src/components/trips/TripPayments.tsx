@@ -282,6 +282,23 @@ export function TripPayments({
     }).format(value);
   };
 
+  const handleRepullFromQBO = async () => {
+    setRepullingQBO(true);
+    try {
+      const { error } = await supabase.functions.invoke("qbo-cache-sync", {
+        body: { objects: ["invoices", "payments"] },
+      });
+      if (error) throw error;
+      toast.success("Refreshed invoice & payment data from QBO");
+      onDataChange?.();
+    } catch (err) {
+      console.error("QBO re-pull failed:", err);
+      toast.error("Failed to re-pull from QBO");
+    } finally {
+      setRepullingQBO(false);
+    }
+  };
+
   const getPaymentLabel = (payment: TripPayment) => {
     if (payment.bookings) {
       const supplier = payment.bookings.suppliers?.name || "";
