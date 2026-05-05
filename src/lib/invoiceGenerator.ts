@@ -32,6 +32,15 @@ export interface InvoiceLineItem {
   supplier?: string;
   status?: string;
   amount: number;
+  subItems?: InvoiceSubLineItem[];
+}
+
+export interface InvoiceSubLineItem {
+  description: string;
+  quantity?: number;
+  unitPrice?: number;
+  amount: number;
+  isPassThrough?: boolean;
 }
 
 interface GenerateOptions {
