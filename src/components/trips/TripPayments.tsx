@@ -94,6 +94,35 @@ export function TripPayments({
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
   const [repullingQBO, setRepullingQBO] = useState(false);
   const [qboSyncedIds, setQboSyncedIds] = useState<Set<string>>(new Set());
+  const [marginLinesByBooking, setMarginLinesByBooking] = useState<Record<string, Array<{ description: string; quantity: number; unit_sell: number; total_sell: number; is_pass_through: boolean; sort_order: number }>>>({});
+
+  // Load booking margin lines so the invoice can show itemized sub-lines per booking.
+  useEffect(() => {
+    const bookingIds = bookings.map((b) => b.id).filter(Boolean);
+    if (bookingIds.length === 0) {
+      setMarginLinesByBooking({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("booking_margin_lines")
+        .select("booking_id, description, quantity, unit_sell, total_sell, is_pass_through, sort_order, is_internal")
+        .in("booking_id", bookingIds)
+        .order("sort_order", { ascending: true });
+      if (cancelled || error) return;
+      const grouped: Record<string, any[]> = {};
+      (data || []).forEach((row: any) => {
+        if (row.is_internal) return;
+        if (!grouped[row.booking_id]) grouped[row.booking_id] = [];
+        grouped[row.booking_id].push(row);
+      });
+      setMarginLinesByBooking(grouped);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookings]);
 
   // Load QBO sync status for paid payments (which payments have a qbo_payments row)
   useEffect(() => {
@@ -185,16 +214,26 @@ export function TripPayments({
     supplierName: primarySupplier,
     lineItems: bookings
       .filter((b) => b.status !== "cancelled")
-      .map((b) => ({
-        description:
-          b.suppliers?.name
-            ? `${b.suppliers.name}${b.destination ? ` — ${b.destination}` : ""}`
-            : b.trip_name || b.destination || "Booking",
-        reference: b.confirmation_number || b.booking_reference || undefined,
-        supplier: b.suppliers?.supplier_type || undefined,
-        status: b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : undefined,
-        amount: Number(b.gross_sales || b.total_price || 0),
-      })),
+      .map((b) => {
+        const lines = marginLinesByBooking[b.id] || [];
+        return {
+          description:
+            b.suppliers?.name
+              ? `${b.suppliers.name}${b.destination ? ` — ${b.destination}` : ""}`
+              : b.trip_name || b.destination || "Booking",
+          reference: b.supplier_confirmation_number || b.confirmation_number || b.booking_reference || undefined,
+          supplier: b.suppliers?.supplier_type || undefined,
+          status: b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : undefined,
+          amount: Number(b.gross_sales || b.total_price || 0),
+          subItems: lines.map((l) => ({
+            description: l.description || "Item",
+            quantity: Number(l.quantity || 1),
+            unitPrice: Number(l.unit_sell || 0),
+            amount: Number(l.total_sell || 0),
+            isPassThrough: !!l.is_pass_through,
+          })),
+        };
+      }),
   });
 
   const handleGenerateInvoice = async () => {

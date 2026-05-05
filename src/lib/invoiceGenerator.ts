@@ -32,6 +32,15 @@ export interface InvoiceLineItem {
   supplier?: string;
   status?: string;
   amount: number;
+  subItems?: InvoiceSubLineItem[];
+}
+
+export interface InvoiceSubLineItem {
+  description: string;
+  quantity?: number;
+  unitPrice?: number;
+  amount: number;
+  isPassThrough?: boolean;
 }
 
 interface GenerateOptions {
@@ -395,6 +404,25 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
       doc.text(formatCurrency(item.amount), pageWidth - margin - 2, yPos, { align: "right" });
       lineTotal += item.amount;
       yPos += 6 + (descLines.length - 1) * 4 + (item.supplier ? 4 : 0);
+      // Sub-items (margin lines)
+      if (item.subItems && item.subItems.length > 0) {
+        item.subItems.forEach((sub) => {
+          if (yPos > pageHeight - 60) {
+            doc.addPage();
+            yPos = 25;
+          }
+          doc.setFontSize(8);
+          doc.setTextColor(...mutedColor);
+          const subDesc = sub.quantity && sub.quantity > 1
+            ? `  • ${sub.description} (${sub.quantity} × ${formatCurrency(sub.unitPrice || 0)})`
+            : `  • ${sub.description}`;
+          const subLines = doc.splitTextToSize(subDesc, 110);
+          doc.text(subLines, margin + 4, yPos);
+          doc.text(formatCurrency(sub.amount), pageWidth - margin - 2, yPos, { align: "right" });
+          yPos += 4 + (subLines.length - 1) * 4;
+        });
+        yPos += 2;
+      }
     });
   }
 
