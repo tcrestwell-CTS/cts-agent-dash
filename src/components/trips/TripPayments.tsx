@@ -175,7 +175,7 @@ export function TripPayments({
     payments,
     tripTotal,
     totalPaid,
-    totalRemaining,
+    totalRemaining: Math.max((tripTotal || 0) - (totalPaid || 0), 0),
     agencyName: brandingSettings?.agency_name || "Crestwell Travel Services",
     agencyPhone: brandingSettings?.phone || undefined,
     agencyEmail: brandingSettings?.email_address || undefined,
