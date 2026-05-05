@@ -62,6 +62,37 @@ export function useInvoices() {
 
     setCreating(true);
     try {
+      // If an invoice already exists for this trip + user, reuse it instead of
+      // creating a duplicate (a unique constraint enforces one invoice per trip per user).
+      if (invoiceData.trip_id) {
+        const { data: existing, error: existingError } = await supabase
+          .from("invoices")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("trip_id", invoiceData.trip_id)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing) {
+          // Refresh the financial snapshot so the regenerated PDF reflects current totals.
+          const { data: updated, error: updateError } = await supabase
+            .from("invoices")
+            .update({
+              total_amount: invoiceData.total_amount,
+              amount_paid: invoiceData.amount_paid,
+              amount_remaining: invoiceData.amount_remaining,
+              client_id: invoiceData.client_id ?? existing.client_id,
+              client_name: invoiceData.client_name ?? existing.client_name,
+              trip_name: invoiceData.trip_name ?? existing.trip_name,
+            })
+            .eq("id", existing.id)
+            .select()
+            .single();
+          if (updateError) throw updateError;
+          return updated as Invoice;
+        }
+      }
+
       // Get next invoice number
       const invoiceNumber = await getNextInvoiceNumber();
       if (!invoiceNumber) {
