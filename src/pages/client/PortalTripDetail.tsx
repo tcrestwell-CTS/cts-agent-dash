@@ -640,30 +640,65 @@ export default function PortalTripDetail() {
             <div className="space-y-3">
               {bookings.map((b: any) => {
                 const typeInfo = bookingTypeIcons[b.booking_type] || bookingTypeIcons.other;
+                const bookingLines = (pricingLines || []).filter((l: any) => l.booking_id === b.id);
                 return (
-                  <div key={b.id} className="flex items-start justify-between p-4 rounded-lg border">
-                    <div className="flex gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">
-                        {typeInfo.icon}
+                  <div key={b.id} className="rounded-lg border overflow-hidden">
+                    <div className="flex items-start justify-between p-4">
+                      <div className="flex gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">
+                          {typeInfo.icon}
+                        </div>
+                        <div>
+                          <p className="font-medium">{b.trip_name || b.destination}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {typeInfo.label} · {b.destination}
+                            {b.depart_date && ` · ${format(parseLocalDate(b.depart_date), "MMM d, yyyy")}`}
+                          </p>
+                          {b.booking_reference && (
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/80 border">
+                              <Hash className="h-3 w-3 text-muted-foreground" />
+                              <span className="font-mono text-xs font-semibold tracking-wide">{b.booking_reference}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{b.trip_name || b.destination}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {typeInfo.label} · {b.destination}
-                          {b.depart_date && ` · ${format(parseLocalDate(b.depart_date), "MMM d, yyyy")}`}
+                      <div className="text-right shrink-0">
+                        <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
+                        {b.total_amount > 0 && <p className="text-sm font-medium">${b.total_amount.toLocaleString()}</p>}
+                      </div>
+                    </div>
+                    {bookingLines.length > 0 && (
+                      <div className="border-t bg-muted/20 px-4 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Line Items
                         </p>
-                        {b.booking_reference && (
-                          <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/80 border">
-                            <Hash className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-mono text-xs font-semibold tracking-wide">{b.booking_reference}</span>
-                          </div>
-                        )}
+                        <div className="space-y-1.5">
+                          {bookingLines.map((l: any) => {
+                            const qty = Number(l.quantity || 1);
+                            const unit = Number(l.unit_price || 0);
+                            const total = Number(l.total_price ?? unit * qty);
+                            return (
+                              <div key={l.id} className="flex items-start justify-between text-sm gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <span>{l.description}</span>
+                                  {qty > 1 && (
+                                    <span className="text-xs text-muted-foreground ml-1">
+                                      ({qty} × ${unit.toFixed(2)})
+                                    </span>
+                                  )}
+                                  {l.is_addon && (
+                                    <Badge variant="outline" className="ml-2 text-[10px] py-0 px-1.5">Add-on</Badge>
+                                  )}
+                                </div>
+                                <span className="font-medium tabular-nums shrink-0">
+                                  ${total.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
-                      {b.total_amount > 0 && <p className="text-sm font-medium">${b.total_amount.toLocaleString()}</p>}
-                    </div>
+                    )}
                   </div>
                 );
               })}
