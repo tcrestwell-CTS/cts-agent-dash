@@ -23,6 +23,15 @@ export interface InvoiceData {
   agencyWebsite?: string;
   agencyLogoUrl?: string;
   supplierName?: string;
+  lineItems?: InvoiceLineItem[];
+}
+
+export interface InvoiceLineItem {
+  description: string;
+  reference?: string;
+  supplier?: string;
+  status?: string;
+  amount: number;
 }
 
 interface GenerateOptions {
