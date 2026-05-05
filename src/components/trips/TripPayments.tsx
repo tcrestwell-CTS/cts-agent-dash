@@ -214,16 +214,26 @@ export function TripPayments({
     supplierName: primarySupplier,
     lineItems: bookings
       .filter((b) => b.status !== "cancelled")
-      .map((b) => ({
-        description:
-          b.suppliers?.name
-            ? `${b.suppliers.name}${b.destination ? ` — ${b.destination}` : ""}`
-            : b.trip_name || b.destination || "Booking",
-        reference: b.confirmation_number || b.booking_reference || undefined,
-        supplier: b.suppliers?.supplier_type || undefined,
-        status: b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : undefined,
-        amount: Number(b.gross_sales || b.total_price || 0),
-      })),
+      .map((b) => {
+        const lines = marginLinesByBooking[b.id] || [];
+        return {
+          description:
+            b.suppliers?.name
+              ? `${b.suppliers.name}${b.destination ? ` — ${b.destination}` : ""}`
+              : b.trip_name || b.destination || "Booking",
+          reference: b.supplier_confirmation_number || b.confirmation_number || b.booking_reference || undefined,
+          supplier: b.suppliers?.supplier_type || undefined,
+          status: b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : undefined,
+          amount: Number(b.gross_sales || b.total_price || 0),
+          subItems: lines.map((l) => ({
+            description: l.description || "Item",
+            quantity: Number(l.quantity || 1),
+            unitPrice: Number(l.unit_sell || 0),
+            amount: Number(l.total_sell || 0),
+            isPassThrough: !!l.is_pass_through,
+          })),
+        };
+      }),
   });
 
   const handleGenerateInvoice = async () => {
