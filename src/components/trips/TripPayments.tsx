@@ -175,7 +175,7 @@ export function TripPayments({
     payments,
     tripTotal,
     totalPaid,
-    totalRemaining,
+    totalRemaining: Math.max((tripTotal || 0) - (totalPaid || 0), 0),
     agencyName: brandingSettings?.agency_name || "Crestwell Travel Services",
     agencyPhone: brandingSettings?.phone || undefined,
     agencyEmail: brandingSettings?.email_address || undefined,
@@ -210,7 +210,7 @@ export function TripPayments({
         client_name: clientName,
         total_amount: tripTotal,
         amount_paid: totalPaid,
-        amount_remaining: totalRemaining,
+        amount_remaining: Math.max((tripTotal || 0) - (totalPaid || 0), 0),
       });
 
       if (!invoice) {
@@ -260,7 +260,7 @@ export function TripPayments({
         client_name: clientName,
         total_amount: tripTotal,
         amount_paid: totalPaid,
-        amount_remaining: totalRemaining,
+        amount_remaining: Math.max((tripTotal || 0) - (totalPaid || 0), 0),
       });
 
       // Generate PDF as base64
@@ -288,7 +288,7 @@ export function TripPayments({
             dates: dateRange,
             tripTotal: formatCurrency(tripTotal),
             totalPaid: formatCurrency(totalPaid),
-            totalRemaining: formatCurrency(totalRemaining),
+            totalRemaining: formatCurrency(Math.max((tripTotal || 0) - (totalPaid || 0), 0)),
             invoiceNumber,
           },
           attachments: [
