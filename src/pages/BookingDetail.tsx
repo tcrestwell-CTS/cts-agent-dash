@@ -220,6 +220,20 @@ const BookingDetail = () => {
         supplierName: selectedSupplier?.name || undefined,
       };
 
+      invoiceData.lineItems = [
+        {
+          description: selectedSupplier?.name
+            ? `${selectedSupplier.name}${booking.destination ? ` — ${booking.destination}` : ""}`
+            : booking.trip_name || booking.destination || "Booking",
+          reference: booking.confirmation_number || undefined,
+          supplier: selectedSupplier?.supplier_type || undefined,
+          status: booking.status
+            ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
+            : undefined,
+          amount: Number(grossSales || 0),
+        },
+      ];
+
       const invoice = await createInvoice({
         trip_id: booking.trip_id || undefined,
         client_id: booking.client_id,
