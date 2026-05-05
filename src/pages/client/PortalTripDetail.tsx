@@ -723,6 +723,35 @@ export default function PortalTripDetail() {
             <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
           ) : (
             <div className="space-y-3">
+              {/* Balance Summary */}
+              {(() => {
+                const totalPaid = payments
+                  .filter((p: any) => p.status === "paid")
+                  .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+                const balanceDue = Math.max((totalCost || 0) - totalPaid, 0);
+                const fmt = (n: number) =>
+                  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+                if (totalCost <= 0) return null;
+                return (
+                  <div className="grid grid-cols-3 gap-3 p-4 rounded-lg border bg-muted/30">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Trip Total</p>
+                      <p className="text-lg font-bold mt-1">{fmt(totalCost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Payments Applied</p>
+                      <p className="text-lg font-bold mt-1 text-green-700">{fmt(totalPaid)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Balance Due</p>
+                      <p className={`text-lg font-bold mt-1 ${balanceDue > 0 ? "text-amber-700" : "text-green-700"}`}>
+                        {fmt(balanceDue)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Pay Full Amount option when there are multiple pending payments */}
               {(() => {
                 const pendingPayments = payments.filter((p: any) => p.status === "pending");
