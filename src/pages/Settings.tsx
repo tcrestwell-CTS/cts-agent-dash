@@ -525,9 +525,11 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="integrations">
-          {null}
+        <TabsContent value="payout">
+          <AgentPayoutSettings />
         </TabsContent>
+
+        <TabsContent value="integrations">
           <Card>
             <CardHeader>
               <CardTitle>Connected Integrations</CardTitle>
