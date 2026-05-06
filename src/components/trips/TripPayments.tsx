@@ -181,10 +181,9 @@ export function TripPayments({
       payment_date: paymentDate,
     });
 
-    // Auto-apply this payment against the trip's pending installments,
-    // but only if THIS payment isn't itself a scheduled installment
-    // (i.e. it has no due_date — it was a real, ad-hoc payment).
-    if (payment && !payment.due_date) {
+    // Auto-apply this payment against the trip's other pending installments
+    // (the source row is excluded by id inside the helper).
+    if (payment) {
       const result = await applyPaymentToInstallments({
         tripId,
         sourcePaymentId: paymentId,
