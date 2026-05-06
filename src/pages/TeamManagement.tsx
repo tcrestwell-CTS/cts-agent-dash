@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor } from "lucide-react";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor, ShieldCheck } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useCanViewTeam } from "@/hooks/useAdmin";
@@ -28,6 +28,7 @@ import { getTierConfig } from "@/lib/commissionTiers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ActiveSessionsWidget } from "@/components/admin/ActiveSessionsWidget";
+import { AgentPermissionsManager } from "@/components/admin/AgentPermissionsManager";
 
 
 const TeamManagement = () => {
@@ -142,6 +143,12 @@ const TeamManagement = () => {
             <Monitor className="h-4 w-4" />
             Active Sessions
           </TabsTrigger>
+          {canManage && (
+            <TabsTrigger value="permissions" className="gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Permissions
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profiles">
@@ -283,6 +290,22 @@ const TeamManagement = () => {
         <TabsContent value="sessions">
           <ActiveSessionsWidget />
         </TabsContent>
+
+        {canManage && (
+          <TabsContent value="permissions">
+            <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
+              <div className="p-4 border-b border-border">
+                <h2 className="font-medium text-card-foreground">Per-Agent Feature Access</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Toggle individual sidebar pages on or off for each agent. Changes apply on their next page load.
+                </p>
+              </div>
+              <div className="p-4">
+                <AgentPermissionsManager />
+              </div>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </DashboardLayout>
   );
