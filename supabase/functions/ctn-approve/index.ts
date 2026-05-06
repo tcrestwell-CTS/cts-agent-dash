@@ -165,7 +165,7 @@ serve(async (req) => {
       // Create new invitation
       const insertData: Record<string, unknown> = {
         email:           email.toLowerCase(),
-        role:            "agent",
+        role:            "user",
         commission_tier: commissionTier,
         token,
         expires_at:      expiresAt.toISOString(),
