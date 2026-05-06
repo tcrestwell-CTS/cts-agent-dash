@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  RefreshCcw, AlertTriangle, CheckCircle2, Link2, Plus, DollarSign, XCircle, CreditCard, Search,
+  RefreshCcw, AlertTriangle, CheckCircle2, Link2, Plus, DollarSign, XCircle, CreditCard, Search, Wand2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -124,6 +124,38 @@ export default function StripeReconcilePanel() {
       setLoading(false);
     }
   }, [user]);
+
+  // ── Auto-match Stripe payments to manual payment logs ──
+  const [autoMatchLoading, setAutoMatchLoading] = useState(false);
+  const [autoMatchResult, setAutoMatchResult] = useState<any | null>(null);
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+
+  const runAutoMatch = useCallback(async (dryRun = false) => {
+    if (!user) return;
+    setAutoMatchLoading(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("stripe-auto-match", {
+        body: { lookback_days: 90, window_days: 7, dry_run: dryRun },
+      });
+      if (error) throw error;
+      setAutoMatchResult(result);
+      setAutoMatchOpen(true);
+      const s = result?.summary || {};
+      if (dryRun) {
+        toast.success(`Preview: ${s.newly_linked || 0} would be linked, ${s.ambiguous || 0} ambiguous`);
+      } else if ((s.newly_linked || 0) > 0) {
+        toast.success(`Linked ${s.newly_linked} Stripe payment${s.newly_linked === 1 ? "" : "s"} to manual logs`);
+        // Refresh the main reconciliation view too
+        runReconcile();
+      } else {
+        toast.info("No new auto-matches found");
+      }
+    } catch (err: any) {
+      toast.error("Auto-match failed: " + (err.message || "Unknown error"));
+    } finally {
+      setAutoMatchLoading(false);
+    }
+  }, [user, runReconcile]);
 
   // Search trips when dialog opens or search changes
   const searchTrips = useCallback(async (query: string) => {
@@ -368,10 +400,22 @@ export default function StripeReconcilePanel() {
               )}
             </CardDescription>
           </div>
-          <Button onClick={runReconcile} disabled={loading} variant="outline" className="gap-2">
-            <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Scanning..." : "Run Reconciliation"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => runAutoMatch(false)}
+              disabled={autoMatchLoading || loading}
+              variant="outline"
+              className="gap-2"
+              title="Auto-link unlinked Stripe payments to manual payment logs by amount + date"
+            >
+              <Wand2 className={`h-4 w-4 ${autoMatchLoading ? "animate-pulse" : ""}`} />
+              {autoMatchLoading ? "Matching..." : "Auto-Match Stripe"}
+            </Button>
+            <Button onClick={runReconcile} disabled={loading} variant="outline" className="gap-2">
+              <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              {loading ? "Scanning..." : "Run Reconciliation"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -970,6 +1014,107 @@ export default function StripeReconcilePanel() {
             <Button onClick={handleAdjustAmount} disabled={actionLoading} variant="destructive">
               {actionLoading ? "Adjusting..." : "Apply Adjustment"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Match Results Dialog */}
+      <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Stripe Auto-Match Results</DialogTitle>
+            <DialogDescription>
+              Matched Stripe payments to manual payment logs by amount + date (±{autoMatchResult?.params?.window_days ?? 7} days, last {autoMatchResult?.params?.lookback_days ?? 90} days).
+            </DialogDescription>
+          </DialogHeader>
+          {autoMatchResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Stripe scanned</p>
+                  <p className="text-xl font-semibold">{autoMatchResult.summary?.stripe_pis_scanned ?? 0}</p>
+                </div>
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Newly linked</p>
+                  <p className="text-xl font-semibold text-green-600">{autoMatchResult.summary?.newly_linked ?? 0}</p>
+                </div>
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Ambiguous</p>
+                  <p className="text-xl font-semibold text-amber-600">{autoMatchResult.summary?.ambiguous ?? 0}</p>
+                </div>
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">No match</p>
+                  <p className="text-xl font-semibold text-muted-foreground">{autoMatchResult.summary?.unmatched_in_stripe ?? 0}</p>
+                </div>
+              </div>
+
+              {autoMatchResult.linked?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">Linked ({autoMatchResult.linked.length})</p>
+                  <div className="max-h-48 overflow-auto rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Stripe PI</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Stripe Date</TableHead>
+                          <TableHead>Local Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {autoMatchResult.linked.map((l: any) => (
+                          <TableRow key={l.pi_id}>
+                            <TableCell className="font-mono text-xs">{l.pi_id}</TableCell>
+                            <TableCell>{fmt(l.amount)}</TableCell>
+                            <TableCell className="text-xs">{format(new Date(l.created), "MMM d, yyyy")}</TableCell>
+                            <TableCell className="text-xs">{l.local_payment_date}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {autoMatchResult.ambiguous?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2 text-amber-700">
+                    Ambiguous ({autoMatchResult.ambiguous.length}) — multiple manual payments matched; resolve in the orphan list.
+                  </p>
+                  <div className="max-h-48 overflow-auto rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Stripe PI</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Candidates</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {autoMatchResult.ambiguous.map((a: any) => (
+                          <TableRow key={a.pi_id}>
+                            <TableCell className="font-mono text-xs">{a.pi_id}</TableCell>
+                            <TableCell>{fmt(a.amount)}</TableCell>
+                            <TableCell className="text-xs">{format(new Date(a.created), "MMM d, yyyy")}</TableCell>
+                            <TableCell>{a.candidate_count}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {(!autoMatchResult.linked?.length && !autoMatchResult.ambiguous?.length) && (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No Stripe payments matched any manual payment logs by amount + date in the scan window.
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAutoMatchOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
