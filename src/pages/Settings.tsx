@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3 } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3, Banknote } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +16,7 @@ import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
 import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings";
 import { BackfillPlanningTripsCard } from "@/components/admin/BackfillPlanningTripsCard";
 import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
+import { AgentPayoutSettings } from "@/components/settings/AgentPayoutSettings";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 
@@ -107,6 +108,10 @@ const Settings = () => {
           <TabsTrigger value="billing" className="gap-2">
             <CreditCard className="h-4 w-4" />
             Billing
+          </TabsTrigger>
+          <TabsTrigger value="payout" className="gap-2">
+            <Banknote className="h-4 w-4" />
+            Payout
           </TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2">
             <Link2 className="h-4 w-4" />
