@@ -18,6 +18,7 @@ import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { applyPaymentToInstallments } from "@/lib/applyPaymentToInstallments";
 import {
   Tooltip,
   TooltipContent,
@@ -174,10 +175,30 @@ export function TripPayments({
 
   const handleMarkAsPaid = async (paymentId: string) => {
     const payment = payments.find((p) => p.id === paymentId);
+    const paymentDate = new Date().toISOString().split("T")[0];
     await updatePayment(paymentId, {
       status: "paid",
-      payment_date: new Date().toISOString().split("T")[0],
+      payment_date: paymentDate,
     });
+
+    // Auto-apply this payment against the trip's pending installments,
+    // but only if THIS payment isn't itself a scheduled installment
+    // (i.e. it has no due_date — it was a real, ad-hoc payment).
+    if (payment && !payment.due_date) {
+      const result = await applyPaymentToInstallments({
+        tripId,
+        sourcePaymentId: paymentId,
+        amount: Number(payment.amount) || 0,
+        paymentDate,
+      });
+      if (result.markedPaid > 0 || result.reducedRemainder > 0) {
+        const parts: string[] = [];
+        if (result.markedPaid > 0) parts.push(`${result.markedPaid} installment${result.markedPaid === 1 ? "" : "s"} marked paid`);
+        if (result.reducedRemainder > 0) parts.push(`$${result.reducedRemainder.toFixed(2)} applied to next installment`);
+        toast.success(`Payment applied — ${parts.join("; ")}`);
+      }
+    }
+
     onDataChange?.();
 
     // Auto-transition trip status based on payment type
