@@ -52,11 +52,21 @@ export function InvoicePreviewDialog({
               </div>
             </div>
           ) : pdfUrl ? (
-            <iframe
-              src={pdfUrl}
+            <object
+              data={pdfUrl}
+              type="application/pdf"
               className="w-full h-full rounded-lg border bg-background"
-              title={`Invoice ${invoiceNumber || ""}`}
-            />
+              aria-label={`Invoice ${invoiceNumber || ""}`}
+            >
+              <div className="flex flex-col items-center justify-center h-full bg-muted/30 rounded-lg gap-3 p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Your browser blocked the inline PDF preview.
+                </p>
+                <Button size="sm" onClick={handleDownload} className="gap-1">
+                  <Download className="h-4 w-4" /> Download PDF
+                </Button>
+              </div>
+            </object>
           ) : error ? (
             <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg">
               <p className="text-sm text-muted-foreground">Failed to generate invoice.</p>
