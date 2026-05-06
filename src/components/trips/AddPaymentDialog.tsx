@@ -288,6 +288,22 @@ export function AddPaymentDialog({
       notes: formData.notes || null,
     });
     if (result) {
+      // If this manually-logged payment is paid AND is not itself an
+      // installment (no due_date), auto-apply it to pending installments.
+      if (formData.status === "paid" && !formData.due_date) {
+        const alloc = await applyPaymentToInstallments({
+          tripId,
+          sourcePaymentId: result.id,
+          amount: parseFloat(formData.amount),
+          paymentDate: formData.payment_date,
+        });
+        if (alloc.markedPaid > 0 || alloc.reducedRemainder > 0) {
+          const parts: string[] = [];
+          if (alloc.markedPaid > 0) parts.push(`${alloc.markedPaid} installment${alloc.markedPaid === 1 ? "" : "s"} marked paid`);
+          if (alloc.reducedRemainder > 0) parts.push(`$${alloc.reducedRemainder.toFixed(2)} applied to next installment`);
+          toast.success(`Payment applied — ${parts.join("; ")}`);
+        }
+      }
       setFormData({ ...defaultForm });
       handleClose(false);
       onPaymentCreated?.();
