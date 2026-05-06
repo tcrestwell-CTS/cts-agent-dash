@@ -93,17 +93,33 @@ serve(async (req) => {
       inviteToken = existing.token;
       console.log(`[ctn-approve] Reusing existing invitation for ${email}`);
     } else {
+      // Get admin user ID to satisfy invited_by FK constraint
+      // Look for the admin/owner account in user_roles
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .order("user_id")
+        .limit(1)
+        .maybeSingle();
+
+      const invitedBy = adminRole?.user_id || null;
+
       // Create new invitation
+      const insertData: Record<string, unknown> = {
+        email:           email.toLowerCase(),
+        role:            "agent",
+        commission_tier: commissionTier,
+        token,
+        expires_at:      expiresAt.toISOString(),
+      };
+
+      // Only set invited_by if we found a valid admin user ID
+      if (invitedBy) insertData.invited_by = invitedBy;
+
       const { error: insertError } = await supabase
         .from("invitations")
-        .insert({
-          email:           email.toLowerCase(),
-          role:            "agent",
-          commission_tier: commissionTier,
-          token,
-          expires_at:      expiresAt.toISOString(),
-          // invited_by is null — this comes from CTN admin, not a CTS user
-        });
+        .insert(insertData);
 
       if (insertError) {
         console.error("[ctn-approve] Invitation insert error:", insertError);
