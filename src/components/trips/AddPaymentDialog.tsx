@@ -21,6 +21,7 @@ import { TripBooking } from "@/hooks/useTrips";
 import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink, CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { applyPaymentToInstallments } from "@/lib/applyPaymentToInstallments";
 import { cn } from "@/lib/utils";
 import { StripeCheckoutDialog } from "@/components/trips/StripeCheckoutDialog";
 import { addMonths, format } from "date-fns";
