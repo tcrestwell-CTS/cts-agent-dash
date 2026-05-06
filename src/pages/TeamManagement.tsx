@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor, ShieldCheck } from "lucide-react";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor, ShieldCheck, Banknote } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useCanViewTeam } from "@/hooks/useAdmin";
@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ActiveSessionsWidget } from "@/components/admin/ActiveSessionsWidget";
 import { AgentPermissionsManager } from "@/components/admin/AgentPermissionsManager";
+import { AgentPayoutsManager } from "@/components/admin/AgentPayoutsManager";
 
 
 const TeamManagement = () => {
@@ -147,6 +148,12 @@ const TeamManagement = () => {
             <TabsTrigger value="permissions" className="gap-2">
               <ShieldCheck className="h-4 w-4" />
               Permissions
+            </TabsTrigger>
+          )}
+          {canManage && (
+            <TabsTrigger value="payouts" className="gap-2">
+              <Banknote className="h-4 w-4" />
+              Payouts
             </TabsTrigger>
           )}
         </TabsList>
@@ -304,6 +311,12 @@ const TeamManagement = () => {
                 <AgentPermissionsManager />
               </div>
             </div>
+          </TabsContent>
+        )}
+
+        {canManage && (
+          <TabsContent value="payouts">
+            <AgentPayoutsManager />
           </TabsContent>
         )}
       </Tabs>

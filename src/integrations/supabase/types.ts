@@ -356,6 +356,96 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_payout_accounts: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          account_number_last4: string | null
+          account_type: string | null
+          address_line1: string | null
+          address_line2: string | null
+          bank_name: string | null
+          business_name: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          notes: string | null
+          payee_name: string | null
+          payout_method: string
+          paypal_email: string | null
+          phone: string | null
+          postal_code: string | null
+          routing_number: string | null
+          state: string | null
+          tax_form: string | null
+          tax_id_last4: string | null
+          updated_at: string
+          user_id: string
+          venmo_handle: string | null
+          zelle_handle: string | null
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          account_number_last4?: string | null
+          account_type?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          bank_name?: string | null
+          business_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          payee_name?: string | null
+          payout_method?: string
+          paypal_email?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          routing_number?: string | null
+          state?: string | null
+          tax_form?: string | null
+          tax_id_last4?: string | null
+          updated_at?: string
+          user_id: string
+          venmo_handle?: string | null
+          zelle_handle?: string | null
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          account_number_last4?: string | null
+          account_type?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          bank_name?: string | null
+          business_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          payee_name?: string | null
+          payout_method?: string
+          paypal_email?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          routing_number?: string | null
+          state?: string | null
+          tax_form?: string | null
+          tax_id_last4?: string | null
+          updated_at?: string
+          user_id?: string
+          venmo_handle?: string | null
+          zelle_handle?: string | null
+        }
+        Relationships: []
+      }
       agent_training_progress: {
         Row: {
           completed_at: string | null
@@ -3654,6 +3744,39 @@ export type Database = {
           qbo_id?: string
           raw_payload?: Json | null
           synced_at?: string | null
+        }
+        Relationships: []
+      }
+      qbo_agent_vendor_mappings: {
+        Row: {
+          agent_user_id: string
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          qbo_realm_id: string | null
+          qbo_vendor_id: string
+          updated_at: string
+          vendor_display_name: string | null
+        }
+        Insert: {
+          agent_user_id: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          qbo_realm_id?: string | null
+          qbo_vendor_id: string
+          updated_at?: string
+          vendor_display_name?: string | null
+        }
+        Update: {
+          agent_user_id?: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          qbo_realm_id?: string | null
+          qbo_vendor_id?: string
+          updated_at?: string
+          vendor_display_name?: string | null
         }
         Relationships: []
       }
