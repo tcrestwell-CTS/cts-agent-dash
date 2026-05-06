@@ -400,10 +400,22 @@ export default function StripeReconcilePanel() {
               )}
             </CardDescription>
           </div>
-          <Button onClick={runReconcile} disabled={loading} variant="outline" className="gap-2">
-            <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Scanning..." : "Run Reconciliation"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => runAutoMatch(false)}
+              disabled={autoMatchLoading || loading}
+              variant="outline"
+              className="gap-2"
+              title="Auto-link unlinked Stripe payments to manual payment logs by amount + date"
+            >
+              <Wand2 className={`h-4 w-4 ${autoMatchLoading ? "animate-pulse" : ""}`} />
+              {autoMatchLoading ? "Matching..." : "Auto-Match Stripe"}
+            </Button>
+            <Button onClick={runReconcile} disabled={loading} variant="outline" className="gap-2">
+              <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              {loading ? "Scanning..." : "Run Reconciliation"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
