@@ -288,9 +288,9 @@ export function AddPaymentDialog({
       notes: formData.notes || null,
     });
     if (result) {
-      // If this manually-logged payment is paid AND is not itself an
-      // installment (no due_date), auto-apply it to pending installments.
-      if (formData.status === "paid" && !formData.due_date) {
+      // If this manually-logged payment is paid, auto-apply it against any
+      // other pending installments on the trip (source row excluded by id).
+      if (formData.status === "paid") {
         const alloc = await applyPaymentToInstallments({
           tripId,
           sourcePaymentId: result.id,
