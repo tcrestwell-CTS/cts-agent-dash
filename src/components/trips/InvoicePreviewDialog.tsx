@@ -9,6 +9,7 @@ interface InvoicePreviewDialogProps {
   pdfUrl: string | null;
   invoiceNumber?: string;
   generating?: boolean;
+  error?: boolean;
 }
 
 export function InvoicePreviewDialog({
@@ -17,6 +18,7 @@ export function InvoicePreviewDialog({
   pdfUrl,
   invoiceNumber,
   generating,
+  error,
 }: InvoicePreviewDialogProps) {
   const handleDownload = () => {
     if (!pdfUrl) return;
@@ -55,11 +57,11 @@ export function InvoicePreviewDialog({
               className="w-full h-full rounded-lg border bg-background"
               title={`Invoice ${invoiceNumber || ""}`}
             />
-          ) : (
+          ) : error ? (
             <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg">
               <p className="text-sm text-muted-foreground">Failed to generate invoice.</p>
             </div>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
