@@ -6543,6 +6543,33 @@ export type Database = {
           },
         ]
       }
+      user_feature_permissions: {
+        Row: {
+          allowed: boolean
+          created_at: string
+          feature_key: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed?: boolean
+          created_at?: string
+          feature_key: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed?: boolean
+          created_at?: string
+          feature_key?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -7007,6 +7034,10 @@ export type Database = {
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
+      has_feature_permission: {
+        Args: { _feature_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
