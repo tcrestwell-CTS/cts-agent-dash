@@ -44,6 +44,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
+import { useFeaturePermissions } from "@/hooks/useFeaturePermissions";
+import type { FeatureKey } from "@/lib/featureRegistry";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/CTN-Logo.png";
@@ -58,7 +60,13 @@ import { useNavigate } from "react-router-dom";
 export const SidebarCollapsedContext = createContext<boolean>(false);
 export const useSidebarCollapsed = () => useContext(SidebarCollapsedContext);
 
-type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  /** Optional feature gate. If set, item is hidden when user lacks the feature. */
+  feature?: FeatureKey;
+};
 
 interface NavGroup {
   label: string;
@@ -67,7 +75,7 @@ interface NavGroup {
 }
 
 const topLevelNav: NavItem[] = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: "dashboard" },
 ];
 
 const navGroups: NavGroup[] = [
@@ -75,56 +83,56 @@ const navGroups: NavGroup[] = [
     label: "Sales",
     icon: DollarSign,
     items: [
-      { name: "Leads", href: "/leads", icon: UserPlus },
-      { name: "Trips", href: "/trips", icon: Compass },
-      { name: "Quotes", href: "/commission-report", icon: FileText },
-      { name: "Clients", href: "/contacts", icon: Users },
-      { name: "Business Contacts", href: "/business-contacts", icon: Building2 },
+      { name: "Leads", href: "/leads", icon: UserPlus, feature: "leads" },
+      { name: "Trips", href: "/trips", icon: Compass, feature: "trips" },
+      { name: "Quotes", href: "/commission-report", icon: FileText, feature: "quotes" },
+      { name: "Clients", href: "/contacts", icon: Users, feature: "clients" },
+      { name: "Business Contacts", href: "/business-contacts", icon: Building2, feature: "business_contacts" },
     ],
   },
   {
     label: "Bookings",
     icon: Calendar,
     items: [
-      { name: "Suppliers", href: "/suppliers", icon: Building2 },
-      { name: "Commissions", href: "/commissions", icon: DollarSign },
+      { name: "Suppliers", href: "/suppliers", icon: Building2, feature: "suppliers" },
+      { name: "Commissions", href: "/commissions", icon: DollarSign, feature: "commissions" },
     ],
   },
   {
     label: "Marketing",
     icon: Mail,
     items: [
-      { name: "Email & Branding", href: "/branding", icon: Mail },
-      { name: "Publish Manager", href: "/publish-manager", icon: Globe },
-      { name: "Featured Trips", href: "/featured-trips", icon: Star },
+      { name: "Email & Branding", href: "/branding", icon: Mail, feature: "email_branding" },
+      { name: "Publish Manager", href: "/publish-manager", icon: Globe, feature: "publish_manager" },
+      { name: "Featured Trips", href: "/featured-trips", icon: Star, feature: "featured_trips" },
     ],
   },
   {
     label: "Tools",
     icon: Wrench,
     items: [
-      { name: "Flight Search", href: "/flights", icon: Plane },
-      { name: "Flight Monitor", href: "/flight-monitoring", icon: Bell },
-      { name: "Hotel Search", href: "/hotels", icon: Hotel },
-      { name: "Cruise Search", href: "/cruises", icon: Ship },
-      { name: "Excursions", href: "/excursions", icon: Compass },
-      { name: "Loan Applications", href: "/loan-applications", icon: CreditCard },
+      { name: "Flight Search", href: "/flights", icon: Plane, feature: "flight_search" },
+      { name: "Flight Monitor", href: "/flight-monitoring", icon: Bell, feature: "flight_monitoring" },
+      { name: "Hotel Search", href: "/hotels", icon: Hotel, feature: "hotel_search" },
+      { name: "Cruise Search", href: "/cruises", icon: Ship, feature: "cruise_search" },
+      { name: "Excursions", href: "/excursions", icon: Compass, feature: "excursions" },
+      { name: "Loan Applications", href: "/loan-applications", icon: CreditCard, feature: "loan_applications" },
     ],
   },
   {
     label: "Training",
     icon: GraduationCap,
     items: [
-      { name: "Dashboard", href: "/training", icon: LayoutDashboard },
-      { name: "Library", href: "/training/library", icon: Library },
-      { name: "My Badges", href: "/training", icon: Award },
+      { name: "Dashboard", href: "/training", icon: LayoutDashboard, feature: "training" },
+      { name: "Library", href: "/training/library", icon: Library, feature: "training_library" },
+      { name: "My Badges", href: "/training", icon: Award, feature: "training_badges" },
     ],
   },
   {
     label: "Reports",
     icon: BarChart3,
     items: [
-      { name: "Analytics", href: "/analytics", icon: BarChart3 },
+      { name: "Analytics", href: "/analytics", icon: BarChart3, feature: "analytics" },
     ],
   },
 ];
@@ -171,6 +179,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { canView: canViewTeam } = useCanViewTeam();
   const { data: userRole } = useUserRole();
+  const { can: canFeature } = useFeaturePermissions();
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -179,13 +188,22 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useAgentNotifications();
   const earnings = useEarningsLabel();
 
-  // Apply owner-vs-agent label for the personal earnings nav entry.
-  const localizedNavGroups = navGroups.map((g) => ({
-    ...g,
-    items: g.items.map((i) =>
-      i.href === "/commissions" ? { ...i, name: earnings.plural } : i
-    ),
-  }));
+  // Apply owner-vs-agent label for the personal earnings nav entry,
+  // and filter out items the user does not have permission to see.
+  const localizedNavGroups = navGroups
+    .map((g) => ({
+      ...g,
+      items: g.items
+        .map((i) =>
+          i.href === "/commissions" ? { ...i, name: earnings.plural } : i
+        )
+        .filter((i) => !i.feature || canFeature(i.feature)),
+    }))
+    .filter((g) => g.items.length > 0);
+
+  const visibleTopLevel = topLevelNav.filter(
+    (i) => !i.feature || canFeature(i.feature)
+  );
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -366,7 +384,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
         <TooltipProvider delayDuration={0}>
           {/* Top-level items (Dashboard) */}
-          {topLevelNav.map((item) => (
+          {visibleTopLevel.map((item) => (
             <NavItemLink key={item.name} item={item} />
           ))}
 
