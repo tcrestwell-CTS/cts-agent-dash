@@ -313,6 +313,12 @@ const TeamManagement = () => {
             </div>
           </TabsContent>
         )}
+
+        {canManage && (
+          <TabsContent value="payouts">
+            <AgentPayoutsManager />
+          </TabsContent>
+        )}
       </Tabs>
     </DashboardLayout>
   );
