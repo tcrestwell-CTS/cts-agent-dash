@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  RefreshCcw, AlertTriangle, CheckCircle2, Link2, Plus, DollarSign, XCircle, CreditCard, Search,
+  RefreshCcw, AlertTriangle, CheckCircle2, Link2, Plus, DollarSign, XCircle, CreditCard, Search, Wand2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -124,6 +124,38 @@ export default function StripeReconcilePanel() {
       setLoading(false);
     }
   }, [user]);
+
+  // ── Auto-match Stripe payments to manual payment logs ──
+  const [autoMatchLoading, setAutoMatchLoading] = useState(false);
+  const [autoMatchResult, setAutoMatchResult] = useState<any | null>(null);
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
+
+  const runAutoMatch = useCallback(async (dryRun = false) => {
+    if (!user) return;
+    setAutoMatchLoading(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("stripe-auto-match", {
+        body: { lookback_days: 90, window_days: 7, dry_run: dryRun },
+      });
+      if (error) throw error;
+      setAutoMatchResult(result);
+      setAutoMatchOpen(true);
+      const s = result?.summary || {};
+      if (dryRun) {
+        toast.success(`Preview: ${s.newly_linked || 0} would be linked, ${s.ambiguous || 0} ambiguous`);
+      } else if ((s.newly_linked || 0) > 0) {
+        toast.success(`Linked ${s.newly_linked} Stripe payment${s.newly_linked === 1 ? "" : "s"} to manual logs`);
+        // Refresh the main reconciliation view too
+        runReconcile();
+      } else {
+        toast.info("No new auto-matches found");
+      }
+    } catch (err: any) {
+      toast.error("Auto-match failed: " + (err.message || "Unknown error"));
+    } finally {
+      setAutoMatchLoading(false);
+    }
+  }, [user, runReconcile]);
 
   // Search trips when dialog opens or search changes
   const searchTrips = useCallback(async (query: string) => {
