@@ -526,6 +526,8 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="integrations">
+          {null}
+        </TabsContent>
           <Card>
             <CardHeader>
               <CardTitle>Connected Integrations</CardTitle>
