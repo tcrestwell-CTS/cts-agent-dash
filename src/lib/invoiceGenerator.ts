@@ -288,13 +288,21 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   yPos += 10;
 
   doc.setFont("helvetica", "normal");
-  if (data.payments.length === 0) {
+  // If the trip is fully paid (or overpaid), drop any still-pending
+  // installments from the schedule — the balance has already been covered
+  // and showing a future "Due" row is misleading on the invoice.
+  const fullyPaid = (data.totalPaid || 0) >= (data.tripTotal || 0) && (data.tripTotal || 0) > 0;
+  const scheduleRows = fullyPaid
+    ? data.payments.filter((p) => p.status === "paid")
+    : data.payments;
+
+  if (scheduleRows.length === 0) {
     doc.setFontSize(9);
     doc.setTextColor(...mutedColor);
     doc.text("No payments recorded yet.", margin + 2, yPos);
     yPos += 6;
   } else {
-    data.payments.forEach((payment) => {
+    scheduleRows.forEach((payment) => {
       if (yPos > pageHeight - 40) {
         doc.addPage();
         yPos = 25;
