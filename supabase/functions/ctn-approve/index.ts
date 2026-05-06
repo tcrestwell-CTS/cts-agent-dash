@@ -37,15 +37,23 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  // Validate secret — checks CTN_APPROVE_SECRET first, then falls back to agent secrets
-  const secret = req.headers.get("x-agent-secret");
-  const expected =
-    Deno.env.get("CTN_APPROVE_SECRET") ??
-    Deno.env.get("AGENT_SECRET") ??
-    Deno.env.get("CW_AGENT_SECRET");
+  // Auth: accept either x-agent-secret OR Authorization Bearer with service role key
+  const agentSecret = req.headers.get("x-agent-secret");
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.replace("Bearer ", "").trim();
 
-  if (!secret || !expected || secret !== expected) {
-    console.error("[ctn-approve] Auth failed — secret mismatch or not configured");
+  const validSecrets = [
+    Deno.env.get("CTN_APPROVE_SECRET"),
+    Deno.env.get("AGENT_SECRET"),
+    Deno.env.get("CW_AGENT_SECRET"),
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+  ].filter(Boolean);
+
+  const providedToken = agentSecret || bearerToken;
+
+  if (!providedToken || !validSecrets.includes(providedToken)) {
+    console.error("[ctn-approve] Auth failed. Provided:", providedToken?.slice(0, 10));
+    console.error("[ctn-approve] Available secrets configured:", validSecrets.map(s => s?.slice(0, 10)));
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
