@@ -90,11 +90,40 @@ serve(async (req) => {
 
     if (existingUser) {
       console.log(`[ctn-approve] User ${email} already exists — ensuring agent role`);
-      // Upsert role directly
-      await supabase.from("user_roles").upsert(
-        { user_id: existingUser.id, role: "agent", commission_tier: commissionTier },
+      // Ensure profile exists (required for the user to show up on the team page)
+      const fullName =
+        (existingUser.user_metadata as Record<string, unknown> | null)?.full_name as string | undefined ||
+        first_name ||
+        email.split("@")[0];
+      const avatarUrl =
+        (existingUser.user_metadata as Record<string, unknown> | null)?.avatar_url as string | undefined || null;
+
+      const { error: profileErr } = await supabase.from("profiles").upsert(
+        {
+          user_id: existingUser.id,
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          commission_tier: commissionTier,
+          agency_name: "Crestwell Travel Services",
+        },
         { onConflict: "user_id" }
       );
+      if (profileErr) console.error("[ctn-approve] profile upsert error:", profileErr);
+
+      // Assign 'user' role (the standard agent role in app_role enum). Don't overwrite admins.
+      const { data: existingRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", existingUser.id)
+        .maybeSingle();
+
+      if (!existingRole) {
+        const { error: roleErr } = await supabase
+          .from("user_roles")
+          .insert({ user_id: existingUser.id, role: "user" });
+        if (roleErr) console.error("[ctn-approve] role insert error:", roleErr);
+      }
+
       const inviteUrl = `https://app.crestwelltravels.com/auth`;
       return new Response(
         JSON.stringify({ success: true, email, tier: commissionTier, invite_url: inviteUrl, note: "existing_user_role_updated" }),
@@ -136,7 +165,7 @@ serve(async (req) => {
       // Create new invitation
       const insertData: Record<string, unknown> = {
         email:           email.toLowerCase(),
-        role:            "agent",
+        role:            "user",
         commission_tier: commissionTier,
         token,
         expires_at:      expiresAt.toISOString(),
