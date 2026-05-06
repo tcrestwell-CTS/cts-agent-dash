@@ -37,10 +37,15 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  // Validate agent secret
+  // Validate secret — checks CTN_APPROVE_SECRET first, then falls back to agent secrets
   const secret = req.headers.get("x-agent-secret");
-  const expected = Deno.env.get("AGENT_SECRET") ?? Deno.env.get("CW_AGENT_SECRET");
-  if (!secret || secret !== expected) {
+  const expected =
+    Deno.env.get("CTN_APPROVE_SECRET") ??
+    Deno.env.get("AGENT_SECRET") ??
+    Deno.env.get("CW_AGENT_SECRET");
+
+  if (!secret || !expected || secret !== expected) {
+    console.error("[ctn-approve] Auth failed — secret mismatch or not configured");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
