@@ -151,6 +151,7 @@ export function TripPayments({
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
   const [invoicePreviewNumber, setInvoicePreviewNumber] = useState<string | undefined>();
+  const [invoicePreviewError, setInvoicePreviewError] = useState(false);
 
   const handleCreatePaymentLink = async (paymentId: string) => {
     setCreatingPaymentLink(paymentId);
@@ -260,6 +261,7 @@ export function TripPayments({
     setGeneratingInvoice(true);
     setInvoicePreviewOpen(true);
     setInvoicePreviewUrl(null);
+    setInvoicePreviewError(false);
     try {
       // createInvoice internally calls getNextInvoiceNumber, so we only call it once
       const invoice = await createInvoice({
@@ -290,7 +292,7 @@ export function TripPayments({
     } catch (error) {
       console.error("Error generating invoice:", error);
       toast.error("Failed to generate invoice");
-      setInvoicePreviewOpen(false);
+      setInvoicePreviewError(true);
     } finally {
       setGeneratingInvoice(false);
     }
@@ -773,10 +775,12 @@ export function TripPayments({
             URL.revokeObjectURL(invoicePreviewUrl);
             setInvoicePreviewUrl(null);
           }
+          if (!open) setInvoicePreviewError(false);
         }}
         pdfUrl={invoicePreviewUrl}
         invoiceNumber={invoicePreviewNumber}
         generating={generatingInvoice}
+        error={invoicePreviewError}
       />
     </div>
   );
