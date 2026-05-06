@@ -1017,6 +1017,107 @@ export default function StripeReconcilePanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Auto-Match Results Dialog */}
+      <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Stripe Auto-Match Results</DialogTitle>
+            <DialogDescription>
+              Matched Stripe payments to manual payment logs by amount + date (±{autoMatchResult?.params?.window_days ?? 7} days, last {autoMatchResult?.params?.lookback_days ?? 90} days).
+            </DialogDescription>
+          </DialogHeader>
+          {autoMatchResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Stripe scanned</p>
+                  <p className="text-xl font-semibold">{autoMatchResult.summary?.stripe_pis_scanned ?? 0}</p>
+                </div>
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Newly linked</p>
+                  <p className="text-xl font-semibold text-green-600">{autoMatchResult.summary?.newly_linked ?? 0}</p>
+                </div>
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Ambiguous</p>
+                  <p className="text-xl font-semibold text-amber-600">{autoMatchResult.summary?.ambiguous ?? 0}</p>
+                </div>
+                <div className="rounded-lg border p-3 text-center">
+                  <p className="text-xs text-muted-foreground">No match</p>
+                  <p className="text-xl font-semibold text-muted-foreground">{autoMatchResult.summary?.unmatched_in_stripe ?? 0}</p>
+                </div>
+              </div>
+
+              {autoMatchResult.linked?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">Linked ({autoMatchResult.linked.length})</p>
+                  <div className="max-h-48 overflow-auto rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Stripe PI</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Stripe Date</TableHead>
+                          <TableHead>Local Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {autoMatchResult.linked.map((l: any) => (
+                          <TableRow key={l.pi_id}>
+                            <TableCell className="font-mono text-xs">{l.pi_id}</TableCell>
+                            <TableCell>{fmt(l.amount)}</TableCell>
+                            <TableCell className="text-xs">{format(new Date(l.created), "MMM d, yyyy")}</TableCell>
+                            <TableCell className="text-xs">{l.local_payment_date}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {autoMatchResult.ambiguous?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2 text-amber-700">
+                    Ambiguous ({autoMatchResult.ambiguous.length}) — multiple manual payments matched; resolve in the orphan list.
+                  </p>
+                  <div className="max-h-48 overflow-auto rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Stripe PI</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Candidates</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {autoMatchResult.ambiguous.map((a: any) => (
+                          <TableRow key={a.pi_id}>
+                            <TableCell className="font-mono text-xs">{a.pi_id}</TableCell>
+                            <TableCell>{fmt(a.amount)}</TableCell>
+                            <TableCell className="text-xs">{format(new Date(a.created), "MMM d, yyyy")}</TableCell>
+                            <TableCell>{a.candidate_count}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {(!autoMatchResult.linked?.length && !autoMatchResult.ambiguous?.length) && (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No Stripe payments matched any manual payment logs by amount + date in the scan window.
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAutoMatchOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
