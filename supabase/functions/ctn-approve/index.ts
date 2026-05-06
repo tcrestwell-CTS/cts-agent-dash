@@ -82,6 +82,26 @@ serve(async (req) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    // ── Check if user already exists in auth.users ───────────────────────
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+
+    if (existingUser) {
+      console.log(`[ctn-approve] User ${email} already exists — ensuring agent role`);
+      // Upsert role directly
+      await supabase.from("user_roles").upsert(
+        { user_id: existingUser.id, role: "agent", commission_tier: commissionTier },
+        { onConflict: "user_id" }
+      );
+      const inviteUrl = `https://app.crestwelltravels.com/auth`;
+      return new Response(
+        JSON.stringify({ success: true, email, tier: commissionTier, invite_url: inviteUrl, note: "existing_user_role_updated" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Check for existing pending invitation ─────────────────────────────
     const { data: existing } = await supabase
       .from("invitations")
