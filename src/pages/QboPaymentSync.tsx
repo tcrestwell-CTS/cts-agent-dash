@@ -28,9 +28,6 @@ export default function QboPaymentSync() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [detail, setDetail] = useState<PaymentSyncRow | null>(null);
 
-  if (adminLoading) return <DashboardLayout><Skeleton className="h-96" /></DashboardLayout>;
-  if (!isAdmin) return <Navigate to="/" replace />;
-
   const rows = data ?? [];
   const counts = useMemo(() => {
     const c = { all: rows.length, synced: 0, failed: 0, pending: 0, not_eligible: 0 };
@@ -46,6 +43,9 @@ export default function QboPaymentSync() {
       return true;
     });
   }, [rows, filter, search]);
+
+  if (adminLoading) return <DashboardLayout><Skeleton className="h-96" /></DashboardLayout>;
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
