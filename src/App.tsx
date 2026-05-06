@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PortalAuthProvider } from "@/contexts/PortalAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FeatureRoute } from "@/components/FeatureRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -122,8 +123,8 @@ const App = () => (
                 {/* Agent Dashboard Routes */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                <Route path="/contacts" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
-                <Route path="/contacts/:clientId" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
+                <Route path="/contacts" element={<ProtectedRoute><FeatureRoute feature="clients"><CRM /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/contacts/:clientId" element={<ProtectedRoute><FeatureRoute feature="clients"><ClientDetail /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
                 <Route path="/bookings/:bookingId" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
@@ -132,10 +133,10 @@ const App = () => (
                 <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
                 <Route path="/training/lesson/:lessonId" element={<ProtectedRoute><TrainingLessonDetail /></ProtectedRoute>} />
                 <Route path="/training/admin" element={<ProtectedRoute><TrainingAdmin /></ProtectedRoute>} />
-                <Route path="/commissions" element={<ProtectedRoute><Commissions /></ProtectedRoute>} />
-                <Route path="/commission-report" element={<ProtectedRoute><CommissionReport /></ProtectedRoute>} />
-                <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-                <Route path="/branding" element={<ProtectedRoute><Branding /></ProtectedRoute>} />
+                <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/commission-report" element={<ProtectedRoute><FeatureRoute feature="quotes"><CommissionReport /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><FeatureRoute feature="analytics"><Analytics /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/branding" element={<ProtectedRoute><FeatureRoute feature="email_branding"><Branding /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
                 <Route path="/qbo-payment-sync" element={<ProtectedRoute><QboPaymentSync /></ProtectedRoute>} />
@@ -150,25 +151,25 @@ const App = () => (
                 <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
                 <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
-                <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
-                <Route path="/trips" element={<ProtectedRoute><Trips /></ProtectedRoute>} />
-                <Route path="/trips/:tripId" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
+                <Route path="/suppliers" element={<ProtectedRoute><FeatureRoute feature="suppliers"><Suppliers /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/trips" element={<ProtectedRoute><FeatureRoute feature="trips"><Trips /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/trips/:tripId" element={<ProtectedRoute><FeatureRoute feature="trips"><TripDetail /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/insurance" element={<ProtectedRoute><TripInsurance /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/landing-page" element={<ProtectedRoute><GroupLandingBuilder /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                <Route path="/publish-manager" element={<ProtectedRoute><TripPublishManager /></ProtectedRoute>} />
-                <Route path="/flights" element={<ProtectedRoute><FlightSearch /></ProtectedRoute>} />
-                <Route path="/flight-monitoring" element={<ProtectedRoute><FlightMonitoring /></ProtectedRoute>} />
-                <Route path="/hotels" element={<ProtectedRoute><HotelSearch /></ProtectedRoute>} />
-                <Route path="/cruises" element={<ProtectedRoute><CruiseSearch /></ProtectedRoute>} />
-                <Route path="/featured-trips" element={<ProtectedRoute><FeaturedTrips /></ProtectedRoute>} />
-                <Route path="/loan-applications" element={<ProtectedRoute><LoanApplications /></ProtectedRoute>} />
-                <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+                <Route path="/publish-manager" element={<ProtectedRoute><FeatureRoute feature="publish_manager"><TripPublishManager /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/flights" element={<ProtectedRoute><FeatureRoute feature="flight_search"><FlightSearch /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/flight-monitoring" element={<ProtectedRoute><FeatureRoute feature="flight_monitoring"><FlightMonitoring /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/hotels" element={<ProtectedRoute><FeatureRoute feature="hotel_search"><HotelSearch /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/cruises" element={<ProtectedRoute><FeatureRoute feature="cruise_search"><CruiseSearch /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/featured-trips" element={<ProtectedRoute><FeatureRoute feature="featured_trips"><FeaturedTrips /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/loan-applications" element={<ProtectedRoute><FeatureRoute feature="loan_applications"><LoanApplications /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute><FeatureRoute feature="leads"><Leads /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/portal-management" element={<ProtectedRoute><PortalManagement /></ProtectedRoute>} />
                 <Route path="/portal-preview/:clientId" element={<ProtectedRoute><AdminPortalPreview /></ProtectedRoute>} />
-                <Route path="/business-contacts" element={<ProtectedRoute><BusinessContacts /></ProtectedRoute>} />
-                <Route path="/excursions" element={<ProtectedRoute><Excursions /></ProtectedRoute>} />
+                <Route path="/business-contacts" element={<ProtectedRoute><FeatureRoute feature="business_contacts"><BusinessContacts /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/excursions" element={<ProtectedRoute><FeatureRoute feature="excursions"><Excursions /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/task-monitor" element={<ProtectedRoute><TaskMonitor /></ProtectedRoute>} />
                 <Route path="/import/tern" element={<ProtectedRoute><TernImport /></ProtectedRoute>} />
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
