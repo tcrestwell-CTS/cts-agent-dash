@@ -58,6 +58,20 @@ export interface UpdatePaymentData {
   notes?: string | null;
 }
 
+export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_date" | "payment_method" | "stripe_session_id" | "stripe_receipt_url" | "payment_type" | "details">) => {
+  const details = (payment.details || "").toLowerCase();
+  const isSchedulePlaceholder =
+    !!payment.due_date &&
+    !payment.payment_method &&
+    !payment.stripe_session_id &&
+    !payment.stripe_receipt_url &&
+    (["installment", "final", "final_balance"].includes(payment.payment_type) ||
+      details.startsWith("installment") ||
+      details.startsWith("final balance"));
+
+  return payment.status === "paid" && !isSchedulePlaceholder;
+};
+
 export function useTripPayments(tripId: string | undefined) {
   const { user } = useAuth();
   const [payments, setPayments] = useState<TripPayment[]>([]);
@@ -207,7 +221,7 @@ export function useTripPayments(tripId: string | undefined) {
   // Calculate totals
   const totalExpected = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const totalPaid = payments
-    .filter((p) => p.status === "paid")
+    .filter(isInvoiceCashPayment)
     .reduce((sum, p) => sum + Number(p.amount), 0);
   const totalAuthorized = payments
     .filter((p) => p.status === "authorized")

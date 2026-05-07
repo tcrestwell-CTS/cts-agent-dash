@@ -7169,6 +7169,10 @@ export type Database = {
         Returns: boolean
       }
       is_authenticated: { Args: never; Returns: boolean }
+      is_invoice_cash_payment: {
+        Args: { p: Database["public"]["Tables"]["trip_payments"]["Row"] }
+        Returns: boolean
+      }
       is_recon_admin: { Args: never; Returns: boolean }
       reveal_cw_agent_secret: { Args: never; Returns: string }
     }

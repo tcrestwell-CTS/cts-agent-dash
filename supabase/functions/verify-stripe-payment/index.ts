@@ -131,6 +131,57 @@ async function sendReceiptEmail(
   }
 }
 
+async function applyPaymentToInstallments(
+  supabase: any,
+  tripId: string,
+  sourcePaymentId: string,
+  amount: number,
+  paymentDate: string,
+) {
+  let remaining = Number(amount) || 0;
+  if (remaining <= 0) return;
+
+  const { data: installments, error } = await supabase
+    .from("trip_payments")
+    .select("id, amount, due_date, status")
+    .eq("trip_id", tripId)
+    .eq("status", "pending")
+    .not("due_date", "is", null)
+    .neq("id", sourcePaymentId)
+    .order("due_date", { ascending: true });
+
+  if (error || !installments?.length) {
+    if (error) console.error("applyPaymentToInstallments: failed to load installments", error);
+    return;
+  }
+
+  for (const installment of installments) {
+    if (remaining <= 0.0049) break;
+    const installmentAmount = Number(installment.amount) || 0;
+    if (installmentAmount <= 0) continue;
+
+    if (remaining + 0.0049 >= installmentAmount) {
+      const { error: updateError } = await supabase
+        .from("trip_payments")
+        .update({ status: "paid", payment_date: paymentDate })
+        .eq("id", installment.id);
+      if (updateError) {
+        console.error("applyPaymentToInstallments: failed to mark paid", updateError);
+        break;
+      }
+      remaining = Math.round((remaining - installmentAmount) * 100) / 100;
+    } else {
+      const newAmount = Math.round((installmentAmount - remaining) * 100) / 100;
+      const { error: updateError } = await supabase
+        .from("trip_payments")
+        .update({ amount: newAmount })
+        .eq("id", installment.id);
+      if (updateError) console.error("applyPaymentToInstallments: failed to reduce", updateError);
+      break;
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -170,20 +221,32 @@ serve(async (req) => {
       if (paymentId) {
         const { data: paymentBefore } = await supabase
           .from("trip_payments")
-          .select("amount, payment_type, status, payment_method_choice")
+          .select("amount, payment_type, status, payment_method_choice, trip_id, due_date")
           .eq("id", paymentId)
           .single();
+
+        const paymentDate = new Date().toISOString().split("T")[0];
 
         await supabase
           .from("trip_payments")
           .update({
             status: "paid",
             payment_method: "stripe",
-            payment_date: new Date().toISOString().split("T")[0],
+            payment_date: paymentDate,
             details: `Stripe payment ${session.payment_intent}`,
             stripe_receipt_url: receiptUrl,
           })
           .eq("id", paymentId);
+
+        if (paymentBefore?.trip_id && paymentBefore.status !== "paid" && !paymentBefore.due_date) {
+          await applyPaymentToInstallments(
+            supabase,
+            paymentBefore.trip_id,
+            paymentId,
+            paymentBefore.amount,
+            paymentDate,
+          );
+        }
 
         // Send receipt email only for newly paid payments
         if (paymentBefore && paymentBefore.status !== "paid") {
