@@ -221,7 +221,7 @@ serve(async (req) => {
       if (paymentId) {
         const { data: paymentBefore } = await supabase
           .from("trip_payments")
-          .select("amount, payment_type, status, payment_method_choice, trip_id")
+          .select("amount, payment_type, status, payment_method_choice, trip_id, due_date")
           .eq("id", paymentId)
           .single();
 
@@ -238,7 +238,7 @@ serve(async (req) => {
           })
           .eq("id", paymentId);
 
-        if (paymentBefore?.trip_id && paymentBefore.status !== "paid") {
+        if (paymentBefore?.trip_id && paymentBefore.status !== "paid" && !paymentBefore.due_date) {
           await applyPaymentToInstallments(
             supabase,
             paymentBefore.trip_id,
