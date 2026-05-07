@@ -82,6 +82,21 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const isInvoiceCashPayment = (payment: TripPayment) => {
+  const details = (payment.details || "").toLowerCase();
+  const isSchedulePlaceholder =
+    !!payment.due_date &&
+    !payment.payment_method &&
+    !payment.stripe_session_id &&
+    !payment.stripe_receipt_url &&
+    ["installment", "final", "final_balance"].includes(payment.payment_type) &&
+    details.startsWith("installment");
+
+  return payment.status === "paid" && !isSchedulePlaceholder;
+};
+
+const isUpcomingPaymentDue = (payment: TripPayment) => payment.status === "pending" && !!payment.due_date;
+
 export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions): Promise<string | void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -292,9 +307,13 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   // installments from the schedule — the balance has already been covered
   // and showing a future "Due" row is misleading on the invoice.
   const fullyPaid = (data.totalPaid || 0) >= (data.tripTotal || 0) && (data.tripTotal || 0) > 0;
-  const scheduleRows = fullyPaid
-    ? data.payments.filter((p) => p.status === "paid")
-    : data.payments;
+  const scheduleRows = data.payments
+    .filter((p) => isInvoiceCashPayment(p) || (!fullyPaid && isUpcomingPaymentDue(p)))
+    .sort((a, b) => {
+      const aDate = a.status === "pending" ? a.due_date || a.payment_date : a.payment_date || a.due_date;
+      const bDate = b.status === "pending" ? b.due_date || b.payment_date : b.payment_date || b.due_date;
+      return new Date(aDate || 0).getTime() - new Date(bDate || 0).getTime();
+    });
 
   if (scheduleRows.length === 0) {
     doc.setFontSize(9);
