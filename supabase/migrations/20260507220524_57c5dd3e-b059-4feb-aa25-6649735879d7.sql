@@ -1,0 +1,1 @@
+UPDATE public.trip_payments SET status='pending', payment_date='2026-06-09', updated_at=now() WHERE id='a4a03f94-d308-4bb9-9935-446d549cfa11';
