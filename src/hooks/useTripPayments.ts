@@ -65,8 +65,9 @@ export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_
     !payment.payment_method &&
     !payment.stripe_session_id &&
     !payment.stripe_receipt_url &&
-    ["installment", "final", "final_balance"].includes(payment.payment_type) &&
-    details.startsWith("installment");
+    (["installment", "final", "final_balance"].includes(payment.payment_type) ||
+      details.startsWith("installment") ||
+      details.startsWith("final balance"));
 
   return payment.status === "paid" && !isSchedulePlaceholder;
 };
