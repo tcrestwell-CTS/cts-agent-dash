@@ -3707,6 +3707,51 @@ export type Database = {
           },
         ]
       }
+      marketing_image_assets: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          filename: string
+          height: number | null
+          id: string
+          mime_type: string | null
+          public_url: string
+          size_bytes: number | null
+          storage_path: string
+          tags: string[] | null
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          filename: string
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          public_url: string
+          size_bytes?: number | null
+          storage_path: string
+          tags?: string[] | null
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          filename?: string
+          height?: number | null
+          id?: string
+          mime_type?: string | null
+          public_url?: string
+          size_bytes?: number | null
+          storage_path?: string
+          tags?: string[] | null
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       mentor_assignments: {
         Row: {
           assigned_by: string
