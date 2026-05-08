@@ -12,9 +12,17 @@ const ALLOWED_ORIGINS = [
   "https://crestwellgetaways.com",
 ];
 
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Allow Lovable preview/sandbox origins
+  if (/\.lovable\.app$/.test(new URL(origin).hostname)) return true;
+  if (/\.lovableproject\.com$/.test(new URL(origin).hostname)) return true;
+  return false;
+}
+
 function corsHeaders(origin: string | null): Record<string, string> {
-  const allow =
-    origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allow = isAllowedOrigin(origin) ? (origin as string) : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Headers":
