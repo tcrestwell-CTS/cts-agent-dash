@@ -73,6 +73,10 @@ const ReconSettings   = lazy(() => import("./pages/ReconSettings"));
 const Excursions         = lazy(() => import("./pages/Excursions"));
 const TaskMonitor        = lazy(() => import("./pages/TaskMonitor"));
 const TernImport         = lazy(() => import("./pages/TernImport"));
+const Campaigns          = lazy(() => import("./pages/Campaigns"));
+const CampaignEditor     = lazy(() => import("./pages/CampaignEditor"));
+const CampaignAudiences  = lazy(() => import("./pages/CampaignAudiences"));
+const CampaignImages     = lazy(() => import("./pages/CampaignImages"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
@@ -141,6 +145,11 @@ const App = () => (
                 <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
                 <Route path="/qbo-payment-sync" element={<ProtectedRoute><QboPaymentSync /></ProtectedRoute>} />
                 <Route path="/email-activity" element={<ProtectedRoute><EmailActivity /></ProtectedRoute>} />
+                <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+                <Route path="/campaigns/new" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
+                <Route path="/campaigns/audiences" element={<ProtectedRoute><CampaignAudiences /></ProtectedRoute>} />
+                <Route path="/campaigns/images" element={<ProtectedRoute><CampaignImages /></ProtectedRoute>} />
+                <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
                 <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
                 <Route path="/recon"            element={<ProtectedRoute><ReconDashboard /></ProtectedRoute>} />
                 <Route path="/recon/matches"    element={<ProtectedRoute><ReconMatches /></ProtectedRoute>} />
