@@ -179,7 +179,7 @@ serve(async (req) => {
       }
 
       const token = await signUnsubscribe(rec.email, campaignId);
-      const unsubscribeUrl = `${PORTAL_BASE}/unsubscribe?e=${encodeURIComponent(rec.email)}&c=${campaignId}&t=${token}`;
+      const unsubscribeUrl = `${SUPABASE_URL}/functions/v1/unsubscribe?e=${encodeURIComponent(rec.email)}&c=${campaignId}&t=${token}`;
 
       const md = (rec.merge_data ?? {}) as Record<string, string>;
       const mergeVars: Record<string, string> = {
