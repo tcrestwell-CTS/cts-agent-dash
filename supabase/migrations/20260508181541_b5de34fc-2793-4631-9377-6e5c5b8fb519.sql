@@ -1,0 +1,1 @@
+alter view public.email_contacts set (security_invoker = on);
