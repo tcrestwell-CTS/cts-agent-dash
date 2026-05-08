@@ -1,86 +1,80 @@
-# Email Activity Dashboard
+# Marketing Campaigns Hub
 
-Build an admin-only dashboard to monitor outgoing emails — sends, failures, retries — with filters by template (campaign) and date range.
+Build a complete Campaigns UI under the existing **Marketing** sidebar group, plus an AI campaign writer and a drag-and-drop image library backed by the existing `email-assets` storage bucket.
 
-## Current state
+## What gets added
 
-- Single `send-email` Edge Function uses Resend; logs to `public.email_logs` only on success and only when a `clientId` is provided.
-- No failure rows, no retry tracking, no Resend message ID stored.
-- `useEmailLogs` hook exists but is scoped per-client.
-- Many callers across the app invoke `send-email` (post-trip, payment receipts, eticket, invitations, nurture, proposals, etc.).
+### 1. Sidebar nav (Marketing group)
+Add three new entries above "Email & Branding":
+- **Campaigns** → `/campaigns` (list)
+- **Audiences** → `/campaigns/audiences`
+- **Image Library** → `/campaigns/images`
 
-## Changes
+### 2. Pages
 
-### 1. Database (migration)
+**`/campaigns` — Campaign list**
+Table of all campaigns with stats columns (Sent / Delivered / Opened / Clicked / Bounced), status badge, sent date. Buttons: "New Campaign", row click → editor. Filter by status. Uses existing `campaigns` table.
 
-Extend `public.email_logs` so it can capture every send attempt:
+**`/campaigns/new` and `/campaigns/:id` — Campaign editor**
+Single-page editor with:
+- Left column: Name, Subject, Preheader, From Name, From Email (default `news@crestwellgetaways.com`), Reply-To, Audience picker, HTML body editor (textarea with merge-var helper chips: `{{first_name}}`, `{{last_name}}`, `{{contact_name}}`, `{{email}}`)
+- Right column: Live preview pane (renders body_html in an iframe), AI Assistant card (see below), Image Library quick-insert
+- Footer actions: Save Draft, Send Test (to current user), **Send Campaign** (calls existing `send-campaign` edge function), with confirmation dialog showing recipient count
 
-- Add columns:
-  - `provider_message_id text` — Resend ID for delivery correlation
-  - `error_message text` — failure reason
-  - `attempt_count int not null default 1`
-  - `metadata jsonb` — caller context (trip_id, booking_id, etc.)
-- Make `client_id` and `user_id` nullable (system emails like invitations have no client).
-- Allow `status` values: `sent`, `failed`, `retrying`, `bounced`.
-- Indexes on `(created_at desc)`, `(template)`, `(status)`.
-- RLS: admins/office_admin can read all rows; service role inserts bypass RLS.
+**`/campaigns/audiences` — Audience manager**
+List of `campaign_audiences`. Create/edit dialog with name, description, and a simple filter builder (initial v1: "all clients", "all leads", "all contacts", "manual list" — stored in `filter` jsonb). Shows live `contact_count`. A "Refresh count" button materializes recipients via a new edge function.
 
-### 2. Edge Function `send-email`
+**`/campaigns/images` — Image library**
+Grid view of all files in the `email-assets` storage bucket. Drag-and-drop upload zone (uses `react-dropzone`). Each tile shows thumbnail, filename, size, "Copy URL" button, and delete. Same component is embedded in the campaign editor as an "Insert Image" sheet — clicking inserts an `<img src="...">` tag at the cursor in the body editor.
 
-- Always insert a log row (even without `clientId`).
-- On Resend success: insert with `status='sent'` + `provider_message_id`.
-- On Resend failure: insert with `status='failed'` + `error_message`, then perform up to 2 retries with exponential backoff (1s, 3s). Each attempt updates `attempt_count` on the same row (keyed by an `idempotency_key` we generate at request start) instead of inserting duplicates.
-- Accept optional `metadata` from callers and persist it.
+### 3. AI Campaign Writer
+New edge function **`generate-campaign-copy`** using Lovable AI Gateway (`google/gemini-2.5-flash`). In the editor, an "AI Assistant" card with:
+- Inputs: campaign goal/topic (textarea), tone (Friendly / Luxury / Urgent / Informative), call-to-action, audience description
+- Buttons: "Generate Subject Lines" (returns 5 options), "Generate Email Body" (returns HTML using semantic email-safe markup), "Improve Selection"
+- Output appears inline; one click applies to the form
 
-### 3. New hooks
+System prompt enforces Crestwell Travels brand voice (luxury, navy/gold), travel-agency context, and inline merge-var usage.
 
-- `useEmailActivity({ from, to, templates, statuses })` — admin-scoped query against `email_logs` with filters, ordered by `created_at desc`, paginated 25/page.
-- `useEmailActivityStats({ from, to, templates })` — aggregates: total sends, sent, failed, retry count (sum of `attempt_count - 1`), success rate. Also returns daily timeseries `{ date, sent, failed }` for the chart.
-- `useEmailTemplatesList()` — `select distinct template` for the filter dropdown.
+### 4. Edge functions
+- **`generate-campaign-copy`** (new) — Lovable AI; admin/office_admin only; verify_jwt off, validates user role via service-role auth check
+- **`materialize-audience`** (new) — Given `audience_id`, expands the audience filter into `campaign_recipients` rows for a given `campaign_id`, dedupes against suppressions, returns count. Admin-only.
 
-### 4. New page `/email-activity` (admin only)
+### 5. Database (migration)
+- New table **`marketing_image_assets`** (id, user_id, storage_path, public_url, filename, mime_type, size_bytes, width, height, alt_text, tags text[], created_at) with RLS allowing all authenticated read/write — keeps a queryable index over the bucket so the library doesn't need to list storage every render
+- RLS for `email-assets` storage bucket: authenticated read/write/delete (already public-read since bucket is public)
 
-Wrapped in `AdminRoute`, registered in `src/App.tsx`, linked from `Sidebar.tsx` under an "Operations" / "Communications" group.
+### 6. Hooks
+- `useCampaigns`, `useCampaign(id)` — list + single, with React Query
+- `useAudiences` — list + mutations
+- `useImageAssets` — list, upload (to bucket + insert row), delete
+- `useSendCampaign` — invokes `send-campaign` edge function
+- `useGenerateCampaignCopy` — invokes `generate-campaign-copy`
 
-Layout:
+## Technical details
 
-```text
-+----------------------------------------------------------+
-| Email Activity                                           |
-| [Date range] [Template ▾] [Status ▾]      [Export CSV]   |
-+----------------------------------------------------------+
-| Total: 412 | Sent: 398 | Failed: 14 | Retries: 22 | 96.6%|
-+----------------------------------------------------------+
-| Sends over time (stacked bar: sent vs failed, by day)    |
-+----------------------------------------------------------+
-| Table: time | template | recipient | status | attempts   |
-|        | error (expand) | metadata (drawer)              |
-+----------------------------------------------------------+
-```
+- All pages wrap in `<ProtectedRoute>` with admin gate (reuse pattern from `AdminRoute` or check `useUserRoles` for `admin`/`office_admin`)
+- Image library uses `react-dropzone` (need to install). Files uploaded to `email-assets/<user_id>/<uuid>-<filename>`, public URL stored in `marketing_image_assets`
+- HTML body editor: keep simple `<Textarea>` with monospace font in v1 (no rich text editor yet) — matches existing project patterns; merge-var chips insert at cursor
+- Preview iframe sandboxed (`sandbox=""`) for safety
+- Send confirmation shows audience name + recipient count (queries `campaign_recipients` where `campaign_id = ? and status = 'queued'`)
+- "Send Test" inserts a single `campaign_recipients` row for the current user and invokes `send-campaign` (or a separate path); v1: simply send via Resend directly through a new `send-test-campaign` action
+- Use existing `useToast`, `Card`, `Button`, `Dialog`, `Tabs`, `Badge` from shadcn — no new design tokens
 
-Components:
-- `src/pages/EmailActivity.tsx`
-- `src/components/email/EmailActivityFilters.tsx` — preset ranges (24h, 7d, 30d) + custom datepicker.
-- `src/components/email/EmailActivityStats.tsx` — stat cards.
-- `src/components/email/EmailActivityChart.tsx` — recharts stacked bar by day.
-- `src/components/email/EmailActivityTable.tsx` — sortable, paginated, expandable error row, drawer for metadata.
-- `src/components/email/EmailStatusBadge.tsx`.
+## Out of scope (v1)
+- Scheduled sends UI (table column exists; defer scheduler)
+- A/B subject testing
+- Rich text/visual email builder (just HTML textarea + image insert)
+- Advanced segment filter builder beyond preset audiences
 
-Charts use `recharts` (already in repo). CSV export reuses `src/lib/csvExport.ts`.
+## File list
+- Migration: `marketing_image_assets` table + storage policies
+- `src/hooks/useCampaigns.ts`, `useCampaignAudiences.ts`, `useImageAssets.ts`
+- `src/pages/Campaigns.tsx`, `CampaignEditor.tsx`, `CampaignAudiences.tsx`, `ImageLibrary.tsx`
+- `src/components/campaigns/CampaignTable.tsx`, `AudienceDialog.tsx`, `AICampaignAssistant.tsx`, `ImageDropzone.tsx`, `ImageGrid.tsx`, `MergeVarChips.tsx`, `EmailPreview.tsx`
+- `src/App.tsx` — add 4 routes
+- `src/components/layout/Sidebar.tsx` — add 3 marketing entries
+- `supabase/functions/generate-campaign-copy/index.ts`
+- `supabase/functions/materialize-audience/index.ts`
+- `supabase/config.toml` — register both functions
 
-### 5. Sidebar & route
-
-- Add `/email-activity` to `src/App.tsx` behind `AdminRoute`.
-- Add nav link in `Sidebar.tsx` (icon: `Mail`).
-
-## Out of scope
-
-- No changes to per-client email panel (`useEmailLogs` keeps working — same table).
-- No bounce/complaint webhooks from Resend (can be added later; schema is ready).
-- No re-send-from-dashboard action in this pass (can be added once retry endpoint is stable).
-
-## Acceptance
-
-- Admin can open `/email-activity`, see today's sends/failures, filter by date range and template, see retry counts, export CSV.
-- A failed Resend send produces a `failed` row with the error; retries increment `attempt_count` on the same row.
-- Per-client email view in `ClientDetail` still works.
+Approve and I'll build it.
