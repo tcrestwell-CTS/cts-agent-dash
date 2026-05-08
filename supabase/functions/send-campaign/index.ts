@@ -148,14 +148,14 @@ serve(async (req) => {
 
     await admin
       .from("campaigns")
-      .update({ status: "sending", started_at: new Date().toISOString() })
+      .update({ status: "sending" })
       .eq("id", campaignId);
 
     const { data: recipients, error: rErr } = await admin
       .from("campaign_recipients")
-      .select("id, email, contact_name, merge_vars")
+      .select("id, email, merge_data")
       .eq("campaign_id", campaignId)
-      .eq("status", "pending");
+      .eq("status", "queued");
     if (rErr) throw rErr;
 
     // Filter against suppressions
@@ -181,11 +181,13 @@ serve(async (req) => {
       const token = await signUnsubscribe(rec.email, campaignId);
       const unsubscribeUrl = `${PORTAL_BASE}/unsubscribe?e=${encodeURIComponent(rec.email)}&c=${campaignId}&t=${token}`;
 
+      const md = (rec.merge_data ?? {}) as Record<string, string>;
       const mergeVars: Record<string, string> = {
-        first_name: (rec.contact_name ?? "").split(" ")[0] ?? "",
-        contact_name: rec.contact_name ?? "",
         email: rec.email,
-        ...(rec.merge_vars as Record<string, string> | null ?? {}),
+        first_name: md.first_name ?? "",
+        last_name: md.last_name ?? "",
+        contact_name: md.contact_name ?? `${md.first_name ?? ""} ${md.last_name ?? ""}`.trim(),
+        ...md,
       };
 
       const subject = renderTemplate(campaign.subject ?? "", mergeVars);
@@ -215,7 +217,7 @@ serve(async (req) => {
           .update({
             status: "sent",
             sent_at: new Date().toISOString(),
-            provider_message_id: sent?.id ?? null,
+            resend_id: sent?.id ?? null,
           })
           .eq("id", rec.id);
         sentCount++;
@@ -235,10 +237,9 @@ serve(async (req) => {
       .from("campaigns")
       .update({
         status: "sent",
-        completed_at: new Date().toISOString(),
-        sent_count: sentCount,
-        failed_count: failedCount,
-        suppressed_count: blocked.size,
+        sent_at: new Date().toISOString(),
+        total_sent: sentCount,
+        total_suppressed: blocked.size,
       })
       .eq("id", campaignId);
 
