@@ -150,6 +150,28 @@ serve(async (req) => {
       .eq("id", campaignId)
       .maybeSingle();
     if (cErr || !campaign) return json({ error: "Campaign not found" }, 404, origin);
+    if (campaign.status === "sent") {
+      const { data: existingRecipients } = await admin
+        .from("campaign_recipients")
+        .select("status")
+        .eq("campaign_id", campaignId);
+      const sent = (existingRecipients ?? []).filter((r) => r.status === "sent").length;
+      const failed = (existingRecipients ?? []).filter((r) => r.status === "failed").length;
+      const suppressed = (existingRecipients ?? []).filter((r) => r.status === "suppressed").length;
+      return json(
+        {
+          ok: true,
+          alreadySent: true,
+          campaignId,
+          total: existingRecipients?.length ?? 0,
+          sent,
+          failed,
+          suppressed,
+        },
+        200,
+        origin,
+      );
+    }
     if (campaign.status !== "draft" && campaign.status !== "scheduled") {
       return json({ error: `Cannot send campaign in status ${campaign.status}` }, 400, origin);
     }
@@ -241,11 +263,13 @@ serve(async (req) => {
       }
     }
 
+    const finalStatus = failedCount > 0 && sentCount === 0 ? "failed" : "sent";
+
     await admin
       .from("campaigns")
       .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
+        status: finalStatus,
+        sent_at: finalStatus === "sent" ? new Date().toISOString() : null,
         total_sent: sentCount,
         total_suppressed: blocked.size,
       })
