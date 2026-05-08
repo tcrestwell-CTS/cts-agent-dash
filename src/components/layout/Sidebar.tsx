@@ -102,6 +102,9 @@ const navGroups: NavGroup[] = [
     label: "Marketing",
     icon: Mail,
     items: [
+      { name: "Campaigns", href: "/campaigns", icon: Megaphone },
+      { name: "Audiences", href: "/campaigns/audiences", icon: Users },
+      { name: "Image Library", href: "/campaigns/images", icon: Library },
       { name: "Email & Branding", href: "/branding", icon: Mail, feature: "email_branding" },
       { name: "Publish Manager", href: "/publish-manager", icon: Globe, feature: "publish_manager" },
       { name: "Featured Trips", href: "/featured-trips", icon: Star, feature: "featured_trips" },
