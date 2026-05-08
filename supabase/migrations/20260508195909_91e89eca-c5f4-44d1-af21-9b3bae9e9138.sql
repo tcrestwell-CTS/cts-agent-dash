@@ -1,0 +1,2 @@
+UPDATE public.campaigns SET status='draft', sent_at=NULL, total_sent=0 WHERE id='2d860601-08e1-4813-b2a5-cd70c67ae8ca';
+UPDATE public.campaign_recipients SET status='queued', error_message=NULL, sent_at=NULL WHERE campaign_id='2d860601-08e1-4813-b2a5-cd70c67ae8ca';
