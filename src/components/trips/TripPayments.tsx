@@ -83,6 +83,7 @@ export function TripPayments({
     updatePayment,
     updating,
     deletePayment,
+    fetchPayments,
     totalPaid,
     totalAuthorized,
     totalRemaining,
@@ -95,6 +96,21 @@ export function TripPayments({
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
   const [repullingQBO, setRepullingQBO] = useState(false);
   const [qboSyncedIds, setQboSyncedIds] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefreshPayments = async () => {
+    setRefreshing(true);
+    try {
+      await fetchPayments();
+      onDataChange?.();
+      toast.success("Payments refreshed");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to refresh payments");
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [marginLinesByBooking, setMarginLinesByBooking] = useState<Record<string, Array<{ description: string; quantity: number; unit_sell: number; total_sell: number; is_pass_through: boolean; sort_order: number }>>>({});
 
   // Load booking margin lines so the invoice can show itemized sub-lines per booking.
