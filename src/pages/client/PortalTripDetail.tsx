@@ -12,7 +12,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers, Send, Hash } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Plane, CreditCard, ClipboardList, Clock, MapPinned, ChevronDown, ChevronUp, CheckCircle2, ThumbsUp, ExternalLink, Loader2, DollarSign, XCircle, MessageSquare, Lock, Wallet, Layers, Send, Hash, BedDouble, Users } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -194,7 +194,7 @@ export default function PortalTripDetail() {
     );
   }
 
-  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [], pricingLines = [] } = data;
+  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], optionBlocks = [], pricingLines = [], selectedCabin = null } = data;
   const approvedId = trip.approved_itinerary_id;
 
   const depositPaid = payments.some((p: any) =>
