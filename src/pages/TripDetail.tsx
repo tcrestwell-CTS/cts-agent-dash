@@ -31,6 +31,8 @@ import {
   Plane,
   Ship,
   ShieldCheck,
+  BedDouble,
+  Users as UsersIcon,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -121,6 +123,21 @@ const TripDetail = () => {
       return data?.invoice_number || null;
     },
     enabled: !!tripId,
+  });
+
+  // Fetch the selected cabin/stateroom for this trip (sub-trip selections)
+  const { data: selectedCabin } = useQuery({
+    queryKey: ["trip-selected-cabin", tripId, trip?.selected_cabin_option_id],
+    queryFn: async () => {
+      if (!trip?.selected_cabin_option_id) return null;
+      const { data } = await supabase
+        .from("trip_cabin_options")
+        .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url")
+        .eq("id", trip.selected_cabin_option_id)
+        .maybeSingle();
+      return data || null;
+    },
+    enabled: !!trip?.selected_cabin_option_id,
   });
 
   // Fetch insurance data for financials display
@@ -646,6 +663,59 @@ const TripDetail = () => {
             {/* Cabin Options — GROUP TRIPS */}
             {isGroupTrip && (
               <CabinOptionsManager tripId={trip.id} onDataChange={fetchTrip} />
+            )}
+
+            {/* Selected Stateroom — SUB-TRIPS */}
+            {!isGroupTrip && selectedCabin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BedDouble className="h-4 w-4" /> Selected Stateroom
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {selectedCabin.image_url && (
+                      <img
+                        src={selectedCabin.image_url}
+                        alt={selectedCabin.category_name}
+                        className="w-full sm:w-48 h-32 object-cover rounded-md border border-border"
+                      />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-lg">{selectedCabin.category_name}</h3>
+                          {selectedCabin.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{selectedCabin.description}</p>
+                          )}
+                        </div>
+                        <Badge variant="secondary" className="shrink-0">Selected</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground pt-1">
+                        {selectedCabin.price_per_person != null && (
+                          <span className="flex items-center gap-1.5">
+                            <DollarSign className="h-3.5 w-3.5" />
+                            ${Number(selectedCabin.price_per_person).toLocaleString()} per guest
+                          </span>
+                        )}
+                        {selectedCabin.capacity != null && (
+                          <span className="flex items-center gap-1.5">
+                            <UsersIcon className="h-3.5 w-3.5" />
+                            Sleeps {selectedCabin.capacity}
+                          </span>
+                        )}
+                        {selectedCabin.deposit_amount != null && Number(selectedCabin.deposit_amount) > 0 && (
+                          <span className="flex items-center gap-1.5">
+                            <CreditCard className="h-3.5 w-3.5" />
+                            ${Number(selectedCabin.deposit_amount).toLocaleString()} deposit
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Balcony Cabins Availability */}

@@ -313,6 +313,17 @@ const handler = async (req: Request): Promise<Response> => {
         supabase.from("clients").select("name, first_name, last_name, email, phone, address_line_1, address_city, address_state, address_zip_code, address_country").eq("id", clientId).single(),
       ]);
 
+      // Fetch the selected cabin/stateroom option (if any) for this trip
+      let selectedCabin: any = null;
+      if (tripRes.data?.selected_cabin_option_id) {
+        const { data: cabinRow } = await supabase
+          .from("trip_cabin_options")
+          .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url")
+          .eq("id", tripRes.data.selected_cabin_option_id)
+          .maybeSingle();
+        selectedCabin = cabinRow || null;
+      }
+
       // Fetch pricing lines (client-facing sell prices only) for all bookings
       // Map supplier_type to portal booking_type
       const supplierTypeToBookingType = (st: string | null): string => {
@@ -454,6 +465,7 @@ const handler = async (req: Request): Promise<Response> => {
         itineraries: itinerariesRes.data || [],
         optionBlocks: optionBlocksRes.data || [],
         pricingLines,
+        selectedCabin,
       }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

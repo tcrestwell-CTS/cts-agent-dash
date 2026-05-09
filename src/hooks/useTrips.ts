@@ -36,6 +36,7 @@ export interface Trip {
   itinerary_style: string;
   proposal_sent_at: string | null;
   follow_up_due_at: string | null;
+  selected_cabin_option_id?: string | null;
   clients?: {
     id: string;
     name: string;
