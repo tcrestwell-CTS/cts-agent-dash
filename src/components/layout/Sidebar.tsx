@@ -85,7 +85,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Leads", href: "/leads", icon: UserPlus, feature: "leads" },
       { name: "Trips", href: "/trips", icon: Compass, feature: "trips" },
-      { name: "Quotes", href: "/commission-report", icon: FileText, feature: "quotes" },
+      { name: "Commission", href: "/commission-report", icon: FileText, feature: "quotes" },
       { name: "Clients", href: "/contacts", icon: Users, feature: "clients" },
       { name: "Business Contacts", href: "/business-contacts", icon: Building2, feature: "business_contacts" },
     ],
