@@ -31,6 +31,8 @@ import {
   Plane,
   Ship,
   ShieldCheck,
+  BedDouble,
+  Users as UsersIcon,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -121,6 +123,21 @@ const TripDetail = () => {
       return data?.invoice_number || null;
     },
     enabled: !!tripId,
+  });
+
+  // Fetch the selected cabin/stateroom for this trip (sub-trip selections)
+  const { data: selectedCabin } = useQuery({
+    queryKey: ["trip-selected-cabin", tripId, trip?.selected_cabin_option_id],
+    queryFn: async () => {
+      if (!trip?.selected_cabin_option_id) return null;
+      const { data } = await supabase
+        .from("trip_cabin_options")
+        .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url")
+        .eq("id", trip.selected_cabin_option_id)
+        .maybeSingle();
+      return data || null;
+    },
+    enabled: !!trip?.selected_cabin_option_id,
   });
 
   // Fetch insurance data for financials display
