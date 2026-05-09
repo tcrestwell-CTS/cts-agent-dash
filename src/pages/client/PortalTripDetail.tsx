@@ -385,6 +385,59 @@ export default function PortalTripDetail() {
         </Card>
       )}
 
+      {/* Selected Cabin / Stateroom */}
+      {selectedCabin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <BedDouble className="h-4 w-4" /> Your Stateroom
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4">
+              {selectedCabin.image_url && (
+                <img
+                  src={selectedCabin.image_url}
+                  alt={selectedCabin.category_name}
+                  className="w-full sm:w-48 h-32 object-cover rounded-md border border-border"
+                />
+              )}
+              <div className="flex-1 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedCabin.category_name}</h3>
+                    {selectedCabin.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{selectedCabin.description}</p>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="shrink-0">Selected</Badge>
+                </div>
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground pt-1">
+                  {selectedCabin.price_per_person != null && (
+                    <span className="flex items-center gap-1.5">
+                      <DollarSign className="h-3.5 w-3.5" />
+                      ${Number(selectedCabin.price_per_person).toLocaleString()} per guest
+                    </span>
+                  )}
+                  {selectedCabin.capacity != null && (
+                    <span className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      Sleeps {selectedCabin.capacity}
+                    </span>
+                  )}
+                  {selectedCabin.deposit_amount != null && Number(selectedCabin.deposit_amount) > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <Wallet className="h-3.5 w-3.5" />
+                      ${Number(selectedCabin.deposit_amount).toLocaleString()} deposit
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Location Timeline */}
       {itinerary.length > 0 && (
         <ItineraryLocationTimeline items={itinerary} />
