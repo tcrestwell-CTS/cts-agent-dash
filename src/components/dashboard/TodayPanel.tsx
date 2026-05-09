@@ -18,7 +18,7 @@ export function TodayPanel({ followUps, paymentsDue, departuresSoon, loading }: 
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Today</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <CounterCard label="Follow Ups" count={loading ? null : followUps} icon={Phone} onClick={() => navigate("/trips")} urgent={followUps > 0} />
-        <CounterCard label="Payments Due" count={loading ? null : paymentsDue} icon={CreditCard} onClick={() => navigate("/trips")} urgent={paymentsDue > 0} />
+        <CounterCard label="Payments Due" count={loading ? null : paymentsDue} icon={CreditCard} onClick={() => navigate("/payments-due")} urgent={paymentsDue > 0} />
         <CounterCard label="Departures Soon" count={loading ? null : departuresSoon} icon={Plane} onClick={() => navigate("/trips")} urgent={departuresSoon >= 3} />
       </div>
     </div>
