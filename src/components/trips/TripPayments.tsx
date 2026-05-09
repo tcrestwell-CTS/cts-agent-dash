@@ -83,6 +83,7 @@ export function TripPayments({
     updatePayment,
     updating,
     deletePayment,
+    fetchPayments,
     totalPaid,
     totalAuthorized,
     totalRemaining,
@@ -95,6 +96,21 @@ export function TripPayments({
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
   const [repullingQBO, setRepullingQBO] = useState(false);
   const [qboSyncedIds, setQboSyncedIds] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefreshPayments = async () => {
+    setRefreshing(true);
+    try {
+      await fetchPayments();
+      onDataChange?.();
+      toast.success("Payments refreshed");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to refresh payments");
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [marginLinesByBooking, setMarginLinesByBooking] = useState<Record<string, Array<{ description: string; quantity: number; unit_sell: number; total_sell: number; is_pass_through: boolean; sort_order: number }>>>({});
 
   // Load booking margin lines so the invoice can show itemized sub-lines per booking.
@@ -429,6 +445,20 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshPayments}
+                disabled={refreshing}
+                title="Reload paid/remaining totals from the database"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Refresh
+              </Button>
               {paidPayments.length > 0 && (
                 <Badge
                   variant="outline"
