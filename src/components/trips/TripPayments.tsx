@@ -445,6 +445,20 @@ export function TripPayments({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshPayments}
+                disabled={refreshing}
+                title="Reload paid/remaining totals from the database"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Refresh
+              </Button>
               {paidPayments.length > 0 && (
                 <Badge
                   variant="outline"
