@@ -121,29 +121,53 @@ export function CCAuthorizationDialog({
   const sendAuthLinkEmail = async (auth: CCAuthorization) => {
     setSendingEmail(true);
     try {
-      const { error } = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("send-email", {
+      const { supabase } = await import("@/integrations/supabase/client");
+
+      // Look up client email
+      const { data: client, error: clientErr } = await supabase
+        .from("clients")
+        .select("email, name")
+        .eq("id", clientId)
+        .maybeSingle();
+      if (clientErr) throw clientErr;
+      if (!client?.email) {
+        toast.error("Client has no email on file");
+        return;
+      }
+
+      const amountFmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
+        .format(auth.authorization_amount);
+      const link = getAuthLink(auth.access_token);
+
+      const customHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          <h2 style="color: #0D1B2A;">Credit Card Authorization Request</h2>
+          <p>Hi ${client.name || clientName || "there"},</p>
+          <p>Please complete your credit card authorization for booking <strong>${bookingReference}</strong> in the amount of <strong>${amountFmt}</strong>.</p>
+          ${auth.authorization_description ? `<p style="color:#4b5563;">${auth.authorization_description}</p>` : ""}
+          <p style="margin: 24px 0; text-align: center;">
+            <a href="${link}" style="background-color: #0D7377; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Complete CC Authorization</a>
+          </p>
+          <p style="font-size: 13px; color: #6b7280;">This is a secure, encrypted form. Your card information is protected and only visible to your travel advisor for a limited time.</p>
+          <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">If the button doesn't work, copy this link: ${link}</p>
+        </div>
+      `;
+
+      const { error } = await supabase.functions.invoke("send-email", {
         body: {
-          to: null, // will be looked up from client
-          clientId: clientId,
+          to: client.email,
+          clientId,
           template: "custom",
           subject: `Credit Card Authorization — ${bookingReference}`,
-          templateData: {
-            clientName: clientName,
-            customMessage: `
-              <p>Please complete your credit card authorization for booking <strong>${bookingReference}</strong> (${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(auth.authorization_amount)}).</p>
-              <p style="margin: 24px 0; text-align: center;">
-                <a href="${getAuthLink(auth.access_token)}" style="background-color: #0D7377; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Complete CC Authorization</a>
-              </p>
-              <p style="font-size: 13px; color: #6b7280;">This is a secure, encrypted form. Your card information is protected.</p>
-            `,
-          },
+          customHtml,
+          data: { clientName: client.name || clientName },
         },
       });
       if (error) throw error;
       toast.success("CC authorization link emailed to client");
     } catch (err: any) {
       console.error("Failed to send CC auth email:", err);
-      toast.error("Failed to send email");
+      toast.error(err?.message || "Failed to send email");
     } finally {
       setSendingEmail(false);
     }
