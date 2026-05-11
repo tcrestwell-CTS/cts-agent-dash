@@ -5,16 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Bell, Plus, Send, Search, AlertCircle } from "lucide-react";
+import { Bell, Plus, Send, Search, AlertCircle, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseLocalDate } from "@/lib/utils";
 import { differenceInDays, format, formatDistanceToNow } from "date-fns";
 import { usePaymentReminders, type PaymentReminderRow } from "@/hooks/usePaymentReminders";
 import { SendReminderDialog } from "@/components/payment-reminders/SendReminderDialog";
 import { AddReminderDialog } from "@/components/payment-reminders/AddReminderDialog";
+import { BulkSendReminderDialog } from "@/components/payment-reminders/BulkSendReminderDialog";
 
 type FilterKey = "all" | "overdue" | "week" | "month" | "sent" | "unsent";
 
@@ -62,6 +64,8 @@ export default function PaymentReminders() {
   const [search, setSearch] = useState("");
   const [sendOpen, setSendOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<PaymentReminderRow | null>(null);
 
   const today = useMemo(() => {
@@ -104,6 +108,37 @@ export default function PaymentReminders() {
     setSendOpen(true);
   };
 
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const eligibleIds = useMemo(
+    () => filtered.filter((r) => !!r.trips?.clients?.email).map((r) => r.id),
+    [filtered]
+  );
+  const allSelected = eligibleIds.length > 0 && eligibleIds.every((id) => selected.has(id));
+  const someSelected = eligibleIds.some((id) => selected.has(id));
+  const toggleAll = () => {
+    setSelected((prev) => {
+      if (allSelected) {
+        const next = new Set(prev);
+        eligibleIds.forEach((id) => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      eligibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+  const selectedReminders = useMemo(
+    () => enriched.filter((r) => selected.has(r.id)),
+    [enriched, selected]
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -116,9 +151,19 @@ export default function PaymentReminders() {
               Upcoming client payments. Send a branded reminder with one click.
             </p>
           </div>
-          <Button onClick={() => setAddOpen(true)} style={{ background: "#c9a84c", color: "#0d1b2a" }}>
-            <Plus className="h-4 w-4 mr-2" /> Add Reminder
-          </Button>
+          <div className="flex gap-2">
+            {selected.size > 0 && (
+              <Button
+                onClick={() => setBulkOpen(true)}
+                style={{ background: "#0d1b2a", color: "#ffffff" }}
+              >
+                <Mail className="h-4 w-4 mr-2" /> Send {selected.size} Reminder{selected.size === 1 ? "" : "s"}
+              </Button>
+            )}
+            <Button onClick={() => setAddOpen(true)} style={{ background: "#c9a84c", color: "#0d1b2a" }}>
+              <Plus className="h-4 w-4 mr-2" /> Add Reminder
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -173,6 +218,13 @@ export default function PaymentReminders() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                          onCheckedChange={toggleAll}
+                          aria-label="Select all"
+                        />
+                      </TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead>Trip</TableHead>
                       <TableHead>Type</TableHead>
@@ -189,6 +241,14 @@ export default function PaymentReminders() {
                       const hasEmail = !!client?.email;
                       return (
                         <TableRow key={r.id} className={cn(urgencyClass(r._daysUntil))}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selected.has(r.id)}
+                              onCheckedChange={() => toggleOne(r.id)}
+                              disabled={!hasEmail}
+                              aria-label="Select reminder"
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="font-medium">{client?.name || "—"}</div>
                             <div className="text-xs text-muted-foreground">{client?.email || "no email on file"}</div>
@@ -242,6 +302,14 @@ export default function PaymentReminders() {
 
       <SendReminderDialog open={sendOpen} onOpenChange={setSendOpen} reminder={active} />
       <AddReminderDialog open={addOpen} onOpenChange={setAddOpen} />
+      <BulkSendReminderDialog
+        open={bulkOpen}
+        onOpenChange={(o) => {
+          setBulkOpen(o);
+          if (!o) setSelected(new Set());
+        }}
+        reminders={selectedReminders}
+      />
     </DashboardLayout>
   );
 }
