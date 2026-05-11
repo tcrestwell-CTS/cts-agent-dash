@@ -52,6 +52,7 @@ const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation")
 const Kandi               = lazy(() => import("./pages/Kandi"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
 const PaymentsDue         = lazy(() => import("./pages/PaymentsDue"));
+const PaymentReminders    = lazy(() => import("./pages/PaymentReminders"));
 const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
@@ -169,6 +170,7 @@ const App = () => (
                 <Route path="/trips/:tripId/landing-page" element={<ProtectedRoute><GroupLandingBuilder /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/payments-due" element={<ProtectedRoute><PaymentsDue /></ProtectedRoute>} />
+                <Route path="/payment-reminders" element={<ProtectedRoute><FeatureRoute feature="payment_reminders"><PaymentReminders /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/publish-manager" element={<ProtectedRoute><FeatureRoute feature="publish_manager"><TripPublishManager /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/flights" element={<ProtectedRoute><FeatureRoute feature="flight_search"><FlightSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/flight-monitoring" element={<ProtectedRoute><FeatureRoute feature="flight_monitoring"><FlightMonitoring /></FeatureRoute></ProtectedRoute>} />
