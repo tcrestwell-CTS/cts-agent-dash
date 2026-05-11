@@ -1,80 +1,48 @@
-# Marketing Campaigns Hub
+## Payment Reminders Dashboard — reusing existing branded reminder
 
-Build a complete Campaigns UI under the existing **Marketing** sidebar group, plus an AI campaign writer and a drag-and-drop image library backed by the existing `email-assets` storage bucket.
+There is **already** a fully built, navy/gold branded reminder system in this project. We will reuse it instead of creating a parallel `payment_reminders` table.
 
-## What gets added
+### What already exists
 
-### 1. Sidebar nav (Marketing group)
-Add three new entries above "Email & Branding":
-- **Campaigns** → `/campaigns` (list)
-- **Audiences** → `/campaigns/audiences`
-- **Image Library** → `/campaigns/images`
+- **Edge function `send-invoice-statement`** — sends branded "Initial Invoice" and "Friendly Payment Reminder" emails from `noreply@crestwellgetaways.com`. Uses navy/gold (`#0d1b2a` / `#c9a84c`) header, agency tagline/phone/logo from `branding_settings`, and mints a tokenized secure pay link to `crestwellgetaways.com/payment`. Supports per-invoice manual sends (`qbo_invoice_id` + `email_kind: 'manual'`) and a cron mode that auto-sends initial + 7-day reminders.
+- **Edge function `payment-reminders`** — already runs `check_upcoming_payment_deadlines()` to create in-app advisor notifications for bookings due within 7 days.
+- **Table `invoice_email_log`** — full send history with `email_kind` (`initial` / `reminder_7d` / `manual` / `test`), recipient, due date, amount, `resend_id`, sent_at.
+- **Table `trip_payments`** — 48 unpaid installments with due dates today and forward (deposits, balance, final). This is the canonical "upcoming payments" source.
+- **Table `qbo_invoices`** — currently empty in this environment, but linked via `crm_booking_id` when populated.
 
-### 2. Pages
+### What we will build
 
-**`/campaigns` — Campaign list**
-Table of all campaigns with stats columns (Sent / Delivered / Opened / Clicked / Bounced), status badge, sent date. Buttons: "New Campaign", row click → editor. Filter by status. Uses existing `campaigns` table.
+A new advisor page **`/payment-reminders`** that surfaces upcoming `trip_payments` and lets advisors fire the existing branded reminder from one screen.
 
-**`/campaigns/new` and `/campaigns/:id` — Campaign editor**
-Single-page editor with:
-- Left column: Name, Subject, Preheader, From Name, From Email (default `news@crestwellgetaways.com`), Reply-To, Audience picker, HTML body editor (textarea with merge-var helper chips: `{{first_name}}`, `{{last_name}}`, `{{contact_name}}`, `{{email}}`)
-- Right column: Live preview pane (renders body_html in an iframe), AI Assistant card (see below), Image Library quick-insert
-- Footer actions: Save Draft, Send Test (to current user), **Send Campaign** (calls existing `send-campaign` edge function), with confirmation dialog showing recipient count
+**Page** — `src/pages/PaymentReminders.tsx` (route added in `App.tsx`, sidebar link added behind feature flag `payment_reminders`).
 
-**`/campaigns/audiences` — Audience manager**
-List of `campaign_audiences`. Create/edit dialog with name, description, and a simple filter builder (initial v1: "all clients", "all leads", "all contacts", "manual list" — stored in `filter` jsonb). Shows live `contact_count`. A "Refresh count" button materializes recipients via a new edge function.
+**Hook** — `src/hooks/usePaymentReminders.ts` reads:
+- All `trip_payments` where `status != 'paid'` AND `due_date IS NOT NULL`, joined with `trips(trip_name, destination, client_id)` and `clients(name, email)`.
+- Last `invoice_email_log` row per `trip_id` (for "Last sent" badge).
+- Scoped to the advisor's own trips (RLS already enforces this); admins/office_admins see all.
 
-**`/campaigns/images` — Image library**
-Grid view of all files in the `email-assets` storage bucket. Drag-and-drop upload zone (uses `react-dropzone`). Each tile shows thumbnail, filename, size, "Copy URL" button, and delete. Same component is embedded in the campaign editor as an "Insert Image" sheet — clicking inserts an `<img src="...">` tag at the cursor in the body editor.
+**Filter bar + search** — All / Overdue / This Week / This Month / Sent (has invoice_email_log row in last 30d) / Unsent. Search by client name.
 
-### 3. AI Campaign Writer
-New edge function **`generate-campaign-copy`** using Lovable AI Gateway (`google/gemini-2.5-flash`). In the editor, an "AI Assistant" card with:
-- Inputs: campaign goal/topic (textarea), tone (Friendly / Luxury / Urgent / Informative), call-to-action, audience description
-- Buttons: "Generate Subject Lines" (returns 5 options), "Generate Email Body" (returns HTML using semantic email-safe markup), "Improve Selection"
-- Output appears inline; one click applies to the form
+**Table view** — sortable columns: Client, Trip, Reminder Type (mapped from `payment_type`: deposit / balance_due / final_payment / installment), Amount Due, Due Date, Days Until Due, Last Sent, Actions. Row tint by urgency:
+- Overdue → `bg-destructive/10`
+- ≤7 days → amber tint
+- ≤30 days → yellow tint
+- > 30 days → emerald tint
 
-System prompt enforces Crestwell Travels brand voice (luxury, navy/gold), travel-agency context, and inline merge-var usage.
+Dates parsed via `parseLocalDate` to avoid UTC drift.
 
-### 4. Edge functions
-- **`generate-campaign-copy`** (new) — Lovable AI; admin/office_admin only; verify_jwt off, validates user role via service-role auth check
-- **`materialize-audience`** (new) — Given `audience_id`, expands the audience filter into `campaign_recipients` rows for a given `campaign_id`, dedupes against suppressions, returns count. Admin-only.
+**Send Reminder modal** — `SendReminderDialog.tsx`. Shows a live preview of the branded email (re-uses the same `buildHtml` markup conceptually for the preview pane), with editable subject and an optional message-override textarea. On confirm:
+- If the trip has a matched QBO invoice → invoke `send-invoice-statement` with `{ qbo_invoice_id, email_kind: 'manual' }` (existing path, no edge-function changes needed).
+- Otherwise → invoke a small new edge function **`send-payment-reminder`** that wraps the same `buildHtml` branding but is sourced from a `trip_payment_id`. This keeps the email visually identical to the QBO-invoice reminder. Logs to `invoice_email_log` (`email_kind = 'manual'`, `qbo_invoice_id = 'TP-<uuid>'`) and `email_logs` (`template = 'payment_reminder'`) so existing dashboards keep working.
 
-### 5. Database (migration)
-- New table **`marketing_image_assets`** (id, user_id, storage_path, public_url, filename, mime_type, size_bytes, width, height, alt_text, tags text[], created_at) with RLS allowing all authenticated read/write — keeps a queryable index over the bucket so the library doesn't need to list storage every render
-- RLS for `email-assets` storage bucket: authenticated read/write/delete (already public-read since bucket is public)
+After a successful send, the row's "Send Reminder" button switches to "Resend" with the timestamp from the new log entry. React Query invalidation refreshes the list.
 
-### 6. Hooks
-- `useCampaigns`, `useCampaign(id)` — list + single, with React Query
-- `useAudiences` — list + mutations
-- `useImageAssets` — list, upload (to bucket + insert row), delete
-- `useSendCampaign` — invokes `send-campaign` edge function
-- `useGenerateCampaignCopy` — invokes `generate-campaign-copy`
+**Add Reminder dialog** — `AddReminderDialog.tsx`. Inserts a row into the existing `trip_payments` table (advisor selects the trip via `ClientSearchCombobox` → trip dropdown), with `payment_type`, `amount`, `due_date`, optional `details`. No new table is needed.
 
-## Technical details
+### Technical notes
 
-- All pages wrap in `<ProtectedRoute>` with admin gate (reuse pattern from `AdminRoute` or check `useUserRoles` for `admin`/`office_admin`)
-- Image library uses `react-dropzone` (need to install). Files uploaded to `email-assets/<user_id>/<uuid>-<filename>`, public URL stored in `marketing_image_assets`
-- HTML body editor: keep simple `<Textarea>` with monospace font in v1 (no rich text editor yet) — matches existing project patterns; merge-var chips insert at cursor
-- Preview iframe sandboxed (`sandbox=""`) for safety
-- Send confirmation shows audience name + recipient count (queries `campaign_recipients` where `campaign_id = ? and status = 'queued'`)
-- "Send Test" inserts a single `campaign_recipients` row for the current user and invokes `send-campaign` (or a separate path); v1: simply send via Resend directly through a new `send-test-campaign` action
-- Use existing `useToast`, `Card`, `Button`, `Dialog`, `Tabs`, `Badge` from shadcn — no new design tokens
-
-## Out of scope (v1)
-- Scheduled sends UI (table column exists; defer scheduler)
-- A/B subject testing
-- Rich text/visual email builder (just HTML textarea + image insert)
-- Advanced segment filter builder beyond preset audiences
-
-## File list
-- Migration: `marketing_image_assets` table + storage policies
-- `src/hooks/useCampaigns.ts`, `useCampaignAudiences.ts`, `useImageAssets.ts`
-- `src/pages/Campaigns.tsx`, `CampaignEditor.tsx`, `CampaignAudiences.tsx`, `ImageLibrary.tsx`
-- `src/components/campaigns/CampaignTable.tsx`, `AudienceDialog.tsx`, `AICampaignAssistant.tsx`, `ImageDropzone.tsx`, `ImageGrid.tsx`, `MergeVarChips.tsx`, `EmailPreview.tsx`
-- `src/App.tsx` — add 4 routes
-- `src/components/layout/Sidebar.tsx` — add 3 marketing entries
-- `supabase/functions/generate-campaign-copy/index.ts`
-- `supabase/functions/materialize-audience/index.ts`
-- `supabase/config.toml` — register both functions
-
-Approve and I'll build it.
+- No new schema. The "payment_reminders" semantics are derived from existing `trip_payments` + `invoice_email_log`.
+- New edge function is small (~120 lines) and shares the `buildHtml` style block with `send-invoice-statement` (copied inline; both functions stay self-contained per Deno conventions).
+- All sends go through Resend with the existing `RESEND_API_KEY` secret. Auth is the user's Supabase JWT — no `CW_AGENT_SECRET` needed for advisor-initiated sends.
+- Branding pulled live from `branding_settings` so it always matches the user's logo/colors.
+- Sidebar entry added under "Communications" group, gated by a new `payment_reminders` feature key (defaults to allowed for all roles; admins can revoke via the existing AgentPermissionsManager).

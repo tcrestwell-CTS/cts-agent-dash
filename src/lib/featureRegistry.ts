@@ -24,6 +24,7 @@ export type FeatureKey =
   | "cruise_search"
   | "excursions"
   | "loan_applications"
+  | "payment_reminders"
   | "training"
   | "training_library"
   | "training_badges"
@@ -57,6 +58,7 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "cruise_search",      label: "Cruise Search",       group: "Tools",      defaultAllowed: true  },
   { key: "excursions",         label: "Excursions",          group: "Tools",      defaultAllowed: true  },
   { key: "loan_applications",  label: "Loan Applications",   group: "Tools",      defaultAllowed: false },
+  { key: "payment_reminders",  label: "Payment Reminders",   group: "Bookings",   defaultAllowed: true  },
   { key: "training",           label: "Training Dashboard",  group: "Training",   defaultAllowed: true  },
   { key: "training_library",   label: "Training Library",    group: "Training",   defaultAllowed: true  },
   { key: "training_badges",    label: "My Badges",           group: "Training",   defaultAllowed: true  },
@@ -83,5 +85,6 @@ export const ROUTE_FEATURE_MAP: Record<string, FeatureKey> = {
   "/cruises":            "cruise_search",
   "/excursions":         "excursions",
   "/loan-applications":  "loan_applications",
+  "/payment-reminders":  "payment_reminders",
   "/analytics":          "analytics",
 };
