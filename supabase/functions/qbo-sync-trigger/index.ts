@@ -12,6 +12,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   - deposit_posted
  *   - supplier_paid
  *   - trip_completed
+ *   - client_created
+ *   - supplier_created
+ *   - loan_repayment_posted
  */
 
 const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
@@ -120,6 +123,15 @@ serve(async (req) => {
         break;
       case "trip_completed":
         await handleTripCompleted(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "client_created":
+        await handleClientCreated(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "supplier_created":
+        await handleSupplierCreated(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "loan_repayment_posted":
+        await handleLoanRepaymentPosted(supabase, qboBase, qboHeaders, userId, record);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
