@@ -7524,6 +7524,10 @@ export type Database = {
       }
     }
     Functions: {
+      _post_qbo_sync_trigger: {
+        Args: { p_old?: Json; p_record: Json; p_trigger_type: string }
+        Returns: undefined
+      }
       accept_invitation: {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
