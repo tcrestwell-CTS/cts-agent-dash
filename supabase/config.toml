@@ -81,3 +81,6 @@ verify_jwt = false
 
 [functions.resend-webhook]
 verify_jwt = false
+
+[functions.stripe-payout-webhook]
+verify_jwt = false
