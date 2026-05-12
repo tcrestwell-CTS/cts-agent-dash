@@ -343,15 +343,7 @@ async function processPayoutPaid(payout: Stripe.Payout) {
 
   const connection = await getActiveQboConnection();
   if (!connection) {
-    await supabase.from("qbo_sync_logs").insert({
-      user_id: null,
-      sync_type: "auto-stripe-payout",
-      direction: "push",
-      status: "skipped",
-      records_processed: 0,
-      idempotency_key: idemKey,
-      details: { reason: "no_active_qbo_connection", payout_id: payout.id, breakdown: buckets },
-    });
+    log("no active QBO connection; skipping push", { payout: payout.id });
     return;
   }
 
