@@ -5506,11 +5506,16 @@ export type Database = {
         Row: {
           amount: number | null
           arrival_date: string | null
+          breakdown: Json | null
           created_at: string | null
           fee_total: number | null
           id: string
           net_amount: number | null
           qbo_deposit_id: string | null
+          qbo_loan_interest_transfer_id: string | null
+          qbo_loan_principal_transfer_id: string | null
+          qbo_synced_at: string | null
+          qbo_trip_transfer_id: string | null
           raw_payload: Json | null
           reconciled: boolean | null
           refund_total: number | null
@@ -5520,11 +5525,16 @@ export type Database = {
         Insert: {
           amount?: number | null
           arrival_date?: string | null
+          breakdown?: Json | null
           created_at?: string | null
           fee_total?: number | null
           id?: string
           net_amount?: number | null
           qbo_deposit_id?: string | null
+          qbo_loan_interest_transfer_id?: string | null
+          qbo_loan_principal_transfer_id?: string | null
+          qbo_synced_at?: string | null
+          qbo_trip_transfer_id?: string | null
           raw_payload?: Json | null
           reconciled?: boolean | null
           refund_total?: number | null
@@ -5534,11 +5544,16 @@ export type Database = {
         Update: {
           amount?: number | null
           arrival_date?: string | null
+          breakdown?: Json | null
           created_at?: string | null
           fee_total?: number | null
           id?: string
           net_amount?: number | null
           qbo_deposit_id?: string | null
+          qbo_loan_interest_transfer_id?: string | null
+          qbo_loan_principal_transfer_id?: string | null
+          qbo_synced_at?: string | null
+          qbo_trip_transfer_id?: string | null
           raw_payload?: Json | null
           reconciled?: boolean | null
           refund_total?: number | null
