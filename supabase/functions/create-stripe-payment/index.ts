@@ -157,6 +157,13 @@ serve(async (req) => {
     const appBaseUrl = returnUrl || req.headers.get("origin") || "https://cts-agent-dash.lovable.app";
     const tripIdParam = payment.trip_id ? `&trip_id=${payment.trip_id}` : "";
 
+    // Routing metadata for stripe-webhook → CRM (architecture: CRM is system of record)
+    const routingMetadata = {
+      payment_type: "trip_installment",
+      trip_payment_id: paymentId,
+      trip_id: payment.trip_id,
+    };
+
     let session: any;
 
     if (!isPortal && embedded) {
@@ -190,10 +197,8 @@ serve(async (req) => {
         mode: "payment",
         ui_mode: "embedded",
         return_url: `${appBaseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}${tripIdParam}`,
-        metadata: {
-          trip_payment_id: paymentId,
-          trip_id: payment.trip_id,
-        },
+        metadata: routingMetadata,
+        payment_intent_data: { metadata: routingMetadata },
       });
     } else {
       const successUrl = isPortal
@@ -233,10 +238,8 @@ serve(async (req) => {
         mode: "payment",
         success_url: successUrl,
         cancel_url: cancelUrl,
-        metadata: {
-          trip_payment_id: paymentId,
-          trip_id: payment.trip_id,
-        },
+        metadata: routingMetadata,
+        payment_intent_data: { metadata: routingMetadata },
       });
     }
 
