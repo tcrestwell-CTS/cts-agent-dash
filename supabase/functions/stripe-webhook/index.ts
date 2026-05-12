@@ -1,7 +1,11 @@
 // supabase/functions/stripe-webhook/index.ts
 // Ingests Stripe events into stripe_webhook_events + stripe_payments/refunds/disputes/payouts
 // Idempotency: stripe_event_id must be unique — duplicate events are silently ignored
-// Never writes to QBO directly — that is recon-engine's job
+//
+// ARCHITECTURE: This webhook NEVER writes to QBO directly.
+// It only mutates CRM rows (trip_payments, loan_payment_schedules, stripe_payments).
+// Marking a CRM row paid fires DB triggers → qbo-sync-trigger → QBO push.
+// QBO is downstream-only; the CRM is the single system of record.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
@@ -108,6 +112,109 @@ async function processPaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
 
   if (error) throw new Error(`stripe_payments upsert failed: ${error.message}`);
   log("stripe_payments upserted", { id: pi.id });
+
+  // ── CRM routing by metadata.payment_type ─────────────────────────────────
+  await routePaymentToCrm(pi);
+}
+
+/**
+ * Routes a successful Stripe PaymentIntent to the appropriate CRM row.
+ * Reads pi.metadata.payment_type ("trip_installment" | "loan_repayment").
+ * For subscription-driven invoices (loan autopay), falls back to subscription metadata.
+ */
+async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
+  let meta: Record<string, string> = (pi.metadata as Record<string, string>) || {};
+
+  // Subscription invoices: PI metadata is empty — pull from subscription metadata.
+  if (!meta.payment_type && pi.invoice) {
+    try {
+      const invoiceId = typeof pi.invoice === "string" ? pi.invoice : pi.invoice.id;
+      const invoice = await stripe.invoices.retrieve(invoiceId);
+      const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      if (subId) {
+        const sub = await stripe.subscriptions.retrieve(subId);
+        meta = { ...((sub.metadata as Record<string, string>) || {}), ...meta };
+      }
+    } catch (e) {
+      log("subscription metadata lookup failed", e);
+    }
+  }
+
+  const paymentType = meta.payment_type;
+  if (!paymentType) {
+    log("no payment_type metadata — skipping CRM routing", { id: pi.id });
+    return;
+  }
+
+  if (paymentType === "trip_installment") {
+    const tripPaymentId = meta.trip_payment_id;
+    if (!tripPaymentId) {
+      log("trip_installment missing trip_payment_id metadata", { id: pi.id });
+      return;
+    }
+    const { error } = await supabase
+      .from("trip_payments")
+      .update({
+        status: "paid",
+        payment_date: new Date(pi.created * 1000).toISOString().split("T")[0],
+        stripe_payment_intent_id: pi.id,
+      })
+      .eq("id", tripPaymentId)
+      .neq("status", "paid"); // idempotent
+    if (error) throw new Error(`trip_payments paid update failed: ${error.message}`);
+    log("trip_payments marked paid", { trip_payment_id: tripPaymentId });
+    return;
+  }
+
+  if (paymentType === "loan_repayment") {
+    const loanId = meta.loan_id;
+    const installmentNo = meta.installment_no ? Number(meta.installment_no) : null;
+
+    let scheduleId: string | null = null;
+
+    if (loanId && installmentNo != null) {
+      const { data: row } = await supabase
+        .from("loan_payment_schedules")
+        .select("id")
+        .eq("loan_application_id", loanId)
+        .eq("payment_number", installmentNo)
+        .maybeSingle();
+      scheduleId = row?.id || null;
+    }
+
+    // Subscription autopay flow: no installment_no — pick the next pending installment for this loan.
+    if (!scheduleId && loanId) {
+      const { data: row } = await supabase
+        .from("loan_payment_schedules")
+        .select("id")
+        .eq("loan_application_id", loanId)
+        .eq("status", "pending")
+        .order("payment_number", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      scheduleId = row?.id || null;
+    }
+
+    if (!scheduleId) {
+      log("loan_repayment could not locate matching schedule", { loanId, installmentNo, pi: pi.id });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("loan_payment_schedules")
+      .update({
+        status: "paid",
+        paid_date: new Date(pi.created * 1000).toISOString().split("T")[0],
+        stripe_payment_intent_id: pi.id,
+      })
+      .eq("id", scheduleId)
+      .neq("status", "paid");
+    if (error) throw new Error(`loan_payment_schedules paid update failed: ${error.message}`);
+    log("loan_payment_schedules marked paid", { schedule_id: scheduleId });
+    return;
+  }
+
+  log("unknown payment_type — skipping", { paymentType, id: pi.id });
 }
 
 async function processChargeRefunded(charge: Stripe.Charge) {
