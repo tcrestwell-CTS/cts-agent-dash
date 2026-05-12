@@ -12,6 +12,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   - deposit_posted
  *   - supplier_paid
  *   - trip_completed
+ *   - client_created
+ *   - supplier_created
+ *   - loan_repayment_posted
  */
 
 const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
@@ -120,6 +123,15 @@ serve(async (req) => {
         break;
       case "trip_completed":
         await handleTripCompleted(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "client_created":
+        await handleClientCreated(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "supplier_created":
+        await handleSupplierCreated(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "loan_repayment_posted":
+        await handleLoanRepaymentPosted(supabase, qboBase, qboHeaders, userId, record);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
@@ -1090,4 +1102,184 @@ async function resolvePaymentAccount(
 function accountMatchesPaymentType(account: any, accountType: "Bank" | "Credit Card") {
   const qboType = String(account?.AccountType || "").toLowerCase();
   return accountType === "Bank" ? qboType === "bank" : qboType.includes("credit");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// CRM-as-system-of-record handlers (CRM → QBO push, no reverse path)
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Resolve a QBO account ID by role from qbo_account_mappings (admin-configured). */
+async function getMappedAccountId(supabase: any, role: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("qbo_account_mappings")
+    .select("qbo_account_id")
+    .eq("role", role)
+    .maybeSingle();
+  if (error) throw new Error(`qbo_account_mappings lookup failed (${role}): ${error.message}`);
+  if (!data?.qbo_account_id) {
+    throw new Error(
+      `No QBO account mapped for role "${role}". Configure in Settings → QuickBooks → Account Mapping.`
+    );
+  }
+  return data.qbo_account_id;
+}
+
+/** New CRM client → QBO Customer (idempotent via qbo_client_mappings). */
+async function handleClientCreated(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, client: any,
+) {
+  await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
+  await logSync(supabase, userId, "auto-client-created", "success", 1, undefined, { client_id: client.id });
+}
+
+/** New CRM supplier → QBO Vendor (idempotent via qbo_supplier_mappings). */
+async function handleSupplierCreated(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, supplier: any,
+) {
+  await ensureQBOVendor(supabase, qboBase, qboHeaders, userId, supplier);
+  await logSync(supabase, userId, "auto-supplier-created", "success", 1, undefined, { supplier_id: supplier.id });
+}
+
+/**
+ * Loan installment paid → linked pair of QBO Bank Deposits (cash basis).
+ *   - Principal Deposit  → Loan Principal Clearing, source line credits Loan Receivable
+ *   - Interest  Deposit  → Loan Interest  Clearing, source line credits Interest Income
+ * Both deposits share an idempotency key derived from (loan_application_id, payment_number).
+ * If either POST fails, the partial state is logged and surfaced for retry — no half-posted installments.
+ */
+async function handleLoanRepaymentPosted(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, schedule: any,
+) {
+  const principal = Number(schedule.principal_amount || 0);
+  const interest = Number(schedule.interest_amount || 0);
+  if (principal <= 0 && interest <= 0) {
+    await logSync(supabase, userId, "auto-loan-repayment", "skipped", 0, "Zero principal and interest");
+    return;
+  }
+
+  const idemKey = `loan_repayment:${schedule.id}`;
+
+  // Idempotency: if we already posted a successful pair for this schedule, skip.
+  const { data: prior } = await supabase
+    .from("qbo_sync_logs")
+    .select("id, status")
+    .eq("idempotency_key", idemKey)
+    .eq("status", "success")
+    .maybeSingle();
+  if (prior) {
+    console.log(`[loan_repayment_posted] already posted for schedule ${schedule.id}; skipping`);
+    return;
+  }
+
+  const [principalAcct, interestAcct, loanReceivableAcct, interestIncomeAcct] = await Promise.all([
+    getMappedAccountId(supabase, "loan_principal_clearing"),
+    getMappedAccountId(supabase, "loan_interest_clearing"),
+    getMappedAccountId(supabase, "loan_receivable"),
+    getMappedAccountId(supabase, "interest_income"),
+  ]);
+
+  // Resolve loan application for memo/customer linkage.
+  const { data: loan } = await supabase
+    .from("loan_applications")
+    .select("id, application_number, first_name, last_name, email")
+    .eq("id", schedule.loan_application_id)
+    .maybeSingle();
+
+  const memo = `Loan ${loan?.application_number || schedule.loan_application_id} • Installment ${schedule.payment_number}`;
+  const txnDate = (schedule.paid_date || new Date().toISOString()).split("T")[0];
+
+  const buildDeposit = (depositAccountId: string, sourceAccountId: string, amount: number) => ({
+    DepositToAccountRef: { value: depositAccountId },
+    TxnDate: txnDate,
+    PrivateNote: memo,
+    Line: [
+      {
+        Amount: Number(amount.toFixed(2)),
+        DetailType: "DepositLineDetail",
+        Description: memo,
+        DepositLineDetail: {
+          AccountRef: { value: sourceAccountId },
+        },
+      },
+    ],
+  });
+
+  let principalDepositId: string | null = schedule.qbo_principal_deposit_id || null;
+  let interestDepositId: string | null = schedule.qbo_interest_deposit_id || null;
+
+  try {
+    if (principal > 0 && !principalDepositId) {
+      const r = await fetch(`${qboBase}/deposit`, {
+        method: "POST",
+        headers: qboHeaders,
+        body: JSON.stringify(buildDeposit(principalAcct, loanReceivableAcct, principal)),
+      });
+      if (!r.ok) throw new Error(`Principal Deposit failed: ${await r.text()}`);
+      const j = await r.json();
+      principalDepositId = j?.Deposit?.Id || null;
+    }
+
+    if (interest > 0 && !interestDepositId) {
+      const r = await fetch(`${qboBase}/deposit`, {
+        method: "POST",
+        headers: qboHeaders,
+        body: JSON.stringify(buildDeposit(interestAcct, interestIncomeAcct, interest)),
+      });
+      if (!r.ok) throw new Error(`Interest Deposit failed: ${await r.text()}`);
+      const j = await r.json();
+      interestDepositId = j?.Deposit?.Id || null;
+    }
+
+    await supabase
+      .from("loan_payment_schedules")
+      .update({
+        qbo_principal_deposit_id: principalDepositId,
+        qbo_interest_deposit_id: interestDepositId,
+        qbo_synced_at: new Date().toISOString(),
+      })
+      .eq("id", schedule.id);
+
+    await supabase.from("qbo_sync_logs").insert({
+      user_id: userId,
+      sync_type: "auto-loan-repayment",
+      direction: "push",
+      status: "success",
+      records_processed: (principal > 0 ? 1 : 0) + (interest > 0 ? 1 : 0),
+      idempotency_key: idemKey,
+      details: {
+        loan_application_id: schedule.loan_application_id,
+        payment_number: schedule.payment_number,
+        principal_deposit_id: principalDepositId,
+        interest_deposit_id: interestDepositId,
+        principal_amount: principal,
+        interest_amount: interest,
+      },
+    });
+  } catch (err: any) {
+    // Persist whatever DepositId we got so a retry doesn't double-post.
+    await supabase
+      .from("loan_payment_schedules")
+      .update({
+        qbo_principal_deposit_id: principalDepositId,
+        qbo_interest_deposit_id: interestDepositId,
+      })
+      .eq("id", schedule.id);
+
+    await supabase.from("qbo_sync_logs").insert({
+      user_id: userId,
+      sync_type: "auto-loan-repayment",
+      direction: "push",
+      status: principalDepositId || interestDepositId ? "pending_rollback" : "error",
+      records_processed: (principalDepositId ? 1 : 0) + (interestDepositId ? 1 : 0),
+      error_message: err.message,
+      idempotency_key: idemKey,
+      details: {
+        loan_application_id: schedule.loan_application_id,
+        payment_number: schedule.payment_number,
+        principal_deposit_id: principalDepositId,
+        interest_deposit_id: interestDepositId,
+      },
+    });
+    throw err;
+  }
 }

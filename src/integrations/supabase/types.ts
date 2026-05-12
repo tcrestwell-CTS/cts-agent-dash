@@ -3658,9 +3658,12 @@ export type Database = {
           paid_date: string | null
           payment_number: number
           principal_amount: number
+          qbo_interest_deposit_id: string | null
           qbo_invoice_id: string | null
+          qbo_principal_deposit_id: string | null
           qbo_synced_at: string | null
           status: string
+          stripe_payment_intent_id: string | null
           total_payment: number
           updated_at: string
           user_id: string
@@ -3674,9 +3677,12 @@ export type Database = {
           paid_date?: string | null
           payment_number: number
           principal_amount?: number
+          qbo_interest_deposit_id?: string | null
           qbo_invoice_id?: string | null
+          qbo_principal_deposit_id?: string | null
           qbo_synced_at?: string | null
           status?: string
+          stripe_payment_intent_id?: string | null
           total_payment?: number
           updated_at?: string
           user_id: string
@@ -3690,9 +3696,12 @@ export type Database = {
           paid_date?: string | null
           payment_number?: number
           principal_amount?: number
+          qbo_interest_deposit_id?: string | null
           qbo_invoice_id?: string | null
+          qbo_principal_deposit_id?: string | null
           qbo_synced_at?: string | null
           status?: string
+          stripe_payment_intent_id?: string | null
           total_payment?: number
           updated_at?: string
           user_id?: string
@@ -4027,6 +4036,30 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      qbo_account_mappings: {
+        Row: {
+          qbo_account_id: string
+          qbo_account_name: string | null
+          role: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          qbo_account_id: string
+          qbo_account_name?: string | null
+          role: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          qbo_account_id?: string
+          qbo_account_name?: string | null
+          role?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -4557,7 +4590,10 @@ export type Database = {
           direction: string
           error_message: string | null
           id: string
+          idempotency_key: string | null
+          linked_log_id: string | null
           records_processed: number
+          retry_count: number
           status: string
           sync_type: string
           user_id: string
@@ -4568,7 +4604,10 @@ export type Database = {
           direction?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
+          linked_log_id?: string | null
           records_processed?: number
+          retry_count?: number
           status?: string
           sync_type: string
           user_id: string
@@ -4579,12 +4618,23 @@ export type Database = {
           direction?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
+          linked_log_id?: string | null
           records_processed?: number
+          retry_count?: number
           status?: string
           sync_type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "qbo_sync_logs_linked_log_id_fkey"
+            columns: ["linked_log_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_sync_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qbo_vendors: {
         Row: {
@@ -7474,6 +7524,10 @@ export type Database = {
       }
     }
     Functions: {
+      _post_qbo_sync_trigger: {
+        Args: { p_old?: Json; p_record: Json; p_trigger_type: string }
+        Returns: undefined
+      }
       accept_invitation: {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean

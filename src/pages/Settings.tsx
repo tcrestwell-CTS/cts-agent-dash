@@ -12,6 +12,7 @@ import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTierConfig } from "@/lib/commissionTiers";
 import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
+import { QBOAccountMappingCard } from "@/components/settings/QBOAccountMappingCard";
 import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
 import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings";
 import { BackfillPlanningTripsCard } from "@/components/admin/BackfillPlanningTripsCard";
@@ -573,6 +574,7 @@ const Settings = () => {
               </div>
 
               <QBOIntegrationCard />
+              <QBOAccountMappingCard />
             </CardContent>
           </Card>
         </TabsContent>

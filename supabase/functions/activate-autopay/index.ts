@@ -164,6 +164,8 @@ Deno.serve(async (req) => {
       'metadata[loan_id]': loan_id,
       'metadata[approved_amount]': String(approved_amount),
       'metadata[approved_term_months]': String(approved_term_months),
+      // Routing metadata for stripe-webhook → CRM (architecture: CRM is system of record)
+      'metadata[payment_type]': 'loan_repayment',
       'collection_method': 'charge_automatically',
     };
 
