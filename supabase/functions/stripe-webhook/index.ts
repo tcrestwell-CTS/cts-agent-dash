@@ -113,6 +113,18 @@ async function processPaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
   if (error) throw new Error(`stripe_payments upsert failed: ${error.message}`);
   log("stripe_payments upserted", { id: pi.id });
 
+  const { error: checkoutUpdateError } = await supabase
+    .from("checkout_payments")
+    .update({
+      status: "succeeded",
+      stripe_customer_id: typeof pi.customer === "string" ? pi.customer : null,
+    })
+    .eq("stripe_payment_intent_id", pi.id);
+  if (checkoutUpdateError) {
+    throw new Error(`checkout_payments status update failed: ${checkoutUpdateError.message}`);
+  }
+  log("checkout_payments synced", { payment_intent_id: pi.id });
+
   // ── CRM routing by metadata.payment_type ─────────────────────────────────
   await routePaymentToCrm(pi);
 }
