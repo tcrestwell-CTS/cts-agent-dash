@@ -8,6 +8,9 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
+const isLocalPaidStatus = (status?: string | null) =>
+  ["completed", "paid", "succeeded"].includes(String(status || "").toLowerCase());
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,19 +38,35 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // ── 1. Fetch Stripe PaymentIntents (last 90 days, up to 100) ──
-    const ninetyDaysAgo = Math.floor((Date.now() - 90 * 86400000) / 1000);
-    const stripeResp = await fetch(
-      `https://api.stripe.com/v1/payment_intents?limit=100&created[gte]=${ninetyDaysAgo}`,
-      { headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` } }
-    );
-    if (!stripeResp.ok) {
-      const errText = await stripeResp.text();
-      throw new Error(`Stripe API error: ${stripeResp.status} ${errText}`);
+    let options: any = {};
+    try {
+      options = req.method === "POST" ? await req.json() : Object.fromEntries(new URL(req.url).searchParams);
+    } catch {
+      options = {};
     }
-    const stripeData = await stripeResp.json();
-    const paymentIntents = stripeData.data || [];
+    const autoFixLocalStatus = options.auto_fix_local_status === true || options.auto_fix_local_status === "true";
+    let repairedLocalStatuses = 0;
+
+    // ── 1. Fetch Stripe PaymentIntents (last 90 days, paginated) ──
+    const ninetyDaysAgo = Math.floor((Date.now() - 90 * 86400000) / 1000);
+    const paymentIntents: any[] = [];
+    let startingAfter: string | null = null;
+    for (let page = 0; page < 10; page++) {
+      const url = new URL("https://api.stripe.com/v1/payment_intents");
+      url.searchParams.set("limit", "100");
+      url.searchParams.set("created[gte]", String(ninetyDaysAgo));
+      if (startingAfter) url.searchParams.set("starting_after", startingAfter);
+      const stripeResp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` } });
+      if (!stripeResp.ok) {
+        const errText = await stripeResp.text();
+        throw new Error(`Stripe API error: ${stripeResp.status} ${errText}`);
+      }
+      const stripeData = await stripeResp.json();
+      const pageItems = stripeData.data || [];
+      paymentIntents.push(...pageItems);
+      if (!stripeData.has_more || pageItems.length === 0) break;
+      startingAfter = pageItems[pageItems.length - 1].id;
+    }
 
     // ── 2. Fetch Stripe Balance (available + pending) ──
     const balResp = await fetch("https://api.stripe.com/v1/balance", {
@@ -121,11 +140,24 @@ serve(async (req) => {
 
       // Map Stripe status to local status
       const statusMatch =
-        (stripeStatus === "succeeded" && (localStatus === "completed" || localStatus === "paid")) ||
+        (stripeStatus === "succeeded" && isLocalPaidStatus(localStatus)) ||
         (stripeStatus === "canceled" && (localStatus === "cancelled" || localStatus === "canceled")) ||
         (stripeStatus === "requires_payment_method" && localStatus === "pending") ||
         (stripeStatus === "processing" && localStatus === "processing") ||
         localStatus === stripeStatus;
+
+      if (autoFixLocalStatus && amountMatch && !statusMatch && stripeStatus === "succeeded" && localStatus === "pending") {
+        const { error: repairError } = await admin
+          .from("checkout_payments")
+          .update({ status: "succeeded" })
+          .eq("id", cp.id);
+        if (!repairError) {
+          cp.status = "succeeded";
+          repairedLocalStatuses += 1;
+          matchedCheckout.push({ local_id: cp.id, pi_id: piId, amount: localAmount / 100, status: "succeeded", repaired: true });
+          continue;
+        }
+      }
 
       if (!amountMatch || !statusMatch) {
         checkoutDiscrepancies.push({
@@ -181,9 +213,22 @@ serve(async (req) => {
       const stripeAmountDollars = stripePi.amount / 100;
       const amountMatch = Math.abs(tp.amount - stripeAmountDollars) < 0.01;
       const statusMatch =
-        (stripePi.status === "succeeded" && tp.status === "completed") ||
+        (stripePi.status === "succeeded" && isLocalPaidStatus(tp.status)) ||
         (stripePi.status === "canceled" && tp.status === "cancelled") ||
         tp.status === stripePi.status;
+
+      if (autoFixLocalStatus && amountMatch && !statusMatch && stripePi.status === "succeeded" && tp.status === "pending") {
+        const { error: repairError } = await admin
+          .from("trip_payments")
+          .update({ status: "paid", payment_method: "stripe" })
+          .eq("id", tp.id);
+        if (!repairError) {
+          tp.status = "paid";
+          repairedLocalStatuses += 1;
+          matchedTrip.push({ local_id: tp.id, pi_id: piId, amount: tp.amount, status: "paid", repaired: true });
+          continue;
+        }
+      }
 
       if (!amountMatch || !statusMatch) {
         tripDiscrepancies.push({
@@ -524,8 +569,8 @@ serve(async (req) => {
 
     // Sum local totals
     const localCompletedTotal = [
-      ...(checkoutPayments || []).filter(c => c.status === "completed" || c.status === "paid").map(c => c.amount_cents / 100),
-      ...(tripPayments || []).filter(t => t.status === "completed").map(t => t.amount),
+      ...(checkoutPayments || []).filter(c => isLocalPaidStatus(c.status)).map(c => c.amount_cents / 100),
+      ...(tripPayments || []).filter(t => isLocalPaidStatus(t.status)).map(t => t.amount),
     ].reduce((s, a) => s + a, 0);
 
     const stripeSucceededTotal = paymentIntents
@@ -541,6 +586,7 @@ serve(async (req) => {
           total_local_checkout: (checkoutPayments || []).length,
           total_local_trip: (tripPayments || []).length,
           matched: totalMatched,
+          repaired_local_statuses: repairedLocalStatuses,
           discrepancies: totalDiscrepancies,
           orphaned_in_stripe: orphanedPIs.length,
           all_clear: totalDiscrepancies === 0,
