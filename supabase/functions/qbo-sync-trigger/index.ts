@@ -157,44 +157,93 @@ serve(async (req) => {
 async function handleBookingConfirmed(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any
 ) {
-  // 1. Resolve client via the trip (bookings don't have client_id directly)
-  let clientId = booking.client_id;
-  if (!clientId && booking.trip_id) {
-    const { data: trip } = await supabase
-      .from("trips")
-      .select("client_id")
-      .eq("id", booking.trip_id)
-      .single();
-    clientId = trip?.client_id;
-  }
-
-  if (!clientId) throw new Error("No client linked to booking (no trip or trip has no client)");
+  // Resolve trip + client (bookings hold no client_id directly).
+  if (!booking.trip_id) throw new Error("Booking has no trip_id");
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("id, client_id, trip_name")
+    .eq("id", booking.trip_id)
+    .single();
+  if (!trip?.client_id) throw new Error(`Trip ${booking.trip_id} has no client`);
 
   const { data: client } = await supabase
     .from("clients")
     .select("*")
-    .eq("id", clientId)
+    .eq("id", trip.client_id)
     .single();
-
-  if (!client) throw new Error(`Client ${clientId} not found`);
+  if (!client) throw new Error(`Client ${trip.client_id} not found`);
 
   const qboCustomerId = await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
 
-  // 2. Create an Invoice in QBO for this booking
-  const invoiceData = {
+  // ── 1. Ensure local CRM invoice exists (idempotent — DB trigger may have made it).
+  let { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, total_amount")
+    .eq("trip_id", booking.trip_id)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const amount = Number(booking.gross_sales ?? booking.total_price ?? 0);
+  if (amount <= 0) {
+    throw new Error(
+      `Booking ${booking.id} has no positive gross_sales/total_price; refusing to create $0 invoice`
+    );
+  }
+
+  if (!invoice) {
+    // Generate via the same RPC the rest of the system uses
+    const { data: invNum, error: invNumErr } = await supabase
+      .rpc("get_next_invoice_number", { p_user_id: userId });
+    if (invNumErr) throw new Error(`get_next_invoice_number failed: ${invNumErr.message}`);
+
+    const { data: created, error: createErr } = await supabase
+      .from("invoices")
+      .insert({
+        user_id: userId,
+        invoice_number: invNum,
+        client_id: trip.client_id,
+        client_name: client.name,
+        trip_id: booking.trip_id,
+        trip_name: trip.trip_name,
+        total_amount: amount,
+        amount_remaining: amount,
+        status: "sent",
+      })
+      .select("id, invoice_number, total_amount")
+      .single();
+    if (createErr) throw new Error(`Local invoice insert failed: ${createErr.message}`);
+    invoice = created;
+  }
+
+  // ── 2. Idempotency: skip if already mapped to QBO.
+  const { data: existingMap } = await supabase
+    .from("qbo_invoice_mappings")
+    .select("qbo_invoice_id")
+    .eq("invoice_id", invoice.id)
+    .maybeSingle();
+  if (existingMap?.qbo_invoice_id) {
+    await logSync(supabase, userId, "auto-booking-confirmed", "success", 0,
+      undefined, { booking_id: booking.id, invoice_id: invoice.id, skipped: "already_mapped",
+      qbo_invoice_id: existingMap.qbo_invoice_id });
+    return;
+  }
+
+  // ── 3. Create QBO Invoice using the canonical CRM invoice number as DocNumber.
+  const docNum = String(invoice.invoice_number).substring(0, 21);
+  const invoiceData: any = {
     CustomerRef: { value: qboCustomerId },
     Line: [
       {
-        Amount: booking.total_amount || 0,
+        Amount: Number(invoice.total_amount ?? amount),
         DetailType: "SalesItemLineDetail",
-        SalesItemLineDetail: {
-          ItemRef: { value: "1", name: "Services" },
-        },
-        Description: `Booking ${booking.booking_reference} – ${booking.destination || "Travel"}`,
+        SalesItemLineDetail: { ItemRef: { value: "1", name: "Services" } },
+        Description: `Booking ${booking.confirmation_number ?? booking.id} — ${trip.trip_name ?? "Travel"}`,
       },
     ],
-    DocNumber: booking.booking_reference?.substring(0, 21),
-    TxnDate: booking.created_at?.split("T")[0],
+    DocNumber: docNum,
+    TxnDate: (booking.created_at ?? new Date().toISOString()).split("T")[0],
   };
 
   const resp = await fetch(`${qboBase}/invoice`, {
@@ -202,13 +251,34 @@ async function handleBookingConfirmed(
     headers: qboHeaders,
     body: JSON.stringify(invoiceData),
   });
-
   if (!resp.ok) {
     const errBody = await resp.text();
     throw new Error(`QBO Invoice creation failed: ${errBody}`);
   }
+  const result = await resp.json();
+  const qboInvoiceId = result?.Invoice?.Id;
+  if (!qboInvoiceId) throw new Error("QBO Invoice response missing Id");
 
-  await logSync(supabase, userId, "auto-booking-confirmed", "success", 1);
+  // ── 4. Persist mapping.
+  const { error: mapErr } = await supabase
+    .from("qbo_invoice_mappings")
+    .upsert({
+      user_id: userId,
+      invoice_id: invoice.id,
+      qbo_invoice_id: qboInvoiceId,
+      last_synced_at: new Date().toISOString(),
+    }, { onConflict: "user_id,invoice_id" });
+  if (mapErr) {
+    // Log but don't fail — QBO invoice exists; mapping can be repaired.
+    console.error(`[booking_confirmed] mapping upsert failed: ${mapErr.message}`);
+  }
+
+  await logSync(supabase, userId, "auto-booking-confirmed", "success", 1, undefined, {
+    booking_id: booking.id,
+    invoice_id: invoice.id,
+    qbo_invoice_id: qboInvoiceId,
+    amount: invoice.total_amount,
+  });
 }
 
 /** Commission received (status → paid) → create QBO Journal Entry */
