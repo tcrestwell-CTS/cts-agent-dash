@@ -234,6 +234,7 @@ serve(async (req) => {
             payment_method: "stripe",
             payment_date: paymentDate,
             details: `Stripe payment ${session.payment_intent}`,
+            stripe_payment_intent_id: session.payment_intent as string,
             stripe_receipt_url: receiptUrl,
           })
           .eq("id", paymentId);
