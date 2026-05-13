@@ -39,18 +39,26 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // ── 1. Fetch Stripe PaymentIntents (last 90 days, up to 100) ──
+    // ── 1. Fetch Stripe PaymentIntents (last 90 days, paginated) ──
     const ninetyDaysAgo = Math.floor((Date.now() - 90 * 86400000) / 1000);
-    const stripeResp = await fetch(
-      `https://api.stripe.com/v1/payment_intents?limit=100&created[gte]=${ninetyDaysAgo}`,
-      { headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` } }
-    );
-    if (!stripeResp.ok) {
-      const errText = await stripeResp.text();
-      throw new Error(`Stripe API error: ${stripeResp.status} ${errText}`);
+    const paymentIntents: any[] = [];
+    let startingAfter: string | null = null;
+    for (let page = 0; page < 10; page++) {
+      const url = new URL("https://api.stripe.com/v1/payment_intents");
+      url.searchParams.set("limit", "100");
+      url.searchParams.set("created[gte]", String(ninetyDaysAgo));
+      if (startingAfter) url.searchParams.set("starting_after", startingAfter);
+      const stripeResp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` } });
+      if (!stripeResp.ok) {
+        const errText = await stripeResp.text();
+        throw new Error(`Stripe API error: ${stripeResp.status} ${errText}`);
+      }
+      const stripeData = await stripeResp.json();
+      const pageItems = stripeData.data || [];
+      paymentIntents.push(...pageItems);
+      if (!stripeData.has_more || pageItems.length === 0) break;
+      startingAfter = pageItems[pageItems.length - 1].id;
     }
-    const stripeData = await stripeResp.json();
-    const paymentIntents = stripeData.data || [];
 
     // ── 2. Fetch Stripe Balance (available + pending) ──
     const balResp = await fetch("https://api.stripe.com/v1/balance", {
