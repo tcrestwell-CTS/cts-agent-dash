@@ -38,6 +38,14 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    let options: any = {};
+    try {
+      options = req.method === "POST" ? await req.json() : Object.fromEntries(new URL(req.url).searchParams);
+    } catch {
+      options = {};
+    }
+    const autoFixLocalStatus = options.auto_fix_local_status === true || options.auto_fix_local_status === "true";
+    let repairedLocalStatuses = 0;
 
     // ── 1. Fetch Stripe PaymentIntents (last 90 days, paginated) ──
     const ninetyDaysAgo = Math.floor((Date.now() - 90 * 86400000) / 1000);
@@ -138,6 +146,18 @@ serve(async (req) => {
         (stripeStatus === "processing" && localStatus === "processing") ||
         localStatus === stripeStatus;
 
+      if (autoFixLocalStatus && amountMatch && !statusMatch && stripeStatus === "succeeded" && localStatus === "pending") {
+        const { error: repairError } = await admin
+          .from("checkout_payments")
+          .update({ status: "succeeded" })
+          .eq("id", cp.id);
+        if (!repairError) {
+          repairedLocalStatuses += 1;
+          matchedCheckout.push({ local_id: cp.id, pi_id: piId, amount: localAmount / 100, status: "succeeded", repaired: true });
+          continue;
+        }
+      }
+
       if (!amountMatch || !statusMatch) {
         checkoutDiscrepancies.push({
           type: "mismatch",
@@ -195,6 +215,18 @@ serve(async (req) => {
         (stripePi.status === "succeeded" && isLocalPaidStatus(tp.status)) ||
         (stripePi.status === "canceled" && tp.status === "cancelled") ||
         tp.status === stripePi.status;
+
+      if (autoFixLocalStatus && amountMatch && !statusMatch && stripePi.status === "succeeded" && tp.status === "pending") {
+        const { error: repairError } = await admin
+          .from("trip_payments")
+          .update({ status: "paid", payment_method: "stripe" })
+          .eq("id", tp.id);
+        if (!repairError) {
+          repairedLocalStatuses += 1;
+          matchedTrip.push({ local_id: tp.id, pi_id: piId, amount: tp.amount, status: "paid", repaired: true });
+          continue;
+        }
+      }
 
       if (!amountMatch || !statusMatch) {
         tripDiscrepancies.push({
@@ -552,6 +584,7 @@ serve(async (req) => {
           total_local_checkout: (checkoutPayments || []).length,
           total_local_trip: (tripPayments || []).length,
           matched: totalMatched,
+          repaired_local_statuses: repairedLocalStatuses,
           discrepancies: totalDiscrepancies,
           orphaned_in_stripe: orphanedPIs.length,
           all_clear: totalDiscrepancies === 0,
