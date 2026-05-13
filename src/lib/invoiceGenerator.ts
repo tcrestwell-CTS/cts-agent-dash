@@ -86,6 +86,7 @@ const isInvoiceCashPayment = (payment: TripPayment) => {
   const details = (payment.details || "").toLowerCase();
   const isSchedulePlaceholder =
     !!payment.due_date &&
+    !payment.payment_date &&
     !payment.payment_method &&
     !payment.stripe_session_id &&
     !payment.stripe_receipt_url &&

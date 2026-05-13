@@ -58,10 +58,11 @@ export interface UpdatePaymentData {
   notes?: string | null;
 }
 
-export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_date" | "payment_method" | "stripe_session_id" | "stripe_receipt_url" | "payment_type" | "details">) => {
+export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_date" | "payment_method" | "stripe_session_id" | "stripe_receipt_url" | "payment_type" | "details" | "payment_date">) => {
   const details = (payment.details || "").toLowerCase();
   const isSchedulePlaceholder =
     !!payment.due_date &&
+    !payment.payment_date &&
     !payment.payment_method &&
     !payment.stripe_session_id &&
     !payment.stripe_receipt_url &&
