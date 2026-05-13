@@ -474,7 +474,11 @@ export function useQBOConnection() {
       const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-reconcile`,
-        { headers: { ...headers, "Content-Type": "application/json" } }
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ auto_fix_local_status: true }),
+        }
       );
       if (!resp.ok) throw new Error("Failed to run full Stripe reconciliation");
       return await resp.json();
