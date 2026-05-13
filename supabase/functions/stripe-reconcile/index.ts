@@ -8,6 +8,9 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
+const isLocalPaidStatus = (status?: string | null) =>
+  ["completed", "paid", "succeeded"].includes(String(status || "").toLowerCase());
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -121,7 +124,7 @@ serve(async (req) => {
 
       // Map Stripe status to local status
       const statusMatch =
-        (stripeStatus === "succeeded" && (localStatus === "completed" || localStatus === "paid")) ||
+        (stripeStatus === "succeeded" && isLocalPaidStatus(localStatus)) ||
         (stripeStatus === "canceled" && (localStatus === "cancelled" || localStatus === "canceled")) ||
         (stripeStatus === "requires_payment_method" && localStatus === "pending") ||
         (stripeStatus === "processing" && localStatus === "processing") ||
@@ -181,7 +184,7 @@ serve(async (req) => {
       const stripeAmountDollars = stripePi.amount / 100;
       const amountMatch = Math.abs(tp.amount - stripeAmountDollars) < 0.01;
       const statusMatch =
-        (stripePi.status === "succeeded" && tp.status === "completed") ||
+        (stripePi.status === "succeeded" && isLocalPaidStatus(tp.status)) ||
         (stripePi.status === "canceled" && tp.status === "cancelled") ||
         tp.status === stripePi.status;
 
@@ -524,8 +527,8 @@ serve(async (req) => {
 
     // Sum local totals
     const localCompletedTotal = [
-      ...(checkoutPayments || []).filter(c => c.status === "completed" || c.status === "paid").map(c => c.amount_cents / 100),
-      ...(tripPayments || []).filter(t => t.status === "completed").map(t => t.amount),
+      ...(checkoutPayments || []).filter(c => isLocalPaidStatus(c.status)).map(c => c.amount_cents / 100),
+      ...(tripPayments || []).filter(t => isLocalPaidStatus(t.status)).map(t => t.amount),
     ].reduce((s, a) => s + a, 0);
 
     const stripeSucceededTotal = paymentIntents
