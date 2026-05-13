@@ -9,6 +9,7 @@ import { AddClientDialog } from "@/components/crm/AddClientDialog";
 import { ClientCard } from "@/components/crm/ClientCard";
 import { ClientListView } from "@/components/crm/ClientListView";
 import { ImportDataDialog } from "@/components/admin/ImportDataDialog";
+import { ExportCustomersTripsButton } from "@/components/crm/ExportCustomersTripsButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -144,6 +145,7 @@ const CRM = () => {
           <p className="text-muted-foreground text-sm mt-1">Manage your clients and track their journey</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportCustomersTripsButton />
           {isAdmin && <ImportDataDialog />}
           <AddClientDialog />
         </div>
