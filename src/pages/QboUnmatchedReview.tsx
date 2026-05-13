@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { exportToCSV } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
 
 type Decision = "pending" | "linked" | "refunded" | "written_off" | "skip";
 
@@ -73,6 +74,8 @@ export default function QboUnmatchedReview() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [detail, setDetail] = useState<UnmatchedRow | null>(null);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [bulkApplying, setBulkApplying] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["qbo-unmatched-review"],
@@ -191,6 +194,67 @@ export default function QboUnmatchedReview() {
     if (detail?.qbo_payment_id === row.qbo_payment_id) setDetail(next);
   };
 
+  const decisionToOp = (r: UnmatchedRow): "relink" | "writeoff" | null => {
+    if (r.decision === "linked" && r.target_qbo_invoice_id) return "relink";
+    if (r.decision === "written_off") return "writeoff";
+    return null;
+  };
+
+  const applyOne = async (r: UnmatchedRow) => {
+    const op = decisionToOp(r);
+    if (!op) {
+      toast.error("Set decision to 'Linked' (with target invoice) or 'Written off' first");
+      return;
+    }
+    setApplyingId(r.qbo_payment_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-payment-action", {
+        body: { items: [{ qbo_payment_id: r.qbo_payment_id, op, target_qbo_invoice_id: r.target_qbo_invoice_id }] },
+      });
+      if (error) throw error;
+      const res = (data as any)?.results?.[0];
+      if (res?.status === "ok") {
+        toast.success(op === "relink" ? `Linked $${(res.applied ?? 0).toFixed(2)} to invoice ${res.invoice_id}` : "Payment written off");
+        qc.invalidateQueries({ queryKey: ["qbo-unmatched-review"] });
+      } else {
+        toast.error(res?.error || "Apply failed");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Apply failed");
+    } finally {
+      setApplyingId(null);
+    }
+  };
+
+  const applyAllDecided = async () => {
+    const items = filtered
+      .map((r) => {
+        const op = decisionToOp(r);
+        return op ? { qbo_payment_id: r.qbo_payment_id, op, target_qbo_invoice_id: r.target_qbo_invoice_id } : null;
+      })
+      .filter(Boolean) as { qbo_payment_id: string; op: "relink" | "writeoff"; target_qbo_invoice_id: string | null }[];
+    if (!items.length) {
+      toast.error("No rows with applicable decisions in current filter");
+      return;
+    }
+    if (!confirm(`Apply ${items.length} decision(s) to QBO? This cannot be undone.`)) return;
+    setBulkApplying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("qbo-payment-action", { body: { items } });
+      if (error) throw error;
+      const results = (data as any)?.results ?? [];
+      const ok = results.filter((r: any) => r.status === "ok").length;
+      const fail = results.length - ok;
+      if (fail === 0) toast.success(`Applied ${ok} payment(s)`);
+      else toast.warning(`Applied ${ok}, ${fail} failed — check details`);
+      qc.invalidateQueries({ queryKey: ["qbo-unmatched-review"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Bulk apply failed");
+    } finally {
+      setBulkApplying(false);
+    }
+  };
+
   const handleExport = () => {
     exportToCSV(
       filtered.map((r) => ({
@@ -224,7 +288,13 @@ export default function QboUnmatchedReview() {
               Manually classify QBO payments without a linked invoice.
             </p>
           </div>
-          <Button variant="outline" onClick={handleExport}>Export CSV</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport}>Export CSV</Button>
+            <Button onClick={applyAllDecided} disabled={bulkApplying}>
+              {bulkApplying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Apply all decided
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
@@ -324,7 +394,7 @@ export default function QboUnmatchedReview() {
                       <TableHead>Link</TableHead>
                       <TableHead>Decision</TableHead>
                       <TableHead>Target Inv</TableHead>
-                      <TableHead></TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -375,7 +445,18 @@ export default function QboUnmatchedReview() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" onClick={() => setDetail(r)}>Notes</Button>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              disabled={!decisionToOp(r) || applyingId === r.qbo_payment_id}
+                              onClick={() => applyOne(r)}
+                              title={decisionToOp(r) ? "Apply decision to QBO" : "Set decision first"}
+                            >
+                              {applyingId === r.qbo_payment_id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setDetail(r)}>Notes</Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
