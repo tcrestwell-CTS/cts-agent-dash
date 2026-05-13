@@ -1040,6 +1040,26 @@ async function logSync(
  *   4. Hardcoded fallback "Checking" by name (last resort, may still fail)
  */
 const _payAcctCache = new Map<string, { id: string; name: string }>();
+
+// Fetch with automatic retry on QBO 429 ThrottleExceeded.
+// QBO throttle window is per-minute, so back off aggressively.
+async function qboFetch(url: string, init: RequestInit, maxAttempts = 4): Promise<Response> {
+  let attempt = 0;
+  let lastResp: Response | null = null;
+  while (attempt < maxAttempts) {
+    const resp = await fetch(url, init);
+    if (resp.status !== 429) return resp;
+    lastResp = resp;
+    // Drain body so the connection can be reused
+    try { await resp.text(); } catch { /* ignore */ }
+    attempt++;
+    const backoffMs = Math.min(15000, 1000 * Math.pow(2, attempt)) + Math.floor(Math.random() * 500);
+    console.warn(`[qbo-sync-trigger] QBO 429 throttled, retry ${attempt}/${maxAttempts} after ${backoffMs}ms: ${url}`);
+    await new Promise((r) => setTimeout(r, backoffMs));
+  }
+  return lastResp!;
+}
+
 async function resolvePaymentAccount(
   qboBase: string,
   qboHeaders: any,
@@ -1052,7 +1072,13 @@ async function resolvePaymentAccount(
 
   // 1. By configured ID
   if (configuredId) {
-    const r = await fetch(`${qboBase}/account/${configuredId}`, { headers: qboHeaders });
+    const r = await qboFetch(`${qboBase}/account/${configuredId}`, { headers: qboHeaders });
+    if (r.status === 429) {
+      throw new Error(
+        `QBO API throttled (429) while resolving ${accountType} account ${configuredId}. ` +
+        `Retry after a short delay; do not interpret as a config issue.`
+      );
+    }
     if (r.ok) {
       const j = await r.json();
       const acct = j?.Account;
@@ -1067,10 +1093,15 @@ async function resolvePaymentAccount(
   // 2. By configured name
   if (configuredName) {
     const escaped = configuredName.replace(/'/g, "\\'");
-    const r = await fetch(
+    const r = await qboFetch(
       `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${escaped}' AND Active = true`)}`,
       { headers: qboHeaders }
     );
+    if (r.status === 429) {
+      throw new Error(
+        `QBO API throttled (429) while resolving ${accountType} account by name "${configuredName}". Retry later.`
+      );
+    }
     if (r.ok) {
       const j = await r.json();
       const acct = (j?.QueryResponse?.Account || []).find((a: any) => accountMatchesPaymentType(a, accountType));
@@ -1083,10 +1114,13 @@ async function resolvePaymentAccount(
   }
 
   // 3. Auto-detect first active account of requested type
-  const r = await fetch(
+  const r = await qboFetch(
     `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Active = true MAXRESULTS 200`)}`,
     { headers: qboHeaders }
   );
+  if (r.status === 429) {
+    throw new Error(`QBO API throttled (429) while auto-detecting ${accountType} account. Retry later.`);
+  }
   if (r.ok) {
     const j = await r.json();
     const acct = (j?.QueryResponse?.Account || []).find((a: any) => accountMatchesPaymentType(a, accountType));
