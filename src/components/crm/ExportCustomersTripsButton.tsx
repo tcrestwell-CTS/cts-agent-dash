@@ -21,6 +21,15 @@ type Row = {
   trip_balance: string;
 };
 
+const toTitleCase = (s: string | null | undefined): string => {
+  if (!s) return "";
+  return String(s)
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+};
+
 export function ExportCustomersTripsButton() {
   const [loading, setLoading] = useState(false);
 
@@ -79,9 +88,9 @@ export function ExportCustomersTripsButton() {
           client_name: client?.name || "—",
           client_email: client?.email || "",
           client_phone: client?.phone || "",
-          client_status: client?.status || "",
+          client_status: toTitleCase(client?.status),
           trip_name: t.trip_name || "",
-          trip_status: t.status || "",
+          trip_status: toTitleCase(t.status),
           trip_phase: phase,
           departure_date: t.departure_date ? formatDateForExport(t.departure_date) : "",
           return_date: t.return_date ? formatDateForExport(t.return_date) : "",
@@ -93,12 +102,13 @@ export function ExportCustomersTripsButton() {
       });
 
       // Append a totals-by-customer summary block at the end of the same CSV
-      const byClient = new Map<string, { name: string; email: string; trips: number; total: number; paid: number }>();
+      const byClient = new Map<string, { name: string; email: string; status: string; trips: number; total: number; paid: number }>();
       for (const r of rows) {
         const key = `${r.client_name}|${r.client_email}`;
         const agg = byClient.get(key) || {
           name: r.client_name,
           email: r.client_email,
+          status: r.client_status,
           trips: 0,
           total: 0,
           paid: 0,
@@ -115,7 +125,7 @@ export function ExportCustomersTripsButton() {
           client_name: c.name,
           client_email: c.email,
           client_phone: "",
-          client_status: "",
+          client_status: c.status,
           trip_name: "— CUSTOMER TOTAL —",
           trip_status: "",
           trip_phase: "",
