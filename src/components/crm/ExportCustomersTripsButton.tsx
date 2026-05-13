@@ -12,6 +12,7 @@ type Row = {
   client_status: string;
   trip_name: string;
   trip_status: string;
+  trip_phase: string;
   departure_date: string;
   return_date: string;
   bookings_count: number;
@@ -66,6 +67,14 @@ export function ExportCustomersTripsButton() {
         const client = t.client_id ? clientsById.get(t.client_id) : null;
         const totals = totalsByTrip.get(t.id) || { count: 0, total: 0 };
         const paid = paidByTrip.get(t.id) || 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const ret = t.return_date ? new Date(t.return_date + "T00:00:00") : null;
+        const dep = t.departure_date ? new Date(t.departure_date + "T00:00:00") : null;
+        let phase = "Upcoming";
+        if (t.status === "archived" || t.status === "cancelled") phase = "Archived";
+        else if (ret && ret < today) phase = "Past";
+        else if (dep && dep <= today && (!ret || ret >= today)) phase = "Active";
         return {
           client_name: client?.name || "—",
           client_email: client?.email || "",
@@ -73,6 +82,7 @@ export function ExportCustomersTripsButton() {
           client_status: client?.status || "",
           trip_name: t.trip_name || "",
           trip_status: t.status || "",
+          trip_phase: phase,
           departure_date: t.departure_date ? formatDateForExport(t.departure_date) : "",
           return_date: t.return_date ? formatDateForExport(t.return_date) : "",
           bookings_count: totals.count,
@@ -108,6 +118,7 @@ export function ExportCustomersTripsButton() {
           client_status: "",
           trip_name: "— CUSTOMER TOTAL —",
           trip_status: "",
+          trip_phase: "",
           departure_date: "",
           return_date: "",
           bookings_count: c.trips,
@@ -130,6 +141,7 @@ export function ExportCustomersTripsButton() {
         { key: "client_status", header: "Client Status" },
         { key: "trip_name", header: "Trip" },
         { key: "trip_status", header: "Trip Status" },
+        { key: "trip_phase", header: "Trip Phase" },
         { key: "departure_date", header: "Departure" },
         { key: "return_date", header: "Return" },
         { key: "bookings_count", header: "Bookings" },
