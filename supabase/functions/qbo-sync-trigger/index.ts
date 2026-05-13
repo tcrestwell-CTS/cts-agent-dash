@@ -754,6 +754,23 @@ async function handleClientPaymentReceived(
     return;
   }
 
+  // Idempotency: if we've already pushed this trip_payment, do nothing.
+  if (payment.id) {
+    const { data: existingCache } = await supabase
+      .from("qbo_payments")
+      .select("id, qbo_id, qbo_invoice_id")
+      .eq("crm_payment_id", payment.id)
+      .maybeSingle();
+    if (existingCache?.qbo_id) {
+      await logSync(
+        supabase, userId, "auto-client-payment-received", "skipped", 0,
+        "Already synced (qbo_payments cache hit)",
+        { crm_payment_id: payment.id, qbo_payment_id: existingCache.qbo_id }
+      );
+      return;
+    }
+  }
+
   // 1. Resolve client via the trip
   let clientId: string | null = null;
   let qboCustomerId: string | null = null;
@@ -877,6 +894,24 @@ async function handleClientPaymentReceived(
 
   const result = await resp.json();
   const qboPaymentId = result?.Payment?.Id;
+  const qboSyncToken = result?.Payment?.SyncToken;
+
+  // Write local cache so future replays are idempotent and gate 7.2 closes.
+  if (qboPaymentId) {
+    await supabase.from("qbo_payments").upsert({
+      qbo_id: String(qboPaymentId),
+      qbo_customer_id: qboCustomerId,
+      qbo_invoice_id: qboInvoiceId ? String(qboInvoiceId) : null,
+      crm_payment_id: payment.id ?? null,
+      total_amt: amount,
+      txn_date: txnDate,
+      payment_ref_num: payment.stripe_payment_intent_id ?? null,
+      trigger_managed: true,
+      sync_token: qboSyncToken ?? null,
+      raw_payload: result?.Payment ?? null,
+      synced_at: new Date().toISOString(),
+    }, { onConflict: "qbo_id" });
+  }
 
   await logSync(
     supabase, userId, "auto-client-payment-received", "success", 1, undefined,
