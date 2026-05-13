@@ -251,8 +251,89 @@ serve(async (req) => {
     }
 
     // ── 8. Orphaned Stripe PIs (in Stripe but not in local DB) ──
+    // Pull all PIs that are already linked to loan_payment_schedules (autopay / subscription
+    // installments) and remove them from the orphan candidate set so they don't get reported.
+    const orphanCandidatePIs = Array.from(orphanedInStripe.keys());
+    if (orphanCandidatePIs.length > 0) {
+      const { data: scheduleHits } = await admin
+        .from("loan_payment_schedules")
+        .select("stripe_payment_intent_id")
+        .in("stripe_payment_intent_id", orphanCandidatePIs);
+      for (const row of scheduleHits || []) {
+        if (row.stripe_payment_intent_id) orphanedInStripe.delete(row.stripe_payment_intent_id);
+      }
+    }
+
+    // For remaining candidates, attempt to auto-link subscription-driven PIs (loan autopay)
+    // to the next pending installment using subscription metadata.loan_id.
+    if (autoFixLocalStatus) {
+      for (const [piId, pi] of Array.from(orphanedInStripe.entries())) {
+        if (pi.status !== "succeeded" || !pi.invoice) continue;
+        try {
+          const invResp = await fetch(`https://api.stripe.com/v1/invoices/${pi.invoice}`, {
+            headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+          });
+          if (!invResp.ok) continue;
+          const invoice = await invResp.json();
+          const subId = invoice.subscription;
+          if (!subId) continue;
+
+          // Look up local schedule by subscription id first.
+          const { data: subSched } = await admin
+            .from("loan_payment_schedules")
+            .select("id, loan_application_id")
+            .eq("status", "pending")
+            .order("payment_number", { ascending: true })
+            .limit(1);
+
+          let scheduleId: string | null = null;
+          let loanId: string | null = null;
+
+          // Pull subscription metadata for loan_id
+          const subResp = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, {
+            headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+          });
+          if (subResp.ok) {
+            const sub = await subResp.json();
+            loanId = sub?.metadata?.loan_id || null;
+          }
+          if (loanId) {
+            const { data: row } = await admin
+              .from("loan_payment_schedules")
+              .select("id")
+              .eq("loan_application_id", loanId)
+              .eq("status", "pending")
+              .order("payment_number", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            scheduleId = row?.id || null;
+          }
+
+          if (scheduleId) {
+            await admin
+              .from("loan_payment_schedules")
+              .update({
+                status: "paid",
+                paid_date: new Date(pi.created * 1000).toISOString().split("T")[0],
+                stripe_payment_intent_id: piId,
+              })
+              .eq("id", scheduleId)
+              .neq("status", "paid");
+            orphanedInStripe.delete(piId);
+            repairedLocalStatuses += 1;
+          }
+        } catch (_e) {
+          // best-effort; leave as orphan if linking fails
+        }
+      }
+    }
+
     const orphanedPIs = Array.from(orphanedInStripe.values())
       .filter((pi: any) => pi.status === "succeeded") // only care about successful ones
+      // Subscription-driven PIs (payment-plan installments) are reconciled via the
+      // stripe-webhook → loan_payment_schedules flow. Suppress them from the orphan list
+      // so the dashboard stays focused on real reconciliation gaps.
+      .filter((pi: any) => !pi.invoice)
       .map((pi: any) => ({
         pi_id: pi.id,
         amount: pi.amount / 100,
