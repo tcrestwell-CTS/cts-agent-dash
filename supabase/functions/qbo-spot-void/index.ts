@@ -98,12 +98,22 @@ serve(async (req) => {
       if (!f.ok) { voided.push({ vid, error: `fetch ${f.status}` }); continue; }
       const fj = await f.json();
       const st = fj?.Payment?.SyncToken;
-      const v = await fetch(`${qboBase}/payment?operation=void`, {
+      // Try delete first (works for unlinked payments). Fall back to void if needed.
+      const del = await fetch(`${qboBase}/payment?operation=delete`, {
         method: "POST", headers,
         body: JSON.stringify({ Id: vid, SyncToken: st }),
       });
-      const vt = await v.text();
-      voided.push({ vid, status: v.status, ok: v.ok, body: vt.substring(0, 300) });
+      const dt = await del.text();
+      let result: any = { vid, op: "delete", status: del.status, ok: del.ok, body: dt.substring(0, 300) };
+      if (!del.ok) {
+        const v = await fetch(`${qboBase}/payment?operation=void`, {
+          method: "POST", headers,
+          body: JSON.stringify({ Id: vid, SyncToken: st }),
+        });
+        const vt = await v.text();
+        result = { vid, op: "void_fallback", status: v.status, ok: v.ok, body: vt.substring(0, 300), delete_err: dt.substring(0, 200) };
+      }
+      voided.push(result);
       await new Promise(r => setTimeout(r, 600));
     }
 
