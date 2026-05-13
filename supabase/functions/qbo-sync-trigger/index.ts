@@ -246,7 +246,7 @@ async function handleBookingConfirmed(
     TxnDate: (booking.created_at ?? new Date().toISOString()).split("T")[0],
   };
 
-  const resp = await fetch(`${qboBase}/invoice`, {
+  const resp = await qboFetch(`${qboBase}/invoice`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(invoiceData),
@@ -309,7 +309,7 @@ async function handleCommissionReceived(
     TxnDate: commission.paid_date || new Date().toISOString().split("T")[0],
   };
 
-  const resp = await fetch(`${qboBase}/journalentry`, {
+  const resp = await qboFetch(`${qboBase}/journalentry`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(journalEntry),
@@ -352,7 +352,7 @@ async function handlePayoutApproved(
     TxnDate: booking.override_approved_at?.split("T")[0] || new Date().toISOString().split("T")[0],
   };
 
-  const resp = await fetch(`${qboBase}/purchase`, {
+  const resp = await qboFetch(`${qboBase}/purchase`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(expense),
@@ -440,7 +440,7 @@ async function handleDepositPosted(
     ],
   };
 
-  const resp1 = await fetch(`${qboBase}/journalentry`, {
+  const resp1 = await qboFetch(`${qboBase}/journalentry`, {
     method: "POST", headers: qboHeaders, body: JSON.stringify(step1),
   });
   if (!resp1.ok) {
@@ -474,7 +474,7 @@ async function handleDepositPosted(
     ],
   };
 
-  const resp2 = await fetch(`${qboBase}/journalentry`, {
+  const resp2 = await qboFetch(`${qboBase}/journalentry`, {
     method: "POST", headers: qboHeaders, body: JSON.stringify(step2),
   });
   if (!resp2.ok) {
@@ -513,7 +513,7 @@ async function handleDepositPosted(
     ],
   };
 
-  const resp3 = await fetch(`${qboBase}/journalentry`, {
+  const resp3 = await qboFetch(`${qboBase}/journalentry`, {
     method: "POST", headers: qboHeaders, body: JSON.stringify(step3),
   });
   if (!resp3.ok) {
@@ -584,7 +584,7 @@ async function handleSupplierPaid(
     billData.VendorRef = { value: qboVendorId };
   }
 
-  const billResp = await fetch(`${qboBase}/bill`, {
+  const billResp = await qboFetch(`${qboBase}/bill`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(billData),
@@ -636,7 +636,7 @@ async function handleSupplierPaid(
     };
   }
 
-  const payResp = await fetch(`${qboBase}/billpayment`, {
+  const payResp = await qboFetch(`${qboBase}/billpayment`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(billPaymentData),
@@ -711,7 +711,7 @@ async function handleTripCompleted(
     ],
   };
 
-  const resp = await fetch(`${qboBase}/journalentry`, {
+  const resp = await qboFetch(`${qboBase}/journalentry`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(journalEntry),
@@ -861,7 +861,7 @@ async function handleClientPaymentReceived(
     ];
   }
 
-  const resp = await fetch(`${qboBase}/payment`, {
+  const resp = await qboFetch(`${qboBase}/payment`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(paymentData),
@@ -932,7 +932,7 @@ async function ensureQBOAccount(
   }
 
   // Create the account
-  const createResp = await fetch(`${qboBase}/account`, {
+  const createResp = await qboFetch(`${qboBase}/account`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify({
@@ -997,7 +997,7 @@ async function ensureQBOCustomer(
   if (client.email) customerData.PrimaryEmailAddr = { Address: client.email };
   if (client.phone) customerData.PrimaryPhone = { FreeFormNumber: client.phone };
 
-  const createResp = await fetch(`${qboBase}/customer`, {
+  const createResp = await qboFetch(`${qboBase}/customer`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(customerData),
@@ -1064,7 +1064,7 @@ async function ensureQBOVendor(
   if (supplier.contact_phone) vendorData.PrimaryPhone = { FreeFormNumber: supplier.contact_phone };
   if (supplier.website) vendorData.WebAddr = { URI: supplier.website };
 
-  const createResp = await fetch(`${qboBase}/vendor`, {
+  const createResp = await qboFetch(`${qboBase}/vendor`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(vendorData),
@@ -1317,7 +1317,7 @@ async function handleLoanRepaymentPosted(
 
   try {
     if (principal > 0 && !principalDepositId) {
-      const r = await fetch(`${qboBase}/deposit`, {
+      const r = await qboFetch(`${qboBase}/deposit`, {
         method: "POST",
         headers: qboHeaders,
         body: JSON.stringify(buildDeposit(principalAcct, loanReceivableAcct, principal)),
@@ -1328,7 +1328,7 @@ async function handleLoanRepaymentPosted(
     }
 
     if (interest > 0 && !interestDepositId) {
-      const r = await fetch(`${qboBase}/deposit`, {
+      const r = await qboFetch(`${qboBase}/deposit`, {
         method: "POST",
         headers: qboHeaders,
         body: JSON.stringify(buildDeposit(interestAcct, interestIncomeAcct, interest)),
