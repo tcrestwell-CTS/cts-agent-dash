@@ -45,8 +45,8 @@ export function exportToCSV<T extends Record<string, unknown>>(
   // Combine header and data
   const csvContent = [headerRow, ...dataRows].join("\n");
 
-  // Create blob and download
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  // Create blob and download (BOM ensures Excel reads UTF-8 correctly)
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
