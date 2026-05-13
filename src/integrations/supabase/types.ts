@@ -4503,6 +4503,42 @@ export type Database = {
           },
         ]
       }
+      qbo_payment_review_decisions: {
+        Row: {
+          created_at: string
+          decision: string
+          id: string
+          notes: string | null
+          qbo_payment_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          target_qbo_invoice_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision?: string
+          id?: string
+          notes?: string | null
+          qbo_payment_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          target_qbo_invoice_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          id?: string
+          notes?: string | null
+          qbo_payment_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          target_qbo_invoice_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       qbo_payments: {
         Row: {
           created_at: string | null

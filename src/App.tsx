@@ -46,6 +46,7 @@ const CCAuthorize         = lazy(() => import("./pages/CCAuthorize"));
 const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
 const QBOHealth           = lazy(() => import("./pages/QBOHealth"));
 const QboPaymentSync      = lazy(() => import("./pages/QboPaymentSync"));
+const QboUnmatchedReview  = lazy(() => import("./pages/QboUnmatchedReview"));
 const EmailActivity       = lazy(() => import("./pages/EmailActivity"));
 const RiskCompliance      = lazy(() => import("./pages/RiskCompliance"));
 const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
@@ -146,6 +147,7 @@ const App = () => (
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
                 <Route path="/qbo-payment-sync" element={<ProtectedRoute><QboPaymentSync /></ProtectedRoute>} />
+                <Route path="/qbo-unmatched-review" element={<ProtectedRoute><QboUnmatchedReview /></ProtectedRoute>} />
                 <Route path="/email-activity" element={<ProtectedRoute><EmailActivity /></ProtectedRoute>} />
                 <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                 <Route path="/campaigns/new" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
