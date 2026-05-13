@@ -133,6 +133,9 @@ serve(async (req) => {
       case "loan_repayment_posted":
         await handleLoanRepaymentPosted(supabase, qboBase, qboHeaders, userId, record);
         break;
+      case "apply_payment_to_invoice":
+        await handleApplyPaymentToInvoice(supabase, qboBase, qboHeaders, userId, record);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
     }
@@ -1115,11 +1118,9 @@ const _payAcctCache = new Map<string, { id: string; name: string }>();
 // QBO throttle window is per-minute, so back off aggressively.
 async function qboFetch(url: string, init: RequestInit, maxAttempts = 4): Promise<Response> {
   let attempt = 0;
-  let lastResp: Response | null = null;
   while (attempt < maxAttempts) {
     const resp = await fetch(url, init);
     if (resp.status !== 429) return resp;
-    lastResp = resp;
     // Drain body so the connection can be reused
     try { await resp.text(); } catch { /* ignore */ }
     attempt++;
@@ -1127,7 +1128,8 @@ async function qboFetch(url: string, init: RequestInit, maxAttempts = 4): Promis
     console.warn(`[qbo-sync-trigger] QBO 429 throttled, retry ${attempt}/${maxAttempts} after ${backoffMs}ms: ${url}`);
     await new Promise((r) => setTimeout(r, backoffMs));
   }
-  return lastResp!;
+  // All retries exhausted; throw clean error so caller doesn't try to read drained body.
+  throw new Error(`QBO API throttled (429) after ${maxAttempts} attempts: ${url}`);
 }
 
 async function resolvePaymentAccount(
@@ -1390,4 +1392,69 @@ async function handleLoanRepaymentPosted(
     });
     throw err;
   }
+}
+
+/**
+ * Backfill: apply an existing QBO Payment to a QBO Invoice via sparse update.
+ * record = { user_id, qbo_payment_id, qbo_invoice_id }
+ */
+async function handleApplyPaymentToInvoice(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, record: any
+) {
+  const qboPaymentId = String(record.qbo_payment_id ?? "");
+  const qboInvoiceId = String(record.qbo_invoice_id ?? "");
+  if (!qboPaymentId || !qboInvoiceId) {
+    throw new Error("apply_payment_to_invoice: missing qbo_payment_id or qbo_invoice_id");
+  }
+
+  // Fetch existing Payment (sync token + customer ref + total)
+  const getR = await qboFetch(`${qboBase}/payment/${qboPaymentId}`, { headers: qboHeaders });
+  if (!getR.ok) {
+    throw new Error(`Fetch QBO Payment ${qboPaymentId} failed: ${await getR.text()}`);
+  }
+  const payment = (await getR.json())?.Payment;
+  if (!payment) throw new Error(`QBO Payment ${qboPaymentId} not in response`);
+
+  // If already linked to this invoice, no-op.
+  const already = (payment.Line || []).some((l: any) =>
+    (l.LinkedTxn || []).some((lt: any) => String(lt.TxnId) === qboInvoiceId && lt.TxnType === "Invoice")
+  );
+  if (already) {
+    await supabase.from("qbo_payments")
+      .update({ qbo_invoice_id: qboInvoiceId, synced_at: new Date().toISOString() })
+      .eq("qbo_id", qboPaymentId);
+    await logSync(supabase, userId, "auto-apply-payment-to-invoice", "success", 1, undefined, {
+      qbo_payment_id: qboPaymentId, qbo_invoice_id: qboInvoiceId, noop: true,
+    });
+    return;
+  }
+
+  const sparseBody = {
+    Id: payment.Id,
+    SyncToken: payment.SyncToken,
+    sparse: true,
+    CustomerRef: payment.CustomerRef,
+    TotalAmt: payment.TotalAmt,
+    Line: [{
+      Amount: payment.TotalAmt,
+      LinkedTxn: [{ TxnId: qboInvoiceId, TxnType: "Invoice" }],
+    }],
+  };
+
+  const upR = await qboFetch(`${qboBase}/payment?operation=update`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(sparseBody),
+  });
+  if (!upR.ok) {
+    throw new Error(`Apply Payment ${qboPaymentId} → Invoice ${qboInvoiceId} failed: ${await upR.text()}`);
+  }
+
+  await supabase.from("qbo_payments")
+    .update({ qbo_invoice_id: qboInvoiceId, synced_at: new Date().toISOString() })
+    .eq("qbo_id", qboPaymentId);
+
+  await logSync(supabase, userId, "auto-apply-payment-to-invoice", "success", 1, undefined, {
+    qbo_payment_id: qboPaymentId, qbo_invoice_id: qboInvoiceId,
+  });
 }
