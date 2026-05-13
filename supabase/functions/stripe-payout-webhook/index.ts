@@ -301,6 +301,29 @@ async function createQboTransfer(
 async function processPayoutPaid(payout: Stripe.Payout) {
   log("processing payout.paid", { id: payout.id });
 
+  // Guard: manual payouts are initiated by hand in the Stripe dashboard
+  // and cannot be deterministically tied to a batch of balance transactions
+  // here. Skip them so we don't post bogus QBO transfers.
+  if (!payout.automatic) {
+    log("skipping manual payout", { id: payout.id });
+    await supabase.from("qbo_sync_logs").insert({
+      sync_type: "auto-stripe-payout",
+      direction: "push",
+      status: "skipped_manual_payout",
+      records_processed: 0,
+      idempotency_key: `stripe_payout:${payout.id}`,
+      error_message: "Manual payouts cannot be reconciled programmatically",
+      details: {
+        payout_id: payout.id,
+        amount: payout.amount / 100,
+        arrival_date: new Date(payout.arrival_date * 1000).toISOString().split("T")[0],
+        method: payout.method,
+        source_type: payout.source_type,
+      },
+    });
+    return;
+  }
+
   const buckets = await buildBuckets(payout.id);
   log("buckets", buckets);
 
