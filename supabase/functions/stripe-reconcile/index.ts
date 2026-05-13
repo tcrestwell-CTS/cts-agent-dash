@@ -152,6 +152,7 @@ serve(async (req) => {
           .update({ status: "succeeded" })
           .eq("id", cp.id);
         if (!repairError) {
+          cp.status = "succeeded";
           repairedLocalStatuses += 1;
           matchedCheckout.push({ local_id: cp.id, pi_id: piId, amount: localAmount / 100, status: "succeeded", repaired: true });
           continue;
@@ -222,6 +223,7 @@ serve(async (req) => {
           .update({ status: "paid", payment_method: "stripe" })
           .eq("id", tp.id);
         if (!repairError) {
+          tp.status = "paid";
           repairedLocalStatuses += 1;
           matchedTrip.push({ local_id: tp.id, pi_id: piId, amount: tp.amount, status: "paid", repaired: true });
           continue;
