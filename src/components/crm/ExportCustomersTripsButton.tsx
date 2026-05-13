@@ -30,7 +30,7 @@ export function ExportCustomersTripsButton() {
         supabase.from("clients").select("id, name, email, phone, status").limit(10000),
         supabase
           .from("trips")
-          .select("id, client_id, name, status, departure_date, return_date")
+          .select("id, client_id, trip_name, status, departure_date, return_date")
           .limit(10000),
         supabase.from("bookings").select("trip_id, total_price").limit(10000),
         supabase
@@ -71,7 +71,7 @@ export function ExportCustomersTripsButton() {
           client_email: client?.email || "",
           client_phone: client?.phone || "",
           client_status: client?.status || "",
-          trip_name: t.name || "",
+          trip_name: t.trip_name || "",
           trip_status: t.status || "",
           departure_date: t.departure_date ? formatDateForExport(t.departure_date) : "",
           return_date: t.return_date ? formatDateForExport(t.return_date) : "",
