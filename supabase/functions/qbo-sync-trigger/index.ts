@@ -1118,11 +1118,9 @@ const _payAcctCache = new Map<string, { id: string; name: string }>();
 // QBO throttle window is per-minute, so back off aggressively.
 async function qboFetch(url: string, init: RequestInit, maxAttempts = 4): Promise<Response> {
   let attempt = 0;
-  let lastResp: Response | null = null;
   while (attempt < maxAttempts) {
     const resp = await fetch(url, init);
     if (resp.status !== 429) return resp;
-    lastResp = resp;
     // Drain body so the connection can be reused
     try { await resp.text(); } catch { /* ignore */ }
     attempt++;
@@ -1130,7 +1128,8 @@ async function qboFetch(url: string, init: RequestInit, maxAttempts = 4): Promis
     console.warn(`[qbo-sync-trigger] QBO 429 throttled, retry ${attempt}/${maxAttempts} after ${backoffMs}ms: ${url}`);
     await new Promise((r) => setTimeout(r, backoffMs));
   }
-  return lastResp!;
+  // All retries exhausted; throw clean error so caller doesn't try to read drained body.
+  throw new Error(`QBO API throttled (429) after ${maxAttempts} attempts: ${url}`);
 }
 
 async function resolvePaymentAccount(
