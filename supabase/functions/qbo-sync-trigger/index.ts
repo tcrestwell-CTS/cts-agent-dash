@@ -133,6 +133,9 @@ serve(async (req) => {
       case "loan_repayment_posted":
         await handleLoanRepaymentPosted(supabase, qboBase, qboHeaders, userId, record);
         break;
+      case "apply_payment_to_invoice":
+        await handleApplyPaymentToInvoice(supabase, qboBase, qboHeaders, userId, record);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
     }
