@@ -140,7 +140,11 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, trigger_type }), { status: 200 });
   } catch (err: any) {
     console.error(`[qbo-sync-trigger] ${trigger_type} error:`, err);
-    await logSync(supabase, userId, `auto-${trigger_type}`, "error", 0, err.message);
+    // Normalize trigger_type to hyphens so error logs share the same sync_type
+    // as success logs (auto-client-payment-received, auto-supplier-paid, etc.).
+    // Otherwise the dashboard surfaces phantom "duplicate trigger" pairs.
+    const normalized = String(trigger_type).replace(/_/g, "-");
+    await logSync(supabase, userId, `auto-${normalized}`, "error", 0, err.message);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 });
