@@ -72,7 +72,7 @@ export function ExportCustomersTripsButton() {
         paidByTrip.set(p.trip_id, (paidByTrip.get(p.trip_id) || 0) + (Number(p.amount) || 0));
       }
 
-      const rows: Row[] = (tripsRes.data || []).map((t: any) => {
+      const allRows: Row[] = (tripsRes.data || []).map((t: any) => {
         const client = t.client_id ? clientsById.get(t.client_id) : null;
         const totals = totalsByTrip.get(t.id) || { count: 0, total: 0 };
         const paid = paidByTrip.get(t.id) || 0;
@@ -100,6 +100,11 @@ export function ExportCustomersTripsButton() {
           trip_balance: formatCurrencyForExport(totals.total - paid),
         };
       });
+
+      // Only include Active and Past trips in this report
+      const rows: Row[] = allRows.filter(
+        (r) => r.trip_phase === "Active" || r.trip_phase === "Past",
+      );
 
       // Append a totals-by-customer summary block at the end of the same CSV
       const byClient = new Map<string, { name: string; email: string; status: string; trips: number; total: number; paid: number }>();
