@@ -1,0 +1,1 @@
+UPDATE public.clients SET email='blondellj407@yahoo.com' WHERE id='4c19e4be-0e68-48d5-af58-a44d3913ab27';
