@@ -1,0 +1,2 @@
+UPDATE public.trips SET client_id = '4c19e4be-0e68-48d5-af58-a44d3913ab27' WHERE id = '9acf0360-c130-4723-a78c-dec13cf91a3c';
+UPDATE public.trip_travelers SET last_name = 'Smith' WHERE trip_id = '9acf0360-c130-4723-a78c-dec13cf91a3c' AND last_name = 'Smitl';
