@@ -527,7 +527,7 @@ export function TripPayments({
             {expectedPayments.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Receipt className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No pending payments</p>
+                <p>No unpaid payments</p>
                 <p className="text-sm mt-1">Add expected payments to track what's due</p>
               </div>
             ) : (
@@ -561,7 +561,7 @@ export function TripPayments({
                         <td className="py-3 font-medium">{formatCurrency(payment.amount)}</td>
                         <td className="py-3">
                           <Badge variant="outline" className={statusColors[payment.status]}>
-                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                            {payment.status === "pending" ? "Unpaid" : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
                           {payment.status === "paid" && (
                             <div className="mt-1">
@@ -733,7 +733,7 @@ export function TripPayments({
                         </td>
                         <td className="py-3">
                           <Badge variant="outline" className={statusColors[payment.status]}>
-                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                            {payment.status === "pending" ? "Unpaid" : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
                         </td>
                         {/* Virtual Card Actions:

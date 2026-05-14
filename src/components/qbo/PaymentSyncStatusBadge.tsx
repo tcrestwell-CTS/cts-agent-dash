@@ -8,6 +8,6 @@ export function PaymentSyncStatusBadge({ state }: { state: SyncState }) {
   if (state === "failed")
     return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Failed</Badge>;
   if (state === "pending")
-    return <Badge className="bg-amber-500 hover:bg-amber-500"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+    return <Badge className="bg-amber-500 hover:bg-amber-500"><Clock className="w-3 h-3 mr-1" />Unpaid</Badge>;
   return <Badge variant="secondary"><MinusCircle className="w-3 h-3 mr-1" />Not eligible</Badge>;
 }
