@@ -24,7 +24,7 @@ import { getPortalAuthHeaders } from "@/lib/portalAuthHeaders";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: any; className: string }> = {
   paid: { label: "Paid", variant: "default", icon: CheckCircle2, className: "bg-green-100 text-green-700 border-green-200" },
-  pending: { label: "Pending", variant: "secondary", icon: Clock, className: "bg-amber-100 text-amber-700 border-amber-200" },
+  pending: { label: "Unpaid", variant: "secondary", icon: Clock, className: "bg-amber-100 text-amber-700 border-amber-200" },
   authorized: { label: "Authorized", variant: "outline", icon: CreditCard, className: "bg-blue-100 text-blue-700 border-blue-200" },
   refunded: { label: "Refunded", variant: "outline", icon: DollarSign, className: "bg-purple-100 text-purple-700 border-purple-200" },
   cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle, className: "bg-red-100 text-red-700 border-red-200" },

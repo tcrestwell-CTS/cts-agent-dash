@@ -527,7 +527,7 @@ export function TripPayments({
             {expectedPayments.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Receipt className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No pending payments</p>
+                <p>No unpaid payments</p>
                 <p className="text-sm mt-1">Add expected payments to track what's due</p>
               </div>
             ) : (

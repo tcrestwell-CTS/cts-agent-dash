@@ -489,7 +489,7 @@ export function AddPaymentDialog({
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="pending">Unpaid</SelectItem>
                     <SelectItem value="paid">Paid</SelectItem>
                     <SelectItem value="authorized">Authorized</SelectItem>
                     <SelectItem value="refunded">Refunded</SelectItem>
