@@ -1,0 +1,1 @@
+UPDATE public.qbo_client_mappings SET client_id='4c19e4be-0e68-48d5-af58-a44d3913ab27' WHERE id='4010e2c9-ac96-4f2b-a611-d4ed83f960fb';
