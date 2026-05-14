@@ -561,7 +561,7 @@ export function TripPayments({
                         <td className="py-3 font-medium">{formatCurrency(payment.amount)}</td>
                         <td className="py-3">
                           <Badge variant="outline" className={statusColors[payment.status]}>
-                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                            {payment.status === "pending" ? "Unpaid" : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
                           {payment.status === "paid" && (
                             <div className="mt-1">
@@ -733,7 +733,7 @@ export function TripPayments({
                         </td>
                         <td className="py-3">
                           <Badge variant="outline" className={statusColors[payment.status]}>
-                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                            {payment.status === "pending" ? "Unpaid" : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </Badge>
                         </td>
                         {/* Virtual Card Actions:
