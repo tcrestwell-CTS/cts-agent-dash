@@ -94,9 +94,10 @@ export function ExportCustomersTripsButton() {
         } as Row & { _phase: string };
       });
 
-      // Only include Active and Past trips in this report
+      // Only include trips with status: booked, confirmed, completed
+      const includeStatuses = new Set(["booked", "confirmed", "completed"]);
       const rows: Row[] = (allRows as any[])
-        .filter((r) => r._phase === "Active" || r._phase === "Past")
+        .filter((r) => includeStatuses.has(String(r.trip_status).toLowerCase()))
         .map(({ _phase, ...rest }) => rest as Row)
         .sort((a, b) =>
           a.client_name.localeCompare(b.client_name) ||
