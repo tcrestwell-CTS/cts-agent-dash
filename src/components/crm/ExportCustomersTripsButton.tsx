@@ -70,7 +70,9 @@ export function ExportCustomersTripsButton() {
       const allRows: Row[] = (tripsRes.data || []).map((t: any) => {
         const client = t.client_id ? clientsById.get(t.client_id) : null;
         const totals = totalsByTrip.get(t.id) || { count: 0, total: 0 };
-        const paid = paidByTrip.get(t.id) || 0;
+        // Completed trips are treated as fully paid even if not tracked via trip_payments
+        const tripPaid = paidByTrip.get(t.id) || 0;
+        const paid = t.status === "completed" ? totals.total : tripPaid;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const ret = t.return_date ? new Date(t.return_date + "T00:00:00") : null;
