@@ -253,6 +253,32 @@ const handler = async (req: Request): Promise<Response> => {
           .maybeSingle();
         if (!client?.email) { results.push({ qbo_id: inv.qbo_id, skipped: "no_client_email" }); continue; }
 
+        // SAFEGUARD: cross-check the CRM invoice/trip_payments. The qbo_invoices
+        // cache can lag behind real-world payments, which used to send "amount
+        // due" statements for trips that are already fully paid. Skip if the
+        // CRM-side invoice is paid OR the trip has no unpaid trip_payments.
+        const { data: crmInvoice } = await supabase
+          .from("invoices")
+          .select("status, amount_remaining")
+          .eq("trip_id", trip.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (crmInvoice && (crmInvoice.status === "paid" || Number(crmInvoice.amount_remaining || 0) <= 0.01)) {
+          results.push({ qbo_id: inv.qbo_id, skipped: "crm_invoice_paid", trip_id: trip.id });
+          continue;
+        }
+        const { data: crmUnpaid } = await supabase
+          .from("trip_payments")
+          .select("id")
+          .eq("trip_id", trip.id)
+          .neq("status", "paid")
+          .limit(1);
+        if (!crmUnpaid || crmUnpaid.length === 0) {
+          results.push({ qbo_id: inv.qbo_id, skipped: "no_unpaid_trip_payments", trip_id: trip.id });
+          continue;
+        }
+
         // SAFEGUARD: in cron mode, only one invoice per client per run.
         if (isCronMode && clientsEmailedThisRun.has(client.id)) {
           results.push({ qbo_id: inv.qbo_id, skipped: "client_already_emailed_this_run", client_id: client.id });
