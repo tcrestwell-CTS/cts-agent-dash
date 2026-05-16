@@ -1580,7 +1580,9 @@ export type Database = {
       checkout_payments: {
         Row: {
           affirm_charge_id: string | null
+          agent_user_id: string | null
           amount_cents: number
+          booking_id: string | null
           booking_ref: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -1609,12 +1611,16 @@ export type Database = {
           stripe_subscription_id: string | null
           total_months: number | null
           travel_date: string | null
+          trip_id: string | null
           trip_name: string | null
+          trip_payment_id: string | null
           updated_at: string | null
         }
         Insert: {
           affirm_charge_id?: string | null
+          agent_user_id?: string | null
           amount_cents: number
+          booking_id?: string | null
           booking_ref?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -1643,12 +1649,16 @@ export type Database = {
           stripe_subscription_id?: string | null
           total_months?: number | null
           travel_date?: string | null
+          trip_id?: string | null
           trip_name?: string | null
+          trip_payment_id?: string | null
           updated_at?: string | null
         }
         Update: {
           affirm_charge_id?: string | null
+          agent_user_id?: string | null
           amount_cents?: number
+          booking_id?: string | null
           booking_ref?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -1677,10 +1687,41 @@ export type Database = {
           stripe_subscription_id?: string | null
           total_months?: number | null
           travel_date?: string | null
+          trip_id?: string | null
           trip_name?: string | null
+          trip_payment_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checkout_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payments_trip_payment_id_fkey"
+            columns: ["trip_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_payments_trip_payment_id_fkey"
+            columns: ["trip_payment_id"]
+            isOneToOne: false
+            referencedRelation: "trip_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_companions: {
         Row: {

@@ -56,22 +56,33 @@ Deno.serve(async (req) => {
       // Look up client by email → trips → next pending trip_payment
       const { data: client } = await supabase
         .from('clients')
-        .select('id, assigned_agent_id')
+        .select('id, user_id')
         .ilike('email', customer_email.trim())
         .maybeSingle();
 
       if (client) {
-        agentUserId = agentUserId || client.assigned_agent_id;
+        agentUserId = agentUserId || client.user_id;
 
-        // Find next pending trip_payment for this client
-        const { data: tripPayment } = await supabase
-          .from('trip_payments')
-          .select('id, trip_id, booking_id, amount, status')
-          .eq('status', 'pending')
-          .eq('trips.client_id', client.id)
-          .order('due_date', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+        // Find this client's trips, then next pending installment
+        const { data: trips } = await supabase
+          .from('trips')
+          .select('id')
+          .eq('client_id', client.id);
+
+        const tripIds = (trips || []).map((t: any) => t.id);
+
+        let tripPayment: any = null;
+        if (tripIds.length > 0) {
+          const { data } = await supabase
+            .from('trip_payments')
+            .select('id, trip_id, booking_id, amount, status, due_date')
+            .eq('status', 'pending')
+            .in('trip_id', tripIds)
+            .order('due_date', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          tripPayment = data;
+        }
 
         if (tripPayment) {
           tripPaymentId = tripPaymentId || tripPayment.id;
