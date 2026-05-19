@@ -61,7 +61,7 @@ export default function PaymentsDue() {
         <div>
           <h1 className="text-2xl font-bold">Payments Due</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            All pending client payments with a due date
+            All unpaid client payments with a due date
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export default function PaymentsDue() {
         ) : (data || []).length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              No pending payments due.
+              No unpaid payments due.
             </CardContent>
           </Card>
         ) : (
