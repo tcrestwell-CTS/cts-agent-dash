@@ -173,7 +173,7 @@ function DashboardTab({ clientId }: { clientId?: string }) {
             </div>
             <div>
               <p className="text-2xl font-bold">{payments.length}</p>
-              <p className="text-sm text-muted-foreground">Pending Payments</p>
+              <p className="text-sm text-muted-foreground">Unpaid Payments</p>
             </div>
           </CardContent>
         </Card>
