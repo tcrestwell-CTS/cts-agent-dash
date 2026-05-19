@@ -173,7 +173,7 @@ function DashboardTab({ clientId }: { clientId?: string }) {
             </div>
             <div>
               <p className="text-2xl font-bold">{payments.length}</p>
-              <p className="text-sm text-muted-foreground">Pending Payments</p>
+              <p className="text-sm text-muted-foreground">Unpaid Payments</p>
             </div>
           </CardContent>
         </Card>
@@ -473,7 +473,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         <div className="space-y-0.5">
                           <p className="font-medium">{typeLabel}</p>
                           <p className="text-sm text-muted-foreground">
-                            {p.due_date ? format(parseLocalDate(p.due_date), "MMM d, yyyy") : "Pending"}
+                            {p.due_date ? format(parseLocalDate(p.due_date), "MMM d, yyyy") : "Date TBD"}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -483,7 +483,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                             isPending ? "bg-amber-100 text-amber-700 border-amber-200" : ""
                           )}>
                             {isPaid ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                            {p.status?.charAt(0).toUpperCase() + p.status?.slice(1)}
+                            {p.status === "pending" ? "Unpaid" : p.status?.charAt(0).toUpperCase() + p.status?.slice(1)}
                           </Badge>
                           <p className="text-sm font-semibold">${Number(p.amount).toLocaleString()}</p>
                           {isPending && (
@@ -692,7 +692,7 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
                       {p.trip_name && <span className="text-xs text-muted-foreground">· {p.trip_name}</span>}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {p.due_date ? format(parseLocalDate(p.due_date), "MMM d, yyyy") : "Pending"}
+                      {p.due_date ? format(parseLocalDate(p.due_date), "MMM d, yyyy") : "Date TBD"}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -702,7 +702,7 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
                       isPending ? "bg-amber-100 text-amber-700 border-amber-200" : ""
                     )}>
                       {isPaid ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                      {p.status?.charAt(0).toUpperCase() + p.status?.slice(1)}
+                      {p.status === "pending" ? "Unpaid" : p.status?.charAt(0).toUpperCase() + p.status?.slice(1)}
                     </Badge>
                     <p className="text-lg font-bold">{formatCurrency(p.amount)}</p>
                     {isPending && (
