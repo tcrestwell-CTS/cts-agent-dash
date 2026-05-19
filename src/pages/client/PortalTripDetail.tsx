@@ -919,7 +919,7 @@ export default function PortalTripDetail() {
                       <div className="text-right">
                         <Badge variant="outline" className={`gap-1 ${statusClass}`}>
                           <StatusIcon className="h-3 w-3" />
-                          {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                          {p.status === "pending" ? "Unpaid" : p.status.charAt(0).toUpperCase() + p.status.slice(1)}
                         </Badge>
                         <p className="text-sm font-semibold mt-1">${Number(p.amount).toLocaleString()}</p>
                       </div>
