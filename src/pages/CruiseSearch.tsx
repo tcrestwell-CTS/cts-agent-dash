@@ -117,7 +117,17 @@ export default function CruiseSearch() {
     setLoading(true);
     setHasSearched(true);
     try {
-      const params: Record<string, any> = { action: "search", market: "us", limit: 50 };
+      const params: Record<string, any> = {
+        action: "search",
+        market: "us",
+        limit: 100,
+        // Walk every Widgety page so repeat searches return the same complete set
+        // (the edge function only honors this when a date range is provided).
+        fetch_all: true,
+        // Backfill date_from/date_to from holiday detail when missing, so
+        // duration / month filters and sorting are deterministic.
+        resolve_departure_dates: true,
+      };
       if (searchValues.cruiseLine && searchValues.cruiseLine !== "all") {
         params.operators = searchValues.cruiseLine;
       }
@@ -130,6 +140,17 @@ export default function CruiseSearch() {
       }
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
+
+      // fetch_all / resolve_departure_dates only activate server-side when a
+      // date range is present. If the user didn't pick dates, default to a
+      // wide window (today → +3 years) so we still get the full result set
+      // instead of an arbitrary first page.
+      if (!params.date_from && !params.date_to) {
+        const today = new Date();
+        const threeYears = new Date(today.getFullYear() + 3, today.getMonth(), today.getDate());
+        params.date_from = today.toISOString().slice(0, 10);
+        params.date_to = threeYears.toISOString().slice(0, 10);
+      }
 
       const { data, error } = await supabase.functions.invoke("widgety-cruise", { body: params });
       if (error) throw new Error(error.message);
