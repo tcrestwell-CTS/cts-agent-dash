@@ -221,6 +221,118 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
 }
 
 /**
+ * Shared overpayment handler for trip installments.
+ * - Marks the target installment paid.
+ * - If the payment exceeds the installment, cascades the overage to the
+ *   FINAL installment first, then backward (next-to-final → …) until the
+ *   overage is consumed. Fully-covered installments are marked paid with
+ *   amount = 0; the last touched one is partially reduced.
+ *
+ * Returns metadata about what was changed so callers can log / notify.
+ */
+async function applyTripInstallmentPayment(
+  pi: Stripe.PaymentIntent,
+  tripPaymentId: string,
+): Promise<{
+  installmentId: string;
+  tripId: string | null;
+  paidAmount: number;
+  installmentAmount: number;
+  overpayment: number;
+  adjustments: Array<{ id: string; oldAmount: number; newAmount: number; status: string }>;
+}> {
+  const paymentDate = new Date(pi.created * 1000).toISOString().split("T")[0];
+  const paidAmount = pi.amount / 100;
+
+  const { data: target, error: fetchErr } = await supabase
+    .from("trip_payments")
+    .select("id, amount, trip_id, status")
+    .eq("id", tripPaymentId)
+    .maybeSingle();
+  if (fetchErr) throw new Error(`trip_payments lookup failed: ${fetchErr.message}`);
+  if (!target) {
+    log("applyTripInstallmentPayment: target not found", { tripPaymentId, pi: pi.id });
+    return { installmentId: tripPaymentId, tripId: null, paidAmount, installmentAmount: 0, overpayment: 0, adjustments: [] };
+  }
+
+  const installmentAmount = Number(target.amount) || 0;
+  const overpayment = Math.max(0, +(paidAmount - installmentAmount).toFixed(2));
+
+  const { error: payErr } = await supabase
+    .from("trip_payments")
+    .update({
+      status: "paid",
+      payment_date: paymentDate,
+      stripe_payment_intent_id: pi.id,
+    })
+    .eq("id", tripPaymentId)
+    .neq("status", "paid"); // idempotent
+  if (payErr) throw new Error(`trip_payments paid update failed: ${payErr.message}`);
+
+  const adjustments: Array<{ id: string; oldAmount: number; newAmount: number; status: string }> = [];
+  if (overpayment > 0 && target.trip_id) {
+    const { data: others } = await supabase
+      .from("trip_payments")
+      .select("id, amount, due_date, created_at")
+      .eq("trip_id", target.trip_id)
+      .eq("status", "pending")
+      .neq("id", tripPaymentId)
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true });
+
+    const targets = (others || []).slice().reverse(); // final installment first
+    let remainingCredit = overpayment;
+    for (const row of targets) {
+      if (remainingCredit <= 0) break;
+      const amt = Number(row.amount) || 0;
+      if (remainingCredit >= amt) {
+        await supabase
+          .from("trip_payments")
+          .update({
+            amount: 0,
+            status: "paid",
+            payment_date: paymentDate,
+            notes: `Covered by overpayment from PI ${pi.id} ($${amt.toFixed(2)} credited)`,
+          })
+          .eq("id", row.id)
+          .neq("status", "paid");
+        adjustments.push({ id: row.id, oldAmount: amt, newAmount: 0, status: "paid" });
+        remainingCredit = +(remainingCredit - amt).toFixed(2);
+      } else {
+        const newAmt = +(amt - remainingCredit).toFixed(2);
+        await supabase
+          .from("trip_payments")
+          .update({
+            amount: newAmt,
+            notes: `Reduced by $${remainingCredit.toFixed(2)} overpayment from PI ${pi.id}`,
+          })
+          .eq("id", row.id);
+        adjustments.push({ id: row.id, oldAmount: amt, newAmount: newAmt, status: "pending" });
+        remainingCredit = 0;
+      }
+    }
+  }
+
+  log("trip installment paid", {
+    trip_payment_id: tripPaymentId,
+    pi: pi.id,
+    paidAmount,
+    installmentAmount,
+    overpayment,
+    adjustments,
+  });
+
+  return {
+    installmentId: tripPaymentId,
+    tripId: target.trip_id,
+    paidAmount,
+    installmentAmount,
+    overpayment,
+    adjustments,
+  };
+}
+
+/**
  * Email-as-key fallback used when a Stripe payment arrives without
  * `metadata.trip_payment_id` (generic payment link, website checkout, etc.).
  *
