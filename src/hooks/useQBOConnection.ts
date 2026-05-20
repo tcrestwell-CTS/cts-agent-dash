@@ -460,12 +460,15 @@ export function useQBOConnection() {
         { headers },
         showReconnectToast
       );
+      if (resp.status === 400) {
+        // QBO not connected — return empty result silently
+        return { payouts: [], not_connected: true };
+      }
       if (!resp.ok) throw new Error("Failed to fetch Stripe payouts");
       return await resp.json();
     } catch (err) {
       console.error("Stripe payouts error:", err);
-      toast.error("Failed to fetch Stripe payouts");
-      return null;
+      return { payouts: [], error: true };
     }
   };
 
