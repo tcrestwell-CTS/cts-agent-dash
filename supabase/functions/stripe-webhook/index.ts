@@ -155,6 +155,13 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
   const paymentType = meta.payment_type;
   if (!paymentType) {
     log("no payment_type metadata — falling back to email match", { id: pi.id });
+    // Subscription invoices without metadata are almost always loan autopay.
+    // Try loan-by-email FIRST when the PI is attached to an invoice; otherwise
+    // try loan match as a secondary check after trips below.
+    if (pi.invoice) {
+      const matched = await tryLoanEmailFallbackMatch(pi);
+      if (matched) return;
+    }
     await tryEmailFallbackMatch(pi);
     return;
   }
@@ -378,7 +385,8 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
     .ilike("email", emailLc);
 
   if (!clients || clients.length === 0) {
-    log("email fallback: no client found for email", { email: emailLc, id: pi.id });
+    log("email fallback: no client found for email — trying loan match", { email: emailLc, id: pi.id });
+    await tryLoanEmailFallbackMatch(pi, emailLc);
     return;
   }
 
@@ -392,7 +400,8 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
     .not("status", "in", "(cancelled,archived,completed)");
 
   if (!trips || trips.length === 0) {
-    log("email fallback: no active trips for email", { email: emailLc, id: pi.id });
+    log("email fallback: no active trips for email — trying loan match", { email: emailLc, id: pi.id });
+    await tryLoanEmailFallbackMatch(pi, emailLc);
     return;
   }
 
