@@ -138,7 +138,16 @@ export default function CruiseSearch() {
       if (searchValues.departurePort && searchValues.departurePort !== "all") {
         params.locations = searchValues.departurePort;
       }
-      if (dateFrom) params.date_from = dateFrom;
+      // Widgety rejects dates that are today or earlier ("Dates cannot be in the past"),
+      // so clamp the lower bound to tomorrow.
+      const tomorrowStr = (() => {
+        const t = new Date();
+        t.setDate(t.getDate() + 1);
+        return t.toISOString().slice(0, 10);
+      })();
+      if (dateFrom) {
+        params.date_from = dateFrom < tomorrowStr ? tomorrowStr : dateFrom;
+      }
       if (dateTo) params.date_to = dateTo;
 
       // fetch_all / resolve_departure_dates only activate server-side when a
@@ -146,10 +155,11 @@ export default function CruiseSearch() {
       // wide window (today → +3 years) so we still get the full result set
       // instead of an arbitrary first page.
       if (!params.date_from && !params.date_to) {
-        const today = new Date();
-        const threeYears = new Date(today.getFullYear() + 3, today.getMonth(), today.getDate());
-        params.date_from = today.toISOString().slice(0, 10);
-        params.date_to = threeYears.toISOString().slice(0, 10);
+        const start = new Date();
+        start.setDate(start.getDate() + 1);
+        const end = new Date(start.getFullYear() + 3, start.getMonth(), start.getDate());
+        params.date_from = start.toISOString().slice(0, 10);
+        params.date_to = end.toISOString().slice(0, 10);
       }
 
       const { data, error } = await supabase.functions.invoke("widgety-cruise", { body: params });
