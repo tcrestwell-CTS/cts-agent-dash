@@ -24,11 +24,9 @@ interface QBOSetupWizardProps {
   } | null;
 }
 
-const KNOWN_DOMAINS = [
-  "https://agents.crestwelltravels.com",
-  "https://cts-agent-dash.lovable.app",
-  "https://8ab51332-288c-4764-b4d9-392cc428e2fb.lovableproject.com",
-];
+// QuickBooks requires a fixed registered redirect URI. We standardise on the
+// production custom domain so the same URI works across preview and prod.
+const KNOWN_DOMAINS = ["https://app.crestwelltravels.com"];
 
 const STEPS = [
   { id: "prereqs", label: "Prerequisites" },
@@ -47,8 +45,7 @@ export function QBOSetupWizard({ onConnect, connectError }: QBOSetupWizardProps)
     addedOrigins: false,
   });
 
-  const currentOrigin = window.location.origin;
-  const allOrigins = [...new Set([...KNOWN_DOMAINS, currentOrigin])];
+  const allOrigins = [...KNOWN_DOMAINS];
   const allRedirectUris = allOrigins.map((d) => `${d}/settings?tab=integrations`);
   const originsSecretValue = allOrigins.join(",");
 
