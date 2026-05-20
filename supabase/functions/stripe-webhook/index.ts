@@ -165,17 +165,7 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
       log("trip_installment missing trip_payment_id metadata", { id: pi.id });
       return;
     }
-    const { error } = await supabase
-      .from("trip_payments")
-      .update({
-        status: "paid",
-        payment_date: new Date(pi.created * 1000).toISOString().split("T")[0],
-        stripe_payment_intent_id: pi.id,
-      })
-      .eq("id", tripPaymentId)
-      .neq("status", "paid"); // idempotent
-    if (error) throw new Error(`trip_payments paid update failed: ${error.message}`);
-    log("trip_payments marked paid", { trip_payment_id: tripPaymentId });
+    await applyTripInstallmentPayment(pi, tripPaymentId);
     return;
   }
 
