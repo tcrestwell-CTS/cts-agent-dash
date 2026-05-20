@@ -247,7 +247,7 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
   let email: string | null = null;
   const { data: cp } = await supabase
     .from("checkout_payments")
-    .select("id, customer_email")
+    .select("id, customer_email, customer_name, trip_name, booking_ref")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
   email = cp?.customer_email || pi.receipt_email || null;
@@ -294,30 +294,84 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
     return;
   }
 
-  // 4a. Multiple active trips → require agent confirmation
-  if (trips.length > 1) {
-    log("email fallback: multiple active trips, needs agent confirmation", {
-      email: emailLc,
-      tripCount: trips.length,
-    });
+  // 4. Disambiguate when more than one active trip
+  let trip = trips[0];
+  let disambiguatedBy: string | null = null;
 
-    const agentIds = Array.from(
-      new Set(clients.map((c) => c.assigned_agent_id).filter(Boolean) as string[])
-    );
-    const amount = (pi.amount / 100).toFixed(2);
-    for (const userId of agentIds) {
-      await supabase.from("agent_notifications").insert({
-        user_id: userId,
-        type: "payment_needs_attribution",
-        title: "Payment needs attribution",
-        message: `A $${amount} payment from ${email} matches a client with ${trips.length} active trips. Open Unmatched Review to assign it to the right installment.`,
-      });
+  if (trips.length > 1) {
+    // 4a. Try booking_ref → invoice → trip (strongest signal)
+    if (cp?.booking_ref) {
+      // Strip "-NN" suffix (e.g. "INV-2026-00057-01" → "INV-2026-00057")
+      const invoiceNumber = cp.booking_ref.replace(/-\d+$/, "");
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("trip_id")
+        .eq("invoice_number", invoiceNumber)
+        .maybeSingle();
+      const matchedByInvoice = inv?.trip_id ? trips.find((t) => t.id === inv.trip_id) : null;
+      if (matchedByInvoice) {
+        trip = matchedByInvoice;
+        disambiguatedBy = "booking_ref/invoice";
+      }
     }
-    return;
+
+    // 4b. Try trip_name fuzzy match
+    if (!disambiguatedBy && cp?.trip_name) {
+      const tripNameLc = cp.trip_name.toLowerCase().trim();
+      const matchedByName = trips.find(
+        (t) =>
+          t.trip_name &&
+          (t.trip_name.toLowerCase() === tripNameLc ||
+            t.trip_name.toLowerCase().includes(tripNameLc) ||
+            tripNameLc.includes(t.trip_name.toLowerCase()))
+      );
+      if (matchedByName) {
+        trip = matchedByName;
+        disambiguatedBy = "trip_name";
+      }
+    }
+
+    // 4c. Try customer_name → narrow to one client → if that client has exactly one active trip
+    if (!disambiguatedBy && cp?.customer_name) {
+      const nameLc = cp.customer_name.toLowerCase().trim();
+      const matchedClients = clients.filter(
+        (c) => c.name && c.name.toLowerCase().trim() === nameLc
+      );
+      if (matchedClients.length === 1) {
+        const tripsForClient = trips.filter((t) => t.client_id === matchedClients[0].id);
+        if (tripsForClient.length === 1) {
+          trip = tripsForClient[0];
+          disambiguatedBy = "customer_name";
+        }
+      }
+    }
+
+    // 4d. Still ambiguous → leave unattributed, notify agent(s)
+    if (!disambiguatedBy) {
+      log("email fallback: multiple active trips, could not disambiguate", {
+        email: emailLc,
+        tripCount: trips.length,
+      });
+
+      const agentIds = Array.from(
+        new Set(clients.map((c) => c.assigned_agent_id).filter(Boolean) as string[])
+      );
+      const amount = (pi.amount / 100).toFixed(2);
+      for (const userId of agentIds) {
+        await supabase.from("agent_notifications").insert({
+          user_id: userId,
+          type: "payment_needs_attribution",
+          title: "Payment needs attribution",
+          message: `A $${amount} payment from ${email} matches a client with ${trips.length} active trips. Open Unmatched Review to assign it to the right installment.`,
+        });
+      }
+      return;
+    }
+
+    log("email fallback: disambiguated", { by: disambiguatedBy, tripId: trip.id });
   }
 
-  // 4b. Exactly one active trip → auto-apply to oldest pending installment
-  const trip = trips[0];
+  // 5. Auto-apply to oldest pending installment on the chosen trip
   const matchedClient = clients.find((c) => c.id === trip.client_id) || clients[0];
 
   const { data: pending } = await supabase
