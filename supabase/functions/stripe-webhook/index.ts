@@ -154,7 +154,8 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
 
   const paymentType = meta.payment_type;
   if (!paymentType) {
-    log("no payment_type metadata — skipping CRM routing", { id: pi.id });
+    log("no payment_type metadata — falling back to email match", { id: pi.id });
+    await tryEmailFallbackMatch(pi);
     return;
   }
 
@@ -227,6 +228,175 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
   }
 
   log("unknown payment_type — skipping", { paymentType, id: pi.id });
+}
+
+/**
+ * Email-as-key fallback used when a Stripe payment arrives without
+ * `metadata.trip_payment_id` (generic payment link, website checkout, etc.).
+ *
+ * Strategy:
+ *   1. Resolve the payer's email (checkout_payments → pi.receipt_email → charge billing).
+ *   2. Find all CRM clients matching that email.
+ *   3. Gather distinct active trips across those clients (excluding cancelled/archived/completed).
+ *   4. If EXACTLY ONE active trip → auto-apply to the oldest pending trip_payment.
+ *      If MULTIPLE active trips → leave unattributed, notify assigned agent(s) to confirm.
+ *      If NONE → leave unattributed.
+ */
+async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
+  // 1. Resolve email
+  let email: string | null = null;
+  const { data: cp } = await supabase
+    .from("checkout_payments")
+    .select("id, customer_email")
+    .eq("stripe_payment_intent_id", pi.id)
+    .maybeSingle();
+  email = cp?.customer_email || pi.receipt_email || null;
+
+  if (!email && pi.latest_charge) {
+    try {
+      const chargeId = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
+      const charge = await stripe.charges.retrieve(chargeId);
+      email = charge.billing_details?.email || charge.receipt_email || null;
+    } catch (e) {
+      log("email lookup via charge failed", e);
+    }
+  }
+
+  if (!email) {
+    log("email fallback: no email found, leaving unattributed", { id: pi.id });
+    return;
+  }
+
+  const emailLc = email.toLowerCase();
+
+  // 2. Find matching clients (case-insensitive)
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("id, assigned_agent_id, name, email")
+    .ilike("email", emailLc);
+
+  if (!clients || clients.length === 0) {
+    log("email fallback: no client found for email", { email: emailLc, id: pi.id });
+    return;
+  }
+
+  const clientIds = clients.map((c) => c.id);
+
+  // 3. Gather active trips for those clients
+  const { data: trips } = await supabase
+    .from("trips")
+    .select("id, trip_name, status, updated_at, client_id")
+    .in("client_id", clientIds)
+    .not("status", "in", "(cancelled,archived,completed)");
+
+  if (!trips || trips.length === 0) {
+    log("email fallback: no active trips for email", { email: emailLc, id: pi.id });
+    return;
+  }
+
+  // 4a. Multiple active trips → require agent confirmation
+  if (trips.length > 1) {
+    log("email fallback: multiple active trips, needs agent confirmation", {
+      email: emailLc,
+      tripCount: trips.length,
+    });
+
+    const agentIds = Array.from(
+      new Set(clients.map((c) => c.assigned_agent_id).filter(Boolean) as string[])
+    );
+    const amount = (pi.amount / 100).toFixed(2);
+    for (const userId of agentIds) {
+      await supabase.from("agent_notifications").insert({
+        user_id: userId,
+        type: "payment_needs_attribution",
+        title: "Payment needs attribution",
+        message: `A $${amount} payment from ${email} matches a client with ${trips.length} active trips. Open Unmatched Review to assign it to the right installment.`,
+      });
+    }
+    return;
+  }
+
+  // 4b. Exactly one active trip → auto-apply to oldest pending installment
+  const trip = trips[0];
+  const matchedClient = clients.find((c) => c.id === trip.client_id) || clients[0];
+
+  const { data: pending } = await supabase
+    .from("trip_payments")
+    .select("id, amount, due_date, created_at, user_id")
+    .eq("trip_id", trip.id)
+    .eq("status", "pending")
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (!pending || pending.length === 0) {
+    log("email fallback: no pending installments on matched trip", {
+      email: emailLc,
+      tripId: trip.id,
+    });
+    if (matchedClient.assigned_agent_id) {
+      const amount = (pi.amount / 100).toFixed(2);
+      await supabase.from("agent_notifications").insert({
+        user_id: matchedClient.assigned_agent_id,
+        type: "payment_needs_attribution",
+        title: "Payment received with no pending installment",
+        message: `A $${amount} payment from ${email} matches trip "${trip.trip_name}" but no pending installment exists. Review in Unmatched payments.`,
+        trip_id: trip.id,
+      });
+    }
+    return;
+  }
+
+  const installment = pending[0];
+  const paymentDate = new Date(pi.created * 1000).toISOString().split("T")[0];
+
+  const { error: tpErr } = await supabase
+    .from("trip_payments")
+    .update({
+      status: "paid",
+      payment_date: paymentDate,
+      stripe_payment_intent_id: pi.id,
+    })
+    .eq("id", installment.id)
+    .neq("status", "paid");
+
+  if (tpErr) {
+    log("email fallback: trip_payments update failed", tpErr.message);
+    return;
+  }
+
+  // Stamp the checkout_payments row so Unmatched Review hides it
+  if (cp?.id) {
+    await supabase
+      .from("checkout_payments")
+      .update({
+        trip_payment_id: installment.id,
+        trip_id: trip.id,
+        agent_user_id: matchedClient.assigned_agent_id || installment.user_id,
+        payment_type: "trip_installment",
+      })
+      .eq("id", cp.id);
+  }
+
+  log("email fallback: auto-applied payment", {
+    email: emailLc,
+    tripId: trip.id,
+    tripPaymentId: installment.id,
+    pi: pi.id,
+  });
+
+  // Notify agent of auto-match
+  if (matchedClient.assigned_agent_id) {
+    const amount = (pi.amount / 100).toFixed(2);
+    await supabase.from("agent_notifications").insert({
+      user_id: matchedClient.assigned_agent_id,
+      type: "payment_auto_matched",
+      title: "Payment auto-matched by email",
+      message: `A $${amount} payment from ${email} was auto-applied to the next installment for "${trip.trip_name}".`,
+      trip_id: trip.id,
+      trip_payment_id: installment.id,
+    });
+  }
 }
 
 async function processChargeRefunded(charge: Stripe.Charge) {
