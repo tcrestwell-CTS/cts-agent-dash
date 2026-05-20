@@ -558,6 +558,134 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
 }
 
 async function processChargeRefunded(charge: Stripe.Charge) {
+  // (function below)
+  return _processChargeRefundedImpl(charge);
+}
+
+/**
+ * Email-as-key fallback for LOAN repayments. Mirrors the trip version.
+ * - Resolves payer email from checkout_payments / pi.receipt_email / charge.
+ * - Looks up loan_applications by email.
+ * - If exactly one matching loan → marks next pending schedule paid,
+ *   stamps stripe_payment_intent_id (DB trigger handles QBO sync).
+ * - Notifies the loan's owning agent.
+ * Returns true if a schedule was updated.
+ */
+async function tryLoanEmailFallbackMatch(
+  pi: Stripe.PaymentIntent,
+  knownEmail?: string,
+): Promise<boolean> {
+  let email: string | null = knownEmail || null;
+
+  if (!email) {
+    const { data: cp } = await supabase
+      .from("checkout_payments")
+      .select("customer_email")
+      .eq("stripe_payment_intent_id", pi.id)
+      .maybeSingle();
+    email = cp?.customer_email || pi.receipt_email || null;
+
+    if (!email && pi.latest_charge) {
+      try {
+        const chargeId = typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id;
+        const charge = await stripe.charges.retrieve(chargeId);
+        email = charge.billing_details?.email || charge.receipt_email || null;
+      } catch (_e) { /* ignore */ }
+    }
+  }
+
+  if (!email) {
+    log("loan email fallback: no email", { id: pi.id });
+    return false;
+  }
+
+  const emailLc = email.toLowerCase();
+
+  const { data: loans } = await supabase
+    .from("loan_applications")
+    .select("id, application_number, user_id, email, stripe_subscription_id")
+    .ilike("email", emailLc);
+
+  if (!loans || loans.length === 0) {
+    log("loan email fallback: no loan for email", { email: emailLc, id: pi.id });
+    return false;
+  }
+
+  // If multiple loans share an email, prefer the one whose subscription matches the invoice's sub.
+  let loan = loans[0];
+  if (loans.length > 1 && pi.invoice) {
+    try {
+      const invoiceId = typeof pi.invoice === "string" ? pi.invoice : pi.invoice.id;
+      const invoice = await stripe.invoices.retrieve(invoiceId);
+      const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+      const matchedBySub = loans.find((l) => l.stripe_subscription_id && l.stripe_subscription_id === subId);
+      if (matchedBySub) loan = matchedBySub;
+    } catch (_e) { /* ignore */ }
+  }
+
+  const { data: schedule } = await supabase
+    .from("loan_payment_schedules")
+    .select("id, payment_number, total_payment")
+    .eq("loan_application_id", loan.id)
+    .eq("status", "pending")
+    .order("payment_number", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!schedule) {
+    log("loan email fallback: no pending schedule", { loan_id: loan.id, id: pi.id });
+    if (loan.user_id) {
+      const amount = (pi.amount / 100).toFixed(2);
+      await supabase.from("agent_notifications").insert({
+        user_id: loan.user_id,
+        type: "payment_needs_attribution",
+        title: "Loan payment received with no pending installment",
+        message: `A $${amount} payment from ${email} matches loan ${loan.application_number} but no pending installment exists.`,
+      });
+    }
+    return false;
+  }
+
+  const paymentDate = new Date(pi.created * 1000).toISOString().split("T")[0];
+  const { error: updErr } = await supabase
+    .from("loan_payment_schedules")
+    .update({
+      status: "paid",
+      paid_date: paymentDate,
+      stripe_payment_intent_id: pi.id,
+    })
+    .eq("id", schedule.id)
+    .neq("status", "paid");
+  if (updErr) throw new Error(`loan_payment_schedules paid update failed: ${updErr.message}`);
+
+  // Stamp checkout_payments row if present so Unmatched Review hides it.
+  await supabase
+    .from("checkout_payments")
+    .update({ payment_type: "loan_repayment", agent_user_id: loan.user_id })
+    .eq("stripe_payment_intent_id", pi.id);
+
+  log("loan email fallback: applied", {
+    loan_id: loan.id,
+    application_number: loan.application_number,
+    schedule_id: schedule.id,
+    payment_number: schedule.payment_number,
+    pi: pi.id,
+  });
+
+  if (loan.user_id) {
+    const amount = (pi.amount / 100).toFixed(2);
+    await supabase.from("agent_notifications").insert({
+      user_id: loan.user_id,
+      type: "payment_auto_matched",
+      title: "Loan payment auto-matched by email",
+      message: `A $${amount} payment from ${email} was auto-applied to installment #${schedule.payment_number} on loan ${loan.application_number}.`,
+    });
+  }
+
+  return true;
+}
+
+async function _processChargeRefundedImpl(charge: Stripe.Charge) {
   log("processing charge.refunded", { id: charge.id });
 
   const { data: payment } = await supabase
