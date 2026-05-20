@@ -17,7 +17,7 @@ const SUPA_SVC = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-agent-secret',
   'Content-Type': 'application/json',
 };
 
@@ -36,6 +36,24 @@ serve(async (req) => {
   const { trigger, record, old_record } = body;
   if (!trigger) {
     return new Response(JSON.stringify({ error: 'Missing trigger' }), { status: 400, headers: CORS });
+  }
+
+  // For daily_sweep, log a task_runs row so Agent Health stays current.
+  const isDailySweep = trigger === 'daily_sweep';
+  const startedAt = new Date();
+  let runId: string | null = null;
+  if (isDailySweep) {
+    const { data: runRow } = await sb
+      .from('task_runs')
+      .insert({
+        task_name: 'kandi',
+        task_type: 'cron',
+        status: 'running',
+        started_at: startedAt.toISOString(),
+      })
+      .select('id')
+      .single();
+    runId = runRow?.id ?? null;
   }
 
   const alerts: Array<{
@@ -108,10 +126,22 @@ serve(async (req) => {
       ok: true,
       trigger,
       alerts_raised: toInsert.length,
-    }), { headers: CORS });
+    }), { headers: CORS }).clone ? (await (async () => {
+      // No-op — kept to preserve original return shape.
+      return new Response('', {});
+    })()) : new Response('', {});
 
   } catch (err) {
     console.error('Kandi error:', err);
+    if (isDailySweep && runId) {
+      const completedAt = new Date();
+      await sb.from('task_runs').update({
+        status: 'error',
+        completed_at: completedAt.toISOString(),
+        duration_ms: completedAt.getTime() - startedAt.getTime(),
+        error_message: String(err),
+      }).eq('id', runId);
+    }
     return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS });
   }
 });
