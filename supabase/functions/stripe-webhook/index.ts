@@ -505,68 +505,9 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
   }
 
   const installment = pendingAll[0];
-  const paymentDate = new Date(pi.created * 1000).toISOString().split("T")[0];
+  const { overpayment, adjustments: overpaymentAdjustments } =
+    await applyTripInstallmentPayment(pi, installment.id);
   const paidAmount = pi.amount / 100;
-  const installmentAmount = Number(installment.amount) || 0;
-  const overpayment = Math.max(0, +(paidAmount - installmentAmount).toFixed(2));
-
-  const { error: tpErr } = await supabase
-    .from("trip_payments")
-    .update({
-      status: "paid",
-      payment_date: paymentDate,
-      stripe_payment_intent_id: pi.id,
-    })
-    .eq("id", installment.id)
-    .neq("status", "paid");
-
-  if (tpErr) {
-    log("email fallback: trip_payments update failed", tpErr.message);
-    return;
-  }
-
-  // Apply overpayment to the final installment, cascading backward
-  // (final → next-to-final → …) if the overage exceeds the final balance.
-  const overpaymentAdjustments: Array<{ id: string; oldAmount: number; newAmount: number; status: string }> = [];
-  if (overpayment > 0) {
-    const remainingTargets = pendingAll
-      .filter((p) => p.id !== installment.id)
-      .slice()
-      .reverse(); // last installment first
-
-    let remainingCredit = overpayment;
-    for (const target of remainingTargets) {
-      if (remainingCredit <= 0) break;
-      const amt = Number(target.amount) || 0;
-      if (remainingCredit >= amt) {
-        // Fully covers this installment → mark paid, zero balance, no money moved
-        await supabase
-          .from("trip_payments")
-          .update({
-            amount: 0,
-            status: "paid",
-            payment_date: paymentDate,
-            notes: `Covered by overpayment from PI ${pi.id} ($${amt.toFixed(2)} credited)`,
-          })
-          .eq("id", target.id)
-          .neq("status", "paid");
-        overpaymentAdjustments.push({ id: target.id, oldAmount: amt, newAmount: 0, status: "paid" });
-        remainingCredit = +(remainingCredit - amt).toFixed(2);
-      } else {
-        // Partial reduction of this installment's balance
-        const newAmt = +(amt - remainingCredit).toFixed(2);
-        await supabase
-          .from("trip_payments")
-          .update({
-            amount: newAmt,
-            notes: `Reduced by $${remainingCredit.toFixed(2)} overpayment from PI ${pi.id}`,
-          })
-          .eq("id", target.id);
-        overpaymentAdjustments.push({ id: target.id, oldAmount: amt, newAmount: newAmt, status: "pending" });
-        remainingCredit = 0;
-      }
-    }
-  }
 
   // Stamp the checkout_payments row so Unmatched Review hides it
   if (cp?.id) {
