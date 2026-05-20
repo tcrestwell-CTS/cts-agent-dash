@@ -371,19 +371,20 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
     log("email fallback: disambiguated", { by: disambiguatedBy, tripId: trip.id });
   }
 
-  // 5. Auto-apply to oldest pending installment on the chosen trip
+  // 5. Auto-apply to oldest pending installment on the chosen trip.
+  //    If the payment exceeds the oldest installment, apply the overage
+  //    to the final installment (cascading backward if it overflows).
   const matchedClient = clients.find((c) => c.id === trip.client_id) || clients[0];
 
-  const { data: pending } = await supabase
+  const { data: pendingAll } = await supabase
     .from("trip_payments")
-    .select("id, amount, due_date, created_at, user_id")
+    .select("id, amount, due_date, created_at, user_id, payment_type")
     .eq("trip_id", trip.id)
     .eq("status", "pending")
     .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true })
-    .limit(1);
+    .order("created_at", { ascending: true });
 
-  if (!pending || pending.length === 0) {
+  if (!pendingAll || pendingAll.length === 0) {
     log("email fallback: no pending installments on matched trip", {
       email: emailLc,
       tripId: trip.id,
@@ -401,8 +402,11 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
     return;
   }
 
-  const installment = pending[0];
+  const installment = pendingAll[0];
   const paymentDate = new Date(pi.created * 1000).toISOString().split("T")[0];
+  const paidAmount = pi.amount / 100;
+  const installmentAmount = Number(installment.amount) || 0;
+  const overpayment = Math.max(0, +(paidAmount - installmentAmount).toFixed(2));
 
   const { error: tpErr } = await supabase
     .from("trip_payments")
@@ -417,6 +421,49 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
   if (tpErr) {
     log("email fallback: trip_payments update failed", tpErr.message);
     return;
+  }
+
+  // Apply overpayment to the final installment, cascading backward
+  // (final → next-to-final → …) if the overage exceeds the final balance.
+  const overpaymentAdjustments: Array<{ id: string; oldAmount: number; newAmount: number; status: string }> = [];
+  if (overpayment > 0) {
+    const remainingTargets = pendingAll
+      .filter((p) => p.id !== installment.id)
+      .slice()
+      .reverse(); // last installment first
+
+    let remainingCredit = overpayment;
+    for (const target of remainingTargets) {
+      if (remainingCredit <= 0) break;
+      const amt = Number(target.amount) || 0;
+      if (remainingCredit >= amt) {
+        // Fully covers this installment → mark paid, zero balance, no money moved
+        await supabase
+          .from("trip_payments")
+          .update({
+            amount: 0,
+            status: "paid",
+            payment_date: paymentDate,
+            notes: `Covered by overpayment from PI ${pi.id} ($${amt.toFixed(2)} credited)`,
+          })
+          .eq("id", target.id)
+          .neq("status", "paid");
+        overpaymentAdjustments.push({ id: target.id, oldAmount: amt, newAmount: 0, status: "paid" });
+        remainingCredit = +(remainingCredit - amt).toFixed(2);
+      } else {
+        // Partial reduction of this installment's balance
+        const newAmt = +(amt - remainingCredit).toFixed(2);
+        await supabase
+          .from("trip_payments")
+          .update({
+            amount: newAmt,
+            notes: `Reduced by $${remainingCredit.toFixed(2)} overpayment from PI ${pi.id}`,
+          })
+          .eq("id", target.id);
+        overpaymentAdjustments.push({ id: target.id, oldAmount: amt, newAmount: newAmt, status: "pending" });
+        remainingCredit = 0;
+      }
+    }
   }
 
   // Stamp the checkout_payments row so Unmatched Review hides it
@@ -437,16 +484,21 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
     tripId: trip.id,
     tripPaymentId: installment.id,
     pi: pi.id,
+    overpayment,
+    overpaymentAdjustments,
   });
 
   // Notify agent of auto-match
   if (matchedClient.assigned_agent_id) {
-    const amount = (pi.amount / 100).toFixed(2);
+    const amount = paidAmount.toFixed(2);
+    const overMsg = overpayment > 0
+      ? ` Overpayment of $${overpayment.toFixed(2)} applied to the final installment(s).`
+      : "";
     await supabase.from("agent_notifications").insert({
       user_id: matchedClient.assigned_agent_id,
       type: "payment_auto_matched",
       title: "Payment auto-matched by email",
-      message: `A $${amount} payment from ${email} was auto-applied to the next installment for "${trip.trip_name}".`,
+      message: `A $${amount} payment from ${email} was auto-applied to the next installment for "${trip.trip_name}".${overMsg}`,
       trip_id: trip.id,
       trip_payment_id: installment.id,
     });
