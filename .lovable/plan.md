@@ -1,25 +1,41 @@
 ## Goal
-Stop the automated emails that are sending wrong invoices to clients.
 
-## What's running today
-Two scheduled jobs in the backend fire every day:
+1. Schedule `stripe-reconcile` to run automatically every day so Stripe deposits get reconciled without a human clicking the button.
+2. Make Kandi (and `stripe-reconcile`) record their daily runs in `task_runs` so the Agent Health panel stops looking stale (last Kandi entry is April 16).
 
-1. **`auto-payment-reminders-daily`** (14:00 UTC) — calls the `auto-payment-reminders` function and emails clients about upcoming/overdue trip payments.
-2. **`send-invoice-statements-daily`** (13:00 UTC) — calls `send-invoice-statement` and emails clients a statement when a payment is due within 7 days.
+## Changes
 
-Both are the likely source of the bad outgoing emails.
+### 1. `stripe-reconcile` edge function — allow cron invocation
+Add a service-role / `x-agent-secret` auth path alongside the existing user bearer-token path (mirrors `recon-engine`). When invoked with the agent secret, run in "system" mode (no `userId` required) and write a `task_runs` row with summary (PIs scanned, matched, orphaned, local statuses repaired).
 
-## Plan
+### 2. `kandi` edge function — record runs
+Add `task_runs` insert at start (`status='running'`) and update at end (`success` / `error` + `result_summary`). Mirrors how other agents should log.
 
-1. Create a migration that **unschedules both cron jobs** so nothing fires automatically anymore:
-   - `cron.unschedule('auto-payment-reminders-daily')`
-   - `cron.unschedule('send-invoice-statements-daily')`
-2. Leave the edge functions and the in‑app Payment Reminders page in place so you can still send a reminder **manually** when you want to. Only the automated daily blast is turned off.
-3. No frontend changes — the manual "Send" button on the Payment Reminders page keeps working.
+### 3. New pg_cron jobs (via `supabase--insert` — contains URLs/keys, not a schema migration)
+- `stripe-reconcile-daily` — daily at `15 6 * * *` UTC (after recon-engine at 06:30), POSTs to `/functions/v1/stripe-reconcile` with `x-agent-secret` header and `{ "auto_fix_local_status": true }`.
+- Leave existing `kandi-daily-sweep` (06:00) and `recon-engine-daily` (06:30) untouched.
 
-## How to turn it back on later
-Re-running a migration with `cron.schedule(...)` for either job name will bring the automation back. I can also rebuild it as opt‑in per trip if you'd rather have control on a per‑client basis.
+### 4. Agent Health visibility
+No UI change needed — once `task_runs` rows land, the existing `AgentHealthPanel` and `useTaskRuns` hook will surface them.
+
+## Technical notes
+
+- `stripe-reconcile` currently does `authHeader.startsWith("Bearer ")` then `getClaims`. New path: if `x-agent-secret` header matches `CW_AGENT_SECRET` (already in vault), skip user-token validation and use service-role client only.
+- Cron command pattern (already used by `recon-engine-daily`):
+  ```sql
+  select net.http_post(
+    url := '.../functions/v1/stripe-reconcile',
+    headers := jsonb_build_object(
+      'Content-Type','application/json',
+      'x-agent-secret', current_setting('app.cw_agent_secret', true)
+    ),
+    body := '{"auto_fix_local_status": true}'::jsonb
+  );
+  ```
+- `task_runs` columns to populate: `task_name`, `task_type='cron'`, `status`, `started_at`, `completed_at`, `duration_ms`, `result_summary`, `error_message`, `metadata` (counts).
+- Do NOT touch `recon-engine` (already healthy) or any UI files.
 
 ## Out of scope
-- Investigating *why* the invoices were wrong (separate cleanup — happy to dig into the recent `email_send_log` / `invoice_email_log` rows after this is stopped).
-- Removing the Payment Reminders UI.
+
+- Backfilling missing Kandi `task_runs` rows from April 16–May 19 (cron fired but nothing was written; that history is gone).
+- Changing the Stripe Reconcile UI button behavior — it keeps working with the user-token path.
