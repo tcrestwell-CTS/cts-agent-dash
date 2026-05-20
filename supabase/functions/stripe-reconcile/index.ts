@@ -691,20 +691,34 @@ serve(async (req) => {
       .filter((pi: any) => pi.status === "succeeded")
       .reduce((s: number, pi: any) => s + pi.amount / 100, 0);
 
+    const summaryObj = {
+      total_stripe_pis: paymentIntents.length,
+      total_local_checkout: (checkoutPayments || []).length,
+      total_local_trip: (tripPayments || []).length,
+      matched: totalMatched,
+      repaired_local_statuses: repairedLocalStatuses,
+      discrepancies: totalDiscrepancies,
+      orphaned_in_stripe: orphanedPIs.length,
+      all_clear: totalDiscrepancies === 0,
+    };
+
+    if (systemMode && systemRunId) {
+      const completedAt = new Date();
+      const adminFinal = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      await adminFinal.from("task_runs").update({
+        status: "success",
+        completed_at: completedAt.toISOString(),
+        duration_ms: completedAt.getTime() - systemStartedAt.getTime(),
+        result_summary: `Stripe sweep: ${summaryObj.total_stripe_pis} PIs, ${summaryObj.matched} matched, ${summaryObj.discrepancies} discrepancies, ${summaryObj.orphaned_in_stripe} orphan(s), ${summaryObj.repaired_local_statuses} status fixes`,
+        metadata: summaryObj,
+      }).eq("id", systemRunId);
+    }
+
     return new Response(
       JSON.stringify({
         ok: true,
         checked_at: new Date().toISOString(),
-        summary: {
-          total_stripe_pis: paymentIntents.length,
-          total_local_checkout: (checkoutPayments || []).length,
-          total_local_trip: (tripPayments || []).length,
-          matched: totalMatched,
-          repaired_local_statuses: repairedLocalStatuses,
-          discrepancies: totalDiscrepancies,
-          orphaned_in_stripe: orphanedPIs.length,
-          all_clear: totalDiscrepancies === 0,
-        },
+        summary: summaryObj,
         stripe_balance: {
           available: stripeAvailable,
           pending: stripePending,
@@ -724,6 +738,21 @@ serve(async (req) => {
     );
   } catch (err: any) {
     console.error("Stripe reconciliation error:", err);
+    if (systemMode && systemRunId) {
+      try {
+        const completedAt = new Date();
+        const adminFinal = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        );
+        await adminFinal.from("task_runs").update({
+          status: "error",
+          completed_at: completedAt.toISOString(),
+          duration_ms: completedAt.getTime() - systemStartedAt.getTime(),
+          error_message: err?.message ?? String(err),
+        }).eq("id", systemRunId);
+      } catch (_) { /* swallow */ }
+    }
     return new Response(
       JSON.stringify({ ok: false, error: err.message }),
       { status: 500, headers: corsHeaders }
