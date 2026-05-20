@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-agent-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Content-Type": "application/json",
 };
 
@@ -16,28 +16,54 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let systemRunId: string | null = null;
+  let systemMode = false;
+  const systemStartedAt = new Date();
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
+    const CW_AGENT_SECRET = Deno.env.get("CW_AGENT_SECRET");
 
-    // ── Auth ──
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    // ── Auth ── Two paths:
+    //  (a) System / cron — x-agent-secret header matches CW_AGENT_SECRET; scans all users.
+    //  (b) User — Authorization: Bearer <jwt>; scoped to that user (legacy UI path).
+    const agentSecret = req.headers.get("x-agent-secret");
+    let userId: string | null = null;
+    if (CW_AGENT_SECRET && agentSecret && agentSecret === CW_AGENT_SECRET) {
+      systemMode = true;
+    } else {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsErr } = await supabaseUser.auth.getClaims(token);
+      if (claimsErr || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
+      }
+      userId = claimsData.claims.sub as string;
     }
-
-    const supabaseUser = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabaseUser.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
-    }
-    const userId = claimsData.claims.sub as string;
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    if (systemMode) {
+      const { data: runRow } = await admin
+        .from("task_runs")
+        .insert({
+          task_name: "stripe-reconcile",
+          task_type: "cron",
+          status: "running",
+          started_at: systemStartedAt.toISOString(),
+        })
+        .select("id")
+        .single();
+      systemRunId = runRow?.id ?? null;
+    }
+
     let options: any = {};
     try {
       options = req.method === "POST" ? await req.json() : Object.fromEntries(new URL(req.url).searchParams);
@@ -82,12 +108,15 @@ serve(async (req) => {
       .order("created_at", { ascending: false });
 
     // ── 4. Fetch local trip_payments ──
-    const { data: tripPayments } = await admin
+    let tripPaymentsQuery = admin
       .from("trip_payments")
       .select("id, amount, status, stripe_payment_intent_id, payment_method, created_at, trip_id")
-      .eq("user_id", userId)
       .gte("created_at", new Date(ninetyDaysAgo * 1000).toISOString())
       .order("created_at", { ascending: false });
+    if (!systemMode && userId) {
+      tripPaymentsQuery = tripPaymentsQuery.eq("user_id", userId);
+    }
+    const { data: tripPayments } = await tripPaymentsQuery;
 
     // ── 5. Build Stripe PI lookup ──
     const stripePIMap = new Map<string, any>();
@@ -346,12 +375,16 @@ serve(async (req) => {
 
     // ── 9. QBO Clearing check (if QBO connected) ──
     let qboClearing: any = null;
-    const { data: qboConn } = await admin
+    let qboConnQuery = admin
       .from("qbo_connections")
       .select("*")
-      .eq("user_id", userId)
       .eq("is_active", true)
-      .maybeSingle();
+      .limit(1);
+    if (!systemMode && userId) {
+      qboConnQuery = qboConnQuery.eq("user_id", userId);
+    }
+    const { data: qboConnRows } = await qboConnQuery;
+    const qboConn = qboConnRows && qboConnRows.length > 0 ? qboConnRows[0] : null;
 
     if (qboConn) {
       try {
