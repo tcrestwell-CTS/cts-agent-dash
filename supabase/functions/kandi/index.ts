@@ -122,14 +122,22 @@ serve(async (req) => {
       }
     }
 
+    if (isDailySweep && runId) {
+      const completedAt = new Date();
+      await sb.from('task_runs').update({
+        status: 'success',
+        completed_at: completedAt.toISOString(),
+        duration_ms: completedAt.getTime() - startedAt.getTime(),
+        result_summary: `Reconciliation scan complete — ${toInsert.length} alert(s) raised`,
+        metadata: { alerts_raised: toInsert.length, total_checks: alerts.length },
+      }).eq('id', runId);
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       trigger,
       alerts_raised: toInsert.length,
-    }), { headers: CORS }).clone ? (await (async () => {
-      // No-op — kept to preserve original return shape.
-      return new Response('', {});
-    })()) : new Response('', {});
+    }), { headers: CORS });
 
   } catch (err) {
     console.error('Kandi error:', err);
