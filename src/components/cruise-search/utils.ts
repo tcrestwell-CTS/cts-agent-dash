@@ -85,6 +85,35 @@ export const getPortPreview = (sailing: WidgetySailing): string => {
   return parts.join(" → ");
 };
 
+/**
+ * Widgety's holiday list endpoint does not return ship_title. The ship name is
+ * reliably encoded in the cover image filename, in the form:
+ *   "<Operator Title>, <Ship Name> <Shot Type> <n>.<ext>"
+ * e.g. "Virgin Voyages, Scarlet Lady Exterior 1.jpg"
+ * This extracts the ship name from that pattern, falling back to ship_title
+ * when the detail endpoint has already populated it.
+ */
+export const getShipTitle = (sailing: WidgetySailing): string => {
+  if (sailing.ship_title) return sailing.ship_title;
+  const url = sailing.image_url;
+  if (!url) return "";
+  try {
+    const last = decodeURIComponent(url.split("/").pop() || "");
+    const base = last.replace(/\.[a-z0-9]+$/i, "");
+    const commaIdx = base.indexOf(", ");
+    if (commaIdx === -1) return "";
+    const afterOperator = base.slice(commaIdx + 2);
+    // Strip trailing shot-type/number tokens
+    const cleaned = afterOperator
+      .replace(/\s+(Exterior|Interior|Aerial|Cabin|Suite|Deck|Pool|Lounge|Restaurant|Atrium|Lobby|Stateroom|Bar|Spa|Ship)\b.*$/i, "")
+      .replace(/\s+\d+$/, "")
+      .trim();
+    return cleaned;
+  } catch {
+    return "";
+  }
+};
+
 export const getMonthKey = (d?: string): string => {
   if (!d) return "";
   try {
