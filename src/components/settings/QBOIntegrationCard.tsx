@@ -29,18 +29,11 @@ export function QBOIntegrationCard() {
     redirect_uri?: string;
     allowed_redirect_uris?: string[];
   } | null>(null);
-  const redirectUri = `${window.location.origin}/settings?tab=integrations`;
-
-  // Known domains that should be registered
-  const knownDomains = [
-    "https://agents.crestwelltravels.com",
-    "https://id-preview--8ab51332-288c-4764-b4d9-392cc428e2fb.lovable.app",
-    "https://8ab51332-288c-4764-b4d9-392cc428e2fb.lovableproject.com",
-  ];
-  const allRequiredUris = [...new Set([
-    ...knownDomains.map(d => `${d}/settings?tab=integrations`),
-    redirectUri,
-  ])];
+  // QuickBooks requires a single fixed registered redirect URI — use the
+  // production custom domain regardless of where the agent app is loaded.
+  const redirectUri = "https://app.crestwelltravels.com/settings?tab=integrations";
+  const knownDomains = ["https://app.crestwelltravels.com"];
+  const allRequiredUris = [redirectUri];
 
   // Handle OAuth callback
   useEffect(() => {

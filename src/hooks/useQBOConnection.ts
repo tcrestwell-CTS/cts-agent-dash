@@ -126,7 +126,9 @@ export function useQBOConnection() {
 
   const connect = async (): Promise<{ error?: string; current_origin?: string; allowed_origins?: string[]; redirect_uri?: string; allowed_redirect_uris?: string[] } | void> => {
     try {
-      const redirectUri = `${window.location.origin}/settings?tab=integrations`;
+      // QuickBooks requires a fixed registered redirect URI. Always use the
+      // production custom domain regardless of which origin the agent is on.
+      const redirectUri = "https://app.crestwelltravels.com/settings?tab=integrations";
       const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=authorize&redirect_uri=${encodeURIComponent(redirectUri)}`,
@@ -177,7 +179,7 @@ export function useQBOConnection() {
     sessionStorage.removeItem("qbo_oauth_state");
 
     try {
-      const redirectUri = `${window.location.origin}/settings?tab=integrations`;
+      const redirectUri = "https://app.crestwelltravels.com/settings?tab=integrations";
       const headers = await getAuthHeaders();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth?action=callback`,
