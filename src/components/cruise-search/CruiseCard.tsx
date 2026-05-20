@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Ship, Calendar, MapPin, ChevronDown, ChevronUp, Eye, Plus } from "lucide-react";
 import type { WidgetySailing } from "./types";
-import { formatShortDate, formatPrice, getPortPreview, getAudienceTags, getCruiseType, operatorSlugFromTitle } from "./utils";
+import { formatShortDate, formatPrice, getPortPreview, getAudienceTags, getCruiseType, operatorSlugFromTitle, getShipTitle } from "./utils";
 import { cn } from "@/lib/utils";
 
 interface CruiseCardProps {
@@ -30,6 +30,7 @@ export function CruiseCard({
   const tags = getAudienceTags(operatorSlug);
   const type = getCruiseType(operatorSlug);
   const portPreview = getPortPreview(sailing);
+  const shipTitle = getShipTitle(sailing);
 
   return (
     <Card className={cn(
@@ -68,9 +69,10 @@ export function CruiseCard({
               <h3 className="font-semibold text-base leading-snug line-clamp-2 mt-0.5">
                 {sailing.name}
               </h3>
-              {sailing.ship_title && (
-                <p className="text-sm text-muted-foreground italic mt-0.5">
-                  {sailing.ship_title}
+              {shipTitle && (
+                <p className="text-sm text-muted-foreground italic mt-0.5 flex items-center gap-1">
+                  <Ship className="h-3.5 w-3.5" />
+                  {shipTitle}
                 </p>
               )}
             </div>
