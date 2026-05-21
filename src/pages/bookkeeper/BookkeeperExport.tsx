@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { toast } from "sonner";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -504,7 +505,8 @@ export default function BookkeeperExport() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
+          <div className="space-y-1">
+            <BookkeeperBreadcrumb page="Export Center" />
             <h1 className="text-3xl font-semibold flex items-center gap-2">
               <FileSpreadsheet className="h-7 w-7 text-primary" />
               Export Center

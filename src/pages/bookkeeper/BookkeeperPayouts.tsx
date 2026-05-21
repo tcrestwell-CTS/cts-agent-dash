@@ -11,7 +11,7 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { EmptyState } from "@/components/bookkeeper/shared";
+import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { Wallet } from "lucide-react";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
