@@ -87,7 +87,7 @@ export default {
         "gradient-card": "var(--gradient-card)",
       },
       fontFamily: {
-        sans: ["Montserrat", "system-ui", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
         display: ["Playfair Display", "Georgia", "serif"],
       },
       borderRadius: {
