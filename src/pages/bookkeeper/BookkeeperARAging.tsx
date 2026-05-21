@@ -84,7 +84,7 @@ export default function BookkeeperARAging() {
       const { data, error } = await (supabase as any)
         .from("trip_payments")
         .select(
-          "id, amount, due_date, payment_type, status, details, trip_id, trips:trip_id(trip_name, client_name)"
+          "id, amount, due_date, payment_type, status, details, trip_id, trips:trip_id(trip_name, clients:client_id(first_name, last_name))"
         )
         .eq("status", "pending")
         .lt("due_date", today)
@@ -355,7 +355,11 @@ export default function BookkeeperARAging() {
                     const overdue = d ? differenceInDays(today, d) : 0;
                     return (
                       <TableRow key={p.id}>
-                        <TableCell className="max-w-[200px] truncate">{p.trips?.client_name || "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {p.trips?.clients
+                            ? `${p.trips.clients.first_name ?? ""} ${p.trips.clients.last_name ?? ""}`.trim() || "—"
+                            : "—"}
+                        </TableCell>
                         <TableCell className="max-w-[200px] truncate">{p.trips?.trip_name || "—"}</TableCell>
                         <TableCell>
                           <div className="text-sm">{p.payment_type || "payment"}</div>
