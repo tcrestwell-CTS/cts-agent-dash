@@ -56,15 +56,18 @@ interface BookkeeperHeaderProps {
 
 export function BookkeeperHeader({ title, description, year, month, actions }: BookkeeperHeaderProps) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="space-y-1">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-3xl font-semibold">{title}</h1>
-          <PeriodLockButton year={year} month={month} />
+    <div className="space-y-2">
+      <BookkeeperBreadcrumb page={title} />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-semibold">{title}</h1>
+            <PeriodLockButton year={year} month={month} />
+          </div>
+          {description && <p className="text-muted-foreground text-sm">{description}</p>}
         </div>
-        {description && <p className="text-muted-foreground text-sm">{description}</p>}
+        {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
     </div>
   );
 }
