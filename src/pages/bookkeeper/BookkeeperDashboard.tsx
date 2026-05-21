@@ -10,6 +10,7 @@ import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangl
 import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { useEffect } from "react";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 function startOfMonthISO() {
   const d = new Date();
