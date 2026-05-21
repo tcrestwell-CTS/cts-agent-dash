@@ -294,43 +294,53 @@ export default function BookkeeperARAging() {
         {/* Main table */}
         <Card>
           <CardHeader>
-            <CardTitle>Open invoices ({filtered.length})</CardTitle>
+            <CardTitle>Open invoices ({arPg.total})</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : filtered.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
-                No open invoices match the current filters.
-              </div>
-            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Trip</TableHead>
-                    <TableHead>Invoice #</TableHead>
-                    <TableHead>Invoice date</TableHead>
-                    <TableHead>Due date</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead>Days outstanding</TableHead>
-                    <TableHead>Bucket</TableHead>
+                    <TableHead colSpan={10}>Loading…</TableHead>
                   </TableRow>
                 </TableHeader>
+                <TableBody><TableBodySkeletonRows rows={8} cols={10} /></TableBody>
+              </Table>
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                title="No open invoices"
+                description="Nothing matches the current filters."
+              />
+            ) : (
+              <>
+              <Table>
+                <TableHeader>
+                  <tr className="border-b">
+                    <SortableHead label="Client" sortKey="client" sort={arSort} onSort={onArSort} />
+                    <SortableHead label="Trip" sortKey="trip" sort={arSort} onSort={onArSort} />
+                    <SortableHead label="Invoice #" sortKey="invoice_number" sort={arSort} onSort={onArSort} />
+                    <SortableHead label="Invoice date" sortKey="invoice_date" sort={arSort} onSort={onArSort} />
+                    <SortableHead label="Due date" sortKey="due_date" sort={arSort} onSort={onArSort} />
+                    <SortableHead label="Total" sortKey="total" sort={arSort} onSort={onArSort} align="right" />
+                    <SortableHead label="Paid" sortKey="paid" sort={arSort} onSort={onArSort} align="right" />
+                    <SortableHead label="Balance" sortKey="balance" sort={arSort} onSort={onArSort} align="right" />
+                    <SortableHead label="Days outstanding" sortKey="days" sort={arSort} onSort={onArSort} />
+                    <TableHead>Bucket</TableHead>
+                  </tr>
+                </TableHeader>
                 <TableBody>
-                  {filtered.map((r) => (
+                  {arPg.pageRows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="max-w-[200px] truncate">{r.client_name || "—"}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{r.trip_name || "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{r.invoice_number || "—"}</TableCell>
                       <TableCell>{r.invoice_date ? format(parseDate(r.invoice_date)!, "MMM d, yyyy") : "—"}</TableCell>
                       <TableCell>{r.due_date ? format(parseDate(r.due_date)!, "MMM d, yyyy") : "—"}</TableCell>
-                      <TableCell className="text-right">{fmt(r.total)}</TableCell>
-                      <TableCell className="text-right">{fmt(r.paid)}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.balance)}</TableCell>
-                      <TableCell>{r.days}d</TableCell>
+                      <MoneyCell value={r.total} />
+                      <MoneyCell value={r.paid} />
+                      <MoneyCell value={r.balance} bold />
+                      <TableCell className="tabular-nums">{r.days}d</TableCell>
                       <TableCell>
                         <Badge variant={bucketVariant(r.bucket)}>{BUCKET_LABEL[r.bucket]}</Badge>
                       </TableCell>
@@ -338,6 +348,15 @@ export default function BookkeeperARAging() {
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                page={arPg.page}
+                totalPages={arPg.totalPages}
+                total={arPg.total}
+                rangeStart={arPg.rangeStart}
+                rangeEnd={arPg.rangeEnd}
+                onPageChange={arPg.setPage}
+              />
+              </>
             )}
           </CardContent>
         </Card>
