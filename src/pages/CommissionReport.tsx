@@ -12,7 +12,15 @@ import { CommissionReportTable } from "@/components/reports/CommissionReportTabl
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { toast } from "sonner";
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import {
+  format, parseISO, isWithinInterval, startOfDay, endOfDay,
+  startOfMonth, endOfMonth, startOfYear, subMonths,
+  eachMonthOfInterval, subMonths as subM,
+} from "date-fns";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { DateRange } from "react-day-picker";
 
 
@@ -99,6 +107,40 @@ export default function CommissionReport() {
     };
   }, [filteredData]);
 
+  // Monthly data for chart
+  const monthlyData = useMemo(() => {
+    if (!filteredData.length) return [];
+    const months = eachMonthOfInterval({
+      start: subMonths(new Date(), 11),
+      end: new Date(),
+    });
+    return months.map((month) => {
+      const monthStr = format(month, "MMM yy");
+      const monthItems = filteredData.filter((item) => {
+        const d = parseISO(item.created_at);
+        return d >= startOfMonth(month) && d <= endOfMonth(month);
+      });
+      return {
+        month: monthStr,
+        earned: monthItems.reduce((s, i) => s + i.amount, 0),
+        paid: monthItems.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0),
+      };
+    }).filter(m => m.earned > 0 || m.paid > 0);
+  }, [filteredData]);
+
+  // Supplier breakdown
+  const supplierBreakdown = useMemo(() => {
+    const bySupplier: Record<string, { name: string; grossSales: number; commission: number; count: number }> = {};
+    filteredData.forEach((item) => {
+      const name = item.booking?.supplier?.name || "Unknown";
+      if (!bySupplier[name]) bySupplier[name] = { name, grossSales: 0, commission: 0, count: 0 };
+      bySupplier[name].grossSales += item.booking?.gross_sales || 0;
+      bySupplier[name].commission += item.amount;
+      bySupplier[name].count += 1;
+    });
+    return Object.values(bySupplier).sort((a, b) => b.commission - a.commission);
+  }, [filteredData]);
+
   // Advisor profitability breakdown (admin only)
   const advisorProfitability = useMemo(() => {
     if (!canViewAll || !filteredData.length) return [];
@@ -170,72 +212,47 @@ export default function CommissionReport() {
         agent_share: formatCurrencyForExport(agentShare),
         agency_share: formatCurrencyForExport(item.amount - agentShare),
         status: item.status,
-        paid_date: item.paid_date ? formatDateForExport(item.paid_date) : "",
-      };
-    });
-
-    const dateStr = format(new Date(), "yyyy-MM-dd");
-    const filename = `commission_report_${dateStr}`;
-
-    exportToCSV(exportData, filename, [
-      { key: "date", header: "Date" },
-      { key: "booking_reference", header: "Booking Ref" },
-      { key: "client", header: "Client" },
-      { key: "agent", header: "Agent" },
-      { key: "agent_tier", header: "Agent Tier" },
-      { key: "supplier", header: "Supplier" },
-      { key: "destination", header: "Destination" },
-      { key: "gross_sales", header: "Gross Sales ($)" },
-      { key: "commission_rate", header: "Rate" },
-      { key: "total_commission", header: "Total Commission ($)" },
-      { key: "agent_share", header: "Agent Share ($)" },
-      { key: "agency_share", header: "Agency Share ($)" },
-      { key: "status", header: "Status" },
-      { key: "paid_date", header: "Paid Date" },
-    ]);
-
-    toast.success("Commission report exported successfully");
-  };
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-          <Skeleton className="h-24 w-full" />
-          <div className="grid grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
-          </div>
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  return (
+        paid_date:return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+
+        {/* ── Page Header ────────────────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">{earnings.reportTitle}</h1>
-            <p className="text-muted-foreground text-sm mt-1">{canViewAll
-              ? "Organization-wide commission analysis and export"
-              : `Your ${earnings.singularLower} history and analysis`}</p>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              {earnings.reportTitle}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {canViewAll
+                ? "Organization-wide commission analysis"
+                : `Your ${earnings.singularLower} history and analysis`}
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={handleExport} className="gap-2">
-              <Download className="h-4 w-4" />
+            {/* Quick date presets */}
+            {[
+              { label: "This Month", range: { from: startOfMonth(new Date()), to: endOfMonth(new Date()) } },
+              { label: "Last Month", range: { from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) } },
+              { label: "YTD",        range: { from: startOfYear(new Date()), to: new Date() } },
+            ].map(({ label, range }) => (
+              <Button
+                key={label}
+                variant="outline"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => setDateRange(range)}
+              >
+                {label}
+              </Button>
+            ))}
+            <Button onClick={handleExport} size="sm" className="gap-1.5 h-8">
+              <Download className="h-3.5 w-3.5" />
               Export CSV
             </Button>
           </div>
         </div>
 
-        {/* Filters */}
+        {/* ── Filters ────────────────────────────────────────────────── */}
         <CommissionReportFilters
           dateRange={dateRange}
           setDateRange={setDateRange}
@@ -251,96 +268,181 @@ export default function CommissionReport() {
           onClearFilters={clearFilters}
         />
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Gross Sales</p>
-              <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+        {/* ── Summary Stat Cards ──────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            {
+              label: "Gross Sales",
+              value: formatCurrency(stats.totalGrossSales),
+              sub: `${stats.count} booking${stats.count !== 1 ? "s" : ""}`,
+              icon: FileSpreadsheet,
+              color: "text-foreground",
+              bg: "",
+            },
+            {
+              label: "Commission Earned",
+              value: formatCurrency(stats.totalCommission),
+              sub: `${stats.marginPct.toFixed(1)}% margin`,
+              icon: TrendingUp,
+              color: "text-primary",
+              bg: "bg-primary/5 border-primary/20",
+            },
+            {
+              label: "Agent Payouts",
+              value: formatCurrency(stats.totalAgentShare),
+              sub: "After tier splits",
+              icon: DollarSign,
+              color: "text-green-600",
+              bg: "bg-green-50 border-green-200",
+            },
+            {
+              label: "Agency Revenue",
+              value: formatCurrency(stats.totalCommission - stats.totalAgentShare),
+              sub: "Agency net",
+              icon: Percent,
+              color: "text-foreground",
+              bg: "",
+            },
+            {
+              label: canViewAll ? "Active Advisors" : "Status",
+              value: canViewAll ? String(stats.uniqueAgents) : `${stats.paidCount} paid`,
+              sub: canViewAll ? `${stats.paidCount} paid · ${stats.pendingCount} pending` : `${stats.pendingCount} pending`,
+              icon: Users,
+              color: "text-foreground",
+              bg: "",
+            },
+          ].map(({ label, value, sub, icon: Icon, color, bg }) => (
+            <div key={label} className={`rounded-xl p-4 border shadow-sm bg-card ${bg}`}>
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+                <Icon className={`h-4 w-4 ${color} opacity-60`} />
+              </div>
+              <p className={`text-2xl font-bold tracking-tight tabular-nums ${color}`}>{value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{sub}</p>
             </div>
-            <p className="text-2xl font-semibold">{formatCurrency(stats.totalGrossSales)}</p>
-            <p className="text-xs text-muted-foreground mt-1">{stats.count} bookings</p>
-          </div>
-
-          <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total Commission</p>
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-semibold text-primary">
-              {formatCurrency(stats.totalCommission)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.paidCount} paid, {stats.pendingCount} pending
-            </p>
-          </div>
-
-          <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Agent Payouts</p>
-              <DollarSign className="h-4 w-4 text-success" />
-            </div>
-            <p className="text-2xl font-semibold text-success">
-              {formatCurrency(stats.totalAgentShare)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Based on tier splits</p>
-          </div>
-
-          <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Agency Revenue</p>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-semibold">
-              {formatCurrency(stats.totalCommission - stats.totalAgentShare)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {canViewAll ? `${stats.uniqueAgents} agents` : "After agent split"}
-            </p>
-          </div>
-
-          <div className="bg-card rounded-xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Avg Margin</p>
-              <Percent className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-semibold text-primary">
-              {stats.marginPct.toFixed(1)}%
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Commission / Gross Sales</p>
-          </div>
+          ))}
         </div>
 
-        {/* Advisor Profitability (Admin) */}
+        {/* ── Monthly Revenue Chart ───────────────────────────────────── */}
+        {monthlyData.length > 1 && (
+          <div className="rounded-xl border bg-card shadow-sm p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Commission by Month</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Earned vs paid</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={monthlyData} barGap={2} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  formatter={(value: number) => [formatCurrency(value), ""]}
+                  contentStyle={{
+                    fontSize: 12,
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    background: "hsl(var(--popover))",
+                    color: "hsl(var(--popover-foreground))",
+                  }}
+                />
+                <Bar dataKey="earned" name="Earned" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+                <Bar dataKey="paid"   name="Paid"   fill="hsl(var(--success))"  radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="flex items-center gap-4 mt-3 justify-center">
+              {[
+                { color: "bg-primary", label: "Earned" },
+                { color: "bg-success", label: "Paid" },
+              ].map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className={`w-2.5 h-2.5 rounded-sm ${color}`} />
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Supplier Breakdown (admin) ──────────────────────────────── */}
+        {canViewAll && supplierBreakdown.length > 0 && (
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Top Suppliers by Commission</h2>
+            </div>
+            <div className="divide-y divide-border">
+              {supplierBreakdown.slice(0, 8).map((s) => (
+                <div key={s.name} className="flex items-center gap-4 px-5 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.count} booking{s.count !== 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="flex items-center gap-6 text-sm tabular-nums">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-xs text-muted-foreground">Gross Sales</p>
+                      <p className="font-medium">{formatCurrency(s.grossSales)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Commission</p>
+                      <p className="font-semibold text-primary">{formatCurrency(s.commission)}</p>
+                    </div>
+                    <div className="w-20 hidden md:block">
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${Math.min(100, (s.commission / supplierBreakdown[0].commission) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Advisor Profitability (admin) ────────────────────────────── */}
         {canViewAll && advisorProfitability.length > 0 && (
-          <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold text-card-foreground">Advisor Profitability</h3>
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Advisor Profitability</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left text-sm font-medium text-muted-foreground p-3">Agent</th>
-                    <th className="text-left text-sm font-medium text-muted-foreground p-3">Tier</th>
-                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Gross Sales</th>
-                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Commission</th>
-                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Agent Earnings</th>
-                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Margin %</th>
-                    <th className="text-right text-sm font-medium text-muted-foreground p-3">Trips</th>
+                  <tr className="border-b border-border bg-muted/30">
+                    {["Advisor", "Tier", "Gross Sales", "Commission", "Agent Earnings", "Trips", "Margin"].map(h => (
+                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border">
                   {advisorProfitability.map((a) => (
-                    <tr key={a.userId} className="border-b last:border-0">
-                      <td className="p-3 text-sm font-medium">{a.name}</td>
-                      <td className="p-3 text-sm text-muted-foreground">{a.tierLabel}</td>
-                      <td className="p-3 text-sm text-right">{formatCurrency(a.grossSales)}</td>
-                      <td className="p-3 text-sm text-right text-primary font-medium">{formatCurrency(a.totalCommission)}</td>
-                      <td className="p-3 text-sm text-right text-success font-semibold">{formatCurrency(a.agentEarnings)}</td>
-                      <td className="p-3 text-sm text-right font-medium">{a.margin.toFixed(1)}%</td>
-                      <td className="p-3 text-sm text-right">{a.tripCount}</td>
+                    <tr key={a.userId} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-5 py-3 font-medium text-foreground">{a.name}</td>
+                      <td className="px-5 py-3">
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          {a.tierLabel}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 tabular-nums">{formatCurrency(a.grossSales)}</td>
+                      <td className="px-5 py-3 tabular-nums font-medium text-primary">{formatCurrency(a.totalCommission)}</td>
+                      <td className="px-5 py-3 tabular-nums text-green-600 font-medium">{formatCurrency(a.agentEarnings)}</td>
+                      <td className="px-5 py-3 tabular-nums text-muted-foreground">{a.tripCount}</td>
+                      <td className="px-5 py-3 tabular-nums text-muted-foreground">{a.margin.toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -349,8 +451,19 @@ export default function CommissionReport() {
           </div>
         )}
 
-        {/* Table */}
-        <CommissionReportTable data={filteredData} showAgentColumn={canViewAll || false} />
+        {/* ── Commission Detail Table ─────────────────────────────────── */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h2 className="text-sm font-semibold text-foreground">
+              Commission Detail
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {filteredData.length} record{filteredData.length !== 1 ? "s" : ""}
+              </span>
+            </h2>
+          </div>
+          <CommissionReportTable data={filteredData} showAgentColumn={canViewAll || false} />
+        </div>
+
       </div>
     </DashboardLayout>
   );
