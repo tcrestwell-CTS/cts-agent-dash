@@ -249,12 +249,13 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   };
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    // Auto-open the group containing the current route
     const initial: Record<string, boolean> = {};
     [...navGroups, ...adminNavGroups].forEach((g) => {
-      if (g.items.some((i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/"))) {
-        initial[g.label] = true;
-      }
+      // Collapsed by default unless: contains current route, OR not flagged defaultCollapsed
+      const isActive = g.items.some(
+        (i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/")
+      );
+      initial[g.label] = isActive ? true : !(g.defaultCollapsed ?? false);
     });
     return initial;
   });
