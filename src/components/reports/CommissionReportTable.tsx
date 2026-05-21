@@ -1,10 +1,8 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { CommissionReportItem } from "@/hooks/useCommissionReport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, CheckCircle2, Clock } from "lucide-react";
 
 interface CommissionReportTableProps {
   data: CommissionReportItem[];
@@ -12,103 +10,86 @@ interface CommissionReportTableProps {
 }
 
 export function CommissionReportTable({ data, showAgentColumn }: CommissionReportTableProps) {
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
-        <p className="text-muted-foreground">No commissions match your filters</p>
+      <div className="text-center py-12 text-muted-foreground">
+        <p className="text-sm">No commissions match your filters</p>
       </div>
     );
   }
 
+  const headers = ["Date", "Booking", "Client",
+    ...(showAgentColumn ? ["Agent"] : []),
+    "Supplier", "Gross Sales", "Commission", "Agent Share", "Status"];
+  const rightAlignFrom = showAgentColumn ? 5 : 4;
+
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Booking</TableHead>
-            <TableHead>Client</TableHead>
-            {showAgentColumn && <TableHead>Agent</TableHead>}
-            <TableHead>Supplier</TableHead>
-            <TableHead className="text-right">Gross Sales</TableHead>
-            <TableHead className="text-right">Commission</TableHead>
-            <TableHead className="text-right">Agent Share</TableHead>
-            <TableHead className="text-center">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => {
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/30">
+            {headers.map((h, i) => (
+              <th key={h} className={`px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider ${i >= rightAlignFrom ? "text-right" : "text-left"}`}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {data.map((item, idx) => {
             const tier = (item.agent?.commission_tier || "tier_1") as CommissionTier;
             const agentShare = calculateAgentCommission(item.amount, tier);
             const tierConfig = getTierConfig(tier);
-
+            const isPaid = item.status === "paid";
             return (
-              <TableRow key={item.id}>
-                <TableCell className="text-muted-foreground">
+              <tr key={item.id} className={`hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/10" : ""}`}>
+                <td className="px-5 py-3 text-muted-foreground whitespace-nowrap text-xs">
                   {format(parseISO(item.created_at), "MMM d, yyyy")}
-                </TableCell>
-                <TableCell>
-                  <Link
-                    to={`/bookings/${item.booking_id}`}
-                    className="font-medium text-primary hover:underline inline-flex items-center gap-1"
-                  >
-                    {item.booking?.booking_reference || "N/A"}
-                    <ExternalLink className="h-3 w-3" />
+                </td>
+                <td className="px-5 py-3">
+                  <Link to={`/bookings/${item.booking_id}`} className="inline-flex items-center gap-1 font-medium text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                    {item.booking?.booking_reference || item.booking?.confirmation_number || item.booking_id?.slice(0, 8)}
+                    <ExternalLink className="h-3 w-3 opacity-50" />
                   </Link>
-                  <p className="text-xs text-muted-foreground">
-                    {item.booking?.destination || "N/A"}
-                  </p>
-                </TableCell>
-                <TableCell>{item.booking?.client?.name || "Unknown"}</TableCell>
-                {showAgentColumn && (
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{item.agent?.full_name || "Unknown"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {tierConfig.description}
-                      </p>
-                    </div>
-                  </TableCell>
-                )}
-                <TableCell>
-                  {item.booking?.supplier?.name || (
-                    <span className="text-muted-foreground">—</span>
+                  {item.booking?.trip_name && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[150px]">{item.booking.trip_name}</p>
                   )}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCurrency(item.booking?.gross_sales || item.booking?.total_amount || 0)}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCurrency(item.amount)}
-                  <span className="text-xs text-muted-foreground ml-1">({item.rate}%)</span>
-                </TableCell>
-                <TableCell className="text-right font-mono font-semibold text-success">
-                  {formatCurrency(agentShare)}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge
-                    variant="secondary"
-                    className={
-                      item.status === "paid"
-                        ? "bg-success/10 text-success"
-                        : "bg-warning/10 text-warning"
-                    }
-                  >
-                    {item.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
+                </td>
+                <td className="px-5 py-3 text-sm">{item.booking?.client?.name || "—"}</td>
+                {showAgentColumn && (
+                  <td className="px-5 py-3">
+                    <p className="text-sm font-medium">{item.agent?.full_name || "—"}</p>
+                    <p className="text-xs text-muted-foreground">{tierConfig.label}</p>
+                  </td>
+                )}
+                <td className="px-5 py-3 text-sm text-muted-foreground">{item.booking?.supplier?.name || "—"}</td>
+                <td className="px-5 py-3 text-right tabular-nums font-medium">{fmt(item.booking?.gross_sales || item.booking?.total_amount || 0)}</td>
+                <td className="px-5 py-3 text-right tabular-nums font-semibold text-primary">{fmt(item.amount)}</td>
+                <td className="px-5 py-3 text-right tabular-nums font-semibold text-green-600">{fmt(agentShare)}</td>
+                <td className="px-5 py-3 text-right">
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${isPaid ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                    {isPaid ? <><CheckCircle2 className="h-3 w-3" />Paid</> : <><Clock className="h-3 w-3" />Pending</>}
+                  </span>
+                </td>
+              </tr>
             );
           })}
-        </TableBody>
-      </Table>
+        </tbody>
+        <tfoot>
+          <tr className="border-t-2 border-border bg-muted/20">
+            <td colSpan={rightAlignFrom} className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Totals ({data.length} records)
+            </td>
+            <td className="px-5 py-3 text-right tabular-nums font-bold">{fmt(data.reduce((s,i) => s+(i.booking?.gross_sales||i.booking?.total_amount||0),0))}</td>
+            <td className="px-5 py-3 text-right tabular-nums font-bold text-primary">{fmt(data.reduce((s,i)=>s+i.amount,0))}</td>
+            <td className="px-5 py-3 text-right tabular-nums font-bold text-green-600">{fmt(data.reduce((s,i)=>s+calculateAgentCommission(i.amount,(i.agent?.commission_tier||"tier_1")as CommissionTier),0))}</td>
+            <td className="px-5 py-3"/>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
