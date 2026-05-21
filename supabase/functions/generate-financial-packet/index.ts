@@ -87,12 +87,12 @@ Deno.serve(async (req) => {
     // Income: trip_payments paid in period
     const { data: incomePayments } = await svc
       .from('trip_payments')
-      .select('amount, payment_date, processing_fee')
+      .select('amount, payment_date, stripe_fee')
       .eq('status', 'paid')
       .gte('payment_date', startDate)
       .lte('payment_date', endDate);
     const totalIncome = (incomePayments || []).reduce((s, p: any) => s + Number(p.amount || 0), 0);
-    const totalStripeFees = (incomePayments || []).reduce((s, p: any) => s + Number(p.processing_fee || 0), 0);
+    const totalStripeFees = (incomePayments || []).reduce((s, p: any) => s + Number(p.stripe_fee || 0), 0);
 
     // COGS: bookings supplier_payout for bookings supplier-paid in period
     const { data: paidBookings } = await svc
