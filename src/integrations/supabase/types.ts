@@ -4841,6 +4841,39 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_report_cache: {
+        Row: {
+          created_at: string
+          data: Json
+          fetched_at: string
+          id: string
+          period_month: number
+          period_year: number
+          report_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          fetched_at?: string
+          id?: string
+          period_month: number
+          period_year: number
+          report_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          fetched_at?: string
+          id?: string
+          period_month?: number
+          period_year?: number
+          report_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       qbo_supplier_mappings: {
         Row: {
           created_at: string
