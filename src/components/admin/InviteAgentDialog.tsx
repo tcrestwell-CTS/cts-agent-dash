@@ -20,7 +20,7 @@ import {
 import { UserPlus, Loader2 } from "lucide-react";
 import { CommissionTier, COMMISSION_TIERS } from "@/lib/commissionTiers";
 
-type InviteRole = "user" | "admin" | "office_admin";
+type InviteRole = "user" | "admin" | "office_admin" | "bookkeeper";
 
 interface InviteAgentDialogProps {
   onSubmit: (email: string, role: InviteRole, commissionTier: CommissionTier) => Promise<boolean>;
@@ -36,7 +36,7 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
   // Auto-update commission tier when role changes
   const handleRoleChange = (newRole: InviteRole) => {
     setRole(newRole);
-    if (newRole === "office_admin") {
+    if (newRole === "office_admin" || newRole === "bookkeeper") {
       setCommissionTier("none");
     } else if (newRole === "admin") {
       setCommissionTier("tier_3");
@@ -97,11 +97,12 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
               <SelectContent>
                 <SelectItem value="user">Agent</SelectItem>
                 <SelectItem value="office_admin">Office Admin</SelectItem>
+                <SelectItem value="bookkeeper">Bookkeeper</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Agents manage their own data. Office Admins can view all data (read-only). Admins have full access.
+              Agents manage their own data. Office Admins can view all data. Bookkeepers get read-only financial access. Admins have full access.
             </p>
           </div>
 
