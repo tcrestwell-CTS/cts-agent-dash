@@ -72,9 +72,77 @@ serve(async (req) => {
   const ids: string[] = Array.isArray(body.qbo_invoice_ids)
     ? body.qbo_invoice_ids.map(String)
     : [];
+  const dryRun = body.dry_run === true;
+  const queryCustomerId: string | undefined = body.query_customer_id
+    ? String(body.query_customer_id)
+    : undefined;
+
+  if (queryCustomerId) {
+    const { accessToken, realmId } = await getValidToken();
+    const q = encodeURIComponent(
+      `select Id, DocNumber, TotalAmt, Balance, TxnDate, DueDate from Invoice where CustomerRef = '${queryCustomerId}'`,
+    );
+    const r = await fetch(
+      `${QBO_BASE}/${realmId}/query?query=${q}&minorversion=65`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    const j = await r.json();
+    return new Response(JSON.stringify(j), {
+      status: r.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (!ids.length) {
     return new Response(JSON.stringify({ error: "qbo_invoice_ids required" }), {
       status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { accessToken: at0, realmId: rid0 } = await getValidToken();
+  if (dryRun) {
+    const out: any[] = [];
+    for (const id of ids) {
+      try {
+        const r = await fetch(
+          `${QBO_BASE}/${rid0}/invoice/${id}?minorversion=65`,
+          {
+            headers: {
+              Authorization: `Bearer ${at0}`,
+              Accept: "application/json",
+            },
+          },
+        );
+        const j = await r.json();
+        if (!r.ok) {
+          out.push({ id, error: j?.Fault?.Error?.[0]?.Message || r.status });
+          continue;
+        }
+        const inv = j.Invoice;
+        out.push({
+          id,
+          docNumber: inv?.DocNumber,
+          customer: inv?.CustomerRef?.name,
+          totalAmt: inv?.TotalAmt,
+          balance: inv?.Balance,
+          dueDate: inv?.DueDate,
+          txnDate: inv?.TxnDate,
+          linkedPayments: (inv?.LinkedTxn || []).filter((t: any) =>
+            t.TxnType === "Payment"
+          ),
+        });
+      } catch (e) {
+        out.push({ id, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    return new Response(JSON.stringify({ dryRun: true, invoices: out }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
