@@ -9,13 +9,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Download, CalendarIcon, AlertTriangle } from "lucide-react";
+import { Download, CalendarIcon, AlertTriangle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import {
+  EmptyState,
+  SortableHead,
+  useSort,
+  sortRows,
+  usePagination,
+  TablePagination,
+  MoneyCell,
+  TableBodySkeletonRows,
+} from "@/components/bookkeeper/shared";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -57,6 +68,10 @@ export default function BookkeeperARAging() {
   const [bucket, setBucket] = useState<BucketKey | "all">("all");
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
   // ── Invoices ──────────────────────────────────────────────────────────────
   const { data: invoices = [], isLoading } = useQuery({
@@ -171,8 +186,11 @@ export default function BookkeeperARAging() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-semibold">AR Aging</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">AR Aging</h1>
+              <PeriodLockButton year={currentYear} month={currentMonth} />
+            </div>
             <p className="text-muted-foreground text-sm">
               Accounts receivable bucketed by days overdue.
             </p>
