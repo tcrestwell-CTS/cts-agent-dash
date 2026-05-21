@@ -30,6 +30,7 @@ import {
   FileDown,
 } from "lucide-react";
 import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
+import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
@@ -727,6 +728,7 @@ const Trips = () => {
                             </Badge>
                           </div>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                            <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
                             <span className="flex items-center gap-1.5">
                               <Users className="h-4 w-4" />
                               {trip.clients?.name || "Unknown Client"}
