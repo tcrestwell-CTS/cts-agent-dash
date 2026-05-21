@@ -94,7 +94,7 @@ const navGroups: NavGroup[] = [
     icon: Calendar,
     items: [
       { name: "Trips",            href: "/trips",               icon: Compass,     feature: "trips" },
-      { name: "Bookings",         href: "/bookings",            icon: BookOpen,    feature: "bookings" },
+      { name: "Bookings",         href: "/bookings",            icon: BookOpen,    feature: "trips" },
       { name: "Payment Reminders",href: "/payment-reminders",   icon: Bell,        feature: "payment_reminders" },
       { name: "Suppliers",        href: "/suppliers",           icon: Building2,   feature: "suppliers" },
       { name: "Commissions",      href: "/commissions",         icon: DollarSign,  feature: "commissions" },

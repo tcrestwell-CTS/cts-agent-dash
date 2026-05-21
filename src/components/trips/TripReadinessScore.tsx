@@ -32,12 +32,12 @@ export function TripReadinessScore({
       const [paymentsRes, travelersRes, portalRes] = await Promise.all([
         supabase.from("trip_payments").select("id").eq("trip_id", tripId).eq("status", "paid").limit(1),
         supabase.from("trip_travelers").select("id").eq("trip_id", tripId).limit(1),
-        supabase.from("trips").select("portal_token, portal_enabled").eq("id", tripId).maybeSingle(),
+        supabase.from("trips").select("id").eq("id", tripId).maybeSingle(),
       ]);
       return {
         hasPayment:        (paymentsRes.data?.length ?? 0) > 0,
         hasTravelers:      (travelersRes.data?.length ?? 0) > 0,
-        portalShared:      !!(portalRes.data?.portal_token && portalRes.data?.portal_enabled),
+        portalShared:      false,
       };
     },
     enabled: !!tripId,
