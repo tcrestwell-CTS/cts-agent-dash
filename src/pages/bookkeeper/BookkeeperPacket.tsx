@@ -107,7 +107,7 @@ export default function BookkeeperPacket() {
 
   const handleDownload = async (path: string) => {
     const { data, error } = await supabase.storage
-      .from("financial-packets").createSignedUrl(path, 60);
+      .from("financial-packets").createSignedUrl(path, 3600);
     if (error || !data?.signedUrl) {
       toast.error("Could not generate download link");
       return;
