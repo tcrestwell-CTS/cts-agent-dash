@@ -123,10 +123,16 @@ export function useInvitations() {
         : role === "bookkeeper" ? "an accountant"
         : "a travel agent";
 
+      const subjectRoleLabel =
+        role === "admin" ? "an Admin"
+        : role === "office_admin" ? "an Office Admin"
+        : role === "bookkeeper" ? "an Accountant"
+        : "a Travel Agent";
+
       const { error: emailError } = await supabase.functions.invoke("send-email", {
         body: {
           to: email,
-          subject: "You're invited to join Crestwell Travel Services",
+          subject: `You're invited to join Crestwell Travel Services as ${subjectRoleLabel}`,
           template: "agent_invitation",
           data: {
             inviteUrl,
@@ -191,10 +197,16 @@ export function useInvitations() {
         : invitation.role === "bookkeeper" ? "an accountant"
         : "a travel agent";
 
+      const subjectRoleLabel =
+        invitation.role === "admin" ? "an Admin"
+        : invitation.role === "office_admin" ? "an Office Admin"
+        : invitation.role === "bookkeeper" ? "an Accountant"
+        : "a Travel Agent";
+
       await supabase.functions.invoke("send-email", {
         body: {
           to: invitation.email,
-          subject: "Reminder: You're invited to join Crestwell Travel Services",
+          subject: `Reminder: You're invited to join Crestwell Travel Services as ${subjectRoleLabel}`,
           template: "agent_invitation",
           data: {
             inviteUrl,
