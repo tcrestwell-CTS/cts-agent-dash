@@ -12,7 +12,7 @@ export function TripDocUploads({ tripId }: TripDocUploadsProps) {
   const { data: uploads = [], isLoading } = useQuery({
     queryKey: ["doc-uploads", tripId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("client_document_uploads")
         .select("*")
         .eq("trip_id", tripId)
