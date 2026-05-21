@@ -12,6 +12,7 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect, useMemo } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { format, differenceInDays } from "date-fns";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
