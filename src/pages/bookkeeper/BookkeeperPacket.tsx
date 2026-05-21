@@ -38,7 +38,7 @@ export default function BookkeeperPacket() {
     queryKey: ["packet-readiness", year, month],
     queryFn: async () => {
       const [qboRes, pmtRes, arRes, apRes, unattrRes] = await Promise.all([
-        (supabase as any).from("qbo_connections").select("id, status").eq("status", "active").limit(1),
+        supabase.from("qbo_connections").select("id, is_active").eq("is_active", true).limit(1),
         supabase.from("trip_payments").select("id", { count: "exact", head: true })
           .eq("status", "paid").gte("payment_date", start).lte("payment_date", end),
         supabase.from("invoices").select("id", { count: "exact", head: true }).gt("amount_remaining", 0),
