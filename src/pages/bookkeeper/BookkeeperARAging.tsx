@@ -167,10 +167,10 @@ export default function BookkeeperARAging() {
 
   type ArSortKey = "client" | "trip" | "invoice_number" | "invoice_date" | "due_date" | "total" | "paid" | "balance" | "days";
   const { sort: arSort, onSort: onArSort } = useSort<ArSortKey>({ key: "invoice_date", dir: "asc" });
-  const arSorted = useMemo(
+  type ArRow = typeof filtered[number];
+  const arSorted = useMemo<ArRow[]>(
     () =>
-      sortRows(filtered, arSort, (row, k) => {
-        const r = row as any;
+      sortRows<ArRow, ArSortKey>(filtered, arSort, (r, k) => {
         if (k === "client") return r.client_name;
         if (k === "trip") return r.trip_name;
         if (k === "invoice_number") return r.invoice_number;
@@ -180,10 +180,10 @@ export default function BookkeeperARAging() {
         if (k === "paid") return r.paid;
         if (k === "balance") return r.balance;
         return r.days;
-      }) as typeof filtered,
+      }),
     [filtered, arSort],
   );
-  const arPg = usePagination(arSorted);
+  const arPg = usePagination<ArRow>(arSorted);
 
   const exportCsv = () => {
     logAction("export_csv", "bookkeeper_ar_aging", { rows: filtered.length });
