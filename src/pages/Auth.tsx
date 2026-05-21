@@ -90,8 +90,16 @@ const Auth = () => {
         });
 
         if (existingProfile) {
-          devLog("[Auth] User has existing profile, redirecting to agent dashboard");
-          window.location.href = window.location.origin + "/";
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id);
+          const isBookkeeper =
+            !!roles?.some((r) => r.role === "bookkeeper") &&
+            !roles?.some((r) => r.role === "admin" || r.role === "office_admin");
+          const dest = isBookkeeper ? "/bookkeeper" : "/";
+          devLog("[Auth] User has existing profile, redirecting", { dest });
+          window.location.href = window.location.origin + dest;
           return;
         }
 
@@ -207,8 +215,16 @@ const Auth = () => {
           return;
         }
 
-        devLog("[Auth] Invitation accepted successfully, redirecting to agent dashboard");
-        window.location.href = window.location.origin + "/";
+        const { data: rolesAfter } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        const isBookkeeperAfter =
+          !!rolesAfter?.some((r) => r.role === "bookkeeper") &&
+          !rolesAfter?.some((r) => r.role === "admin" || r.role === "office_admin");
+        const destAfter = isBookkeeperAfter ? "/bookkeeper" : "/";
+        devLog("[Auth] Invitation accepted successfully, redirecting", { destAfter });
+        window.location.href = window.location.origin + destAfter;
       } catch (err) {
         devError("[Auth] Unexpected error during validation:", err);
         toast.error("An error occurred while validating your access.");

@@ -64,7 +64,7 @@ export function useInvitations() {
 
   const sendInvitation = async (
     email: string, 
-    role: "user" | "admin" | "office_admin" = "user",
+    role: "user" | "admin" | "office_admin" | "bookkeeper" = "user",
     commissionTier: CommissionTier = "tier_1"
   ) => {
     if (!user) {
@@ -117,7 +117,12 @@ export function useInvitations() {
 
       // Send invitation email
       const inviteUrl = `https://app.crestwelltravels.com/auth?invite=${token}`;
-      
+      const roleLabel =
+        role === "admin" ? "an administrator"
+        : role === "office_admin" ? "an office administrator"
+        : role === "bookkeeper" ? "an accountant"
+        : "a travel agent";
+
       const { error: emailError } = await supabase.functions.invoke("send-email", {
         body: {
           to: email,
@@ -127,6 +132,7 @@ export function useInvitations() {
             inviteUrl,
             inviterName: profile?.full_name || "An administrator",
             expiresIn: "7 days",
+            roleLabel,
           },
         },
       });
@@ -179,6 +185,12 @@ export function useInvitations() {
       // Resend email
       const inviteUrl = `https://app.crestwelltravels.com/auth?invite=${invitation.token}`;
 
+      const roleLabel =
+        invitation.role === "admin" ? "an administrator"
+        : invitation.role === "office_admin" ? "an office administrator"
+        : invitation.role === "bookkeeper" ? "an accountant"
+        : "a travel agent";
+
       await supabase.functions.invoke("send-email", {
         body: {
           to: invitation.email,
@@ -188,6 +200,7 @@ export function useInvitations() {
             inviteUrl,
             inviterName: profile?.full_name || "An administrator",
             expiresIn: "7 days",
+            roleLabel,
           },
         },
       });
