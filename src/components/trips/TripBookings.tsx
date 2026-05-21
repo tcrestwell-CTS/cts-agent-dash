@@ -28,6 +28,8 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTripBookingDialog } from "./AddTripBookingDialog";
+import { InlinePaymentStatus } from "@/components/shared/InlinePaymentStatus";
+import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 import { StripePayBookingDialog } from "./StripePayBookingDialog";
 import { DuffelBalancePayButton } from "./DuffelBalancePayButton";
 import { SendETicketButton } from "./SendETicketButton";
