@@ -54,8 +54,8 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                     {item.booking?.booking_reference || item.booking?.confirmation_number || item.booking_id?.slice(0, 8)}
                     <ExternalLink className="h-3 w-3 opacity-50" />
                   </Link>
-                  {item.booking?.trip?.trip_name && (
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[150px]">{item.booking.trip.trip_name}</p>
+                  {item.booking?.destination && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[150px]">{item.booking.destination}</p>
                   )}
                 </td>
                 <td className="px-5 py-3 text-sm">{item.booking?.client?.name || "—"}</td>
