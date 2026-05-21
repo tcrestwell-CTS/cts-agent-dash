@@ -73,13 +73,33 @@ Deno.serve(async (req) => {
 
         let tripPayment: any = null;
         if (tripIds.length > 0) {
-          const { data } = await supabase
+          const amountDollars = amount_cents / 100;
+          const tolerance = 5.00; // within $5 tolerance for amount matching
+
+          // First try: exact or close amount match
+          const { data: exactMatch } = await supabase
+            .from('trip_payments')
+            .select('id, trip_id, booking_id, amount, status, due_date')
+            .eq('status', 'pending')
+            .in('trip_id', tripIds)
+            .gte('amount', amountDollars - tolerance)
+            .lte('amount', amountDollars + tolerance)
+            .order('due_date', { ascending: true })
+            .limit(1)
+
+          const data = exactMatch?.length > 0 ? exactMatch : null;
+
+          // Fallback: any next pending installment if no amount match
+          const { data: fallbackData } = !data ? await supabase
             .from('trip_payments')
             .select('id, trip_id, booking_id, amount, status, due_date')
             .eq('status', 'pending')
             .in('trip_id', tripIds)
             .order('due_date', { ascending: true })
-            .limit(1)
+            .limit(1) : { data: null };
+
+          const resolvedData = data || fallbackData;
+          const dataResult = resolvedData;
             .maybeSingle();
           tripPayment = data;
         }
