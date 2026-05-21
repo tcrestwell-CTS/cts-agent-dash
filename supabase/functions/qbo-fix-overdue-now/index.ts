@@ -73,6 +73,31 @@ serve(async (req) => {
     ? body.qbo_invoice_ids.map(String)
     : [];
   const dryRun = body.dry_run === true;
+  const queryCustomerId: string | undefined = body.query_customer_id
+    ? String(body.query_customer_id)
+    : undefined;
+
+  if (queryCustomerId) {
+    const { accessToken, realmId } = await getValidToken();
+    const q = encodeURIComponent(
+      `select Id, DocNumber, TotalAmt, Balance, TxnDate, DueDate from Invoice where CustomerRef = '${queryCustomerId}'`,
+    );
+    const r = await fetch(
+      `${QBO_BASE}/${realmId}/query?query=${q}&minorversion=65`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    const j = await r.json();
+    return new Response(JSON.stringify(j), {
+      status: r.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (!ids.length) {
     return new Response(JSON.stringify({ error: "qbo_invoice_ids required" }), {
       status: 400,
