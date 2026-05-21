@@ -1,114 +1,588 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { differenceInDays, addDays } from "date-fns";
+import {
+  Download,
+  TrendingUp,
+  DollarSign,
+  Receipt,
+  AlertTriangle,
+  Wallet,
+  Users,
+  FileSpreadsheet,
+  BookOpen,
+  Loader2,
+} from "lucide-react";
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
+import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { toast } from "sonner";
 
-function toCsv(rows: any[]): string {
-  if (!rows.length) return "";
-  const headers = Object.keys(rows[0]);
-  const esc = (v: any) => {
-    if (v == null) return "";
-    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  return [headers.join(","), ...rows.map((r) => headers.map((h) => esc(r[h])).join(","))].join("\n");
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function monthRange(year: number, month: number) {
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { start: iso(start), end: iso(end), label: `${MONTHS[month]} ${year}` };
 }
 
-function downloadCsv(name: string, csv: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
+function yearRange(year: number) {
+  return { start: `${year}-01-01`, end: `${year + 1}-01-01`, label: String(year) };
 }
 
-type Kind = "income" | "expenses" | "commissions" | "payouts";
+type BucketKey = "current" | "1-30" | "31-60" | "61-90" | "90+";
+const bucketFor = (d: number): BucketKey =>
+  d <= 0 ? "current" : d <= 30 ? "1-30" : d <= 60 ? "31-60" : d <= 90 ? "61-90" : "90+";
+
+// ------------------------------- Queries -------------------------------
+
+function useIncomeRows(year: number, month: number) {
+  const { start, end } = monthRange(year, month);
+  return useQuery({
+    queryKey: ["export-income", year, month],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("trip_payments")
+        .select(
+          "id, payment_date, amount, payment_type, payment_method, status, stripe_payment_intent_id, qbo_payment_id, qbo_sync_status, trip_id, booking_id, trips:trip_id(trip_name, client_id, clients:client_id(name, email))"
+        )
+        .eq("status", "paid")
+        .gte("payment_date", start)
+        .lt("payment_date", end)
+        .order("payment_date", { ascending: true })
+        .limit(1000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+function useExpenseRows(year: number, month: number) {
+  const { start, end } = monthRange(year, month);
+  return useQuery({
+    queryKey: ["export-expenses", year, month],
+    queryFn: async () => {
+      const [supRes, feeRes] = await Promise.all([
+        (supabase as any)
+          .from("bookings")
+          .select(
+            "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, booking_reference, confirmation_number, supplier_id, trip_id, suppliers:supplier_id(name), trips:trip_id(trip_name)"
+          )
+          .eq("supplier_paid_status", "paid")
+          .gte("supplier_paid_date", start)
+          .lt("supplier_paid_date", end)
+          .limit(1000),
+        (supabase as any)
+          .from("trip_payments")
+          .select("id, payment_date, stripe_fee, stripe_payment_intent_id, trip_id")
+          .eq("status", "paid")
+          .gt("stripe_fee", 0)
+          .gte("payment_date", start)
+          .lt("payment_date", end)
+          .limit(1000),
+      ]);
+      if (supRes.error) throw supRes.error;
+      if (feeRes.error) throw feeRes.error;
+      return { suppliers: supRes.data ?? [], fees: feeRes.data ?? [] };
+    },
+  });
+}
+
+function useCommissionRows(year: number, month: number) {
+  const { start, end } = monthRange(year, month);
+  return useQuery({
+    queryKey: ["export-commissions", year, month],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("commissions")
+        .select("id, user_id, booking_id, amount, rate, status, paid_date, created_at")
+        .gte("created_at", start)
+        .lt("created_at", end)
+        .limit(1000);
+      if (error) throw error;
+      const userIds = Array.from(new Set((data ?? []).map((r: any) => r.user_id).filter(Boolean)));
+      let profiles: any[] = [];
+      if (userIds.length) {
+        const { data: p } = await (supabase as any)
+          .from("profiles")
+          .select("user_id, full_name, email, commission_tier")
+          .in("user_id", userIds);
+        profiles = p ?? [];
+      }
+      const pMap = new Map(profiles.map((p) => [p.user_id, p]));
+      return (data ?? []).map((r: any) => ({ ...r, profile: pMap.get(r.user_id) }));
+    },
+  });
+}
+
+function usePayoutRegister(year: number) {
+  const { start, end } = yearRange(year);
+  return useQuery({
+    queryKey: ["export-1099", year],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("commissions")
+        .select("user_id, amount, status, paid_date")
+        .eq("status", "paid")
+        .gte("paid_date", start)
+        .lt("paid_date", end)
+        .limit(5000);
+      if (error) throw error;
+      const totals = new Map<string, number>();
+      (data ?? []).forEach((r: any) => {
+        totals.set(r.user_id, (totals.get(r.user_id) || 0) + Number(r.amount || 0));
+      });
+      const userIds = Array.from(totals.keys());
+      let profiles: any[] = [];
+      if (userIds.length) {
+        const { data: p } = await (supabase as any)
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", userIds);
+        profiles = p ?? [];
+      }
+      return profiles.map((p) => ({
+        agent_name: p.full_name ?? "",
+        agent_email: p.email ?? "",
+        total_earnings_ytd: totals.get(p.user_id) || 0,
+      }));
+    },
+  });
+}
+
+function useARAging() {
+  return useQuery({
+    queryKey: ["export-ar-aging"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("invoices")
+        .select(
+          "id, invoice_number, invoice_date, trip_name, client_name, total_amount, amount_paid, amount_remaining, status"
+        )
+        .gt("amount_remaining", 0)
+        .limit(2000);
+      if (error) throw error;
+      const today = new Date();
+      return (data ?? []).map((i: any) => {
+        const created = i.invoice_date ? new Date(i.invoice_date + "T00:00:00") : today;
+        const days = Math.max(0, differenceInDays(today, created));
+        return {
+          client: i.client_name ?? "",
+          trip: i.trip_name ?? "",
+          invoice_number: i.invoice_number ?? "",
+          total: Number(i.total_amount || 0),
+          balance: Number(i.amount_remaining || 0),
+          invoice_date: i.invoice_date ?? "",
+          days_outstanding: days,
+          bucket: bucketFor(days),
+        };
+      });
+    },
+  });
+}
+
+function useAPAging() {
+  return useQuery({
+    queryKey: ["export-ap-aging"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bookings")
+        .select(
+          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, trips:trip_id(trip_name, return_date), suppliers:supplier_id(name, contact_email)"
+        )
+        .neq("supplier_paid_status", "paid")
+        .in("status", ["confirmed", "completed"])
+        .limit(2000);
+      if (error) throw error;
+      const today = new Date();
+      return (data ?? [])
+        .filter((b: any) => Number(b.supplier_payout || 0) > 0)
+        .map((b: any) => {
+          const ret = b.trips?.return_date ? new Date(b.trips.return_date + "T00:00:00") : null;
+          const created = b.created_at ? new Date(b.created_at) : today;
+          const est = ret ? addDays(ret, 30) : addDays(created, 45);
+          const days = Math.max(0, differenceInDays(today, est));
+          return {
+            supplier: b.suppliers?.name ?? "",
+            supplier_email: b.suppliers?.contact_email ?? "",
+            trip: b.trips?.trip_name ?? "",
+            confirmation_number: b.confirmation_number ?? "",
+            booking_date: b.created_at ? formatDateForExport(b.created_at) : "",
+            est_due_date: est.toISOString().slice(0, 10),
+            amount_owed: Number(b.supplier_payout || 0),
+            days_outstanding: days,
+            bucket: bucketFor(days),
+            supplier_paid_status: b.supplier_paid_status ?? "unpaid",
+          };
+        });
+    },
+  });
+}
+
+// ------------------------------- Page -------------------------------
 
 export default function BookkeeperExport() {
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [loading, setLoading] = useState<Kind | null>(null);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
+  const logAction = useLogBookkeeperAction();
+  useEffect(() => {
+    logAction("view", "bookkeeper_export");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const exportKind = async (kind: Kind) => {
-    setLoading(kind);
-    try {
-      const start = `${year}-01-01`;
-      const end = `${year + 1}-01-01`;
-      let rows: any[] = [];
-      if (kind === "income") {
-        const { data, error } = await (supabase as any).from("trip_payments")
-          .select("payment_date, amount, payment_type, payment_method, status, stripe_payment_intent_id, trip_id, booking_id")
-          .eq("status", "paid").gte("payment_date", start).lt("payment_date", end);
-        if (error) throw error;
-        rows = data ?? [];
-      } else if (kind === "expenses") {
-        const { data, error } = await (supabase as any).from("bookings")
-          .select("supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, booking_reference, supplier_id, trip_id")
-          .eq("supplier_paid_status", "paid").gte("supplier_paid_date", start).lt("supplier_paid_date", end);
-        if (error) throw error;
-        rows = data ?? [];
-      } else if (kind === "commissions") {
-        const { data, error } = await (supabase as any).from("commissions")
-          .select("user_id, booking_id, amount, rate, status, paid_date, created_at")
-          .gte("created_at", start).lt("created_at", end);
-        if (error) throw error;
-        rows = data ?? [];
-      } else if (kind === "payouts") {
-        const { data, error } = await (supabase as any).from("stripe_payouts")
-          .select("stripe_payout_id, arrival_date, amount, fee_total, net_amount, status, reconciled")
-          .gte("arrival_date", start).lt("arrival_date", end);
-        if (error) throw error;
-        rows = data ?? [];
-      }
-      if (!rows.length) {
-        toast.info("No rows to export for that selection.");
-        return;
-      }
-      downloadCsv(`${kind}-${year}.csv`, toCsv(rows));
-      toast.success(`Exported ${rows.length} rows.`);
-    } catch (e: any) {
-      toast.error(e.message || "Export failed");
-    } finally {
-      setLoading(null);
+  const period = monthRange(year, month);
+
+  const income = useIncomeRows(year, month);
+  const expenses = useExpenseRows(year, month);
+  const commissions = useCommissionRows(year, month);
+  const arAging = useARAging();
+  const apAging = useAPAging();
+  const payouts = usePayoutRegister(year);
+
+  // P&L summary
+  const plSummary = useMemo(() => {
+    const inc = (income.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+    const cogs = (expenses.data?.suppliers ?? []).reduce(
+      (s: number, r: any) => s + Number(r.supplier_paid_amount || 0),
+      0,
+    );
+    const fees = (expenses.data?.fees ?? []).reduce(
+      (s: number, r: any) => s + Number(r.stripe_fee || 0),
+      0,
+    );
+    return {
+      income: inc,
+      cogs,
+      gross_profit: inc - cogs,
+      expenses: fees,
+      net_income: inc - cogs - fees,
+    };
+  }, [income.data, expenses.data]);
+
+  const expenseRows = useMemo(() => {
+    const sup = (expenses.data?.suppliers ?? []).map((r: any) => ({
+      type: "supplier_payment",
+      date: r.supplier_paid_date,
+      supplier: r.suppliers?.name ?? "",
+      trip: r.trips?.trip_name ?? "",
+      confirmation_number: r.confirmation_number ?? r.booking_reference ?? "",
+      amount: Number(r.supplier_paid_amount || 0),
+      method: r.supplier_paid_method ?? "",
+      reference: r.supplier_paid_reference ?? "",
+    }));
+    const fees = (expenses.data?.fees ?? []).map((r: any) => ({
+      type: "stripe_fee",
+      date: r.payment_date,
+      supplier: "Stripe",
+      trip: "",
+      confirmation_number: r.stripe_payment_intent_id ?? "",
+      amount: Number(r.stripe_fee || 0),
+      method: "stripe",
+      reference: r.stripe_payment_intent_id ?? "",
+    }));
+    return [...sup, ...fees].sort((a, b) => (a.date < b.date ? -1 : 1));
+  }, [expenses.data]);
+
+  const fullLedger = useMemo(() => {
+    const inc = (income.data ?? []).map((r: any) => ({
+      date: r.payment_date,
+      type: "income",
+      description: r.trips?.trip_name ?? r.payment_type ?? "",
+      counterparty: r.trips?.clients?.name ?? "",
+      amount: Number(r.amount || 0),
+      reference: r.stripe_payment_intent_id ?? "",
+    }));
+    const exp = expenseRows.map((r) => ({
+      date: r.date,
+      type: "expense",
+      description: r.trip || r.type,
+      counterparty: r.supplier,
+      amount: -Number(r.amount || 0),
+      reference: r.reference ?? "",
+    }));
+    return [...inc, ...exp].sort((a, b) => (a.date < b.date ? -1 : 1));
+  }, [income.data, expenseRows]);
+
+  // ------------------------------- Handlers -------------------------------
+
+  const dl = (name: string, rows: any[], action: string) => {
+    if (!rows.length) {
+      toast.info("No rows to export.");
+      return;
     }
+    exportToCSV(rows, name);
+    logAction("export", action, { period: period.label, rows: rows.length });
+    toast.success(`Exported ${rows.length} rows.`);
   };
 
-  const years = [year + 1, year, year - 1, year - 2];
+  const handlers = {
+    pl: () =>
+      dl(`pl-summary-${year}-${String(month + 1).padStart(2, "0")}`, [
+        { period: period.label, ...plSummary },
+      ], "pl_summary"),
+    income: () =>
+      dl(
+        `income-ledger-${year}-${String(month + 1).padStart(2, "0")}`,
+        (income.data ?? []).map((r: any) => ({
+          payment_date: r.payment_date,
+          amount: formatCurrencyForExport(Number(r.amount || 0)),
+          trip: r.trips?.trip_name ?? "",
+          client: r.trips?.clients?.name ?? "",
+          client_email: r.trips?.clients?.email ?? "",
+          payment_type: r.payment_type ?? "",
+          payment_method: r.payment_method ?? "",
+          stripe_payment_intent_id: r.stripe_payment_intent_id ?? "",
+          qbo_payment_id: r.qbo_payment_id ?? "",
+          qbo_sync_status: r.qbo_sync_status ?? "",
+        })),
+        "income_ledger",
+      ),
+    expenses: () =>
+      dl(
+        `expense-ledger-${year}-${String(month + 1).padStart(2, "0")}`,
+        expenseRows.map((r) => ({ ...r, amount: formatCurrencyForExport(r.amount) })),
+        "expense_ledger",
+      ),
+    ar: () =>
+      dl(
+        `ar-aging-${formatDateForExport(new Date())}`,
+        (arAging.data ?? []).map((r) => ({
+          ...r,
+          total: formatCurrencyForExport(r.total),
+          balance: formatCurrencyForExport(r.balance),
+        })),
+        "ar_aging",
+      ),
+    ap: () =>
+      dl(
+        `ap-aging-${formatDateForExport(new Date())}`,
+        (apAging.data ?? []).map((r) => ({
+          ...r,
+          amount_owed: formatCurrencyForExport(r.amount_owed),
+        })),
+        "ap_aging",
+      ),
+    commissions: () =>
+      dl(
+        `commissions-${year}-${String(month + 1).padStart(2, "0")}`,
+        (commissions.data ?? []).map((r: any) => {
+          const rate = Number(r.rate || 0);
+          const gross = rate > 0 ? Number(r.amount || 0) / (rate / 100) : Number(r.amount || 0);
+          return {
+            agent_name: r.profile?.full_name ?? "",
+            agent_email: r.profile?.email ?? "",
+            tier: r.profile?.commission_tier ?? "",
+            booking_id: r.booking_id,
+            gross_commission: formatCurrencyForExport(gross),
+            rate_pct: rate,
+            agent_share: formatCurrencyForExport(Number(r.amount || 0)),
+            status: r.status,
+            paid_date: r.paid_date ?? "",
+            created_at: r.created_at,
+          };
+        }),
+        "commission_register",
+      ),
+    payouts: () =>
+      dl(
+        `agent-payouts-1099-${year}`,
+        (payouts.data ?? []).map((r) => ({
+          ...r,
+          total_earnings_ytd: formatCurrencyForExport(r.total_earnings_ytd),
+        })),
+        "agent_payout_register",
+      ),
+    full: () =>
+      dl(
+        `full-ledger-${year}-${String(month + 1).padStart(2, "0")}`,
+        fullLedger.map((r) => ({ ...r, amount: formatCurrencyForExport(r.amount) })),
+        "full_ledger",
+      ),
+  };
 
-  const ExportBtn = ({ kind, label }: { kind: Kind; label: string }) => (
-    <Button variant="outline" disabled={loading !== null} onClick={() => exportKind(kind)}>
-      {loading === kind ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-      {label}
-    </Button>
-  );
+  // ------------------------------- UI -------------------------------
+
+  const years = [now.getFullYear() + 1, now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
+
+  type ExportCard = {
+    icon: typeof Download;
+    title: string;
+    description: string;
+    period: string;
+    count: number;
+    loading: boolean;
+    onDownload: () => void;
+  };
+
+  const cards: ExportCard[] = [
+    {
+      icon: TrendingUp,
+      title: "P&L Summary",
+      description: "Income, COGS, gross profit, expenses, net income for the selected month.",
+      period: period.label,
+      count: income.isLoading || expenses.isLoading ? 0 : 1,
+      loading: income.isLoading || expenses.isLoading,
+      onDownload: handlers.pl,
+    },
+    {
+      icon: DollarSign,
+      title: "Income Ledger",
+      description: "All paid trip payments with trip, client, Stripe PI, and QBO sync status.",
+      period: period.label,
+      count: income.data?.length ?? 0,
+      loading: income.isLoading,
+      onDownload: handlers.income,
+    },
+    {
+      icon: Receipt,
+      title: "Expense Ledger",
+      description: "Supplier payments plus Stripe processing fees for the selected month.",
+      period: period.label,
+      count: expenseRows.length,
+      loading: expenses.isLoading,
+      onDownload: handlers.expenses,
+    },
+    {
+      icon: AlertTriangle,
+      title: "AR Aging",
+      description: "Full accounts receivable aging snapshot as of today.",
+      period: "As of today",
+      count: arAging.data?.length ?? 0,
+      loading: arAging.isLoading,
+      onDownload: handlers.ar,
+    },
+    {
+      icon: AlertTriangle,
+      title: "AP Aging",
+      description: "Full accounts payable aging snapshot as of today.",
+      period: "As of today",
+      count: apAging.data?.length ?? 0,
+      loading: apAging.isLoading,
+      onDownload: handlers.ap,
+    },
+    {
+      icon: Wallet,
+      title: "Commission Register",
+      description: "All commissions in the period with agent, tier, gross, agent share, status.",
+      period: period.label,
+      count: commissions.data?.length ?? 0,
+      loading: commissions.isLoading,
+      onDownload: handlers.commissions,
+    },
+    {
+      icon: Users,
+      title: "Agent Payout Register (1099)",
+      description: "Per-agent YTD totals for the selected year — formatted for 1099 prep.",
+      period: String(year),
+      count: payouts.data?.length ?? 0,
+      loading: payouts.isLoading,
+      onDownload: handlers.payouts,
+    },
+    {
+      icon: BookOpen,
+      title: "Full Transaction Ledger",
+      description: "All income and expenses for the period, combined and sorted by date.",
+      period: period.label,
+      count: fullLedger.length,
+      loading: income.isLoading || expenses.isLoading,
+      onDownload: handlers.full,
+    },
+  ];
 
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Export Center</h1>
-            <p className="text-muted-foreground text-sm">Download CSVs for accountant handoff.</p>
+            <h1 className="text-3xl font-semibold flex items-center gap-2">
+              <FileSpreadsheet className="h-7 w-7 text-primary" />
+              Export Center
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              One-click CSV exports for the accountant. Period applies to monthly reports; aging snapshots are always
+              as-of-today.
+            </p>
           </div>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Month</label>
+              <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={m} value={String(i)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">Year</label>
+              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-        <Card>
-          <CardHeader><CardTitle>Available exports</CardTitle></CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <ExportBtn kind="income" label="Income (trip payments)" />
-            <ExportBtn kind="expenses" label="Expenses (supplier payments)" />
-            <ExportBtn kind="commissions" label="Commissions" />
-            <ExportBtn kind="payouts" label="Stripe Payouts" />
-          </CardContent>
-        </Card>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {cards.map((c) => {
+            const Icon = c.icon;
+            return (
+              <Card key={c.title} className="flex flex-col">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-primary/10 p-2 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <CardTitle className="text-lg">{c.title}</CardTitle>
+                    </div>
+                    <Badge variant="outline" className="text-xs">{c.period}</Badge>
+                  </div>
+                  <CardDescription className="pt-2">{c.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="mt-auto flex items-center justify-between gap-2">
+                  <div className="text-sm">
+                    {c.loading ? (
+                      <span className="text-muted-foreground inline-flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Counting…
+                      </span>
+                    ) : (
+                      <span>
+                        <span className="font-semibold tabular-nums">{c.count.toLocaleString()}</span>{" "}
+                        <span className="text-muted-foreground">row{c.count === 1 ? "" : "s"}</span>
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={c.onDownload}
+                    disabled={c.loading || c.count === 0}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download CSV
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     </DashboardLayout>
   );
