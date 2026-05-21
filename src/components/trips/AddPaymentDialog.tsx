@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
-import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink, CalendarClock } from "lucide-react";
+import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink, CalendarClock, Copy, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { applyPaymentToInstallments } from "@/lib/applyPaymentToInstallments";
@@ -47,7 +47,7 @@ const MODES = [
     id: "stripe_link" as const,
     icon: Link,
     title: "Send Payment Link",
-    description: "Generate a Stripe link to send to the client",
+    description: "Generate a fully-attributed payment link to email or text the client",
   },
   {
     id: "manual" as const,
@@ -255,17 +255,33 @@ export function AddPaymentDialog({
     if (!formData.amount || parseFloat(formData.amount) <= 0) return;
     setStripeLoading(true);
     try {
+      // Create a pending trip_payment record to hold the installment
       const record = await createPendingRecord();
       if (!record) return;
 
-      const { data, error } = await supabase.functions.invoke("create-stripe-payment", {
-        body: { paymentId: record.id, returnUrl: window.location.origin },
+      // Build a deep link to the branded payment page on crestwellgetaways.com.
+      // Including trip_payment_id + trip_id ensures the payment is fully attributed
+      // when the Stripe webhook fires — no email-fallback guessing needed.
+      const base = "https://crestwellgetaways.com/payment";
+      const params = new URLSearchParams({
+        trip_payment_id: record.id,
+        trip_id: tripId,
+        amount: String(Math.round(parseFloat(formData.amount) * 100)), // in cents
+        payment_type: formData.payment_type || "payment",
+        ...(formData.details ? { trip_name: formData.details } : {}),
       });
-      if (error) throw error;
-      if (data?.url) {
-        setGeneratedLink(data.url);
-        onPaymentCreated?.();
+
+      // Append booking reference if a booking is selected
+      const selectedBooking = formData.booking_id !== "none"
+        ? bookings.find(b => b.id === formData.booking_id)
+        : null;
+      if (selectedBooking?.confirmation_number) {
+        params.set("booking_ref", selectedBooking.confirmation_number);
       }
+
+      const deepLink = `${base}?${params.toString()}`;
+      setGeneratedLink(deepLink);
+      onPaymentCreated?.();
     } catch (err) {
       console.error(err);
       toast.error("Failed to generate payment link");
@@ -447,11 +463,44 @@ export function AddPaymentDialog({
         {/* ── GENERATED LINK RESULT ── */}
         {mode === "stripe_link" && generatedLink && (
           <div className="space-y-4 mt-2">
-            <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Payment link ready</p>
-              <p className="text-xs text-muted-foreground break-all">{generatedLink}</p>
+            <div className="rounded-lg border border-green-200 bg-green-50/50 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <p className="text-sm font-semibold text-green-800">Payment link ready</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This link sends your client to the Crestwell payment page. The payment will be
+                automatically matched to the correct installment when completed.
+              </p>
+              <div className="rounded-md bg-white border border-green-200 px-3 py-2">
+                <p className="text-xs font-mono text-foreground break-all leading-relaxed">{generatedLink}</p>
+              </div>
               <div className="flex gap-2">
-                <Button className="flex-1" onClick={handleCopyLink}>Copy Link</Button>
+                <Button className="flex-1 gap-1.5" onClick={handleCopyLink}>
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy Link
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => {
+                    const subject = encodeURIComponent("Your Payment Link — Crestwell Travel");
+                    const body = encodeURIComponent(
+                      `Hi,
+
+Your payment link is ready. Click the link below to complete your payment securely:
+
+${generatedLink}
+
+Thank you,
+Crestwell Travel Services`
+                    );
+                    window.open(`mailto:?subject=${subject}&body=${body}`);
+                  }}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Email
+                </Button>
                 <Button variant="outline" size="icon" asChild>
                   <a href={generatedLink} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-4 w-4" />
