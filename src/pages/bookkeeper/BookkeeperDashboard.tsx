@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle } from "lucide-react";
 import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { useEffect } from "react";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 
 function startOfMonthISO() {
   const d = new Date();
@@ -63,6 +64,9 @@ export default function BookkeeperDashboard() {
   const { data, isLoading } = useBookkeeperKpis();
   const { data: alerts } = useBookkeeperAlerts();
   const logAction = useLogBookkeeperAction();
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
   useEffect(() => {
     logAction("view", "bookkeeper_dashboard");
@@ -77,11 +81,14 @@ export default function BookkeeperDashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-semibold">Bookkeeper Dashboard</h1>
-          <p className="text-muted-foreground text-sm">
-            Read-only financial overview for the current month.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold">Bookkeeper Dashboard</h1>
+            <p className="text-muted-foreground text-sm">
+              Read-only financial overview for the current month.
+            </p>
+          </div>
+          <PeriodLockButton year={currentYear} month={currentMonth} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
