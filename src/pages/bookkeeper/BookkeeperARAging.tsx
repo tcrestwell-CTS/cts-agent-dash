@@ -169,7 +169,8 @@ export default function BookkeeperARAging() {
   const { sort: arSort, onSort: onArSort } = useSort<ArSortKey>({ key: "invoice_date", dir: "asc" });
   const arSorted = useMemo(
     () =>
-      sortRows(filtered, arSort, (r, k) => {
+      sortRows(filtered, arSort, (row, k) => {
+        const r = row as any;
         if (k === "client") return r.client_name;
         if (k === "trip") return r.trip_name;
         if (k === "invoice_number") return r.invoice_number;
@@ -179,7 +180,7 @@ export default function BookkeeperARAging() {
         if (k === "paid") return r.paid;
         if (k === "balance") return r.balance;
         return r.days;
-      }),
+      }) as typeof filtered,
     [filtered, arSort],
   );
   const arPg = usePagination(arSorted);
