@@ -1111,6 +1111,33 @@ export type Database = {
           },
         ]
       }
+      bookkeeper_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          resource: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          resource?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          resource?: string | null
+        }
+        Relationships: []
+      }
       branding_settings: {
         Row: {
           accent_color: string | null

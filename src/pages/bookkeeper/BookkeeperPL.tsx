@@ -13,6 +13,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
+import { useEffect } from "react";
+import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 
 const fmt = (n: number) =>
   Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -66,6 +71,8 @@ const MONTHS = [
 export default function BookkeeperPL() {
   const [year, setYear] = useState(new Date().getFullYear());
   const { data, isLoading } = usePLData(year);
+  const logAction = useLogBookkeeperAction();
+  useEffect(() => { logAction("view", "bookkeeper_pl", { year }); }, [logAction, year]);
 
   const totals = useMemo(() => {
     const income = (data ?? []).reduce((s, m) => s + m.income, 0);
@@ -74,6 +81,20 @@ export default function BookkeeperPL() {
   }, [data]);
 
   const years = [year + 1, year, year - 1, year - 2];
+
+  const exportCsv = () => {
+    logAction("export_csv", "bookkeeper_pl", { year });
+    exportToCSV(
+      (data ?? []).map((row, i) => ({
+        month: MONTHS[i],
+        year,
+        income: row.income.toFixed(2),
+        expense: row.expense.toFixed(2),
+        net: (row.income - row.expense).toFixed(2),
+      })),
+      `bookkeeper-pl-${year}`,
+    );
+  };
 
   return (
     <DashboardLayout>
@@ -85,14 +106,19 @@ export default function BookkeeperPL() {
               Cash-basis income minus supplier expenses by month.
             </p>
           </div>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
+              <Download className="h-4 w-4 mr-2" /> CSV
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

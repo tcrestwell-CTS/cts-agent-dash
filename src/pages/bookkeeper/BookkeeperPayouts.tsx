@@ -5,10 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
+import { useEffect } from "react";
+import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function BookkeeperPayouts() {
+  const logAction = useLogBookkeeperAction();
+  useEffect(() => { logAction("view", "bookkeeper_payouts"); }, [logAction]);
   const { data, isLoading } = useQuery({
     queryKey: ["bookkeeper-payouts"],
     queryFn: async () => {
@@ -30,12 +37,31 @@ export default function BookkeeperPayouts() {
     },
   });
 
+  const exportCsv = () => {
+    logAction("export_csv", "bookkeeper_payouts", { rows: data?.length ?? 0 });
+    exportToCSV(
+      (data ?? []).map((r) => ({
+        advisor: r.name,
+        user_id: r.user_id,
+        commissions: r.count,
+        pending: r.pending.toFixed(2),
+        paid: r.paid.toFixed(2),
+      })),
+      `bookkeeper-payouts-${new Date().toISOString().slice(0, 10)}`,
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-semibold">Agent Payouts</h1>
-          <p className="text-muted-foreground text-sm">Commission paid and pending, by advisor.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold">Agent Payouts</h1>
+            <p className="text-muted-foreground text-sm">Commission paid and pending, by advisor.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
         </div>
         <Card>
           <CardHeader><CardTitle>By advisor</CardTitle></CardHeader>

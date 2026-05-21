@@ -103,6 +103,8 @@ const BookkeeperBankRecon    = lazy(() => import("./pages/bookkeeper/BookkeeperB
 const BookkeeperPayouts      = lazy(() => import("./pages/bookkeeper/BookkeeperPayouts"));
 const Bookkeeper1099         = lazy(() => import("./pages/bookkeeper/Bookkeeper1099"));
 const BookkeeperExport       = lazy(() => import("./pages/bookkeeper/BookkeeperExport"));
+const BookkeeperQboLogs      = lazy(() => import("./pages/bookkeeper/BookkeeperQboLogs"));
+const BookkeeperAuditLog     = lazy(() => import("./pages/bookkeeper/BookkeeperAuditLog"));
 
 // ─── QueryClient Configuration ───────────────────────────────────────────────
 // FIX: Previously used `new QueryClient()` with no options, meaning:
@@ -218,6 +220,8 @@ const App = () => (
                 <Route path="/bookkeeper/payouts"        element={<ProtectedRoute><BookkeeperRoute><BookkeeperPayouts /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/1099"           element={<ProtectedRoute><BookkeeperRoute><Bookkeeper1099 /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/export"         element={<ProtectedRoute><BookkeeperRoute><BookkeeperExport /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/qbo-logs"       element={<ProtectedRoute><BookkeeperRoute><BookkeeperQboLogs /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/audit"          element={<ProtectedRoute><BookkeeperRoute><BookkeeperAuditLog /></BookkeeperRoute></ProtectedRoute>} />
 
                 {/* Client Portal Routes */}
                 <Route path="/client/login" element={<PortalLogin />} />
