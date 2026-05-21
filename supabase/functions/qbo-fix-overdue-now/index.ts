@@ -73,9 +73,65 @@ serve(async (req) => {
     ? body.qbo_invoice_ids.map(String)
     : [];
   const dryRun = body.dry_run === true;
+  const deleteIds: string[] = Array.isArray(body.delete_invoice_ids)
+    ? body.delete_invoice_ids.map(String)
+    : [];
   const queryCustomerId: string | undefined = body.query_customer_id
     ? String(body.query_customer_id)
     : undefined;
+
+  if (deleteIds.length) {
+    const { accessToken, realmId } = await getValidToken();
+    const out: any[] = [];
+    for (const id of deleteIds) {
+      try {
+        const g = await fetch(
+          `${QBO_BASE}/${realmId}/invoice/${id}?minorversion=65`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json",
+            },
+          },
+        );
+        const gj = await g.json();
+        if (!g.ok) {
+          out.push({ id, error: gj?.Fault?.Error?.[0]?.Message || g.status });
+          continue;
+        }
+        const syncToken = gj.Invoice?.SyncToken;
+        const d = await fetch(
+          `${QBO_BASE}/${realmId}/invoice?operation=delete&minorversion=65`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({ Id: id, SyncToken: syncToken }),
+          },
+        );
+        const dj = await d.json();
+        if (!d.ok) {
+          out.push({
+            id,
+            error: dj?.Fault?.Error?.[0]?.Message || d.status,
+            detail: dj?.Fault?.Error?.[0]?.Detail,
+          });
+          continue;
+        }
+        await supabase.from("qbo_invoices").delete().eq("qbo_id", id);
+        out.push({ id, deleted: true });
+      } catch (e) {
+        out.push({ id, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    return new Response(JSON.stringify({ deleted: out }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   if (queryCustomerId) {
     const { accessToken, realmId } = await getValidToken();
