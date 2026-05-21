@@ -64,14 +64,28 @@ export function InviteAgentDialog({ onSubmit, sending }: InviteAgentDialogProps)
       <DialogTrigger asChild>
         <Button className="gap-2">
           <UserPlus className="h-4 w-4" />
-          Invite Agent
+          Invite Team Member
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Invite New Agent</DialogTitle>
+          <DialogTitle>
+            {role === "bookkeeper"
+              ? "Invite New Accountant"
+              : role === "admin"
+              ? "Invite New Admin"
+              : role === "office_admin"
+              ? "Invite New Office Admin"
+              : "Invite New Agent"}
+          </DialogTitle>
           <DialogDescription>
-            Send an invitation email to add a new travel agent to your team
+            {role === "bookkeeper"
+              ? "Send an invitation email to add a new accountant to your team"
+              : role === "admin"
+              ? "Send an invitation email to add a new admin to your team"
+              : role === "office_admin"
+              ? "Send an invitation email to add a new office admin to your team"
+              : "Send an invitation email to add a new travel agent to your team"}
           </DialogDescription>
         </DialogHeader>
 
