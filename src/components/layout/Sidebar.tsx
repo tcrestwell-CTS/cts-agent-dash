@@ -191,6 +191,7 @@ const bookkeeperNav: NavItem[] = [
   { name: "AR / AP Aging",         href: "/bookkeeper/aging",        icon: AlertTriangle },
   { name: "AR Aging",              href: "/bookkeeper/ar-aging",     icon: AlertTriangle },
   { name: "AP Aging",              href: "/bookkeeper/ap-aging",     icon: AlertTriangle },
+  { name: "Trial Balance",         href: "/bookkeeper/trial-balance",icon: FileSpreadsheet },
   { name: "Stripe Reconciliation", href: "/recon/stripe",            icon: ArrowRightLeft },
   { name: "Bank Reconciliation",   href: "/bookkeeper/bank-recon",   icon: Landmark },
   { name: "QBO Sync",              href: "/qbo-health",              icon: HeartPulse },
