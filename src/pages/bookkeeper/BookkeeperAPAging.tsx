@@ -149,6 +149,25 @@ export default function BookkeeperAPAging() {
     return { sums, grand };
   }, [aged]);
 
+  type ApSortKey = "supplier" | "trip" | "confirmation" | "booking_date" | "est_due" | "amount" | "days" | "status";
+  type ApRow = typeof filtered[number];
+  const { sort: apSort, onSort: onApSort } = useSort<ApSortKey>({ key: "est_due", dir: "asc" });
+  const apSorted = useMemo<ApRow[]>(
+    () =>
+      sortRows<ApRow, ApSortKey>(filtered, apSort, (r, k) => {
+        if (k === "supplier") return r.supplier_name;
+        if (k === "trip") return r.trip_name;
+        if (k === "confirmation") return r.confirmation_number;
+        if (k === "booking_date") return r.booking_date;
+        if (k === "est_due") return r.est_due;
+        if (k === "amount") return r.amount;
+        if (k === "days") return r.days;
+        return r.supplier_paid_status;
+      }),
+    [filtered, apSort],
+  );
+  const apPg = usePagination<ApRow>(apSorted);
+
   const exportCsv = () => {
     logAction("export_csv", "bookkeeper_ap_aging", { rows: filtered.length });
     exportToCSV(
@@ -270,32 +289,38 @@ export default function BookkeeperAPAging() {
         {/* Main table */}
         <Card>
           <CardHeader>
-            <CardTitle>Unpaid supplier obligations ({filtered.length})</CardTitle>
+            <CardTitle>Unpaid supplier obligations ({apPg.total})</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-64 w-full" />
+              <Table>
+                <TableHeader><TableRow><TableHead colSpan={9}>Loading…</TableHead></TableRow></TableHeader>
+                <TableBody><TableBodySkeletonRows rows={8} cols={9} /></TableBody>
+              </Table>
             ) : filtered.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
-                All supplier payments are settled or no rows match.
-              </div>
+              <EmptyState
+                icon={Inbox}
+                title="No unpaid supplier obligations"
+                description="All supplier payments are settled or no rows match the current filters."
+              />
             ) : (
+              <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Trip</TableHead>
-                    <TableHead>Confirmation #</TableHead>
-                    <TableHead>Booking date</TableHead>
-                    <TableHead>Est. due date</TableHead>
-                    <TableHead className="text-right">Amount owed</TableHead>
-                    <TableHead>Days outstanding</TableHead>
+                  <tr className="border-b">
+                    <SortableHead label="Supplier" sortKey="supplier" sort={apSort} onSort={onApSort} />
+                    <SortableHead label="Trip" sortKey="trip" sort={apSort} onSort={onApSort} />
+                    <SortableHead label="Confirmation #" sortKey="confirmation" sort={apSort} onSort={onApSort} />
+                    <SortableHead label="Booking date" sortKey="booking_date" sort={apSort} onSort={onApSort} />
+                    <SortableHead label="Est. due date" sortKey="est_due" sort={apSort} onSort={onApSort} />
+                    <SortableHead label="Amount owed" sortKey="amount" sort={apSort} onSort={onApSort} align="right" />
+                    <SortableHead label="Days outstanding" sortKey="days" sort={apSort} onSort={onApSort} />
                     <TableHead>Bucket</TableHead>
-                    <TableHead>Paid status</TableHead>
-                  </TableRow>
+                    <SortableHead label="Paid status" sortKey="status" sort={apSort} onSort={onApSort} />
+                  </tr>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((r) => (
+                  {apPg.pageRows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="max-w-[200px] truncate">
                         <div>{r.supplier_name || "—"}</div>
@@ -313,8 +338,8 @@ export default function BookkeeperAPAging() {
                       <TableCell>
                         {r.est_due ? format(parseDate(r.est_due)!, "MMM d, yyyy") : "—"}
                       </TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.amount)}</TableCell>
-                      <TableCell>{r.days}d</TableCell>
+                      <MoneyCell value={r.amount} bold />
+                      <TableCell className="tabular-nums">{r.days}d</TableCell>
                       <TableCell>
                         <Badge variant={bucketVariant(r.bucket)}>{BUCKET_LABEL[r.bucket]}</Badge>
                       </TableCell>
@@ -325,6 +350,15 @@ export default function BookkeeperAPAging() {
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                page={apPg.page}
+                totalPages={apPg.totalPages}
+                total={apPg.total}
+                rangeStart={apPg.rangeStart}
+                rangeEnd={apPg.rangeEnd}
+                onPageChange={apPg.setPage}
+              />
+              </>
             )}
           </CardContent>
         </Card>
