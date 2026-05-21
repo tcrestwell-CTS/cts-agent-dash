@@ -51,6 +51,7 @@ import { BookingCard } from "@/components/bookings/BookingCard";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BookingsCalendar } from "@/components/bookings/BookingsCalendar";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
+import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 
 const ITEMS_PER_PAGE = 25;
 
