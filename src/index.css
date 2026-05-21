@@ -243,3 +243,19 @@
   .depart-soon     { @apply text-amber-600 font-medium; }
   .depart-normal   { @apply text-muted-foreground; }
 }
+
+
+/* ── Mobile responsive improvements ──────────────────────────────────── */
+@layer utilities {
+  /* Hide on mobile, show on sm+ */
+  .mobile-hide { @apply hidden sm:table-cell; }
+  /* Stack vertically on mobile */
+  .mobile-stack { @apply flex flex-col sm:flex-row sm:items-center; }
+}
+
+/* Trips/Bookings table — responsive horizontal scroll */
+@layer base {
+  .table-scroll-mobile {
+    @apply overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
+  }
+}
