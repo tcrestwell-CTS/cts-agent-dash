@@ -47,6 +47,8 @@ import { CabinOptionsManager } from "@/components/trips/CabinOptionsManager";
 import { BalconyCabinsSection } from "@/components/trips/BalconyCabinsSection";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
+import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
+import { InlinePaymentStatus } from "@/components/shared/InlinePaymentStatus";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
 
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
