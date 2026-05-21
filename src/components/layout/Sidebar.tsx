@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCanViewTeam, useUserRole } from "@/hooks/useAdmin";
+import { useCanViewTeam, useUserRole, useIsBookkeeper, useIsAdmin } from "@/hooks/useAdmin";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useFeaturePermissions } from "@/hooks/useFeaturePermissions";
 import type { FeatureKey } from "@/lib/featureRegistry";
@@ -55,6 +55,9 @@ import { useAgentNotifications } from "@/hooks/useAgentNotifications";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { TrendingUp, Landmark, FileBarChart, Download, Wallet, Banknote, FileWarning } from "lucide-react";
 
 // Context so DashboardLayout can read collapsed state
 export const SidebarCollapsedContext = createContext<boolean>(false);
@@ -177,6 +180,42 @@ const adminNavGroups: NavGroup[] = [
   },
 ];
 
+// ─── Bookkeeper-only navigation ──────────────────────────────────────────────
+const bookkeeperNav: NavItem[] = [
+  { name: "Dashboard",             href: "/bookkeeper",              icon: LayoutDashboard },
+  { name: "P&L",                   href: "/bookkeeper/pl",           icon: TrendingUp },
+  { name: "Balance Sheet",         href: "/bookkeeper/balance-sheet",icon: FileBarChart },
+  { name: "Income",                href: "/bookkeeper/income",       icon: DollarSign },
+  { name: "Expenses",              href: "/bookkeeper/expenses",     icon: Banknote },
+  { name: "Unattributed Deposits", href: "/bookkeeper/unattributed", icon: FileWarning },
+  { name: "Stripe Reconciliation", href: "/recon/stripe",            icon: ArrowRightLeft },
+  { name: "Bank Reconciliation",   href: "/bookkeeper/bank-recon",   icon: Landmark },
+  { name: "QBO Sync",              href: "/qbo-health",              icon: HeartPulse },
+  { name: "Agent Payouts",         href: "/bookkeeper/payouts",      icon: Wallet },
+  { name: "1099 Prep",             href: "/bookkeeper/1099",         icon: FileText },
+  { name: "Export",                href: "/bookkeeper/export",       icon: Download },
+];
+
+function useUnattributedCount(enabled: boolean) {
+  return useQuery({
+    queryKey: ["bookkeeper-unattributed-count"],
+    enabled,
+    staleTime: 1000 * 60,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("checkout_payments")
+        .select("id", { count: "exact", head: true })
+        .eq("payment_type", "unattributed_deposit")
+        .neq("status", "succeeded");
+      if (error) {
+        console.error("Unattributed count error:", error);
+        return 0;
+      }
+      return count ?? 0;
+    },
+  });
+}
+
 interface SidebarProps {
   collapsed: boolean;
   onCollapsedChange: (val: boolean) => void;
@@ -187,6 +226,10 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { canView: canViewTeam } = useCanViewTeam();
   const { data: userRole } = useUserRole();
+  const { data: isBookkeeper } = useIsBookkeeper();
+  const { data: isAdmin } = useIsAdmin();
+  const bookkeeperMode = !!isBookkeeper && !isAdmin;
+  const { data: unattributedCount = 0 } = useUnattributedCount(bookkeeperMode);
   const { can: canFeature } = useFeaturePermissions();
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -243,6 +286,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
     switch (role) {
       case "admin": return "Admin";
       case "office_admin": return "Office Admin";
+      case "bookkeeper": return "Bookkeeper";
       case "user":
       default: return "Travel Agent";
     }
@@ -266,6 +310,8 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
 
   const NavItemLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href;
+    const showBadge =
+      item.href === "/bookkeeper/unattributed" && unattributedCount > 0;
     const link = (
       <Link
         to={item.href}
@@ -285,7 +331,19 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
               : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
           )}
         />
-        {(!collapsed || isMobile) && <span>{item.name}</span>}
+        {(!collapsed || isMobile) && (
+          <span className="flex-1 flex items-center justify-between">
+            <span>{item.name}</span>
+            {showBadge && (
+              <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-[10px]">
+                {unattributedCount}
+              </Badge>
+            )}
+          </span>
+        )}
+        {collapsed && !isMobile && showBadge && (
+          <span className="absolute -mt-3 ml-3 h-2 w-2 rounded-full bg-destructive" />
+        )}
       </Link>
     );
 
@@ -293,7 +351,10 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       return (
         <Tooltip>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
-          <TooltipContent side="right">{item.name}</TooltipContent>
+          <TooltipContent side="right">
+            {item.name}
+            {showBadge ? ` (${unattributedCount})` : ""}
+          </TooltipContent>
         </Tooltip>
       );
     }
