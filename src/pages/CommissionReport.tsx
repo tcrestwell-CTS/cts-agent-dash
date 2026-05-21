@@ -212,7 +212,7 @@ export default function CommissionReport() {
         agent_share: formatCurrencyForExport(agentShare),
         agency_share: formatCurrencyForExport(item.amount - agentShare),
         status: item.status,
-        paid_date: item.paid_at ? formatDateForExport(item.paid_at) : "",
+        paid_date: item.paid_date ? formatDateForExport(item.paid_date) : "",
       };
     });
 
