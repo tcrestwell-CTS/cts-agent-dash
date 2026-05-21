@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
+import { PortalActionStrip } from "@/components/client/PortalActionStrip";
 import { PWAInstallPrompt } from "@/components/client/PWAInstallPrompt";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getPortalAuthHeaders } from "@/lib/portalAuthHeaders";
