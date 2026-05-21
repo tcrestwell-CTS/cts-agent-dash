@@ -18,6 +18,7 @@ import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 
 const fmt = (n: number) =>
   Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -100,8 +101,11 @@ export default function BookkeeperPL() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">Profit & Loss</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">Profit & Loss</h1>
+              <PeriodLockButton year={year} month={new Date().getMonth() + 1} />
+            </div>
             <p className="text-muted-foreground text-sm">
               Cash-basis income minus supplier expenses by month.
             </p>
