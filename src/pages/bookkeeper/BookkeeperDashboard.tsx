@@ -83,7 +83,8 @@ export default function BookkeeperDashboard() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="space-y-1">
+            <BookkeeperBreadcrumb page="Dashboard" />
             <h1 className="text-3xl font-semibold">Bookkeeper Dashboard</h1>
             <p className="text-muted-foreground text-sm">
               Read-only financial overview for the current month.

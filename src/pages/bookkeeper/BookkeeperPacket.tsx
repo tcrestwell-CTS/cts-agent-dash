@@ -12,6 +12,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -134,7 +135,8 @@ export default function BookkeeperPacket() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6 max-w-6xl">
-        <div>
+        <div className="space-y-1">
+          <BookkeeperBreadcrumb page="Financial Packet" />
           <h1 className="text-3xl font-bold tracking-tight">Financial Packet</h1>
           <p className="text-muted-foreground">
             Generate and download monthly financial reports.
