@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { EmptyState } from "@/components/bookkeeper/shared";
+import { FileText } from "lucide-react";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -30,18 +33,23 @@ export default function BookkeeperBalanceSheet() {
 
   const Row = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => (
     <div className={`flex justify-between py-2 ${bold ? "border-t font-semibold" : "text-sm"}`}>
-      <span>{label}</span><span>{fmt(value)}</span>
+      <span>{label}</span><span className="tabular-nums">{fmt(value)}</span>
     </div>
   );
 
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-semibold">Balance Sheet</h1>
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-semibold">Balance Sheet</h1>
+            <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
+          </div>
           <p className="text-muted-foreground text-sm">Snapshot from local data. Bank balances not included.</p>
         </div>
-        {isLoading ? <Skeleton className="h-64 w-full" /> : (
+        {isLoading ? <Skeleton className="h-64 w-full" /> : assets === 0 && liabilities === 0 ? (
+          <EmptyState icon={FileText} title="No balance sheet data" description="There are no open invoices, supplier liabilities, or paid payments yet." />
+        ) : (
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader><CardTitle>Assets</CardTitle></CardHeader>
