@@ -12,6 +12,7 @@ import {
 import { Calendar, MapPin, Pencil, Trash2, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { Booking } from "@/hooks/useBookings";
+import { InlinePaymentStatus } from "@/components/shared/InlinePaymentStatus";
 
 interface BookingCardProps {
   booking: Booking;
