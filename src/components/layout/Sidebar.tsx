@@ -453,39 +453,49 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
         <TooltipProvider delayDuration={0}>
-          {/* Top-level items (Dashboard) */}
-          {visibleTopLevel.map((item) => (
-            <NavItemLink key={item.name} item={item} />
-          ))}
-
-          {/* Grouped nav sections */}
-          {localizedNavGroups.map((group) => (
-            <NavGroupSection key={group.label} group={group} />
-          ))}
-
-          {/* Settings at the bottom of nav */}
-          <div className="pt-2">
-            <hr className="border-sidebar-border mb-2" />
-            {bottomNav.map((item) => (
-              <NavItemLink key={item.name} item={item} />
-            ))}
-          </div>
-
-          {/* Admin section */}
-          {canViewTeam && (
+          {bookkeeperMode ? (
             <>
-              {(!collapsed || isMobile) && (
-                <div className="pt-4 pb-2 px-3">
-                  <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">Team</p>
-                </div>
-              )}
-              {collapsed && !isMobile && <div className="pt-4 pb-2"><hr className="border-sidebar-border" /></div>}
-              {adminNavigation.map((item) => (
+              {bookkeeperNav.map((item) => (
                 <NavItemLink key={item.name} item={item} />
               ))}
-              {adminNavGroups.map((group) => (
+            </>
+          ) : (
+            <>
+              {/* Top-level items (Dashboard) */}
+              {visibleTopLevel.map((item) => (
+                <NavItemLink key={item.name} item={item} />
+              ))}
+
+              {/* Grouped nav sections */}
+              {localizedNavGroups.map((group) => (
                 <NavGroupSection key={group.label} group={group} />
               ))}
+
+              {/* Settings at the bottom of nav */}
+              <div className="pt-2">
+                <hr className="border-sidebar-border mb-2" />
+                {bottomNav.map((item) => (
+                  <NavItemLink key={item.name} item={item} />
+                ))}
+              </div>
+
+              {/* Admin section */}
+              {canViewTeam && (
+                <>
+                  {(!collapsed || isMobile) && (
+                    <div className="pt-4 pb-2 px-3">
+                      <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">Team</p>
+                    </div>
+                  )}
+                  {collapsed && !isMobile && <div className="pt-4 pb-2"><hr className="border-sidebar-border" /></div>}
+                  {adminNavigation.map((item) => (
+                    <NavItemLink key={item.name} item={item} />
+                  ))}
+                  {adminNavGroups.map((group) => (
+                    <NavGroupSection key={group.label} group={group} />
+                  ))}
+                </>
+              )}
             </>
           )}
         </TooltipProvider>
