@@ -45,6 +45,7 @@ export default function PortalPayments() {
    */
   const handlePayNowClick = (payment: any) => {
     setSelectedPayment(payment);
+    // Go directly to unified checkout — agreement is shown inline within the payment dialog
     setShowAgreement(true);
   };
 
