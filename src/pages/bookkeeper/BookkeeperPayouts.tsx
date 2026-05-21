@@ -11,7 +11,7 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { EmptyState } from "@/components/bookkeeper/shared";
+import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { Wallet } from "lucide-react";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -59,6 +59,7 @@ export default function BookkeeperPayouts() {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            <BookkeeperBreadcrumb page="Agent Payouts" />
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-semibold">Agent Payouts</h1>
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />

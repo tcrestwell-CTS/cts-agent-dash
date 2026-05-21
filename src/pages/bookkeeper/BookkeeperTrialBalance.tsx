@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { toast } from "sonner";
 
 const fmt = (n: number) =>
@@ -152,6 +153,7 @@ export default function BookkeeperTrialBalance() {
       <div className="space-y-6 p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
+            <BookkeeperBreadcrumb page="Trial Balance" />
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-semibold">
                 Trial Balance — {MONTHS[month - 1]} {year}

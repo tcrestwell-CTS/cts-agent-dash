@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { EmptyState } from "@/components/bookkeeper/shared";
+import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { FileText } from "lucide-react";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -41,6 +41,7 @@ export default function BookkeeperBalanceSheet() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="space-y-1">
+          <BookkeeperBreadcrumb page="Balance Sheet" />
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-semibold">Balance Sheet</h1>
             <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />

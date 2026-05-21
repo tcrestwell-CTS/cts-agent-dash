@@ -1,7 +1,16 @@
 import { ReactNode, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowUp, ArrowDown, ChevronsUpDown, Inbox } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   Pagination,
   PaginationContent,
@@ -15,6 +24,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { cn } from "@/lib/utils";
 
+/* ─────────────────────────────────────────────────────────── breadcrumb ── */
+
+export function BookkeeperBreadcrumb({ page }: { page: string }) {
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link to="/bookkeeper">Bookkeeper</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>{page}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
+
 /* ────────────────────────────────────────────────────────────── header ─── */
 
 interface BookkeeperHeaderProps {
@@ -27,15 +56,18 @@ interface BookkeeperHeaderProps {
 
 export function BookkeeperHeader({ title, description, year, month, actions }: BookkeeperHeaderProps) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="space-y-1">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-3xl font-semibold">{title}</h1>
-          <PeriodLockButton year={year} month={month} />
+    <div className="space-y-2">
+      <BookkeeperBreadcrumb page={title} />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-semibold">{title}</h1>
+            <PeriodLockButton year={year} month={month} />
+          </div>
+          {description && <p className="text-muted-foreground text-sm">{description}</p>}
         </div>
-        {description && <p className="text-muted-foreground text-sm">{description}</p>}
+        {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
     </div>
   );
 }

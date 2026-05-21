@@ -19,7 +19,7 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { EmptyState } from "@/components/bookkeeper/shared";
+import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { CheckCircle2 } from "lucide-react";
 
 function useUnattributed() {
@@ -69,6 +69,7 @@ export default function BookkeeperUnattributed() {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            <BookkeeperBreadcrumb page="Unattributed Deposits" />
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-semibold">Unattributed Deposits</h1>
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />

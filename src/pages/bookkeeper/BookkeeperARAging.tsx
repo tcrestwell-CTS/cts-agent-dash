@@ -25,6 +25,7 @@ import {
   TablePagination,
   MoneyCell,
   TableBodySkeletonRows,
+  BookkeeperBreadcrumb,
 } from "@/components/bookkeeper/shared";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 
@@ -207,6 +208,7 @@ export default function BookkeeperARAging() {
       <div className="space-y-6 p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
+            <BookkeeperBreadcrumb page="AR Aging" />
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-semibold">AR Aging</h1>
               <PeriodLockButton year={currentYear} month={currentMonth} />

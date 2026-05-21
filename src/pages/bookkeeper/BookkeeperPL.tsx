@@ -19,6 +19,7 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 const fmt = (n: number) =>
   Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -102,6 +103,7 @@ export default function BookkeeperPL() {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            <BookkeeperBreadcrumb page="P&L" />
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-semibold">Profit & Loss</h1>
               <PeriodLockButton year={year} month={new Date().getMonth() + 1} />
