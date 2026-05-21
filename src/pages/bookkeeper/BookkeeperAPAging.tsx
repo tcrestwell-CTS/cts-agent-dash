@@ -7,12 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download } from "lucide-react";
+import { Download, Inbox } from "lucide-react";
 import { format, differenceInDays, addDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import {
+  EmptyState,
+  SortableHead,
+  useSort,
+  sortRows,
+  usePagination,
+  TablePagination,
+  MoneyCell,
+  TableBodySkeletonRows,
+} from "@/components/bookkeeper/shared";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -52,6 +63,10 @@ export default function BookkeeperAPAging() {
   const [search, setSearch] = useState("");
   const [bucket, setBucket] = useState<BucketKey | "all">("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["ap-aging-bookings"],
@@ -157,8 +172,11 @@ export default function BookkeeperAPAging() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-semibold">AP Aging</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">AP Aging</h1>
+              <PeriodLockButton year={currentYear} month={currentMonth} />
+            </div>
             <p className="text-muted-foreground text-sm">
               Unpaid supplier obligations bucketed by days past estimated due date.
             </p>
