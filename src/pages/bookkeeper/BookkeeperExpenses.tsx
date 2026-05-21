@@ -1,41 +1,79 @@
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Banknote } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
-import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import {
+  BookkeeperHeader,
+  PeriodPicker,
+  monthBounds,
+  EmptyState,
+  TableBodySkeletonRows,
+  SortableHead,
+  useSort,
+  sortRows,
+  usePagination,
+  TablePagination,
+  MoneyCell,
+} from "@/components/bookkeeper/shared";
+import { parseLocalDate } from "@/lib/utils";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
+type SortKey = "supplier_paid_date" | "trip" | "supplier" | "method" | "amount";
+
 export default function BookkeeperExpenses() {
   const logAction = useLogBookkeeperAction();
-  useEffect(() => { logAction("view", "bookkeeper_expenses"); }, [logAction]);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  useEffect(() => { logAction("view", "bookkeeper_expenses", { year, month }); }, [logAction, year, month]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["bookkeeper-expenses"],
+    queryKey: ["bookkeeper-expenses", year, month],
     queryFn: async () => {
+      const { start, end } = monthBounds(year, month);
       const { data, error } = await (supabase as any)
         .from("bookings")
         .select("id, booking_reference, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name), suppliers:supplier_id(name)")
         .eq("supplier_paid_status", "paid")
+        .gte("supplier_paid_date", start)
+        .lt("supplier_paid_date", end)
         .order("supplier_paid_date", { ascending: false })
-        .limit(200);
+        .limit(1000);
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const total = (data ?? []).reduce((s: number, r: any) => s + Number(r.supplier_paid_amount || 0), 0);
+  const rows = (data ?? []) as any[];
+  const total = rows.reduce((s, r) => s + Number(r.supplier_paid_amount || 0), 0);
+
+  const { sort, onSort } = useSort<SortKey>({ key: "supplier_paid_date", dir: "desc" });
+  const sorted = useMemo(
+    () => sortRows(rows, sort, (r, k) => {
+      if (k === "amount") return Number(r.supplier_paid_amount || 0);
+      if (k === "trip") return r.trips?.trip_name ?? "";
+      if (k === "supplier") return r.suppliers?.name ?? "";
+      if (k === "method") return r.supplier_paid_method ?? "";
+      return r.supplier_paid_date ?? "";
+    }),
+    [rows, sort],
+  );
+
+  const pg = usePagination(sorted);
 
   const exportCsv = () => {
-    logAction("export_csv", "bookkeeper_expenses", { rows: data?.length ?? 0 });
+    logAction("export_csv", "bookkeeper_expenses", { rows: sorted.length, year, month });
     exportToCSV(
-      (data ?? []).map((r: any) => ({
+      sorted.map((r: any) => ({
         supplier_paid_date: r.supplier_paid_date,
         trip: r.trips?.trip_name ?? "",
         booking_reference: r.booking_reference ?? "",
@@ -43,54 +81,78 @@ export default function BookkeeperExpenses() {
         method: r.supplier_paid_method ?? "",
         amount: Number(r.supplier_paid_amount || 0).toFixed(2),
       })),
-      `bookkeeper-expenses-${new Date().toISOString().slice(0, 10)}`,
+      `bookkeeper-expenses-${year}-${String(month).padStart(2, "0")}`,
     );
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">Expenses</h1>
-            <p className="text-muted-foreground text-sm">Latest 200 supplier payments.</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
-            <Download className="h-4 w-4 mr-2" /> CSV
-          </Button>
-        </div>
+        <BookkeeperHeader
+          title="Expenses"
+          description="Supplier payments settled in the selected period."
+          year={year}
+          month={month}
+          actions={
+            <>
+              <PeriodPicker year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || sorted.length === 0}>
+                <Download className="h-4 w-4 mr-2" /> CSV
+              </Button>
+            </>
+          }
+        />
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Supplier payments</CardTitle>
-            {!isLoading && <div className="text-sm text-muted-foreground">Total: <span className="font-semibold text-foreground">{fmt(total)}</span></div>}
+            {!isLoading && (
+              <div className="text-sm text-muted-foreground">
+                Total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-64 w-full" /> : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Paid</TableHead>
-                    <TableHead>Trip / Booking</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(data ?? []).map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.supplier_paid_date ? format(new Date(r.supplier_paid_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
+            <Table>
+              <TableHeader>
+                <tr className="border-b">
+                  <SortableHead label="Paid" sortKey="supplier_paid_date" sort={sort} onSort={onSort} />
+                  <SortableHead label="Trip / Booking" sortKey="trip" sort={sort} onSort={onSort} />
+                  <SortableHead label="Supplier" sortKey="supplier" sort={sort} onSort={onSort} />
+                  <SortableHead label="Method" sortKey="method" sort={sort} onSort={onSort} />
+                  <SortableHead label="Amount" sortKey="amount" sort={sort} onSort={onSort} align="right" />
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableBodySkeletonRows rows={8} cols={5} />
+                ) : (
+                  pg.pageRows.map((r: any) => (
+                    <tr key={r.id} className="border-b transition-colors hover:bg-muted/50">
+                      <TableCell>{r.supplier_paid_date ? format(parseLocalDate(r.supplier_paid_date), "MMM d, yyyy") : "—"}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         <div>{r.trips?.trip_name || "—"}</div>
                         <div className="text-xs text-muted-foreground">{r.booking_reference || ""}</div>
                       </TableCell>
                       <TableCell>{r.suppliers?.name || "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.supplier_paid_method || "—"}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(Number(r.supplier_paid_amount || 0))}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      <MoneyCell value={Number(r.supplier_paid_amount || 0)} bold />
+                    </tr>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            {!isLoading && sorted.length === 0 && (
+              <EmptyState icon={Banknote} title="No supplier payments for this period" description="Try a different month or year." />
+            )}
+            {!isLoading && sorted.length > 0 && (
+              <TablePagination
+                page={pg.page}
+                totalPages={pg.totalPages}
+                total={pg.total}
+                rangeStart={pg.rangeStart}
+                rangeEnd={pg.rangeEnd}
+                onPageChange={pg.setPage}
+              />
             )}
           </CardContent>
         </Card>
