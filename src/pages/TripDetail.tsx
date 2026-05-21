@@ -330,15 +330,23 @@ const TripDetail = () => {
                   </Badge>
                 )}
               </div>
-              <p className="text-muted-foreground mt-1">
-                {trip.clients?.name ||
-                  (() => {
-                    const primary = tripTravelers.find((t) => t.is_primary) || tripTravelers[0];
-                    return primary
-                      ? `${primary.first_name}${primary.last_name ? " " + primary.last_name : ""}`
-                      : "No client assigned";
-                  })()}
-              </p>
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <span className="text-muted-foreground text-sm">
+                  {trip.clients?.name ||
+                    (() => {
+                      const primary = tripTravelers.find((t) => t.is_primary) || tripTravelers[0];
+                      return primary
+                        ? `${primary.first_name}${primary.last_name ? " " + primary.last_name : ""}`
+                        : "No client assigned";
+                    })()}
+                </span>
+                {trip.destination && (
+                  <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />{trip.destination}
+                  </span>
+                )}
+                <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
