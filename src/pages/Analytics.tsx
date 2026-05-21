@@ -121,7 +121,7 @@ export default function Analytics() {
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Analytics</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Performance, sales, and intelligence</p>
           </div>
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
         </div>
         <Tabs defaultValue="sales" className="space-y-4">
           <TabsList>
