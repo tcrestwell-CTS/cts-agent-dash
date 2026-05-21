@@ -380,6 +380,10 @@ async function tryEmailFallbackMatch(pi: Stripe.PaymentIntent) {
 
   const emailLc = email.toLowerCase();
 
+  // 1b. Normalize booking_ref for fuzzy matching (strip spaces, dashes, uppercase)
+  const rawRef = cp?.booking_ref || "";
+  const normalizedRef = rawRef.replace(/[\s\-]/g, "").toUpperCase();
+
   // 2. Find matching clients (case-insensitive)
   const { data: clients } = await supabase
     .from("clients")
