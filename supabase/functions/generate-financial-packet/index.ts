@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
       const gross = Number(c.gross_commission || 0);
       const share = Number(c.agent_share || 0);
       grossSum += gross; shareSum += share;
-      doc.text(String(c.agent_name || c.agent_id || '—').slice(0, 32), margin, y);
+      doc.text(String(c.agent_name || '—').slice(0, 32), margin, y);
       doc.text(String(c.commission_tier || '—'), margin + 200, y);
       doc.text(money(gross), margin + 290, y, { align: 'right' });
       doc.text(money(share), pageW - margin, y, { align: 'right' });
