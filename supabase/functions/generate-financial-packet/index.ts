@@ -147,11 +147,29 @@ Deno.serve(async (req) => {
     }
 
     // Commission register
-    const { data: commissions } = await svc
+    const { data: commissionRows } = await svc
       .from('commissions')
-      .select('agent_share, gross_commission, agent_id, paid_date, commission_tier, agent_name')
+      .select('amount, rate, user_id, paid_date')
       .gte('paid_date', startDate)
       .lte('paid_date', endDate);
+    const agentIds = Array.from(new Set((commissionRows || []).map((c: any) => c.user_id).filter(Boolean)));
+    let profileMap: Record<string, { name: string; tier: string }> = {};
+    if (agentIds.length) {
+      const { data: profs } = await svc
+        .from('profiles')
+        .select('user_id, full_name, commission_tier')
+        .in('user_id', agentIds);
+      profileMap = Object.fromEntries(
+        (profs || []).map((p: any) => [p.user_id, { name: p.full_name || '—', tier: p.commission_tier || '—' }])
+      );
+    }
+    const commissions = (commissionRows || []).map((c: any) => {
+      const gross = Number(c.amount || 0);
+      const ratePct = Number(c.rate || 0);
+      const share = ratePct > 0 ? gross * (ratePct / 100) : gross;
+      const p = profileMap[c.user_id] || { name: '—', tier: '—' };
+      return { agent_name: p.name, commission_tier: p.tier, gross_commission: gross, agent_share: share };
+    });
 
     // ── PDF ──────────────────────────────────────────────────────────────────
     const doc = new jsPDF({ unit: 'pt', format: 'letter' });
