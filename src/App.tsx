@@ -220,6 +220,8 @@ const App = () => (
                 <Route path="/bookkeeper/payouts"        element={<ProtectedRoute><BookkeeperRoute><BookkeeperPayouts /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/1099"           element={<ProtectedRoute><BookkeeperRoute><Bookkeeper1099 /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/export"         element={<ProtectedRoute><BookkeeperRoute><BookkeeperExport /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/qbo-logs"       element={<ProtectedRoute><BookkeeperRoute><BookkeeperQboLogs /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/audit"          element={<ProtectedRoute><BookkeeperRoute><BookkeeperAuditLog /></BookkeeperRoute></ProtectedRoute>} />
 
                 {/* Client Portal Routes */}
                 <Route path="/client/login" element={<PortalLogin />} />

@@ -194,6 +194,8 @@ const bookkeeperNav: NavItem[] = [
   { name: "Agent Payouts",         href: "/bookkeeper/payouts",      icon: Wallet },
   { name: "1099 Prep",             href: "/bookkeeper/1099",         icon: FileText },
   { name: "Export",                href: "/bookkeeper/export",       icon: Download },
+  { name: "QBO Sync Logs",         href: "/bookkeeper/qbo-logs",     icon: Activity },
+  { name: "Audit Log",             href: "/bookkeeper/audit",        icon: ShieldCheck },
 ];
 
 function useUnattributedCount(enabled: boolean) {
