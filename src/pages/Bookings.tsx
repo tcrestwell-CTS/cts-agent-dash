@@ -521,6 +521,7 @@ const Bookings = () => {
                   <TableHead>Dates</TableHead>
                   <TableHead>Travelers</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Departing</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
@@ -565,6 +566,9 @@ const Bookings = () => {
                       </div>
                     </TableCell>
                     <TableCell>{booking.travelers}</TableCell>
+                    <TableCell>
+                      <DepartureUrgencyBadge departDate={booking.depart_date} showIcon={true} />
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={booking.status}
