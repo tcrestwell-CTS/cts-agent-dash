@@ -12,6 +12,9 @@ import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { EmptyState } from "@/components/bookkeeper/shared";
+import { FileSpreadsheet } from "lucide-react";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const THRESHOLD = 600;
@@ -61,8 +64,11 @@ export default function Bookkeeper1099() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">1099 Prep</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">1099 Prep</h1>
+              <PeriodLockButton year={year} month={12} />
+            </div>
             <p className="text-muted-foreground text-sm">Annual paid commission totals per advisor. IRS threshold {fmt(THRESHOLD)}.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -78,7 +84,9 @@ export default function Bookkeeper1099() {
         <Card>
           <CardHeader><CardTitle>Tax year {year}</CardTitle></CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-48 w-full" /> : (
+            {isLoading ? <Skeleton className="h-48 w-full" /> : (data?.length ?? 0) === 0 ? (
+              <EmptyState icon={FileSpreadsheet} title={`No paid commissions in ${year}`} description="Switch tax years to view earlier data." />
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -91,7 +99,7 @@ export default function Bookkeeper1099() {
                   {(data ?? []).map((r) => (
                     <TableRow key={r.user_id}>
                       <TableCell>{r.name}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.total)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmt(r.total)}</TableCell>
                       <TableCell>{r.total >= THRESHOLD ? <Badge variant="destructive">Yes</Badge> : <Badge variant="outline">No</Badge>}</TableCell>
                     </TableRow>
                   ))}

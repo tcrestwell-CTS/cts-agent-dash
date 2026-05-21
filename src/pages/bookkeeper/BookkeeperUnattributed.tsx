@@ -18,6 +18,9 @@ import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { EmptyState } from "@/components/bookkeeper/shared";
+import { CheckCircle2 } from "lucide-react";
 
 function useUnattributed() {
   return useQuery({
@@ -65,8 +68,11 @@ export default function BookkeeperUnattributed() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">Unattributed Deposits</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">Unattributed Deposits</h1>
+              <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
+            </div>
             <p className="text-muted-foreground text-sm">
               Stripe payments without a linked trip or booking. Read-only.
             </p>
@@ -88,9 +94,7 @@ export default function BookkeeperUnattributed() {
                 ))}
               </div>
             ) : (data?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No unattributed deposits — everything is matched.
-              </p>
+              <EmptyState icon={CheckCircle2} title="All deposits matched" description="No unattributed Stripe payments to review." />
             ) : (
               <Table>
                 <TableHeader>
@@ -118,7 +122,7 @@ export default function BookkeeperUnattributed() {
                           {row.customer_email || ""}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="tabular-nums">
                         {fmt(Number(row.amount || 0), row.currency || "USD")}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
