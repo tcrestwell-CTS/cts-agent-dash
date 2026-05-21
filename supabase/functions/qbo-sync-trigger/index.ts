@@ -994,6 +994,40 @@ async function ensureQBOAccount(
 
   if (!createResp.ok) {
     const errText = await createResp.text();
+    // QBO returns "Duplicate Name Exists Error" when an account (possibly inactive,
+    // or active but not returned by our prior query due to caching/visibility) already
+    // uses this name. Re-query including inactive accounts and reuse it.
+    if (/Duplicate Name Exists/i.test(errText)) {
+      const requery = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name = '${nameEscaped}'`)}`,
+        { headers: qboHeaders }
+      );
+      if (requery.ok) {
+        const rd = await requery.json();
+        const found = rd?.QueryResponse?.Account?.[0];
+        if (found) {
+          // If inactive, reactivate so it can be used on transactions
+          if (found.Active === false) {
+            await qboFetch(`${qboBase}/account`, {
+              method: "POST",
+              headers: qboHeaders,
+              body: JSON.stringify({
+                Id: found.Id,
+                SyncToken: found.SyncToken,
+                Name: found.Name,
+                AccountType: found.AccountType,
+                AccountSubType: found.AccountSubType,
+                Active: true,
+                sparse: true,
+              }),
+            }).catch(() => {});
+          }
+          _accountCache.set(accountName, found.Id);
+          console.log(`[QBO] Reused existing account "${accountName}" (ID: ${found.Id}) after duplicate-name error`);
+          return found.Id;
+        }
+      }
+    }
     throw new Error(`Failed to create QBO Account "${accountName}": ${errText}`);
   }
 
