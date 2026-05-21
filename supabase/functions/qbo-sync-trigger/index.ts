@@ -15,6 +15,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   - client_created
  *   - supplier_created
  *   - loan_repayment_posted
+ *   - apply_payment_to_invoice
+ *   - invoice_updated
  */
 
 const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
@@ -135,6 +137,9 @@ serve(async (req) => {
         break;
       case "apply_payment_to_invoice":
         await handleApplyPaymentToInvoice(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "invoice_updated":
+        await handleInvoiceUpdated(supabase, qboBase, qboHeaders, userId, record);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
