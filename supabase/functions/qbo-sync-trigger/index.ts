@@ -412,10 +412,17 @@ async function handleDepositPosted(
   const stripeFeesId = await ensureQBOAccount(qboBase, qboHeaders, "Stripe Processing Fees", "Expense", "Expense");
 
   const grossAmount = payment.amount || 0;
-  const stripeFeeRate = 0.029;
-  const stripeFixedFee = 0.30;
-  const stripeFee = Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
+  // Use actual Stripe fee from stripe_payments record if available;
+  // fall back to estimated 2.9% + $0.30 so deposits always post even
+  // if the webhook hasn't caught up yet.
+  const actualStripeFee = Number(payment.stripe_fee ?? payment.stripe_processing_fee ?? 0);
+  const stripeFeeRate   = 0.029;
+  const stripeFixedFee  = 0.30;
+  const stripeFee = actualStripeFee > 0
+    ? Math.round(actualStripeFee * 100) / 100
+    : Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
   const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
+  console.log(\`[handleDepositPosted] gross=$\{grossAmount} stripeFee=$\{stripeFee} (actual=$\{actualStripeFee > 0}) net=$\{netAmount}\`);
   const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
   // Include PI id in memo so the Stripe ↔ QBO reconciler can match by reference.
   const piTag = payment.stripe_payment_intent_id ? ` [${payment.stripe_payment_intent_id}]` : "";
@@ -1278,16 +1285,39 @@ async function getMappedAccountId(supabase: any, role: string): Promise<string> 
 async function handleClientCreated(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, client: any,
 ) {
-  await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
-  await logSync(supabase, userId, "auto-client-created", "success", 1, undefined, { client_id: client.id });
+  const qboCustomerId = await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
+
+  // Write QBO customer ID back to the clients row so future lookups skip
+  // the qbo_client_mappings join and can go direct.
+  if (qboCustomerId && client.id) {
+    await supabase
+      .from("clients")
+      .update({ qbo_customer_id: qboCustomerId })
+      .eq("id", client.id)
+      .is("qbo_customer_id", null); // only set if not already stamped
+  }
+
+  await logSync(supabase, userId, "auto-client-created", "success", 1, undefined,
+    { client_id: client.id, qbo_customer_id: qboCustomerId });
 }
 
 /** New CRM supplier → QBO Vendor (idempotent via qbo_supplier_mappings). */
 async function handleSupplierCreated(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, supplier: any,
 ) {
-  await ensureQBOVendor(supabase, qboBase, qboHeaders, userId, supplier);
-  await logSync(supabase, userId, "auto-supplier-created", "success", 1, undefined, { supplier_id: supplier.id });
+  const qboVendorId = await ensureQBOVendor(supabase, qboBase, qboHeaders, userId, supplier);
+
+  // Write QBO vendor ID back to the suppliers row for direct lookups.
+  if (qboVendorId && supplier.id) {
+    await supabase
+      .from("suppliers")
+      .update({ qbo_vendor_id: qboVendorId })
+      .eq("id", supplier.id)
+      .is("qbo_vendor_id", null);
+  }
+
+  await logSync(supabase, userId, "auto-supplier-created", "success", 1, undefined,
+    { supplier_id: supplier.id, qbo_vendor_id: qboVendorId });
 }
 
 /**
