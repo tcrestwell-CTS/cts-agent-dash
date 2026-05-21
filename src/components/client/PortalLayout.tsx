@@ -8,11 +8,12 @@ import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { EmergencyContactButton } from "@/components/client/EmergencyContactButton";
 
-const navItems = [
+interface NavItem { to: string; label: string; icon: any; end?: boolean; showUnreadBadge?: boolean; }
+const navItems: NavItem[] = [
   { to: "/client", label: "Dashboard", icon: Home, end: true },
   { to: "/client/trips", label: "My Trips", icon: Map },
   { to: "/client/payments", label: "Payments", icon: CreditCard },
-  { to: "/client/messages", label: "Messages", icon: MessageSquare },
+  { to: "/client/messages", label: "Messages", icon: MessageSquare, showUnreadBadge: true },
   { to: "/client/invoices", label: "Invoices", icon: FileText },
 ];
 
