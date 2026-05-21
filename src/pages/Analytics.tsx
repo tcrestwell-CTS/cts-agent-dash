@@ -108,13 +108,20 @@ export default function Analytics() {
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
   const canViewAll = isAdmin || isOfficeAdmin;
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subMonths(new Date(), 12),
+    to: new Date(),
+  });
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Performance, sales, and intelligence</p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">Analytics</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Performance, sales, and intelligence</p>
+          </div>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
         <Tabs defaultValue="sales" className="space-y-4">
           <TabsList>
@@ -123,7 +130,7 @@ export default function Analytics() {
             {canViewAll && <TabsTrigger value="intelligence">Agent Intelligence</TabsTrigger>}
           </TabsList>
           <TabsContent value="sales">
-            <AgencySalesTab />
+            <AgencySalesTab dateRange={dateRange} />
           </TabsContent>
           {canViewAll && (
             <TabsContent value="performance">
