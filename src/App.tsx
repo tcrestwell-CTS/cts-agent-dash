@@ -103,6 +103,8 @@ const BookkeeperBankRecon    = lazy(() => import("./pages/bookkeeper/BookkeeperB
 const BookkeeperPayouts      = lazy(() => import("./pages/bookkeeper/BookkeeperPayouts"));
 const Bookkeeper1099         = lazy(() => import("./pages/bookkeeper/Bookkeeper1099"));
 const BookkeeperExport       = lazy(() => import("./pages/bookkeeper/BookkeeperExport"));
+const BookkeeperQboLogs      = lazy(() => import("./pages/bookkeeper/BookkeeperQboLogs"));
+const BookkeeperAuditLog     = lazy(() => import("./pages/bookkeeper/BookkeeperAuditLog"));
 
 // ─── QueryClient Configuration ───────────────────────────────────────────────
 // FIX: Previously used `new QueryClient()` with no options, meaning:
