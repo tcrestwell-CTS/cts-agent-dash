@@ -70,10 +70,19 @@ const defaultForm = {
   due_date: "",
   payment_type: "payment",
   payment_method: "none",
-  status: "pending",
+  status: "pending", // overridden per mode — manual defaults to "paid"
   details: "",
   notes: "",
 };
+
+// Mode-specific defaults — manual recordings should default to paid
+// since the agent is logging something that already happened
+const modeDefaults: Partial<typeof defaultForm> = {
+  stripe_agent: { status: "pending" }, // will be set to paid by webhook
+  stripe_link:  { status: "pending" }, // will be set to paid by webhook
+  manual:       { status: "paid"    }, // already happened
+  schedule:     { status: "pending" }, // future installments
+} as Record<string, Partial<typeof defaultForm>>;
 
 // ── Shared fields extracted as a proper top-level component to avoid ref warnings ──
 interface SharedFieldsProps {
