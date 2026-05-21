@@ -52,7 +52,8 @@ export default function BookkeeperQboLogs() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="space-y-1">
+            <BookkeeperBreadcrumb page="QBO Sync Logs" />
             <h1 className="text-3xl font-semibold">QBO Sync Logs</h1>
             <p className="text-muted-foreground text-sm">Recent QuickBooks sync activity. Read-only.</p>
           </div>
