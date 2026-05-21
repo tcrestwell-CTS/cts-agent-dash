@@ -26,10 +26,10 @@ function useBookkeeperKpis() {
           .eq("status", "paid")
           .gte("payment_date", since),
         (supabase as any)
-          .from("trip_payments")
-          .select("supplier_paid_amount, supplier_paid_at, supplier_paid_status")
+          .from("bookings")
+          .select("supplier_paid_amount, supplier_paid_date, supplier_paid_status")
           .eq("supplier_paid_status", "paid")
-          .gte("supplier_paid_at", since),
+          .gte("supplier_paid_date", since.slice(0, 10)),
         (supabase as any)
           .from("checkout_payments")
           .select("id", { count: "exact", head: true })

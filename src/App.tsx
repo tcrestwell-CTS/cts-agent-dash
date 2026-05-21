@@ -94,7 +94,7 @@ const PortalPayments      = lazy(() => import("./pages/client/PortalPayments"));
 
 // ─── Bookkeeper Pages ────────────────────────────────────────────────────────
 const BookkeeperDashboard    = lazy(() => import("./pages/bookkeeper/BookkeeperDashboard"));
-const BookkeeperPL           = lazy(() => import("./pages/bookkeeper/BookkeeperPlaceholder"));
+const BookkeeperPL           = lazy(() => import("./pages/bookkeeper/BookkeeperPL"));
 const BookkeeperBalanceSheet = lazy(() => import("./pages/bookkeeper/BookkeeperBalanceSheet"));
 const BookkeeperIncome       = lazy(() => import("./pages/bookkeeper/BookkeeperIncome"));
 const BookkeeperExpenses     = lazy(() => import("./pages/bookkeeper/BookkeeperExpenses"));
