@@ -154,11 +154,11 @@ export default function BookkeeperPL() {
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((row, i) => (
-                    <TableRow key={i}>
+                   <TableRow key={i}>
                       <TableCell>{MONTHS[i]} {year}</TableCell>
-                      <TableCell className="text-right">{fmt(row.income)}</TableCell>
-                      <TableCell className="text-right">{fmt(row.expense)}</TableCell>
-                      <TableCell className={`text-right font-medium ${row.income - row.expense < 0 ? "text-destructive" : ""}`}>{fmt(row.income - row.expense)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(row.income)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(row.expense)}</TableCell>
+                      <TableCell className={`text-right tabular-nums font-medium ${row.income - row.expense < 0 ? "text-destructive" : ""}`}>{fmt(row.income - row.expense)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
