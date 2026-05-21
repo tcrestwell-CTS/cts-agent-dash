@@ -189,6 +189,7 @@ const bookkeeperNav: NavItem[] = [
   { name: "Expenses",              href: "/bookkeeper/expenses",     icon: Banknote },
   { name: "Unattributed Deposits", href: "/bookkeeper/unattributed", icon: FileWarning },
   { name: "AR / AP Aging",         href: "/bookkeeper/aging",        icon: AlertTriangle },
+  { name: "AR Aging",              href: "/bookkeeper/ar-aging",     icon: AlertTriangle },
   { name: "Stripe Reconciliation", href: "/recon/stripe",            icon: ArrowRightLeft },
   { name: "Bank Reconciliation",   href: "/bookkeeper/bank-recon",   icon: Landmark },
   { name: "QBO Sync",              href: "/qbo-health",              icon: HeartPulse },
