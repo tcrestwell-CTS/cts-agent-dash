@@ -44,8 +44,8 @@ export default function BookkeeperPacket() {
         supabase.from("invoices").select("id", { count: "exact", head: true }).gt("amount_remaining", 0),
         supabase.from("bookings").select("id", { count: "exact", head: true })
           .neq("supplier_paid_status", "paid").in("status", ["confirmed", "completed"]),
-        (supabase as any).from("unattributed_deposits").select("id", { count: "exact", head: true })
-          .is("resolved_at", null),
+        (supabase as any).from("checkout_payments").select("id", { count: "exact", head: true })
+          .eq("payment_type", "unattributed_deposit"),
       ]);
       return {
         qbo: !!(qboRes.data && qboRes.data.length > 0),
