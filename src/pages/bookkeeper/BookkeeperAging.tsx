@@ -343,7 +343,8 @@ export default function BookkeeperAging() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
+        <div className="space-y-1">
+          <BookkeeperBreadcrumb page="AR / AP Aging" />
           <h1 className="text-3xl font-semibold">AR / AP Aging</h1>
           <p className="text-muted-foreground text-sm">
             Outstanding receivables and payables bucketed by days overdue.
