@@ -271,6 +271,8 @@ async function applyTripInstallmentPayment(
       status: "paid",
       payment_date: paymentDate,
       stripe_payment_intent_id: pi.id,
+      // Stamp actual Stripe fee so qbo-sync-trigger uses real fee in JE
+      stripe_fee: stripeFee > 0 ? stripeFee : null,
     })
     .eq("id", tripPaymentId)
     .neq("status", "paid"); // idempotent
