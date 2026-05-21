@@ -183,6 +183,8 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
+      {/* Action Items — always first, above the fold */}
+      <TodayActionItems />
       {/* Row 1: Greeting + inline stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
