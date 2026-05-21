@@ -263,12 +263,13 @@ const handler = async (req: Request): Promise<Response> => {
         const inviteUrl = templateData?.inviteUrl || "#";
         const inviterName = templateData?.inviterName || "An administrator";
         const expiresIn = templateData?.expiresIn || "7 days";
+        const roleLabel = templateData?.roleLabel || "a travel agent";
         emailHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
             ${buildBannerHtml("You're Invited! 🎉")}
             <div style="padding: 24px;">
             <p style="color: #4b5563; line-height: 1.6;">Hello,</p>
-            <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${agencyName}</strong> as a travel agent.</p>
+            <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${agencyName}</strong> as ${roleLabel}.</p>
             <p style="color: #4b5563; line-height: 1.6;">Click the button below to accept your invitation and set up your account:</p>
             <div style="text-align: center; margin: 32px 0;">
               <a href="${inviteUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Accept Invitation</a>
