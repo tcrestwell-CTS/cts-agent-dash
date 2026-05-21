@@ -15,6 +15,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   - client_created
  *   - supplier_created
  *   - loan_repayment_posted
+ *   - apply_payment_to_invoice
+ *   - invoice_updated
  */
 
 const QBO_BASE = "https://quickbooks.api.intuit.com/v3/company";
@@ -135,6 +137,9 @@ serve(async (req) => {
         break;
       case "apply_payment_to_invoice":
         await handleApplyPaymentToInvoice(supabase, qboBase, qboHeaders, userId, record);
+        break;
+      case "invoice_updated":
+        await handleInvoiceUpdated(supabase, qboBase, qboHeaders, userId, record);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown trigger_type: ${trigger_type}` }), { status: 400 });
@@ -1491,5 +1496,82 @@ async function handleApplyPaymentToInvoice(
 
   await logSync(supabase, userId, "auto-apply-payment-to-invoice", "success", 1, undefined, {
     qbo_payment_id: qboPaymentId, qbo_invoice_id: qboInvoiceId,
+  });
+}
+
+/**
+ * Invoice updated → sparse-update the QBO Invoice TotalAmt + summary line.
+ * Re-pushes when local invoice total/lines have changed (e.g. additional
+ * bookings or margin-line add-ons rolled into an already-synced trip).
+ */
+async function handleInvoiceUpdated(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, invoice: any
+) {
+  // Look up mapping
+  const { data: mapping } = await supabase
+    .from("qbo_invoice_mappings")
+    .select("qbo_invoice_id")
+    .eq("invoice_id", invoice.id)
+    .maybeSingle();
+
+  if (!mapping?.qbo_invoice_id) {
+    await logSync(supabase, userId, "auto-invoice-updated", "skipped", 0,
+      "No QBO mapping for invoice — nothing to update",
+      { invoice_id: invoice.id });
+    return;
+  }
+
+  const qboInvoiceId = mapping.qbo_invoice_id;
+
+  // Fetch current QBO invoice for SyncToken + CustomerRef
+  const getResp = await qboFetch(`${qboBase}/invoice/${qboInvoiceId}`, {
+    method: "GET", headers: qboHeaders,
+  });
+  if (!getResp.ok) {
+    throw new Error(`Failed to fetch QBO Invoice ${qboInvoiceId}: ${await getResp.text()}`);
+  }
+  const qboInv = (await getResp.json())?.Invoice;
+  if (!qboInv) throw new Error(`QBO Invoice ${qboInvoiceId} missing in response`);
+
+  const newTotal = Number(invoice.total_amount ?? 0);
+  if (newTotal <= 0) {
+    throw new Error(`Refusing to update QBO Invoice ${qboInvoiceId} to non-positive total ${newTotal}`);
+  }
+
+  // Sparse update — replace lines with one summary line at new total.
+  const sparseBody: any = {
+    Id: qboInv.Id,
+    SyncToken: qboInv.SyncToken,
+    sparse: true,
+    CustomerRef: qboInv.CustomerRef,
+    TotalAmt: newTotal,
+    Line: [
+      {
+        Amount: newTotal,
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: { ItemRef: { value: "1", name: "Services" } },
+        Description: `${invoice.trip_name ?? "Travel"} — Invoice ${invoice.invoice_number}`,
+      },
+    ],
+  };
+
+  const upResp = await qboFetch(`${qboBase}/invoice?operation=update`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(sparseBody),
+  });
+  if (!upResp.ok) {
+    throw new Error(`QBO Invoice ${qboInvoiceId} sparse update failed: ${await upResp.text()}`);
+  }
+
+  await supabase.from("qbo_invoice_mappings")
+    .update({ last_synced_at: new Date().toISOString() })
+    .eq("invoice_id", invoice.id);
+
+  await logSync(supabase, userId, "auto-invoice-updated", "success", 1, undefined, {
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    qbo_invoice_id: qboInvoiceId,
+    new_total: newTotal,
   });
 }
