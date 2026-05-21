@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight } from "lucide-react";
+import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle } from "lucide-react";
+import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { useEffect } from "react";
 
 function startOfMonthISO() {
   const d = new Date();
@@ -59,6 +61,12 @@ const fmt = (n: number) =>
 
 export default function BookkeeperDashboard() {
   const { data, isLoading } = useBookkeeperKpis();
+  const { data: alerts } = useBookkeeperAlerts();
+  const logAction = useLogBookkeeperAction();
+
+  useEffect(() => {
+    logAction("view", "bookkeeper_dashboard");
+  }, [logAction]);
 
   const cards = [
     { label: "MTD Income", value: data?.mtdIncome ?? 0, icon: DollarSign },
@@ -95,6 +103,35 @@ export default function BookkeeperDashboard() {
             </Card>
           ))}
         </div>
+
+        {(alerts?.failedSyncs || alerts?.staleUnattributed) ? (
+          <Card className="border-amber-500/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                Alerts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {alerts.failedSyncs > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>{alerts.failedSyncs} failed QBO sync{alerts.failedSyncs === 1 ? "" : "s"} in the last 7 days.</span>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/bookkeeper/qbo-logs">Review</Link>
+                  </Button>
+                </div>
+              )}
+              {alerts.staleUnattributed > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>{alerts.staleUnattributed} unattributed deposit{alerts.staleUnattributed === 1 ? "" : "s"} older than 7 days.</span>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/bookkeeper/unattributed">Review</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">

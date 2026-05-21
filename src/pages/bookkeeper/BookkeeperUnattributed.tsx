@@ -13,6 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
+import { useEffect } from "react";
+import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 
 function useUnattributed() {
   return useQuery({
@@ -37,15 +42,38 @@ const fmt = (n: number, c = "USD") =>
 
 export default function BookkeeperUnattributed() {
   const { data, isLoading } = useUnattributed();
+  const logAction = useLogBookkeeperAction();
+  useEffect(() => { logAction("view", "bookkeeper_unattributed"); }, [logAction]);
+
+  const exportCsv = () => {
+    logAction("export_csv", "bookkeeper_unattributed", { rows: data?.length ?? 0 });
+    exportToCSV(
+      (data ?? []).map((r: any) => ({
+        created_at: r.created_at,
+        customer_name: r.customer_name ?? "",
+        customer_email: r.customer_email ?? "",
+        amount: Number(r.amount || 0).toFixed(2),
+        currency: r.currency ?? "USD",
+        stripe_payment_intent_id: r.stripe_payment_intent_id ?? "",
+        status: r.status ?? "",
+      })),
+      `bookkeeper-unattributed-${new Date().toISOString().slice(0, 10)}`,
+    );
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-semibold">Unattributed Deposits</h1>
-          <p className="text-muted-foreground text-sm">
-            Stripe payments without a linked trip or booking. Read-only.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold">Unattributed Deposits</h1>
+            <p className="text-muted-foreground text-sm">
+              Stripe payments without a linked trip or booking. Read-only.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
         </div>
 
         <Card>

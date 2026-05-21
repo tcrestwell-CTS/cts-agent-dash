@@ -5,10 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
+import { useEffect } from "react";
+import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function BookkeeperExpenses() {
+  const logAction = useLogBookkeeperAction();
+  useEffect(() => { logAction("view", "bookkeeper_expenses"); }, [logAction]);
   const { data, isLoading } = useQuery({
     queryKey: ["bookkeeper-expenses"],
     queryFn: async () => {
@@ -25,12 +32,32 @@ export default function BookkeeperExpenses() {
 
   const total = (data ?? []).reduce((s: number, r: any) => s + Number(r.supplier_paid_amount || 0), 0);
 
+  const exportCsv = () => {
+    logAction("export_csv", "bookkeeper_expenses", { rows: data?.length ?? 0 });
+    exportToCSV(
+      (data ?? []).map((r: any) => ({
+        supplier_paid_date: r.supplier_paid_date,
+        trip: r.trips?.trip_name ?? "",
+        booking_reference: r.booking_reference ?? "",
+        supplier: r.suppliers?.name ?? "",
+        method: r.supplier_paid_method ?? "",
+        amount: Number(r.supplier_paid_amount || 0).toFixed(2),
+      })),
+      `bookkeeper-expenses-${new Date().toISOString().slice(0, 10)}`,
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-semibold">Expenses</h1>
-          <p className="text-muted-foreground text-sm">Latest 200 supplier payments.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold">Expenses</h1>
+            <p className="text-muted-foreground text-sm">Latest 200 supplier payments.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
         </div>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">

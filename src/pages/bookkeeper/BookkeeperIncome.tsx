@@ -6,10 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
+import { useEffect } from "react";
+import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 export default function BookkeeperIncome() {
+  const logAction = useLogBookkeeperAction();
+  useEffect(() => { logAction("view", "bookkeeper_income"); }, [logAction]);
   const { data, isLoading } = useQuery({
     queryKey: ["bookkeeper-income"],
     queryFn: async () => {
@@ -26,12 +33,32 @@ export default function BookkeeperIncome() {
 
   const total = (data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
+  const exportCsv = () => {
+    logAction("export_csv", "bookkeeper_income", { rows: data?.length ?? 0 });
+    exportToCSV(
+      (data ?? []).map((r: any) => ({
+        payment_date: r.payment_date,
+        trip: r.trips?.trip_name ?? "",
+        payment_type: r.payment_type ?? "",
+        payment_method: r.payment_method ?? "",
+        stripe_payment_intent_id: r.stripe_payment_intent_id ?? "",
+        amount: Number(r.amount || 0).toFixed(2),
+      })),
+      `bookkeeper-income-${new Date().toISOString().slice(0, 10)}`,
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
-          <h1 className="text-3xl font-semibold">Income</h1>
-          <p className="text-muted-foreground text-sm">Latest 200 paid client payments.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold">Income</h1>
+            <p className="text-muted-foreground text-sm">Latest 200 paid client payments.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
+            <Download className="h-4 w-4 mr-2" /> CSV
+          </Button>
         </div>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
