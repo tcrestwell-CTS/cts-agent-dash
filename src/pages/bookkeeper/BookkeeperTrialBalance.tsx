@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { toast } from "sonner";
 
 const fmt = (n: number) =>
@@ -150,10 +151,13 @@ export default function BookkeeperTrialBalance() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-semibold">
-              Trial Balance — {MONTHS[month - 1]} {year}
-            </h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">
+                Trial Balance — {MONTHS[month - 1]} {year}
+              </h1>
+              <PeriodLockButton year={year} month={month} />
+            </div>
             <p className="text-muted-foreground text-sm">
               Pulled from QuickBooks Online{data?.fetched_at ? ` · last fetched ${new Date(data.fetched_at).toLocaleString()}` : ""}
               {data?.cached ? " · cached" : ""}
@@ -254,21 +258,21 @@ export default function BookkeeperTrialBalance() {
                           </TableRow>
                           {rows.map((r, i) => (
                             <TableRow key={`${group}-${i}`}>
-                              <TableCell>{r.account}</TableCell>
+                            <TableCell>{r.account}</TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="font-normal">{r.account_type}</Badge>
                               </TableCell>
-                              <TableCell className="text-right">{r.debit ? fmt(r.debit) : ""}</TableCell>
-                              <TableCell className="text-right">{r.credit ? fmt(r.credit) : ""}</TableCell>
-                              <TableCell className="text-right font-medium">{fmt(r.net)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{r.debit ? fmt(r.debit) : ""}</TableCell>
+                            <TableCell className="text-right tabular-nums">{r.credit ? fmt(r.credit) : ""}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">{fmt(r.net)}</TableCell>
                             </TableRow>
                           ))}
                           <TableRow key={`${group}-sub`} className="border-t border-border/60">
                             <TableCell className="font-semibold">Subtotal — {group}</TableCell>
                             <TableCell />
-                            <TableCell className="text-right font-semibold">{fmt(subDebit)}</TableCell>
-                            <TableCell className="text-right font-semibold">{fmt(subCredit)}</TableCell>
-                            <TableCell className="text-right font-semibold">{fmt(subNet)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold">{fmt(subDebit)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold">{fmt(subCredit)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-semibold">{fmt(subNet)}</TableCell>
                           </TableRow>
                         </>
                       );
@@ -277,9 +281,9 @@ export default function BookkeeperTrialBalance() {
                       <TableRow className="bg-muted">
                         <TableCell className="font-bold">Grand total</TableCell>
                         <TableCell />
-                        <TableCell className="text-right font-bold">{fmt(totals.debit)}</TableCell>
-                        <TableCell className="text-right font-bold">{fmt(totals.credit)}</TableCell>
-                        <TableCell className={`text-right font-bold ${outOfBalance ? "text-destructive" : ""}`}>
+                        <TableCell className="text-right tabular-nums font-bold">{fmt(totals.debit)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-bold">{fmt(totals.credit)}</TableCell>
+                        <TableCell className={`text-right tabular-nums font-bold ${outOfBalance ? "text-destructive" : ""}`}>
                           {fmt(totals.difference)}
                         </TableCell>
                       </TableRow>
