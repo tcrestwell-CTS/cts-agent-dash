@@ -72,6 +72,7 @@ interface NavGroup {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   items: NavItem[];
+  defaultCollapsed?: boolean;
 }
 
 const topLevelNav: NavItem[] = [
