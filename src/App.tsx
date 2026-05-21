@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PortalAuthProvider } from "@/contexts/PortalAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureRoute } from "@/components/FeatureRoute";
+import { BookkeeperRoute } from "@/components/BookkeeperRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -90,6 +91,18 @@ const PortalMessages      = lazy(() => import("./pages/client/PortalMessages"));
 const PortalInvoices      = lazy(() => import("./pages/client/PortalInvoices"));
 const PortalInvoiceDetail = lazy(() => import("./pages/client/PortalInvoiceDetail"));
 const PortalPayments      = lazy(() => import("./pages/client/PortalPayments"));
+
+// ─── Bookkeeper Pages ────────────────────────────────────────────────────────
+const BookkeeperDashboard    = lazy(() => import("./pages/bookkeeper/BookkeeperDashboard"));
+const BookkeeperPL           = lazy(() => import("./pages/bookkeeper/BookkeeperPlaceholder"));
+const BookkeeperBalanceSheet = lazy(() => import("./pages/bookkeeper/BookkeeperBalanceSheet"));
+const BookkeeperIncome       = lazy(() => import("./pages/bookkeeper/BookkeeperIncome"));
+const BookkeeperExpenses     = lazy(() => import("./pages/bookkeeper/BookkeeperExpenses"));
+const BookkeeperUnattributed = lazy(() => import("./pages/bookkeeper/BookkeeperUnattributed"));
+const BookkeeperBankRecon    = lazy(() => import("./pages/bookkeeper/BookkeeperBankRecon"));
+const BookkeeperPayouts      = lazy(() => import("./pages/bookkeeper/BookkeeperPayouts"));
+const Bookkeeper1099         = lazy(() => import("./pages/bookkeeper/Bookkeeper1099"));
+const BookkeeperExport       = lazy(() => import("./pages/bookkeeper/BookkeeperExport"));
 
 // ─── QueryClient Configuration ───────────────────────────────────────────────
 // FIX: Previously used `new QueryClient()` with no options, meaning:
