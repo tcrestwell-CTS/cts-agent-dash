@@ -1919,6 +1919,73 @@ export type Database = {
           },
         ]
       }
+      client_document_uploads: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          doc_key: string
+          file_name: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          reviewed: boolean | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          storage_path: string
+          trip_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          doc_key: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          storage_path: string
+          trip_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          doc_key?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          storage_path?: string
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_document_uploads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_document_uploads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_document_uploads_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_option_selections: {
         Row: {
           agent_confirmed: boolean
@@ -1999,6 +2066,7 @@ export type Database = {
           expires_at: string
           id: string
           token: string
+          unread_message_count: number | null
           verified_at: string | null
         }
         Insert: {
@@ -2008,6 +2076,7 @@ export type Database = {
           expires_at: string
           id?: string
           token: string
+          unread_message_count?: number | null
           verified_at?: string | null
         }
         Update: {
@@ -2017,6 +2086,7 @@ export type Database = {
           expires_at?: string
           id?: string
           token?: string
+          unread_message_count?: number | null
           verified_at?: string | null
         }
         Relationships: [
