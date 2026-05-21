@@ -66,7 +66,9 @@ export default function BookkeeperPacket() {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      const ids = Array.from(new Set((data || []).map((p: any) => p.generated_by).filter(Boolean)));
+      const ids = Array.from(
+        new Set((data || []).map((p: any) => p.generated_by).filter(Boolean) as string[]),
+      ) as string[];
       let map: Record<string, string> = {};
       if (ids.length) {
         const { data: profs } = await supabase
