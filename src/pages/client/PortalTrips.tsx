@@ -52,7 +52,18 @@ export default function PortalTrips() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {trips.map((trip: any) => (
+          {[...trips]
+            .sort((a: any, b: any) => {
+              // Upcoming trips first, sorted by departure date
+              const aDate = a.depart_date ? new Date(a.depart_date).getTime() : Infinity;
+              const bDate = b.depart_date ? new Date(b.depart_date).getTime() : Infinity;
+              const aFuture = aDate >= Date.now();
+              const bFuture = bDate >= Date.now();
+              if (aFuture && !bFuture) return -1;
+              if (!aFuture && bFuture) return 1;
+              return aFuture ? aDate - bDate : bDate - aDate;
+            })
+            .map((trip: any) => (
             <Link key={trip.id} to={`/client/trips/${trip.id}`}>
               <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden group h-full">
                 {/* Cover Image */}
