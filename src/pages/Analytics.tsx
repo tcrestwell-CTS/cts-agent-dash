@@ -104,4 +104,41 @@ function StatCard({
   );
 }
 
+export default function Analytics() {
+  const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const canViewAll = isAdmin || isOfficeAdmin;
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Performance, sales, and intelligence</p>
+        </div>
+        <Tabs defaultValue="sales" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="sales">Agency Sales</TabsTrigger>
+            {canViewAll && <TabsTrigger value="performance">Agent Performance</TabsTrigger>}
+            {canViewAll && <TabsTrigger value="intelligence">Agent Intelligence</TabsTrigger>}
+          </TabsList>
+          <TabsContent value="sales">
+            <AgencySalesTab />
+          </TabsContent>
+          {canViewAll && (
+            <TabsContent value="performance">
+              <AgentPerformanceSection />
+            </TabsContent>
+          )}
+          {canViewAll && (
+            <TabsContent value="intelligence">
+              <AgentIntelligenceTab />
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+    </DashboardLayout>
+  );
+}
+
 
