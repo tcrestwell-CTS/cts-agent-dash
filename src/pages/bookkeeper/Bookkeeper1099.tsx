@@ -65,6 +65,7 @@ export default function Bookkeeper1099() {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
+            <BookkeeperBreadcrumb page="1099 Prep" />
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-semibold">1099 Prep</h1>
               <PeriodLockButton year={year} month={12} />
