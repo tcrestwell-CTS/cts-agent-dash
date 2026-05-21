@@ -498,8 +498,22 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
         <TooltipProvider delayDuration={0}>
           {bookkeeperMode ? (
             <>
-              {bookkeeperNav.map((item) => (
-                <NavItemLink key={item.name} item={item} />
+              {bookkeeperSections.map((section, idx) => (
+                <div key={section.label ?? `top-${idx}`} className={idx === 0 ? "" : "pt-3"}>
+                  {section.label && (!collapsed || isMobile) && (
+                    <div className="px-3 pb-1">
+                      <p className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                        {section.label}
+                      </p>
+                    </div>
+                  )}
+                  {section.label && collapsed && !isMobile && (
+                    <div className="pb-1"><hr className="border-sidebar-border" /></div>
+                  )}
+                  {section.items.map((item) => (
+                    <NavItemLink key={item.name} item={item} />
+                  ))}
+                </div>
               ))}
             </>
           ) : (
