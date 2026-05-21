@@ -10,6 +10,9 @@ import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { EmptyState } from "@/components/bookkeeper/shared";
+import { Wallet } from "lucide-react";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -55,8 +58,11 @@ export default function BookkeeperPayouts() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">Agent Payouts</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold">Agent Payouts</h1>
+              <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
+            </div>
             <p className="text-muted-foreground text-sm">Commission paid and pending, by advisor.</p>
           </div>
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
@@ -66,7 +72,9 @@ export default function BookkeeperPayouts() {
         <Card>
           <CardHeader><CardTitle>By advisor</CardTitle></CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-48 w-full" /> : (
+            {isLoading ? <Skeleton className="h-48 w-full" /> : (data?.length ?? 0) === 0 ? (
+              <EmptyState icon={Wallet} title="No agent commissions yet" />
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -81,8 +89,8 @@ export default function BookkeeperPayouts() {
                     <TableRow key={r.user_id}>
                       <TableCell>{r.name}</TableCell>
                       <TableCell className="text-right"><Badge variant="outline">{r.count}</Badge></TableCell>
-                      <TableCell className="text-right">{fmt(r.pending)}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.paid)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(r.pending)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmt(r.paid)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
