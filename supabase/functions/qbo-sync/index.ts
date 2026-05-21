@@ -482,6 +482,137 @@ serve(async (req) => {
       });
     }
 
+    // ── GET ?action=trial-balance&year=YYYY&month=MM ──────────────────
+    if (urlPath === "trial-balance" && req.method === "GET") {
+      const yearParam = parseInt(syncUrl.searchParams.get("year") || "", 10);
+      const monthParam = parseInt(syncUrl.searchParams.get("month") || "", 10);
+      const forceRefresh = syncUrl.searchParams.get("refresh") === "1";
+      const now = new Date();
+      const year = Number.isFinite(yearParam) && yearParam > 0 ? yearParam : now.getUTCFullYear();
+      const month =
+        Number.isFinite(monthParam) && monthParam >= 1 && monthParam <= 12
+          ? monthParam
+          : now.getUTCMonth() + 1;
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const startDate = `${year}-${pad(month)}-01`;
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      const endDate = `${year}-${pad(month)}-${pad(lastDay)}`;
+
+      // ── Cache check (4-hour TTL) ────────────────────────────────────
+      const TTL_MS = 4 * 60 * 60 * 1000;
+      if (!forceRefresh) {
+        const { data: cached } = await supabaseAdmin
+          .from("qbo_report_cache")
+          .select("data, fetched_at")
+          .eq("user_id", userId)
+          .eq("report_type", "trial_balance")
+          .eq("period_year", year)
+          .eq("period_month", month)
+          .maybeSingle();
+        if (cached?.fetched_at) {
+          const age = Date.now() - new Date(cached.fetched_at).getTime();
+          if (age < TTL_MS) {
+            return new Response(
+              JSON.stringify({ cached: true, fetched_at: cached.fetched_at, ...cached.data }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+
+      // ── Fetch from QBO ──────────────────────────────────────────────
+      const tbResp = await fetch(
+        `${qboBase}/reports/TrialBalance?start_date=${startDate}&end_date=${endDate}`,
+        { headers: qboHeaders }
+      );
+
+      if (!tbResp.ok) {
+        const errText = await tbResp.text();
+        return new Response(
+          JSON.stringify({ error: "QBO TrialBalance fetch failed", detail: errText }),
+          { status: tbResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const tbData = await tbResp.json();
+
+      // ── Flatten rows into account list ──────────────────────────────
+      type TBRow = {
+        account: string;
+        account_type: string;
+        debit: number;
+        credit: number;
+        net: number;
+      };
+      const accounts: TBRow[] = [];
+
+      const walk = (rows: any[], currentType: string) => {
+        for (const row of rows || []) {
+          // Section header → recurse with group as type
+          if (row.type === "Section") {
+            const sectionType = row.group || row.Header?.ColData?.[0]?.value || currentType;
+            if (row.Rows?.Row) walk(row.Rows.Row, sectionType);
+            continue;
+          }
+          // Data row
+          if (row.type === "Data" && Array.isArray(row.ColData)) {
+            const name = row.ColData[0]?.value || "";
+            if (!name) continue;
+            const debit = parseFloat(row.ColData[1]?.value || "0") || 0;
+            const credit = parseFloat(row.ColData[2]?.value || "0") || 0;
+            accounts.push({
+              account: name,
+              account_type: currentType || "Other",
+              debit,
+              credit,
+              net: debit - credit,
+            });
+          }
+        }
+      };
+
+      walk(tbData.Rows?.Row || [], "Other");
+
+      const totalDebit = accounts.reduce((s, r) => s + r.debit, 0);
+      const totalCredit = accounts.reduce((s, r) => s + r.credit, 0);
+
+      const payload = {
+        report_name: tbData.Header?.ReportName || "Trial Balance",
+        start_date: startDate,
+        end_date: endDate,
+        period_year: year,
+        period_month: month,
+        currency: tbData.Header?.Currency || "USD",
+        accounts,
+        totals: {
+          debit: Math.round(totalDebit * 100) / 100,
+          credit: Math.round(totalCredit * 100) / 100,
+          difference: Math.round((totalDebit - totalCredit) * 100) / 100,
+        },
+      };
+
+      // ── Cache ───────────────────────────────────────────────────────
+      await supabaseAdmin
+        .from("qbo_report_cache")
+        .upsert(
+          {
+            user_id: userId,
+            report_type: "trial_balance",
+            period_year: year,
+            period_month: month,
+            data: payload,
+            fetched_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,report_type,period_year,period_month" }
+        );
+
+      return new Response(
+        JSON.stringify({ cached: false, fetched_at: new Date().toISOString(), ...payload }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── POST ?action=sync-payments ───────────────────────────────────
     if (urlPath === "sync-payments" && req.method === "POST") {
       const queryResp = await fetch(
