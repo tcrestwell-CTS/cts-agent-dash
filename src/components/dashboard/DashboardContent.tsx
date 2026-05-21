@@ -21,6 +21,7 @@ import { TopBar } from "@/components/dashboard/TopBar";
 import { NextActions } from "@/components/dashboard/NextActions";
 import { AdvisorAssistant } from "@/components/dashboard/AdvisorAssistant";
 import { ConversionFunnelCard } from "@/components/dashboard/ConversionFunnelCard";
+import { TodayActionItems } from "@/components/dashboard/TodayActionItems";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
