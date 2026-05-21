@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { exportToCSV } from "@/lib/csvExport";
 import { Download } from "lucide-react";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 type StatusFilter = "all" | "success" | "error" | "pending";
 

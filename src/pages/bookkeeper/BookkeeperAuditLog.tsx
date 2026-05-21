@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useBookkeeperAuditLog } from "@/hooks/useBookkeeperAudit";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 function useActorNames() {
   return useQuery({
@@ -29,7 +30,8 @@ export default function BookkeeperAuditLog() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
+        <div className="space-y-1">
+          <BookkeeperBreadcrumb page="Audit Log" />
           <h1 className="text-3xl font-semibold">Audit Log</h1>
           <p className="text-muted-foreground text-sm">Recent bookkeeper actions (page views, exports).</p>
         </div>

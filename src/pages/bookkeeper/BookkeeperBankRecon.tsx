@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -26,7 +27,8 @@ export default function BookkeeperBankRecon() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div>
+        <div className="space-y-1">
+          <BookkeeperBreadcrumb page="Bank Reconciliation" />
           <h1 className="text-3xl font-semibold">Bank Reconciliation</h1>
           <p className="text-muted-foreground text-sm">Stripe payouts arriving in the operating bank account.</p>
         </div>
