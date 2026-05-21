@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PortalAuthProvider } from "@/contexts/PortalAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureRoute } from "@/components/FeatureRoute";
+import { BookkeeperRoute } from "@/components/BookkeeperRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -90,6 +91,18 @@ const PortalMessages      = lazy(() => import("./pages/client/PortalMessages"));
 const PortalInvoices      = lazy(() => import("./pages/client/PortalInvoices"));
 const PortalInvoiceDetail = lazy(() => import("./pages/client/PortalInvoiceDetail"));
 const PortalPayments      = lazy(() => import("./pages/client/PortalPayments"));
+
+// ─── Bookkeeper Pages ────────────────────────────────────────────────────────
+const BookkeeperDashboard    = lazy(() => import("./pages/bookkeeper/BookkeeperDashboard"));
+const BookkeeperPL           = lazy(() => import("./pages/bookkeeper/BookkeeperPlaceholder"));
+const BookkeeperBalanceSheet = lazy(() => import("./pages/bookkeeper/BookkeeperBalanceSheet"));
+const BookkeeperIncome       = lazy(() => import("./pages/bookkeeper/BookkeeperIncome"));
+const BookkeeperExpenses     = lazy(() => import("./pages/bookkeeper/BookkeeperExpenses"));
+const BookkeeperUnattributed = lazy(() => import("./pages/bookkeeper/BookkeeperUnattributed"));
+const BookkeeperBankRecon    = lazy(() => import("./pages/bookkeeper/BookkeeperBankRecon"));
+const BookkeeperPayouts      = lazy(() => import("./pages/bookkeeper/BookkeeperPayouts"));
+const Bookkeeper1099         = lazy(() => import("./pages/bookkeeper/Bookkeeper1099"));
+const BookkeeperExport       = lazy(() => import("./pages/bookkeeper/BookkeeperExport"));
 
 // ─── QueryClient Configuration ───────────────────────────────────────────────
 // FIX: Previously used `new QueryClient()` with no options, meaning:
@@ -193,6 +206,18 @@ const App = () => (
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/update-info/:token" element={<ClientUpdateForm />} />
+
+                {/* Bookkeeper Routes */}
+                <Route path="/bookkeeper"                element={<ProtectedRoute><BookkeeperRoute><BookkeeperDashboard /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/pl"             element={<ProtectedRoute><BookkeeperRoute><BookkeeperPL /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/balance-sheet"  element={<ProtectedRoute><BookkeeperRoute><BookkeeperBalanceSheet /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/income"         element={<ProtectedRoute><BookkeeperRoute><BookkeeperIncome /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/expenses"       element={<ProtectedRoute><BookkeeperRoute><BookkeeperExpenses /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/unattributed"   element={<ProtectedRoute><BookkeeperRoute><BookkeeperUnattributed /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/bank-recon"     element={<ProtectedRoute><BookkeeperRoute><BookkeeperBankRecon /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/payouts"        element={<ProtectedRoute><BookkeeperRoute><BookkeeperPayouts /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/1099"           element={<ProtectedRoute><BookkeeperRoute><Bookkeeper1099 /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/export"         element={<ProtectedRoute><BookkeeperRoute><BookkeeperExport /></BookkeeperRoute></ProtectedRoute>} />
 
                 {/* Client Portal Routes */}
                 <Route path="/client/login" element={<PortalLogin />} />

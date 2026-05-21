@@ -1,0 +1,126 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight } from "lucide-react";
+
+function startOfMonthISO() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+}
+
+function useBookkeeperKpis() {
+  return useQuery({
+    queryKey: ["bookkeeper-kpis"],
+    queryFn: async () => {
+      const since = startOfMonthISO();
+
+      const [incomeRes, expensesRes, unattribRes] = await Promise.all([
+        (supabase as any)
+          .from("trip_payments")
+          .select("amount, payment_date, status")
+          .eq("status", "paid")
+          .gte("payment_date", since),
+        (supabase as any)
+          .from("trip_payments")
+          .select("supplier_paid_amount, supplier_paid_at, supplier_paid_status")
+          .eq("supplier_paid_status", "paid")
+          .gte("supplier_paid_at", since),
+        (supabase as any)
+          .from("checkout_payments")
+          .select("id", { count: "exact", head: true })
+          .eq("payment_type", "unattributed_deposit"),
+      ]);
+
+      const mtdIncome = (incomeRes.data ?? []).reduce(
+        (s, r: any) => s + Number(r.amount || 0),
+        0,
+      );
+      const mtdExpenses = (expensesRes.data ?? []).reduce(
+        (s, r: any) => s + Number(r.supplier_paid_amount || 0),
+        0,
+      );
+      return {
+        mtdIncome,
+        mtdExpenses,
+        mtdNet: mtdIncome - mtdExpenses,
+        unattributed: unattribRes.count ?? 0,
+      };
+    },
+  });
+}
+
+const fmt = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+
+export default function BookkeeperDashboard() {
+  const { data, isLoading } = useBookkeeperKpis();
+
+  const cards = [
+    { label: "MTD Income", value: data?.mtdIncome ?? 0, icon: DollarSign },
+    { label: "MTD Expenses", value: data?.mtdExpenses ?? 0, icon: Banknote },
+    { label: "MTD Net", value: data?.mtdNet ?? 0, icon: TrendingUp },
+  ];
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6 p-6">
+        <div>
+          <h1 className="text-3xl font-semibold">Bookkeeper Dashboard</h1>
+          <p className="text-muted-foreground text-sm">
+            Read-only financial overview for the current month.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {cards.map((c) => (
+            <Card key={c.label}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {c.label}
+                </CardTitle>
+                <c.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-32" />
+                ) : (
+                  <div className="text-2xl font-bold">{fmt(c.value)}</div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2">
+                <FileWarning className="h-5 w-5 text-amber-500" />
+                Unattributed Deposits
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Stripe payments not yet matched to a trip or booking.
+              </p>
+            </div>
+            {!isLoading && (data?.unattributed ?? 0) > 0 && (
+              <Badge variant="destructive">{data?.unattributed}</Badge>
+            )}
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link to="/bookkeeper/unattributed">
+                Review unattributed
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+}
