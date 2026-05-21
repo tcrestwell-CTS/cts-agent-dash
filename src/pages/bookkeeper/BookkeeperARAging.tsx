@@ -165,6 +165,25 @@ export default function BookkeeperARAging() {
     return { sums, grand };
   }, [aged]);
 
+  type ArSortKey = "client" | "trip" | "invoice_number" | "invoice_date" | "due_date" | "total" | "paid" | "balance" | "days";
+  const { sort: arSort, onSort: onArSort } = useSort<ArSortKey>({ key: "invoice_date", dir: "asc" });
+  const arSorted = useMemo(
+    () =>
+      sortRows(filtered, arSort, (r, k) => {
+        if (k === "client") return r.client_name;
+        if (k === "trip") return r.trip_name;
+        if (k === "invoice_number") return r.invoice_number;
+        if (k === "invoice_date") return r.invoice_date;
+        if (k === "due_date") return r.due_date;
+        if (k === "total") return r.total;
+        if (k === "paid") return r.paid;
+        if (k === "balance") return r.balance;
+        return r.days;
+      }),
+    [filtered, arSort],
+  );
+  const arPg = usePagination(arSorted);
+
   const exportCsv = () => {
     logAction("export_csv", "bookkeeper_ar_aging", { rows: filtered.length });
     exportToCSV(
