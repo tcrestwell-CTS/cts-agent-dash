@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     // AP: unpaid supplier bookings
     const { data: apBookings } = await svc
       .from('bookings')
-      .select('supplier_payout, return_date:trip_id, created_at, status, supplier_paid_status')
+      .select('supplier_payout, created_at, status, supplier_paid_status')
       .neq('supplier_paid_status', 'paid')
       .in('status', ['confirmed', 'completed']);
     const apBuckets = { current: 0, b1_30: 0, b31_60: 0, b61_90: 0, b90: 0, total: 0 };
