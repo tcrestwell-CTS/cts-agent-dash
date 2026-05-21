@@ -375,6 +375,7 @@ export function TripBookings({
                      <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier Conf #</th>
                      <th className="pb-3 font-medium text-sm text-muted-foreground">Payment</th>
                      <th className="pb-3 font-medium text-sm text-muted-foreground">Commission</th>
+                     <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier Paid</th>
                      <th className="pb-3 font-medium text-sm text-muted-foreground w-10"></th>
                   </tr>
                 </thead>
@@ -445,6 +446,12 @@ export function TripBookings({
                         </div>
                       </td>
                       <td className="py-3">{getCommissionStatus(booking)}</td>
+                      <td className="py-3">
+                        <InlinePaymentStatus
+                          status={booking.supplier_paid_status}
+                          type="supplier"
+                        />
+                      </td>
                       <td className="py-3">
                         {getBookingPaymentInfo(booking.id).hasPayments ? (
                           <TooltipProvider>
