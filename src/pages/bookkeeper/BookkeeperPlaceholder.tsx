@@ -31,11 +31,7 @@ export function BookkeeperPlaceholder({ title, description }: Props) {
   );
 }
 
-export default function BookkeeperPL() {
-  return (
-    <BookkeeperPlaceholder
-      title="Profit & Loss"
-      description="Computed locally from trip payments and supplier expenses."
-    />
-  );
+// Default export kept for backward compatibility – real P&L lives in BookkeeperPL.tsx
+export default function BookkeeperPlaceholderDefault() {
+  return <BookkeeperPlaceholder title="Coming Soon" />;
 }
