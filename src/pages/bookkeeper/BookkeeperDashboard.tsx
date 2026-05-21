@@ -20,17 +20,17 @@ function useBookkeeperKpis() {
       const since = startOfMonthISO();
 
       const [incomeRes, expensesRes, unattribRes] = await Promise.all([
-        supabase
+        (supabase as any)
           .from("trip_payments")
           .select("amount, payment_date, status")
           .eq("status", "paid")
           .gte("payment_date", since),
-        supabase
+        (supabase as any)
           .from("trip_payments")
           .select("supplier_paid_amount, supplier_paid_at, supplier_paid_status")
           .eq("supplier_paid_status", "paid")
           .gte("supplier_paid_at", since),
-        supabase
+        (supabase as any)
           .from("checkout_payments")
           .select("id", { count: "exact", head: true })
           .eq("payment_type", "unattributed_deposit"),
