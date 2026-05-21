@@ -120,3 +120,126 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Improved Typography & Readability ─────────────────────────────────
+   Inter replaces Montserrat for better small-size legibility.
+   Tighter letter-spacing on headings, looser line-height on body.
+   Consistent font-feature-settings for numerals.
+*/
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.9375rem;      /* 15px — easier to read than 14px */
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+  }
+
+  /* Table cells — tighter but readable */
+  td, th {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Labels and badges — keep crisp */
+  label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+
+  /* Numeric values — tabular figures for alignment */
+  .tabular-nums,
+  [data-amount],
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── Card & Container improvements ────────────────────────────────────── */
+@layer components {
+
+  /* Cleaner card with subtle gradient and better shadow */
+  .card-clean {
+    @apply bg-card rounded-xl border border-border/60 shadow-card;
+    background: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(210 20% 99%) 100%);
+  }
+
+  /* Section headers inside cards */
+  .card-section-label {
+    @apply text-xs font-semibold tracking-widest uppercase text-muted-foreground;
+    letter-spacing: 0.1em;
+  }
+
+  /* Stat display — large number, small label */
+  .stat-number {
+    @apply text-2xl font-bold tracking-tight tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    @apply text-xs font-medium text-muted-foreground uppercase tracking-wide;
+    letter-spacing: 0.08em;
+  }
+
+  /* Status badge — consistent across all pages */
+  .status-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .status-badge-success { @apply bg-green-50 text-green-700 border border-green-200; }
+  .status-badge-warning { @apply bg-amber-50 text-amber-700 border border-amber-200; }
+  .status-badge-danger  { @apply bg-red-50   text-red-700   border border-red-200;   }
+  .status-badge-info    { @apply bg-blue-50  text-blue-700  border border-blue-200;  }
+  .status-badge-muted   { @apply bg-gray-50  text-gray-600  border border-gray-200;  }
+
+  /* Action row at top of pages */
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+  .page-title {
+    @apply text-xl font-semibold tracking-tight text-foreground;
+  }
+  .page-subtitle {
+    @apply text-sm text-muted-foreground mt-0.5;
+  }
+
+  /* Table improvements — better row height and hover */
+  .data-table th {
+    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 px-4 py-3;
+    letter-spacing: 0.06em;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-sm border-b border-border/50;
+  }
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+  .data-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* Quick action button — outline style */
+  .btn-action {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
+           rounded-lg border border-border bg-background text-foreground
+           hover:bg-muted transition-colors cursor-pointer;
+  }
+
+  /* Departure urgency indicators */
+  .depart-urgent   { @apply text-red-600   font-semibold; }
+  .depart-soon     { @apply text-amber-600 font-medium; }
+  .depart-normal   { @apply text-muted-foreground; }
+}
