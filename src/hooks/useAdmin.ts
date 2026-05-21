@@ -54,6 +54,29 @@ export function useIsOfficeAdmin() {
   });
 }
 
+export function useIsBookkeeper() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["is-bookkeeper", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "bookkeeper" as never)
+        .maybeSingle();
+      if (error) {
+        console.error("Error checking bookkeeper status:", error);
+        return false;
+      }
+      return !!data;
+    },
+    enabled: !!user,
+  });
+}
+
 export function useUserRole() {
   const { user } = useAuth();
 
@@ -75,7 +98,7 @@ export function useUserRole() {
 
       if (!data) return "user"; // Default to agent if no role assigned
       
-      return data.role as "admin" | "office_admin" | "user";
+      return data.role as "admin" | "office_admin" | "user" | "bookkeeper";
     },
     enabled: !!user,
   });

@@ -182,6 +182,13 @@ export type Database = {
             foreignKeyName: "agency_margin_rules_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_suppliers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_margin_rules_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -947,6 +954,13 @@ export type Database = {
             foreignKeyName: "booking_travelers_linked_client_id_fkey"
             columns: ["linked_client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_travelers_linked_client_id_fkey"
+            columns: ["linked_client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1074,6 +1088,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_suppliers_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -1572,6 +1593,13 @@ export type Database = {
             foreignKeyName: "cc_authorizations_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cc_authorizations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1783,7 +1811,21 @@ export type Database = {
             foreignKeyName: "client_companions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_companions_linked_client_id_fkey"
+            columns: ["linked_client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
             referencedColumns: ["id"]
           },
           {
@@ -1827,6 +1869,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_document_checklist_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_document_checklist_client_id_fkey"
             columns: ["client_id"]
@@ -1878,6 +1927,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_option_selections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_option_selections_client_id_fkey"
             columns: ["client_id"]
@@ -1941,6 +1997,13 @@ export type Database = {
             foreignKeyName: "client_portal_sessions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -1969,6 +2032,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_profiles_client_id_fkey"
             columns: ["client_id"]
@@ -2007,6 +2077,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_update_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_update_tokens_client_id_fkey"
             columns: ["client_id"]
@@ -2519,6 +2596,13 @@ export type Database = {
             foreignKeyName: "email_logs_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -2804,6 +2888,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "flight_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "flight_orders_client_id_fkey"
             columns: ["client_id"]
@@ -3130,6 +3221,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_client_id_fkey"
             columns: ["client_id"]
@@ -3979,6 +4077,13 @@ export type Database = {
             foreignKeyName: "portal_client_settings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_client_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -4013,6 +4118,13 @@ export type Database = {
           sender_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "portal_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "portal_messages_client_id_fkey"
             columns: ["client_id"]
@@ -4302,6 +4414,13 @@ export type Database = {
             foreignKeyName: "qbo_client_mappings_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qbo_client_mappings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -4396,6 +4515,13 @@ export type Database = {
           synced_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "qbo_customers_crm_client_id_fkey"
+            columns: ["crm_client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "qbo_customers_crm_client_id_fkey"
             columns: ["crm_client_id"]
@@ -4655,6 +4781,13 @@ export type Database = {
             foreignKeyName: "qbo_supplier_mappings_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_suppliers_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qbo_supplier_mappings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -4910,6 +5043,13 @@ export type Database = {
           viewed_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_suppliers_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotes_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -5523,6 +5663,13 @@ export type Database = {
             columns: ["crm_booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_payments_crm_client_id_fkey"
+            columns: ["crm_client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
             referencedColumns: ["id"]
           },
           {
@@ -6485,6 +6632,13 @@ export type Database = {
             foreignKeyName: "trip_insurance_responses_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_insurance_responses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -6867,6 +7021,13 @@ export type Database = {
             foreignKeyName: "trip_travelers_linked_client_id_fkey"
             columns: ["linked_client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_travelers_linked_client_id_fkey"
+            columns: ["linked_client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
@@ -7087,7 +7248,21 @@ export type Database = {
             foreignKeyName: "trips_budget_change_requested_by_client_id_fkey"
             columns: ["budget_change_requested_by_client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_budget_change_requested_by_client_id_fkey"
+            columns: ["budget_change_requested_by_client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_budget_confirmed_by_client_id_fkey"
+            columns: ["budget_confirmed_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
             referencedColumns: ["id"]
           },
           {
@@ -7101,7 +7276,21 @@ export type Database = {
             foreignKeyName: "trips_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_itinerary_approved_by_client_id_fkey"
+            columns: ["itinerary_approved_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
             referencedColumns: ["id"]
           },
           {
@@ -7464,6 +7653,85 @@ export type Database = {
       }
     }
     Views: {
+      bookkeeper_clients_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      bookkeeper_profiles_view: {
+        Row: {
+          commission_tier: Database["public"]["Enums"]["commission_tier"] | null
+          created_at: string | null
+          full_name: string | null
+          id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          commission_tier?:
+            | Database["public"]["Enums"]["commission_tier"]
+            | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          commission_tier?:
+            | Database["public"]["Enums"]["commission_tier"]
+            | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      bookkeeper_suppliers_view: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       email_contacts: {
         Row: {
           contact_id: string | null
@@ -7651,6 +7919,7 @@ export type Database = {
         Returns: undefined
       }
       is_authenticated: { Args: never; Returns: boolean }
+      is_bookkeeper: { Args: { _user_id: string }; Returns: boolean }
       is_invoice_cash_payment: {
         Args: { p: Database["public"]["Tables"]["trip_payments"]["Row"] }
         Returns: boolean
@@ -7659,7 +7928,7 @@ export type Database = {
       reveal_cw_agent_secret: { Args: never; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "office_admin"
+      app_role: "admin" | "moderator" | "user" | "office_admin" | "bookkeeper"
       commission_tier: "tier_1" | "tier_2" | "tier_3" | "none"
     }
     CompositeTypes: {
@@ -7788,7 +8057,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "office_admin"],
+      app_role: ["admin", "moderator", "user", "office_admin", "bookkeeper"],
       commission_tier: ["tier_1", "tier_2", "tier_3", "none"],
     },
   },

@@ -30,18 +30,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { getTierConfig, CommissionTier, COMMISSION_TIERS } from "@/lib/commissionTiers";
 
-type AppRole = "admin" | "office_admin" | "user";
+type AppRole = "admin" | "office_admin" | "user" | "bookkeeper";
 
 const roleLabels: Record<AppRole, string> = {
   admin: "Admin",
   office_admin: "Office Admin",
   user: "Agent",
+  bookkeeper: "Bookkeeper",
 };
 
 const roleBadgeStyles: Record<AppRole, string> = {
   admin: "bg-primary/10 text-primary",
   office_admin: "bg-accent/10 text-accent",
   user: "bg-muted text-muted-foreground",
+  bookkeeper: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
 };
 
 export function TeamProfiles() {
@@ -278,6 +280,7 @@ export function TeamProfiles() {
                       <SelectContent>
                         <SelectItem value="user">Agent</SelectItem>
                         <SelectItem value="office_admin">Office Admin</SelectItem>
+                        <SelectItem value="bookkeeper">Bookkeeper</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
