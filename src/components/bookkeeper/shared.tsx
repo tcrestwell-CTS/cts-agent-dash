@@ -1,7 +1,16 @@
 import { ReactNode, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowUp, ArrowDown, ChevronsUpDown, Inbox } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   Pagination,
   PaginationContent,
@@ -14,6 +23,26 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { cn } from "@/lib/utils";
+
+/* ─────────────────────────────────────────────────────────── breadcrumb ── */
+
+export function BookkeeperBreadcrumb({ page }: { page: string }) {
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link to="/bookkeeper">Bookkeeper</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>{page}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
 
 /* ────────────────────────────────────────────────────────────── header ─── */
 
