@@ -32,6 +32,9 @@ interface AddPaymentDialogProps {
   tripId: string;
   bookings: TripBooking[];
   onPaymentCreated?: () => void;
+  clientName?: string;
+  clientEmail?: string;
+  tripName?: string;
 }
 
 type PaymentMode = null | "stripe_agent" | "stripe_link" | "manual" | "schedule";
@@ -181,6 +184,9 @@ export function AddPaymentDialog({
   tripId,
   bookings,
   onPaymentCreated,
+  clientName = "",
+  clientEmail = "",
+  tripName = "",
 }: AddPaymentDialogProps) {
   const { createPayment, creating } = useTripPayments(tripId);
   const [mode, setMode] = useState<PaymentMode>(null);
@@ -259,27 +265,33 @@ export function AddPaymentDialog({
       const record = await createPendingRecord();
       if (!record) return;
 
-      // Build a deep link to the branded payment page on crestwellgetaways.com.
-      // Including trip_payment_id + trip_id ensures the payment is fully attributed
-      // when the Stripe webhook fires — no email-fallback guessing needed.
-      const base = "https://crestwellgetaways.com/payment";
-      const params = new URLSearchParams({
-        trip_payment_id: record.id,
-        trip_id: tripId,
-        amount: String(Math.round(parseFloat(formData.amount) * 100)), // in cents
-        payment_type: formData.payment_type || "payment",
-        ...(formData.details ? { trip_name: formData.details } : {}),
-      });
-
-      // Append booking reference if a booking is selected
+      // Build a compact deep link to crestwellgetaways.com/pay.
+      // We encode CRM IDs + pre-fill data as a base64 ?d= param so the URL
+      // stays clean and the /pay page can decode it without a token requirement.
+      // trip_payment_id + trip_id in the payload ensures the Stripe webhook
+      // can attribute the payment directly without email-fallback guessing.
       const selectedBooking = formData.booking_id !== "none"
         ? bookings.find(b => b.id === formData.booking_id)
         : null;
-      if (selectedBooking?.confirmation_number) {
-        params.set("booking_ref", selectedBooking.confirmation_number);
-      }
 
-      const deepLink = `${base}?${params.toString()}`;
+      const payload = {
+        trip_payment_id: record.id,
+        trip_id: tripId,
+        amount: String(Math.round(parseFloat(formData.amount) * 100)), // cents
+        payment_type: formData.payment_type || "payment",
+        trip_name: formData.details || tripName || "",
+        client_name: clientName,
+        client_email: clientEmail,
+        booking_ref: selectedBooking?.confirmation_number || formData.details || "",
+      };
+
+      // base64url encode the payload (URL-safe: replace + with - and / with _)
+      const encoded = btoa(JSON.stringify(payload))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+
+      const deepLink = `https://crestwellgetaways.com/pay?d=${encoded}`;
       setGeneratedLink(deepLink);
       onPaymentCreated?.();
     } catch (err) {
