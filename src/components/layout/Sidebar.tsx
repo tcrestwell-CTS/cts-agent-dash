@@ -181,27 +181,63 @@ const adminNavGroups: NavGroup[] = [
 ];
 
 // ─── Bookkeeper-only navigation ──────────────────────────────────────────────
-const bookkeeperNav: NavItem[] = [
-  { name: "Dashboard",             href: "/bookkeeper",              icon: LayoutDashboard },
-  { name: "P&L",                   href: "/bookkeeper/pl",           icon: TrendingUp },
-  { name: "Balance Sheet",         href: "/bookkeeper/balance-sheet",icon: FileBarChart },
-  { name: "Income",                href: "/bookkeeper/income",       icon: DollarSign },
-  { name: "Expenses",              href: "/bookkeeper/expenses",     icon: Banknote },
-  { name: "Unattributed Deposits", href: "/bookkeeper/unattributed", icon: FileWarning },
-  { name: "AR / AP Aging",         href: "/bookkeeper/aging",        icon: AlertTriangle },
-  { name: "AR Aging",              href: "/bookkeeper/ar-aging",     icon: AlertTriangle },
-  { name: "AP Aging",              href: "/bookkeeper/ap-aging",     icon: AlertTriangle },
-  { name: "Trial Balance",         href: "/bookkeeper/trial-balance",icon: FileSpreadsheet },
-  { name: "Financial Packet",      href: "/bookkeeper/packet",       icon: FileText },
-  { name: "Stripe Reconciliation", href: "/recon/stripe",            icon: ArrowRightLeft },
-  { name: "Bank Reconciliation",   href: "/bookkeeper/bank-recon",   icon: Landmark },
-  { name: "QBO Sync",              href: "/qbo-health",              icon: HeartPulse },
-  { name: "Agent Payouts",         href: "/bookkeeper/payouts",      icon: Wallet },
-  { name: "1099 Prep",             href: "/bookkeeper/1099",         icon: FileText },
-  { name: "Export",                href: "/bookkeeper/export",       icon: Download },
-  { name: "QBO Sync Logs",         href: "/bookkeeper/qbo-logs",     icon: Activity },
-  { name: "Audit Log",             href: "/bookkeeper/audit",        icon: ShieldCheck },
+type BookkeeperSection = { label: string | null; items: NavItem[] };
+
+const bookkeeperSections: BookkeeperSection[] = [
+  {
+    label: null,
+    items: [{ name: "Dashboard", href: "/bookkeeper", icon: LayoutDashboard }],
+  },
+  {
+    label: "Financials",
+    items: [
+      { name: "P&L",               href: "/bookkeeper/pl",            icon: TrendingUp },
+      { name: "Balance Sheet",     href: "/bookkeeper/balance-sheet", icon: FileBarChart },
+      { name: "Trial Balance",     href: "/bookkeeper/trial-balance", icon: FileSpreadsheet },
+      { name: "Financial Packet",  href: "/bookkeeper/packet",        icon: FileText },
+    ],
+  },
+  {
+    label: "AR / AP",
+    items: [
+      { name: "AR Aging", href: "/bookkeeper/ar-aging", icon: AlertTriangle },
+      { name: "AP Aging", href: "/bookkeeper/ap-aging", icon: AlertTriangle },
+    ],
+  },
+  {
+    label: "Transactions",
+    items: [
+      { name: "Income",       href: "/bookkeeper/income",       icon: DollarSign },
+      { name: "Expenses",     href: "/bookkeeper/expenses",     icon: Banknote },
+      { name: "Unattributed", href: "/bookkeeper/unattributed", icon: FileWarning },
+    ],
+  },
+  {
+    label: "Payroll",
+    items: [
+      { name: "Agent Payouts", href: "/bookkeeper/payouts", icon: Wallet },
+      { name: "1099 Prep",     href: "/bookkeeper/1099",    icon: FileText },
+    ],
+  },
+  {
+    label: "Sync",
+    items: [
+      { name: "QBO Sync",            href: "/qbo-health",            icon: HeartPulse },
+      { name: "Stripe Recon",        href: "/recon/stripe",          icon: ArrowRightLeft },
+      { name: "Bank Reconciliation", href: "/bookkeeper/bank-recon", icon: Landmark },
+      { name: "QBO Sync Logs",       href: "/bookkeeper/qbo-logs",   icon: Activity },
+    ],
+  },
+  {
+    label: "Export",
+    items: [
+      { name: "Export Center", href: "/bookkeeper/export", icon: Download },
+      { name: "Audit Log",     href: "/bookkeeper/audit",  icon: ShieldCheck },
+    ],
+  },
 ];
+
+const bookkeeperNav: NavItem[] = bookkeeperSections.flatMap((s) => s.items);
 
 function useUnattributedCount(enabled: boolean) {
   return useQuery({
@@ -462,8 +498,22 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
         <TooltipProvider delayDuration={0}>
           {bookkeeperMode ? (
             <>
-              {bookkeeperNav.map((item) => (
-                <NavItemLink key={item.name} item={item} />
+              {bookkeeperSections.map((section, idx) => (
+                <div key={section.label ?? `top-${idx}`} className={idx === 0 ? "" : "pt-3"}>
+                  {section.label && (!collapsed || isMobile) && (
+                    <div className="px-3 pb-1">
+                      <p className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                        {section.label}
+                      </p>
+                    </div>
+                  )}
+                  {section.label && collapsed && !isMobile && (
+                    <div className="pb-1"><hr className="border-sidebar-border" /></div>
+                  )}
+                  {section.items.map((item) => (
+                    <NavItemLink key={item.name} item={item} />
+                  ))}
+                </div>
               ))}
             </>
           ) : (
