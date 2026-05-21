@@ -2835,6 +2835,36 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_packets: {
+        Row: {
+          created_at: string | null
+          generated_by: string | null
+          id: string
+          period_month: number
+          period_year: number
+          status: string | null
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          period_month: number
+          period_year: number
+          status?: string | null
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          period_month?: number
+          period_year?: number
+          status?: string | null
+          storage_path?: string | null
+        }
+        Relationships: []
+      }
       flight_orders: {
         Row: {
           airline_name: string | null
@@ -4070,6 +4100,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      period_locks: {
+        Row: {
+          created_at: string | null
+          id: string
+          locked_at: string
+          locked_by: string | null
+          notes: string | null
+          period_month: number
+          period_year: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          notes?: string | null
+          period_month: number
+          period_year: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          locked_at?: string
+          locked_by?: string | null
+          notes?: string | null
+          period_month?: number
+          period_year?: number
+        }
+        Relationships: []
       }
       portal_client_settings: {
         Row: {
