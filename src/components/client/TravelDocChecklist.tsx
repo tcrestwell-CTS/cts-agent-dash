@@ -36,7 +36,7 @@ export function TravelDocChecklist({ tripId }: TravelDocChecklistProps) {
   async function toggleItem(key: string, checked: boolean) {
     setUpdating(key);
     try {
-      const headers = await getPortalAuthHeaders();
+      const headers = await getPortalAuthHeaders(session);
       await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=doc-checklist-update`,
         {
