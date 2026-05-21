@@ -185,6 +185,12 @@ export function useInvitations() {
       // Resend email
       const inviteUrl = `https://app.crestwelltravels.com/auth?invite=${invitation.token}`;
 
+      const roleLabel =
+        invitation.role === "admin" ? "an administrator"
+        : invitation.role === "office_admin" ? "an office administrator"
+        : invitation.role === "bookkeeper" ? "an accountant"
+        : "a travel agent";
+
       await supabase.functions.invoke("send-email", {
         body: {
           to: invitation.email,
@@ -194,6 +200,7 @@ export function useInvitations() {
             inviteUrl,
             inviterName: profile?.full_name || "An administrator",
             expiresIn: "7 days",
+            roleLabel,
           },
         },
       });
