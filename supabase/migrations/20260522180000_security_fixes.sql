@@ -137,3 +137,6 @@ DROP POLICY IF EXISTS "Users can upload cc signatures" ON storage.objects;
 CREATE POLICY "Authenticated users can upload cc signatures" ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'cc-signatures' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+-- ============ blog_posts: enable RLS (policies exist) ============
+ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
