@@ -3693,25 +3693,30 @@ export type Database = {
           autopay_method: string | null
           autopay_signed_at: string | null
           autopay_start_date: string | null
+          badge_color: string | null
           bankruptcy_details: string | null
           bankruptcy_history: boolean | null
           checking_account: boolean | null
           city: string
+          client_message: string | null
           consent_autopay: boolean | null
           consent_credit_check: boolean
           consent_terms: boolean
           created_at: string | null
           date_of_birth: string
+          decision: string | null
           decision_date: string | null
           decision_notes: string | null
           down_payment: number | null
           email: string
           employer_name: string | null
           employment_status: string
+          environment: string | null
           equifax_checked_at: string | null
           equifax_client_message: string | null
           equifax_decision: string | null
           equifax_error: string | null
+          equifax_raw: Json | null
           equifax_raw_response: Json | null
           equifax_reasons: Json | null
           equifax_score: number | null
@@ -3730,7 +3735,7 @@ export type Database = {
           monthly_rent_mortgage: number | null
           other_income: number | null
           other_income_source: string | null
-          phone: string
+          phone: string | null
           preferred_term_months: number | null
           qbo_customer_id: string | null
           qbo_synced_at: string | null
@@ -3771,25 +3776,30 @@ export type Database = {
           autopay_method?: string | null
           autopay_signed_at?: string | null
           autopay_start_date?: string | null
+          badge_color?: string | null
           bankruptcy_details?: string | null
           bankruptcy_history?: boolean | null
           checking_account?: boolean | null
           city: string
+          client_message?: string | null
           consent_autopay?: boolean | null
           consent_credit_check?: boolean
           consent_terms?: boolean
           created_at?: string | null
           date_of_birth: string
+          decision?: string | null
           decision_date?: string | null
           decision_notes?: string | null
           down_payment?: number | null
           email: string
           employer_name?: string | null
           employment_status: string
+          environment?: string | null
           equifax_checked_at?: string | null
           equifax_client_message?: string | null
           equifax_decision?: string | null
           equifax_error?: string | null
+          equifax_raw?: Json | null
           equifax_raw_response?: Json | null
           equifax_reasons?: Json | null
           equifax_score?: number | null
@@ -3808,7 +3818,7 @@ export type Database = {
           monthly_rent_mortgage?: number | null
           other_income?: number | null
           other_income_source?: string | null
-          phone: string
+          phone?: string | null
           preferred_term_months?: number | null
           qbo_customer_id?: string | null
           qbo_synced_at?: string | null
@@ -3849,25 +3859,30 @@ export type Database = {
           autopay_method?: string | null
           autopay_signed_at?: string | null
           autopay_start_date?: string | null
+          badge_color?: string | null
           bankruptcy_details?: string | null
           bankruptcy_history?: boolean | null
           checking_account?: boolean | null
           city?: string
+          client_message?: string | null
           consent_autopay?: boolean | null
           consent_credit_check?: boolean
           consent_terms?: boolean
           created_at?: string | null
           date_of_birth?: string
+          decision?: string | null
           decision_date?: string | null
           decision_notes?: string | null
           down_payment?: number | null
           email?: string
           employer_name?: string | null
           employment_status?: string
+          environment?: string | null
           equifax_checked_at?: string | null
           equifax_client_message?: string | null
           equifax_decision?: string | null
           equifax_error?: string | null
+          equifax_raw?: Json | null
           equifax_raw_response?: Json | null
           equifax_reasons?: Json | null
           equifax_score?: number | null
@@ -3886,7 +3901,7 @@ export type Database = {
           monthly_rent_mortgage?: number | null
           other_income?: number | null
           other_income_source?: string | null
-          phone?: string
+          phone?: string | null
           preferred_term_months?: number | null
           qbo_customer_id?: string | null
           qbo_synced_at?: string | null
