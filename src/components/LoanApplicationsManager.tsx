@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SendFinancingLinkDialog } from "@/components/financing/SendFinancingLinkDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -197,6 +198,7 @@ function Row({ label, value, highlight = false }: { label: string; value: string
 export default function LoanApplicationsManager() {
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNewLink, setShowNewLink] = useState(false);
   const [selected, setSelected] = useState<LoanApplication | null>(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
