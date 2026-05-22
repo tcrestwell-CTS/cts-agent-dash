@@ -29,6 +29,7 @@ const TrainingLessonDetail = lazy(() => import("./pages/TrainingLessonDetail"));
 const TrainingAdmin       = lazy(() => import("./pages/TrainingAdmin"));
 const Commissions         = lazy(() => import("./pages/Commissions"));
 const CommissionReport    = lazy(() => import("./pages/CommissionReport"));
+const SupplierPaymentsDue = lazy(() => import("./pages/SupplierPaymentsDue"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
 const Branding            = lazy(() => import("./pages/Branding"));
 const Settings            = lazy(() => import("./pages/Settings"));
