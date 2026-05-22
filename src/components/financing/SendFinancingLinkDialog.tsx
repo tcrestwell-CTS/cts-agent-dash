@@ -69,19 +69,6 @@ export function SendFinancingLinkDialog({
       const tokenStr = btoa(JSON.stringify(tokenPayload))
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 
-      const { error } = await supabase
-        .from("portal_tokens")
-        .insert({
-          token:      tokenStr,
-          token_type: "financing",
-          client_id:  clientId || null,
-          trip_id:    tripId   || null,
-          expires_at: expiresAt.toISOString(),
-          metadata:   tokenPayload,
-        });
-
-      if (error) throw error;
-
       const url = `${FINANCING_BASE}?token=${tokenStr}`;
       setGeneratedLink(url);
     } catch (err) {
