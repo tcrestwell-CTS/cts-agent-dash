@@ -123,10 +123,11 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
   doc.setFont("helvetica", "bold");
   doc.text("Invoice", margin, yPos);
 
-  // Try to load and add agency logo (top right)
-  const logoSize = 30;
-  const logoX = pageWidth - margin - logoSize;
-  const logoY = yPos - 18;
+  // Try to load and add agency logo (top right) — wide aspect ratio
+  const logoWidth = 55;
+  const logoHeight = 36;
+  const logoX = pageWidth - margin - logoWidth;
+  const logoY = yPos - 22;
   let logoAdded = false;
 
   // Try agency logo URL first, then fall back to default local logo
@@ -139,7 +140,7 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
     try {
       const logoBase64 = await loadImageAsBase64(logoSrc);
       if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", logoX, logoY, logoSize, logoSize, undefined, "FAST");
+        doc.addImage(logoBase64, "PNG", logoX, logoY, logoWidth, logoHeight, undefined, "FAST");
         logoAdded = true;
         break;
       }
