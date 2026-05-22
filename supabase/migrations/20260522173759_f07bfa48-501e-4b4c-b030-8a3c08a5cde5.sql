@@ -1,0 +1,1 @@
+UPDATE branding_settings SET logo_url = 'https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/logos/logo_simplified.png';
