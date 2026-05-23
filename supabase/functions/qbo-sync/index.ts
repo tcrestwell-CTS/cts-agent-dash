@@ -43,14 +43,39 @@ serve(async (req) => {
   const userId = claimsData.claims.sub as string;
 
   // ── Get QBO connection ─────────────────────────────────────────────
-  const { data: connection, error: connError } = await supabaseAdmin
+  // First try this user's own active connection. If none exists and the
+  // caller is an admin / office_admin / bookkeeper, fall back to any active
+  // org-wide QBO connection (the agency has a single shared QBO realm).
+  let { data: connection } = await supabaseAdmin
     .from("qbo_connections")
     .select("*")
     .eq("user_id", userId)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
 
-  if (connError || !connection) {
+  if (!connection) {
+    const { data: roleRows } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (roleRows ?? []).map((r: any) => r.role);
+    const canUseSharedConnection = roles.some((r: string) =>
+      ["admin", "office_admin", "bookkeeper"].includes(r)
+    );
+
+    if (canUseSharedConnection) {
+      const { data: sharedConn } = await supabaseAdmin
+        .from("qbo_connections")
+        .select("*")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      connection = sharedConn ?? null;
+    }
+  }
+
+  if (!connection) {
     return new Response(
       JSON.stringify({ error: "No active QBO connection. Please connect first." }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
