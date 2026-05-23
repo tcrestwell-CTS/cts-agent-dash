@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const SITE_DOMAIN = 'https://crestwell-public-site.vercel.app';
+const SITE_DOMAIN   = 'https://crestwellgetaways.com';
 const WEBHOOK_TOKEN = 'aseo_wh_9cc6393ec616aada27c28e411855cb90';
 
 const corsHeaders = {
@@ -21,7 +21,6 @@ function calcReadingTime(html: string): number {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -32,10 +31,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Verify Authorization header
+  // Verify webhook token
   const authHeader = req.headers.get('Authorization') || '';
   const token = authHeader.replace('Bearer ', '').trim();
-  
   if (token !== WEBHOOK_TOKEN) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -51,6 +49,7 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Test ping
   if (body.event === 'test') {
     return new Response(JSON.stringify({ url: `${SITE_DOMAIN}/blog/test`, status: 'ok' }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,50 +57,58 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Use service role key so RLS doesn't block the insert/upsert
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
     const reading_time = body.content_html
       ? calcReadingTime(body.content_html)
       : (body.reading_time ?? 5);
 
-    const record = {
-      id:               body.id,
+    // external_id stores the webhook's string ID — never pass it as the PK
+    // The articles table uses its own integer/UUID primary key
+    const record: Record<string, any> = {
+      external_id:      String(body.id ?? ''),
       title:            body.title,
       slug:             body.slug,
       content_html:     body.content_html     ?? null,
       content_markdown: body.content_markdown ?? null,
-      hero_image_url:   body.heroImageUrl     ?? null,
-      hero_image_alt:   body.heroImageAlt     ?? null,
+      hero_image_url:   body.heroImageUrl     ?? body.hero_image_url ?? null,
+      hero_image_alt:   body.heroImageAlt     ?? body.hero_image_alt ?? null,
       infographic_url:  body.infographicImageUrl ?? null,
-      meta_description: body.metaDescription  ?? null,
-      meta_keywords:    body.metaKeywords     ?? null,
-      tags:             body.wordpressTags    ?? null,
+      meta_description: body.metaDescription  ?? body.meta_description ?? null,
+      meta_keywords:    body.metaKeywords     ?? body.meta_keywords ?? null,
+      tags:             body.wordpressTags    ?? body.tags ?? null,
       faq_schema:       body.faqSchema        ?? null,
-      language:         body.languageCode     ?? 'en',
+      language:         body.languageCode     ?? body.language ?? 'en',
       reading_time,
-      published_at:     body.publishedAt      ?? null,
-      updated_at:       body.updatedAt        ?? null,
-      created_at:       body.createdAt        ?? null,
-      received_at:      new Date().toISOString(),
+      published_at:     body.publishedAt      ?? body.published_at ?? null,
+      source:           'webhook',
     };
 
-    const { error } = await supabase
-      .from('blog_posts')
-      .upsert(record, { onConflict: 'id' });
+    // Upsert on slug — idempotent so retries never create duplicates
+    const { data, error } = await supabase
+      .from('articles')
+      .upsert(record, { onConflict: 'slug', ignoreDuplicates: false })
+      .select('id, slug')
+      .single();
 
-    if (error) throw error;
+    if (error) throw new Error(error.message);
 
-    return new Response(
-      JSON.stringify({ url: `${SITE_DOMAIN}/blog/${body.slug}` }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const articleUrl = `${SITE_DOMAIN}/blog/${data.slug}`;
+
+    console.log(`[receive-article] ✓ Upserted "${body.title}" → ${articleUrl}`);
+
+    return new Response(JSON.stringify({ url: articleUrl, status: 'ok', id: data.id }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err.message ?? 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('[receive-article] Error:', err.message);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
