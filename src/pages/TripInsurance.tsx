@@ -50,6 +50,8 @@ import {
 import { useTrip } from "@/hooks/useTrips";
 import { useTripInsurance, InsuranceQuote } from "@/hooks/useTripInsurance";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
+import { QuickQuotePanel } from "@/components/insurance/QuickQuotePanel";
+import { InsuranceProvider } from "@/lib/insuranceProviders";
 import { TripSidebar } from "@/components/trips/TripSidebar";
 import { format } from "date-fns";
 
@@ -120,6 +122,17 @@ export default function TripInsurance() {
     setFormDetails("");
     setFormUrl("");
     setFormRecommended(false);
+  };
+
+  // Called when agent clicks "Add to Trip" from QuickQuotePanel
+  // Pre-fills the quote dialog with provider name + quote URL
+  const handleQuickQuoteSelect = (provider: InsuranceProvider, quoteUrl: string) => {
+    resetForm();
+    setFormProvider(provider.name);
+    setFormUrl(quoteUrl);
+    setFormCoverage(String(settings?.amount_to_insure || trip?.total_trip_cost || ""));
+    setShowAddQuote(true);
+    setEditingQuote(null);
   };
 
   const openEdit = (q: InsuranceQuote) => {
@@ -267,7 +280,34 @@ export default function TripInsurance() {
                 </div>
               </div>
 
-              {quotes.length === 0 ? (
+              {/* Quick Quote — provider catalog with pre-filled URLs */}
+            {quotes.length === 0 && (
+              <div className="mb-6">
+                <QuickQuotePanel
+                  trip={{
+                    destination:     trip?.destination,
+                    depart_date:     trip?.depart_date,
+                    return_date:     trip?.return_date,
+                    total_trip_cost: settings?.amount_to_insure || trip?.total_trip_cost,
+                    trip_type:       trip?.trip_type,
+                  }}
+                  travelerCount={travelers?.length || 1}
+                  primaryDOB={travelers?.[0]?.date_of_birth}
+                  primaryState={client?.address_state}
+                  onSelectProvider={handleQuickQuoteSelect}
+                />
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">or add manually</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {quotes.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center text-muted-foreground">
                     <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
