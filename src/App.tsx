@@ -75,6 +75,7 @@ const ReconExceptions = lazy(() => import("./pages/ReconExceptions"));
 const ReconApprovals  = lazy(() => import("./pages/ReconApprovals"));
 const ReconPayouts    = lazy(() => import("./pages/ReconPayouts"));
 const ReconSettings   = lazy(() => import("./pages/ReconSettings"));
+const ReconStripe     = lazy(() => import("./pages/ReconStripe"));
 const Excursions         = lazy(() => import("./pages/Excursions"));
 const TaskMonitor        = lazy(() => import("./pages/TaskMonitor"));
 const TernImport         = lazy(() => import("./pages/TernImport"));
@@ -183,6 +184,7 @@ const App = () => (
                 <Route path="/recon/approvals"  element={<ProtectedRoute><ReconApprovals /></ProtectedRoute>} />
                 <Route path="/recon/payouts"    element={<ProtectedRoute><ReconPayouts /></ProtectedRoute>} />
                 <Route path="/recon/settings"   element={<ProtectedRoute><ReconSettings /></ProtectedRoute>} />
+                <Route path="/recon/stripe"     element={<ProtectedRoute><ReconStripe /></ProtectedRoute>} />
                 <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
                 <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
