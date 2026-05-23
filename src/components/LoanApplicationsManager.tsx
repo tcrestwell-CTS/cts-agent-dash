@@ -507,6 +507,70 @@ export default function LoanApplicationsManager() {
     return matchStatus && matchDecision && matchEnv && matchSearch;
   });
 
+  const rerunEquifax = async (app: LoanApplication) => {
+    setRerunningId(app.id);
+    try {
+      const resp = await fetch("https://crestwellgetaways.com/api/equifax-prequal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: app.id,
+          first_name: app.first_name,
+          last_name: app.last_name,
+          date_of_birth: app.date_of_birth,
+          ssn_last_four: app.ssn_last_four,
+          address_line1: app.address_line1,
+          city: app.city,
+          state: app.state,
+          zip_code: app.zip_code,
+          loan_amount_requested: app.loan_amount_requested,
+        }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Re-run failed");
+      toast.success(`Equifax: ${result.decision || "decision returned"}`);
+      await fetchApplications();
+      if (selected?.id === app.id) {
+        const { data } = await supabase.from("loan_applications").select("*").eq("id", app.id).single();
+        if (data) setSelected(data as LoanApplication);
+      }
+    } catch (err: any) {
+      console.error("Re-run Equifax error:", err);
+      toast.error(err.message || "Failed to re-run Equifax");
+    } finally {
+      setRerunningId(null);
+    }
+  };
+
+  const exportCSV = () => {
+    if (filtered.length === 0) {
+      toast.error("No applications to export");
+      return;
+    }
+    const rows = filtered.map((a) => ({
+      application_number: a.application_number,
+      name: `${a.first_name} ${a.last_name}`.trim(),
+      email: a.email,
+      phone: a.phone || "",
+      amount: a.loan_amount_requested || 0,
+      decision: a.decision || "pending",
+      score: a.equifax_score ?? "",
+      environment: a.environment || "sandbox",
+      submitted: a.created_at ? new Date(a.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "",
+    }));
+    exportToCSV(rows, `loan-applications-${new Date().toISOString().split("T")[0]}`, [
+      { key: "application_number", header: "Application #" },
+      { key: "name", header: "Name" },
+      { key: "email", header: "Email" },
+      { key: "phone", header: "Phone" },
+      { key: "amount", header: "Amount Requested" },
+      { key: "decision", header: "Decision" },
+      { key: "score", header: "Equifax Score" },
+      { key: "environment", header: "Environment" },
+      { key: "submitted", header: "Submitted" },
+    ]);
+  };
+
   const stats = {
     total: applications.length,
     pending: applications.filter((a) => a.status === "pending").length,
