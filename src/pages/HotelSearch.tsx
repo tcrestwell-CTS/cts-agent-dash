@@ -64,6 +64,9 @@ export default function HotelSearch() {
   const [children, setChildren] = useState(0);
   const [rooms, setRooms] = useState(1);
 
+  // Property name filter (client-side filter on results)
+  const [nameFilter, setNameFilter] = useState("");
+
   // Rate check / booking dialog
   const [selectedRate, setSelectedRate] = useState<{
     hotel: HotelResult;
@@ -311,7 +314,32 @@ export default function HotelSearch() {
               </Badge>
             </div>
 
-            {hotels.map((hotel) => {
+            <div className="max-w-sm">
+              <Label htmlFor="hotel-name-filter" className="text-xs text-muted-foreground">
+                Filter by property name
+              </Label>
+              <Input
+                id="hotel-name-filter"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                placeholder="e.g. Marriott, Hilton..."
+                className="mt-1"
+              />
+            </div>
+
+            {(() => {
+              const q = nameFilter.trim().toLowerCase();
+              const filtered = q
+                ? hotels.filter((h) => h.name?.toLowerCase().includes(q))
+                : hotels;
+              if (filtered.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    No hotels match "{nameFilter}".
+                  </p>
+                );
+              }
+              return filtered.map((hotel) => {
               const stars = getStars(hotel.categoryName);
               const expanded = expandedHotels.has(hotel.code);
 
@@ -468,7 +496,8 @@ export default function HotelSearch() {
                   )}
                 </Card>
               );
-            })}
+              });
+            })()}
           </div>
         )}
 
