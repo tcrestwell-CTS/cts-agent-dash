@@ -1300,6 +1300,32 @@ export default function LoanApplicationsManager() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={decisionFilter} onValueChange={setDecisionFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Decision" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Decisions</SelectItem>
+            <SelectItem value="approved">Pre-Qualified</SelectItem>
+            <SelectItem value="review">Under Review</SelectItem>
+            <SelectItem value="declined">Not Approved</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={envFilter} onValueChange={setEnvFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Environment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Environments</SelectItem>
+            <SelectItem value="sandbox">Sandbox</SelectItem>
+            <SelectItem value="production">Live</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={exportCSV}>
+          <Download className="h-4 w-4 mr-1.5" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Table */}
@@ -1318,6 +1344,8 @@ export default function LoanApplicationsManager() {
                 <TableHead className="text-xs">Purpose</TableHead>
                 <TableHead className="text-xs">Submitted</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs">Decision</TableHead>
+                <TableHead className="text-xs">Env</TableHead>
                 <TableHead className="text-xs text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -1345,17 +1373,43 @@ export default function LoanApplicationsManager() {
                   <TableCell>
                     <StatusBadge status={app.status} />
                   </TableCell>
+                  <TableCell>
+                    <DecisionBadge decision={app.decision} />
+                  </TableCell>
+                  <TableCell>
+                    <EnvironmentBadge env={app.environment} />
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelected(app);
-                      }}
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      Review
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={rerunningId === app.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rerunEquifax(app);
+                          }}
+                          title="Re-run Equifax"
+                        >
+                          {rerunningId === app.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(app);
+                        }}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Review
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
