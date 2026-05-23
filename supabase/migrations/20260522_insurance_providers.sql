@@ -17,7 +17,7 @@ INSERT INTO insurance_providers (id, name, short_name, brand_color, website, sor
 VALUES
   ('chubb',      'Chubb Travel Protection',  'Chubb',      '#c8102e', 'https://agent.chubbtravelinsurance.com/main', 1),
   ('worldtrips', 'WorldTrips',               'WorldTrips', '#0057a8', 'https://pas.worldtrips.com/dashboard/policies', 2),
-  ('allianz',    'Allianz Travel Insurance', 'Allianz',    '#003781', 'https://www.allianztravelinsurance.com', 3),
+  ('allianz',    'Allianz Travel Insurance', 'Allianz',    '#003781', 'https://sellallianzpartners.com/index.php', 3),
   ('faye',       'Faye Travel Insurance',    'Faye',       '#6366f1', 'https://advisors.withfaye.com/dashboard', 4)
 ON CONFLICT (id) DO UPDATE SET
   name        = EXCLUDED.name,
