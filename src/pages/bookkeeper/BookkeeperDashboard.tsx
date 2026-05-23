@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle } from "lucide-react";
+import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle, FileText } from "lucide-react";
 import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { useEffect } from "react";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
@@ -161,6 +161,26 @@ export default function BookkeeperDashboard() {
             <Button asChild variant="outline">
               <Link to="/bookkeeper/unattributed">
                 Review unattributed
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Monthly Financial Packet
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Generate and download the monthly financial packet (P&L, AR/AP aging, bank recon).
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link to="/bookkeeper/packet">
+                Generate financial packet
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
