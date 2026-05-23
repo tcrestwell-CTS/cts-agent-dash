@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useAdmin";
+import { exportToCSV } from "@/lib/csvExport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,6 +118,11 @@ type LoanApplication = {
   equifax_checked_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  // New decision columns (populated by /api/equifax-prequal patch-back)
+  decision: "approved" | "review" | "declined" | null;
+  badge_color: "green" | "amber" | "red" | null;
+  client_message: string | null;
+  environment: "sandbox" | "production" | null;
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -141,6 +148,28 @@ const STATUS_LABELS: Record<string, string> = {
   denied: "Denied",
   more_info: "More Info Needed",
 };
+
+// ── Decision badge (Equifax pre-qual result) ──────────────────────────
+const DECISION_META: Record<string, { label: string; cls: string }> = {
+  approved: { label: "✓ Pre-Qualified", cls: "border-emerald-400 text-emerald-700 bg-emerald-50" },
+  review:   { label: "◷ Under Review",  cls: "border-amber-400 text-amber-700 bg-amber-50" },
+  declined: { label: "✕ Not Approved",  cls: "border-red-400 text-red-700 bg-red-50" },
+};
+
+function DecisionBadge({ decision }: { decision: string | null | undefined }) {
+  const meta = decision ? DECISION_META[decision] : null;
+  if (!meta) {
+    return <Badge variant="outline" className="border-gray-300 text-gray-600 bg-gray-50">Pending Review</Badge>;
+  }
+  return <Badge variant="outline" className={meta.cls}>{meta.label}</Badge>;
+}
+
+function EnvironmentBadge({ env }: { env: string | null | undefined }) {
+  if (env === "production") {
+    return <Badge variant="outline" className="border-emerald-400 text-emerald-700 bg-emerald-50 text-[10px]">Live</Badge>;
+  }
+  return <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50 text-[10px]">Sandbox</Badge>;
+}
 
 function fmt$(n: number | null) {
   if (!n && n !== 0) return "—";
