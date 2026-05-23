@@ -184,6 +184,7 @@ const App = () => (
                 <Route path="/recon/approvals"  element={<ProtectedRoute><ReconApprovals /></ProtectedRoute>} />
                 <Route path="/recon/payouts"    element={<ProtectedRoute><ReconPayouts /></ProtectedRoute>} />
                 <Route path="/recon/settings"   element={<ProtectedRoute><ReconSettings /></ProtectedRoute>} />
+                <Route path="/recon/stripe"     element={<ProtectedRoute><ReconStripe /></ProtectedRoute>} />
                 <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
                 <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
