@@ -597,7 +597,7 @@ export type Database = {
           faq_schema?: Json | null
           hero_image_alt?: string | null
           hero_image_url?: string | null
-          id: number
+          id?: number
           infographic_url?: string | null
           language?: string | null
           meta_description?: string | null
