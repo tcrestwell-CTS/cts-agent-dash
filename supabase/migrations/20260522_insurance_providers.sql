@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS insurance_providers (
 INSERT INTO insurance_providers (id, name, short_name, brand_color, website, sort_order)
 VALUES
   ('chubb',      'Chubb Travel Protection',  'Chubb',      '#c8102e', 'https://agent.chubbtravelinsurance.com/main', 1),
-  ('worldtrips', 'WorldTrips',               'WorldTrips', '#0057a8', 'https://www.worldtrips.com', 2),
+  ('worldtrips', 'WorldTrips',               'WorldTrips', '#0057a8', 'https://pas.worldtrips.com/dashboard/policies', 2),
   ('allianz',    'Allianz Travel Insurance', 'Allianz',    '#003781', 'https://www.allianztravelinsurance.com', 3),
   ('faye',       'Faye Travel Insurance',    'Faye',       '#6366f1', 'https://advisors.withfaye.com/dashboard', 4)
 ON CONFLICT (id) DO UPDATE SET
