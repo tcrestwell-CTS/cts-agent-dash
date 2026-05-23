@@ -78,7 +78,9 @@ Deno.serve(async (req) => {
       infographic_url:  body.infographicImageUrl ?? null,
       meta_description: body.metaDescription  ?? body.meta_description ?? null,
       meta_keywords:    body.metaKeywords     ?? body.meta_keywords ?? null,
-      tags:             body.wordpressTags    ?? body.tags ?? null,
+      tags:             Array.isArray(body.wordpressTags) ? body.wordpressTags.join(',')
+                          : Array.isArray(body.tags) ? body.tags.join(',')
+                          : (body.wordpressTags ?? body.tags ?? null),
       faq_schema:       body.faqSchema        ?? null,
       language:         body.languageCode     ?? body.language ?? 'en',
       reading_time,
