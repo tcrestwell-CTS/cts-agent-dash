@@ -51,11 +51,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Confirm admin
-    const { data: roleRow } = await userClient
-      .from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: 'Admin role required' }), {
+    // Confirm admin or bookkeeper
+    const { data: roleRows } = await userClient
+      .from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'bookkeeper']);
+    if (!roleRows || roleRows.length === 0) {
+      return new Response(JSON.stringify({ error: 'Admin or bookkeeper role required' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
