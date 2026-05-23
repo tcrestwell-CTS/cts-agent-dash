@@ -65,7 +65,7 @@ function worldtripsQuoteUrl(trip: InsuranceTripContext): string {
 }
 
 function allianzQuoteUrl(trip: InsuranceTripContext): string {
-  const base = "https://www.allianztravelinsurance.com/travel/insurance/quote.htm";
+  const base = "https://sellallianzpartners.com/index.php";
   const params = new URLSearchParams({
     departureDate:        trip.departDate,
     returnDate:           trip.returnDate,
