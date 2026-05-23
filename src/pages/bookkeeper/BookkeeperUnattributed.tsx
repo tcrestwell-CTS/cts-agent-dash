@@ -29,7 +29,7 @@ function useUnattributed() {
       const { data, error } = await (supabase as any)
         .from("checkout_payments")
         .select(
-          "id, amount, currency, status, payment_type, stripe_payment_intent_id, created_at, customer_email, customer_name",
+          "id, amount_cents, currency, status, payment_type, stripe_payment_intent_id, created_at, customer_email, customer_name",
         )
         .eq("payment_type", "unattributed_deposit")
         .order("created_at", { ascending: false })
@@ -55,7 +55,7 @@ export default function BookkeeperUnattributed() {
         created_at: r.created_at,
         customer_name: r.customer_name ?? "",
         customer_email: r.customer_email ?? "",
-        amount: Number(r.amount || 0).toFixed(2),
+        amount: (Number(r.amount_cents || 0) / 100).toFixed(2),
         currency: r.currency ?? "USD",
         stripe_payment_intent_id: r.stripe_payment_intent_id ?? "",
         status: r.status ?? "",
@@ -124,7 +124,7 @@ export default function BookkeeperUnattributed() {
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums">
-                        {fmt(Number(row.amount || 0), row.currency || "USD")}
+                        {fmt(Number(row.amount_cents || 0) / 100, (row.currency || "USD").toUpperCase())}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         {row.stripe_payment_intent_id || "—"}
