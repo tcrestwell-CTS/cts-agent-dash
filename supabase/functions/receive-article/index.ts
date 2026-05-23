@@ -67,10 +67,8 @@ Deno.serve(async (req) => {
       ? calcReadingTime(body.content_html)
       : (body.reading_time ?? 5);
 
-    // external_id stores the webhook's string ID — never pass it as the PK
-    // The articles table uses its own integer/UUID primary key
+    // blog_posts uses its own auto-generated integer PK — never pass body.id
     const record: Record<string, any> = {
-      external_id:      String(body.id ?? ''),
       title:            body.title,
       slug:             body.slug,
       content_html:     body.content_html     ?? null,
@@ -85,12 +83,11 @@ Deno.serve(async (req) => {
       language:         body.languageCode     ?? body.language ?? 'en',
       reading_time,
       published_at:     body.publishedAt      ?? body.published_at ?? null,
-      source:           'webhook',
     };
 
     // Upsert on slug — idempotent so retries never create duplicates
     const { data, error } = await supabase
-      .from('articles')
+      .from('blog_posts')
       .upsert(record, { onConflict: 'slug', ignoreDuplicates: false })
       .select('id, slug')
       .single();
