@@ -130,7 +130,7 @@ export default function TripInsurance() {
     resetForm();
     setFormProvider(provider.name);
     setFormUrl(quoteUrl);
-    setFormCoverage(String(settings?.amount_to_insure || trip?.total_trip_cost || ""));
+    setFormCoverage(String(settings?.amount_to_insure || (trip as any)?.total_trip_cost || ""));
     setShowAddQuote(true);
     setEditingQuote(null);
   };
@@ -288,11 +288,11 @@ export default function TripInsurance() {
                     destination:     trip?.destination,
                     depart_date:     trip?.depart_date,
                     return_date:     trip?.return_date,
-                    total_trip_cost: settings?.amount_to_insure || trip?.total_trip_cost,
+                    total_trip_cost: settings?.amount_to_insure || (trip as any)?.total_trip_cost,
                     trip_type:       trip?.trip_type,
                   }}
                   travelerCount={travelers?.length || 1}
-                  primaryDOB={travelers?.[0]?.date_of_birth}
+                  primaryDOB={(travelers?.[0] as any)?.date_of_birth || travelers?.[0]?.birthday}
                   primaryState={client?.address_state}
                   onSelectProvider={handleQuickQuoteSelect}
                 />
