@@ -62,7 +62,7 @@ const AIRPORTS: [string, string, string][] = [
   ["ICN","Seoul Incheon","KR"],["GMP","Seoul Gimpo","KR"],
   ["PEK","Beijing","CN"],["PVG","Shanghai Pudong","CN"],["CAN","Guangzhou","CN"],
   ["HKG","Hong Kong","HK"],["TPE","Taipei","TW"],
-  ["SIN","Singapore","SG"],["BKK","Bangkok","TH"],["HKT","Phuket","TH"],
+  ["SIN","Singapore","SG"],["BKK","Bangkok","TH"],["DMK","Bangkok Don Mueang","TH"],["HKT","Phuket","TH"],["CNX","Chiang Mai","TH"],["USM","Koh Samui","TH"],["KBV","Krabi","TH"],
   ["KUL","Kuala Lumpur","MY"],["CGK","Jakarta","ID"],["DPS","Bali Denpasar","ID"],
   ["MNL","Manila","PH"],["CEB","Cebu","PH"],
   ["DEL","New Delhi","IN"],["BOM","Mumbai","IN"],["BLR","Bangalore","IN"],
