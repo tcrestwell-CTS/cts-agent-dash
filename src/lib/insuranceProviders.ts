@@ -41,7 +41,7 @@ export interface InsuranceProviderPlan {
 // Each provider has a different URL structure and parameter format
 
 function chubbQuoteUrl(trip: InsuranceTripContext): string {
-  const base = "https://www.chubb.com/us-en/individuals-families/products/travel-insurance.html";
+  const base = "https://agent.chubbtravelinsurance.com/main";
   // Chubb uses a quote form — deep link to it with UTM tracking
   const params = new URLSearchParams({
     utm_source:  "crestwell",
