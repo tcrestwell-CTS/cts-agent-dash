@@ -720,6 +720,57 @@ export default function LoanApplicationsManager() {
 
           {/* Right — Decision panel + Quick Analysis */}
           <div className="space-y-4 lg:sticky lg:top-5">
+            {/* Equifax Pre-Qualification Result */}
+            <Card>
+              <CardHeader className="py-3 px-4 bg-muted/50 border-b">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Equifax Pre-Qualification</span>
+                  <EnvironmentBadge env={selected.environment} />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Decision</span>
+                  <DecisionBadge decision={selected.decision} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Equifax Score</span>
+                  <span className="text-xs font-semibold">
+                    {selected.equifax_score ?? "Unavailable"}
+                  </span>
+                </div>
+                {selected.client_message && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Client Message</span>
+                    <p className="text-xs text-foreground bg-muted/40 p-2 rounded border">
+                      {selected.client_message}
+                    </p>
+                  </div>
+                )}
+                {selected.equifax_error && (
+                  <p className="text-[11px] text-red-600 font-mono">
+                    {selected.equifax_error}
+                  </p>
+                )}
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={rerunningId === selected.id}
+                    onClick={() => rerunEquifax(selected)}
+                  >
+                    {rerunningId === selected.id ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Re-run Equifax
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-bold">Decision</CardTitle>
