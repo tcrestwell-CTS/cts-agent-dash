@@ -80,7 +80,7 @@ function allianzQuoteUrl(trip: InsuranceTripContext): string {
 }
 
 function fayeQuoteUrl(trip: InsuranceTripContext): string {
-  const base = "https://www.fayetravel.com/get-a-quote";
+  const base = "https://advisors.withfaye.com/dashboard";
   const params = new URLSearchParams({
     departure_date: trip.departDate,
     return_date:    trip.returnDate,
