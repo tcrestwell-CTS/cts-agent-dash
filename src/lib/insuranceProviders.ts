@@ -52,7 +52,7 @@ function chubbQuoteUrl(trip: InsuranceTripContext): string {
 }
 
 function worldtripsQuoteUrl(trip: InsuranceTripContext): string {
-  const base = "https://www.worldtrips.com/travel-insurance";
+  const base = "https://pas.worldtrips.com/dashboard/policies";
   const params = new URLSearchParams({
     departureDate: trip.departDate,
     returnDate:    trip.returnDate,
