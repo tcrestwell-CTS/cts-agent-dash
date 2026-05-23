@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useAdmin";
+import { exportToCSV } from "@/lib/csvExport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,6 +118,11 @@ type LoanApplication = {
   equifax_checked_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  // New decision columns (populated by /api/equifax-prequal patch-back)
+  decision: "approved" | "review" | "declined" | null;
+  badge_color: "green" | "amber" | "red" | null;
+  client_message: string | null;
+  environment: "sandbox" | "production" | null;
 };
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -141,6 +148,28 @@ const STATUS_LABELS: Record<string, string> = {
   denied: "Denied",
   more_info: "More Info Needed",
 };
+
+// ── Decision badge (Equifax pre-qual result) ──────────────────────────
+const DECISION_META: Record<string, { label: string; cls: string }> = {
+  approved: { label: "✓ Pre-Qualified", cls: "border-emerald-400 text-emerald-700 bg-emerald-50" },
+  review:   { label: "◷ Under Review",  cls: "border-amber-400 text-amber-700 bg-amber-50" },
+  declined: { label: "✕ Not Approved",  cls: "border-red-400 text-red-700 bg-red-50" },
+};
+
+function DecisionBadge({ decision }: { decision: string | null | undefined }) {
+  const meta = decision ? DECISION_META[decision] : null;
+  if (!meta) {
+    return <Badge variant="outline" className="border-gray-300 text-gray-600 bg-gray-50">Pending Review</Badge>;
+  }
+  return <Badge variant="outline" className={meta.cls}>{meta.label}</Badge>;
+}
+
+function EnvironmentBadge({ env }: { env: string | null | undefined }) {
+  if (env === "production") {
+    return <Badge variant="outline" className="border-emerald-400 text-emerald-700 bg-emerald-50 text-[10px]">Live</Badge>;
+  }
+  return <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50 text-[10px]">Sandbox</Badge>;
+}
 
 function fmt$(n: number | null) {
   if (!n && n !== 0) return "—";
@@ -196,11 +225,15 @@ function Row({ label, value, highlight = false }: { label: string; value: string
 // ── Main Component ──────────────────────────────────────────────────────
 
 export default function LoanApplicationsManager() {
+  const { data: isAdmin } = useIsAdmin();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewLink, setShowNewLink] = useState(false);
   const [selected, setSelected] = useState<LoanApplication | null>(null);
   const [filter, setFilter] = useState("all");
+  const [decisionFilter, setDecisionFilter] = useState("all");
+  const [envFilter, setEnvFilter] = useState("all");
+  const [rerunningId, setRerunningId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -459,14 +492,84 @@ export default function LoanApplicationsManager() {
 
   const filtered = applications.filter((a) => {
     const matchStatus = filter === "all" || a.status === filter;
+    const matchDecision =
+      decisionFilter === "all" ||
+      (decisionFilter === "pending" ? !a.decision : a.decision === decisionFilter);
+    const matchEnv =
+      envFilter === "all" ||
+      (envFilter === "sandbox" ? (a.environment ?? "sandbox") === "sandbox" : a.environment === envFilter);
     const matchSearch =
       !search ||
       [a.first_name, a.last_name, a.email, a.application_number, a.phone]
         .join(" ")
         .toLowerCase()
         .includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchStatus && matchDecision && matchEnv && matchSearch;
   });
+
+  const rerunEquifax = async (app: LoanApplication) => {
+    setRerunningId(app.id);
+    try {
+      const resp = await fetch("https://crestwellgetaways.com/api/equifax-prequal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: app.id,
+          first_name: app.first_name,
+          last_name: app.last_name,
+          date_of_birth: app.date_of_birth,
+          ssn_last_four: app.ssn_last_four,
+          address_line1: app.address_line1,
+          city: app.city,
+          state: app.state,
+          zip_code: app.zip_code,
+          loan_amount_requested: app.loan_amount_requested,
+        }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || "Re-run failed");
+      toast.success(`Equifax: ${result.decision || "decision returned"}`);
+      await fetchApplications();
+      if (selected?.id === app.id) {
+        const { data } = await supabase.from("loan_applications").select("*").eq("id", app.id).single();
+        if (data) setSelected(data as LoanApplication);
+      }
+    } catch (err: any) {
+      console.error("Re-run Equifax error:", err);
+      toast.error(err.message || "Failed to re-run Equifax");
+    } finally {
+      setRerunningId(null);
+    }
+  };
+
+  const exportCSV = () => {
+    if (filtered.length === 0) {
+      toast.error("No applications to export");
+      return;
+    }
+    const rows = filtered.map((a) => ({
+      application_number: a.application_number,
+      name: `${a.first_name} ${a.last_name}`.trim(),
+      email: a.email,
+      phone: a.phone || "",
+      amount: a.loan_amount_requested || 0,
+      decision: a.decision || "pending",
+      score: a.equifax_score ?? "",
+      environment: a.environment || "sandbox",
+      submitted: a.created_at ? new Date(a.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "",
+    }));
+    exportToCSV(rows, `loan-applications-${new Date().toISOString().split("T")[0]}`, [
+      { key: "application_number", header: "Application #" },
+      { key: "name", header: "Name" },
+      { key: "email", header: "Email" },
+      { key: "phone", header: "Phone" },
+      { key: "amount", header: "Amount Requested" },
+      { key: "decision", header: "Decision" },
+      { key: "score", header: "Equifax Score" },
+      { key: "environment", header: "Environment" },
+      { key: "submitted", header: "Submitted" },
+    ]);
+  };
 
   const stats = {
     total: applications.length,
@@ -617,6 +720,57 @@ export default function LoanApplicationsManager() {
 
           {/* Right — Decision panel + Quick Analysis */}
           <div className="space-y-4 lg:sticky lg:top-5">
+            {/* Equifax Pre-Qualification Result */}
+            <Card>
+              <CardHeader className="py-3 px-4 bg-muted/50 border-b">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Equifax Pre-Qualification</span>
+                  <EnvironmentBadge env={selected.environment} />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Decision</span>
+                  <DecisionBadge decision={selected.decision} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Equifax Score</span>
+                  <span className="text-xs font-semibold">
+                    {selected.equifax_score ?? "Unavailable"}
+                  </span>
+                </div>
+                {selected.client_message && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Client Message</span>
+                    <p className="text-xs text-foreground bg-muted/40 p-2 rounded border">
+                      {selected.client_message}
+                    </p>
+                  </div>
+                )}
+                {selected.equifax_error && (
+                  <p className="text-[11px] text-red-600 font-mono">
+                    {selected.equifax_error}
+                  </p>
+                )}
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={rerunningId === selected.id}
+                    onClick={() => rerunEquifax(selected)}
+                  >
+                    {rerunningId === selected.id ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Re-run Equifax
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-bold">Decision</CardTitle>
@@ -1146,6 +1300,32 @@ export default function LoanApplicationsManager() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={decisionFilter} onValueChange={setDecisionFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Decision" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Decisions</SelectItem>
+            <SelectItem value="approved">Pre-Qualified</SelectItem>
+            <SelectItem value="review">Under Review</SelectItem>
+            <SelectItem value="declined">Not Approved</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={envFilter} onValueChange={setEnvFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Environment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Environments</SelectItem>
+            <SelectItem value="sandbox">Sandbox</SelectItem>
+            <SelectItem value="production">Live</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={exportCSV}>
+          <Download className="h-4 w-4 mr-1.5" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Table */}
@@ -1164,6 +1344,8 @@ export default function LoanApplicationsManager() {
                 <TableHead className="text-xs">Purpose</TableHead>
                 <TableHead className="text-xs">Submitted</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs">Decision</TableHead>
+                <TableHead className="text-xs">Env</TableHead>
                 <TableHead className="text-xs text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -1191,17 +1373,43 @@ export default function LoanApplicationsManager() {
                   <TableCell>
                     <StatusBadge status={app.status} />
                   </TableCell>
+                  <TableCell>
+                    <DecisionBadge decision={app.decision} />
+                  </TableCell>
+                  <TableCell>
+                    <EnvironmentBadge env={app.environment} />
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelected(app);
-                      }}
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      Review
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={rerunningId === app.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rerunEquifax(app);
+                          }}
+                          title="Re-run Equifax"
+                        >
+                          {rerunningId === app.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(app);
+                        }}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Review
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
