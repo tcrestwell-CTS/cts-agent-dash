@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Check, X, AlertTriangle, FileDown, Loader2, FileText } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -26,7 +26,8 @@ function periodBounds(year: number, month: number) {
 }
 
 export default function BookkeeperPacket() {
-  const { data: isAdmin } = useIsAdmin();
+  const { isAdmin, isOfficeAdmin, isBookkeeper } = usePermissions();
+  const canGenerate = isAdmin || isOfficeAdmin || isBookkeeper;
   const qc = useQueryClient();
   const logAction = useLogBookkeeperAction();
   const now = new Date();
@@ -143,7 +144,7 @@ export default function BookkeeperPacket() {
           </p>
         </div>
 
-        {isAdmin && (
+        {canGenerate && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
