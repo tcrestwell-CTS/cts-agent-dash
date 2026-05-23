@@ -225,11 +225,15 @@ function Row({ label, value, highlight = false }: { label: string; value: string
 // ── Main Component ──────────────────────────────────────────────────────
 
 export default function LoanApplicationsManager() {
+  const { data: isAdmin } = useIsAdmin();
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewLink, setShowNewLink] = useState(false);
   const [selected, setSelected] = useState<LoanApplication | null>(null);
   const [filter, setFilter] = useState("all");
+  const [decisionFilter, setDecisionFilter] = useState("all");
+  const [envFilter, setEnvFilter] = useState("all");
+  const [rerunningId, setRerunningId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -488,13 +492,19 @@ export default function LoanApplicationsManager() {
 
   const filtered = applications.filter((a) => {
     const matchStatus = filter === "all" || a.status === filter;
+    const matchDecision =
+      decisionFilter === "all" ||
+      (decisionFilter === "pending" ? !a.decision : a.decision === decisionFilter);
+    const matchEnv =
+      envFilter === "all" ||
+      (envFilter === "sandbox" ? (a.environment ?? "sandbox") === "sandbox" : a.environment === envFilter);
     const matchSearch =
       !search ||
       [a.first_name, a.last_name, a.email, a.application_number, a.phone]
         .join(" ")
         .toLowerCase()
         .includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchStatus && matchDecision && matchEnv && matchSearch;
   });
 
   const stats = {
