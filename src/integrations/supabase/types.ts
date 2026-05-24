@@ -1555,6 +1555,11 @@ export type Database = {
           cc_auth_stripe_pm_id: string | null
           cc_authorized: boolean | null
           cc_authorized_at: string | null
+          cc_collected_at: string | null
+          cc_collected_by: string | null
+          cc_collection_method: string | null
+          cc_full_collected: boolean | null
+          cc_notes: string | null
           client_id: string | null
           confirmation_number: string | null
           created_at: string | null
@@ -1573,6 +1578,9 @@ export type Database = {
           pickup_time: string
           provider: string
           provider_booking_ref: string | null
+          quote_accepted_at: string | null
+          quote_sent_at: string | null
+          quoted_price: number | null
           return_date: string | null
           return_time: string | null
           source: string | null
@@ -1595,6 +1603,11 @@ export type Database = {
           cc_auth_stripe_pm_id?: string | null
           cc_authorized?: boolean | null
           cc_authorized_at?: string | null
+          cc_collected_at?: string | null
+          cc_collected_by?: string | null
+          cc_collection_method?: string | null
+          cc_full_collected?: boolean | null
+          cc_notes?: string | null
           client_id?: string | null
           confirmation_number?: string | null
           created_at?: string | null
@@ -1613,6 +1626,9 @@ export type Database = {
           pickup_time: string
           provider: string
           provider_booking_ref?: string | null
+          quote_accepted_at?: string | null
+          quote_sent_at?: string | null
+          quoted_price?: number | null
           return_date?: string | null
           return_time?: string | null
           source?: string | null
@@ -1635,6 +1651,11 @@ export type Database = {
           cc_auth_stripe_pm_id?: string | null
           cc_authorized?: boolean | null
           cc_authorized_at?: string | null
+          cc_collected_at?: string | null
+          cc_collected_by?: string | null
+          cc_collection_method?: string | null
+          cc_full_collected?: boolean | null
+          cc_notes?: string | null
           client_id?: string | null
           confirmation_number?: string | null
           created_at?: string | null
@@ -1653,6 +1674,9 @@ export type Database = {
           pickup_time?: string
           provider?: string
           provider_booking_ref?: string | null
+          quote_accepted_at?: string | null
+          quote_sent_at?: string | null
+          quoted_price?: number | null
           return_date?: string | null
           return_time?: string | null
           source?: string | null
