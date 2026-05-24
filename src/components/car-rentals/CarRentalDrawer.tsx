@@ -54,6 +54,7 @@ import {
 } from "@/lib/carRentalProviders";
 import { cn } from "@/lib/utils";
 import { CCAuthDialog } from "./CCAuthDialog";
+import { CarRentalWorkflow } from "./CarRentalWorkflow";
 
 interface Props {
   rentalId: string | null;
@@ -211,6 +212,12 @@ export function CarRentalDrawer({ rentalId, onOpenChange, onUpdated }: Props) {
             </div>
 
             {/* Section 1 — Trip Details */}
+            <CarRentalWorkflow rental={rental} onChanged={async () => {
+              await refetch();
+              qc.invalidateQueries({ queryKey: ["car-rentals"] });
+              onUpdated?.();
+            }} />
+
             <Section title="Trip Details">
               <FieldGrid>
                 <ReadField label="Trip Type" value={rental.trip_type} capitalize />
