@@ -22,6 +22,7 @@ import { NextActions } from "@/components/dashboard/NextActions";
 import { AdvisorAssistant } from "@/components/dashboard/AdvisorAssistant";
 import { ConversionFunnelCard } from "@/components/dashboard/ConversionFunnelCard";
 import { TodayActionItems } from "@/components/dashboard/TodayActionItems";
+import { CarRentalsCard } from "@/components/dashboard/CarRentalsCard";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
@@ -285,6 +286,7 @@ export function DashboardContent() {
                 loading={loading}
               />
               <ActivityFeed items={(recentActivity || []) as any} />
+              <CarRentalsCard />
               <AdvisorAssistant
                 followUps={computed.followUps}
                 paymentsDue={computed.paymentsDue}
