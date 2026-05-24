@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Car, Search, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { parseLocalDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
