@@ -39,6 +39,8 @@ import {
   Megaphone,
   AlertTriangle,
   ShieldCheck,
+  Car,
+  ShieldPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,6 +118,14 @@ const navGroups: NavGroup[] = [
       { name: "Email & Branding", href: "/branding",                 icon: Mail,    feature: "email_branding" },
       { name: "Publish Manager",  href: "/publish-manager",          icon: Globe,   feature: "publish_manager" },
       { name: "Featured Trips",   href: "/featured-trips",           icon: Star,    feature: "featured_trips" },
+    ],
+  },
+  {
+    label: "Services",
+    icon: Car,
+    items: [
+      { name: "Car Rentals", href: "/car-rentals", icon: Car },
+      { name: "Insurance",   href: "/trips",       icon: ShieldPlus },
     ],
   },
   {
