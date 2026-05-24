@@ -1541,6 +1541,151 @@ export type Database = {
           },
         ]
       }
+      car_rental_requests: {
+        Row: {
+          actual_total: number | null
+          additional_drivers: number | null
+          agent_notes: string | null
+          assigned_agent: string | null
+          cc_auth_billing_zip: string | null
+          cc_auth_cardholder_name: string | null
+          cc_auth_exp_month: string | null
+          cc_auth_exp_year: string | null
+          cc_auth_last_four: string | null
+          cc_auth_stripe_pm_id: string | null
+          cc_authorized: boolean | null
+          cc_authorized_at: string | null
+          client_id: string | null
+          confirmation_number: string | null
+          created_at: string | null
+          driver_age_range: string
+          driver_email: string
+          driver_name: string
+          driver_phone: string | null
+          dropoff_location: string | null
+          estimated_total: number | null
+          flight_number: string | null
+          id: string
+          loyalty_number: string | null
+          notes: string | null
+          pickup_date: string
+          pickup_location: string
+          pickup_time: string
+          provider: string
+          provider_booking_ref: string | null
+          return_date: string | null
+          return_time: string | null
+          source: string | null
+          status: string | null
+          trip_id: string | null
+          trip_type: string
+          updated_at: string | null
+          vehicle_class: string
+        }
+        Insert: {
+          actual_total?: number | null
+          additional_drivers?: number | null
+          agent_notes?: string | null
+          assigned_agent?: string | null
+          cc_auth_billing_zip?: string | null
+          cc_auth_cardholder_name?: string | null
+          cc_auth_exp_month?: string | null
+          cc_auth_exp_year?: string | null
+          cc_auth_last_four?: string | null
+          cc_auth_stripe_pm_id?: string | null
+          cc_authorized?: boolean | null
+          cc_authorized_at?: string | null
+          client_id?: string | null
+          confirmation_number?: string | null
+          created_at?: string | null
+          driver_age_range: string
+          driver_email: string
+          driver_name: string
+          driver_phone?: string | null
+          dropoff_location?: string | null
+          estimated_total?: number | null
+          flight_number?: string | null
+          id?: string
+          loyalty_number?: string | null
+          notes?: string | null
+          pickup_date: string
+          pickup_location: string
+          pickup_time: string
+          provider: string
+          provider_booking_ref?: string | null
+          return_date?: string | null
+          return_time?: string | null
+          source?: string | null
+          status?: string | null
+          trip_id?: string | null
+          trip_type: string
+          updated_at?: string | null
+          vehicle_class: string
+        }
+        Update: {
+          actual_total?: number | null
+          additional_drivers?: number | null
+          agent_notes?: string | null
+          assigned_agent?: string | null
+          cc_auth_billing_zip?: string | null
+          cc_auth_cardholder_name?: string | null
+          cc_auth_exp_month?: string | null
+          cc_auth_exp_year?: string | null
+          cc_auth_last_four?: string | null
+          cc_auth_stripe_pm_id?: string | null
+          cc_authorized?: boolean | null
+          cc_authorized_at?: string | null
+          client_id?: string | null
+          confirmation_number?: string | null
+          created_at?: string | null
+          driver_age_range?: string
+          driver_email?: string
+          driver_name?: string
+          driver_phone?: string | null
+          dropoff_location?: string | null
+          estimated_total?: number | null
+          flight_number?: string | null
+          id?: string
+          loyalty_number?: string | null
+          notes?: string | null
+          pickup_date?: string
+          pickup_location?: string
+          pickup_time?: string
+          provider?: string
+          provider_booking_ref?: string | null
+          return_date?: string | null
+          return_time?: string | null
+          source?: string | null
+          status?: string | null
+          trip_id?: string | null
+          trip_type?: string
+          updated_at?: string | null
+          vehicle_class?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_rental_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_rental_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cc_authorizations: {
         Row: {
           access_token: string
