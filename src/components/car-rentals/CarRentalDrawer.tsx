@@ -53,6 +53,7 @@ import {
   getStatusLabel,
 } from "@/lib/carRentalProviders";
 import { cn } from "@/lib/utils";
+import { CCAuthDialog } from "./CCAuthDialog";
 
 interface Props {
   rentalId: string | null;
@@ -70,6 +71,7 @@ export function CarRentalDrawer({ rentalId, onOpenChange, onUpdated }: Props) {
   const [saving, setSaving] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState<string>("");
   const [notesTimer, setNotesTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [ccAuthOpen, setCcAuthOpen] = useState(false);
 
   const { data: rental, refetch } = useQuery({
     queryKey: ["car-rental", rentalId],
@@ -325,12 +327,7 @@ export function CarRentalDrawer({ rentalId, onOpenChange, onUpdated }: Props) {
                 <Button
                   size="sm"
                   variant="default"
-                  onClick={() =>
-                    toast({
-                      title: "Stripe CC auth",
-                      description: "Stripe PaymentMethod collect flow will be wired up in Part 5.",
-                    })
-                  }
+                  onClick={() => setCcAuthOpen(true)}
                 >
                   <CreditCard className="h-4 w-4 mr-1" /> Run CC Auth
                 </Button>
@@ -427,6 +424,22 @@ export function CarRentalDrawer({ rentalId, onOpenChange, onUpdated }: Props) {
                 onChange={(e) => scheduleNotesSave(e.target.value)}
               />
             </Section>
+
+            {rentalId && (
+              <CCAuthDialog
+                open={ccAuthOpen}
+                onOpenChange={setCcAuthOpen}
+                rentalId={rentalId}
+                initialCardholder={rental.cc_auth_cardholder_name ?? rental.driver_name}
+                initialZip={rental.cc_auth_billing_zip}
+                existingLastFour={rental.cc_auth_last_four}
+                onAuthorized={async () => {
+                  await refetch();
+                  qc.invalidateQueries({ queryKey: ["car-rentals"] });
+                  onUpdated?.();
+                }}
+              />
+            )}
           </>
         )}
       </SheetContent>
