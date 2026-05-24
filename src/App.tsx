@@ -65,6 +65,7 @@ const CruiseSearch        = lazy(() => import("./pages/CruiseSearch"));
 const TripInsurance       = lazy(() => import("./pages/TripInsurance"));
 const FeaturedTrips       = lazy(() => import("./pages/FeaturedTrips"));
 const LoanApplications   = lazy(() => import("./pages/LoanApplications"));
+const CarRentals         = lazy(() => import("./pages/CarRentals"));
 const Leads              = lazy(() => import("./pages/Leads"));
 const PortalManagement   = lazy(() => import("./pages/PortalManagement"));
 const AdminPortalPreview = lazy(() => import("./pages/AdminPortalPreview"));
@@ -204,6 +205,7 @@ const App = () => (
                 <Route path="/cruises" element={<ProtectedRoute><FeatureRoute feature="cruise_search"><CruiseSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/featured-trips" element={<ProtectedRoute><FeatureRoute feature="featured_trips"><FeaturedTrips /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/loan-applications" element={<ProtectedRoute><FeatureRoute feature="loan_applications"><LoanApplications /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/car-rentals" element={<ProtectedRoute><CarRentals /></ProtectedRoute>} />
                 <Route path="/leads" element={<ProtectedRoute><FeatureRoute feature="leads"><Leads /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/portal-management" element={<ProtectedRoute><PortalManagement /></ProtectedRoute>} />
                 <Route path="/portal-preview/:clientId" element={<ProtectedRoute><AdminPortalPreview /></ProtectedRoute>} />
