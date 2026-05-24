@@ -1555,6 +1555,7 @@ export type Database = {
           cc_auth_stripe_pm_id: string | null
           cc_authorized: boolean | null
           cc_authorized_at: string | null
+          cc_cardholder_name: string | null
           cc_collected_at: string | null
           cc_collected_by: string | null
           cc_collection_method: string | null
@@ -1604,6 +1605,7 @@ export type Database = {
           cc_auth_stripe_pm_id?: string | null
           cc_authorized?: boolean | null
           cc_authorized_at?: string | null
+          cc_cardholder_name?: string | null
           cc_collected_at?: string | null
           cc_collected_by?: string | null
           cc_collection_method?: string | null
@@ -1653,6 +1655,7 @@ export type Database = {
           cc_auth_stripe_pm_id?: string | null
           cc_authorized?: boolean | null
           cc_authorized_at?: string | null
+          cc_cardholder_name?: string | null
           cc_collected_at?: string | null
           cc_collected_by?: string | null
           cc_collection_method?: string | null
