@@ -91,8 +91,8 @@ Deno.serve(async (req) => {
       if (error || !member) return json({ error: "Member not found" }, 404);
       if (!member.email) return json({ error: "No email on member" }, 400);
 
-      const name = member.first_name || member.full_name || "there";
-      const founding = member.is_founding_member
+      const name = member.name || "there";
+      const founding = member.founding_member
         ? `<p style="background:#faf6e8;border-left:3px solid ${BRAND_GOLD};padding:12px 16px;margin:18px 0">
              <strong>You're a Founding Member ✦</strong> — one of only 20. Your tier is locked
              at the founder rate for life.
@@ -113,11 +113,6 @@ Deno.serve(async (req) => {
         html: shell(inner, "You're in. Here's what comes next."),
       });
       if (!send.ok) return json({ error: send.error }, 502);
-
-      await supabase
-        .from("circle_members")
-        .update({ welcome_sent_at: new Date().toISOString() })
-        .eq("id", member.id);
       return json({ success: true });
     }
 
@@ -128,7 +123,7 @@ Deno.serve(async (req) => {
       }
       let query = supabase
         .from("circle_members")
-        .select("email, first_name, full_name")
+        .select("email, name")
         .eq("status", "active")
         .not("email", "is", null);
       if (audience && audience !== "all") {
@@ -207,7 +202,6 @@ Deno.serve(async (req) => {
             client_id: r.id ?? null,
             email: r.email,
             subject_variant: subject_variant ?? null,
-            subject,
             sent_at: new Date().toISOString(),
           });
         }
