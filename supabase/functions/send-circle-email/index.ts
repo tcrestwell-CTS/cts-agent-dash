@@ -8,7 +8,7 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FROM = "The Crestwell Circle <circle@crestwellgetaways.com>";
+const FROM = "The Crestwell Circle <info@crestwellgetaways.com>";
 const REPLY_TO = "hello@crestwellgetaways.com";
 const UNSUBSCRIBE_MAILTO = "unsubscribe@crestwellgetaways.com";
 const AGENT_PHONE = "888.508.6893";
