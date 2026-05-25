@@ -1953,6 +1953,159 @@ export type Database = {
           },
         ]
       }
+      circle_briefings: {
+        Row: {
+          booking_window: string | null
+          coming_up: string | null
+          created_at: string
+          from_the_circle: string | null
+          id: string
+          issue_number: number
+          scheduled_for: string | null
+          sent_at: string | null
+          sent_to_count: number | null
+          status: string
+          subject: string
+          the_port: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_window?: string | null
+          coming_up?: string | null
+          created_at?: string
+          from_the_circle?: string | null
+          id?: string
+          issue_number: number
+          scheduled_for?: string | null
+          sent_at?: string | null
+          sent_to_count?: number | null
+          status?: string
+          subject: string
+          the_port?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_window?: string | null
+          coming_up?: string | null
+          created_at?: string
+          from_the_circle?: string | null
+          id?: string
+          issue_number?: number
+          scheduled_for?: string | null
+          sent_at?: string | null
+          sent_to_count?: number | null
+          status?: string
+          subject?: string
+          the_port?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      circle_invitations: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          sent_at: string | null
+          subject_variant: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          sent_at?: string | null
+          subject_variant?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          sent_at?: string | null
+          subject_variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_invitations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_invitations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      circle_members: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          email: string
+          founding_member: boolean
+          id: string
+          joined_at: string
+          name: string | null
+          notes: string | null
+          source: string | null
+          status: string
+          tier: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          email: string
+          founding_member?: boolean
+          id?: string
+          joined_at?: string
+          name?: string | null
+          notes?: string | null
+          source?: string | null
+          status?: string
+          tier?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          email?: string
+          founding_member?: boolean
+          id?: string
+          joined_at?: string
+          name?: string | null
+          notes?: string | null
+          source?: string | null
+          status?: string
+          tier?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_companions: {
         Row: {
           birthday: string | null
