@@ -23,6 +23,7 @@ import { AdvisorAssistant } from "@/components/dashboard/AdvisorAssistant";
 import { ConversionFunnelCard } from "@/components/dashboard/ConversionFunnelCard";
 import { TodayActionItems } from "@/components/dashboard/TodayActionItems";
 import { CarRentalsCard } from "@/components/dashboard/CarRentalsCard";
+import { CircleFoundersCard } from "@/components/dashboard/CircleFoundersCard";
 import { useOnboarding } from "@/hooks/useOnboarding";
 
 export function DashboardContent() {
@@ -287,6 +288,7 @@ export function DashboardContent() {
               />
               <ActivityFeed items={(recentActivity || []) as any} />
               <CarRentalsCard />
+              <CircleFoundersCard />
               <AdvisorAssistant
                 followUps={computed.followUps}
                 paymentsDue={computed.paymentsDue}
