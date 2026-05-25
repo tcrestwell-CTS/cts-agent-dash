@@ -160,6 +160,7 @@ const navGroups: NavGroup[] = [
 ];
 
 const bottomNav: NavItem[] = [
+  { name: "The Circle ✦", href: "/circle-members", icon: Star },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
