@@ -9,6 +9,8 @@ const cors = {
 };
 
 const FROM = "The Crestwell Circle <circle@crestwellgetaways.com>";
+const REPLY_TO = "hello@crestwellgetaways.com";
+const UNSUBSCRIBE_MAILTO = "unsubscribe@crestwellgetaways.com";
 const AGENT_PHONE = "888.508.6893";
 const BRAND_NAVY = "#0a2540";
 const BRAND_GOLD = "#c9a84c";
@@ -42,9 +44,13 @@ async function sendResend(opts: {
   to: string | string[];
   subject: string;
   html: string;
+  text?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY not configured" };
+  const toArr = Array.isArray(opts.to) ? opts.to : [opts.to];
+  const primary = toArr[0];
+  const unsubUrl = `https://crestwellgetaways.com/circle/unsubscribe?email=${encodeURIComponent(primary)}`;
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -53,9 +59,15 @@ async function sendResend(opts: {
     },
     body: JSON.stringify({
       from: FROM,
-      to: Array.isArray(opts.to) ? opts.to : [opts.to],
+      to: toArr,
+      reply_to: REPLY_TO,
       subject: opts.subject,
       html: opts.html,
+      text: opts.text ?? htmlToText(opts.html),
+      headers: {
+        "List-Unsubscribe": `<mailto:${UNSUBSCRIBE_MAILTO}?subject=unsubscribe>, <${unsubUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     }),
   });
   if (!r.ok) {
@@ -63,6 +75,22 @@ async function sendResend(opts: {
     return { ok: false, error: `Resend ${r.status}: ${text}` };
   }
   return { ok: true };
+}
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function json(body: unknown, status = 200) {
