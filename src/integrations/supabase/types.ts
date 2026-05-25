@@ -5433,6 +5433,9 @@ export type Database = {
           email: string
           first_name: string
           flexibility: string | null
+          funnel_id: string | null
+          funnel_name: string | null
+          funnel_slug: string | null
           gclid: string | null
           group_type: string | null
           id: string
@@ -5442,6 +5445,7 @@ export type Database = {
           phone: string | null
           proposal_draft: string | null
           proposal_status: string | null
+          raw_answers: Json | null
           sequence_paused: boolean | null
           sequence_started: boolean | null
           status: string | null
@@ -5469,6 +5473,9 @@ export type Database = {
           email: string
           first_name: string
           flexibility?: string | null
+          funnel_id?: string | null
+          funnel_name?: string | null
+          funnel_slug?: string | null
           gclid?: string | null
           group_type?: string | null
           id?: string
@@ -5478,6 +5485,7 @@ export type Database = {
           phone?: string | null
           proposal_draft?: string | null
           proposal_status?: string | null
+          raw_answers?: Json | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
           status?: string | null
@@ -5505,6 +5513,9 @@ export type Database = {
           email?: string
           first_name?: string
           flexibility?: string | null
+          funnel_id?: string | null
+          funnel_name?: string | null
+          funnel_slug?: string | null
           gclid?: string | null
           group_type?: string | null
           id?: string
@@ -5514,6 +5525,7 @@ export type Database = {
           phone?: string | null
           proposal_draft?: string | null
           proposal_status?: string | null
+          raw_answers?: Json | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
           status?: string | null
