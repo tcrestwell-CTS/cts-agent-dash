@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -46,6 +46,9 @@ const ItineraryBuilder = () => {
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [editingItinerary, setEditingItinerary] = useState<import("@/hooks/useItineraries").Itinerary | null>(null);
   const [editApprovedAnyway, setEditApprovedAnyway] = useState(false);
+
+  // Re-lock approved itinerary when switching tabs
+  useEffect(() => { setEditApprovedAnyway(false); }, [activeId]);
 
   
 
