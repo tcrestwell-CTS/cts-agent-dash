@@ -158,33 +158,43 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (!client?.email) return [];
 
+      const tripIdSet = new Set<string>();
+      const allClientIds = await getAllClientIds();
+
+      // 1) Booking-level companion linkage (legacy path)
       const { data: companions } = await supabase
         .from("client_companions")
         .select("id")
         .eq("email", client.email);
 
-      if (!companions?.length) return [];
+      if (companions?.length) {
+        const companionIds = companions.map((c: any) => c.id);
+        const { data: travelerLinks } = await supabase
+          .from("booking_travelers")
+          .select("booking_id")
+          .in("companion_id", companionIds);
 
-      const companionIds = companions.map((c: any) => c.id);
+        if (travelerLinks?.length) {
+          const bookingIds = travelerLinks.map((t: any) => t.booking_id);
+          const { data: bookings } = await supabase
+            .from("bookings")
+            .select("trip_id")
+            .in("id", bookingIds)
+            .not("trip_id", "is", null);
+          (bookings || []).forEach((b: any) => b.trip_id && tripIdSet.add(b.trip_id));
+        }
+      }
 
-      const { data: travelerLinks } = await supabase
-        .from("booking_travelers")
-        .select("booking_id")
-        .in("companion_id", companionIds);
+      // 2) Trip-level traveler linkage (by linked_client_id sibling or email)
+      const { data: tripTravelers } = await supabase
+        .from("trip_travelers")
+        .select("trip_id, linked_client_id, email")
+        .or(
+          `linked_client_id.in.(${allClientIds.join(",")}),email.eq.${client.email}`
+        );
+      (tripTravelers || []).forEach((t: any) => t.trip_id && tripIdSet.add(t.trip_id));
 
-      if (!travelerLinks?.length) return [];
-
-      const bookingIds = travelerLinks.map((t: any) => t.booking_id);
-
-      const { data: bookings } = await supabase
-        .from("bookings")
-        .select("trip_id")
-        .in("id", bookingIds)
-        .not("trip_id", "is", null);
-
-      if (!bookings?.length) return [];
-
-      return [...new Set(bookings.map((b: any) => b.trip_id))];
+      return [...tripIdSet];
     }
 
     if (resource === "dashboard") {
