@@ -26,7 +26,7 @@ async function getPreviewClientContext(clientId: string) {
     ];
   }
 
-  let companionTripIds: string[] = [];
+  const companionTripIdSet = new Set<string>();
 
   if (client.email) {
     const { data: companions, error: companionsError } = await supabase
@@ -59,18 +59,26 @@ async function getPreviewClientContext(clientId: string) {
 
         if (companionBookingsError) throw companionBookingsError;
 
-        companionTripIds = [
-          ...new Set(
-            (companionBookings || [])
-              .map((booking: any) => booking.trip_id)
-              .filter(Boolean)
-          ),
-        ];
+        (companionBookings || []).forEach((b: any) => {
+          if (b.trip_id) companionTripIdSet.add(b.trip_id);
+        });
       }
     }
   }
 
-  return { client, allClientIds, companionTripIds };
+  // Also include trips where this client is a trip_traveler (by linked_client_id or email)
+  const orFilters: string[] = [`linked_client_id.in.(${allClientIds.join(",")})`];
+  if (client.email) orFilters.push(`email.eq.${client.email}`);
+  const { data: tripTravelers, error: tripTravelersError } = await supabase
+    .from("trip_travelers")
+    .select("trip_id")
+    .or(orFilters.join(","));
+  if (tripTravelersError) throw tripTravelersError;
+  (tripTravelers || []).forEach((t: any) => {
+    if (t.trip_id) companionTripIdSet.add(t.trip_id);
+  });
+
+  return { client, allClientIds, companionTripIds: [...companionTripIdSet] };
 }
 
 function sortTripsByDepartDateDesc(a: any, b: any) {
