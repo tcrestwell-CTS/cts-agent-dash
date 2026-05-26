@@ -258,6 +258,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            <AgentChatWidget />
           </BrowserRouter>
         </PortalAuthProvider>
       </AuthProvider>
