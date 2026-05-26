@@ -12,6 +12,7 @@ import { BookkeeperRoute } from "@/components/BookkeeperRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { AgentChatWidget } from "@/components/chat/AgentChatWidget";
 
 // ─── Lazy-loaded Agent Pages ──────────────────────────────────────────────────
 // These are only loaded when the user navigates to that route,
