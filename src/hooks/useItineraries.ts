@@ -128,6 +128,67 @@ export function useItineraries(tripId: string | undefined) {
     }
   };
 
+  const duplicateItinerary = async (id: string) => {
+    if (!user || !tripId) return null;
+    const source = itineraries.find((i) => i.id === id);
+    if (!source) {
+      toast.error("Itinerary not found");
+      return null;
+    }
+    try {
+      // 1. Create the new itinerary
+      const newName = `${source.name} (Copy)`;
+      const { data: created, error: createError } = await supabase
+        .from("itineraries")
+        .insert({
+          trip_id: tripId,
+          user_id: user.id,
+          name: newName,
+          sort_order: itineraries.length,
+          depart_date: source.depart_date,
+          return_date: source.return_date,
+          cover_image_url: source.cover_image_url,
+          overview: source.overview,
+        } as any)
+        .select()
+        .single();
+      if (createError) throw createError;
+      const newItin = created as Itinerary;
+
+      // 2. Copy items (excluding booking_id so duplicates don't share live booking links)
+      const { data: srcItems, error: itemsError } = await supabase
+        .from("itinerary_items")
+        .select("*")
+        .eq("trip_id", tripId)
+        .eq("itinerary_id", id);
+      if (itemsError) throw itemsError;
+
+      if (srcItems && srcItems.length > 0) {
+        const cloned = (srcItems as any[]).map((it) => {
+          const { id: _id, created_at, updated_at, booking_id, ...rest } = it;
+          return {
+            ...rest,
+            itinerary_id: newItin.id,
+            user_id: user.id,
+          };
+        });
+        const { error: insertError } = await supabase
+          .from("itinerary_items")
+          .insert(cloned as any);
+        if (insertError) throw insertError;
+      }
+
+      toast.success(`Duplicated as "${newName}"`);
+      await fetchItineraries();
+      setActiveId(newItin.id);
+      return newItin;
+    } catch (error) {
+      console.error("Error duplicating itinerary:", error);
+      toast.error("Failed to duplicate itinerary");
+      return null;
+    }
+  };
+
   // Auto-create a default itinerary if none exist once loading is done
   const ensureDefault = useCallback(async () => {
     if (!loading && itineraries.length === 0 && user && tripId) {
@@ -146,5 +207,6 @@ export function useItineraries(tripId: string | undefined) {
     updateItinerary,
     renameItinerary,
     deleteItinerary,
+    duplicateItinerary,
   };
 }

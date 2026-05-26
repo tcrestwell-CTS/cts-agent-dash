@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2, Plane } from "lucide-react";
+import { ArrowLeft, Rows3, Columns3, PanelLeft, Plus, MoreVertical, Pencil, Trash2, Settings2, CheckCircle2, Plane, Copy, Lock, AlertTriangle } from "lucide-react";
 
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
@@ -36,7 +36,7 @@ const ItineraryBuilder = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { trip, bookings, loading, fetchTrip } = useTrip(tripId);
-  const { itineraries, activeId, setActiveId, createItinerary, updateItinerary, renameItinerary, deleteItinerary } = useItineraries(tripId);
+  const { itineraries, activeId, setActiveId, createItinerary, updateItinerary, renameItinerary, deleteItinerary, duplicateItinerary } = useItineraries(tripId);
   const [layout, setLayout] = useState<"vertical" | "horizontal">("horizontal");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarCallbacks, setSidebarCallbacks] = useState<ItinerarySidebarCallbacks | null>(null);
@@ -45,6 +45,10 @@ const ItineraryBuilder = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [editingItinerary, setEditingItinerary] = useState<import("@/hooks/useItineraries").Itinerary | null>(null);
+  const [editApprovedAnyway, setEditApprovedAnyway] = useState(false);
+
+  // Re-lock approved itinerary when switching tabs
+  useEffect(() => { setEditApprovedAnyway(false); }, [activeId]);
 
   
 
@@ -54,6 +58,8 @@ const ItineraryBuilder = () => {
   );
   const activeDepartDate = activeItinerary?.depart_date ?? trip?.depart_date ?? null;
   const activeReturnDate = activeItinerary?.return_date ?? trip?.return_date ?? null;
+  const isApprovedActive = !!trip?.approved_itinerary_id && trip.approved_itinerary_id === activeId;
+  const isLocked = isApprovedActive && !editApprovedAnyway;
 
   const handleSidebarReady = useCallback((callbacks: ItinerarySidebarCallbacks) => {
     setSidebarCallbacks(callbacks);
@@ -246,6 +252,9 @@ const ItineraryBuilder = () => {
                       <DropdownMenuItem onClick={() => handleRenameStart(itin.id, itin.name)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => duplicateItinerary(itin.id)}>
+                        <Copy className="h-3.5 w-3.5 mr-2" /> Duplicate
+                      </DropdownMenuItem>
                       {itineraries.length > 1 && (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
@@ -280,6 +289,35 @@ const ItineraryBuilder = () => {
               </div>
             )}
 
+            {isApprovedActive && (
+              <div className="flex items-center gap-2 text-sm rounded-lg border border-amber-500/40 px-4 py-2.5 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+                {isLocked ? <Lock className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
+                <span className="font-medium">
+                  {isLocked
+                    ? "This itinerary was approved by the client and is locked to preserve the signed snapshot."
+                    : "Editing the approved itinerary — changes may invalidate the client's signature."}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto h-7"
+                  onClick={() => setEditApprovedAnyway(!isLocked ? false : true)}
+                >
+                  {isLocked ? "Unlock to edit" : "Re-lock"}
+                </Button>
+                {!isLocked && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7"
+                    onClick={() => duplicateItinerary(activeId!)}
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate instead
+                  </Button>
+                )}
+              </div>
+            )}
+
             {activeItinerary?.cover_image_url && (
               <div className="relative rounded-lg overflow-hidden border">
                 <img
@@ -300,8 +338,8 @@ const ItineraryBuilder = () => {
               </div>
             )}
 
-            <div className="flex gap-0 rounded-lg border bg-background overflow-hidden" style={{ minHeight: "calc(100vh - 280px)" }}>
-              <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex gap-0 rounded-lg border bg-background overflow-hidden relative" style={{ minHeight: "calc(100vh - 280px)" }}>
+              <div className={`flex-1 p-6 overflow-y-auto ${isLocked ? "pointer-events-none opacity-60 select-none" : ""}`} aria-disabled={isLocked}>
                 {activeId && (
                   <TripItinerary
                     tripId={tripId!}
