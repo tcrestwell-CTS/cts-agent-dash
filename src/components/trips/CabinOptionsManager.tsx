@@ -206,6 +206,16 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                   value={newOption.price_per_person}
                   onChange={(e) => setNewOption((p) => ({ ...p, price_per_person: e.target.value }))}
                 />
+                <label className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                  <input
+                    type="checkbox"
+                    checked={newOption.price_period === 'night'}
+                    onChange={(e) =>
+                      setNewOption((p) => ({ ...p, price_period: e.target.checked ? 'night' : 'trip' }))
+                    }
+                  />
+                  Price is per person, per night
+                </label>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm">Deposit Amount</Label>
