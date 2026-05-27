@@ -19,6 +19,7 @@ interface CabinOption {
   capacity: number | null;
   image_url: string | null;
   sort_order: number;
+  price_period?: 'trip' | 'night';
 }
 
 interface CabinOptionsManagerProps {
@@ -39,6 +40,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     deposit_amount: "",
     capacity: "",
     image_url: "",
+    price_period: "trip" as 'trip' | 'night',
   });
 
   const fetchOptions = async () => {
@@ -74,13 +76,14 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
       capacity: newOption.capacity ? parseInt(newOption.capacity) : null,
       image_url: newOption.image_url.trim() || null,
       sort_order: options.length,
+      price_period: newOption.price_period,
     } as any);
 
     if (error) {
       toast.error("Failed to add cabin option");
     } else {
       toast.success("Cabin option added");
-      setNewOption({ category_name: "", description: "", price_per_person: "", deposit_amount: "", capacity: "", image_url: "" });
+      setNewOption({ category_name: "", description: "", price_per_person: "", deposit_amount: "", capacity: "", image_url: "", price_period: "trip" });
       setShowAddForm(false);
       fetchOptions();
       onDataChange?.();
@@ -153,7 +156,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
               <div className="flex items-center gap-2">
                 <span className="font-medium">{opt.category_name}</span>
                 <Badge variant="outline" className="text-xs">
-                  {formatCurrency(opt.price_per_person)} / person
+                  {formatCurrency(opt.price_per_person)} / person{opt.price_period === 'night' ? ' / night' : ''}
                 </Badge>
                 {opt.deposit_amount > 0 && (
                   <Badge variant="secondary" className="text-xs">
@@ -203,6 +206,16 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                   value={newOption.price_per_person}
                   onChange={(e) => setNewOption((p) => ({ ...p, price_per_person: e.target.value }))}
                 />
+                <label className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                  <input
+                    type="checkbox"
+                    checked={newOption.price_period === 'night'}
+                    onChange={(e) =>
+                      setNewOption((p) => ({ ...p, price_period: e.target.checked ? 'night' : 'trip' }))
+                    }
+                  />
+                  Price is per person, per night
+                </label>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm">Deposit Amount</Label>

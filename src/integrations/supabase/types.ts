@@ -7074,6 +7074,7 @@ export type Database = {
           id: string
           image_url: string | null
           price_per_person: number
+          price_period: string
           sort_order: number
           trip_id: string
           updated_at: string
@@ -7087,6 +7088,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           price_per_person?: number
+          price_period?: string
           sort_order?: number
           trip_id: string
           updated_at?: string
@@ -7100,6 +7102,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           price_per_person?: number
+          price_period?: string
           sort_order?: number
           trip_id?: string
           updated_at?: string
