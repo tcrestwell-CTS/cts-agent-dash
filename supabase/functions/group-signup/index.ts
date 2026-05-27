@@ -295,12 +295,19 @@ Deno.serve(async (req) => {
       if (selected_cabin_option_id) {
         const { data: cabin } = await supabaseAdmin
           .from("trip_cabin_options")
-          .select("category_name, price_per_person, deposit_amount")
+          .select("category_name, price_per_person, deposit_amount, price_period")
           .eq("id", selected_cabin_option_id)
           .single();
 
         if (cabin) {
-          const grossSales = (cabin.price_per_person || 0) * travelerCount;
+          let nights = 1;
+          if (cabin.price_period === "night" && parentTrip.depart_date && parentTrip.return_date) {
+            const dep = new Date(parentTrip.depart_date + "T00:00:00");
+            const ret = new Date(parentTrip.return_date + "T00:00:00");
+            const diff = Math.round((ret.getTime() - dep.getTime()) / 86400000);
+            nights = Math.max(1, diff);
+          }
+          const grossSales = (cabin.price_per_person || 0) * travelerCount * nights;
           const confirmNum = `GRP-${subTrip.id.substring(0, 8).toUpperCase()}`;
 
           const { error: bookingErr } = await supabaseAdmin
