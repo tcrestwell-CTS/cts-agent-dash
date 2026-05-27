@@ -865,6 +865,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     cancellationTerms = [...new Set(cancellationTerms)];
 
+    // If client has already chosen an itinerary, only expose that one
+    // so the proposal page (and downstream portal) hides the others.
+    if (trip.approved_itinerary_id && itinerariesList.length > 1) {
+      const chosen = itinerariesList.find((it: any) => it.id === trip.approved_itinerary_id);
+      if (chosen) itinerariesList = [chosen];
+    }
+
     return new Response(JSON.stringify({
       trip: {
         trip_name: trip.trip_name,
@@ -898,6 +905,8 @@ const handler = async (req: Request): Promise<Response> => {
       branding,
       advisor,
       termsAccepted,
+      approvedItineraryId: trip.approved_itinerary_id || null,
+      itineraryApprovedAt: trip.itinerary_approved_at || null,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
