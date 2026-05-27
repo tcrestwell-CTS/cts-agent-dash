@@ -481,8 +481,10 @@ export default function GroupLanding() {
                                 className="text-lg font-bold"
                                 style={{ color: primaryColor }}
                               >
-                                ${cabin.price_per_person.toLocaleString()}
-                                <span className="text-xs font-normal text-gray-500">/person</span>
+                                 ${cabin.price_per_person.toLocaleString()}
+                                 <span className="text-xs font-normal text-gray-500">
+                                   /person{(cabin as any).price_period === 'night' ? ' / night' : ''}
+                                 </span>
                               </span>
                             </div>
                             {cabin.description && (
@@ -947,7 +949,7 @@ export default function GroupLanding() {
                         <option value="">Select a cabin type...</option>
                         {data.cabinOptions.map((cabin) => (
                           <option key={cabin.id} value={cabin.id}>
-                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person
+                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person{(cabin as any).price_period === 'night' ? ' / night' : ''}
                           </option>
                         ))}
                       </select>
