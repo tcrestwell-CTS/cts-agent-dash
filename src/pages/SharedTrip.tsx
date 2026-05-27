@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import SharedTripHero from "@/components/shared-trip/SharedTripHero";
@@ -35,6 +35,17 @@ export interface SharedTripData {
   itinerary: any[];
   bookings: any[];
   pricingLines?: any[];
+  itineraries?: Array<{
+    id: string;
+    name: string;
+    overview: string | null;
+    cover_image_url: string | null;
+    depart_date: string | null;
+    return_date: string | null;
+    sort_order: number;
+    items: any[];
+    optionBlocks: any[];
+  }>;
   branding: {
     agency_name: string | null;
     logo_url: string | null;
@@ -68,6 +79,7 @@ export default function SharedTrip() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("itinerary");
+  const [selectedItineraryId, setSelectedItineraryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -118,14 +130,26 @@ export default function SharedTrip() {
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
 
-  const publishedItinerary = sanitizePublishedItinerary((data.itinerary || []) as any[], {
-    departDate: data.trip.depart_date,
-    returnDate: data.trip.return_date,
+  const itineraries = (data.itineraries || []).filter(
+    (it) => (it.items?.length || 0) > 0 || (it.optionBlocks?.length || 0) > 0 || it.overview
+  );
+  const hasMultipleItineraries = itineraries.length > 1;
+  const activeItinerary =
+    itineraries.find((it) => it.id === selectedItineraryId) || itineraries[0] || null;
+
+  const sourceItems = activeItinerary?.items ?? data.itinerary ?? [];
+  const sourceBlocks = activeItinerary?.optionBlocks ?? (data as any).optionBlocks ?? [];
+  const sourceDepart = activeItinerary?.depart_date ?? data.trip.depart_date;
+  const sourceReturn = activeItinerary?.return_date ?? data.trip.return_date;
+
+  const publishedItinerary = sanitizePublishedItinerary(sourceItems as any[], {
+    departDate: sourceDepart,
+    returnDate: sourceReturn,
   });
 
-  const publishedOptionBlocks = sanitizePublishedOptionBlocks((((data as any).optionBlocks) || []) as any[], {
-    departDate: data.trip.depart_date,
-    returnDate: data.trip.return_date,
+  const publishedOptionBlocks = sanitizePublishedOptionBlocks(sourceBlocks as any[], {
+    departDate: sourceDepart,
+    returnDate: sourceReturn,
   });
 
   const tabs: { key: TabKey; label: string }[] = [
@@ -214,6 +238,72 @@ export default function SharedTrip() {
         {/* Tab Content */}
         {activeTab === "itinerary" && (
           <div className="space-y-10">
+            {hasMultipleItineraries && (
+              <div className="space-y-3">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Choose Your Option</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    We've put together {itineraries.length} options for this trip. Select one to view its full itinerary.
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {itineraries.map((it) => {
+                    const isActive = activeItinerary?.id === it.id;
+                    return (
+                      <button
+                        key={it.id}
+                        type="button"
+                        onClick={() => setSelectedItineraryId(it.id)}
+                        className={`text-left rounded-xl border-2 overflow-hidden transition-all bg-white ${
+                          isActive ? "shadow-md" : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        style={isActive ? { borderColor: primaryColor } : undefined}
+                      >
+                        {it.cover_image_url && (
+                          <img
+                            src={it.cover_image_url}
+                            alt={it.name}
+                            className="w-full h-32 object-cover"
+                          />
+                        )}
+                        <div className="p-4 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-semibold text-gray-900">{it.name}</h3>
+                            {isActive && (
+                              <span
+                                className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full text-white"
+                                style={{ backgroundColor: primaryColor }}
+                              >
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          {it.depart_date && (
+                            <p className="text-xs text-gray-500">
+                              {formatDate(it.depart_date)}
+                              {it.return_date && ` – ${formatDate(it.return_date)}`}
+                            </p>
+                          )}
+                          {it.overview && (
+                            <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-wrap pt-1">
+                              {it.overview}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeItinerary?.overview && !hasMultipleItineraries && (
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-3">{activeItinerary.name}</h2>
+                <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{activeItinerary.overview}</p>
+              </div>
+            )}
+
             {data.trip.notes && (
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-3">Trip Details</h2>

@@ -467,10 +467,16 @@ const handler = async (req: Request): Promise<Response> => {
     let cancellationTerms: string[] = [];
     let paymentDeadlines: { label: string; date: string }[] = [];
     let optionBlocks: any[] = [];
+    let itinerariesList: any[] = [];
     let effectiveDepartDate = trip.depart_date;
     let effectiveReturnDate = trip.return_date;
 
-    if (snapshot && snapshot.itinerary) {
+    const hasSnapshotItineraries =
+      snapshot && Array.isArray(snapshot.itineraries) && snapshot.itineraries.length > 0;
+    const hasSnapshotItems =
+      snapshot && Array.isArray(snapshot.itinerary) && snapshot.itinerary.length > 0;
+
+    if (hasSnapshotItineraries || hasSnapshotItems) {
       const activeSnapshotItinerary = getActiveSnapshotItinerary(snapshot);
       const totalDays = getTripDayCount(
         activeSnapshotItinerary?.depart_date ?? trip.depart_date,
@@ -522,19 +528,52 @@ const handler = async (req: Request): Promise<Response> => {
         filterToActiveItinerary(Array.isArray(snapshot.optionBlocks) ? snapshot.optionBlocks : [], activeSnapshotItinerary?.id),
         totalDays
       );
+
+      // Build per-itinerary list from snapshot
+      const snapshotItineraries = Array.isArray(snapshot.itineraries) ? snapshot.itineraries : [];
+      const snapshotItems = Array.isArray(snapshot.itinerary) ? snapshot.itinerary : [];
+      const snapshotBlocks = Array.isArray(snapshot.optionBlocks) ? snapshot.optionBlocks : [];
+      itinerariesList = snapshotItineraries
+        .slice()
+        .sort((a: any, b: any) => Number(a?.sort_order ?? 0) - Number(b?.sort_order ?? 0))
+        .map((it: any) => {
+          const itDays = getTripDayCount(
+            it?.depart_date ?? trip.depart_date,
+            it?.return_date ?? trip.return_date
+          );
+          return {
+            id: it.id,
+            name: it.name || "Itinerary",
+            overview: it.overview ?? null,
+            cover_image_url: it.cover_image_url ?? null,
+            depart_date: it.depart_date ?? null,
+            return_date: it.return_date ?? null,
+            sort_order: it.sort_order ?? 0,
+            items: sanitizeItinerary(
+              snapshotItems.filter((x: any) => x?.itinerary_id === it.id),
+              itDays
+            ),
+            optionBlocks: sanitizeOptionBlocks(
+              snapshotBlocks.filter((x: any) => x?.itinerary_id === it.id),
+              itDays
+            ),
+          };
+        });
       // Pricing from snapshot if available
-    } else {
+    }
+
+    if (itinerariesList.length === 0) {
       // Legacy fallback: serve live data for trips published before versioning
       // First get the active itinerary to filter items properly
-      const activeItinRes = await supabase
+      const allItinRes = await supabase
         .from("itineraries")
-        .select("id, depart_date, return_date")
+        .select("id, name, overview, cover_image_url, depart_date, return_date, sort_order")
         .eq("trip_id", trip.id)
-        .order("sort_order", { ascending: true })
-        .limit(1);
-      if (activeItinRes.error) throw activeItinRes.error;
+        .order("sort_order", { ascending: true });
+      if (allItinRes.error) throw allItinRes.error;
 
-      const activeItinerary = activeItinRes.data?.[0] || null;
+      const allItineraries = allItinRes.data || [];
+      const activeItinerary = allItineraries[0] || null;
       const activeItineraryId = activeItinerary?.id || null;
       const totalDays = getTripDayCount(
         activeItinerary?.depart_date ?? trip.depart_date,
@@ -566,8 +605,10 @@ const handler = async (req: Request): Promise<Response> => {
       if (bookingsRes.error) throw bookingsRes.error;
       if (optionBlocksRes.error) throw optionBlocksRes.error;
 
+      const allItems = (itineraryRes.data as any[]) || [];
+      const allBlocks = (optionBlocksRes.data as any[]) || [];
       itinerary = sanitizeItinerary(
-        filterToActiveItinerary((itineraryRes.data as any[]) || [], activeItineraryId),
+        filterToActiveItinerary(allItems, activeItineraryId),
         totalDays
       );
       const bookings = bookingsRes.data || [];
@@ -592,9 +633,34 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       optionBlocks = sanitizeOptionBlocks(
-        filterToActiveItinerary((optionBlocksRes.data as any[]) || [], activeItineraryId),
+        filterToActiveItinerary(allBlocks, activeItineraryId),
         totalDays
       );
+
+      // Build per-itinerary list from live data so clients can pick
+      itinerariesList = allItineraries.map((it: any) => {
+        const itDays = getTripDayCount(
+          it?.depart_date ?? trip.depart_date,
+          it?.return_date ?? trip.return_date
+        );
+        return {
+          id: it.id,
+          name: it.name || "Itinerary",
+          overview: it.overview ?? null,
+          cover_image_url: it.cover_image_url ?? null,
+          depart_date: it.depart_date ?? null,
+          return_date: it.return_date ?? null,
+          sort_order: it.sort_order ?? 0,
+          items: sanitizeItinerary(
+            allItems.filter((x: any) => x?.itinerary_id === it.id),
+            itDays
+          ),
+          optionBlocks: sanitizeOptionBlocks(
+            allBlocks.filter((x: any) => x?.itinerary_id === it.id),
+            itDays
+          ),
+        };
+      });
     }
 
     // Fetch pricing lines (client-facing sell prices only)
@@ -743,6 +809,7 @@ const handler = async (req: Request): Promise<Response> => {
       paymentDeadlines,
       itinerary,
       optionBlocks,
+      itineraries: itinerariesList,
       bookings: bookingsForResponse,
       pricingLines,
       branding,
