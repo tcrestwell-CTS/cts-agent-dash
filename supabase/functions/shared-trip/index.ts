@@ -642,6 +642,54 @@ const handler = async (req: Request): Promise<Response> => {
             ),
           };
         });
+
+      // Legacy repair: earlier publishes could store all itinerary headers but
+      // only the first itinerary's items in the frozen snapshot. If a snapshot
+      // option has no items, hydrate just those missing option details from the
+      // live trip data so both choices remain visible without requiring a republish.
+      const missingItemItineraryIds = itinerariesList
+        .filter((it: any) => (it.items?.length || 0) === 0)
+        .map((it: any) => it.id)
+        .filter(Boolean);
+
+      if (missingItemItineraryIds.length > 0) {
+        const [liveItemsRes, liveBlocksRes] = await Promise.all([
+          supabase
+            .from("itinerary_items")
+            .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, item_price")
+            .eq("trip_id", trip.id)
+            .in("itinerary_id", missingItemItineraryIds)
+            .order("day_number", { ascending: true })
+            .order("sort_order", { ascending: true }),
+          supabase
+            .from("option_blocks")
+            .select("id, trip_id, day_number, title, sort_order, itinerary_id")
+            .eq("trip_id", trip.id)
+            .in("itinerary_id", missingItemItineraryIds)
+            .order("sort_order", { ascending: true }),
+        ]);
+
+        const liveItems = (liveItemsRes.data as any[]) || [];
+        const liveBlocks = (liveBlocksRes.data as any[]) || [];
+        itinerariesList = itinerariesList.map((it: any) => {
+          if (!missingItemItineraryIds.includes(it.id)) return it;
+          const itDays = getTripDayCount(
+            it?.depart_date ?? trip.depart_date,
+            it?.return_date ?? trip.return_date
+          );
+          return {
+            ...it,
+            items: sanitizeItinerary(
+              liveItems.filter((x: any) => x?.itinerary_id === it.id),
+              itDays
+            ),
+            optionBlocks: sanitizeOptionBlocks(
+              liveBlocks.filter((x: any) => x?.itinerary_id === it.id),
+              itDays
+            ),
+          };
+        });
+      }
       // Pricing from snapshot if available
     }
 
