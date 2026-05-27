@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface SubTripInfo {
   id: string;
@@ -40,10 +42,26 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
   const [filter, setFilter] = useState<"all" | "balcony">("all");
   const [expandedCabin, setExpandedCabin] = useState<string | null>(null);
   const [drillLoading, setDrillLoading] = useState<string | null>(null);
+  const [defaultNights, setDefaultNights] = useState<number>(1);
+  const [estimators, setEstimators] = useState<Record<string, { enabled: boolean; persons: number; nights: number }>>({});
 
   useEffect(() => {
     async function fetch() {
       setLoading(true);
+
+      const { data: tripRow } = await supabase
+        .from("trips")
+        .select("departure_date, return_date")
+        .eq("id", tripId)
+        .maybeSingle();
+      let nights = 1;
+      if (tripRow?.departure_date && tripRow?.return_date) {
+        const dep = new Date(`${tripRow.departure_date}T00:00:00`);
+        const ret = new Date(`${tripRow.return_date}T00:00:00`);
+        const diff = Math.round((ret.getTime() - dep.getTime()) / (1000 * 60 * 60 * 24));
+        if (diff > 0) nights = diff;
+      }
+      setDefaultNights(nights);
 
       const { data: cabinData } = await supabase
         .from("trip_cabin_options")
@@ -53,6 +71,15 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
 
       const fetched = (cabinData || []) as CabinOption[];
       setAllCabins(fetched);
+
+      // initialize estimator defaults for per-night cabins
+      const init: Record<string, { enabled: boolean; persons: number; nights: number }> = {};
+      fetched.forEach((c) => {
+        if (c.price_period === 'night') {
+          init[c.id] = { enabled: false, persons: 2, nights };
+        }
+      });
+      setEstimators(init);
 
       if (fetched.length > 0) {
         const { data: subTrips } = await supabase
@@ -193,6 +220,81 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
 
                     {cabin.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2">{cabin.description}</p>
+                    )}
+
+                    {cabin.price_period === 'night' && (
+                      <div
+                        className="mt-2 rounded-md border bg-muted/20 p-2 space-y-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={estimators[cabin.id]?.enabled || false}
+                            onChange={(e) =>
+                              setEstimators((prev) => ({
+                                ...prev,
+                                [cabin.id]: {
+                                  persons: prev[cabin.id]?.persons ?? 2,
+                                  nights: prev[cabin.id]?.nights ?? defaultNights,
+                                  enabled: e.target.checked,
+                                },
+                              }))
+                            }
+                          />
+                          Calculate total (per person × per night)
+                        </label>
+                        {estimators[cabin.id]?.enabled && (
+                          <div className="flex flex-wrap items-end gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Persons</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                className="h-8 w-20 text-sm"
+                                value={estimators[cabin.id]?.persons ?? 2}
+                                onChange={(e) =>
+                                  setEstimators((prev) => ({
+                                    ...prev,
+                                    [cabin.id]: {
+                                      ...(prev[cabin.id] || { enabled: true, nights: defaultNights }),
+                                      persons: Math.max(1, parseInt(e.target.value) || 1),
+                                    },
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Nights</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                className="h-8 w-20 text-sm"
+                                value={estimators[cabin.id]?.nights ?? defaultNights}
+                                onChange={(e) =>
+                                  setEstimators((prev) => ({
+                                    ...prev,
+                                    [cabin.id]: {
+                                      ...(prev[cabin.id] || { enabled: true, persons: 2 }),
+                                      nights: Math.max(1, parseInt(e.target.value) || 1),
+                                    },
+                                  }))
+                                }
+                              />
+                            </div>
+                            <div className="ml-auto text-right">
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Estimated Total</p>
+                              <p className="text-base font-bold">
+                                {formatCurrency(
+                                  (cabin.price_per_person || 0) *
+                                    (estimators[cabin.id]?.persons || 1) *
+                                    (estimators[cabin.id]?.nights || 1)
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     <div className="space-y-1">
