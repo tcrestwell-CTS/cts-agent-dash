@@ -471,9 +471,30 @@ const handler = async (req: Request): Promise<Response> => {
         client: clientRes.data || null,
         bookings: portalBookings,
         payments,
-        itinerary: itineraryRes.data || [],
-        itineraries: itinerariesRes.data || [],
-        optionBlocks: optionBlocksRes.data || [],
+        itinerary: (() => {
+          const items = itineraryRes.data || [];
+          const approvedId = tripRes.data?.approved_itinerary_id;
+          if (!approvedId) return items;
+          const filtered = items.filter((i: any) => i.itinerary_id === approvedId);
+          return filtered.length > 0 ? filtered : items;
+        })(),
+        itineraries: (() => {
+          const list = itinerariesRes.data || [];
+          const approvedId = tripRes.data?.approved_itinerary_id;
+          if (!approvedId) return list;
+          const chosen = list.filter((i: any) => i.id === approvedId);
+          return chosen.length > 0 ? chosen : list;
+        })(),
+        optionBlocks: (() => {
+          const blocks = optionBlocksRes.data || [];
+          const approvedId = tripRes.data?.approved_itinerary_id;
+          if (!approvedId) return blocks;
+          // option_blocks may not have itinerary_id selected; fall back to all
+          const filtered = blocks.filter((b: any) =>
+            b.itinerary_id ? b.itinerary_id === approvedId : true
+          );
+          return filtered;
+        })(),
         pricingLines,
         selectedCabin,
       }), {
