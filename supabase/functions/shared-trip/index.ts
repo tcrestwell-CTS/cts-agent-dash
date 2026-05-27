@@ -138,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: trip } = await supabase
         .from("trips")
-        .select("id, user_id, trip_name, total_gross_sales, client_id, budget_range")
+        .select("id, user_id, trip_name, total_gross_sales, client_id, budget_range, approved_itinerary_id")
         .eq("share_token", token)
         .not("published_at", "is", null)
         .single();
@@ -158,6 +158,89 @@ const handler = async (req: Request): Promise<Response> => {
           .eq("id", trip.client_id)
           .single();
         if (client) clientName = client.name;
+      }
+
+      // === Client selects an itinerary option from the proposal ===
+      if (action === "select_itinerary") {
+        const { itinerary_id, ip_address, user_agent } = body;
+        if (!itinerary_id) {
+          return new Response(JSON.stringify({ error: "itinerary_id required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Validate the itinerary belongs to this trip
+        const { data: itin } = await supabase
+          .from("itineraries")
+          .select("id, name")
+          .eq("id", itinerary_id)
+          .eq("trip_id", trip.id)
+          .maybeSingle();
+
+        if (!itin) {
+          return new Response(JSON.stringify({ error: "Itinerary not found for this trip" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // If already approved, do nothing
+        if (trip.approved_itinerary_id && trip.approved_itinerary_id === itinerary_id) {
+          return new Response(JSON.stringify({ success: true, alreadySelected: true }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        await supabase
+          .from("trips")
+          .update({
+            approved_itinerary_id: itinerary_id,
+            itinerary_approved_at: new Date().toISOString(),
+            itinerary_approved_by_client_id: trip.client_id,
+          })
+          .eq("id", trip.id);
+
+        // Audit log
+        await supabase.from("compliance_audit_log").insert({
+          user_id: trip.user_id,
+          event_type: "itinerary_selected",
+          entity_type: "trip",
+          entity_id: trip.id,
+          client_name: clientName,
+          ip_address: ip_address || null,
+          user_agent: user_agent || null,
+          metadata: {
+            trip_name: trip.trip_name,
+            itinerary_id,
+            itinerary_name: itin.name,
+          },
+        });
+
+        // Notify agent
+        await supabase.from("agent_notifications").insert({
+          user_id: trip.user_id,
+          type: "itinerary_selected",
+          title: `Itinerary Chosen: ${clientName}`,
+          message: `${clientName} selected "${itin.name || "an itinerary"}" for "${trip.trip_name}". It's now the active itinerary in their client portal.`,
+          trip_id: trip.id,
+        });
+
+        // Portal message
+        if (trip.client_id) {
+          await supabase.from("portal_messages").insert({
+            client_id: trip.client_id,
+            agent_user_id: trip.user_id,
+            sender_type: "client",
+            message: `✅ ${clientName} chose "${itin.name || "an itinerary"}" for "${trip.trip_name}".`,
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // === Create CC Authorization for "Send Card Info to Agent" ===
