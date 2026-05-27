@@ -19,6 +19,7 @@ interface CabinOption {
   capacity: number | null;
   image_url: string | null;
   sort_order: number;
+  price_period?: 'trip' | 'night';
 }
 
 interface CabinOptionsManagerProps {
@@ -39,6 +40,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     deposit_amount: "",
     capacity: "",
     image_url: "",
+    price_period: "trip" as 'trip' | 'night',
   });
 
   const fetchOptions = async () => {
@@ -74,13 +76,14 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
       capacity: newOption.capacity ? parseInt(newOption.capacity) : null,
       image_url: newOption.image_url.trim() || null,
       sort_order: options.length,
+      price_period: newOption.price_period,
     } as any);
 
     if (error) {
       toast.error("Failed to add cabin option");
     } else {
       toast.success("Cabin option added");
-      setNewOption({ category_name: "", description: "", price_per_person: "", deposit_amount: "", capacity: "", image_url: "" });
+      setNewOption({ category_name: "", description: "", price_per_person: "", deposit_amount: "", capacity: "", image_url: "", price_period: "trip" });
       setShowAddForm(false);
       fetchOptions();
       onDataChange?.();
@@ -153,7 +156,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
               <div className="flex items-center gap-2">
                 <span className="font-medium">{opt.category_name}</span>
                 <Badge variant="outline" className="text-xs">
-                  {formatCurrency(opt.price_per_person)} / person
+                  {formatCurrency(opt.price_per_person)} / person{opt.price_period === 'night' ? ' / night' : ''}
                 </Badge>
                 {opt.deposit_amount > 0 && (
                   <Badge variant="secondary" className="text-xs">
