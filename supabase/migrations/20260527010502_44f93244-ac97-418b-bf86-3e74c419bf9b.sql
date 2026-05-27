@@ -1,0 +1,1 @@
+UPDATE bookings SET gross_sales=13968, total_price=13968, net_sales=13968, commissionable_amount=13968 WHERE id='87db6da4-8f04-4b1d-9725-42c4f6db06c6';
