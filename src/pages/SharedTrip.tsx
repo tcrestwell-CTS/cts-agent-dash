@@ -298,66 +298,103 @@ export default function SharedTrip() {
         {/* Tab Content */}
         {activeTab === "itinerary" && (
           <div className="space-y-10">
-            {hasMultipleItineraries && (
+            {approvedItineraryId && activeItinerary && (
+              <div
+                className="flex items-start gap-3 rounded-xl border p-4"
+                style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}
+              >
+                <CheckCircle2
+                  className="h-5 w-5 mt-0.5 flex-shrink-0"
+                  style={{ color: primaryColor }}
+                />
+                <div className="text-sm">
+                  <p className="font-semibold text-gray-900">
+                    You've selected "{activeItinerary.name}"
+                  </p>
+                  <p className="text-gray-600 mt-0.5">
+                    Your travel advisor has been notified and this itinerary is now active in your client portal.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!approvedItineraryId && hasMultipleItineraries && (
               <div className="space-y-3">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Choose Your Option</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    We've put together {itineraries.length} options for this trip. Select one to view its full itinerary.
+                    We've put together {itineraries.length} options for this trip. Preview each, then choose the one you'd like to move forward with.
                   </p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {itineraries.map((it) => {
                     const isActive = activeItinerary?.id === it.id;
                     return (
-                      <button
+                      <div
                         key={it.id}
-                        type="button"
-                        onClick={() => setSelectedItineraryId(it.id)}
                         className={`text-left rounded-xl border-2 overflow-hidden transition-all bg-white ${
                           isActive ? "shadow-md" : "border-gray-200 hover:border-gray-300"
                         }`}
                         style={isActive ? { borderColor: primaryColor } : undefined}
                       >
-                        {it.cover_image_url && (
-                          <img
-                            src={it.cover_image_url}
-                            alt={it.name}
-                            className="w-full h-32 object-cover"
-                          />
-                        )}
-                        <div className="p-4 space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-semibold text-gray-900">{it.name}</h3>
-                            {isActive && (
-                              <span
-                                className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full text-white"
-                                style={{ backgroundColor: primaryColor }}
-                              >
-                                Selected
-                              </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedItineraryId(it.id)}
+                          className="w-full text-left"
+                        >
+                          {it.cover_image_url && (
+                            <img
+                              src={it.cover_image_url}
+                              alt={it.name}
+                              className="w-full h-32 object-cover"
+                            />
+                          )}
+                          <div className="p-4 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <h3 className="font-semibold text-gray-900">{it.name}</h3>
+                              {isActive && (
+                                <span
+                                  className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full text-white"
+                                  style={{ backgroundColor: primaryColor }}
+                                >
+                                  Previewing
+                                </span>
+                              )}
+                            </div>
+                            {it.depart_date && (
+                              <p className="text-xs text-gray-500">
+                                {formatDate(it.depart_date)}
+                                {it.return_date && ` – ${formatDate(it.return_date)}`}
+                              </p>
+                            )}
+                            {it.overview && (
+                              <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-wrap pt-1">
+                                {it.overview}
+                              </p>
                             )}
                           </div>
-                          {it.depart_date && (
-                            <p className="text-xs text-gray-500">
-                              {formatDate(it.depart_date)}
-                              {it.return_date && ` – ${formatDate(it.return_date)}`}
-                            </p>
-                          )}
-                          {it.overview && (
-                            <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-wrap pt-1">
-                              {it.overview}
-                            </p>
-                          )}
+                        </button>
+                        <div className="px-4 pb-4">
+                          <Button
+                            type="button"
+                            className="w-full text-white"
+                            style={{ backgroundColor: primaryColor }}
+                            onClick={() => setPendingChoiceId(it.id)}
+                          >
+                            Select this option
+                          </Button>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
+                <p className="text-xs text-gray-400">
+                  Once you confirm, your chosen itinerary is locked in and shared with your travel advisor.
+                </p>
               </div>
             )}
 
-            {activeItinerary?.overview && !hasMultipleItineraries && (
+            {activeItinerary?.overview && (!hasMultipleItineraries || approvedItineraryId) && (
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-3">{activeItinerary.name}</h2>
                 <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{activeItinerary.overview}</p>
@@ -379,6 +416,46 @@ export default function SharedTrip() {
             />
           </div>
         )}
+
+        <AlertDialog
+          open={!!pendingChoiceId}
+          onOpenChange={(open) => {
+            if (!open && !submittingChoice) setPendingChoiceId(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm your itinerary choice</AlertDialogTitle>
+              <AlertDialogDescription>
+                You're about to select{" "}
+                <strong>
+                  {itineraries.find((it) => it.id === pendingChoiceId)?.name || "this option"}
+                </strong>{" "}
+                as your preferred itinerary. Your travel advisor will be notified and this will become the active itinerary in your client portal.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={submittingChoice}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={submittingChoice}
+                onClick={(e) => {
+                  e.preventDefault();
+                  confirmChoice();
+                }}
+                style={{ backgroundColor: primaryColor }}
+              >
+                {submittingChoice ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Confirm selection"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {activeTab === "overview" && (
           <div className="space-y-6">
