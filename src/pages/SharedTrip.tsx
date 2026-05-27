@@ -10,9 +10,21 @@ import SharedTripFooter from "@/components/shared-trip/SharedTripFooter";
 import SharedTripPricing from "@/components/shared-trip/SharedTripPricing";
 import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { Calendar, CheckCircle2, Loader2 } from "lucide-react";
 import { parseLocalDate } from "@/lib/utils";
 import { sanitizePublishedItinerary, sanitizePublishedOptionBlocks } from "@/lib/publishedTrip";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export interface SharedTripData {
   trip: {
@@ -69,6 +81,8 @@ export interface SharedTripData {
     asta_number: string | null;
     embarc_number: string | null;
   } | null;
+  approvedItineraryId?: string | null;
+  itineraryApprovedAt?: string | null;
 }
 
 type TabKey = "itinerary" | "overview" | "pricing";
@@ -80,6 +94,8 @@ export default function SharedTrip() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("itinerary");
   const [selectedItineraryId, setSelectedItineraryId] = useState<string | null>(null);
+  const [pendingChoiceId, setPendingChoiceId] = useState<string | null>(null);
+  const [submittingChoice, setSubmittingChoice] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -102,6 +118,13 @@ export default function SharedTrip() {
     };
     fetchData();
   }, [token]);
+
+  // When data loads, default selection to the already-approved itinerary if any.
+  useEffect(() => {
+    if (data?.approvedItineraryId) {
+      setSelectedItineraryId(data.approvedItineraryId);
+    }
+  }, [data?.approvedItineraryId]);
 
   if (loading) {
     return (
@@ -133,9 +156,46 @@ export default function SharedTrip() {
   const itineraries = (data.itineraries || []).filter(
     (it) => (it.items?.length || 0) > 0 || (it.optionBlocks?.length || 0) > 0 || it.overview
   );
+  const approvedItineraryId = data.approvedItineraryId || null;
   const hasMultipleItineraries = itineraries.length > 1;
   const activeItinerary =
     itineraries.find((it) => it.id === selectedItineraryId) || itineraries[0] || null;
+
+  const confirmChoice = async () => {
+    if (!pendingChoiceId || !token) return;
+    setSubmittingChoice(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shared-trip`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            token,
+            action: "select_itinerary",
+            itinerary_id: pendingChoiceId,
+            user_agent: navigator.userAgent,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to save selection");
+      toast.success("Your choice has been sent to your travel advisor.");
+      // Refresh data so the chooser collapses and locks
+      const refresh = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shared-trip?token=${token}`,
+        { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      if (refresh.ok) setData(await refresh.json());
+      setPendingChoiceId(null);
+    } catch (e) {
+      toast.error("We couldn't save your choice. Please try again.");
+    } finally {
+      setSubmittingChoice(false);
+    }
+  };
 
   const sourceItems = activeItinerary?.items ?? data.itinerary ?? [];
   const sourceBlocks = activeItinerary?.optionBlocks ?? (data as any).optionBlocks ?? [];
