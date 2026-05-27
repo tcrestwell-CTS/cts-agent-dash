@@ -416,7 +416,7 @@ export default function PortalTripDetail() {
                   {selectedCabin.price_per_person != null && (
                     <span className="flex items-center gap-1.5">
                       <DollarSign className="h-3.5 w-3.5" />
-                      ${Number(selectedCabin.price_per_person).toLocaleString()} per guest
+                      ${Number(selectedCabin.price_per_person).toLocaleString()} per guest{(selectedCabin as any).price_period === 'night' ? ' / night' : ''}
                     </span>
                   )}
                   {selectedCabin.capacity != null && (
