@@ -62,11 +62,10 @@ export function PublishTripButton({
       if (itinerariesRes.error) throw itinerariesRes.error;
 
       const itineraries = itinerariesRes.data || [];
-      const activeItinerary = itineraries[0] || null;
-      const activeItineraryId = activeItinerary?.id || null;
 
-      // 2. Fetch all itinerary items and option blocks, then keep only the active itinerary if present.
-      // This preserves older trips that don't have itinerary_id values while still excluding orphaned data.
+      // 2. Fetch ALL itinerary items and option blocks across every itinerary.
+      // The shared-trip edge function re-groups and sanitizes per itinerary_id,
+      // so the snapshot must include items for every published itinerary.
       const [itineraryRes, optionBlocksRes] = await Promise.all([
         supabase
         .from("itinerary_items")
@@ -85,21 +84,10 @@ export function PublishTripButton({
       if (itineraryRes.error) throw itineraryRes.error;
       if (optionBlocksRes.error) throw optionBlocksRes.error;
 
-      const publishedItinerary = sanitizePublishedItinerary(
-        filterToActiveItinerary((itineraryRes.data as any[]) || [], activeItineraryId),
-        {
-          departDate: activeItinerary?.depart_date || null,
-          returnDate: activeItinerary?.return_date || null,
-        }
-      );
-
-      const publishedOptionBlocks = sanitizePublishedOptionBlocks(
-        filterToActiveItinerary((optionBlocksRes.data as any[]) || [], activeItineraryId),
-        {
-          departDate: activeItinerary?.depart_date || null,
-          returnDate: activeItinerary?.return_date || null,
-        }
-      );
+      // Keep raw items/blocks (no date clamping) so the edge function can
+      // sanitize per itinerary using each itinerary's own depart/return dates.
+      const publishedItinerary = (itineraryRes.data as any[]) || [];
+      const publishedOptionBlocks = (optionBlocksRes.data as any[]) || [];
 
       const snapshot = {
         itinerary: publishedItinerary,
