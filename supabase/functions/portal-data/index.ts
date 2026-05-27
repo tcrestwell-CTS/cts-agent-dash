@@ -319,7 +319,7 @@ const handler = async (req: Request): Promise<Response> => {
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url").eq("trip_id", tripId),
         supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
-        supabase.from("option_blocks").select("id, day_number, title, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
+        supabase.from("option_blocks").select("id, day_number, title, sort_order, itinerary_id").eq("trip_id", tripId).order("sort_order", { ascending: true }),
         supabase.from("clients").select("name, first_name, last_name, email, phone, address_line_1, address_city, address_state, address_zip_code, address_country").eq("id", clientId).single(),
       ]);
 
@@ -471,9 +471,30 @@ const handler = async (req: Request): Promise<Response> => {
         client: clientRes.data || null,
         bookings: portalBookings,
         payments,
-        itinerary: itineraryRes.data || [],
-        itineraries: itinerariesRes.data || [],
-        optionBlocks: optionBlocksRes.data || [],
+        itinerary: (() => {
+          const items = itineraryRes.data || [];
+          const approvedId = tripRes.data?.approved_itinerary_id;
+          if (!approvedId) return items;
+          const filtered = items.filter((i: any) => i.itinerary_id === approvedId);
+          return filtered.length > 0 ? filtered : items;
+        })(),
+        itineraries: (() => {
+          const list = itinerariesRes.data || [];
+          const approvedId = tripRes.data?.approved_itinerary_id;
+          if (!approvedId) return list;
+          const chosen = list.filter((i: any) => i.id === approvedId);
+          return chosen.length > 0 ? chosen : list;
+        })(),
+        optionBlocks: (() => {
+          const blocks = optionBlocksRes.data || [];
+          const approvedId = tripRes.data?.approved_itinerary_id;
+          if (!approvedId) return blocks;
+          // option_blocks may not have itinerary_id selected; fall back to all
+          const filtered = blocks.filter((b: any) =>
+            b.itinerary_id ? b.itinerary_id === approvedId : true
+          );
+          return filtered;
+        })(),
         pricingLines,
         selectedCabin,
       }), {
