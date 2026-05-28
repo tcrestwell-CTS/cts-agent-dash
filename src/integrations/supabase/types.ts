@@ -2251,44 +2251,53 @@ export type Database = {
         Row: {
           client_id: string | null
           created_at: string | null
+          description: string | null
           doc_key: string
           file_name: string
           file_size: number | null
           id: string
+          label: string | null
           mime_type: string | null
           reviewed: boolean | null
           reviewed_at: string | null
           reviewed_by: string | null
           storage_path: string
           trip_id: string | null
+          uploaded_by: string | null
         }
         Insert: {
           client_id?: string | null
           created_at?: string | null
+          description?: string | null
           doc_key: string
           file_name: string
           file_size?: number | null
           id?: string
+          label?: string | null
           mime_type?: string | null
           reviewed?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           storage_path: string
           trip_id?: string | null
+          uploaded_by?: string | null
         }
         Update: {
           client_id?: string | null
           created_at?: string | null
+          description?: string | null
           doc_key?: string
           file_name?: string
           file_size?: number | null
           id?: string
+          label?: string | null
           mime_type?: string | null
           reviewed?: boolean | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           storage_path?: string
           trip_id?: string | null
+          uploaded_by?: string | null
         }
         Relationships: [
           {
