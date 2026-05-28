@@ -1108,6 +1108,47 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "agent-docs") {
+      // Agent-uploaded travel documents that the client can download.
+      const tripId = url.searchParams.get("tripId");
+      if (!tripId) {
+        return new Response(JSON.stringify({ error: "tripId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify this trip belongs to one of the client's records (incl. siblings)
+      const allClientIds = await getAllClientIds();
+      const { data: trip } = await supabase
+        .from("trips")
+        .select("id, client_id")
+        .eq("id", tripId)
+        .maybeSingle();
+      if (!trip || !trip.client_id || !allClientIds.includes(trip.client_id)) {
+        return new Response(JSON.stringify({ error: "Not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: docs } = await supabase
+        .from("client_document_uploads")
+        .select("id, label, description, file_name, mime_type, file_size, storage_path, created_at")
+        .eq("trip_id", tripId)
+        .not("uploaded_by", "is", null)
+        .order("created_at", { ascending: false });
+
+      const enriched = await Promise.all((docs || []).map(async (d: any) => {
+        const { data: signed } = await supabase
+          .storage
+          .from("client-documents")
+          .createSignedUrl(d.storage_path, 60 * 60);
+        return { ...d, url: signed?.signedUrl || null };
+      }));
+
+      return new Response(JSON.stringify({ docs: enriched }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else if (resource === "select-option") {
       if (req.method !== "POST") {
         return new Response(JSON.stringify({ error: "POST required" }), {
