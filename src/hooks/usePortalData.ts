@@ -195,6 +195,15 @@ export function usePortalDocChecklist(tripId: string | undefined) {
   });
 }
 
+export function usePortalAgentDocs(tripId: string | undefined) {
+  return useQuery({
+    queryKey: ["portal", "agent-docs", tripId],
+    queryFn: () => portalFetch("agent-docs", { tripId: tripId! }),
+    enabled: !!tripId && hasAnyAuth(),
+    staleTime: 30_000,
+  });
+}
+
 export function usePortalOptionSelections(tripId: string | undefined) {
   return useQuery({
     queryKey: ["portal", "option-selections", tripId],
