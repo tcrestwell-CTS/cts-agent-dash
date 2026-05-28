@@ -21,6 +21,7 @@ import { PaymentMilestoneTracker } from "@/components/client/PaymentMilestoneTra
 import { PaymentAgreementStep } from "@/components/client/PaymentAgreementStep";
 import { DepartureCountdown } from "@/components/client/DepartureCountdown";
 import { TravelDocChecklist } from "@/components/client/TravelDocChecklist";
+import { AgentTripDocumentsView } from "@/components/client/AgentTripDocumentsView";
 import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocationTimeline";
 import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
 import { ApprovalStatePanel } from "@/components/client/ApprovalStatePanel";
@@ -943,6 +944,7 @@ export default function PortalTripDetail() {
       </Card>
 
       {/* Travel Document Checklist */}
+      {tripId && <AgentTripDocumentsView tripId={tripId} />}
       {tripId && <TravelDocChecklist tripId={tripId} />}
 
       {/* Notes */}
