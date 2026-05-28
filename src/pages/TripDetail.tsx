@@ -40,6 +40,7 @@ import { TripCoverImage } from "@/components/trips/TripCoverImage";
 import { TripStatusWorkflow, CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist";
 import { TripReadinessScore } from "@/components/trips/TripReadinessScore";
+import { AgentTripDocuments } from "@/components/trips/AgentTripDocuments";
 import { SupplierPaymentStatus } from "@/components/trips/SupplierPaymentStatus";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
@@ -830,6 +831,7 @@ const TripDetail = () => {
                 tripTotal={trip.total_gross_sales}
                 tripStatus={trip.status}
               />
+              <AgentTripDocuments tripId={trip.id} />
             </div>
           </div>
         </div>
