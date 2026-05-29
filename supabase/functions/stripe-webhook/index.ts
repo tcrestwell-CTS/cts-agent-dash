@@ -949,6 +949,50 @@ serve(async (req) => {
         break;
       }
 
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
+        // Self-healing fallback: if the client closes the browser before
+        // /payment-success calls verify-stripe-payment, the webhook will
+        // reconcile the Checkout Session here. verify-stripe-payment is
+        // idempotent (it no-ops the receipt email/VCN when the payment
+        // is already marked paid).
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.payment_status !== "paid") {
+          log("checkout.session.completed: not paid yet — skipping", {
+            id: session.id,
+            payment_status: session.payment_status,
+          });
+          break;
+        }
+        if (!session.metadata?.trip_payment_id) {
+          log("checkout.session.completed: no trip_payment_id metadata — skipping (handled by PI route)", { id: session.id });
+          break;
+        }
+        try {
+          const res = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/verify-stripe-payment`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+              },
+              body: JSON.stringify({ sessionId: session.id }),
+            },
+          );
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`verify-stripe-payment failed: ${res.status} ${errText}`);
+          }
+          log("checkout.session reconciled via verify-stripe-payment", { id: session.id });
+        } catch (e) {
+          log("checkout.session reconciliation failed", e);
+          throw e;
+        }
+        break;
+      }
+
       default:
         log("unhandled event type — skipping", { type: event.type });
     }
