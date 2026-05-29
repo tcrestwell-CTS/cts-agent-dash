@@ -909,3 +909,68 @@ function ItineraryItemsList({ items }: { items: any[] }) {
     </div>
   );
 }
+
+/* ─── Documents Tab ────────────────────────────────────────────────────────── */
+function DocumentsTab({ clientId }: { clientId?: string }) {
+  const { data, isLoading } = useAdminPortalDocuments(clientId);
+  const groups = data?.groups || [];
+
+  if (isLoading) return <Skeleton className="h-40" />;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <FolderOpen className="h-6 w-6 text-primary" /> Documents
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Travel documents your agent has shared with you, grouped by trip.
+        </p>
+      </div>
+
+      {groups.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            No documents shared yet.
+          </CardContent>
+        </Card>
+      ) : (
+        groups.map((g: any) => (
+          <div key={g.trip_id} className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              {g.trip_name}
+            </h2>
+            <Card>
+              <CardContent className="space-y-2 pt-4">
+                {g.docs.map((d: any) => (
+                  <div key={d.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/20">
+                    <FileText className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{d.label || d.file_name}</p>
+                      {d.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {d.file_name} · Shared {format(new Date(d.created_at), "MMM d, yyyy")}
+                      </p>
+                    </div>
+                    {d.url && (
+                      <a
+                        href={d.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline shrink-0 self-center"
+                      >
+                        <Download className="h-4 w-4" /> Download
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
