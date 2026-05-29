@@ -509,10 +509,32 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
           {itineraries.length > 0 ? (
             itineraries.map((itin: any) => {
               const items = itemsByItinerary[itin.id] || [];
+              const isApproved = trip.approved_itinerary_id === itin.id;
               return (
                 <Card key={itin.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">{itin.name}</CardTitle>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {itin.name}
+                          {isApproved && (
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Approved
+                            </Badge>
+                          )}
+                        </CardTitle>
+                      </div>
+                      {!trip.approved_itinerary_id && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
+                            <Lock className="h-3 w-3" /> Client-only action
+                          </Badge>
+                          <Button size="sm" disabled className="opacity-50">
+                            <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     {itin.overview && <p className="text-sm text-muted-foreground">{itin.overview}</p>}
                   </CardHeader>
                   {items.length > 0 && <CardContent><ItineraryItemsList items={items} /></CardContent>}
