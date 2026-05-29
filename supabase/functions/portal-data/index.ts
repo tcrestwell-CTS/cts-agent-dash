@@ -831,9 +831,9 @@ const handler = async (req: Request): Promise<Response> => {
         const [tripRes, paymentsRes] = await Promise.all([
           supabase.from("trips").select("destination, depart_date, return_date").eq("id", invoice.trip_id).single(),
           supabase.from("trip_payments")
-            .select("id, amount, payment_date, due_date, status, payment_type, details, notes")
+            .select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_session_id, stripe_receipt_url")
             .eq("trip_id", invoice.trip_id)
-            .order("payment_date", { ascending: true }),
+            .order("due_date", { ascending: true, nullsFirst: false }),
         ]);
         tripInfo = tripRes.data;
         payments = paymentsRes.data || [];
