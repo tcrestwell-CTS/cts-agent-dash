@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { TripPayment } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 export interface InvoiceData {
   invoiceNumber?: string;
@@ -98,6 +99,17 @@ const isInvoiceCashPayment = (payment: TripPayment) => {
 };
 
 const isUpcomingPaymentDue = (payment: TripPayment) => payment.status === "pending" && !!payment.due_date;
+
+const formatPaymentDescription = (payment: TripPayment) => {
+  if (payment.payment_type === "deposit") return "Deposit";
+  if (payment.payment_type === "final_balance") return "Final balance";
+
+  if (payment.due_date) {
+    return `${format(parseLocalDate(payment.due_date), "MMMM")} installment`;
+  }
+
+  return payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1).replace(/_/g, " ");
+};
 
 export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOptions): Promise<string | void> {
   const doc = new jsPDF();
@@ -330,16 +342,11 @@ export async function generateInvoicePDF(data: InvoiceData, options?: GenerateOp
         yPos = 25;
       }
 
-      let description = payment.payment_type === "final_balance"
-        ? "Final balance"
-        : payment.payment_type === "deposit"
-          ? "Deposit"
-          : payment.payment_type === "installment"
-            ? "Installment"
-            : payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1).replace(/_/g, " ");
-
-      const dateRef = payment.payment_date || payment.due_date;
-      const dateStr = dateRef ? format(new Date(dateRef), "MMM d, yyyy") : "";
+      const description = formatPaymentDescription(payment);
+      const dateRef = payment.status === "pending"
+        ? payment.due_date || payment.payment_date
+        : payment.payment_date || payment.due_date;
+      const dateStr = dateRef ? format(parseLocalDate(dateRef), "MMM d, yyyy") : "";
       const statusText = payment.status === "paid"
         ? `${dateStr} · Paid`
         : payment.status === "pending" && dateStr
