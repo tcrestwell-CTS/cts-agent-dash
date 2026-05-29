@@ -9,6 +9,7 @@ import {
   useAdminPortalPayments,
   useAdminPortalInvoices,
   useAdminPortalMessages,
+  useAdminPortalDocuments,
 } from "@/hooks/useAdminPortalPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ import {
   ArrowLeft, Home, Map, CreditCard, MessageSquare, FileText,
   MapPin, Calendar, DollarSign, User, Clock, CheckCircle2,
   Plane, ClipboardList, ChevronDown, ChevronUp, Hash, Lock,
-  Eye, MapPinned, Layers,
+  Eye, MapPinned, Layers, FolderOpen, Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -43,11 +44,12 @@ const bookingTypeIcons: Record<string, { icon: string; label: string }> = {
   other: { icon: "📌", label: "Other" },
 };
 
-type PortalTab = "dashboard" | "trips" | "payments" | "messages" | "invoices";
+type PortalTab = "dashboard" | "trips" | "documents" | "payments" | "messages" | "invoices";
 
 const tabs: { key: PortalTab; label: string; icon: any }[] = [
   { key: "dashboard", label: "Dashboard", icon: Home },
   { key: "trips", label: "My Trips", icon: Map },
+  { key: "documents", label: "Documents", icon: FolderOpen },
   { key: "payments", label: "Payments", icon: CreditCard },
   { key: "messages", label: "Messages", icon: MessageSquare },
   { key: "invoices", label: "Invoices", icon: FileText },
@@ -128,6 +130,7 @@ export default function AdminPortalPreview() {
             {activeTab === "payments" && <PaymentsTab clientId={clientId} />}
             {activeTab === "messages" && <MessagesTab clientId={clientId} />}
             {activeTab === "invoices" && <InvoicesTab clientId={clientId} />}
+            {activeTab === "documents" && <DocumentsTab clientId={clientId} />}
           </div>
         </div>
       </div>
@@ -903,6 +906,71 @@ function ItineraryItemsList({ items }: { items: any[] }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ─── Documents Tab ────────────────────────────────────────────────────────── */
+function DocumentsTab({ clientId }: { clientId?: string }) {
+  const { data, isLoading } = useAdminPortalDocuments(clientId);
+  const groups = data?.groups || [];
+
+  if (isLoading) return <Skeleton className="h-40" />;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <FolderOpen className="h-6 w-6 text-primary" /> Documents
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Travel documents your agent has shared with you, grouped by trip.
+        </p>
+      </div>
+
+      {groups.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            No documents shared yet.
+          </CardContent>
+        </Card>
+      ) : (
+        groups.map((g: any) => (
+          <div key={g.trip_id} className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              {g.trip_name}
+            </h2>
+            <Card>
+              <CardContent className="space-y-2 pt-4">
+                {g.docs.map((d: any) => (
+                  <div key={d.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/20">
+                    <FileText className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{d.label || d.file_name}</p>
+                      {d.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        {d.file_name} · Shared {format(new Date(d.created_at), "MMM d, yyyy")}
+                      </p>
+                    </div>
+                    {d.url && (
+                      <a
+                        href={d.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline shrink-0 self-center"
+                      >
+                        <Download className="h-4 w-4" /> Download
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        ))
+      )}
     </div>
   );
 }

@@ -377,3 +377,48 @@ export function useAdminPortalMessages(clientId: string | undefined) {
     enabled: !!clientId,
   });
 }
+
+export function useAdminPortalDocuments(clientId: string | undefined) {
+  return useQuery({
+    queryKey: ["admin-portal-preview", "documents", clientId],
+    queryFn: async () => {
+      if (!clientId) throw new Error("No client ID");
+
+      const { trips } = await getAccessibleTrips(clientId, "id, trip_name");
+      const tripIds = trips.map((t: any) => t.id);
+      if (tripIds.length === 0) return { groups: [] };
+
+      const { data: docs, error } = await supabase
+        .from("client_document_uploads")
+        .select("*")
+        .in("trip_id", tripIds)
+        .not("uploaded_by", "is", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const withUrls = await Promise.all(
+        (docs || []).map(async (d: any) => {
+          let url: string | null = null;
+          if (d.file_path) {
+            const { data: signed } = await supabase.storage
+              .from("client-documents")
+              .createSignedUrl(d.file_path, 3600);
+            url = signed?.signedUrl || null;
+          }
+          return { ...d, url };
+        })
+      );
+
+      const groups = trips
+        .map((t: any) => ({
+          trip_id: t.id,
+          trip_name: t.trip_name,
+          docs: withUrls.filter((d: any) => d.trip_id === t.id),
+        }))
+        .filter((g: any) => g.docs.length > 0);
+
+      return { groups };
+    },
+    enabled: !!clientId,
+  });
+}
