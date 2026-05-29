@@ -1,5 +1,6 @@
 import { usePortalTrips } from "@/hooks/usePortalData";
 import { AgentTripDocumentsView } from "@/components/client/AgentTripDocumentsView";
+import { usePortalAgentDocs } from "@/hooks/usePortalData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FolderOpen } from "lucide-react";
@@ -38,15 +39,24 @@ export default function PortalDocuments() {
       ) : (
         <div className="space-y-6">
           {trips.map((trip: any) => (
-            <div key={trip.id} className="space-y-2">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                {trip.trip_name}
-              </h2>
-              <AgentTripDocumentsView tripId={trip.id} />
-            </div>
+            <TripDocsSection key={trip.id} tripId={trip.id} tripName={trip.trip_name} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function TripDocsSection({ tripId, tripName }: { tripId: string; tripName: string }) {
+  const { data } = usePortalAgentDocs(tripId);
+  const docs = data?.docs || [];
+  if (docs.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+        {tripName}
+      </h2>
+      <AgentTripDocumentsView tripId={tripId} />
     </div>
   );
 }
