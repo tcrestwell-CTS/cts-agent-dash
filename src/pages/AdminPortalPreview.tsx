@@ -9,6 +9,7 @@ import {
   useAdminPortalPayments,
   useAdminPortalInvoices,
   useAdminPortalMessages,
+  useAdminPortalDocuments,
 } from "@/hooks/useAdminPortalPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ import {
   ArrowLeft, Home, Map, CreditCard, MessageSquare, FileText,
   MapPin, Calendar, DollarSign, User, Clock, CheckCircle2,
   Plane, ClipboardList, ChevronDown, ChevronUp, Hash, Lock,
-  Eye, MapPinned, Layers,
+  Eye, MapPinned, Layers, FolderOpen, Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -43,11 +44,12 @@ const bookingTypeIcons: Record<string, { icon: string; label: string }> = {
   other: { icon: "📌", label: "Other" },
 };
 
-type PortalTab = "dashboard" | "trips" | "payments" | "messages" | "invoices";
+type PortalTab = "dashboard" | "trips" | "documents" | "payments" | "messages" | "invoices";
 
 const tabs: { key: PortalTab; label: string; icon: any }[] = [
   { key: "dashboard", label: "Dashboard", icon: Home },
   { key: "trips", label: "My Trips", icon: Map },
+  { key: "documents", label: "Documents", icon: FolderOpen },
   { key: "payments", label: "Payments", icon: CreditCard },
   { key: "messages", label: "Messages", icon: MessageSquare },
   { key: "invoices", label: "Invoices", icon: FileText },
@@ -128,6 +130,7 @@ export default function AdminPortalPreview() {
             {activeTab === "payments" && <PaymentsTab clientId={clientId} />}
             {activeTab === "messages" && <MessagesTab clientId={clientId} />}
             {activeTab === "invoices" && <InvoicesTab clientId={clientId} />}
+            {activeTab === "documents" && <DocumentsTab clientId={clientId} />}
           </div>
         </div>
       </div>
