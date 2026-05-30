@@ -5520,6 +5520,7 @@ export type Database = {
           ai_summary: string | null
           ai_tags: string[] | null
           budget: string | null
+          converted_trip_id: string | null
           created_at: string | null
           departure_date: string | null
           destination: string | null
@@ -5536,9 +5537,16 @@ export type Database = {
           lead_source: string | null
           message: string | null
           phone: string | null
+          proposal_approved_at: string | null
           proposal_draft: string | null
+          proposal_expires_at: string | null
+          proposal_options: Json | null
+          proposal_sent_at: string | null
           proposal_status: string | null
+          proposal_token: string | null
+          proposal_viewed_at: string | null
           raw_answers: Json | null
+          selected_option: string | null
           sequence_paused: boolean | null
           sequence_started: boolean | null
           status: string | null
@@ -5560,6 +5568,7 @@ export type Database = {
           ai_summary?: string | null
           ai_tags?: string[] | null
           budget?: string | null
+          converted_trip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           destination?: string | null
@@ -5576,9 +5585,16 @@ export type Database = {
           lead_source?: string | null
           message?: string | null
           phone?: string | null
+          proposal_approved_at?: string | null
           proposal_draft?: string | null
+          proposal_expires_at?: string | null
+          proposal_options?: Json | null
+          proposal_sent_at?: string | null
           proposal_status?: string | null
+          proposal_token?: string | null
+          proposal_viewed_at?: string | null
           raw_answers?: Json | null
+          selected_option?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
           status?: string | null
@@ -5600,6 +5616,7 @@ export type Database = {
           ai_summary?: string | null
           ai_tags?: string[] | null
           budget?: string | null
+          converted_trip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           destination?: string | null
@@ -5616,9 +5633,16 @@ export type Database = {
           lead_source?: string | null
           message?: string | null
           phone?: string | null
+          proposal_approved_at?: string | null
           proposal_draft?: string | null
+          proposal_expires_at?: string | null
+          proposal_options?: Json | null
+          proposal_sent_at?: string | null
           proposal_status?: string | null
+          proposal_token?: string | null
+          proposal_viewed_at?: string | null
           raw_answers?: Json | null
+          selected_option?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
           status?: string | null
@@ -5632,7 +5656,15 @@ export type Database = {
           utm_term?: string | null
           wants_financing?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quote_requests_converted_trip_id_fkey"
+            columns: ["converted_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotes: {
         Row: {
@@ -8571,6 +8603,10 @@ export type Database = {
         Args: { accepting_user_id: string; invitation_token: string }
         Returns: boolean
       }
+      approve_proposal: {
+        Args: { p_option: string; p_token: string }
+        Returns: string
+      }
       calculate_booking_margin: {
         Args: {
           p_advisor_split?: number
@@ -8582,6 +8618,22 @@ export type Database = {
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
+      get_proposal: {
+        Args: { p_token: string }
+        Returns: {
+          departure_date: string
+          destination: string
+          first_name: string
+          proposal_draft: string
+          proposal_expires_at: string
+          proposal_options: Json
+          proposal_status: string
+          selected_option: string
+          travelers_adults: number
+          travelers_children: number
+          trip_type: string
+        }[]
+      }
       has_feature_permission: {
         Args: { _feature_key: string; _user_id: string }
         Returns: boolean
@@ -8604,6 +8656,7 @@ export type Database = {
         Returns: boolean
       }
       is_recon_admin: { Args: never; Returns: boolean }
+      mark_proposal_viewed: { Args: { p_token: string }; Returns: undefined }
       reveal_cw_agent_secret: { Args: never; Returns: string }
     }
     Enums: {
