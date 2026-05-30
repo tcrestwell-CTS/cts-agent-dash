@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -199,6 +200,12 @@ serve(async (req) => {
     const { sessionId } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
 
+    logPaymentAttempt(req, {
+      page: 'verify-stripe-payment',
+      outcome: 'attempted',
+      metadata: { sessionId },
+    });
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -298,9 +305,15 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+    // (logging of final outcome is done above via webhook; here we audit the verify call)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("verify-stripe-payment error:", message);
+    logPaymentAttempt(req, {
+      page: 'verify-stripe-payment',
+      outcome: 'failed',
+      metadata: { error: message },
+    });
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
