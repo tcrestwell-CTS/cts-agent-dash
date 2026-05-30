@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle, FileText } from "lucide-react";
+import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle, FileText, Receipt } from "lucide-react";
 import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { useEffect } from "react";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
@@ -15,6 +15,41 @@ import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 function startOfMonthISO() {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+}
+
+function startOfMonthDate() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
+
+function startOfYearDate() {
+  const d = new Date();
+  return new Date(d.getFullYear(), 0, 1).toISOString().slice(0, 10);
+}
+
+function useStripeFeeKpis() {
+  return useQuery({
+    queryKey: ["bookkeeper-stripe-fees"],
+    queryFn: async () => {
+      const mtd = startOfMonthDate();
+      const ytd = startOfYearDate();
+      const { data, error } = await (supabase as any)
+        .from("stripe_payouts")
+        .select("fee_total, amount, net_amount, arrival_date")
+        .gte("arrival_date", ytd);
+      if (error) throw error;
+      const rows = data ?? [];
+      let feesMtd = 0, feesYtd = 0, grossYtd = 0;
+      for (const r of rows) {
+        const fee = Number(r.fee_total || 0);
+        feesYtd += fee;
+        grossYtd += Number(r.amount || 0);
+        if (r.arrival_date && r.arrival_date >= mtd) feesMtd += fee;
+      }
+      const effRate = grossYtd > 0 ? (feesYtd / grossYtd) * 100 : 0;
+      return { feesMtd, feesYtd, grossYtd, effRate };
+    },
+  });
 }
 
 function useBookkeeperKpis() {
@@ -63,6 +98,7 @@ const fmt = (n: number) =>
 
 export default function BookkeeperDashboard() {
   const { data, isLoading } = useBookkeeperKpis();
+  const { data: fees, isLoading: feesLoading } = useStripeFeeKpis();
   const { data: alerts } = useBookkeeperAlerts();
   const logAction = useLogBookkeeperAction();
   const now = new Date();
@@ -112,6 +148,47 @@ export default function BookkeeperDashboard() {
             </Card>
           ))}
         </div>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+                Stripe Processing Fees
+              </CardTitle>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/bookkeeper/bank-recon">
+                  View payouts <ArrowRight className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">MTD Fees</div>
+                {feesLoading ? <Skeleton className="h-7 w-24 mt-1" /> : (
+                  <div className="text-2xl font-bold">{fmt(fees?.feesMtd ?? 0)}</div>
+                )}
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">YTD Fees</div>
+                {feesLoading ? <Skeleton className="h-7 w-24 mt-1" /> : (
+                  <div className="text-2xl font-bold">{fmt(fees?.feesYtd ?? 0)}</div>
+                )}
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Effective Rate (YTD)</div>
+                {feesLoading ? <Skeleton className="h-7 w-24 mt-1" /> : (
+                  <div className="text-2xl font-bold">{(fees?.effRate ?? 0).toFixed(2)}%</div>
+                )}
+                <div className="text-xs text-muted-foreground mt-1">
+                  on {fmt(fees?.grossYtd ?? 0)} gross
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {(alerts?.failedSyncs || alerts?.staleUnattributed) ? (
           <Card className="border-amber-500/40">
