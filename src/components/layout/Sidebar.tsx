@@ -171,6 +171,7 @@ const adminNavigation: NavItem[] = [
   { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
   { name: "QBO Payment Sync", href: "/qbo-payment-sync", icon: HeartPulse },
   { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
+  { name: "Payment Security", href: "/payment-security", icon: ShieldAlert },
   { name: "Portal Management", href: "/portal-management", icon: Globe },
   { name: "Task Monitor", href: "/task-monitor", icon: Activity },
   { name: "Email Activity", href: "/email-activity", icon: Mail },

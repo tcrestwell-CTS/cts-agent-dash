@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
+
+    if (action && ["create", "submit", "decrypt"].includes(action)) {
+      logPaymentAttempt(req, {
+        page: `cc-authorization:${action}`,
+        outcome: 'attempted',
+      });
+    }
 
     // === ACTION: create — Agent creates a new CC auth request ===
     if (action === "create" && req.method === "POST") {
@@ -484,6 +492,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error) {
     console.error("CC Authorization error:", error);
+    logPaymentAttempt(req, {
+      page: 'cc-authorization',
+      outcome: 'failed',
+      metadata: { error: (error as Error)?.message },
+    });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

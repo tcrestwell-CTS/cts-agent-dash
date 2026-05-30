@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logPaymentAttempt } from '../_shared/payment-ip-log.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,7 +30,25 @@ Deno.serve(async (req) => {
       booking_id: passedBookingId,
     } = await req.json();
 
+    // Fire-and-forget attempt audit
+    logPaymentAttempt(req, {
+      page: 'create-payment-intent',
+      outcome: 'attempted',
+      amount_cents,
+      currency,
+      customer_email,
+      booking_id: passedBookingId || null,
+      trip_id: passedTripId || null,
+    });
+
     if (!amount_cents || amount_cents < 50) {
+      logPaymentAttempt(req, {
+        page: 'create-payment-intent',
+        outcome: 'blocked',
+        amount_cents,
+        customer_email,
+        metadata: { reason: 'amount_below_minimum' },
+      });
       return new Response(JSON.stringify({ error: 'Minimum payment is $0.50' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -165,6 +184,17 @@ Deno.serve(async (req) => {
     const paymentIntent = await stripeRes.json();
     if (paymentIntent.error) throw new Error(paymentIntent.error.message);
 
+    logPaymentAttempt(req, {
+      page: 'create-payment-intent',
+      outcome: 'succeeded',
+      amount_cents,
+      currency,
+      customer_email,
+      booking_id: bookingId || null,
+      trip_id: tripId || null,
+      stripe_payment_intent_id: paymentIntent.id,
+    });
+
     // ── Write to checkout_payments with full context ───────────────────────────
     await supabase.from('checkout_payments').insert({
       customer_name:             customer_name  || 'Unknown',
@@ -192,6 +222,11 @@ Deno.serve(async (req) => {
     );
   } catch (err: any) {
     console.error('[create-payment-intent] Error:', err.message);
+    logPaymentAttempt(req, {
+      page: 'create-payment-intent',
+      outcome: 'failed',
+      metadata: { error: err?.message },
+    });
     return new Response(
       JSON.stringify({ error: err.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -4526,15 +4526,20 @@ export type Database = {
       payment_ip_logs: {
         Row: {
           amount_cents: number | null
+          booking_id: string | null
           checkout_payment_id: string | null
+          client_id: string | null
           country: string | null
           created_at: string
           currency: string | null
           customer_email: string | null
+          flagged: boolean | null
           id: string
           ip_address: unknown
+          last_four: string | null
           metadata: Json
           outcome: string | null
+          page: string | null
           risk_flags: string[]
           risk_score: number
           stripe_payment_intent_id: string | null
@@ -4544,15 +4549,20 @@ export type Database = {
         }
         Insert: {
           amount_cents?: number | null
+          booking_id?: string | null
           checkout_payment_id?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
           customer_email?: string | null
+          flagged?: boolean | null
           id?: string
           ip_address?: unknown
+          last_four?: string | null
           metadata?: Json
           outcome?: string | null
+          page?: string | null
           risk_flags?: string[]
           risk_score?: number
           stripe_payment_intent_id?: string | null
@@ -4562,15 +4572,20 @@ export type Database = {
         }
         Update: {
           amount_cents?: number | null
+          booking_id?: string | null
           checkout_payment_id?: string | null
+          client_id?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
           customer_email?: string | null
+          flagged?: boolean | null
           id?: string
           ip_address?: unknown
+          last_four?: string | null
           metadata?: Json
           outcome?: string | null
+          page?: string | null
           risk_flags?: string[]
           risk_score?: number
           stripe_payment_intent_id?: string | null

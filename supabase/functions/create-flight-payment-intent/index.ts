@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +50,24 @@ serve(async (req) => {
 
     const { amount_cents, currency, booking_id, trip_id, description } = await req.json();
 
+    logPaymentAttempt(req, {
+      page: 'create-flight-payment-intent',
+      outcome: 'attempted',
+      amount_cents,
+      currency,
+      booking_id: booking_id || null,
+      trip_id: trip_id || null,
+    });
+
     if (!amount_cents || amount_cents < 50) {
+      logPaymentAttempt(req, {
+        page: 'create-flight-payment-intent',
+        outcome: 'blocked',
+        amount_cents,
+        booking_id: booking_id || null,
+        trip_id: trip_id || null,
+        metadata: { reason: 'amount_below_minimum' },
+      });
       return new Response(JSON.stringify({ error: "Amount must be at least 50 cents" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -70,6 +88,16 @@ serve(async (req) => {
       automatic_payment_methods: { enabled: true },
     });
 
+    logPaymentAttempt(req, {
+      page: 'create-flight-payment-intent',
+      outcome: 'succeeded',
+      amount_cents,
+      currency,
+      booking_id: booking_id || null,
+      trip_id: trip_id || null,
+      stripe_payment_intent_id: paymentIntent.id,
+    });
+
     return new Response(
       JSON.stringify({
         client_secret: paymentIntent.client_secret,
@@ -80,6 +108,11 @@ serve(async (req) => {
   } catch (error) {
     console.error("Create flight payment intent error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
+    logPaymentAttempt(req, {
+      page: 'create-flight-payment-intent',
+      outcome: 'failed',
+      metadata: { error: msg },
+    });
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

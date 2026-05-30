@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
 
 /**
  * create-virtual-card
@@ -53,6 +54,12 @@ serve(async (req) => {
     if (!method || !["stripe", "affirm"].includes(method)) {
       throw new Error("method must be 'stripe' or 'affirm'");
     }
+
+    logPaymentAttempt(req, {
+      page: 'create-virtual-card',
+      outcome: 'attempted',
+      metadata: { paymentId, method },
+    });
 
     // ── Fetch payment + trip + client info ────────────────────────────
     const { data: payment, error: payErr } = await supabase
@@ -268,6 +275,12 @@ serve(async (req) => {
       }
     }
 
+    logPaymentAttempt(req, {
+      page: 'create-virtual-card',
+      outcome: 'succeeded',
+      metadata: { paymentId, method, virtualCardId },
+    });
+
     return new Response(JSON.stringify({
       success: true,
       virtualCardId,
@@ -279,6 +292,11 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("create-virtual-card error:", message);
+    logPaymentAttempt(req, {
+      page: 'create-virtual-card',
+      outcome: 'failed',
+      metadata: { error: message },
+    });
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

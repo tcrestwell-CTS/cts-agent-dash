@@ -3,6 +3,7 @@
 // that auto-cancels after the specified number of months (90 days before travel)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logPaymentAttempt } from '../_shared/payment-ip-log.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,7 +42,23 @@ Deno.serve(async (req) => {
       notes,
     } = await req.json();
 
+    logPaymentAttempt(req, {
+      page: 'create-payment-plan',
+      outcome: 'attempted',
+      amount_cents,
+      customer_email,
+      stripe_pm_id: payment_method_id || null,
+      metadata: { months, booking_ref },
+    });
+
     if (!amount_cents || !travel_date || !customer_name || !customer_email || !payment_method_id || !months) {
+      logPaymentAttempt(req, {
+        page: 'create-payment-plan',
+        outcome: 'blocked',
+        amount_cents,
+        customer_email,
+        metadata: { reason: 'missing_required_fields' },
+      });
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -145,6 +162,15 @@ Deno.serve(async (req) => {
       missed_payments: 0,
     });
 
+    logPaymentAttempt(req, {
+      page: 'create-payment-plan',
+      outcome: 'succeeded',
+      amount_cents,
+      customer_email,
+      stripe_pm_id: payment_method_id,
+      metadata: { stripe_subscription_id: subscription.id, stripe_customer_id: customer.id, months },
+    });
+
     return new Response(JSON.stringify({
       success: true,
       stripe_customer_id: customer.id,
@@ -159,6 +185,11 @@ Deno.serve(async (req) => {
 
   } catch (err: any) {
     console.error('create-payment-plan error:', err.message);
+    logPaymentAttempt(req, {
+      page: 'create-payment-plan',
+      outcome: 'failed',
+      metadata: { error: err?.message },
+    });
     return new Response(JSON.stringify({ error: err.message || 'Payment plan setup failed' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

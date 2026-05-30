@@ -10,6 +10,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
@@ -913,6 +914,22 @@ serve(async (req) => {
   try {
     switch (event.type) {
       case "payment_intent.succeeded":
+        {
+          const pi = event.data.object as Stripe.PaymentIntent;
+          logPaymentAttempt(req, {
+            page: 'stripe-webhook:payment_intent.succeeded',
+            outcome: 'succeeded',
+            amount_cents: pi.amount,
+            currency: pi.currency,
+            stripe_payment_intent_id: pi.id,
+            customer_email: (pi.receipt_email as string) || null,
+            metadata: {
+              trip_payment_id: pi.metadata?.trip_payment_id || null,
+              trip_id: pi.metadata?.trip_id || null,
+              booking_id: pi.metadata?.booking_id || null,
+            },
+          });
+        }
         await processPaymentIntentSucceeded(
           event.data.object as Stripe.PaymentIntent
         );
@@ -937,6 +954,18 @@ serve(async (req) => {
 
       case "payment_intent.payment_failed": {
         const pi = event.data.object as Stripe.PaymentIntent;
+        logPaymentAttempt(req, {
+          page: 'stripe-webhook:payment_intent.payment_failed',
+          outcome: 'failed',
+          amount_cents: pi.amount,
+          currency: pi.currency,
+          stripe_payment_intent_id: pi.id,
+          customer_email: (pi.receipt_email as string) || null,
+          metadata: {
+            error: pi.last_payment_error?.message || null,
+            decline_code: pi.last_payment_error?.decline_code || null,
+          },
+        });
         await supabase.from("exception_queue").insert({
           exception_type: "unmatched_stripe_payment",
           source_system: "stripe",
