@@ -89,25 +89,22 @@ LEAD DETAILS:
 - AI Tags: ${lead.ai_tags ? (Array.isArray(lead.ai_tags) ? lead.ai_tags.join(', ') : lead.ai_tags) : 'none'}
 
 INSTRUCTIONS:
-1. Create a compelling proposal with these sections:
+0. **MOST IMPORTANT — STAY ON SCOPE.** Only propose what the client actually requested. If they asked for a specific hotel stay in a specific city, quote ONE option that matches exactly. Do NOT add extra destinations, cruises, tours, upgrades, or alternative properties they didn't ask about. Only widen to 2-3 options when the request is genuinely vague (e.g., "somewhere warm in March").
+
+1. Create a focused proposal with these sections:
    - **Greeting** — Personalized hello using their first name
-   - **Trip Overview** — Brief exciting summary of what you're recommending
-   - **Recommended Options** — 2-3 specific options based on their preferences and trip type. Include estimated pricing ranges if budget was provided. Tailor recommendations to the exact trip type (e.g., vacation rentals for domestic travel, specific cruise lines for cruises, resort brands for all-inclusive, etc.)
-   - **What's Included** — Key inclusions for each option
-   - **Travel Dates** — Confirm or suggest dates based on their input
-   - **Next Steps** — Clear call to action (book a call, confirm option, ask questions)
+   - **Trip Overview** — One short paragraph confirming what they asked for
+   - **Recommendation** — The specific option(s) that match the request. Default to ONE option when the request is specific (named destination + trip type). Use 2-3 only if the request is ambiguous.
+   - **What's Included** — Key inclusions for the recommended option
+   - **Travel Dates** — Confirm dates from their input
+   - **Next Steps** — Clear call to action (confirm, ask questions, book a call)
    - **Closing** — Warm sign-off from Tim Crestwell
 
-2. If the destination is vague, suggest 2-3 specific destinations that match their interests.
-3. If budget is not specified, provide options at different price points.
-4. For cruises, mention specific cruise lines and ships.
-5. For all-inclusive, mention specific resorts/brands.
-6. For vacation homes/domestic travel, mention specific rental platforms, neighborhoods, or property types relevant to the destination.
-7. For Disney/theme parks, mention specific parks, ticket packages, and resort options.
-8. For rail vacations, mention specific Amtrak routes or scenic rail experiences.
-9. For luxury travel, highlight premium amenities, boutique properties, and VIP experiences.
-10. Keep the tone conversational but professional — not overly salesy.
-11. NEVER mention AI, automation, or that this was auto-generated.
+2. Match the trip type they selected — do not pivot them to a different product (no cruises for a hotel-stay request, no resorts for a rail request, etc.).
+3. If budget is provided, stay within it. If not, give a single sensible price range — do not fan out across price tiers unless asked.
+4. Be specific (named property, cruise line + ship, resort brand, Amtrak route, park + ticket type) but only for the requested trip type.
+5. Keep the tone conversational but professional — not salesy. Short and focused beats long and padded.
+6. NEVER mention AI, automation, or that this was auto-generated.
 
 Format the proposal in clean markdown.
 `.trim();
