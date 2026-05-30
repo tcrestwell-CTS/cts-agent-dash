@@ -275,6 +275,12 @@ serve(async (req) => {
       }
     }
 
+    logPaymentAttempt(req, {
+      page: 'create-virtual-card',
+      outcome: 'succeeded',
+      metadata: { paymentId, method, virtualCardId },
+    });
+
     return new Response(JSON.stringify({
       success: true,
       virtualCardId,
