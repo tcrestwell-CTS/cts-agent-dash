@@ -9,6 +9,7 @@ import { PortalAuthProvider } from "@/contexts/PortalAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { BookkeeperRoute } from "@/components/BookkeeperRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -183,7 +184,7 @@ const App = () => (
                 <Route path="/campaigns/images" element={<ProtectedRoute><CampaignImages /></ProtectedRoute>} />
                 <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
                 <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
-                <Route path="/payment-security" element={<ProtectedRoute><PaymentSecurity /></ProtectedRoute>} />
+                <Route path="/payment-security" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><PaymentSecurity /></AdminRoute></ProtectedRoute>} />
                 <Route path="/recon"            element={<ProtectedRoute><ReconDashboard /></ProtectedRoute>} />
                 <Route path="/recon/matches"    element={<ProtectedRoute><ReconMatches /></ProtectedRoute>} />
                 <Route path="/recon/exceptions" element={<ProtectedRoute><ReconExceptions /></ProtectedRoute>} />
