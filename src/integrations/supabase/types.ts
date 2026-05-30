@@ -4533,6 +4533,8 @@ export type Database = {
           created_at: string
           currency: string | null
           customer_email: string | null
+          failure_reason: string | null
+          flag_reason: string | null
           flagged: boolean | null
           id: string
           ip_address: unknown
@@ -4540,10 +4542,12 @@ export type Database = {
           metadata: Json
           outcome: string | null
           page: string | null
+          referer: string | null
           risk_flags: string[]
           risk_score: number
           stripe_payment_intent_id: string | null
           stripe_payment_method_id: string | null
+          stripe_pm_id: string | null
           trip_id: string | null
           user_agent: string | null
         }
@@ -4556,6 +4560,8 @@ export type Database = {
           created_at?: string
           currency?: string | null
           customer_email?: string | null
+          failure_reason?: string | null
+          flag_reason?: string | null
           flagged?: boolean | null
           id?: string
           ip_address?: unknown
@@ -4563,10 +4569,12 @@ export type Database = {
           metadata?: Json
           outcome?: string | null
           page?: string | null
+          referer?: string | null
           risk_flags?: string[]
           risk_score?: number
           stripe_payment_intent_id?: string | null
           stripe_payment_method_id?: string | null
+          stripe_pm_id?: string | null
           trip_id?: string | null
           user_agent?: string | null
         }
@@ -4579,6 +4587,8 @@ export type Database = {
           created_at?: string
           currency?: string | null
           customer_email?: string | null
+          failure_reason?: string | null
+          flag_reason?: string | null
           flagged?: boolean | null
           id?: string
           ip_address?: unknown
@@ -4586,10 +4596,12 @@ export type Database = {
           metadata?: Json
           outcome?: string | null
           page?: string | null
+          referer?: string | null
           risk_flags?: string[]
           risk_score?: number
           stripe_payment_intent_id?: string | null
           stripe_payment_method_id?: string | null
+          stripe_pm_id?: string | null
           trip_id?: string | null
           user_agent?: string | null
         }
