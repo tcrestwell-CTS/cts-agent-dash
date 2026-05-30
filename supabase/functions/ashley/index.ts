@@ -59,7 +59,12 @@ serve(async (req: Request) => {
   const budget     = lead.budget || '';
   const travelers  = lead.travelers_adults ? `${lead.travelers_adults} adult(s)` : '';
 
-  const html = buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections });
+  const isCruise = /cruise/i.test(tripType);
+  const proposalBodyHtml = sections.options.length === 0
+    ? renderProposalMarkdown(proposal, firstName)
+    : '';
+
+  const html = buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections, proposalBodyHtml, isCruise });
 
   const recipientEmail = to_override || lead.email;
   const internalQuoteCopy = recipientEmail.toLowerCase() === INTERNAL_QUOTE_COPY_EMAIL
