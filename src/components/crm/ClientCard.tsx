@@ -61,14 +61,16 @@ export function ClientCard({ client }: ClientCardProps) {
             <Badge
               variant="secondary"
               className={
-                client.status === "active"
+                client.status === "blacklisted"
+                  ? "bg-destructive/15 text-destructive border border-destructive/30"
+                  : client.status === "active"
                   ? "bg-success/10 text-success"
                   : client.status === "lead"
                   ? "bg-accent/10 text-accent"
                   : "bg-muted text-muted-foreground"
               }
             >
-              {client.status}
+              {client.status === "blacklisted" ? "🚫 Blacklisted" : client.status}
             </Badge>
           </div>
         </div>

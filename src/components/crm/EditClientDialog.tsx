@@ -279,6 +279,7 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
                       <SelectItem value="lead">Lead</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="blacklisted">🚫 Blacklisted (Fraud)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
