@@ -151,7 +151,52 @@ function parseProposal(text: string) {
   return { options, itinerary, inclusions };
 }
 
-function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections }: any) {
+function renderProposalMarkdown(text: string, firstName: string): string {
+  // Strip our own greeting + closing signature since the email shell renders them.
+  let body = text.trim();
+  // Remove leading "Hi {firstName}," paragraph
+  body = body.replace(new RegExp(`^Hi\\s+${firstName}[,!\\s][^\\n]*\\n+`, 'i'), '');
+  // Remove trailing signature (anything from "All the best" / "Best," / "Warm regards" onward)
+  body = body.replace(/\n+(All the best|Best regards|Warm regards|Best,|Sincerely|Kind regards|Cheers)[\s\S]*$/i, '');
+  // Drop a trailing bold "Tim Crestwell" line if present
+  body = body.replace(/\n+\*\*Tim Crestwell\*\*[\s\S]*$/i, '');
+
+  const escape = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const inline = (s: string) =>
+    escape(s)
+      .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#0D1B2A;">$1</strong>')
+      .replace(/(^|[^\*])\*([^\*\n]+)\*/g, '$1<em>$2</em>');
+
+  const blocks = body.split(/\n{2,}/);
+  const out: string[] = [];
+  for (const raw of blocks) {
+    const block = raw.trim();
+    if (!block) continue;
+    if (/^\*\s*\*\s*\*$/.test(block) || /^---+$/.test(block)) {
+      out.push(`<div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>`);
+      continue;
+    }
+    const hMatch = block.match(/^(#{1,6})\s+\*?\*?(.+?)\*?\*?$/);
+    if (hMatch && !block.includes('\n')) {
+      const level = hMatch[1].length;
+      const size = level <= 2 ? 20 : level === 3 ? 16 : 14;
+      out.push(`<div style="font-family:Georgia,serif;font-size:${size}px;color:#0D1B2A;font-weight:600;margin:22px 0 10px;">${inline(hMatch[2])}</div>`);
+      continue;
+    }
+    const lines = block.split('\n');
+    if (lines.every(l => /^\s*[-*]\s+/.test(l))) {
+      const items = lines.map(l => `<li style="margin:6px 0;">${inline(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('');
+      out.push(`<ul style="font-family:Arial,sans-serif;font-size:14px;color:#4A5568;line-height:1.7;margin:0 0 14px;padding-left:20px;">${items}</ul>`);
+      continue;
+    }
+    out.push(`<p style="font-family:Arial,sans-serif;font-size:14px;color:#4A5568;line-height:1.8;margin:0 0 14px;">${inline(block).replace(/\n/g, '<br>')}</p>`);
+  }
+  return out.join('\n');
+}
+
+function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections, proposalBodyHtml, isCruise }: any) {
   const { options, itinerary, inclusions } = sections;
   const optionColors = ['#0D1B2A', '#2D6A4F', '#534AB7'];
 
