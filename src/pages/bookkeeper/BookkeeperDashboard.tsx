@@ -11,6 +11,7 @@ import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeep
 import { useEffect } from "react";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { StripeFeesTrendChart } from "@/components/bookkeeper/StripeFeesTrendChart";
 
 function startOfMonthISO() {
   const d = new Date();
