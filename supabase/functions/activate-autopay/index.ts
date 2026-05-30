@@ -3,6 +3,7 @@
 // Updates loan_applications record with customer/subscription IDs and sets autopay_active = true
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logPaymentAttempt } from '../_shared/payment-ip-log.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,8 +65,23 @@ Deno.serve(async (req) => {
       customer_email,
     } = await req.json();
 
+    logPaymentAttempt(req, {
+      page: 'activate-autopay',
+      outcome: 'attempted',
+      amount_cents: approved_amount ? Math.round(approved_amount * 100) : null,
+      customer_email,
+      stripe_pm_id: stripe_payment_method_id || null,
+      metadata: { loan_id, approved_term_months },
+    });
+
     // Validate required fields
     if (!loan_id || !stripe_payment_method_id || !approved_amount || !approved_term_months) {
+      logPaymentAttempt(req, {
+        page: 'activate-autopay',
+        outcome: 'blocked',
+        customer_email,
+        metadata: { reason: 'missing_required_fields', loan_id },
+      });
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -188,6 +204,15 @@ Deno.serve(async (req) => {
 
     if (updateErr) throw new Error(`Failed to update loan record: ${updateErr.message}`);
 
+    logPaymentAttempt(req, {
+      page: 'activate-autopay',
+      outcome: 'succeeded',
+      amount_cents: approved_amount ? Math.round(approved_amount * 100) : null,
+      customer_email,
+      stripe_pm_id: stripe_payment_method_id,
+      metadata: { loan_id, stripe_customer_id: customerId, stripe_subscription_id: subscription.id },
+    });
+
     return new Response(JSON.stringify({
       success: true,
       stripe_customer_id: customerId,
@@ -202,6 +227,11 @@ Deno.serve(async (req) => {
 
   } catch (err: any) {
     console.error('activate-autopay error:', err.message);
+    logPaymentAttempt(req, {
+      page: 'activate-autopay',
+      outcome: 'failed',
+      metadata: { error: err?.message },
+    });
     return new Response(JSON.stringify({ error: err.message || 'Activation failed' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
