@@ -212,6 +212,16 @@ serve(async (req) => {
     let receiptUrl: string | null = null;
 
     if (session.payment_status === "paid") {
+      logPaymentAttempt(req, {
+        page: 'verify-stripe-payment',
+        outcome: 'succeeded',
+        amount_cents: typeof session.amount_total === 'number' ? session.amount_total : null,
+        currency: session.currency || 'usd',
+        customer_email: session.customer_details?.email || null,
+        stripe_payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+        trip_id: (session.metadata?.trip_id as string) || null,
+        metadata: { sessionId, trip_payment_id: session.metadata?.trip_payment_id || null },
+      });
       if (session.payment_intent) {
         try {
           const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
