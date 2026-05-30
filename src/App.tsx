@@ -52,6 +52,7 @@ const QboPaymentSync      = lazy(() => import("./pages/QboPaymentSync"));
 const QboUnmatchedReview  = lazy(() => import("./pages/QboUnmatchedReview"));
 const EmailActivity       = lazy(() => import("./pages/EmailActivity"));
 const RiskCompliance      = lazy(() => import("./pages/RiskCompliance"));
+const PaymentSecurity     = lazy(() => import("./pages/PaymentSecurity"));
 const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
 const Kandi               = lazy(() => import("./pages/Kandi"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
