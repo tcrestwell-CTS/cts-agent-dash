@@ -298,6 +298,11 @@ ${optionCards ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   ${optionCards}
 </td></tr>` : ''}
 
+${proposalBodyHtml ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
+  <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Your Recommendation</div>
+  ${proposalBodyHtml}
+</td></tr>` : ''}
+
 ${itinRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Sample Itinerary</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden;border:1px solid #e2e8f0;">
@@ -315,7 +320,7 @@ ${inclusionRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${inclusionRows}</table>
 </td></tr>` : ''}
 
-<!-- ADD-ONS -->
+${isCruise ? `<!-- ADD-ONS -->
 <tr><td class="pad" style="padding:32px 48px 0 48px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #C9A84C;background:#fdf9ee;border-radius:0 8px 8px 0;">
     <tr><td style="padding:18px 24px;">
@@ -323,7 +328,7 @@ ${inclusionRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
       <p style="margin:0;font-size:14px;color:#4A5568;line-height:1.8;font-family:Arial,sans-serif;">If needed, I can also quote <strong>flights</strong>, <strong>pre- or post-cruise hotel stays</strong>, and <strong>airport &amp; port transfers</strong>. Just reply and I will include everything at no extra charge.</p>
     </td></tr>
   </table>
-</td></tr>
+</td></tr>` : ''}
 
 <!-- DIVIDER -->
 <tr><td class="pad" style="padding:28px 48px 0 48px;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
