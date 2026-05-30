@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,12 @@ serve(async (req) => {
     const body = await req.json();
     const { paymentId, returnUrl, portalToken, embedded, paymentMethodChoice } = body;
     if (!paymentId) throw new Error("paymentId is required");
+
+    logPaymentAttempt(req, {
+      page: 'create-stripe-payment',
+      outcome: 'attempted',
+      metadata: { paymentId, embedded: !!embedded },
+    });
 
     let isPortal = false;
     let clientId: string | null = null;
@@ -257,6 +264,17 @@ serve(async (req) => {
       .update(updateData)
       .eq("id", paymentId);
 
+    logPaymentAttempt(req, {
+      page: 'create-stripe-payment',
+      outcome: 'succeeded',
+      amount_cents: chargeAmountCents,
+      currency: 'usd',
+      customer_email: customerEmail,
+      client_id: actualClientId || null,
+      trip_id: payment.trip_id || null,
+      metadata: { stripe_session_id: session.id, payment_id: paymentId },
+    });
+
     return new Response(JSON.stringify({
       url: session.url,
       sessionId: session.id,
@@ -268,6 +286,11 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("create-stripe-payment error:", message);
+    logPaymentAttempt(req, {
+      page: 'create-stripe-payment',
+      outcome: 'failed',
+      metadata: { error: message },
+    });
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
