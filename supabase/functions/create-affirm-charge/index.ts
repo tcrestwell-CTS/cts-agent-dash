@@ -1,3 +1,5 @@
+import { logPaymentAttempt } from '../_shared/payment-ip-log.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -20,7 +22,22 @@ Deno.serve(async (req) => {
       payment_type,
     } = await req.json();
 
+    logPaymentAttempt(req, {
+      page: 'create-affirm-charge',
+      outcome: 'attempted',
+      amount_cents,
+      customer_email,
+      metadata: { booking_ref, payment_type },
+    });
+
     if (!checkout_token) {
+      logPaymentAttempt(req, {
+        page: 'create-affirm-charge',
+        outcome: 'blocked',
+        amount_cents,
+        customer_email,
+        metadata: { reason: 'missing_checkout_token' },
+      });
       return new Response(JSON.stringify({ error: 'Checkout token required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -88,12 +105,25 @@ Deno.serve(async (req) => {
       affirm_charge_id: charge.id,
     });
 
+    logPaymentAttempt(req, {
+      page: 'create-affirm-charge',
+      outcome: 'succeeded',
+      amount_cents,
+      customer_email,
+      metadata: { affirm_charge_id: charge.id, booking_ref },
+    });
+
     return new Response(
       JSON.stringify({ success: true, charge_id: charge.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
     console.error('Affirm charge error:', err.message);
+    logPaymentAttempt(req, {
+      page: 'create-affirm-charge',
+      outcome: 'failed',
+      metadata: { error: err?.message },
+    });
     return new Response(
       JSON.stringify({ error: err.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
