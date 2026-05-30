@@ -191,6 +191,8 @@ export default function BookkeeperDashboard() {
           </CardContent>
         </Card>
 
+        <StripeFeesTrendChart />
+
         {(alerts?.failedSyncs || alerts?.staleUnattributed) ? (
           <Card className="border-amber-500/40">
             <CardHeader className="pb-3">
