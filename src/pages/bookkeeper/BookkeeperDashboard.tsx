@@ -11,6 +11,7 @@ import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeep
 import { useEffect } from "react";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { StripeFeesTrendChart } from "@/components/bookkeeper/StripeFeesTrendChart";
 
 function startOfMonthISO() {
   const d = new Date();
@@ -189,6 +190,8 @@ export default function BookkeeperDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <StripeFeesTrendChart />
 
         {(alerts?.failedSyncs || alerts?.staleUnattributed) ? (
           <Card className="border-amber-500/40">
