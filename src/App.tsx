@@ -9,6 +9,7 @@ import { PortalAuthProvider } from "@/contexts/PortalAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { BookkeeperRoute } from "@/components/BookkeeperRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
