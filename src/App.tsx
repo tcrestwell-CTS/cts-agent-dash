@@ -183,7 +183,7 @@ const App = () => (
                 <Route path="/campaigns/images" element={<ProtectedRoute><CampaignImages /></ProtectedRoute>} />
                 <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
                 <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
-                <Route path="/payment-security" element={<ProtectedRoute><PaymentSecurity /></ProtectedRoute>} />
+                <Route path="/payment-security" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><PaymentSecurity /></AdminRoute></ProtectedRoute>} />
                 <Route path="/recon"            element={<ProtectedRoute><ReconDashboard /></ProtectedRoute>} />
                 <Route path="/recon/matches"    element={<ProtectedRoute><ReconMatches /></ProtectedRoute>} />
                 <Route path="/recon/exceptions" element={<ProtectedRoute><ReconExceptions /></ProtectedRoute>} />
