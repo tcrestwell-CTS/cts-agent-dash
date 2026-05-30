@@ -59,7 +59,12 @@ serve(async (req: Request) => {
   const budget     = lead.budget || '';
   const travelers  = lead.travelers_adults ? `${lead.travelers_adults} adult(s)` : '';
 
-  const html = buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections });
+  const isCruise = /cruise/i.test(tripType);
+  const proposalBodyHtml = sections.options.length === 0
+    ? renderProposalMarkdown(proposal, firstName)
+    : '';
+
+  const html = buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections, proposalBodyHtml, isCruise });
 
   const recipientEmail = to_override || lead.email;
   const internalQuoteCopy = recipientEmail.toLowerCase() === INTERNAL_QUOTE_COPY_EMAIL
@@ -138,15 +143,60 @@ function parseProposal(text: string) {
       const parts = l.split('|').filter((p: string) => p.trim()).map((p: string) => p.trim());
       if (parts.length >= 2) itinerary.push({ day: parts[0], port: parts[1], activity: parts[2] || '' });
     }
-    if (/## Key Inclusions|## What.s Included/i.test(l)) currentSection = 'inclusions';
-    if (currentSection === 'inclusions' && l.startsWith('- '))
-      inclusions.push(l.replace(/^- \*\*/, '').replace(/\*\*/g, '').replace(/^- /, ''));
+    if (/#{2,}\s*(Key Inclusions|What.s Included)/i.test(l)) currentSection = 'inclusions';
+    if (currentSection === 'inclusions' && (l.startsWith('- ') || l.startsWith('* ')))
+      inclusions.push(l.replace(/^[-*]\s+\*\*?/, '').replace(/\*\*/g, '').replace(/^[-*]\s+/, ''));
     if (l.startsWith('## Tim') || l.startsWith('---')) currentSection = 'end';
   }
   return { options, itinerary, inclusions };
 }
 
-function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections }: any) {
+function renderProposalMarkdown(text: string, firstName: string): string {
+  // Strip our own greeting + closing signature since the email shell renders them.
+  let body = text.trim();
+  // Remove leading "Hi {firstName}," paragraph
+  body = body.replace(new RegExp(`^Hi\\s+${firstName}[,!\\s][^\\n]*\\n+`, 'i'), '');
+  // Remove trailing signature (anything from "All the best" / "Best," / "Warm regards" onward)
+  body = body.replace(/\n+(All the best|Best regards|Warm regards|Best,|Sincerely|Kind regards|Cheers)[\s\S]*$/i, '');
+  // Drop a trailing bold "Tim Crestwell" line if present
+  body = body.replace(/\n+\*\*Tim Crestwell\*\*[\s\S]*$/i, '');
+
+  const escape = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const inline = (s: string) =>
+    escape(s)
+      .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#0D1B2A;">$1</strong>')
+      .replace(/(^|[^\*])\*([^\*\n]+)\*/g, '$1<em>$2</em>');
+
+  const blocks = body.split(/\n{2,}/);
+  const out: string[] = [];
+  for (const raw of blocks) {
+    const block = raw.trim();
+    if (!block) continue;
+    if (/^\*\s*\*\s*\*$/.test(block) || /^---+$/.test(block)) {
+      out.push(`<div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>`);
+      continue;
+    }
+    const hMatch = block.match(/^(#{1,6})\s+\*?\*?(.+?)\*?\*?$/);
+    if (hMatch && !block.includes('\n')) {
+      const level = hMatch[1].length;
+      const size = level <= 2 ? 20 : level === 3 ? 16 : 14;
+      out.push(`<div style="font-family:Georgia,serif;font-size:${size}px;color:#0D1B2A;font-weight:600;margin:22px 0 10px;">${inline(hMatch[2])}</div>`);
+      continue;
+    }
+    const lines = block.split('\n');
+    if (lines.every(l => /^\s*[-*]\s+/.test(l))) {
+      const items = lines.map(l => `<li style="margin:6px 0;">${inline(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('');
+      out.push(`<ul style="font-family:Arial,sans-serif;font-size:14px;color:#4A5568;line-height:1.7;margin:0 0 14px;padding-left:20px;">${items}</ul>`);
+      continue;
+    }
+    out.push(`<p style="font-family:Arial,sans-serif;font-size:14px;color:#4A5568;line-height:1.8;margin:0 0 14px;">${inline(block).replace(/\n/g, '<br>')}</p>`);
+  }
+  return out.join('\n');
+}
+
+function buildQuoteEmail({ firstName, destination, tripType, budget, travelers, sections, proposalBodyHtml, isCruise }: any) {
   const { options, itinerary, inclusions } = sections;
   const optionColors = ['#0D1B2A', '#2D6A4F', '#534AB7'];
 
@@ -248,6 +298,11 @@ ${optionCards ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   ${optionCards}
 </td></tr>` : ''}
 
+${proposalBodyHtml ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
+  <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Your Recommendation</div>
+  ${proposalBodyHtml}
+</td></tr>` : ''}
+
 ${itinRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;color:#0D1B2A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">Sample Itinerary</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden;border:1px solid #e2e8f0;">
@@ -265,7 +320,7 @@ ${inclusionRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${inclusionRows}</table>
 </td></tr>` : ''}
 
-<!-- ADD-ONS -->
+${isCruise ? `<!-- ADD-ONS -->
 <tr><td class="pad" style="padding:32px 48px 0 48px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #C9A84C;background:#fdf9ee;border-radius:0 8px 8px 0;">
     <tr><td style="padding:18px 24px;">
@@ -273,7 +328,7 @@ ${inclusionRows ? `<tr><td class="pad" style="padding:32px 48px 0 48px;">
       <p style="margin:0;font-size:14px;color:#4A5568;line-height:1.8;font-family:Arial,sans-serif;">If needed, I can also quote <strong>flights</strong>, <strong>pre- or post-cruise hotel stays</strong>, and <strong>airport &amp; port transfers</strong>. Just reply and I will include everything at no extra charge.</p>
     </td></tr>
   </table>
-</td></tr>
+</td></tr>` : ''}
 
 <!-- DIVIDER -->
 <tr><td class="pad" style="padding:28px 48px 0 48px;"><div style="height:1px;background:#e2e8f0;"></div></td></tr>
