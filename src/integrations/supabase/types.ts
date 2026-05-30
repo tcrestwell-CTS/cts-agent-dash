@@ -4523,6 +4523,63 @@ export type Database = {
           },
         ]
       }
+      payment_ip_logs: {
+        Row: {
+          amount_cents: number | null
+          checkout_payment_id: string | null
+          country: string | null
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json
+          outcome: string | null
+          risk_flags: string[]
+          risk_score: number
+          stripe_payment_intent_id: string | null
+          stripe_payment_method_id: string | null
+          trip_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          checkout_payment_id?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json
+          outcome?: string | null
+          risk_flags?: string[]
+          risk_score?: number
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          checkout_payment_id?: string | null
+          country?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json
+          outcome?: string | null
+          risk_flags?: string[]
+          risk_score?: number
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       period_locks: {
         Row: {
           created_at: string | null
