@@ -143,9 +143,9 @@ function parseProposal(text: string) {
       const parts = l.split('|').filter((p: string) => p.trim()).map((p: string) => p.trim());
       if (parts.length >= 2) itinerary.push({ day: parts[0], port: parts[1], activity: parts[2] || '' });
     }
-    if (/## Key Inclusions|## What.s Included/i.test(l)) currentSection = 'inclusions';
-    if (currentSection === 'inclusions' && l.startsWith('- '))
-      inclusions.push(l.replace(/^- \*\*/, '').replace(/\*\*/g, '').replace(/^- /, ''));
+    if (/#{2,}\s*(Key Inclusions|What.s Included)/i.test(l)) currentSection = 'inclusions';
+    if (currentSection === 'inclusions' && (l.startsWith('- ') || l.startsWith('* ')))
+      inclusions.push(l.replace(/^[-*]\s+\*\*?/, '').replace(/\*\*/g, '').replace(/^[-*]\s+/, ''));
     if (l.startsWith('## Tim') || l.startsWith('---')) currentSection = 'end';
   }
   return { options, itinerary, inclusions };
