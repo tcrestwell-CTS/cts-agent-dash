@@ -1,31 +1,63 @@
 ## Goal
+Capture an IP-logged audit trail for every CRM payment action, and surface it in an admin "Payment Security" tab.
 
-Let the agent upload travel documents (PDFs, images) to a trip from the agent dashboard, and let the trip's client view and download them from the client portal.
+## 1. Align the schema with the spec
+The migration I just ran created `payment_ip_logs` but used different column names than your spec. I'll add a follow-up migration adding the missing columns so the API matches what you described:
 
-## Changes
+- `page TEXT` — function/page name (e.g. `create-payment-intent`)
+- `last_four TEXT`
+- `client_id UUID`
+- `booking_id UUID`
+- `flagged BOOLEAN GENERATED` — true when `risk_flags` is non-empty
+- `flag_reason TEXT[]` — alias view over `risk_flags` (kept as a column for the UI badge)
 
-### 1. Database (migration)
-Reuse the existing `client_document_uploads` table. Add three columns:
-- `uploaded_by uuid` — agent user id (null for client uploads, set for agent uploads)
-- `label text` — agent-supplied display name (e.g. "Final Itinerary PDF")
-- `description text` — optional note shown to client
+Indexes added: `page`, `client_id`, `booking_id`, `flagged`.
 
-Add RLS policies so the trip-owning agent can `INSERT` and `DELETE` rows. (`SELECT`/`UPDATE` already exist.)
+## 2. Shared helper: `supabase/functions/_shared/payment-ip-log.ts`
+One reusable function so every edge function logs identically:
 
-Storage paths will be `agent-docs/{auth.uid()}/{tripId}/{timestamp}-{name}` which already satisfies the existing `client-documents` bucket INSERT/SELECT policies.
+```ts
+logPaymentAttempt(req, {
+  page: "create-payment-intent",
+  amount_cents, stripe_pm_id, last_four,
+  client_id, booking_id, customer_email,
+  outcome: "attempted" | "succeeded" | "failed" | "blocked",
+});
+```
 
-### 2. Agent side
-- New `src/components/trips/AgentTripDocuments.tsx`: upload (drag/drop + file picker), list, delete; rows where `uploaded_by` is not null.
-- Mount it on `TripDetail.tsx` in the right sidebar under the readiness/travelers cards.
+Behavior:
+- Extracts IP from `cf-connecting-ip` → `x-real-ip` → first of `x-forwarded-for`
+- Extracts country from `cf-ipcountry` → `x-vercel-ip-country`
+- Inserts via service-role client
+- Wrapped in try/catch, **never throws, never awaited in critical path** (returns a fire-and-forget promise the caller can ignore)
 
-### 3. Client portal side
-- New portal-data endpoint `resource=agent-docs` (returns agent uploads for the trip with 1-hour signed URLs generated via service role; verifies the trip belongs to the portal client).
-- New `src/components/client/AgentTripDocumentsView.tsx`: list with file name, label, description, "Download" link.
-- Mount it on `PortalTripDetail.tsx` above the Travel Document Checklist.
+## 3. Instrument the payment edge functions
+Add `logPaymentAttempt` calls at three checkpoints (attempted on entry, succeeded/failed/blocked on result) in:
 
-### 4. Hook
-- Add `useTripAgentDocs(tripId)` for agent side (direct supabase) and an entry in `usePortalData.ts` for portal side.
+- `create-payment-intent`
+- `create-flight-payment-intent`
+- `create-stripe-payment`
+- `create-affirm-charge`
+- `create-payment-plan`
+- `create-virtual-card`
+- `cc-authorization`
+- `activate-autopay`
+- `verify-stripe-payment`
+- `stripe-webhook` (logs the outcome from webhook events)
 
-## Out of scope
-- No new bucket — reuses `client-documents`.
-- No email notification on upload (can be added later if you want it).
+Webhook functions that don't receive client IPs (Stripe → server) will log with `ip_address = null` and the Stripe-reported country when available; their value is the `outcome` audit trail.
+
+## 4. Admin UI — Payment Security tab
+New route/section under the admin area (likely added to `src/pages/Analytics.tsx` or a new admin page wired into the sidebar — I'll match your existing admin pattern after a quick check):
+
+- New hook `src/hooks/usePaymentIpLogs.ts` — paginated (25/page), filterable
+- New page `src/pages/admin/PaymentSecurity.tsx` with:
+  - Filter bar: page, outcome, country, date range
+  - Table columns: timestamp · page · IP · country · amount · outcome · last4 · client (link) · flags
+  - Rows where `flagged = true` rendered with a red row tint and `flag_reason` badges
+- Admin-gated via existing `AdminRoute` / `usePermissions`
+
+## Out of scope / assumptions
+- Not modifying any payment business logic, only adding telemetry
+- Not touching the public site repo's Stripe checkout (separate repo); same helper pattern can be copied there later if you want
+- Not adding alerting/notifications on flagged rows in this pass — just the audit + UI
