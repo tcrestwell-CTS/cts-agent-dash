@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const ANTHROPIC_API_KEY    = Deno.env.get('ANTHROPIC_API_KEY')!;
+const LOVABLE_API_KEY      = Deno.env.get('LOVABLE_API_KEY')!;
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY       = Deno.env.get('RESEND_API_KEY')!;
@@ -36,7 +36,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Lead not found' }), { status: 404, headers: corsHeaders });
   }
 
-  // 2. Call Claude to qualify
+  // 2. Call Lovable AI to qualify
   const prompt = `
 You are a lead qualification agent for Crestwell Travel Services, a travel agency based in the Southeast US (Georgia, Tennessee, Alabama) specializing in cruises, all-inclusive resorts, and group vacations.
 
@@ -121,28 +121,29 @@ Message: ${lead.message || 'none'}
 Return ONLY valid JSON. No explanation, no markdown, no preamble.
   `.trim();
 
-  const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+  const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: prompt }],
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: 'You are Tiara, a travel lead qualification agent. Return only valid JSON.' },
+        { role: 'user', content: prompt },
+      ],
     }),
   });
 
   if (!aiRes.ok) {
     const errText = await aiRes.text();
-    console.error('Anthropic API error:', aiRes.status, errText);
+    console.error('Lovable AI Gateway error:', aiRes.status, errText);
     return new Response(JSON.stringify({ error: 'AI qualification failed' }), { status: 502, headers: corsHeaders });
   }
 
   const aiData = await aiRes.json();
-  const rawText = aiData.content?.[0]?.text || '{}';
+  const rawText = aiData.choices?.[0]?.message?.content || '{}';
 
   let qualification: any = {};
   try {
