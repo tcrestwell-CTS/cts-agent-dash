@@ -829,6 +829,19 @@ export default function Leads() {
                               </TooltipTrigger>
                               <TooltipContent>Add to Contacts</TooltipContent>
                             </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => deleteLead(lead.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete Lead</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
