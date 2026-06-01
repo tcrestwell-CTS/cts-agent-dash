@@ -96,6 +96,7 @@ function LeadProposalSheet({
   onClose,
   onRequalify,
   onAddToClients,
+  onDelete,
   requalifyingId,
   refetch,
 }: {
@@ -103,6 +104,7 @@ function LeadProposalSheet({
   onClose: () => void;
   onRequalify: (id: string) => void;
   onAddToClients: (lead: QuoteRequest) => void;
+  onDelete: (id: string) => void;
   requalifyingId: string | null;
   refetch: () => void;
 }) {
