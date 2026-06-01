@@ -27,10 +27,14 @@ import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function SharedTripPricing({ pricingLines, totalCost, primaryColor, termsAccepted, onTotalChange }: SharedTripPricingProps) {
-  // Track which optional add-ons are enabled (all on by default)
+  // A line is "selectable" if it is an add-on OR marked optional.
+  // Add-ons default ON (legacy behavior). Optional (client-choice) lines default OFF.
+  const isSelectable = (l: PricingLine) => l.is_addon || l.is_optional;
   const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    pricingLines.filter(l => l.is_addon).forEach(l => { initial[l.id] = true; });
+    pricingLines.filter(isSelectable).forEach(l => {
+      initial[l.id] = l.is_addon ? true : false;
+    });
     return initial;
   });
   const [collapsed, setCollapsed] = useState(false);
@@ -39,8 +43,8 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
     setEnabledAddons(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  // Calculate active total
-  const activeLines = pricingLines.filter(l => !l.is_addon || enabledAddons[l.id]);
+  // Calculate active total — exclude unchecked selectable lines
+  const activeLines = pricingLines.filter(l => !isSelectable(l) || enabledAddons[l.id]);
   const grandTotal = activeLines.length > 0
     ? activeLines.reduce((sum, l) => sum + ((l.unit_price || 0) * (l.quantity || 1) * (l.travelers || 1)), 0)
     : totalCost;
@@ -112,8 +116,8 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
       {bookingGroups.length > 0 ? (
         bookingGroups.map(([bookingId, lines]) => {
           const bookingName = lines[0]?.booking_name || "Booking";
-          const coreLines = lines.filter(l => !l.is_addon);
-          const addonLines = lines.filter(l => l.is_addon);
+          const coreLines = lines.filter(l => !isSelectable(l));
+          const addonLines = lines.filter(isSelectable);
 
           return (
             <div key={bookingId} className="space-y-3">
@@ -147,7 +151,7 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
 
               {addonLines.length > 0 && (
                 <>
-                  <p className="text-sm font-semibold text-gray-600 pt-2">Add-Ons</p>
+                  <p className="text-sm font-semibold text-gray-600 pt-2">Choose Your Add-Ons</p>
                   <div className="divide-y divide-gray-100">
                     {addonLines.map(line => {
                       const lineTotal = (line.unit_price || 0) * (line.quantity || 1) * (line.travelers || 1);
