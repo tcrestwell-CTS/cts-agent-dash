@@ -1299,6 +1299,188 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "line-selections") {
+      const tripId = url.searchParams.get("tripId");
+      if (!tripId) {
+        return new Response(JSON.stringify({ error: "tripId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const allClientIds = await getAllClientIds();
+      const { data: tripCheck } = await supabase
+        .from("trips").select("id, client_id").eq("id", tripId).single();
+      if (!tripCheck || !allClientIds.includes(tripCheck.client_id)) {
+        return new Response(JSON.stringify({ error: "Trip not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: selections } = await supabase
+        .from("client_line_selections")
+        .select("booking_id, margin_line_id, selected, locked_at")
+        .eq("trip_id", tripId);
+
+      return new Response(JSON.stringify({ selections: selections || [] }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "save-line-selections") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { bookingId, selections } = await req.json();
+      if (!bookingId || !Array.isArray(selections)) {
+        return new Response(JSON.stringify({ error: "bookingId and selections required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const allClientIds = await getAllClientIds();
+      const { data: bookingRow } = await supabase
+        .from("bookings")
+        .select("id, trip_id, client_selection_locked_at, trips!inner(id, client_id, user_id)")
+        .eq("id", bookingId)
+        .single();
+      if (!bookingRow || !allClientIds.includes((bookingRow as any).trips.client_id)) {
+        return new Response(JSON.stringify({ error: "Booking not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (bookingRow.client_selection_locked_at) {
+        return new Response(JSON.stringify({ error: "Selection is locked" }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Validate every line belongs to the booking and is optional
+      const lineIds = selections.map((s: any) => s.marginLineId).filter(Boolean);
+      if (lineIds.length === 0) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: validLines } = await supabase
+        .from("booking_margin_lines")
+        .select("id, is_optional")
+        .eq("booking_id", bookingId)
+        .in("id", lineIds);
+      const allowedIds = new Set(
+        (validLines || []).filter((l: any) => l.is_optional).map((l: any) => l.id)
+      );
+
+      const rows = selections
+        .filter((s: any) => allowedIds.has(s.marginLineId))
+        .map((s: any) => ({
+          trip_id: bookingRow.trip_id,
+          booking_id: bookingId,
+          margin_line_id: s.marginLineId,
+          client_id: clientId,
+          selected: !!s.selected,
+          updated_at: new Date().toISOString(),
+        }));
+
+      if (rows.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from("client_line_selections")
+          .upsert(rows, { onConflict: "booking_id,margin_line_id" });
+        if (upsertErr) {
+          console.error("Line selection upsert error:", upsertErr);
+          return new Response(JSON.stringify({ error: upsertErr.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "approve-line-selections") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { bookingId } = await req.json();
+      if (!bookingId) {
+        return new Response(JSON.stringify({ error: "bookingId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const allClientIds = await getAllClientIds();
+      const { data: bookingRow } = await supabase
+        .from("bookings")
+        .select("id, trip_id, client_selection_locked_at, trips!inner(id, client_id, user_id, trip_name)")
+        .eq("id", bookingId)
+        .single();
+      if (!bookingRow || !allClientIds.includes((bookingRow as any).trips.client_id)) {
+        return new Response(JSON.stringify({ error: "Booking not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (bookingRow.client_selection_locked_at) {
+        return new Response(JSON.stringify({ success: true, alreadyLocked: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const nowIso = new Date().toISOString();
+
+      await supabase
+        .from("client_line_selections")
+        .update({ locked_at: nowIso })
+        .eq("booking_id", bookingId);
+
+      await supabase
+        .from("bookings")
+        .update({ client_selection_locked_at: nowIso })
+        .eq("id", bookingId);
+
+      // Build summary of chosen optional lines for the notification
+      const { data: lines } = await supabase
+        .from("booking_margin_lines")
+        .select("id, description, unit_sell, quantity, is_optional, is_internal")
+        .eq("booking_id", bookingId);
+      const { data: sels } = await supabase
+        .from("client_line_selections")
+        .select("margin_line_id, selected")
+        .eq("booking_id", bookingId);
+      const selectedMap = new Map((sels || []).map((s: any) => [s.margin_line_id, s.selected]));
+      const chosenOptional = (lines || []).filter(
+        (l: any) => l.is_optional && !l.is_internal && selectedMap.get(l.id)
+      );
+      const requiredVisible = (lines || []).filter(
+        (l: any) => !l.is_optional && !l.is_internal
+      );
+      const selectedTotal = [...requiredVisible, ...chosenOptional].reduce(
+        (sum: number, l: any) => sum + Number(l.quantity || 1) * Number(l.unit_sell || 0),
+        0
+      );
+
+      const { data: clientData } = await supabase
+        .from("clients").select("name").eq("id", clientId).single();
+
+      const tripsRel = (bookingRow as any).trips;
+      const chosenList = chosenOptional.length
+        ? chosenOptional.map((l: any) => `• ${l.description}`).join("\n")
+        : "(no optional add-ons)";
+
+      await supabase.from("agent_notifications").insert({
+        user_id: tripsRel.user_id,
+        type: "client_selection_approved",
+        title: "Client locked in booking options",
+        message: `${clientData?.name || "Client"} approved their selection for "${tripsRel.trip_name}" — new total $${selectedTotal.toFixed(2)}.\nOptional add-ons chosen:\n${chosenList}`,
+        trip_id: bookingRow.trip_id,
+      });
+
+      return new Response(JSON.stringify({ success: true, selectedTotal }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else if (resource === "notify-payment-method") {
       if (req.method !== "POST") {
         return new Response(JSON.stringify({ error: "POST required" }), {
