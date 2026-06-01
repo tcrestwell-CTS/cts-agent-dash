@@ -396,6 +396,7 @@ const handler = async (req: Request): Promise<Response> => {
             sort_order: l.sort_order,
             travelers: parentBooking?.travelers || 1,
             is_optional: l.is_optional || false,
+            deposit_amount: Number(l.deposit_amount || 0),
           });
         });
 
