@@ -11,6 +11,7 @@ import {
   useAdminPortalMessages,
   useAdminPortalDocuments,
 } from "@/hooks/useAdminPortalPreview";
+import { BookingOptionsCard } from "@/components/client/BookingOptionsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
