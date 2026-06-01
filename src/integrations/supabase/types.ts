@@ -233,6 +233,39 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_auto_apply_settings: {
+        Row: {
+          action_type: string
+          agent_name: string
+          auto_apply: boolean
+          created_at: string
+          id: string
+          max_confidence_required: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          agent_name: string
+          auto_apply?: boolean
+          created_at?: string
+          id?: string
+          max_confidence_required?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          agent_name?: string
+          auto_apply?: boolean
+          created_at?: string
+          id?: string
+          max_confidence_required?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_messages: {
         Row: {
           channel: string
@@ -496,6 +529,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_proposed_actions: {
+        Row: {
+          action_type: string
+          agent_name: string
+          applied_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          auto_apply_eligible: boolean
+          confidence: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          proposed_changes: Json
+          reasoning: string | null
+          source: string | null
+          status: string
+          summary: string
+          target_id: string | null
+          target_table: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          agent_name: string
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_apply_eligible?: boolean
+          confidence?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          proposed_changes?: Json
+          reasoning?: string | null
+          source?: string | null
+          status?: string
+          summary: string
+          target_id?: string | null
+          target_table?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          agent_name?: string
+          applied_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_apply_eligible?: boolean
+          confidence?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          proposed_changes?: Json
+          reasoning?: string | null
+          source?: string | null
+          status?: string
+          summary?: string
+          target_id?: string | null
+          target_table?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       approval_tasks: {
         Row: {
@@ -2822,6 +2921,7 @@ export type Database = {
           message: string
           name: string
           phone: string | null
+          referral_source: string | null
           status: string | null
           subject: string
         }
@@ -2832,6 +2932,7 @@ export type Database = {
           message: string
           name: string
           phone?: string | null
+          referral_source?: string | null
           status?: string | null
           subject: string
         }
@@ -2842,6 +2943,7 @@ export type Database = {
           message?: string
           name?: string
           phone?: string | null
+          referral_source?: string | null
           status?: string | null
           subject?: string
         }
@@ -5546,6 +5648,7 @@ export type Database = {
           proposal_token: string | null
           proposal_viewed_at: string | null
           raw_answers: Json | null
+          referral_source: string | null
           selected_option: string | null
           sequence_paused: boolean | null
           sequence_started: boolean | null
@@ -5594,6 +5697,7 @@ export type Database = {
           proposal_token?: string | null
           proposal_viewed_at?: string | null
           raw_answers?: Json | null
+          referral_source?: string | null
           selected_option?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
@@ -5642,6 +5746,7 @@ export type Database = {
           proposal_token?: string | null
           proposal_viewed_at?: string | null
           raw_answers?: Json | null
+          referral_source?: string | null
           selected_option?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
