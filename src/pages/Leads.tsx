@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info } from "lucide-react";
-import { format } from "date-fns";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2 } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
 // Simple Markdown to HTML converter for proposal preview
@@ -63,6 +63,12 @@ type QuoteRequest = {
   created_at: string | null;
   proposal_draft: string | null;
   proposal_status: string | null;
+  proposal_token: string | null;
+  proposal_sent_at: string | null;
+  proposal_viewed_at: string | null;
+  proposal_approved_at: string | null;
+  proposal_expires_at: string | null;
+  selected_option: string | null;
 };
 
 const stageConfig: Record<string, { color: string; label: string }> = {
@@ -102,6 +108,8 @@ function LeadProposalSheet({
 }) {
   const [markingContacted, setMarkingContacted] = useState(false);
   const [sendingQuote, setSendingQuote] = useState(false);
+  const [sendingProposal, setSendingProposal] = useState(false);
+  const [sentLink, setSentLink] = useState<string | null>(null);
 
   if (!lead) return null;
 
@@ -129,6 +137,99 @@ function LeadProposalSheet({
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
   const canApproveQuote = (lead.proposal_status === "draft" || lead.proposal_status === "draft_ready") && lead.proposal_draft;
   const quoteAlreadySent = lead.proposal_status === "quote_sent";
+
+  const propStatus = lead.proposal_status || "draft";
+  const proposalDecided = propStatus === "approved" || propStatus === "converted";
+  const canSendProposal = !!(lead.proposal_draft && lead.proposal_draft.trim()) && !proposalDecided;
+  const proposalStatusColors: Record<string, string> = {
+    draft: "bg-muted text-muted-foreground border-border",
+    draft_ready: "bg-muted text-muted-foreground border-border",
+    sent: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+    quote_sent: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+    viewed: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
+    approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+    converted: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  };
+  const proposalStatusLabel: Record<string, string> = {
+    draft: "Draft",
+    draft_ready: "Draft Ready",
+    sent: "Sent",
+    quote_sent: "Sent",
+    viewed: "Viewed",
+    approved: "Approved",
+    converted: "Converted",
+  };
+
+  const handleCopyQualifyLink = async () => {
+    if (!lead.proposal_token) {
+      toast.error("No qualify token on this lead");
+      return;
+    }
+    const url = `https://crestwellgetaways.com/qualify/${lead.proposal_token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Qualify link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
+  const handleSendProposal = async () => {
+    if (!canSendProposal) return;
+    if (!window.confirm(`Email this proposal to ${lead.email}?`)) return;
+    setSendingProposal(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        toast.error("You're signed out — please log in again.");
+        return;
+      }
+      const res = await fetch(
+        "https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/send-proposal",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ lead_id: lead.id }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.ok) {
+        toast.success("Proposal sent ✓");
+        setSentLink(json.link || null);
+        refetch();
+      } else {
+        const err = json?.error;
+        if (err === "no_draft") toast.error("Generate a proposal before sending.");
+        else if (err === "no_email") toast.error("This lead has no email address.");
+        else if (err === "already_decided") toast.error(`This proposal was already ${json.proposal_status || "decided"}.`);
+        else if (err === "email_failed") toast.error("Email failed to send — check the sender address.");
+        else toast.error("Couldn't send — please try again.");
+      }
+    } catch {
+      toast.error("Couldn't send — please try again.");
+    } finally {
+      setSendingProposal(false);
+    }
+  };
+
+  const handleCopySentLink = async () => {
+    if (!sentLink) return;
+    try {
+      await navigator.clipboard.writeText(sentLink);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
+  const relTime = (iso: string | null) =>
+    iso ? formatDistanceToNow(new Date(iso), { addSuffix: true }) : null;
+  const expiresInFuture =
+    lead.proposal_expires_at && new Date(lead.proposal_expires_at) > new Date();
 
   const handleApproveQuote = async () => {
     if (!lead.id) return;
@@ -252,13 +353,70 @@ function LeadProposalSheet({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold">Proposal</h3>
-              {(lead.proposal_status === "sent" || lead.proposal_status === "quote_sent") && (
-                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Sent
-                </Badge>
-              )}
+              <Badge variant="outline" className={`${proposalStatusColors[propStatus] || proposalStatusColors.draft} text-[10px]`}>
+                {proposalStatusLabel[propStatus] || propStatus}
+              </Badge>
             </div>
+
+            {/* Proposal delivery status + actions */}
+            <Card className="border">
+              <CardContent className="p-3 space-y-3">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {lead.proposal_sent_at && <div>Sent {relTime(lead.proposal_sent_at)}</div>}
+                  {lead.proposal_viewed_at && <div>Viewed {relTime(lead.proposal_viewed_at)}</div>}
+                  {lead.proposal_approved_at && (
+                    <div>
+                      Approved {relTime(lead.proposal_approved_at)}
+                      {lead.selected_option ? ` · Selected: ${lead.selected_option}` : ""}
+                    </div>
+                  )}
+                  {expiresInFuture && (
+                    <div>Pricing held until {format(new Date(lead.proposal_expires_at!), "MMM d, yyyy")}</div>
+                  )}
+                  {!lead.proposal_sent_at && !lead.proposal_viewed_at && !lead.proposal_approved_at && !expiresInFuture && (
+                    <div>Proposal has not been sent yet.</div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {!proposalDecided && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button
+                            size="sm"
+                            disabled={!canSendProposal || sendingProposal}
+                            onClick={handleSendProposal}
+                          >
+                            {sendingProposal ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5 mr-1.5" />
+                            )}
+                            {sendingProposal ? "Sending..." : "Send Proposal"}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {!canSendProposal && (
+                        <TooltipContent>Generate a proposal first</TooltipContent>
+                      )}
+                    </Tooltip>
+                  )}
+
+                  <Button variant="outline" size="sm" onClick={handleCopyQualifyLink}>
+                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                    Copy Qualify Link
+                  </Button>
+
+                  {sentLink && (
+                    <Button variant="ghost" size="sm" onClick={handleCopySentLink}>
+                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                      Copy Proposal Link
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {hasProposal ? (
               <Card className="border">
