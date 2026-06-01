@@ -196,7 +196,24 @@ const BookingDetail = () => {
     setInvoicePreviewUrl(null);
     try {
       const grossSales = tripFinancials?.grossSales || booking.total_amount;
-      
+
+      // Pull margin line items for this booking so the invoice is itemized
+      // off the same line-item details the rest of the app uses.
+      const { data: marginRows } = await supabase
+        .from("booking_margin_lines")
+        .select("description, quantity, unit_sell, total_sell, is_pass_through, sort_order, is_internal")
+        .eq("booking_id", booking.id)
+        .order("sort_order", { ascending: true });
+      const subItems = (marginRows || [])
+        .filter((l: any) => !l.is_internal)
+        .map((l: any) => ({
+          description: l.description || "Item",
+          quantity: Number(l.quantity || 1),
+          unitPrice: Number(l.unit_sell || 0),
+          amount: Number(l.total_sell || 0),
+          isPassThrough: !!l.is_pass_through,
+        }));
+
       const invoiceData: Record<string, any> = {
         tripName: booking.trip_name || booking.destination,
         clientName: client?.name || "Client",
@@ -231,6 +248,7 @@ const BookingDetail = () => {
             ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
             : undefined,
           amount: Number(grossSales || 0),
+          subItems,
         },
       ];
 
