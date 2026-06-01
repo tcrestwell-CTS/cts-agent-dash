@@ -67,32 +67,80 @@ Deno.serve(async (req) => {
       || req.headers.get('cf-connecting-ip')
       || 'unknown';
 
+    // Explicit allowlist — never spread raw body into the table, since columns like
+    // decision/approved_amount/equifax_* must NEVER be settable by the public endpoint.
+    const insertPayload = {
+      // applicant identity
+      first_name:    body.first_name,
+      last_name:     body.last_name,
+      email:         body.email,
+      phone:         body.phone          || null,
+      alt_phone:     body.alt_phone      || null,
+      date_of_birth: body.date_of_birth  || null,
+      ssn_last_four: body.ssn_last_four  || null,
+
+      // address
+      address_line1:    body.address_line1    || null,
+      address_line2:    body.address_line2    || null,
+      city:             body.city             || null,
+      state:            body.state            || null,
+      zip_code:         body.zip_code         || null,
+      years_at_address: body.years_at_address || null,
+      housing_status:   body.housing_status   || null,
+
+      // employment
+      employer_name:     body.employer_name     || null,
+      job_title:         body.job_title         || null,
+      employment_status: body.employment_status || null,
+      years_employed:    body.years_employed    || null,
+
+      // financials
+      monthly_income:        body.monthly_income        ? parseFloat(body.monthly_income)        : null,
+      other_income:          body.other_income          ? parseFloat(body.other_income)          : null,
+      other_income_source:   body.other_income_source   || null,
+      loan_amount_requested: body.loan_amount_requested ? parseFloat(body.loan_amount_requested) : null,
+      loan_purpose:          body.loan_purpose          || null,
+      trip_description:      body.trip_description      || null,
+      travel_date:           body.travel_date           || null,
+      down_payment:          body.down_payment          ? parseFloat(body.down_payment)          : null,
+      preferred_term_months: body.preferred_term_months ? parseInt(body.preferred_term_months)   : null,
+      monthly_rent_mortgage: body.monthly_rent_mortgage ? parseFloat(body.monthly_rent_mortgage) : null,
+      monthly_car_payment:   body.monthly_car_payment   ? parseFloat(body.monthly_car_payment)   : null,
+      monthly_other_debt:    body.monthly_other_debt    ? parseFloat(body.monthly_other_debt)    : null,
+      checking_account:      body.checking_account      ?? null,
+      savings_account:       body.savings_account       ?? null,
+      bankruptcy_history:    body.bankruptcy_history    ?? null,
+      bankruptcy_details:    body.bankruptcy_details    || null,
+
+      // references
+      reference1_name:     body.reference1_name     || null,
+      reference1_phone:    body.reference1_phone    || null,
+      reference1_relation: body.reference1_relation || null,
+      reference2_name:     body.reference2_name     || null,
+      reference2_phone:    body.reference2_phone    || null,
+      reference2_relation: body.reference2_relation || null,
+
+      // consents & signatures
+      consent_credit_check: body.consent_credit_check ?? false,
+      consent_terms:        body.consent_terms        ?? false,
+      esignature:           body.esignature           || null,
+      consent_autopay:      body.consent_autopay      ?? false,
+      autopay_method:       body.autopay_method       || null,
+      autopay_esignature:   body.autopay_esignature   || null,
+      autopay_signed_at:    body.consent_autopay ? new Date().toISOString() : null,
+      stripe_payment_method_id: body.stripe_payment_method_id || null,
+
+      // server-controlled
+      ip_address:     ip,
+      user_agent:     body.user_agent || null,
+      status:         'pending',
+      signed_at:      new Date().toISOString(),
+      autopay_active: false,
+    };
+
     const { data, error } = await supabase
       .from('loan_applications')
-      .insert({
-        ...body,
-        ip_address: ip,
-        user_agent: body.user_agent || null,
-        status: 'pending',
-        signed_at: new Date().toISOString(),
-        // Ensure numeric fields are properly typed
-        monthly_income:        body.monthly_income        ? parseFloat(body.monthly_income)        : null,
-        other_income:          body.other_income          ? parseFloat(body.other_income)          : null,
-        loan_amount_requested: body.loan_amount_requested ? parseFloat(body.loan_amount_requested) : null,
-        down_payment:          body.down_payment          ? parseFloat(body.down_payment)          : null,
-        preferred_term_months: body.preferred_term_months ? parseInt(body.preferred_term_months)   : null,
-        monthly_rent_mortgage: body.monthly_rent_mortgage ? parseFloat(body.monthly_rent_mortgage) : null,
-        monthly_car_payment:   body.monthly_car_payment   ? parseFloat(body.monthly_car_payment)   : null,
-        monthly_other_debt:    body.monthly_other_debt    ? parseFloat(body.monthly_other_debt)     : null,
-        date_of_birth:              body.date_of_birth              || null,
-        travel_date:                body.travel_date                || null,
-        autopay_method:             body.autopay_method             || null,
-        consent_autopay:            body.consent_autopay            || false,
-        autopay_esignature:         body.autopay_esignature         || null,
-        autopay_signed_at:          body.consent_autopay ? new Date().toISOString() : null,
-        stripe_payment_method_id:   body.stripe_payment_method_id   || null,
-        autopay_active:             false,  // Never active until manually approved
-      })
+      .insert(insertPayload)
       .select('id, application_number')
       .single();
 

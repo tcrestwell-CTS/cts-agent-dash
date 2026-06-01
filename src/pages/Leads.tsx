@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 // Simple Markdown to HTML converter for proposal preview
 function simpleMarkdownToHtml(md: string): string {
@@ -426,7 +427,7 @@ function LeadProposalSheet({
                   <div className="max-h-[40vh] overflow-y-auto">
                     <div
                       className="prose prose-sm max-w-none text-foreground [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_h3]:font-semibold [&_table]:text-xs [&_td]:px-2 [&_td]:py-1 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left"
-                      dangerouslySetInnerHTML={{ __html: simpleMarkdownToHtml(lead.proposal_draft || "") }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(simpleMarkdownToHtml(lead.proposal_draft || "")) }}
                     />
                   </div>
                 </CardContent>

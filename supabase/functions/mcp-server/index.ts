@@ -256,6 +256,62 @@ const transport = new StreamableHttpTransport();
 const handler = transport.bind(mcp);
 const app = new Hono();
 
+// ── AUTH ────────────────────────────────────────────────────────
+// The MCP server has SERVICE-ROLE database access and exposes full CRM read/write.
+// Every request must present either:
+//   1. A valid Supabase JWT belonging to an admin or office_admin, OR
+//   2. The MCP_SHARED_SECRET (used by the workspace MCP client / automations).
+const MCP_SHARED_SECRET = Deno.env.get("MCP_SHARED_SECRET") ?? "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+function unauthorized() {
+  return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+app.use("/*", async (c, next) => {
+  // Allow CORS preflight
+  if (c.req.method === "OPTIONS") return next();
+
+  const auth = c.req.header("authorization") ?? c.req.header("Authorization") ?? "";
+  const sharedSecret =
+    c.req.header("x-mcp-secret") ?? c.req.header("X-MCP-Secret") ?? "";
+
+  // 1) Shared-secret path
+  if (MCP_SHARED_SECRET && sharedSecret && sharedSecret === MCP_SHARED_SECRET) {
+    return next();
+  }
+  if (MCP_SHARED_SECRET && auth === `Bearer ${MCP_SHARED_SECRET}`) {
+    return next();
+  }
+
+  // 2) Supabase user JWT path — must be admin or office_admin
+  if (!auth.startsWith("Bearer ")) return unauthorized();
+  const token = auth.slice(7);
+  if (!SUPA_URL || !ANON_KEY) return unauthorized();
+
+  const userClient = createClient(SUPA_URL, ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: userRes, error: userErr } = await userClient.auth.getUser(token);
+  if (userErr || !userRes?.user) return unauthorized();
+
+  const db = getDb();
+  const { data: isAdmin } = await db.rpc("has_role", {
+    _user_id: userRes.user.id,
+    _role: "admin",
+  });
+  const { data: isOffice } = await db.rpc("has_role", {
+    _user_id: userRes.user.id,
+    _role: "office_admin",
+  });
+  if (!isAdmin && !isOffice) return unauthorized();
+
+  return next();
+});
+
 app.all("/*", (c) => handler(c.req.raw));
 
 Deno.serve(app.fetch);
