@@ -8634,6 +8634,16 @@ export type Database = {
           trip_type: string
         }[]
       }
+      get_qualify: {
+        Args: { p_token: string }
+        Returns: {
+          departure_date: string
+          destination: string
+          first_name: string
+          proposal_status: string
+          trip_type: string
+        }[]
+      }
       has_feature_permission: {
         Args: { _feature_key: string; _user_id: string }
         Returns: boolean
@@ -8658,6 +8668,10 @@ export type Database = {
       is_recon_admin: { Args: never; Returns: boolean }
       mark_proposal_viewed: { Args: { p_token: string }; Returns: undefined }
       reveal_cw_agent_secret: { Args: never; Returns: string }
+      submit_qualify: {
+        Args: { p_answers: Json; p_token: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "office_admin" | "bookkeeper"
