@@ -1,94 +1,112 @@
-# Inbox-to-CRM Agent + Unified Approval Inbox
+## Goal
+In the client portal, let the client check/uncheck **optional line items** inside a booking, see the running total update, then **approve their selection** to lock it in and unlock **Pay Deposit** for the selected amount.
 
-Deliver Tern's "the hire you never made" inside Crestwell: an agent that reads agent email and proposes CRM updates, plus a single queue where every AI agent's proposed actions get approved or rejected.
+This piggybacks on what already exists:
+- `booking_margin_lines.is_optional` (agents already flag lines as optional in `MarginLinesEditor`)
+- `portal-data` already returns `is_optional` per pricing line
+- Existing Pay Now / deposit / agreement flow on `PortalTripDetail`
 
-## What gets built
+## UX flow (Portal → Trip → Bookings card)
 
-### 1. Unified Approval Inbox (foundation — build first)
+Per booking, optional lines render with a checkbox; required lines stay as-is.
 
-A single queue surface where Tiara, Richard, Terrance, Ashley, Kandi, and the new Inbox agent all post "I want to do this, approve?" items instead of acting blind.
+```text
+Booking: Royal Caribbean Cruise               [Pending your selection]
+─────────────────────────────────────────────
+  Package                          $4,200    (required)
+  Optional add-ons — pick what you want:
+  [x] Beverage Package             $  480
+  [ ] Specialty Dining 3-night     $  220
+  [x] Shore excursion: Cozumel     $  165
+─────────────────────────────────────────────
+  Your selected total: $4,845
+  Deposit due now:     $  500
 
-**New table** `ai_proposed_actions`:
-- `id`, `user_id` (owning agent), `agent_name` (tiara/richard/terrance/ashley/kandi/inbox)
-- `action_type` (e.g. `update_lead_status`, `draft_reply`, `add_payment`, `update_trip_dates`, `create_note`)
-- `target_table`, `target_id` (what record it touches)
-- `summary` (one-line human description), `reasoning` (why the agent proposed it)
-- `proposed_changes` jsonb (the diff/payload to apply)
-- `source` (e.g. `email:<message_id>`, `trigger:lead_qualified`)
-- `status` (`pending` | `approved` | `rejected` | `applied` | `failed` | `auto_applied`)
-- `confidence` numeric, `auto_apply_eligible` boolean
-- `approved_by`, `approved_at`, `applied_at`, `error_message`, `created_at`
-- RLS: agents see their own; admin/office_admin see all. Realtime enabled.
+  [ Approve Selection ]   ← primary
+```
 
-**New edge function** `apply-proposed-action`:
-- Input: `{ action_id }`
-- Loads the row, dispatches by `action_type` to the correct table update / edge function call, writes result back, sets `status='applied'` or `failed`.
-- Single chokepoint so every agent uses the same approval path.
+After **Approve Selection**:
+- Selection is locked (checkboxes disabled, "Locked in on Jun 1, 2026" badge).
+- A "Pay Deposit" button appears for that booking using the existing payment-agreement → Stripe/Affirm flow already on this page.
+- Agent gets a notification with the chosen lines.
+- Client can request changes via the existing "Request Changes" dialog to reopen.
 
-**New page** `/approvals` (sidebar item "Approvals" with unread badge):
-- Filter by agent, action type, status, confidence
-- Each card: agent avatar, summary, reasoning, before/after diff, source link (email / lead / trip), Approve / Reject / Edit buttons
-- Bulk approve for high-confidence items
-- Realtime updates via Supabase channel
+Booking total/badge in the existing "Bookings" card updates to reflect selected total.
 
-**Refactor existing agents** (small touches, not rewrites):
-- Tiara, Richard, Terrance, Ashley, Kandi: when they currently auto-write to CRM or send email, instead insert into `ai_proposed_actions` unless `auto_apply_eligible` and user has enabled auto-apply for that action type.
-- Per-user `agent_auto_apply_settings` table so users can opt specific action types into skip-approval.
+## Technical plan
 
-### 2. Inbox-to-CRM Agent ("Iris")
+### 1. Database
+New migration adding a per-line client selection table (re-uses the `client_option_selections` pattern):
 
-A new agent that watches an agent's Gmail/Outlook inbox, classifies each thread, and posts proposed CRM updates to the Approval Inbox.
+```sql
+CREATE TABLE public.client_line_selections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trip_id uuid NOT NULL REFERENCES public.trips(id) ON DELETE CASCADE,
+  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  margin_line_id uuid NOT NULL REFERENCES public.booking_margin_lines(id) ON DELETE CASCADE,
+  client_id uuid REFERENCES public.clients(id) ON DELETE SET NULL,
+  selected boolean NOT NULL DEFAULT true,
+  locked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (booking_id, margin_line_id)
+);
+```
 
-**Connection** — use the Lovable gateway connector for Gmail (already on the gateway-enabled list). For Outlook users, Microsoft Outlook connector. Each user links their own mailbox via `standard_connectors--connect`.
+Plus `GRANT`s (authenticated + service_role; no anon — portal writes go through edge function with service role), RLS that mirrors `client_option_selections` (agent who owns the trip + admins can read/write; portal edge function uses service role).
 
-**New table** `inbox_watched_mailboxes`:
-- `user_id`, `provider` (gmail/outlook), `connection_id`, `last_history_id` / `last_synced_at`, `is_active`
+Also a small lock flag on `bookings`:
+```sql
+ALTER TABLE public.bookings
+  ADD COLUMN client_selection_locked_at timestamptz;
+```
+When non-null, the portal treats the booking as approved/locked.
 
-**New table** `inbox_processed_messages`:
-- `user_id`, `provider_message_id`, `thread_id`, `from_email`, `subject`, `received_at`, `classification`, `linked_lead_id`, `linked_trip_id`, `linked_booking_id`, `processed_at`
-- Dedupe key so we never reprocess the same email twice.
+No changes to `booking_margin_lines` schema — `is_optional` already exists.
 
-**New edge function** `iris-poll` (runs every 5 min via pg_cron):
-- For each active mailbox, fetch new messages since `last_history_id`
-- Skip already-processed ones
-- Call `iris-classify` per message
+### 2. Edge function: `supabase/functions/portal-data/index.ts`
+Add three resources (auth via existing `x-portal-token` portal session, validated like other portal routes):
 
-**New edge function** `iris-classify`:
-- Uses Lovable AI (Claude via existing pattern) with the message body + thread context
-- Classifies into: `supplier_confirmation`, `client_reply`, `pricing_change`, `payment_notice`, `itinerary_update`, `cancellation`, `noise`
-- Matches sender/subject/body against existing leads, trips, bookings, suppliers (fuzzy email + reference number match)
-- Extracts structured fields (confirmation #, new price, new dates, payment amount, etc.)
-- Inserts one or more rows into `ai_proposed_actions` with `agent_name='iris'`, `source='email:<id>'`
-- Examples produced:
-  - Supplier confirmation email → `action_type='attach_confirmation'` on a booking
-  - Client says "push trip back a week" → `action_type='update_trip_dates'` + a draft reply
-  - Supplier sends new price → `action_type='update_margin_line'` with old/new sell price
-  - Cruise line cancellation notice → `action_type='flag_booking_at_risk'`
+- `GET ?resource=line-selections&tripId=…` → return rows from `client_line_selections` for the trip.
+- `POST ?resource=save-line-selections` body `{ bookingId, selections: [{ marginLineId, selected }] }` → upsert; reject if `bookings.client_selection_locked_at` is set.
+- `POST ?resource=approve-line-selections` body `{ bookingId }` → set `client_line_selections.locked_at = now()` for all rows of that booking, set `bookings.client_selection_locked_at = now()`, and insert an `agent_notifications` row of type `client_selection_approved` for the booking's owning agent (message lists which optional lines were chosen and the new selected total).
 
-**Sidebar entry** under Settings → "Inbox Sync" for the user to link their mailbox, see last sync time, pause/resume, and choose which action types auto-apply.
+Existing pricing-lines block already returns `is_optional`; extend it to also include `deposit_amount` per line (already in select) so the portal can compute deposit due for the chosen set.
 
-## Technical notes
+### 3. Hooks: `src/hooks/usePortalData.ts`
+Add:
+- `usePortalLineSelections(tripId)` — fetches saved selections.
+- `useSaveLineSelections()` — mutation, invalidates trip detail + selections.
+- `useApproveLineSelections()` — mutation, invalidates trip detail.
 
-- All new tables: explicit `GRANT` block, RLS scoped to `auth.uid()`, admin/office_admin read-all via `has_role`.
-- Edge functions follow existing pattern: Deno, `npm:@supabase/supabase-js@2`, cors headers, JWT validated, secrets via Supabase vault.
-- AI calls go through Lovable AI Gateway (Claude family per project standard — see `tech/infrastructure/ai-provider` memory).
-- Gmail/Outlook tokens never touched in client code; refresh handled by the gateway.
-- `apply-proposed-action` reuses existing RPCs (`calculate_booking_margin`, payment insert paths, trip update paths) so business logic stays in one place.
-- Approvals page uses existing `useAgentNotifications` realtime pattern.
-- pg_cron job `iris-poll-every-5min` added per `tech/infrastructure/extensions` conventions.
+### 4. UI: `src/pages/client/PortalTripDetail.tsx` (Bookings card only)
+Refactor the inline bookings list (lines ~693-758) into a small `BookingOptionsCard` component in `src/components/client/` that:
+- Splits `bookingLines` into required vs optional.
+- Renders optional ones with `Checkbox` (semantic tokens, no raw colors).
+- Maintains local `Record<lineId, boolean>` initialised from `usePortalLineSelections`; debounced auto-save via `useSaveLineSelections`.
+- Shows live "Selected total" and "Deposit due now" (sum of `deposit_amount` for required + checked optional lines, falling back to a trip-level deposit policy if zero).
+- If `client_selection_locked_at` is set: disable checkboxes, show "Locked" badge with timestamp, and render a "Pay Deposit" button that calls the existing `handlePayNowClick({ id, amount: depositDue, payment_type: 'deposit', trip_name, … })` flow already on this page.
+- If not locked: show "Approve Selection" button that calls `useApproveLineSelections` then surfaces the Pay Deposit button.
+- Bookings with **no** optional lines render exactly as today (no behaviour change).
 
-## Build order
+Deposit gating in the existing "Payments" card stays unchanged; the new Pay Deposit button is an additional in-line shortcut targeting the same existing payment edge function.
 
-1. `ai_proposed_actions` table + RLS + grants + realtime
-2. `apply-proposed-action` edge function with handlers for 4–5 core action types
-3. `/approvals` page + sidebar nav + unread badge
-4. Refactor Tiara/Richard/Terrance/Ashley/Kandi to post proposals instead of (or alongside) direct writes — gated by per-user setting
-5. Gmail connector wiring + `inbox_watched_mailboxes` + Settings → Inbox Sync UI
-6. `iris-classify` + `iris-poll` + pg_cron schedule
-7. Outlook support (same shape as Gmail)
+### 5. Agent-side surfacing (small)
+- `useAgentNotifications` already renders `agent_notifications` rows; the new `client_selection_approved` type just shows up with its message — no extra UI change needed.
+- Optional polish (skipping unless asked): a "Client locked selection" badge on the booking row inside the agent's `BookingDetail` page.
 
-## Out of scope for this plan
+## Out of scope
+- No changes to `booking_margin_lines` schema or `calculate_booking_margin` RPC. The client's selection is a portal-level preference; it doesn't rewrite the booking's authoritative margin lines. The agent decides whether to remove unchosen optional lines from the booking afterwards.
+- No new payment method, no Stripe/Affirm changes — re-uses the existing deposit Pay Now flow.
+- Itinerary option blocks (`client_option_selections`) are untouched.
 
-- Chrome extension for Travefy/Axus import (separate item from the earlier list — itinerary importer can be a follow-up)
-- Bulk natural-language itinerary editor (separate follow-up)
-- Reworking existing agents' core logic — we only intercept their write path
+## Files
+
+**New**
+- `supabase/migrations/<ts>_client_line_selections.sql`
+- `src/components/client/BookingOptionsCard.tsx`
+
+**Edited**
+- `supabase/functions/portal-data/index.ts` (3 new resources)
+- `src/hooks/usePortalData.ts` (3 new hooks)
+- `src/pages/client/PortalTripDetail.tsx` (replace inline bookings list with `BookingOptionsCard`)

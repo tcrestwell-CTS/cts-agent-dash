@@ -1073,6 +1073,7 @@ export type Database = {
           agency_margin_amount: number
           agency_split_pct: number
           calculated_commission: number | null
+          client_selection_locked_at: string | null
           commission_estimate: number | null
           commission_override_amount: number | null
           commission_revenue: number
@@ -1113,6 +1114,7 @@ export type Database = {
           agency_margin_amount?: number
           agency_split_pct?: number
           calculated_commission?: number | null
+          client_selection_locked_at?: string | null
           commission_estimate?: number | null
           commission_override_amount?: number | null
           commission_revenue?: number
@@ -1153,6 +1155,7 @@ export type Database = {
           agency_margin_amount?: number
           agency_split_pct?: number
           calculated_commission?: number | null
+          client_selection_locked_at?: string | null
           commission_estimate?: number | null
           commission_override_amount?: number | null
           commission_revenue?: number
@@ -2415,6 +2418,78 @@ export type Database = {
           },
           {
             foreignKeyName: "client_document_uploads_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_line_selections: {
+        Row: {
+          booking_id: string
+          client_id: string | null
+          created_at: string
+          id: string
+          locked_at: string | null
+          margin_line_id: string
+          selected: boolean
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          locked_at?: string | null
+          margin_line_id: string
+          selected?: boolean
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          locked_at?: string | null
+          margin_line_id?: string
+          selected?: boolean
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_line_selections_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_line_selections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_line_selections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_line_selections_margin_line_id_fkey"
+            columns: ["margin_line_id"]
+            isOneToOne: false
+            referencedRelation: "booking_margin_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_line_selections_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
