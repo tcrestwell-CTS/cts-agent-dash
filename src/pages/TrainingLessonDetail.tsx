@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -157,7 +158,7 @@ const TrainingLessonDetail = () => {
           {/* Content Body */}
           {lesson.content_body && (
             <div className="bg-card rounded-xl shadow-card border border-border/50 p-6 prose prose-sm max-w-none text-card-foreground"
-              dangerouslySetInnerHTML={{ __html: lesson.content_body }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(lesson.content_body) }}
             />
           )}
 
