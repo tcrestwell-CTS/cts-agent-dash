@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2 } from "lucide-react";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -96,6 +96,7 @@ function LeadProposalSheet({
   onClose,
   onRequalify,
   onAddToClients,
+  onDelete,
   requalifyingId,
   refetch,
 }: {
@@ -103,6 +104,7 @@ function LeadProposalSheet({
   onClose: () => void;
   onRequalify: (id: string) => void;
   onAddToClients: (lead: QuoteRequest) => void;
+  onDelete: (id: string) => void;
   requalifyingId: string | null;
   refetch: () => void;
 }) {
@@ -510,6 +512,10 @@ function LeadProposalSheet({
             )}
             Re-qualify
           </Button>
+          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(lead.id)}>
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            Delete
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -584,6 +590,19 @@ export default function Leads() {
       toast.success(`${name} added to Contacts`);
     } catch {
       toast.error("Failed to add client");
+    }
+  };
+
+  const deleteLead = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this lead? This cannot be undone.")) return;
+    try {
+      const { error } = await supabase.from("quote_requests").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Lead deleted");
+      setSelectedLead(null);
+      refetch();
+    } catch {
+      toast.error("Failed to delete lead");
     }
   };
 
@@ -810,6 +829,19 @@ export default function Leads() {
                               </TooltipTrigger>
                               <TooltipContent>Add to Contacts</TooltipContent>
                             </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => deleteLead(lead.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete Lead</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -827,6 +859,7 @@ export default function Leads() {
         onClose={() => setSelectedLead(null)}
         onRequalify={requalify}
         onAddToClients={addToClients}
+        onDelete={deleteLead}
         requalifyingId={requalifyingId}
         refetch={refetch}
       />
