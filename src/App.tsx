@@ -58,6 +58,7 @@ const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation")
 const Kandi               = lazy(() => import("./pages/Kandi"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
 const Approvals           = lazy(() => import("./pages/Approvals"));
+const InboxSync           = lazy(() => import("./pages/InboxSync"));
 const PaymentsDue         = lazy(() => import("./pages/PaymentsDue"));
 const PaymentReminders    = lazy(() => import("./pages/PaymentReminders"));
 const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
@@ -204,6 +205,7 @@ const App = () => (
                 <Route path="/trips/:tripId/landing-page" element={<ProtectedRoute><GroupLandingBuilder /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
+                <Route path="/inbox-sync" element={<ProtectedRoute><InboxSync /></ProtectedRoute>} />
                 <Route path="/payments-due" element={<ProtectedRoute><PaymentsDue /></ProtectedRoute>} />
                 <Route path="/payment-reminders" element={<ProtectedRoute><FeatureRoute feature="payment_reminders"><PaymentReminders /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/publish-manager" element={<ProtectedRoute><FeatureRoute feature="publish_manager"><TripPublishManager /></FeatureRoute></ProtectedRoute>} />
