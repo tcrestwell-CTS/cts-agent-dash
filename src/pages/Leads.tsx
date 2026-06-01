@@ -108,6 +108,8 @@ function LeadProposalSheet({
 }) {
   const [markingContacted, setMarkingContacted] = useState(false);
   const [sendingQuote, setSendingQuote] = useState(false);
+  const [sendingProposal, setSendingProposal] = useState(false);
+  const [sentLink, setSentLink] = useState<string | null>(null);
 
   if (!lead) return null;
 
@@ -135,6 +137,99 @@ function LeadProposalSheet({
   const canGenerate = !lead.proposal_draft && (lead.ai_stage === "Quote Needed" || lead.ai_stage === "Qualified");
   const canApproveQuote = (lead.proposal_status === "draft" || lead.proposal_status === "draft_ready") && lead.proposal_draft;
   const quoteAlreadySent = lead.proposal_status === "quote_sent";
+
+  const propStatus = lead.proposal_status || "draft";
+  const proposalDecided = propStatus === "approved" || propStatus === "converted";
+  const canSendProposal = !!(lead.proposal_draft && lead.proposal_draft.trim()) && !proposalDecided;
+  const proposalStatusColors: Record<string, string> = {
+    draft: "bg-muted text-muted-foreground border-border",
+    draft_ready: "bg-muted text-muted-foreground border-border",
+    sent: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+    quote_sent: "bg-blue-500/15 text-blue-700 border-blue-500/30",
+    viewed: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
+    approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+    converted: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  };
+  const proposalStatusLabel: Record<string, string> = {
+    draft: "Draft",
+    draft_ready: "Draft Ready",
+    sent: "Sent",
+    quote_sent: "Sent",
+    viewed: "Viewed",
+    approved: "Approved",
+    converted: "Converted",
+  };
+
+  const handleCopyQualifyLink = async () => {
+    if (!lead.proposal_token) {
+      toast.error("No qualify token on this lead");
+      return;
+    }
+    const url = `https://crestwellgetaways.com/qualify/${lead.proposal_token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Qualify link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
+  const handleSendProposal = async () => {
+    if (!canSendProposal) return;
+    if (!window.confirm(`Email this proposal to ${lead.email}?`)) return;
+    setSendingProposal(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        toast.error("You're signed out — please log in again.");
+        return;
+      }
+      const res = await fetch(
+        "https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/send-proposal",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ lead_id: lead.id }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.ok) {
+        toast.success("Proposal sent ✓");
+        setSentLink(json.link || null);
+        refetch();
+      } else {
+        const err = json?.error;
+        if (err === "no_draft") toast.error("Generate a proposal before sending.");
+        else if (err === "no_email") toast.error("This lead has no email address.");
+        else if (err === "already_decided") toast.error(`This proposal was already ${json.proposal_status || "decided"}.`);
+        else if (err === "email_failed") toast.error("Email failed to send — check the sender address.");
+        else toast.error("Couldn't send — please try again.");
+      }
+    } catch {
+      toast.error("Couldn't send — please try again.");
+    } finally {
+      setSendingProposal(false);
+    }
+  };
+
+  const handleCopySentLink = async () => {
+    if (!sentLink) return;
+    try {
+      await navigator.clipboard.writeText(sentLink);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
+  const relTime = (iso: string | null) =>
+    iso ? formatDistanceToNow(new Date(iso), { addSuffix: true }) : null;
+  const expiresInFuture =
+    lead.proposal_expires_at && new Date(lead.proposal_expires_at) > new Date();
 
   const handleApproveQuote = async () => {
     if (!lead.id) return;
