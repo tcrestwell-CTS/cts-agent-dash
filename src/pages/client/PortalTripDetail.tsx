@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations, usePortalOptionSelections, useSelectOption } from "@/hooks/usePortalData";
+import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations, usePortalOptionSelections, useSelectOption, usePortalLineSelections } from "@/hooks/usePortalData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,7 @@ import { AgentTripDocumentsView } from "@/components/client/AgentTripDocumentsVi
 import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocationTimeline";
 import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
 import { ApprovalStatePanel } from "@/components/client/ApprovalStatePanel";
+import { BookingOptionsCard } from "@/components/client/BookingOptionsCard";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -47,6 +48,7 @@ export default function PortalTripDetail() {
   const { data, isLoading, refetch } = usePortalTripDetail(tripId);
   const { data: ccData } = usePortalCCAuthorizations(tripId);
   const { data: selectionsData } = usePortalOptionSelections(tripId);
+  const { data: lineSelectionsData } = usePortalLineSelections(tripId);
   const approveItinerary = useApproveItinerary();
   const selectOption = useSelectOption();
   const [showItinerary, setShowItinerary] = useState(false);
