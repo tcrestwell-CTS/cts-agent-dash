@@ -700,6 +700,9 @@ export default function PortalTripDetail() {
                 const bookingSelections = (lineSelectionsData?.selections || []).filter(
                   (s: any) => s.booking_id === b.id
                 );
+                const pendingDepositPayment = payments.find(
+                  (p: any) => p.status === "pending" && (p.payment_type === "deposit" || p.payment_type === "payment")
+                );
                 return (
                   <BookingOptionsCard
                     key={b.id}
@@ -711,6 +714,7 @@ export default function PortalTripDetail() {
                     typeIcon={typeInfo.icon}
                     typeLabel={typeInfo.label}
                     disablePay={!!payingId || affirmLoading}
+                    pendingDepositPayment={pendingDepositPayment}
                     onPayDeposit={(payload) => handlePayNowClick(payload)}
                   />
                 );
