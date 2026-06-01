@@ -512,6 +512,10 @@ function LeadProposalSheet({
             )}
             Re-qualify
           </Button>
+          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(lead.id)}>
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            Delete
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
