@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info } from "lucide-react";
-import { format } from "date-fns";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2 } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
 // Simple Markdown to HTML converter for proposal preview
@@ -63,6 +63,12 @@ type QuoteRequest = {
   created_at: string | null;
   proposal_draft: string | null;
   proposal_status: string | null;
+  proposal_token: string | null;
+  proposal_sent_at: string | null;
+  proposal_viewed_at: string | null;
+  proposal_approved_at: string | null;
+  proposal_expires_at: string | null;
+  selected_option: string | null;
 };
 
 const stageConfig: Record<string, { color: string; label: string }> = {
