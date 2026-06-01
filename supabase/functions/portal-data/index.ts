@@ -315,7 +315,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes, clientRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
-        supabase.from("bookings").select("id, confirmation_number, status, total_price, gross_sales, supplier_id, suppliers(name, supplier_type)").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
+        supabase.from("bookings").select("id, confirmation_number, status, total_price, gross_sales, supplier_id, client_selection_locked_at, suppliers(name, supplier_type)").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
         supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url").eq("trip_id", tripId),
         supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
@@ -362,6 +362,7 @@ const handler = async (req: Request): Promise<Response> => {
         trip_name: b.suppliers?.name || tripData?.trip_name || "",
         supplier_id: b.supplier_id,
         gross_sales: b.gross_sales,
+        client_selection_locked_at: b.client_selection_locked_at || null,
       }));
 
       const bookingIds = rawBookings.map((b: any) => b.id);
