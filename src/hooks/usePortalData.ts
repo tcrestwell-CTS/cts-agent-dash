@@ -227,3 +227,38 @@ export function useSelectOption() {
     },
   });
 }
+
+export function usePortalLineSelections(tripId: string | undefined) {
+  return useQuery({
+    queryKey: ["portal", "line-selections", tripId],
+    queryFn: () => portalFetch("line-selections", { tripId: tripId! }),
+    enabled: !!tripId && hasAnyAuth(),
+    staleTime: 30_000,
+  });
+}
+
+export function useSaveLineSelections() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tripId: _tripId, bookingId, selections }: {
+      tripId: string;
+      bookingId: string;
+      selections: { marginLineId: string; selected: boolean }[];
+    }) => portalPost("save-line-selections", { bookingId, selections }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["portal", "line-selections", variables.tripId] });
+    },
+  });
+}
+
+export function useApproveLineSelections() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tripId: _tripId, bookingId }: { tripId: string; bookingId: string }) =>
+      portalPost("approve-line-selections", { bookingId }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["portal", "line-selections", variables.tripId] });
+      queryClient.invalidateQueries({ queryKey: ["portal", "trip-detail", variables.tripId] });
+    },
+  });
+}
