@@ -682,18 +682,19 @@ export default function PortalTripDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {depositRequired ? (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
-              <Lock className="h-5 w-5 text-amber-600 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-amber-800">Booking details locked</p>
-                <p className="text-xs text-amber-600 mt-0.5">Pay your deposit to unlock full booking confirmation details.</p>
-              </div>
-            </div>
-          ) : bookings.length === 0 ? (
+          {bookings.length === 0 ? (
             <p className="text-sm text-muted-foreground">No bookings yet.</p>
           ) : (
             <div className="space-y-3">
+              {depositRequired && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                  <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Confirmation details unlock after deposit</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Choose your options below and pay your deposit to unlock full booking confirmations.</p>
+                  </div>
+                </div>
+              )}
               {bookings.map((b: any) => {
                 const typeInfo = bookingTypeIcons[b.booking_type] || bookingTypeIcons.other;
                 const bookingLines = (pricingLines || []).filter((l: any) => l.booking_id === b.id);
