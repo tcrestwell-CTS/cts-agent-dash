@@ -93,7 +93,7 @@ export default function Approvals() {
                         </Badge>
                         <Badge variant={STATUS_VARIANT[a.status] ?? "default"}>{a.status}</Badge>
                         <span className="text-xs text-muted-foreground capitalize">
-                          {a.action_type.replaceAll("_", " ")}
+                          {a.action_type.split("_").join(" ")}
                         </span>
                         {typeof a.confidence === "number" && (
                           <span className="text-xs text-muted-foreground">
