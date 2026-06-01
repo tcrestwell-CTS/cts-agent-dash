@@ -41,6 +41,7 @@ import {
   ShieldCheck,
   Car,
   ShieldPlus,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -82,6 +83,7 @@ interface NavGroup {
 
 const topLevelNav: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: "dashboard" },
+  { name: "Approvals", href: "/approvals", icon: Inbox },
 ];
 
 const navGroups: NavGroup[] = [
