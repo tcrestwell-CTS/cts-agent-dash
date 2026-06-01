@@ -846,6 +846,7 @@ export default function Leads() {
         onClose={() => setSelectedLead(null)}
         onRequalify={requalify}
         onAddToClients={addToClients}
+        onDelete={deleteLead}
         requalifyingId={requalifyingId}
         refetch={refetch}
       />
