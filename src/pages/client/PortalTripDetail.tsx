@@ -204,7 +204,27 @@ export default function PortalTripDetail() {
     (p.payment_type === "deposit" || p.payment_type === "payment") && p.status === "paid"
   );
   const depositRequired = trip.deposit_required && !depositPaid;
-  const totalCost = trip.total_gross_sales || 0;
+  // Compute total based on the client's current selections.
+  // Required lines always count. Optional lines count only if selected
+  // (or when their booking has no saved selections yet — default-on).
+  const selectionsArr: any[] = lineSelectionsData?.selections || [];
+  const selectedMap = new Map<string, boolean>(
+    selectionsArr.map((s: any) => [s.margin_line_id, !!s.selected])
+  );
+  const bookingHasAnySelection = new Set<string>(
+    selectionsArr.map((s: any) => s.booking_id)
+  );
+  const selectedTotal = (pricingLines || []).reduce((sum: number, l: any) => {
+    const lineTotal = Number(l.total_price || 0);
+    if (!l.is_optional) return sum + lineTotal;
+    const explicit = selectedMap.get(l.id);
+    const include = explicit !== undefined
+      ? explicit
+      : !bookingHasAnySelection.has(l.booking_id); // default-on if booking has no saved selections
+    return sum + (include ? lineTotal : 0);
+  }, 0);
+  const fallbackTotal = trip.total_gross_sales || 0;
+  const totalCost = selectedTotal > 0 ? selectedTotal : fallbackTotal;
 
   // Get cancellation terms from bookings for the agreement step
   const cancellationTerms = bookings

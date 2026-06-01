@@ -54,6 +54,7 @@ interface Props {
   onPayDeposit: (payload: { id: string; amount: number; trip_name: string; payment_type: string }) => void;
   disablePay?: boolean;
   pendingDepositPayment?: { id: string; amount: number; payment_type: string } | null;
+  onSelectionChange?: (bookingId: string, picks: Record<string, boolean>) => void;
 }
 
 const fmt = (n: number) =>
@@ -70,6 +71,7 @@ export function BookingOptionsCard({
   onPayDeposit,
   disablePay,
   pendingDepositPayment,
+  onSelectionChange,
 }: Props) {
   const saveMutation = useSaveLineSelections();
   const approveMutation = useApproveLineSelections();
@@ -116,6 +118,7 @@ export function BookingOptionsCard({
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstRender = useRef(true);
   useEffect(() => {
+    onSelectionChange?.(booking.id, picks);
     if (firstRender.current) {
       firstRender.current = false;
       return;

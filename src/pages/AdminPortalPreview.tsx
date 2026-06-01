@@ -333,7 +333,24 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
   if (!data?.trip) return <p className="text-center text-muted-foreground py-12">Trip not found.</p>;
 
   const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], pricingLines = [] } = data;
-  const totalCost = trip.total_gross_sales || 0;
+  const [picksByBooking, setPicksByBooking] = useState<Record<string, Record<string, boolean>>>({});
+  const handleSelectionChange = (bookingId: string, picks: Record<string, boolean>) => {
+    setPicksByBooking((prev) => {
+      const existing = prev[bookingId] || {};
+      const same = Object.keys(picks).length === Object.keys(existing).length &&
+        Object.keys(picks).every((k) => existing[k] === picks[k]);
+      if (same) return prev;
+      return { ...prev, [bookingId]: picks };
+    });
+  };
+  const selectedTotal = (pricingLines || []).reduce((sum: number, l: any) => {
+    const lineTotal = Number(l.total_sell ?? l.total_price ?? 0);
+    if (!l.is_optional) return sum + lineTotal;
+    const picks = picksByBooking[l.booking_id];
+    const include = picks ? !!picks[l.id] : true; // default-on until card mounts
+    return sum + (include ? lineTotal : 0);
+  }, 0);
+  const totalCost = selectedTotal > 0 ? selectedTotal : (trip.total_gross_sales || 0);
 
   const itemsByItinerary = itinerary.reduce((acc: Record<string, any[]>, item: any) => {
     const key = item.itinerary_id || "default";
@@ -452,6 +469,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         onPayDeposit={() => {}}
                         disablePay
                         pendingDepositPayment={null}
+                        onSelectionChange={handleSelectionChange}
                       />
                     );
                   })}
