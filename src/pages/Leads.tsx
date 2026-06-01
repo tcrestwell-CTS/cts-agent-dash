@@ -353,13 +353,70 @@ function LeadProposalSheet({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold">Proposal</h3>
-              {(lead.proposal_status === "sent" || lead.proposal_status === "quote_sent") && (
-                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-[10px]">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Sent
-                </Badge>
-              )}
+              <Badge variant="outline" className={`${proposalStatusColors[propStatus] || proposalStatusColors.draft} text-[10px]`}>
+                {proposalStatusLabel[propStatus] || propStatus}
+              </Badge>
             </div>
+
+            {/* Proposal delivery status + actions */}
+            <Card className="border">
+              <CardContent className="p-3 space-y-3">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {lead.proposal_sent_at && <div>Sent {relTime(lead.proposal_sent_at)}</div>}
+                  {lead.proposal_viewed_at && <div>Viewed {relTime(lead.proposal_viewed_at)}</div>}
+                  {lead.proposal_approved_at && (
+                    <div>
+                      Approved {relTime(lead.proposal_approved_at)}
+                      {lead.selected_option ? ` · Selected: ${lead.selected_option}` : ""}
+                    </div>
+                  )}
+                  {expiresInFuture && (
+                    <div>Pricing held until {format(new Date(lead.proposal_expires_at!), "MMM d, yyyy")}</div>
+                  )}
+                  {!lead.proposal_sent_at && !lead.proposal_viewed_at && !lead.proposal_approved_at && !expiresInFuture && (
+                    <div>Proposal has not been sent yet.</div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {!proposalDecided && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button
+                            size="sm"
+                            disabled={!canSendProposal || sendingProposal}
+                            onClick={handleSendProposal}
+                          >
+                            {sendingProposal ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5 mr-1.5" />
+                            )}
+                            {sendingProposal ? "Sending..." : "Send Proposal"}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {!canSendProposal && (
+                        <TooltipContent>Generate a proposal first</TooltipContent>
+                      )}
+                    </Tooltip>
+                  )}
+
+                  <Button variant="outline" size="sm" onClick={handleCopyQualifyLink}>
+                    <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                    Copy Qualify Link
+                  </Button>
+
+                  {sentLink && (
+                    <Button variant="ghost" size="sm" onClick={handleCopySentLink}>
+                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                      Copy Proposal Link
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {hasProposal ? (
               <Card className="border">
