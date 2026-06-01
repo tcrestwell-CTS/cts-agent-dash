@@ -3576,6 +3576,113 @@ export type Database = {
         }
         Relationships: []
       }
+      inbox_processed_messages: {
+        Row: {
+          classification: string | null
+          error_message: string | null
+          from_email: string | null
+          from_name: string | null
+          id: string
+          linked_booking_id: string | null
+          linked_lead_id: string | null
+          linked_trip_id: string | null
+          processed_at: string
+          proposed_action_id: string | null
+          provider: string
+          provider_message_id: string
+          received_at: string | null
+          subject: string | null
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          classification?: string | null
+          error_message?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          linked_booking_id?: string | null
+          linked_lead_id?: string | null
+          linked_trip_id?: string | null
+          processed_at?: string
+          proposed_action_id?: string | null
+          provider?: string
+          provider_message_id: string
+          received_at?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          classification?: string | null
+          error_message?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          linked_booking_id?: string | null
+          linked_lead_id?: string | null
+          linked_trip_id?: string | null
+          processed_at?: string
+          proposed_action_id?: string | null
+          provider?: string
+          provider_message_id?: string
+          received_at?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_processed_messages_proposed_action_id_fkey"
+            columns: ["proposed_action_id"]
+            isOneToOne: false
+            referencedRelation: "ai_proposed_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbox_watched_mailboxes: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          email_address: string | null
+          id: string
+          is_active: boolean
+          last_history_id: string | null
+          last_synced_at: string | null
+          paused_at: string | null
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          is_active?: boolean
+          last_history_id?: string | null
+          last_synced_at?: string | null
+          paused_at?: string | null
+          provider?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          email_address?: string | null
+          id?: string
+          is_active?: boolean
+          last_history_id?: string | null
+          last_synced_at?: string | null
+          paused_at?: string | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
