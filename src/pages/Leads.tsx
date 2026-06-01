@@ -593,6 +593,19 @@ export default function Leads() {
     }
   };
 
+  const deleteLead = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this lead? This cannot be undone.")) return;
+    try {
+      const { error } = await supabase.from("quote_requests").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Lead deleted");
+      setSelectedLead(null);
+      refetch();
+    } catch {
+      toast.error("Failed to delete lead");
+    }
+  };
+
   const filtered = leads
     .filter((l) => {
       if (stageFilter !== "all") {
