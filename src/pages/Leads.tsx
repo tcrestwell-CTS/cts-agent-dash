@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 // Simple Markdown to HTML converter for proposal preview
 function simpleMarkdownToHtml(md: string): string {
