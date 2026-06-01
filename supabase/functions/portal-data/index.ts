@@ -827,21 +827,57 @@ const handler = async (req: Request): Promise<Response> => {
       // Fetch trip dates/destination if linked
       let tripInfo: any = null;
       let payments: any[] = [];
+      let lineItems: any[] = [];
       if (invoice.trip_id) {
-        const [tripRes, paymentsRes] = await Promise.all([
+        const [tripRes, paymentsRes, bookingsRes] = await Promise.all([
           supabase.from("trips").select("destination, depart_date, return_date").eq("id", invoice.trip_id).single(),
           supabase.from("trip_payments")
             .select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_session_id, stripe_receipt_url")
             .eq("trip_id", invoice.trip_id)
             .order("due_date", { ascending: true, nullsFirst: false }),
+          supabase.from("bookings")
+            .select("id, trip_name, destination, status, confirmation_number, supplier_confirmation_number, booking_reference, gross_sales, total_price, suppliers:supplier_id(name, supplier_type)")
+            .eq("trip_id", invoice.trip_id),
         ]);
         tripInfo = tripRes.data;
         payments = paymentsRes.data || [];
+        const bookings = (bookingsRes.data || []).filter((b: any) => b.status !== "cancelled");
+        const bookingIds = bookings.map((b: any) => b.id);
+        let marginByBooking: Record<string, any[]> = {};
+        if (bookingIds.length > 0) {
+          const { data: marginRows } = await supabase
+            .from("booking_margin_lines")
+            .select("booking_id, description, quantity, unit_sell, total_sell, is_pass_through, sort_order, is_internal")
+            .in("booking_id", bookingIds)
+            .order("sort_order", { ascending: true });
+          (marginRows || []).forEach((row: any) => {
+            if (row.is_internal) return;
+            if (!marginByBooking[row.booking_id]) marginByBooking[row.booking_id] = [];
+            marginByBooking[row.booking_id].push(row);
+          });
+        }
+        lineItems = bookings.map((b: any) => ({
+          description: b.suppliers?.name
+            ? `${b.suppliers.name}${b.destination ? ` — ${b.destination}` : ""}`
+            : b.trip_name || b.destination || "Booking",
+          reference: b.supplier_confirmation_number || b.confirmation_number || b.booking_reference || undefined,
+          supplier: b.suppliers?.supplier_type || undefined,
+          status: b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : undefined,
+          amount: Number(b.gross_sales || b.total_price || 0),
+          subItems: (marginByBooking[b.id] || []).map((l: any) => ({
+            description: l.description || "Item",
+            quantity: Number(l.quantity || 1),
+            unitPrice: Number(l.unit_sell || 0),
+            amount: Number(l.total_sell || 0),
+            isPassThrough: !!l.is_pass_through,
+          })),
+        }));
       }
 
       return new Response(JSON.stringify({
         invoice,
         payments,
+        line_items: lineItems,
         client_email: clientData?.email,
         client_phone: clientData?.phone,
         destination: tripInfo?.destination,
