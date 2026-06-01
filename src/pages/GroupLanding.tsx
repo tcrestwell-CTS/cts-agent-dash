@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import crestwellLogo from "@/assets/CTN-Logo.png";
 import { useParams } from "react-router-dom";
+import DOMPurify from "dompurify";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -359,7 +360,7 @@ export default function GroupLanding() {
             {descriptionHtml ? (
               <div
                 className="text-gray-700 leading-relaxed prose prose-lg max-w-none"
-                dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(descriptionHtml) }}
               />
             ) : descriptionPlain ? (
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
