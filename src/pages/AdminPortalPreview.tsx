@@ -469,6 +469,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         onPayDeposit={() => {}}
                         disablePay
                         pendingDepositPayment={null}
+                        onSelectionChange={handleSelectionChange}
                       />
                     );
                   })}
