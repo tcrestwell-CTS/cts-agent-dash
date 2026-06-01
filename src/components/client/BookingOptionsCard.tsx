@@ -53,6 +53,7 @@ interface Props {
   typeLabel: string;
   onPayDeposit: (payload: { id: string; amount: number; trip_name: string; payment_type: string }) => void;
   disablePay?: boolean;
+  pendingDepositPayment?: { id: string; amount: number; payment_type: string } | null;
 }
 
 const fmt = (n: number) =>
@@ -68,6 +69,7 @@ export function BookingOptionsCard({
   typeLabel,
   onPayDeposit,
   disablePay,
+  pendingDepositPayment,
 }: Props) {
   const saveMutation = useSaveLineSelections();
   const approveMutation = useApproveLineSelections();
@@ -328,20 +330,26 @@ export function BookingOptionsCard({
                     <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                     Locked in{lockedAt ? ` on ${format(lockedAt, "MMM d, yyyy")}` : ""}
                   </p>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      onPayDeposit({
-                        id: booking.id,
-                        amount: depositDue,
-                        trip_name: tripName,
-                        payment_type: "deposit",
-                      })
-                    }
-                    disabled={disablePay || depositDue <= 0}
-                  >
-                    <CreditCard className="h-4 w-4 mr-1" /> Pay Deposit
-                  </Button>
+                  {pendingDepositPayment ? (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        onPayDeposit({
+                          id: pendingDepositPayment.id,
+                          amount: Number(pendingDepositPayment.amount) || depositDue,
+                          trip_name: tripName,
+                          payment_type: pendingDepositPayment.payment_type || "deposit",
+                        })
+                      }
+                      disabled={disablePay}
+                    >
+                      <CreditCard className="h-4 w-4 mr-1" /> Pay Deposit
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Your agent will send a payment link shortly.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-end">
