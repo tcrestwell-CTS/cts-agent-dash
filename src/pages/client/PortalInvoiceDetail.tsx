@@ -57,6 +57,7 @@ export default function PortalInvoiceDetail() {
           agencyAddress: branding?.address || undefined,
           agencyWebsite: branding?.website || undefined,
           agencyLogoUrl: branding?.logo_url || undefined,
+          lineItems: Array.isArray(data.line_items) ? data.line_items : undefined,
         };
 
         // Generate PDF as base64, then create blob URL
