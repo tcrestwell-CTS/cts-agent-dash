@@ -423,29 +423,35 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                 <div className="space-y-3">
                   {bookings.map((b: any) => {
                     const typeInfo = bookingTypeIcons[b.booking_type] || bookingTypeIcons.other;
+                    const bookingLines = (pricingLines || [])
+                      .filter((l: any) => l.booking_id === b.id)
+                      .map((l: any) => ({
+                        id: l.id,
+                        booking_id: l.booking_id,
+                        description: l.description,
+                        line_type: l.line_type,
+                        unit_price: Number(l.unit_sell ?? l.unit_price ?? 0),
+                        quantity: Number(l.quantity ?? 1),
+                        total_price: Number(l.total_sell ?? l.total_price ?? 0),
+                        is_addon: !!(l.is_pass_through || l.line_type === "addon"),
+                        is_optional: !!l.is_optional,
+                        deposit_amount: Number(l.deposit_amount ?? 0),
+                        sort_order: l.sort_order ?? 0,
+                      }));
                     return (
-                      <div key={b.id} className="flex items-start justify-between p-4 rounded-lg border">
-                        <div className="flex gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">
-                            {typeInfo.icon}
-                          </div>
-                          <div>
-                            <p className="font-medium">{b.trip_name || b.destination}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {typeInfo.label} · {b.destination}
-                            </p>
-                            {b.booking_reference && (
-                              <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/80 border">
-                                <Hash className="h-3 w-3 text-muted-foreground" />
-                                <span className="font-mono text-xs font-semibold tracking-wide">{b.booking_reference}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <Badge variant={b.status === "confirmed" ? "default" : "secondary"} className="mb-1">{b.status}</Badge>
-                        </div>
-                      </div>
+                      <BookingOptionsCard
+                        key={b.id}
+                        tripId={tripId}
+                        tripName={trip?.trip_name || ""}
+                        booking={b}
+                        lines={bookingLines}
+                        selections={[]}
+                        typeIcon={typeInfo.icon}
+                        typeLabel={typeInfo.label}
+                        onPayDeposit={() => {}}
+                        disablePay
+                        pendingDepositPayment={null}
+                      />
                     );
                   })}
                 </div>
