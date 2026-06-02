@@ -213,6 +213,7 @@ const App = () => (
                 <Route path="/flights" element={<ProtectedRoute><FeatureRoute feature="flight_search"><FlightSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/flight-monitoring" element={<ProtectedRoute><FeatureRoute feature="flight_monitoring"><FlightMonitoring /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/hotels" element={<ProtectedRoute><FeatureRoute feature="hotel_search"><HotelSearch /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/hotelbeds-coverage" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><HotelbedsCoverage /></AdminRoute></ProtectedRoute>} />
                 <Route path="/cruises" element={<ProtectedRoute><FeatureRoute feature="cruise_search"><CruiseSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/featured-trips" element={<ProtectedRoute><FeatureRoute feature="featured_trips"><FeaturedTrips /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/loan-applications" element={<ProtectedRoute><FeatureRoute feature="loan_applications"><LoanApplications /></FeatureRoute></ProtectedRoute>} />
