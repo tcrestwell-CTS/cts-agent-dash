@@ -144,6 +144,8 @@ Deno.serve(async (req) => {
             checkOut: params.checkOut,
           },
           occupancies: params.occupancies || [{ rooms: 1, adults: 2, children: 0 }],
+          // Cert 2.5 — Source Market tag (ISO country code of selling market)
+          sourceMarket: params.sourceMarket || "US",
         };
 
         if (params.destination) {
@@ -165,10 +167,21 @@ Deno.serve(async (req) => {
 
       // ── Check Rate (pre-booking verification) ────────────────
       case "checkrate": {
-        const body = {
-          rooms: params.rooms.map((r: any) => ({ rateKey: r.rateKey })),
-        };
-        result = await bookingApi("/checkrates", "POST", body);
+        // Cert 2.5 — one rateKey per checkRate request. If multiple are
+        // supplied, fan them out and merge the responses.
+        const keys: string[] = (params.rooms || []).map((r: any) => r.rateKey);
+        if (keys.length <= 1) {
+          result = await bookingApi("/checkrates", "POST", {
+            rooms: keys.map((k) => ({ rateKey: k })),
+          });
+        } else {
+          const responses = await Promise.all(
+            keys.map((k) =>
+              bookingApi("/checkrates", "POST", { rooms: [{ rateKey: k }] }),
+            ),
+          );
+          result = { hotel: responses[0]?.hotel, results: responses };
+        }
         break;
       }
 
@@ -182,9 +195,8 @@ Deno.serve(async (req) => {
         if (params.remark) {
           body.remark = params.remark;
         }
-        if (params.tolerance !== undefined) {
-          body.tolerance = params.tolerance;
-        }
+        // Cert 3.13 — price tolerance (default 2%)
+        body.tolerance = params.tolerance !== undefined ? params.tolerance : 2;
         result = await bookingApi("/bookings", "POST", body);
         break;
       }
