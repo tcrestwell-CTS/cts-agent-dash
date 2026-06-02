@@ -485,6 +485,14 @@ export default function HotelSearch() {
                                       {hotel.currency} {rate.net}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground">net rate</p>
+                                    {rate.rsp && (
+                                      <p className="text-xs font-semibold text-primary mt-1">
+                                        RSP: {hotel.currency} {rate.rsp}
+                                        <span className="text-[10px] text-muted-foreground ml-1">
+                                          (+{rate.rspMarkupPct}%)
+                                        </span>
+                                      </p>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                     <AddToTripSelector
