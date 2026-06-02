@@ -42,6 +42,8 @@ export interface HotelRate {
   rateComments?: string;
   promotions?: { code: string; name: string }[];
   cancellationPolicies?: { amount: string; from: string }[];
+  rsp?: string;
+  rspMarkupPct?: number;
 }
 
 export interface HotelRoom {

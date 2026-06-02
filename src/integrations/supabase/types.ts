@@ -3612,6 +3612,129 @@ export type Database = {
           },
         ]
       }
+      hotelbeds_hotels: {
+        Row: {
+          accommodation_type_code: string | null
+          address: string | null
+          category_code: string | null
+          category_name: string | null
+          chain_code: string | null
+          city: string | null
+          code: number
+          country_code: string | null
+          created_at: string
+          description: string | null
+          destination_code: string | null
+          destination_name: string | null
+          email: string | null
+          facilities: Json | null
+          images: Json | null
+          last_synced_at: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          phones: Json | null
+          postal_code: string | null
+          raw: Json | null
+          state_code: string | null
+          updated_at: string
+          web: string | null
+          zone_code: string | null
+        }
+        Insert: {
+          accommodation_type_code?: string | null
+          address?: string | null
+          category_code?: string | null
+          category_name?: string | null
+          chain_code?: string | null
+          city?: string | null
+          code: number
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          destination_code?: string | null
+          destination_name?: string | null
+          email?: string | null
+          facilities?: Json | null
+          images?: Json | null
+          last_synced_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          phones?: Json | null
+          postal_code?: string | null
+          raw?: Json | null
+          state_code?: string | null
+          updated_at?: string
+          web?: string | null
+          zone_code?: string | null
+        }
+        Update: {
+          accommodation_type_code?: string | null
+          address?: string | null
+          category_code?: string | null
+          category_name?: string | null
+          chain_code?: string | null
+          city?: string | null
+          code?: number
+          country_code?: string | null
+          created_at?: string
+          description?: string | null
+          destination_code?: string | null
+          destination_name?: string | null
+          email?: string | null
+          facilities?: Json | null
+          images?: Json | null
+          last_synced_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          phones?: Json | null
+          postal_code?: string | null
+          raw?: Json | null
+          state_code?: string | null
+          updated_at?: string
+          web?: string | null
+          zone_code?: string | null
+        }
+        Relationships: []
+      }
+      hotelbeds_sync_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          hotels_processed: number
+          hotels_upserted: number
+          id: string
+          pages_fetched: number
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          hotels_processed?: number
+          hotels_upserted?: number
+          id?: string
+          pages_fetched?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          hotels_processed?: number
+          hotels_upserted?: number
+          id?: string
+          pages_fetched?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       import_logs: {
         Row: {
           completed_at: string | null
@@ -8955,6 +9078,8 @@ export type Database = {
       is_recon_admin: { Args: never; Returns: boolean }
       mark_proposal_viewed: { Args: { p_token: string }; Returns: undefined }
       reveal_cw_agent_secret: { Args: never; Returns: string }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       submit_qualify: {
         Args: { p_answers: Json; p_token: string }
         Returns: string

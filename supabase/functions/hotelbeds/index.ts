@@ -32,6 +32,27 @@ async function generateSignature(apiKey: string, secret: string): Promise<string
 const MTLS_PROXY_URL = Deno.env.get("HOTELBEDS_MTLS_PROXY_URL"); // e.g. https://hotelbeds-mtls-proxy.your-domain.workers.dev
 const MTLS_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN");
 
+// Cert 3.x — Recommended Selling Price markup (B2C resale)
+const RSP_MARKUP_PCT = parseFloat(Deno.env.get("HOTELBEDS_RSP_MARKUP_PCT") || "18");
+
+function decorateRsp(result: any) {
+  const hotels = result?.hotels?.hotels;
+  if (!Array.isArray(hotels)) return result;
+  const factor = 1 + RSP_MARKUP_PCT / 100;
+  for (const h of hotels) {
+    for (const room of h?.rooms || []) {
+      for (const rate of room?.rates || []) {
+        const net = parseFloat(rate?.net ?? "0");
+        if (net > 0) {
+          rate.rsp = (net * factor).toFixed(2);
+          rate.rspMarkupPct = RSP_MARKUP_PCT;
+        }
+      }
+    }
+  }
+  return result;
+}
+
 async function hbFetch(basePath: string, path: string, method: string, body?: any) {
   const apiKey = Deno.env.get("HOTELBEDS_API_KEY");
   const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET");
@@ -162,6 +183,7 @@ Deno.serve(async (req) => {
         }
 
         result = await bookingApi("/hotels", "POST", body);
+        decorateRsp(result);
         break;
       }
 
