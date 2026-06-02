@@ -83,6 +83,7 @@ const ReconApprovals  = lazy(() => import("./pages/ReconApprovals"));
 const ReconPayouts    = lazy(() => import("./pages/ReconPayouts"));
 const ReconSettings   = lazy(() => import("./pages/ReconSettings"));
 const ReconStripe     = lazy(() => import("./pages/ReconStripe"));
+const HotelbedsCoverage = lazy(() => import("./pages/HotelbedsCoverage"));
 const Excursions         = lazy(() => import("./pages/Excursions"));
 const TaskMonitor        = lazy(() => import("./pages/TaskMonitor"));
 const TernImport         = lazy(() => import("./pages/TernImport"));
