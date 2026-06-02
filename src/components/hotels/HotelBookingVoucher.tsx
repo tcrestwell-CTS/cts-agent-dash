@@ -8,13 +8,29 @@ import type { HotelBookingResult } from "@/hooks/useHotelSearch";
 
 interface HotelBookingVoucherProps {
   booking: NonNullable<HotelBookingResult["booking"]>;
+  hotelDetails?: {
+    address?: { content?: string; street?: string; number?: string };
+    phones?: { phoneNumber?: string; phoneType?: string }[];
+    postalCode?: string;
+    city?: { content?: string };
+  } | null;
   agencyName?: string;
   onClose?: () => void;
 }
 
-export function HotelBookingVoucher({ booking, agencyName = "Crestwell Travel Services", onClose }: HotelBookingVoucherProps) {
+export function HotelBookingVoucher({ booking, hotelDetails, agencyName = "Crestwell Travel Services", onClose }: HotelBookingVoucherProps) {
   const hotel = booking.hotel;
   const supplier = hotel?.supplier;
+
+  const fullAddress = [
+    hotelDetails?.address?.content || hotelDetails?.address?.street,
+    hotelDetails?.city?.content,
+    hotelDetails?.postalCode,
+    hotel?.destinationName,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const phoneNumber = hotelDetails?.phones?.find((p) => p.phoneNumber)?.phoneNumber;
 
   const handlePrint = () => {
     window.print();
@@ -91,10 +107,16 @@ export function HotelBookingVoucher({ booking, agencyName = "Crestwell Travel Se
               {hotel.categoryName && (
                 <p className="text-sm text-muted-foreground">Category: {hotel.categoryName}</p>
               )}
-              {hotel.destinationName && (
+              {fullAddress && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  {hotel.destinationName}
+                  {fullAddress}
+                </p>
+              )}
+              {phoneNumber && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Phone className="h-3.5 w-3.5" />
+                  {phoneNumber}
                 </p>
               )}
             </div>
