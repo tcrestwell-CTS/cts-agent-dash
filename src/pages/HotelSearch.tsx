@@ -54,6 +54,7 @@ export default function HotelSearch() {
     confirmBooking,
     booking,
     lastBookingResult,
+    getHotelDetails,
   } = useHotelSearch();
   const { user } = useAuth();
 
@@ -80,6 +81,7 @@ export default function HotelSearch() {
 
   // Voucher dialog
   const [voucherOpen, setVoucherOpen] = useState(false);
+  const [voucherHotelDetails, setVoucherHotelDetails] = useState<any | null>(null);
 
   // Expanded hotels
   const [expandedHotels, setExpandedHotels] = useState<Set<number>>(new Set());
@@ -144,6 +146,15 @@ export default function HotelSearch() {
     });
 
     if (result && user) {
+      // Cert 4.2 — fetch full hotel address & phone for the voucher
+      try {
+        const details = await getHotelDetails(selectedRate.hotel.code);
+        setVoucherHotelDetails(details?.hotels?.[0] || null);
+      } catch (e) {
+        console.warn("[HotelSearch] hotel details fetch failed:", e);
+        setVoucherHotelDetails(null);
+      }
+
       // Phase 4: Persist Hotelbeds booking to bookings table + auto-create margin line
       const bk = result?.booking;
       const ref = bk?.reference || bk?.clientReference || `HB-${Date.now()}`;
@@ -426,6 +437,15 @@ export default function HotelSearch() {
                                         Package only
                                       </Badge>
                                     )}
+                                    {/* Exclusive Deal — certification 2.6 */}
+                                    {(rate.rateClass === "NRF" ||
+                                      rate.promotions?.some((p) =>
+                                        /exclus|deal/i.test(p.name),
+                                      )) && (
+                                      <Badge className="text-xs bg-amber-500/90 hover:bg-amber-500 text-white">
+                                        Exclusive Deal
+                                      </Badge>
+                                    )}
                                   </div>
                                   {/* Promotions — certification 2.7 */}
                                   {rate.promotions && rate.promotions.length > 0 && (
@@ -630,12 +650,14 @@ export default function HotelSearch() {
             {lastBookingResult?.booking && (
               <HotelBookingVoucher
                 booking={lastBookingResult.booking}
+                hotelDetails={voucherHotelDetails}
                 onClose={() => {
                   setVoucherOpen(false);
                   setSelectedRate(null);
                   setHolderName("");
                   setHolderSurname("");
                   setRemark("");
+                  setVoucherHotelDetails(null);
                 }}
               />
             )}
