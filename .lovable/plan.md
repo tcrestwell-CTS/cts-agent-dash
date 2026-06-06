@@ -1,112 +1,92 @@
-## Goal
-In the client portal, let the client check/uncheck **optional line items** inside a booking, see the running total update, then **approve their selection** to lock it in and unlock **Pay Deposit** for the selected amount.
+## TxtYa Travels Integration
 
-This piggybacks on what already exists:
-- `booking_margin_lines.is_optional` (agents already flag lines as optional in `MarginLinesEditor`)
-- `portal-data` already returns `is_optional` per pricing line
-- Existing Pay Now / deposit / agreement flow on `PortalTripDetail`
+TxtYa exposes a single inbound endpoint that **upserts a Trip + Traveler in one call**, which maps perfectly to our group/sub-trip model:
 
-## UX flow (Portal → Trip → Bookings card)
+- Parent group trip → TxtYa **Trip** (keyed by `bookingRef`)
+- Each sub-trip's client (and companion) → TxtYa **Traveler** (auto-joins the Trip's "All Travelers" group → enables SMS/email blasts)
 
-Per booking, optional lines render with a checkbox; required lines stay as-is.
+New travelers are automatically added to the trip's group on TxtYa's side, so we just need to fire one POST per signup.
 
-```text
-Booking: Royal Caribbean Cruise               [Pending your selection]
-─────────────────────────────────────────────
-  Package                          $4,200    (required)
-  Optional add-ons — pick what you want:
-  [x] Beverage Package             $  480
-  [ ] Specialty Dining 3-night     $  220
-  [x] Shore excursion: Cozumel     $  165
-─────────────────────────────────────────────
-  Your selected total: $4,845
-  Deposit due now:     $  500
+---
 
-  [ Approve Selection ]   ← primary
-```
+### What gets built
 
-After **Approve Selection**:
-- Selection is locked (checkboxes disabled, "Locked in on Jun 1, 2026" badge).
-- A "Pay Deposit" button appears for that booking using the existing payment-agreement → Stripe/Affirm flow already on this page.
-- Agent gets a notification with the chosen lines.
-- Client can request changes via the existing "Request Changes" dialog to reopen.
+**1. Secret + config**
+- Store `TXTYA_API_KEY` (bearer token from TxtYa Settings → Integrations) via the secrets tool.
+- Add a per-agency toggle `txtya_sync_enabled` on `branding_settings` (or `profiles`) so each agency can opt-in.
 
-Booking total/badge in the existing "Bookings" card updates to reflect selected total.
+**2. Edge function: `txtya-sync`**
+- Inputs: `{ trip_id, traveler_client_id?, include_companion? }`.
+- Loads parent group trip (resolves `parent_trip_id` if a sub-trip is passed) → builds `trip` payload using `trip.id` as `bookingRef`.
+- Loads client (and optionally companion from `client_companions`) → builds `traveler` payload.
+- POSTs to `https://travels.txtya.com/api/integrations/bookings` with `Authorization: Bearer ${TXTYA_API_KEY}`.
+- Stores `txtya_trip_id` / `txtya_traveler_id` from response on `trips` / `clients` for idempotency + future updates.
+- Logs every call to a new `txtya_sync_log` table (request, response, status) for debugging.
 
-## Technical plan
+**3. Automatic triggers**
+- **Public group signup** (`supabase/functions/group-signup/index.ts`): after the sub-trip + companion are inserted, invoke `txtya-sync` for the new client (and companion if 2 travelers). Non-blocking — log errors but never fail the signup.
+- **Manual sub-trip creation** (`AddTripDialog` when a sub-trip is created under a group parent): after insert, invoke `txtya-sync` from the client.
+- **Group trip created** (parent): first sub-trip sync auto-creates the Trip on TxtYa, so no extra call needed. (Optional: a "Sync to TxtYa now" button on the group trip page.)
 
-### 1. Database
-New migration adding a per-line client selection table (re-uses the `client_option_selections` pattern):
+**4. UI**
+- On the group trip detail page, add a small "TxtYa" status card showing:
+  - Sync enabled/disabled
+  - Linked TxtYa Trip ID (if any)
+  - "Resync all travelers" button (loops sub-trips → invokes edge function)
+  - Last sync timestamp + error count (from `txtya_sync_log`)
 
+**5. Database migration**
 ```sql
-CREATE TABLE public.client_line_selections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  trip_id uuid NOT NULL REFERENCES public.trips(id) ON DELETE CASCADE,
-  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
-  margin_line_id uuid NOT NULL REFERENCES public.booking_margin_lines(id) ON DELETE CASCADE,
-  client_id uuid REFERENCES public.clients(id) ON DELETE SET NULL,
-  selected boolean NOT NULL DEFAULT true,
-  locked_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (booking_id, margin_line_id)
+ALTER TABLE trips    ADD COLUMN txtya_trip_id     text;
+ALTER TABLE clients  ADD COLUMN txtya_traveler_id text;
+
+CREATE TABLE public.txtya_sync_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  trip_id uuid,
+  client_id uuid,
+  direction text not null default 'outbound',
+  status int,
+  request_body jsonb,
+  response_body jsonb,
+  error text,
+  created_at timestamptz not null default now()
 );
+-- + GRANTs (authenticated select own rows; service_role all) + RLS policies.
 ```
 
-Plus `GRANT`s (authenticated + service_role; no anon — portal writes go through edge function with service role), RLS that mirrors `client_option_selections` (agent who owns the trip + admins can read/write; portal edge function uses service role).
+---
 
-Also a small lock flag on `bookings`:
-```sql
-ALTER TABLE public.bookings
-  ADD COLUMN client_selection_locked_at timestamptz;
-```
-When non-null, the portal treats the booking as approved/locked.
+### Payload mapping
 
-No changes to `booking_margin_lines` schema — `is_optional` already exists.
+| TxtYa field           | Source                                         |
+|-----------------------|------------------------------------------------|
+| `trip.bookingRef`     | parent `trips.id`                              |
+| `trip.name`           | parent `trips.trip_name`                       |
+| `trip.destination`    | `trips.destination`                            |
+| `trip.departureDate`  | `trips.depart_date`                            |
+| `trip.returnDate`     | `trips.return_date`                            |
+| `trip.maxTravelers`   | sum of cabin capacities (if available)         |
+| `traveler.displayName`| `clients.name`                                 |
+| `traveler.firstName`  | `clients.first_name`                           |
+| `traveler.lastName`   | `clients.last_name`                            |
+| `traveler.email`      | `clients.email`                                |
+| `traveler.phoneNumber`| `clients.phone` (E.164 normalized)             |
+| `traveler.preferredChannel` | `'sms'` if phone, else `'email'`         |
+| `traveler.bookingRef` | sub-trip `trips.id`                            |
+| `traveler.notes`      | cabin category + traveler count                |
 
-### 2. Edge function: `supabase/functions/portal-data/index.ts`
-Add three resources (auth via existing `x-portal-token` portal session, validated like other portal routes):
+---
 
-- `GET ?resource=line-selections&tripId=…` → return rows from `client_line_selections` for the trip.
-- `POST ?resource=save-line-selections` body `{ bookingId, selections: [{ marginLineId, selected }] }` → upsert; reject if `bookings.client_selection_locked_at` is set.
-- `POST ?resource=approve-line-selections` body `{ bookingId }` → set `client_line_selections.locked_at = now()` for all rows of that booking, set `bookings.client_selection_locked_at = now()`, and insert an `agent_notifications` row of type `client_selection_approved` for the booking's owning agent (message lists which optional lines were chosen and the new selected total).
+### Out of scope (can be follow-ups)
+- Outbound webhook receiver (TxtYa → CRM) to push `message.sent`, `traveler.updated` back into the CRM activity feed.
+- Auto-removal of travelers when a sub-trip is cancelled/archived.
+- Per-trip override of the agency-level toggle.
 
-Existing pricing-lines block already returns `is_optional`; extend it to also include `deposit_amount` per line (already in select) so the portal can compute deposit due for the chosen set.
+---
 
-### 3. Hooks: `src/hooks/usePortalData.ts`
-Add:
-- `usePortalLineSelections(tripId)` — fetches saved selections.
-- `useSaveLineSelections()` — mutation, invalidates trip detail + selections.
-- `useApproveLineSelections()` — mutation, invalidates trip detail.
+### Questions before I build
 
-### 4. UI: `src/pages/client/PortalTripDetail.tsx` (Bookings card only)
-Refactor the inline bookings list (lines ~693-758) into a small `BookingOptionsCard` component in `src/components/client/` that:
-- Splits `bookingLines` into required vs optional.
-- Renders optional ones with `Checkbox` (semantic tokens, no raw colors).
-- Maintains local `Record<lineId, boolean>` initialised from `usePortalLineSelections`; debounced auto-save via `useSaveLineSelections`.
-- Shows live "Selected total" and "Deposit due now" (sum of `deposit_amount` for required + checked optional lines, falling back to a trip-level deposit policy if zero).
-- If `client_selection_locked_at` is set: disable checkboxes, show "Locked" badge with timestamp, and render a "Pay Deposit" button that calls the existing `handlePayNowClick({ id, amount: depositDue, payment_type: 'deposit', trip_name, … })` flow already on this page.
-- If not locked: show "Approve Selection" button that calls `useApproveLineSelections` then surfaces the Pay Deposit button.
-- Bookings with **no** optional lines render exactly as today (no behaviour change).
-
-Deposit gating in the existing "Payments" card stays unchanged; the new Pay Deposit button is an additional in-line shortcut targeting the same existing payment edge function.
-
-### 5. Agent-side surfacing (small)
-- `useAgentNotifications` already renders `agent_notifications` rows; the new `client_selection_approved` type just shows up with its message — no extra UI change needed.
-- Optional polish (skipping unless asked): a "Client locked selection" badge on the booking row inside the agent's `BookingDetail` page.
-
-## Out of scope
-- No changes to `booking_margin_lines` schema or `calculate_booking_margin` RPC. The client's selection is a portal-level preference; it doesn't rewrite the booking's authoritative margin lines. The agent decides whether to remove unchosen optional lines from the booking afterwards.
-- No new payment method, no Stripe/Affirm changes — re-uses the existing deposit Pay Now flow.
-- Itinerary option blocks (`client_option_selections`) are untouched.
-
-## Files
-
-**New**
-- `supabase/migrations/<ts>_client_line_selections.sql`
-- `src/components/client/BookingOptionsCard.tsx`
-
-**Edited**
-- `supabase/functions/portal-data/index.ts` (3 new resources)
-- `src/hooks/usePortalData.ts` (3 new hooks)
-- `src/pages/client/PortalTripDetail.tsx` (replace inline bookings list with `BookingOptionsCard`)
+1. **API key**: do you already have a `btk_…` token from TxtYa Settings → Integrations, or do you need to mint one first?
+2. **Companion travelers**: should the 2nd traveler on a sub-trip (the `client_companions` row) also be pushed to TxtYa, or just the primary client?
+3. **Scope**: enable for all agencies in your CRM, or gate behind the per-agency toggle (default off)?
