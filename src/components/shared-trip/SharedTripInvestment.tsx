@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine, Loader2, Lock, Wallet } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, CreditCard, Shield, ArrowUpRight, PenLine, Loader2, Lock, Zap } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,6 +32,122 @@ interface SharedTripInvestmentProps {
   shareToken?: string;
   /** Called after the customer successfully accepts terms and enters payment flow */
   onTermsAccepted?: () => void;
+  /** Booking types derived from actual bookings — used to build the dynamic inclusions list */
+  bookingSupplierTypes?: string[];
+  /** Stripe publishable key for self-serve payment */
+  stripePublishableKey?: string;
+}
+
+// ─── Stripe self-serve payment button ─────────────────────────────────────────────────
+function PayWithStripeButton({
+  shareToken,
+  amount,
+  primaryColor,
+  stripePublishableKey,
+}: {
+  shareToken: string;
+  amount: number;
+  primaryColor: string;
+  stripePublishableKey: string;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const formatCurrency = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+
+  const handlePay = async () => {
+    setLoading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/create-proposal-checkout`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: shareToken,
+            amount,
+            success_url: `${window.location.href}?paid=1`,
+            cancel_url: window.location.href,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.session_id) {
+        throw new Error(data.error || "Checkout failed");
+      }
+      const stripe = await loadStripe(stripePublishableKey);
+      if (stripe) {
+        await stripe.redirectToCheckout({ sessionId: data.session_id });
+      }
+    } catch (err: any) {
+      console.error("Stripe checkout error:", err);
+      // Toast is imported via sonner but not directly accessible here — log only
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handlePay}
+      disabled={loading}
+      className="w-full flex items-start gap-4 p-4 rounded-lg border-2 hover:bg-gray-50 transition-all text-left disabled:opacity-50"
+      style={{ borderColor: primaryColor }}
+    >
+      <div
+        className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+        style={{ backgroundColor: `${primaryColor}15` }}
+      >
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" style={{ color: primaryColor }} />
+        ) : (
+          <Zap className="h-5 w-5" style={{ color: primaryColor }} />
+        )}
+      </div>
+      <div>
+        <p className="font-semibold text-gray-900">
+          {loading ? "Redirecting to checkout..." : `Pay ${formatCurrency(amount)} Online`}
+        </p>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Secure card payment powered by Stripe — pay now and you're confirmed instantly.
+        </p>
+      </div>
+    </button>
+  );
+}
+
+// ─── Map supplier types to human-readable inclusion labels
+function buildInclusionsList(supplierTypes: string[]): string[] {
+  const types = supplierTypes.map(t => t.toLowerCase());
+  const inclusions: string[] = [];
+
+  if (types.some(t => ["hotel", "lodge", "resort", "accommodation", "lodging", "villa"].some(k => t.includes(k))))
+    inclusions.push("All accommodations as outlined");
+  if (types.some(t => ["cruise", "cruise line"].some(k => t.includes(k))))
+    inclusions.push("Cruise stateroom & on-board amenities");
+  if (types.some(t => ["transportation", "transfer", "car rental", "rail", "train", "shuttle"].some(k => t.includes(k))))
+    inclusions.push("Transfers & ground transportation");
+  if (types.some(t => ["tour", "activity", "excursion", "experience", "sightseeing"].some(k => t.includes(k))))
+    inclusions.push("Activities & experiences listed");
+  if (types.some(t => ["dining", "restaurant", "meal"].some(k => t.includes(k))))
+    inclusions.push("Meals as specified in itinerary");
+  if (types.some(t => ["airline", "flight", "air"].some(k => t.includes(k))))
+    inclusions.push("Flights as listed");
+
+  // Always include advisor support
+  inclusions.push("Dedicated travel advisor support");
+
+  // Fallback if no types matched
+  if (inclusions.length === 1) {
+    inclusions.unshift(
+      "All accommodations as outlined",
+      "Transfers & transportation",
+      "Activities & experiences listed"
+    );
+  }
+
+  return inclusions;
 }
 
 export default function SharedTripInvestment({
@@ -42,6 +159,8 @@ export default function SharedTripInvestment({
   upgradeNotes,
   shareToken,
   onTermsAccepted,
+  bookingSupplierTypes = [],
+  stripePublishableKey,
 }: SharedTripInvestmentProps) {
   const totalCost = trip.total_cost || 0;
   const depositAmount = deposit.required ? deposit.amount : 0;
@@ -204,12 +323,12 @@ export default function SharedTripInvestment({
         </div>
       </div>
 
-      {/* What's Included */}
+      {/* What's Included — dynamically derived from booking supplier types */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">What's Included</h3>
           <ul className="space-y-2">
-            {["All accommodations as outlined", "Transfers & transportation", "Activities & experiences listed", "Travel advisor support"].map((item) => (
+            {buildInclusionsList(bookingSupplierTypes).map((item) => (
               <li key={item} className="flex items-start gap-2 text-sm text-gray-600">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: primaryColor }} />
                 {item}
@@ -374,7 +493,18 @@ export default function SharedTripInvestment({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
-            {/* Send Card Info to Agent */}
+
+            {/* ── Option 1: Pay now via Stripe (self-serve) ────────────── */}
+            {stripePublishableKey && shareToken && (
+              <PayWithStripeButton
+                shareToken={shareToken}
+                amount={paymentAmount}
+                primaryColor={primaryColor}
+                stripePublishableKey={stripePublishableKey}
+              />
+            )}
+
+            {/* ── Option 2: Send card info to agent ──────────────── */}
             <button
               onClick={handleCCToAgent}
               disabled={ccLoading}
@@ -388,8 +518,8 @@ export default function SharedTripInvestment({
                 )}
               </div>
               <div>
-                <p className="font-semibold text-gray-900">Send Card Info to Agent</p>
-                <p className="text-sm text-gray-500 mt-0.5">Securely authorize your credit card and let your advisor process the payment.</p>
+                <p className="font-semibold text-gray-900">Authorize via My Agent</p>
+                <p className="text-sm text-gray-500 mt-0.5">Securely share your card details and let your advisor process payment on your behalf.</p>
               </div>
             </button>
 
@@ -402,3 +532,4 @@ export default function SharedTripInvestment({
     </div>
   );
 }
+

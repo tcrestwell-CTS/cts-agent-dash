@@ -1,4 +1,5 @@
-import { Mail, Phone, Globe } from "lucide-react";
+import { useState } from "react";
+import { Mail, Phone, Globe, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SharedTripHeroProps {
   branding: {
@@ -22,6 +23,47 @@ interface SharedTripHeroProps {
     embarc_number: string | null;
   } | null;
   primaryColor: string;
+}
+
+function CertificationsDisclosure({
+  certifications,
+}: {
+  certifications: { label: string; value: string | null | undefined }[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="mb-3">
+      {/* Always expanded on md+, toggle on mobile */}
+      <div className="hidden md:block space-y-0.5 text-sm text-gray-700">
+        {certifications.map(c => (
+          <p key={c.label}>
+            <span className="font-medium">{c.label}:</span> {c.value}
+          </p>
+        ))}
+      </div>
+
+      <div className="md:hidden">
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 py-0.5"
+        >
+          {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {open ? "Hide credentials" : "View credentials"}
+        </button>
+        {open && (
+          <div className="mt-1 space-y-0.5 text-sm text-gray-700">
+            {certifications.map(c => (
+              <p key={c.label}>
+                <span className="font-medium">{c.label}:</span> {c.value}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function SharedTripHero({ branding, advisor, primaryColor }: SharedTripHeroProps) {
@@ -87,15 +129,9 @@ export default function SharedTripHero({ branding, advisor, primaryColor }: Shar
               </div>
             </div>
 
-            {/* Certification numbers */}
+            {/* Certification numbers — collapsible on mobile to keep card compact */}
             {certifications.length > 0 && (
-              <div className="mb-3 space-y-0.5 text-sm text-gray-700">
-                {certifications.map(c => (
-                  <p key={c.label}>
-                    <span className="font-medium">{c.label}:</span> {c.value}
-                  </p>
-                ))}
-              </div>
+              <CertificationsDisclosure certifications={certifications} />
             )}
 
             <div className="border-t border-gray-100 pt-3 space-y-1.5 text-sm">
@@ -121,3 +157,4 @@ export default function SharedTripHero({ branding, advisor, primaryColor }: Shar
     </div>
   );
 }
+

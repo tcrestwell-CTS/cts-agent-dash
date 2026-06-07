@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Globe, Loader2, Copy, Check, Eye } from "lucide-react";
+import { Globe, Loader2, Copy, Check, Eye, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -21,6 +21,11 @@ interface PublishTripButtonProps {
   publishedAt: string | null;
   updatedAt: string;
   onPublished: () => void;
+  /** Readiness signals passed in from the trip detail page */
+  coverImageUrl?: string | null;
+  totalCost?: number | null;
+  hasItineraryItems?: boolean;
+  clientId?: string | null;
 }
 
 export function PublishTripButton({
@@ -29,7 +34,37 @@ export function PublishTripButton({
   publishedAt,
   updatedAt,
   onPublished,
+  coverImageUrl,
+  totalCost,
+  hasItineraryItems,
+  clientId,
 }: PublishTripButtonProps) {
+  // Readiness checklist items — evaluated before allowing publish
+  const readinessChecks = [
+    {
+      label: "Cover image set",
+      detail: "Add a cover photo so clients see a destination image at the top of their proposal",
+      passed: !!coverImageUrl,
+    },
+    {
+      label: "Total cost entered",
+      detail: "Set a trip total so clients can see the investment amount",
+      passed: !!totalCost && totalCost > 0,
+    },
+    {
+      label: "Itinerary has items",
+      detail: "Add at least one itinerary item so clients see their day-by-day plan",
+      passed: !!hasItineraryItems,
+    },
+    {
+      label: "Client linked",
+      detail: "Link a client contact so the proposal is personalised",
+      passed: !!clientId,
+    },
+  ];
+  const passedCount = readinessChecks.filter(c => c.passed).length;
+  const allPassed = passedCount === readinessChecks.length;
+  const blockers = readinessChecks.filter(c => !c.passed);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -175,9 +210,42 @@ export function PublishTripButton({
                   ? hasUnpublishedChanges
                     ? "Changes have been made since last publish. Publish again to update the public page."
                     : "Your trip page is live and up to date."
-                  : "Publish this trip to create a shareable public itinerary page."}
+                  : "Publish this trip to create a shareable client proposal page."}
               </p>
             </div>
+
+            {/* ── Readiness checklist ────────────────────────────── */}
+            <div className="rounded-lg border bg-muted/30 px-3 py-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Readiness</p>
+                <span className={`text-[11px] font-bold ${
+                  allPassed ? "text-emerald-600" : passedCount >= 2 ? "text-amber-600" : "text-red-500"
+                }`}>
+                  {passedCount}/{readinessChecks.length}
+                </span>
+              </div>
+              {readinessChecks.map((check) => (
+                <div key={check.label} className="flex items-start gap-2">
+                  {check.passed
+                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                    : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
+                  }
+                  <span className={`text-xs leading-tight ${
+                    check.passed ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {check.passed ? check.label : check.detail}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Blocker warning if critical items missing */}
+            {!allPassed && !publishedAt && blockers.length > 0 && (
+              <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2.5 py-2">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+                <span>You can still publish, but completing the checklist gives clients a better experience.</span>
+              </div>
+            )}
 
             {hasUnpublishedChanges && publishedAt && (
               <div className="flex items-center gap-2 text-xs text-orange-600 bg-orange-50 rounded px-2 py-1.5">
@@ -220,3 +288,4 @@ export function PublishTripButton({
     </div>
   );
 }
+

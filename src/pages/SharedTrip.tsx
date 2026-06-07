@@ -811,6 +811,10 @@ export default function SharedTrip() {
                 upgradeNotes={(data as any).upgrade_notes}
                 shareToken={token || undefined}
                 onTermsAccepted={handleTermsAccepted}
+                bookingSupplierTypes={
+                  (data.bookings || []).map((b: any) => b.supplier_type).filter(Boolean)
+                }
+                stripePublishableKey={import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}
               />
             </div>
           </div>
