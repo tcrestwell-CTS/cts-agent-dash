@@ -11,34 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, MapPin, MessageSquare, ArrowUpDown, UserPlus, Loader2, CheckCircle, Info, Send, Copy, Link2, Trash2, PenLine, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 
-// Simple Markdown to HTML converter for proposal preview
-function simpleMarkdownToHtml(md: string): string {
-  return md
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-    .replace(/^\|(.+)\|$/gm, (_, row) => {
-      const cells = row.split('|').map((c: string) => `<td>${c.trim()}</td>`).join('');
-      return `<tr>${cells}</tr>`;
-    })
-    .replace(/(<tr>.*<\/tr>\n?)+/g, (m) => `<table class="border-collapse w-full">${m}</table>`)
-    .replace(/\|[-:]+\|/g, '')
-    .replace(/^---$/gm, '<hr>')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/^(.+)/, '<p>$1')
-    .replace(/(.+)$/, '$1</p>');
-}
-
+// ─── Types ────────────────────────────────────────────────────────────────────
 type QuoteRequest = {
   id: string;
   first_name: string;
@@ -71,6 +58,222 @@ type QuoteRequest = {
   proposal_expires_at: string | null;
   selected_option: string | null;
 };
+
+// ─── Proposal Review Gate ────────────────────────────────────────────────────
+// Forces the agent to read and optionally edit the AI draft before Send unlocks.
+function ProposalReviewDialog({
+  open,
+  onOpenChange,
+  lead,
+  onSent,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  lead: QuoteRequest;
+  onSent: (link: string | null) => void;
+}) {
+  const [draft, setDraft] = useState(lead.proposal_draft || "");
+  const [hasEdited, setHasEdited] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  // Reset state each time the dialog opens for a (potentially different) lead
+  const handleOpenChange = (v: boolean) => {
+    if (v) {
+      setDraft(lead.proposal_draft || "");
+      setHasEdited(false);
+      setConfirmed(false);
+    }
+    onOpenChange(v);
+  };
+
+  const canSend = hasEdited || confirmed;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("quote_requests")
+        .update({ proposal_draft: draft })
+        .eq("id", lead.id);
+      if (error) throw error;
+      toast.success("Draft saved");
+    } catch {
+      toast.error("Failed to save draft");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      // Save latest edits first so send-proposal uses the updated draft
+      if (hasEdited) {
+        const { error } = await supabase
+          .from("quote_requests")
+          .update({ proposal_draft: draft })
+          .eq("id", lead.id);
+        if (error) throw error;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        toast.error("You're signed out — please log in again.");
+        return;
+      }
+
+      const res = await fetch(
+        "https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/send-proposal",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ lead_id: lead.id }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+
+      if (res.ok && json.ok) {
+        toast.success("Proposal sent");
+        onSent(json.link || null);
+        onOpenChange(false);
+      } else {
+        const err = json?.error;
+        if (err === "no_draft") toast.error("No draft to send.");
+        else if (err === "no_email") toast.error("This lead has no email address.");
+        else if (err === "already_decided") toast.error(`Proposal was already ${json.proposal_status || "decided"}.`);
+        else if (err === "email_failed") toast.error("Email failed — check the sender address.");
+        else toast.error("Couldn't send — please try again.");
+      }
+    } catch {
+      toast.error("Couldn't send — please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const wordCount = draft.trim().split(/\s+/).filter(Boolean).length;
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <PenLine className="h-5 w-5 text-primary" />
+            Review Proposal Before Sending
+          </DialogTitle>
+          <DialogDescription>
+            Read the AI-generated draft below. Edit anything that needs adjusting, then send. The Send button
+            unlocks once you've made an edit or confirmed the draft looks good.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Unlock gate banner — shown until agent has acted */}
+        {!canSend && (
+          <div className="mx-6 mt-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 shrink-0">
+            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-800">Review required before sending</p>
+              <p className="text-amber-700 mt-0.5">
+                Edit the draft below, or click{" "}
+                <button
+                  className="underline font-semibold hover:text-amber-900"
+                  onClick={() => setConfirmed(true)}
+                >
+                  "Looks good, send as-is"
+                </button>{" "}
+                to confirm you've read it.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Cleared banner after agent confirms */}
+        {canSend && (
+          <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <p className="text-sm font-medium text-emerald-800">
+              {hasEdited ? "Draft updated — ready to send." : "Draft approved — ready to send."}
+            </p>
+          </div>
+        )}
+
+        {/* Editable draft */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+          <Textarea
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setHasEdited(true);
+            }}
+            className="min-h-[380px] font-mono text-sm resize-none border-dashed focus:border-solid"
+            placeholder="Proposal draft will appear here..."
+          />
+          <p className="text-xs text-muted-foreground mt-1.5 text-right">{wordCount} words</p>
+        </div>
+
+        <DialogFooter className="px-6 py-4 border-t shrink-0 flex flex-row items-center justify-between gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || !hasEdited}
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+            {saving ? "Saving..." : "Save Draft"}
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={sending}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!canSend || sending}
+              onClick={handleSend}
+              className="gap-1.5"
+            >
+              {sending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+              {sending ? "Sending..." : `Send to ${lead.email}`}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Simple Markdown to HTML converter for proposal preview
+function simpleMarkdownToHtml(md: string): string {
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+    .replace(/^\|(.+)\|$/gm, (_, row) => {
+      const cells = row.split('|').map((c: string) => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    })
+    .replace(/(<tr>.*<\/tr>\n?)+/g, (m) => `<table class="border-collapse w-full">${m}</table>`)
+    .replace(/\|[-:]+\|/g, '')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)/, '<p>$1')
+    .replace(/(.+)$/, '$1</p>');
+}
 
 const stageConfig: Record<string, { color: string; label: string }> = {
   "Qualified": { color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", label: "Qualified" },
@@ -111,7 +314,7 @@ function LeadProposalSheet({
 }) {
   const [markingContacted, setMarkingContacted] = useState(false);
   const [sendingQuote, setSendingQuote] = useState(false);
-  const [sendingProposal, setSendingProposal] = useState(false);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [sentLink, setSentLink] = useState<string | null>(null);
 
   if (!lead) return null;
@@ -177,46 +380,10 @@ function LeadProposalSheet({
     }
   };
 
-  const handleSendProposal = async () => {
+  // Opens the review gate dialog instead of sending directly
+  const handleSendProposal = () => {
     if (!canSendProposal) return;
-    if (!window.confirm(`Email this proposal to ${lead.email}?`)) return;
-    setSendingProposal(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
-        toast.error("You're signed out — please log in again.");
-        return;
-      }
-      const res = await fetch(
-        "https://zbtnulzvwreqzbmxulpv.supabase.co/functions/v1/send-proposal",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ lead_id: lead.id }),
-        }
-      );
-      const json = await res.json().catch(() => ({}));
-      if (res.ok && json.ok) {
-        toast.success("Proposal sent ✓");
-        setSentLink(json.link || null);
-        refetch();
-      } else {
-        const err = json?.error;
-        if (err === "no_draft") toast.error("Generate a proposal before sending.");
-        else if (err === "no_email") toast.error("This lead has no email address.");
-        else if (err === "already_decided") toast.error(`This proposal was already ${json.proposal_status || "decided"}.`);
-        else if (err === "email_failed") toast.error("Email failed to send — check the sender address.");
-        else toast.error("Couldn't send — please try again.");
-      }
-    } catch {
-      toast.error("Couldn't send — please try again.");
-    } finally {
-      setSendingProposal(false);
-    }
+    setShowReviewDialog(true);
   };
 
   const handleCopySentLink = async () => {
@@ -388,15 +555,12 @@ function LeadProposalSheet({
                         <span>
                           <Button
                             size="sm"
-                            disabled={!canSendProposal || sendingProposal}
+                            disabled={!canSendProposal}
                             onClick={handleSendProposal}
+                            className="gap-1.5"
                           >
-                            {sendingProposal ? (
-                              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                            ) : (
-                              <Send className="h-3.5 w-3.5 mr-1.5" />
-                            )}
-                            {sendingProposal ? "Sending..." : "Send Proposal"}
+                            <PenLine className="h-3.5 w-3.5" />
+                            Review &amp; Send
                           </Button>
                         </span>
                       </TooltipTrigger>
@@ -519,6 +683,19 @@ function LeadProposalSheet({
           </Button>
         </div>
       </SheetContent>
+
+      {/* Proposal review gate — mounted outside SheetContent so it renders on top */}
+      {showReviewDialog && (
+        <ProposalReviewDialog
+          open={showReviewDialog}
+          onOpenChange={setShowReviewDialog}
+          lead={lead}
+          onSent={(link) => {
+            setSentLink(link);
+            refetch();
+          }}
+        />
+      )}
     </Sheet>
   );
 }
@@ -867,3 +1044,4 @@ export default function Leads() {
     </DashboardLayout>
   );
 }
+
