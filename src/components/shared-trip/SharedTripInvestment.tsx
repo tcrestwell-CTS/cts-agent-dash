@@ -29,6 +29,8 @@ interface SharedTripInvestmentProps {
   paymentDeadlines: { label: string; date: string }[];
   primaryColor: string;
   shareToken?: string;
+  /** Called after the customer successfully accepts terms and enters payment flow */
+  onTermsAccepted?: () => void;
 }
 
 export default function SharedTripInvestment({
@@ -39,6 +41,7 @@ export default function SharedTripInvestment({
   primaryColor,
   upgradeNotes,
   shareToken,
+  onTermsAccepted,
 }: SharedTripInvestmentProps) {
   const totalCost = trip.total_cost || 0;
   const depositAmount = deposit.required ? deposit.amount : 0;
@@ -106,6 +109,7 @@ export default function SharedTripInvestment({
       setSubmitting(false);
       setTermsAccepted(true);
       setShowTerms(false);
+      onTermsAccepted?.();
       setTimeout(() => setShowPaymentMethods(true), 150);
     }
   };
