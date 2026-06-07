@@ -297,6 +297,16 @@ export default function SharedTrip() {
   // Terms accepted state (lifted so CTA bar can reflect it)
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Live pricing totals — updated whenever customer toggles add-ons in SharedTripPricing
+  // Initialized to null so we fall back to trip.total_cost until the component fires its first callback
+  const [liveTripTotal, setLiveTripTotal] = useState<number | null>(null);
+  const [liveDeposit, setLiveDeposit] = useState<number>(0);
+
+  const handleTotalChange = (total: number, deposit: number) => {
+    setLiveTripTotal(total);
+    setLiveDeposit(deposit);
+  };
+
   // Section refs for scroll-to
   const yourTripRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
@@ -538,7 +548,7 @@ export default function SharedTrip() {
         tripName={data.trip.trip_name}
         destination={data.trip.destination}
         departDate={data.trip.depart_date}
-        totalCost={data.trip.total_cost}
+        totalCost={liveTripTotal ?? data.trip.total_cost}
         primaryColor={primaryColor}
         hasMultipleItineraries={hasMultipleItineraries}
         approvedItineraryId={approvedItineraryId}
@@ -758,6 +768,7 @@ export default function SharedTrip() {
               totalCost={data.trip.total_cost || 0}
               primaryColor={primaryColor}
               termsAccepted={termsAccepted}
+              onTotalChange={handleTotalChange}
             />
 
             <PaymentTimelineVisual
@@ -783,8 +794,17 @@ export default function SharedTrip() {
             {/* Investment / terms acceptance / payment CTA */}
             <div ref={investmentRef}>
               <SharedTripInvestment
-                trip={data.trip}
-                deposit={data.deposit || { required: false, amount: 0 }}
+                trip={{
+                  ...data.trip,
+                  // Use live total from pricing component if add-ons have been toggled,
+                  // otherwise fall back to the raw trip total from the API
+                  total_cost: liveTripTotal ?? data.trip.total_cost,
+                }}
+                deposit={
+                  liveDeposit > 0
+                    ? { required: true, amount: liveDeposit }
+                    : data.deposit || { required: false, amount: 0 }
+                }
                 cancellationTerms={data.cancellationTerms || []}
                 paymentDeadlines={data.paymentDeadlines || []}
                 primaryColor={primaryColor}
@@ -842,3 +862,4 @@ export default function SharedTrip() {
     </div>
   );
 }
+

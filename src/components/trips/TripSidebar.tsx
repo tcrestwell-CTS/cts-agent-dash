@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Building2,
   CreditCard,
+  Eye,
   Link2,
   Loader2,
   Map,
@@ -160,6 +161,18 @@ export function TripSidebar({
               </Link>
             </Button>
           )}
+          {/* Preview Proposal — opens the customer-facing shared-trip page in a new tab */}
+          {shareToken && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground hover:text-foreground"
+              onClick={() => window.open(`/shared/${shareToken}`, "_blank", "noopener,noreferrer")}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview Proposal
+            </Button>
+          )}
           {clientEmail && onSendPortalLink && (
             <Button
               variant="ghost"
@@ -264,3 +277,4 @@ export function TripSidebar({
     </nav>
   );
 }
+
