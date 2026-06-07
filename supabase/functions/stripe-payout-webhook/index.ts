@@ -91,7 +91,47 @@ async function buildBuckets(payoutId: string): Promise<Buckets> {
       }
 
       const meta = pi?.metadata ?? {};
-      const paymentType = String(meta.payment_type || "").toLowerCase();
+      let paymentType = String(meta.payment_type || "").toLowerCase();
+
+      // ── CRM fallback: if PI metadata is missing payment_type, try to classify
+      // via trip_payments.stripe_session_id. Checkout Sessions copy metadata to the
+      // PI but there is a race window where the PI is settled before metadata
+      // propagates, or the PI lookup itself fails. This catches those cases.
+      if (!paymentType && pi) {
+        // Check if trip_payments has a row with this PI id
+        const { data: tpByPi } = await supabase
+          .from("trip_payments")
+          .select("id")
+          .eq("stripe_payment_intent_id", pi.id)
+          .maybeSingle();
+        if (tpByPi) {
+          paymentType = "trip_installment";
+          log("classified via trip_payments PI lookup", { pi: pi.id, trip_payment_id: tpByPi.id });
+        }
+      }
+
+      // If still unclassified, try the charge's checkout_session → stripe_session_id
+      if (!paymentType) {
+        try {
+          const chargeForSession = await stripe.charges.retrieve(piId, { expand: ["payment_intent"] });
+          const sessionId = (chargeForSession as any).checkout?.session ||
+                            (chargeForSession as any).metadata?.checkout_session_id ||
+                            null;
+          if (sessionId) {
+            const { data: tpBySession } = await supabase
+              .from("trip_payments")
+              .select("id")
+              .eq("stripe_session_id", sessionId)
+              .maybeSingle();
+            if (tpBySession) {
+              paymentType = "trip_installment";
+              log("classified via trip_payments session lookup", { session: sessionId, trip_payment_id: tpBySession.id });
+            }
+          }
+        } catch (e2) {
+          log("session lookup failed", { source: piId, err: String(e2) });
+        }
+      }
 
       if (paymentType === "trip_installment") {
         buckets.trip += net;
@@ -382,7 +422,26 @@ async function processPayoutPaid(payout: Stripe.Payout) {
   const needPrincipal = buckets.loan_principal > 0;
   const needInterest = buckets.loan_interest > 0;
 
-  if (!needTrip && !needPrincipal && !needInterest) {
+  // ── Safety net: if nothing classified but unclassified bucket has funds,
+  // treat the whole payout as trip installments rather than skipping entirely.
+  // This prevents QBO from going dark on payouts where Stripe metadata didn’t
+  // propagate (race condition with Checkout Sessions). The unclassified detail
+  // log lets you audit which charges drove this.
+  if (!needTrip && !needPrincipal && !needInterest && buckets.unclassified > 0) {
+    log("WARNING: all amounts unclassified — promoting to trip bucket as safe default", {
+      payout_id: payout.id,
+      unclassified: buckets.unclassified,
+      charge_count: buckets.details.length,
+    });
+    buckets.trip = buckets.unclassified;
+    buckets.unclassified = 0;
+    buckets.details = buckets.details.map(d =>
+      d.type === "unclassified" ? { ...d, type: "trip_installment", promoted: true } : d
+    );
+  }
+
+  // Hard skip only if there is truly nothing — no charges at all
+  if (!needTrip && !needPrincipal && !needInterest && buckets.unclassified === 0) {
     await supabase.from("qbo_sync_logs").insert({
       user_id: connection.user_id,
       sync_type: "auto-stripe-payout",
@@ -395,31 +454,35 @@ async function processPayoutPaid(payout: Stripe.Payout) {
     return;
   }
 
+  const needTrip2 = buckets.trip > 0;
+  const needPrincipal2 = buckets.loan_principal > 0;
+  const needInterest2 = buckets.loan_interest > 0;
+
   const operatingBank = await getMappedAccountId("operating_bank");
-  const tripClearing = needTrip ? await getMappedAccountId("trip_clearing") : null;
-  const principalClearing = needPrincipal ? await getMappedAccountId("loan_principal_clearing") : null;
-  const interestClearing = needInterest ? await getMappedAccountId("loan_interest_clearing") : null;
+  const tripClearing = needTrip2 ? await getMappedAccountId("trip_clearing") : null;
+  const principalClearing = needPrincipal2 ? await getMappedAccountId("loan_principal_clearing") : null;
+  const interestClearing = needInterest2 ? await getMappedAccountId("loan_interest_clearing") : null;
 
   let tripTransferId: string | null = savedPayout.qbo_trip_transfer_id || null;
   let principalTransferId: string | null = savedPayout.qbo_loan_principal_transfer_id || null;
   let interestTransferId: string | null = savedPayout.qbo_loan_interest_transfer_id || null;
 
   try {
-    if (needTrip && !tripTransferId) {
+    if (needTrip2 && !tripTransferId) {
       tripTransferId = await createQboTransfer(
         qboBase, qboHeaders, tripClearing!, operatingBank,
         buckets.trip, arrival,
         `Stripe payout ${payout.id} • Trip clearing → operating bank`,
       );
     }
-    if (needPrincipal && !principalTransferId) {
+    if (needPrincipal2 && !principalTransferId) {
       principalTransferId = await createQboTransfer(
         qboBase, qboHeaders, principalClearing!, operatingBank,
         buckets.loan_principal, arrival,
         `Stripe payout ${payout.id} • Loan principal clearing → operating bank`,
       );
     }
-    if (needInterest && !interestTransferId) {
+    if (needInterest2 && !interestTransferId) {
       interestTransferId = await createQboTransfer(
         qboBase, qboHeaders, interestClearing!, operatingBank,
         buckets.loan_interest, arrival,
@@ -502,29 +565,42 @@ serve(async (req) => {
   }
 
   const sig = req.headers.get("stripe-signature");
+  const serviceRoleHeader = req.headers.get("x-supabase-service-role");
+  const isInternalBackfill =
+    sig === "backfill" &&
+    serviceRoleHeader === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
   if (!sig) return new Response("Missing stripe-signature", { status: 400 });
 
   const raw = await req.text();
 
   let event: Stripe.Event;
-  try {
-    event = await stripe.webhooks.constructEventAsync(raw, sig, WEBHOOK_SECRET);
-  } catch (err) {
-    log("signature verification failed", { error: (err as Error).message });
-    return new Response(`Invalid signature: ${(err as Error).message}`, { status: 400 });
+  if (isInternalBackfill) {
+    // Trusted internal call from qbo-backfill-payouts — parse directly
+    event = JSON.parse(raw) as Stripe.Event;
+    log("internal backfill call accepted", { event_id: event.id });
+  } else {
+    try {
+      event = await stripe.webhooks.constructEventAsync(raw, sig, WEBHOOK_SECRET);
+    } catch (err) {
+      log("signature verification failed", { error: (err as Error).message });
+      return new Response(`Invalid signature: ${(err as Error).message}`, { status: 400 });
+    }
   }
 
-  // Idempotency at the webhook layer.
-  const { error: dupErr } = await supabase
-    .from("stripe_webhook_events")
-    .insert({
-      stripe_event_id: event.id,
-      event_type: event.type,
-      payload: event as unknown as Record<string, unknown>,
-      processed: false,
-    });
-  if (dupErr && !String(dupErr.message).includes("duplicate")) {
-    log("webhook event insert failed", dupErr);
+  // Idempotency at the webhook layer (skip for internal backfill events).
+  if (!isInternalBackfill) {
+    const { error: dupErr } = await supabase
+      .from("stripe_webhook_events")
+      .insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        payload: event as unknown as Record<string, unknown>,
+        processed: false,
+      });
+    if (dupErr && !String(dupErr.message).includes("duplicate")) {
+      log("webhook event insert failed", dupErr);
+    }
   }
 
   try {
@@ -561,3 +637,4 @@ serve(async (req) => {
     );
   }
 });
+
