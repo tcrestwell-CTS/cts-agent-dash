@@ -19,6 +19,8 @@ export function AgencySettingsTab() {
     tier_1_threshold: 100000,
     tier_2_threshold: 250000,
     evaluation_period_months: 12,
+    txtya_enabled: false,
+    txtya_default_group_id: "",
   });
 
   useEffect(() => {
@@ -30,12 +32,17 @@ export function AgencySettingsTab() {
         tier_1_threshold: settings.tier_1_threshold,
         tier_2_threshold: settings.tier_2_threshold,
         evaluation_period_months: settings.evaluation_period_months,
+        txtya_enabled: settings.txtya_enabled ?? false,
+        txtya_default_group_id: settings.txtya_default_group_id ?? "",
       });
     }
   }, [settings]);
 
   const handleSave = () => {
-    updateSettings.mutate(formData);
+    updateSettings.mutate({
+      ...formData,
+      txtya_default_group_id: formData.txtya_default_group_id.trim() || null,
+    });
   };
 
   if (isLoading) {
@@ -215,6 +222,56 @@ export function AgencySettingsTab() {
                   Rolling period over which gross sales are evaluated for tier promotion
                 </p>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* TxtYa Travels Integration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            TxtYa Travels Integration
+          </CardTitle>
+          <CardDescription>
+            Push every booked trip and traveler (primary client + companions) to TxtYa so they can
+            receive trip-day SMS messaging.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-card-foreground">Enable TxtYa sync</p>
+              <p className="text-sm text-muted-foreground">
+                When on, trips can be synced to TxtYa from the trip detail page.
+              </p>
+            </div>
+            <Switch
+              checked={formData.txtya_enabled}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, txtya_enabled: checked }))
+              }
+            />
+          </div>
+          {formData.txtya_enabled && (
+            <div className="space-y-2 pt-4 border-t border-border">
+              <Label htmlFor="txtya_group">Default TxtYa Group ID (optional)</Label>
+              <Input
+                id="txtya_group"
+                value={formData.txtya_default_group_id}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    txtya_default_group_id: e.target.value,
+                  }))
+                }
+                placeholder="e.g. grp_abc123"
+              />
+              <p className="text-xs text-muted-foreground">
+                Travelers auto-join "All Travelers". Provide a group ID to also add them to a
+                specific group.
+              </p>
             </div>
           )}
         </CardContent>
