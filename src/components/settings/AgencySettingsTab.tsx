@@ -19,6 +19,8 @@ export function AgencySettingsTab() {
     tier_1_threshold: 100000,
     tier_2_threshold: 250000,
     evaluation_period_months: 12,
+    txtya_enabled: false,
+    txtya_default_group_id: "",
   });
 
   useEffect(() => {
@@ -30,12 +32,17 @@ export function AgencySettingsTab() {
         tier_1_threshold: settings.tier_1_threshold,
         tier_2_threshold: settings.tier_2_threshold,
         evaluation_period_months: settings.evaluation_period_months,
+        txtya_enabled: settings.txtya_enabled ?? false,
+        txtya_default_group_id: settings.txtya_default_group_id ?? "",
       });
     }
   }, [settings]);
 
   const handleSave = () => {
-    updateSettings.mutate(formData);
+    updateSettings.mutate({
+      ...formData,
+      txtya_default_group_id: formData.txtya_default_group_id.trim() || null,
+    });
   };
 
   if (isLoading) {
