@@ -12,6 +12,8 @@ export interface AgencySettings {
   tier_1_threshold: number;
   tier_2_threshold: number;
   evaluation_period_months: number;
+  txtya_enabled: boolean;
+  txtya_default_group_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +43,8 @@ export function useAgencySettings() {
           tier_1_threshold: 100000,
           tier_2_threshold: 250000,
           evaluation_period_months: 12,
+          txtya_enabled: false,
+          txtya_default_group_id: null,
           created_at: "",
           updated_at: "",
         } as AgencySettings;
