@@ -227,9 +227,57 @@ export function AgencySettingsTab() {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={updateSettings.isPending}>
       {/* TxtYa Travels Integration */}
-      </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            TxtYa Travels Integration
+          </CardTitle>
+          <CardDescription>
+            Push every booked trip and traveler (primary client + companions) to TxtYa so they can
+            receive trip-day SMS messaging.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-card-foreground">Enable TxtYa sync</p>
+              <p className="text-sm text-muted-foreground">
+                When on, trips can be synced to TxtYa from the trip detail page.
+              </p>
+            </div>
+            <Switch
+              checked={formData.txtya_enabled}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, txtya_enabled: checked }))
+              }
+            />
+          </div>
+          {formData.txtya_enabled && (
+            <div className="space-y-2 pt-4 border-t border-border">
+              <Label htmlFor="txtya_group">Default TxtYa Group ID (optional)</Label>
+              <Input
+                id="txtya_group"
+                value={formData.txtya_default_group_id}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    txtya_default_group_id: e.target.value,
+                  }))
+                }
+                placeholder="e.g. grp_abc123"
+              />
+              <p className="text-xs text-muted-foreground">
+                Travelers auto-join "All Travelers". Provide a group ID to also add them to a
+                specific group.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Button onClick={handleSave} disabled={updateSettings.isPending}>
         {updateSettings.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Save Agency Settings
       </Button>
