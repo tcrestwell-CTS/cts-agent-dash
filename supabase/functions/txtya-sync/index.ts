@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         endDate: trip.return_date,
       },
       traveler: {
-        name: travelerName || 'Traveler',
+        displayName: travelerName || 'Traveler',
         email: travelerEmail,
         phone: travelerPhone,
       },
