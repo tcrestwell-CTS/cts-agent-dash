@@ -204,6 +204,8 @@ export type Database = {
           tier_1_threshold: number
           tier_2_threshold: number
           tier_auto_promote: boolean
+          txtya_default_group_id: string | null
+          txtya_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -216,6 +218,8 @@ export type Database = {
           tier_1_threshold?: number
           tier_2_threshold?: number
           tier_auto_promote?: boolean
+          txtya_default_group_id?: string | null
+          txtya_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -228,6 +232,8 @@ export type Database = {
           tier_1_threshold?: number
           tier_2_threshold?: number
           tier_auto_promote?: boolean
+          txtya_default_group_id?: string | null
+          txtya_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -8433,6 +8439,80 @@ export type Database = {
             columns: ["selected_cabin_option_id"]
             isOneToOne: false
             referencedRelation: "trip_cabin_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      txtya_sync_log: {
+        Row: {
+          client_id: string | null
+          companion_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+          traveler_kind: string
+          trip_id: string | null
+          txtya_traveler_id: string | null
+          txtya_trip_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          companion_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status: string
+          traveler_kind: string
+          trip_id?: string | null
+          txtya_traveler_id?: string | null
+          txtya_trip_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          companion_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          traveler_kind?: string
+          trip_id?: string | null
+          txtya_traveler_id?: string | null
+          txtya_trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "txtya_sync_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "txtya_sync_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "txtya_sync_log_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "client_companions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "txtya_sync_log_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
