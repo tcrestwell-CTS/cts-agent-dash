@@ -78,7 +78,10 @@ function PayWithStripeButton({
       }
       const stripe = await loadStripe(stripePublishableKey);
       if (stripe) {
-        await stripe.redirectToCheckout({ sessionId: data.session_id });
+        // redirectToCheckout is deprecated in @stripe/stripe-js types but still works at runtime.
+        await (stripe as unknown as {
+          redirectToCheckout: (opts: { sessionId: string }) => Promise<{ error?: unknown }>;
+        }).redirectToCheckout({ sessionId: data.session_id });
       }
     } catch (err: any) {
       console.error("Stripe checkout error:", err);
