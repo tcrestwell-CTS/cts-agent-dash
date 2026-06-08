@@ -107,15 +107,15 @@ Deno.serve(async (req) => {
 
     // Build TxtYa payload
     const payload: Record<string, unknown> = {
-      booking: {
-        reference: trip.id,
-        trip_name: trip.trip_name,
+      trip: {
+        bookingRef: trip.id,
+        name: trip.trip_name,
         destination: trip.destination,
-        start_date: trip.departure_date,
-        end_date: trip.return_date,
+        startDate: trip.departure_date,
+        endDate: trip.return_date,
       },
       traveler: {
-        name: travelerName || 'Traveler',
+        displayName: travelerName || 'Traveler',
         email: travelerEmail,
         phone: travelerPhone,
       },
