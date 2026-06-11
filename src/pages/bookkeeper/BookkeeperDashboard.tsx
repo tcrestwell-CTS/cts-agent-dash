@@ -206,7 +206,7 @@ export default function BookkeeperDashboard() {
                 <div className="flex items-center justify-between">
                   <span>{alerts.failedSyncs} failed QBO sync{alerts.failedSyncs === 1 ? "" : "s"} in the last 7 days.</span>
                   <Button asChild variant="ghost" size="sm">
-                    <Link to="/bookkeeper/qbo-logs">Review</Link>
+                    <Link to="/qbo-payment-sync">Review</Link>
                   </Button>
                 </div>
               )}
