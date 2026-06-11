@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useQboPaymentSyncStatus, type PaymentSyncRow, type SyncState } from "@/hooks/useQboPaymentSyncStatus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import { toast } from "sonner";
 const PAGE_SIZE = 25;
 
 export default function QboPaymentSync() {
-  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
+  const { isAdmin, isOfficeAdmin, isBookkeeper, isLoading: permsLoading } = usePermissions();
+  const canAccess = isAdmin || isOfficeAdmin || isBookkeeper;
   const { data, isLoading, refetch, isRefetching } = useQboPaymentSyncStatus();
   const [filter, setFilter] = useState<SyncState | "all">("all");
   const [search, setSearch] = useState("");
@@ -44,8 +45,8 @@ export default function QboPaymentSync() {
     });
   }, [rows, filter, search]);
 
-  if (adminLoading) return <DashboardLayout><Skeleton className="h-96" /></DashboardLayout>;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (permsLoading) return <DashboardLayout><Skeleton className="h-96" /></DashboardLayout>;
+  if (!canAccess) return <Navigate to="/" replace />;
 
   const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
