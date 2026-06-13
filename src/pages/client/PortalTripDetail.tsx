@@ -855,6 +855,19 @@ export default function PortalTripDetail() {
       </Card>
 
       {/* CC Authorizations */}
+      {(pricingLines.length > 0 || totalCost > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Pricing Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {renderPricingBreakdown()}
+          </CardContent>
+        </Card>
+      )}
+
       {(ccData?.authorizations?.length > 0) && (
         <Card>
           <CardHeader>
