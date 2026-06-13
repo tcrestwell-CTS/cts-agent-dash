@@ -498,12 +498,6 @@ export default function SharedTrip() {
     returnDate: sourceReturn,
   });
 
-  // Build daily overview from itinerary
-  const dailyOverview = publishedItinerary.reduce((acc: Record<number, any[]>, item: any) => {
-    (acc[item.day_number] = acc[item.day_number] || []).push(item);
-    return acc;
-  }, {});
-
   const formatDate = (dateStr: string) =>
     parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
