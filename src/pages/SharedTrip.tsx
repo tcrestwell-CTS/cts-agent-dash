@@ -512,9 +512,6 @@ export default function SharedTrip() {
     { key: "pricing", label: "Pricing & Payment" },
   ];
 
-  const hasPricing =
-    ((data as any).pricingLines?.length ?? 0) > 0 || (data.trip.total_cost ?? 0) > 0;
-
   return (
     <div className="min-h-screen bg-white">
       {/* ── Cover image hero ───────────────────────────────────────────── */}
@@ -757,8 +754,7 @@ export default function SharedTrip() {
         </div>
 
         {/* ── PRICING & PAYMENT section ─────────────────────────────────── */}
-        {hasPricing && (
-          <div ref={pricingRef} id="pricing" className="scroll-mt-14 space-y-8">
+        <div ref={pricingRef} id="pricing" className="scroll-mt-14 space-y-8">
             <h2 className="text-2xl font-bold text-gray-900 border-t border-gray-100 pt-6">
               Pricing &amp; Payment
             </h2>
@@ -817,8 +813,7 @@ export default function SharedTrip() {
                 stripePublishableKey={import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}
               />
             </div>
-          </div>
-        )}
+        </div>
 
         <SharedTripFooter branding={data.branding} advisor={data.advisor} />
       </div>
