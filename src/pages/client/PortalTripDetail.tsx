@@ -262,6 +262,115 @@ export default function PortalTripDetail() {
     return acc;
   }, {});
 
+  // Shared pricing-breakdown renderer used on both Overview and Pricing tabs.
+  // Mirrors the shared-trip pricing layout: per-booking groups, extended
+  // line totals (unit × qty × travelers), add-on separation, deposit sum.
+  const renderPricingBreakdown = () => {
+    if (pricingLines.length === 0 && totalCost <= 0) {
+      return <p className="text-sm text-muted-foreground text-center py-4">Pricing details are not yet available.</p>;
+    }
+    if (pricingLines.length === 0) {
+      return (
+        <div className="flex justify-between py-2">
+          <span className="text-sm">Trip Total</span>
+          <span className="text-sm font-bold">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        </div>
+      );
+    }
+    const grouped = pricingLines.reduce((acc: Record<string, any[]>, line: any) => {
+      (acc[line.booking_id] = acc[line.booking_id] || []).push(line);
+      return acc;
+    }, {});
+    const depositTotal = pricingLines.reduce((s: number, l: any) => s + Number(l.deposit_amount || 0), 0);
+    return (
+      <div className="space-y-5">
+        {Object.entries(grouped).map(([bId, lines]: [string, any[]]) => {
+          const booking = bookings.find((b: any) => b.id === bId);
+          const isSelectable = (l: any) => l.is_addon || l.is_optional;
+          const coreLines = lines.filter((l: any) => !isSelectable(l));
+          const addonLines = lines.filter(isSelectable);
+          const subtotal = lines.reduce(
+            (s: number, l: any) => s + Number(l.unit_price || 0) * Number(l.quantity || 1) * Number(l.travelers || 1),
+            0
+          );
+          return (
+            <div key={bId} className="space-y-2">
+              {Object.keys(grouped).length > 1 && (
+                <h3 className="text-sm font-semibold">{booking?.trip_name || booking?.destination || "Booking"}</h3>
+              )}
+              <div className="divide-y">
+                {coreLines.map((l: any) => {
+                  const qty = Number(l.quantity || 1);
+                  const trav = Number(l.travelers || 1);
+                  const ext = Number(l.unit_price || 0) * qty * trav;
+                  return (
+                    <div key={l.id} className="flex justify-between py-2">
+                      <div>
+                        <p className="text-sm">{l.description}</p>
+                        {(qty > 1 || trav > 1) && (
+                          <p className="text-xs text-muted-foreground">
+                            ${Number(l.unit_price || 0).toFixed(2)} × {qty} × {trav} {trav > 1 ? "persons" : "person"}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium whitespace-nowrap">
+                        ${ext.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {addonLines.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-muted-foreground pt-2">Optional / Add-Ons</p>
+                  <div className="divide-y">
+                    {addonLines.map((l: any) => {
+                      const qty = Number(l.quantity || 1);
+                      const trav = Number(l.travelers || 1);
+                      const ext = Number(l.unit_price || 0) * qty * trav;
+                      return (
+                        <div key={l.id} className="flex justify-between py-2">
+                          <div>
+                            <p className="text-sm">{l.description}</p>
+                            {(qty > 1 || trav > 1) && (
+                              <p className="text-xs text-muted-foreground">
+                                ${Number(l.unit_price || 0).toFixed(2)} × {qty} × {trav} {trav > 1 ? "persons" : "person"}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium whitespace-nowrap">
+                            +${ext.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              {Object.keys(grouped).length > 1 && (
+                <div className="flex justify-between pt-2 border-t text-sm font-semibold">
+                  <span>Subtotal</span>
+                  <span>${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex justify-between pt-4 border-t font-bold">
+          <span>Total</span>
+          <div className="text-right">
+            <div>${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            {depositTotal > 0 && (
+              <div className="text-xs font-normal text-muted-foreground">
+                Deposit: ${depositTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Group option blocks by day
   const optionBlocksByDay = optionBlocks.reduce((acc: Record<number, any[]>, block: any) => {
     (acc[block.day_number] = acc[block.day_number] || []).push(block);
@@ -746,6 +855,19 @@ export default function PortalTripDetail() {
       </Card>
 
       {/* CC Authorizations */}
+      {(pricingLines.length > 0 || totalCost > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Pricing Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {renderPricingBreakdown()}
+          </CardContent>
+        </Card>
+      )}
+
       {(ccData?.authorizations?.length > 0) && (
         <Card>
           <CardHeader>
@@ -991,60 +1113,7 @@ export default function PortalTripDetail() {
           <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4" /> Pricing Breakdown</CardTitle></CardHeader>
           <CardContent>
-            {pricingLines.length > 0 ? (
-              <div className="space-y-4">
-                {(() => {
-                  const grouped = pricingLines.reduce((acc: Record<string, any[]>, line: any) => {
-                    (acc[line.booking_id] = acc[line.booking_id] || []).push(line);
-                    return acc;
-                  }, {});
-                  return Object.entries(grouped).map(([bId, lines]: [string, any[]]) => {
-                    const booking = bookings.find((b: any) => b.id === bId);
-                    const coreLines = lines.filter((l: any) => !l.is_addon);
-                    const addonLines = lines.filter((l: any) => l.is_addon);
-                    return (
-                      <div key={bId} className="space-y-2">
-                        {Object.keys(grouped).length > 1 && (
-                          <h3 className="text-sm font-semibold">{booking?.trip_name || booking?.destination || "Booking"}</h3>
-                        )}
-                        <div className="divide-y">
-                          {coreLines.map((l: any) => (
-                            <div key={l.id} className="flex justify-between py-2">
-                              <span className="text-sm">{l.description}</span>
-                              <span className="text-sm font-medium">${Number(l.unit_price || 0).toFixed(2)} / person</span>
-                            </div>
-                          ))}
-                        </div>
-                        {addonLines.length > 0 && (
-                          <>
-                            <p className="text-xs font-semibold text-muted-foreground pt-2">Add-Ons</p>
-                            <div className="divide-y">
-                              {addonLines.map((l: any) => (
-                                <div key={l.id} className="flex justify-between py-2">
-                                  <span className="text-sm">{l.description}</span>
-                                  <span className="text-sm font-medium">${Number(l.unit_price || 0).toFixed(2)} / person</span>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-                <div className="flex justify-between pt-4 border-t font-bold">
-                  <span>Total</span>
-                  <span>${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-            ) : totalCost > 0 ? (
-              <div className="flex justify-between py-2">
-                <span className="text-sm">Trip Total</span>
-                <span className="text-sm font-bold">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Pricing details are not yet available.</p>
-            )}
+            {renderPricingBreakdown()}
           </CardContent>
           </Card>
         </div>
