@@ -33,9 +33,13 @@ export function filterToActiveItinerary<T extends { itinerary_id?: string | null
 ): T[] {
   if (!activeItineraryId) return entries;
 
-  return entries.some((entry) => entry.itinerary_id === activeItineraryId)
-    ? entries.filter((entry) => entry.itinerary_id === activeItineraryId)
-    : entries;
+  const matching = entries.filter((entry) => entry.itinerary_id === activeItineraryId);
+  if (matching.length > 0) return matching;
+
+  // Legacy data: only fall back to entries with no itinerary_id; never leak
+  // items from a different itinerary (those would render as duplicates).
+  const unscoped = entries.filter((entry) => !entry.itinerary_id);
+  return unscoped.length > 0 ? unscoped : [];
 }
 
 export function sanitizePublishedItinerary<T extends Record<string, any>>(

@@ -40,9 +40,14 @@ const normalizeDayNumber = (value: unknown) => {
 const filterToActiveItinerary = <T extends { itinerary_id?: string | null }>(entries: T[], activeItineraryId?: string | null) => {
   if (!activeItineraryId) return entries;
 
-  return entries.some((entry) => entry.itinerary_id === activeItineraryId)
-    ? entries.filter((entry) => entry.itinerary_id === activeItineraryId)
-    : entries;
+  const matching = entries.filter((entry) => entry.itinerary_id === activeItineraryId);
+  if (matching.length > 0) return matching;
+
+  // Legacy data: no item is scoped to this itinerary. Only fall back to
+  // unscoped (null itinerary_id) entries so we don't pull in items that
+  // belong to a *different* itinerary, which would render as duplicates.
+  const unscoped = entries.filter((entry) => !entry.itinerary_id);
+  return unscoped.length > 0 ? unscoped : [];
 };
 
 const sanitizeItinerary = (items: any[], totalDays: number | null) => {
