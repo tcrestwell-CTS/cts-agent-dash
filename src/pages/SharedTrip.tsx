@@ -498,12 +498,6 @@ export default function SharedTrip() {
     returnDate: sourceReturn,
   });
 
-  // Build daily overview from itinerary
-  const dailyOverview = publishedItinerary.reduce((acc: Record<number, any[]>, item: any) => {
-    (acc[item.day_number] = acc[item.day_number] || []).push(item);
-    return acc;
-  }, {});
-
   const formatDate = (dateStr: string) =>
     parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -704,53 +698,6 @@ export default function SharedTrip() {
             </div>
           ) : null}
 
-          {/* ─ Daily overview (compact) — shown below full itinerary when items exist ─ */}
-          {Object.keys(dailyOverview).length > 0 && publishedItinerary.length > 0 && (
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Daily Overview</h2>
-              <div className="space-y-4">
-                {Object.entries(dailyOverview)
-                  .sort(([a], [b]) => Number(a) - Number(b))
-                  .map(([day, items]: [string, any[]]) => (
-                    <div key={day} className="flex gap-4">
-                      <div
-                        className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        {day}
-                      </div>
-                      <div className="space-y-1 pt-0.5">
-                        {items[0]?.item_date && (
-                          <p className="text-xs text-gray-400 font-medium">
-                            {parseLocalDate(items[0].item_date).toLocaleDateString("en-US", {
-                              weekday: "long",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </p>
-                        )}
-                        {items.map((item: any) => (
-                          <div key={item.id} className="flex items-start gap-2 py-0.5">
-                            <span className="text-sm">
-                              {item.category === "flight" ? "✈️"
-                                : item.category === "cruise" ? "🚢"
-                                : item.category === "lodging" ? "🏨"
-                                : item.category === "activity" ? "🎯"
-                                : item.category === "dining" ? "🍽️"
-                                : "📌"}
-                            </span>
-                            <div>
-                              <p className="text-sm text-gray-800 font-medium">{item.title}</p>
-                              {item.description && <p className="text-xs text-gray-400">{item.description}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── PRICING & PAYMENT section ─────────────────────────────────── */}
