@@ -63,13 +63,10 @@ export function sanitizePublishedItinerary<T extends Record<string, any>>(
     )
     .filter((item) => {
       const key = [
+        normalizeText(item.itinerary_id),
         item.day_number,
+        Number(item.sort_order ?? 0),
         normalizeText(item.title),
-        normalizeText(item.description),
-        normalizeText(item.location),
-        normalizeText(item.start_time),
-        normalizeText(item.end_time),
-        normalizeText(item.category),
         normalizeText(item.option_block_id),
       ].join("|");
 
