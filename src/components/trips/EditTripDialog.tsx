@@ -50,6 +50,8 @@ interface EditTripDialogProps {
     notes: string | null;
     client_id: string | null;
     budget_range?: string | null;
+    cabin_selection?: string | null;
+    cabin_photos?: string[] | null;
   };
   onUpdated: () => void;
 }
@@ -65,6 +67,8 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
     notes: "",
     client_id: "",
     budget_range: "",
+    cabin_selection: "",
+    cabin_photos: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -77,6 +81,8 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
         notes: trip.notes || "",
         client_id: trip.client_id || "",
         budget_range: (trip as any).budget_range || "",
+        cabin_selection: (trip as any).cabin_selection || "",
+        cabin_photos: ((trip as any).cabin_photos || []).join("\n"),
       });
       setDateRange(
         trip.depart_date
@@ -95,6 +101,10 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
 
     setSaving(true);
     try {
+      const cabinPhotos = formData.cabin_photos
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       const { error } = await supabase
         .from("trips")
         .update({
@@ -106,6 +116,8 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           budget_range: formData.budget_range || null,
           depart_date: dateRange?.from ? formatLocalDate(dateRange.from) : null,
           return_date: dateRange?.to ? formatLocalDate(dateRange.to) : null,
+          cabin_selection: formData.cabin_selection || null,
+          cabin_photos: cabinPhotos,
         } as any)
         .eq("id", trip.id);
 
@@ -230,6 +242,28 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
               placeholder="Any additional notes about this trip..."
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_cabin_selection">Cabin Selection</Label>
+            <Input
+              id="edit_cabin_selection"
+              value={formData.cabin_selection}
+              onChange={(e) => setFormData({ ...formData, cabin_selection: e.target.value })}
+              placeholder="e.g., Balcony Stateroom 8A, Cabin #10234"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_cabin_photos">Cabin Photos (one URL per line)</Label>
+            <Textarea
+              id="edit_cabin_photos"
+              value={formData.cabin_photos}
+              onChange={(e) => setFormData({ ...formData, cabin_photos: e.target.value })}
+              placeholder={"https://example.com/cabin-1.jpg\nhttps://example.com/cabin-2.jpg"}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">Paste public image URLs, one per line.</p>
           </div>
 
           <DialogFooter>
