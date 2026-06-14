@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   BedDouble,
   Users as UsersIcon,
+  Copy,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -98,7 +99,7 @@ const TripDetail = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "bookings";
   const { trip, bookings, subTrips, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
-  const { deleteTrip } = useTrips();
+  const { deleteTrip, cloneTrip, creating: cloning } = useTrips();
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
   const earnings = useEarningsLabel();
@@ -250,6 +251,14 @@ const TripDetail = () => {
       if (success) {
         navigate("/trips");
       }
+    }
+  };
+
+  const handleClone = async () => {
+    if (!trip) return;
+    const newTrip = await cloneTrip(trip.id);
+    if (newTrip) {
+      navigate(`/trips/${newTrip.id}`);
     }
   };
 
