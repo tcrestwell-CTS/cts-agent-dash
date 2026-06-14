@@ -1,0 +1,1 @@
+ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS cabin_selection text, ADD COLUMN IF NOT EXISTS cabin_photos text[] NOT NULL DEFAULT '{}'::text[];

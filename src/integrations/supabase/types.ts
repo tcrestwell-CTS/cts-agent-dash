@@ -8183,6 +8183,8 @@ export type Database = {
           budget_confirmed_at: string | null
           budget_confirmed_by_client_id: string | null
           budget_range: string | null
+          cabin_photos: string[]
+          cabin_selection: string | null
           client_id: string | null
           cover_image_url: string | null
           created_at: string
@@ -8248,6 +8250,8 @@ export type Database = {
           budget_confirmed_at?: string | null
           budget_confirmed_by_client_id?: string | null
           budget_range?: string | null
+          cabin_photos?: string[]
+          cabin_selection?: string | null
           client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -8313,6 +8317,8 @@ export type Database = {
           budget_confirmed_at?: string | null
           budget_confirmed_by_client_id?: string | null
           budget_range?: string | null
+          cabin_photos?: string[]
+          cabin_selection?: string | null
           client_id?: string | null
           cover_image_url?: string | null
           created_at?: string
