@@ -422,8 +422,6 @@ export function useTrips() {
         payment_mode: src.payment_mode ?? "deposit_balance",
         upgrade_notes: src.upgrade_notes ?? null,
         cover_image_url: src.cover_image_url ?? null,
-        advisor_id: src.advisor_id ?? null,
-        title: src.title ?? null,
         source: src.source ?? null,
       };
 
