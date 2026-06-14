@@ -725,7 +725,7 @@ const handler = async (req: Request): Promise<Response> => {
           .order("sort_order", { ascending: true }),
         supabase
           .from("bookings")
-          .select("id, destination, depart_date, return_date, status, trip_name, cancellation_terms, payment_deadline, booking_type, gross_sales, travelers")
+          .select("id, status, gross_sales")
           .eq("trip_id", trip.id),
         supabase
           .from("option_blocks")
@@ -747,23 +747,15 @@ const handler = async (req: Request): Promise<Response> => {
       const bookings = bookingsRes.data || [];
 
       bookingsForResponse = bookings.map((b: any) => ({
-        destination: b.destination,
-        depart_date: b.depart_date,
-        return_date: b.return_date,
+        destination: trip.destination,
+        depart_date: trip.depart_date,
+        return_date: trip.return_date,
         status: b.status,
-        trip_name: b.trip_name,
-        booking_type: b.booking_type,
+        trip_name: trip.trip_name,
+        booking_type: null,
       }));
 
-      bookings.forEach((b: any) => {
-        if (b.cancellation_terms) cancellationTerms.push(b.cancellation_terms);
-        if (b.payment_deadline) {
-          paymentDeadlines.push({
-            label: `${b.trip_name || b.destination || "Booking"} payment deadline`,
-            date: b.payment_deadline,
-          });
-        }
-      });
+      // cancellation_terms and payment_deadline are not present on bookings table
 
       optionBlocks = sanitizeOptionBlocks(
         filterToActiveItinerary(allBlocks, activeItineraryId),
