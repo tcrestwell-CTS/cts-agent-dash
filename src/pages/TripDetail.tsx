@@ -59,6 +59,8 @@ import { TripSidebar } from "@/components/trips/TripSidebar";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useItinerary } from "@/hooks/useItinerary";
 import { useTrip, useTrips } from "@/hooks/useTrips";
+import { ClientSearchCombobox, type SelectedClient } from "@/components/shared/ClientSearchCombobox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
 import { useTripPayments } from "@/hooks/useTripPayments";
 import { useProfile } from "@/hooks/useProfile";
@@ -254,10 +256,15 @@ const TripDetail = () => {
     }
   };
 
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [cloneClient, setCloneClient] = useState<SelectedClient | null>(null);
+
   const handleClone = async () => {
-    if (!trip) return;
-    const newTrip = await cloneTrip(trip.id);
+    if (!trip || !cloneClient) return;
+    const newTrip = await cloneTrip(trip.id, cloneClient.id);
     if (newTrip) {
+      setCloneOpen(false);
+      setCloneClient(null);
       navigate(`/trips/${newTrip.id}`);
     }
   };
@@ -393,27 +400,40 @@ const TripDetail = () => {
               updatedAt={trip.updated_at}
               onPublished={fetchTrip}
             />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <Dialog open={cloneOpen} onOpenChange={(o) => { setCloneOpen(o); if (!o) setCloneClient(null); }}>
+              <DialogTrigger asChild>
                 <Button variant="outline" size="sm" disabled={cloning}>
                   {cloning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
                   Clone Trip
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clone this trip?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Creates a new trip with the same client, destination, dates, and settings.
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Clone trip to a new client</DialogTitle>
+                  <DialogDescription>
+                    Copies destination, dates, and trip settings to a new trip for the client you select.
                     Status resets to Lead. Bookings, payments, and itinerary items are not copied.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleClone}>Clone</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-2">
+                  <ClientSearchCombobox
+                    value={cloneClient}
+                    onSelect={setCloneClient}
+                    onClear={() => setCloneClient(null)}
+                    excludeClientIds={trip.client_id ? [trip.client_id] : []}
+                    label="Select client for the new trip"
+                    description="The cloned trip will be assigned to this client."
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCloneOpen(false)}>Cancel</Button>
+                  <Button onClick={handleClone} disabled={!cloneClient || cloning}>
+                    {cloning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    Clone Trip
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
