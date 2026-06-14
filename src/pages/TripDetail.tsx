@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   BedDouble,
   Users as UsersIcon,
+  Copy,
 } from "lucide-react";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
@@ -98,7 +99,7 @@ const TripDetail = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "bookings";
   const { trip, bookings, subTrips, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
-  const { deleteTrip } = useTrips();
+  const { deleteTrip, cloneTrip, creating: cloning } = useTrips();
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
   const earnings = useEarningsLabel();
@@ -253,6 +254,14 @@ const TripDetail = () => {
     }
   };
 
+  const handleClone = async () => {
+    if (!trip) return;
+    const newTrip = await cloneTrip(trip.id);
+    if (newTrip) {
+      navigate(`/trips/${newTrip.id}`);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -384,6 +393,27 @@ const TripDetail = () => {
               updatedAt={trip.updated_at}
               onPublished={fetchTrip}
             />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={cloning}>
+                  {cloning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+                  Clone Trip
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clone this trip?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Creates a new trip with the same client, destination, dates, and settings.
+                    Status resets to Lead. Bookings, payments, and itinerary items are not copied.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClone}>Clone</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
