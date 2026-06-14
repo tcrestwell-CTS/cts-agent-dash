@@ -565,6 +565,37 @@ const TripDetail = () => {
                       <p className="text-sm">{trip.notes}</p>
                     </div>
                   )}
+                  {((trip as any).cabin_selection || ((trip as any).cabin_photos?.length ?? 0) > 0) && (
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center gap-2 mb-2">
+                        <BedDouble className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Cabin Selection</p>
+                      </div>
+                      {(trip as any).cabin_selection && (
+                        <p className="text-sm font-medium mb-2">{(trip as any).cabin_selection}</p>
+                      )}
+                      {((trip as any).cabin_photos?.length ?? 0) > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {((trip as any).cabin_photos as string[]).map((url, i) => (
+                            <a
+                              key={i}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block aspect-video overflow-hidden rounded-md border bg-muted"
+                            >
+                              <img
+                                src={url}
+                                alt={`Cabin photo ${i + 1}`}
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* Budget Confirmation Status */}
                   {(trip as any).budget_range && (
                     <div className="pt-2 border-t">
