@@ -367,9 +367,16 @@ export function useTrips() {
     }
   };
 
-  const cloneTrip = async (sourceTripId: string): Promise<Trip | null> => {
+  const cloneTrip = async (
+    sourceTripId: string,
+    targetClientId: string,
+  ): Promise<Trip | null> => {
     if (!user) {
       toast.error("You must be logged in to clone a trip");
+      return null;
+    }
+    if (!targetClientId) {
+      toast.error("Select a client for the cloned trip");
       return null;
     }
 
@@ -388,9 +395,13 @@ export function useTrips() {
       }
 
       const src = source as any;
+      if (src.client_id && src.client_id === targetClientId) {
+        toast.error("Pick a different client than the original trip");
+        return null;
+      }
       const insertPayload: Record<string, any> = {
         user_id: user.id,
-        client_id: src.client_id ?? null,
+        client_id: targetClientId,
         trip_name: `${src.trip_name} (Copy)`,
         destination: src.destination ?? null,
         depart_date: src.depart_date ?? null,
