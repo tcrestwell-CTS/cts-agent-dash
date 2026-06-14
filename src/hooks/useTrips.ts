@@ -376,6 +376,7 @@ export function useTrips() {
     createTrip,
     updateTrip,
     deleteTrip,
+    cloneTrip,
   };
 }
 
