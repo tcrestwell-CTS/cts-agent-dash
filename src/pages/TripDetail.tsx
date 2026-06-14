@@ -393,6 +393,27 @@ const TripDetail = () => {
               updatedAt={trip.updated_at}
               onPublished={fetchTrip}
             />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={cloning}>
+                  {cloning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+                  Clone Trip
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clone this trip?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Creates a new trip with the same client, destination, dates, and settings.
+                    Status resets to Lead. Bookings, payments, and itinerary items are not copied.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClone}>Clone</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
