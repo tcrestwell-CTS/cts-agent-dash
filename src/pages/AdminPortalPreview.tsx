@@ -328,12 +328,12 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
   const { data, isLoading } = useAdminPortalTripDetail(clientId, tripId);
   const [tripTab, setTripTab] = useState<"overview" | "itinerary" | "pricing">("overview");
   const [showItinerary, setShowItinerary] = useState(false);
+  const [picksByBooking, setPicksByBooking] = useState<Record<string, Record<string, boolean>>>({});
 
   if (isLoading) return <TabSkeleton />;
   if (!data?.trip) return <p className="text-center text-muted-foreground py-12">Trip not found.</p>;
 
   const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], pricingLines = [] } = data;
-  const [picksByBooking, setPicksByBooking] = useState<Record<string, Record<string, boolean>>>({});
   const handleSelectionChange = (bookingId: string, picks: Record<string, boolean>) => {
     setPicksByBooking((prev) => {
       const existing = prev[bookingId] || {};
