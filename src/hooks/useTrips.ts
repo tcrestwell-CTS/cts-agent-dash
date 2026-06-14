@@ -367,6 +367,102 @@ export function useTrips() {
     }
   };
 
+  const cloneTrip = async (sourceTripId: string): Promise<Trip | null> => {
+    if (!user) {
+      toast.error("You must be logged in to clone a trip");
+      return null;
+    }
+
+    setCreating(true);
+    try {
+      const { data: source, error: fetchError } = await supabase
+        .from("trips")
+        .select("*")
+        .eq("id", sourceTripId)
+        .single();
+
+      if (fetchError || !source) {
+        console.error("Error loading source trip:", fetchError);
+        toast.error("Failed to load trip to clone");
+        return null;
+      }
+
+      const src = source as any;
+      const insertPayload: Record<string, any> = {
+        user_id: user.id,
+        client_id: src.client_id ?? null,
+        trip_name: `${src.trip_name} (Copy)`,
+        destination: src.destination ?? null,
+        depart_date: src.depart_date ?? null,
+        return_date: src.return_date ?? null,
+        trip_type: src.trip_type ?? "regular",
+        notes: src.notes ?? null,
+        status: "lead",
+        parent_trip_id: src.parent_trip_id ?? null,
+        currency: src.currency ?? "USD",
+        pricing_visibility: src.pricing_visibility ?? "show_all",
+        tags: src.tags ?? [],
+        allow_pdf_downloads: src.allow_pdf_downloads ?? false,
+        itinerary_style: src.itinerary_style ?? "vertical_list",
+        budget_range: src.budget_range ?? null,
+        deposit_required: src.deposit_required ?? false,
+        deposit_amount: src.deposit_amount ?? 0,
+        deposit_override: src.deposit_override ?? false,
+        payment_mode: src.payment_mode ?? "deposit_balance",
+        upgrade_notes: src.upgrade_notes ?? null,
+        cover_image_url: src.cover_image_url ?? null,
+        advisor_id: src.advisor_id ?? null,
+        title: src.title ?? null,
+        source: src.source ?? null,
+      };
+
+      const { data: newTrip, error: insertError } = await supabase
+        .from("trips")
+        .insert(insertPayload as any)
+        .select(`
+          *,
+          clients!trips_client_id_fkey (
+            id,
+            name,
+            email,
+            phone,
+            address_line_1,
+            address_city,
+            address_state,
+            address_zip_code,
+            address_country
+          )
+        `)
+        .single();
+
+      if (insertError || !newTrip) {
+        console.error("Error cloning trip:", insertError);
+        toast.error("Failed to clone trip");
+        return null;
+      }
+
+      const shareToken = (newTrip as any).share_token;
+      if (shareToken && !newTrip.trip_page_url) {
+        const tripPageUrl = `https://app.crestwelltravels.com/shared/${shareToken}`;
+        await supabase
+          .from("trips")
+          .update({ trip_page_url: tripPageUrl })
+          .eq("id", newTrip.id);
+        (newTrip as any).trip_page_url = tripPageUrl;
+      }
+
+      setTrips((prev) => [newTrip as Trip, ...prev]);
+      toast.success("Trip cloned");
+      return newTrip as Trip;
+    } catch (error) {
+      console.error("Error cloning trip:", error);
+      toast.error("Failed to clone trip");
+      return null;
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return {
     trips,
     loading,
