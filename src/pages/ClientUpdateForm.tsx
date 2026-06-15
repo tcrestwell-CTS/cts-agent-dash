@@ -326,6 +326,7 @@ const ClientUpdateForm = () => {
                         size="sm"
                         onClick={() => removeCompanion(index)}
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        aria-label={`Remove companion ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
