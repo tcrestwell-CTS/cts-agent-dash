@@ -1,0 +1,10 @@
+# Crestwell Travel Network — Agent Dashboard
+
+> Private operations dashboard for Crestwell Travel Services agents and clients. Most surfaces require authentication and are not intended for public indexing.
+
+The public marketing site lives at https://crestwellgetaways.com — use that for travel-agency content, services, and trip information.
+
+## Pages
+
+- [Agent sign-in](/auth): Authentication page for Crestwell travel agents.
+- [Client portal sign-in](/client/login): Authentication page for Crestwell travel clients.
