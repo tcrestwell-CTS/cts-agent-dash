@@ -1684,6 +1684,8 @@ const handler = async (req: Request): Promise<Response> => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // (no-op — handlers above return)
   } catch (error) {
     console.error("Portal data error:", error instanceof Error ? error.message : error, error instanceof Error ? error.stack : "");
     return new Response(JSON.stringify({ error: "Internal server error" }), {
