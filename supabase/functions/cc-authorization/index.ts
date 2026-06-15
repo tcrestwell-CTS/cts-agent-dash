@@ -339,23 +339,34 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // Re-authenticate the agent using a fresh anon client
-      // (signInWithPassword via a service-role client can fail / not verify correctly).
-      const supabaseAuthCheck = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { auth: { persistSession: false, autoRefreshToken: false } }
+      // Determine whether this user actually has an email/password identity.
+      // OAuth-only users (e.g. signed in via Google) may have a password set on
+      // auth.users via updateUser({ password }), but no "email" identity row is
+      // created — so signInWithPassword will always fail with invalid_credentials.
+      // For those users, the bearer JWT itself is the re-auth proof.
+      const hasEmailIdentity = (user.identities || []).some(
+        (i: any) => i.provider === "email"
       );
-      const { error: signInError } = await supabaseAuthCheck.auth.signInWithPassword({
-        email: user.email!,
-        password,
-      });
 
-      if (signInError) {
-        console.error("cc-authorization decrypt: password verify failed", signInError.message);
-        return new Response(JSON.stringify({ error: "Invalid password" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (hasEmailIdentity) {
+        const supabaseAuthCheck = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { auth: { persistSession: false, autoRefreshToken: false } }
+        );
+        const { error: signInError } = await supabaseAuthCheck.auth.signInWithPassword({
+          email: user.email!,
+          password,
         });
+
+        if (signInError) {
+          console.error("cc-authorization decrypt: password verify failed", signInError.message);
+          return new Response(JSON.stringify({ error: "Invalid password" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        console.log("cc-authorization decrypt: OAuth-only user, skipping password gate", user.email);
       }
 
       // Get the authorization (RLS check via user_id match)
