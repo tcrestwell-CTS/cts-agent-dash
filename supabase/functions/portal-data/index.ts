@@ -1679,13 +1679,100 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "profile") {
+      // Return the client's editable profile data
+      const { data: client, error: clientErr } = await supabase
+        .from("clients")
+        .select(
+          "id, name, first_name, last_name, preferred_first_name, email, phone, secondary_email, secondary_phone, birthday, address_line_1, address_line_2, address_city, address_state, address_zip_code, address_country, passport_info, known_traveler_number, redress_number, food_drink_allergies, activities_interests, flight_seating_preference, flight_bulkhead_preference, lodging_floor_preference, lodging_elevator_preference, cruise_cabin_floor_preference, cruise_cabin_location_preference, loyalty_programs"
+        )
+        .eq("id", clientId)
+        .maybeSingle();
+
+      if (clientErr || !client) {
+        return new Response(JSON.stringify({ error: "Profile not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ profile: client }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "update-profile") {
+      const body = await req.json().catch(() => ({}));
+      const ALLOWED = [
+        "first_name", "last_name", "preferred_first_name",
+        "phone", "secondary_phone", "secondary_email",
+        "birthday",
+        "address_line_1", "address_line_2", "address_city",
+        "address_state", "address_zip_code", "address_country",
+        "passport_info", "known_traveler_number", "redress_number",
+        "food_drink_allergies", "activities_interests",
+        "flight_seating_preference", "flight_bulkhead_preference",
+        "lodging_floor_preference", "lodging_elevator_preference",
+        "cruise_cabin_floor_preference", "cruise_cabin_location_preference",
+        "loyalty_programs",
+      ];
+
+      const update: Record<string, unknown> = {};
+      for (const key of ALLOWED) {
+        if (key in body) {
+          const v = body[key];
+          // Normalize: empty string -> null; trim strings; cap length
+          if (v === "" || v === undefined) {
+            update[key] = null;
+          } else if (typeof v === "string") {
+            const trimmed = v.trim();
+            update[key] = trimmed.length === 0 ? null : trimmed.slice(0, 500);
+          } else {
+            update[key] = v;
+          }
+        }
+      }
+
+      // Derive display name when first/last provided
+      if ("first_name" in update || "last_name" in update) {
+        const { data: existing } = await supabase
+          .from("clients")
+          .select("first_name, last_name")
+          .eq("id", clientId)
+          .maybeSingle();
+        const fn = ("first_name" in update ? update.first_name : existing?.first_name) as string | null | undefined;
+        const ln = ("last_name"  in update ? update.last_name  : existing?.last_name)  as string | null | undefined;
+        const composed = [fn, ln].filter(Boolean).join(" ").trim();
+        if (composed) (update as any).name = composed;
+      }
+
+      if (Object.keys(update).length === 0) {
+        return new Response(JSON.stringify({ error: "No valid fields to update" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      (update as any).updated_at = new Date().toISOString();
+
+      const { error: updErr } = await supabase
+        .from("clients")
+        .update(update)
+        .eq("id", clientId);
+
+      if (updErr) {
+        console.error("Profile update error:", updErr);
+        return new Response(JSON.stringify({ error: "Failed to update profile" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // (no-op — handlers above return)
   } catch (error) {
     console.error("Portal data error:", error instanceof Error ? error.message : error, error instanceof Error ? error.stack : "");
     return new Response(JSON.stringify({ error: "Internal server error" }), {
