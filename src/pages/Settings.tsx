@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3, Banknote } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3, Banknote, AlertCircle } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,8 @@ import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings
 import { AgentPayoutSettings } from "@/components/settings/AgentPayoutSettings";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
