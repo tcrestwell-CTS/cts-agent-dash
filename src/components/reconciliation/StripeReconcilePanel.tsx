@@ -337,10 +337,17 @@ export default function StripeReconcilePanel() {
       const item = actionDialog.item;
       if (adjustTarget === "local") {
         const table = actionDialog.source === "checkout_mismatch" ? "checkout_payments" : "trip_payments";
+        // When Stripe charged a processing fee on top of the booking, the
+        // booking-side amount should match the Stripe NET (gross − fee), not
+        // the gross PI amount. Fall back to stripe_amount when no fee was found.
+        const targetAmount =
+          typeof item.stripe_net === "number" && item.stripe_fee > 0
+            ? item.stripe_net
+            : item.stripe_amount;
         const updateData =
           table === "checkout_payments"
-            ? { amount_cents: Math.round(item.stripe_amount * 100), status: mapStripeStatus(item.stripe_status) }
-            : { amount: item.stripe_amount, status: mapStripeStatus(item.stripe_status) };
+            ? { amount_cents: Math.round(targetAmount * 100), status: mapStripeStatus(item.stripe_status) }
+            : { amount: targetAmount, status: mapStripeStatus(item.stripe_status) };
 
         const { error } = await supabase
           .from(table)
@@ -547,7 +554,18 @@ export default function StripeReconcilePanel() {
                       <TableRow key={issueKey(item)}>
                         <TableCell>{item.customer || "—"}</TableCell>
                         <TableCell>{fmt(item.local_amount || item.amount || 0)}</TableCell>
-                        <TableCell>{item.stripe_amount ? fmt(item.stripe_amount) : "—"}</TableCell>
+                        <TableCell>
+                          {item.stripe_amount ? (
+                            <div className="flex flex-col">
+                              <span>{fmt(item.stripe_amount)}</span>
+                              {item.stripe_fee > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  net {fmt(item.stripe_net)} (fee {fmt(item.stripe_fee)})
+                                </span>
+                              )}
+                            </div>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className={item.amount_variance ? "text-destructive font-medium" : ""}>
                           {item.amount_variance ? fmt(item.amount_variance) : "—"}
                         </TableCell>
@@ -607,7 +625,18 @@ export default function StripeReconcilePanel() {
                       <TableRow key={issueKey(item)}>
                         <TableCell className="font-mono text-xs">{item.trip_id?.slice(0, 8)}…</TableCell>
                         <TableCell>{fmt(item.local_amount || item.amount || 0)}</TableCell>
-                        <TableCell>{item.stripe_amount ? fmt(item.stripe_amount) : "—"}</TableCell>
+                        <TableCell>
+                          {item.stripe_amount ? (
+                            <div className="flex flex-col">
+                              <span>{fmt(item.stripe_amount)}</span>
+                              {item.stripe_fee > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  net {fmt(item.stripe_net)} (fee {fmt(item.stripe_fee)})
+                                </span>
+                              )}
+                            </div>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className={item.amount_variance ? "text-destructive font-medium" : ""}>
                           {item.amount_variance ? fmt(item.amount_variance) : "—"}
                         </TableCell>

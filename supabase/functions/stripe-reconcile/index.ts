@@ -81,6 +81,10 @@ serve(async (req) => {
       const url = new URL("https://api.stripe.com/v1/payment_intents");
       url.searchParams.set("limit", "100");
       url.searchParams.set("created[gte]", String(ninetyDaysAgo));
+      // Expand the latest charge + its balance transaction so we get the Stripe
+      // processing fee for each PI. Needed to reconcile grossed-up payments
+      // (where local amount = booking, Stripe amount = booking + fee).
+      url.searchParams.set("expand[]", "data.latest_charge.balance_transaction");
       if (startingAfter) url.searchParams.set("starting_after", startingAfter);
       const stripeResp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` } });
       if (!stripeResp.ok) {
@@ -124,6 +128,14 @@ serve(async (req) => {
       stripePIMap.set(pi.id, pi);
     }
 
+    // Helper — extract Stripe processing fee (in cents) from an expanded PI.
+    const getStripeFeeCents = (pi: any): number => {
+      const ch = pi?.latest_charge;
+      const bt = ch && typeof ch === "object" ? ch.balance_transaction : null;
+      if (bt && typeof bt === "object" && typeof bt.fee === "number") return bt.fee;
+      return 0;
+    };
+
     // ── 6. Reconcile checkout_payments vs Stripe ──
     const checkoutDiscrepancies: any[] = [];
     const matchedCheckout: any[] = [];
@@ -163,7 +175,13 @@ serve(async (req) => {
 
       const localAmount = cp.amount_cents;
       const stripeAmount = stripePi.amount;
-      const amountMatch = localAmount === stripeAmount;
+      const stripeFee = getStripeFeeCents(stripePi);
+      const stripeNet = stripeAmount - stripeFee;
+      // Local can either equal Stripe gross (no gross-up) OR Stripe net (customer
+      // was charged a processing fee on top of the booking amount).
+      const amountMatch =
+        localAmount === stripeAmount ||
+        (stripeFee > 0 && Math.abs(localAmount - stripeNet) <= 1);
       const localStatus = cp.status;
       const stripeStatus = stripePi.status;
 
@@ -196,13 +214,15 @@ serve(async (req) => {
           customer: cp.customer_name,
           local_amount: localAmount / 100,
           stripe_amount: stripeAmount / 100,
-          amount_variance: (stripeAmount - localAmount) / 100,
+          stripe_fee: stripeFee / 100,
+          stripe_net: stripeNet / 100,
+          amount_variance: (stripeNet - localAmount) / 100,
           local_status: localStatus,
           stripe_status: stripeStatus,
           amount_match: amountMatch,
           status_match: statusMatch,
           message: !amountMatch
-            ? `Amount mismatch: local $${(localAmount / 100).toFixed(2)} vs Stripe $${(stripeAmount / 100).toFixed(2)}`
+            ? `Amount mismatch: local $${(localAmount / 100).toFixed(2)} vs Stripe net $${(stripeNet / 100).toFixed(2)} (gross $${(stripeAmount / 100).toFixed(2)} − fee $${(stripeFee / 100).toFixed(2)})`
             : `Status mismatch: local "${localStatus}" vs Stripe "${stripeStatus}"`,
         });
       } else {
@@ -240,7 +260,11 @@ serve(async (req) => {
       }
 
       const stripeAmountDollars = stripePi.amount / 100;
-      const amountMatch = Math.abs(tp.amount - stripeAmountDollars) < 0.01;
+      const stripeFeeDollars = getStripeFeeCents(stripePi) / 100;
+      const stripeNetDollars = stripeAmountDollars - stripeFeeDollars;
+      const amountMatch =
+        Math.abs(tp.amount - stripeAmountDollars) < 0.01 ||
+        (stripeFeeDollars > 0 && Math.abs(tp.amount - stripeNetDollars) < 0.01);
       const statusMatch =
         (stripePi.status === "succeeded" && isLocalPaidStatus(tp.status)) ||
         (stripePi.status === "canceled" && tp.status === "cancelled") ||
@@ -267,11 +291,13 @@ serve(async (req) => {
           trip_id: tp.trip_id,
           local_amount: tp.amount,
           stripe_amount: stripeAmountDollars,
-          amount_variance: stripeAmountDollars - tp.amount,
+          stripe_fee: stripeFeeDollars,
+          stripe_net: stripeNetDollars,
+          amount_variance: stripeNetDollars - tp.amount,
           local_status: tp.status,
           stripe_status: stripePi.status,
           message: !amountMatch
-            ? `Amount mismatch: local $${tp.amount.toFixed(2)} vs Stripe $${stripeAmountDollars.toFixed(2)}`
+            ? `Amount mismatch: local $${tp.amount.toFixed(2)} vs Stripe net $${stripeNetDollars.toFixed(2)} (gross $${stripeAmountDollars.toFixed(2)} − fee $${stripeFeeDollars.toFixed(2)})`
             : `Status mismatch: local "${tp.status}" vs Stripe "${stripePi.status}"`,
         });
       } else {
