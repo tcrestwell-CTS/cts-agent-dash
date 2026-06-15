@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3, Banknote } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Building2, Settings2, Columns3, Banknote, AlertCircle } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,9 @@ import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings
 import { AgentPayoutSettings } from "@/components/settings/AgentPayoutSettings";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
@@ -27,7 +30,8 @@ const Settings = () => {
   const { isAdmin } = usePermissions();
   const earnings = useEarningsLabel();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -39,6 +43,45 @@ const Settings = () => {
     asta_number: "",
     embarc_number: "",
   });
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  const isOAuthOnly = !user?.identities?.some((i) => i.provider === "email");
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update password");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
 
   // Update form when profile loads
   useEffect(() => {
@@ -443,20 +486,51 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {isOAuthOnly && (
+                <div className="flex items-start gap-2 p-3 bg-info/10 border border-info/20 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-info mt-0.5 shrink-0" />
+                  <p className="text-sm text-info">
+                    You signed in with Google OAuth and don't have a password yet. Set one below so you can decrypt credit card info when needed.
+                  </p>
+                </div>
+              )}
               <div className="space-y-4">
+                {!isOAuthOnly && (
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" />
+                  <Label htmlFor="newPassword">{isOAuthOnly ? "Set Password" : "New Password"}</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={isOAuthOnly ? "Create a password" : "Enter new password"}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input id="newPassword" type="password" />
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input id="confirmPassword" type="password" />
-                </div>
-                <Button>Update Password</Button>
+                <Button onClick={handleUpdatePassword} disabled={updatingPassword || !newPassword || !confirmPassword}>
+                  {updatingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {isOAuthOnly ? "Set Password" : "Update Password"}
+                </Button>
               </div>
 
               <div className="pt-6 border-t border-border">

@@ -14,6 +14,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useCCAuthorizations, CCAuthorization } from "@/hooks/useCCAuthorizations";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CCAuthorizationDialogProps {
   open: boolean;
