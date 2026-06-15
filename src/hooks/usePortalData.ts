@@ -262,3 +262,23 @@ export function useApproveLineSelections() {
     },
   });
 }
+
+export function usePortalProfile() {
+  return useQuery({
+    queryKey: ["portal", "profile"],
+    queryFn: () => portalFetch("profile"),
+    enabled: hasAnyAuth(),
+    staleTime: 30_000,
+  });
+}
+
+export function useUpdatePortalProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: Record<string, unknown>) => portalPost("update-profile", updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["portal", "profile"] });
+      queryClient.invalidateQueries({ queryKey: ["portal", "dashboard"] });
+    },
+  });
+}
