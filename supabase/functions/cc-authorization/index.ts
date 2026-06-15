@@ -339,13 +339,20 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // Re-authenticate the agent
-      const { error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+      // Re-authenticate the agent using a fresh anon client
+      // (signInWithPassword via a service-role client can fail / not verify correctly).
+      const supabaseAuthCheck = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      const { error: signInError } = await supabaseAuthCheck.auth.signInWithPassword({
         email: user.email!,
         password,
       });
 
       if (signInError) {
+        console.error("cc-authorization decrypt: password verify failed", signInError.message);
         return new Response(JSON.stringify({ error: "Invalid password" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
