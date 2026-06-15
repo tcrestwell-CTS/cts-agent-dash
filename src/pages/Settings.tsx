@@ -486,20 +486,51 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {isOAuthOnly && (
+                <div className="flex items-start gap-2 p-3 bg-info/10 border border-info/20 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-info mt-0.5 shrink-0" />
+                  <p className="text-sm text-info">
+                    You signed in with Google OAuth and don't have a password yet. Set one below so you can decrypt credit card info when needed.
+                  </p>
+                </div>
+              )}
               <div className="space-y-4">
+                {!isOAuthOnly && (
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" />
+                  <Label htmlFor="newPassword">{isOAuthOnly ? "Set Password" : "New Password"}</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={isOAuthOnly ? "Create a password" : "Enter new password"}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input id="newPassword" type="password" />
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input id="confirmPassword" type="password" />
-                </div>
-                <Button>Update Password</Button>
+                <Button onClick={handleUpdatePassword} disabled={updatingPassword || !newPassword || !confirmPassword}>
+                  {updatingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {isOAuthOnly ? "Set Password" : "Update Password"}
+                </Button>
               </div>
 
               <div className="pt-6 border-t border-border">
