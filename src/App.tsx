@@ -102,6 +102,7 @@ const PortalInvoices      = lazy(() => import("./pages/client/PortalInvoices"));
 const PortalInvoiceDetail = lazy(() => import("./pages/client/PortalInvoiceDetail"));
 const PortalPayments      = lazy(() => import("./pages/client/PortalPayments"));
 const PortalDocuments     = lazy(() => import("./pages/client/PortalDocuments"));
+const PortalProfile       = lazy(() => import("./pages/client/PortalProfile"));
 
 // ─── Bookkeeper Pages ────────────────────────────────────────────────────────
 const BookkeeperDashboard    = lazy(() => import("./pages/bookkeeper/BookkeeperDashboard"));
@@ -264,6 +265,7 @@ const App = () => (
                   <Route path="invoices" element={<PortalInvoices />} />
                   <Route path="invoices/:invoiceId" element={<PortalInvoiceDetail />} />
                   <Route path="documents" element={<PortalDocuments />} />
+                  <Route path="profile" element={<PortalProfile />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
