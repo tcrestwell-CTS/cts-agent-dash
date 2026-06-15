@@ -29,7 +29,8 @@ const Settings = () => {
   const { isAdmin } = usePermissions();
   const earnings = useEarningsLabel();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -41,6 +42,45 @@ const Settings = () => {
     asta_number: "",
     embarc_number: "",
   });
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  const isOAuthOnly = !user?.identities?.some((i) => i.provider === "email");
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update password");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
 
   // Update form when profile loads
   useEffect(() => {
