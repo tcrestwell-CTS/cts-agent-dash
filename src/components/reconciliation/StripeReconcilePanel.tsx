@@ -547,7 +547,18 @@ export default function StripeReconcilePanel() {
                       <TableRow key={issueKey(item)}>
                         <TableCell>{item.customer || "—"}</TableCell>
                         <TableCell>{fmt(item.local_amount || item.amount || 0)}</TableCell>
-                        <TableCell>{item.stripe_amount ? fmt(item.stripe_amount) : "—"}</TableCell>
+                        <TableCell>
+                          {item.stripe_amount ? (
+                            <div className="flex flex-col">
+                              <span>{fmt(item.stripe_amount)}</span>
+                              {item.stripe_fee > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  net {fmt(item.stripe_net)} (fee {fmt(item.stripe_fee)})
+                                </span>
+                              )}
+                            </div>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className={item.amount_variance ? "text-destructive font-medium" : ""}>
                           {item.amount_variance ? fmt(item.amount_variance) : "—"}
                         </TableCell>
@@ -607,7 +618,18 @@ export default function StripeReconcilePanel() {
                       <TableRow key={issueKey(item)}>
                         <TableCell className="font-mono text-xs">{item.trip_id?.slice(0, 8)}…</TableCell>
                         <TableCell>{fmt(item.local_amount || item.amount || 0)}</TableCell>
-                        <TableCell>{item.stripe_amount ? fmt(item.stripe_amount) : "—"}</TableCell>
+                        <TableCell>
+                          {item.stripe_amount ? (
+                            <div className="flex flex-col">
+                              <span>{fmt(item.stripe_amount)}</span>
+                              {item.stripe_fee > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  net {fmt(item.stripe_net)} (fee {fmt(item.stripe_fee)})
+                                </span>
+                              )}
+                            </div>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className={item.amount_variance ? "text-destructive font-medium" : ""}>
                           {item.amount_variance ? fmt(item.amount_variance) : "—"}
                         </TableCell>
