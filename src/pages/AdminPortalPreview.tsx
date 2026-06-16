@@ -470,6 +470,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         disablePay
                         pendingDepositPayment={null}
                         onSelectionChange={handleSelectionChange}
+                        readOnly
                       />
                     );
                   })}
