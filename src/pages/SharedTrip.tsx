@@ -6,6 +6,7 @@ import SharedTripMeta from "@/components/shared-trip/SharedTripMeta";
 import SharedTripItinerary from "@/components/shared-trip/SharedTripItinerary";
 import SharedTripInvestment from "@/components/shared-trip/SharedTripInvestment";
 import SharedTripBudgetConfirmation from "@/components/shared-trip/SharedTripBudgetConfirmation";
+import SharedTripFlowSteps from "@/components/shared-trip/SharedTripFlowSteps";
 import SharedTripFooter from "@/components/shared-trip/SharedTripFooter";
 import SharedTripPricing from "@/components/shared-trip/SharedTripPricing";
 import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
@@ -560,6 +561,14 @@ export default function SharedTrip() {
 
         {/* ── YOUR TRIP section ─────────────────────────────────────────── */}
         <div ref={yourTripRef} id="your-trip" className="scroll-mt-14 space-y-10">
+
+          {/* How this works — 3-step process card */}
+          <SharedTripFlowSteps
+            itinerarySelected={Boolean(approvedItineraryId)}
+            budgetConfirmed={Boolean((data as any).budget?.confirmed)}
+            paymentReady={Boolean(termsAccepted)}
+            primaryColor={primaryColor}
+          />
 
           {/* Trip name/meta when no cover image */}
           {!data.trip.cover_image_url && (
