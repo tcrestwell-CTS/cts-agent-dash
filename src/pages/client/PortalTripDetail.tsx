@@ -1074,6 +1074,7 @@ export default function PortalTripDetail() {
             approved={Boolean(approvedId)}
             approvedName={itineraries.find((i: any) => i.id === approvedId)?.name}
             onGoToApproveTab={() => setActiveTab("overview")}
+            tripId={tripId}
           />
           {itinerary.length > 0 && <ItineraryLocationTimeline items={itinerary} />}
           {itineraries.length > 0 ? (
@@ -1109,6 +1110,7 @@ export default function PortalTripDetail() {
             approved={Boolean(approvedId)}
             approvedName={itineraries.find((i: any) => i.id === approvedId)?.name}
             onGoToApproveTab={() => setActiveTab("overview")}
+            tripId={tripId}
           />
           <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4" /> Pricing Breakdown</CardTitle></CardHeader>

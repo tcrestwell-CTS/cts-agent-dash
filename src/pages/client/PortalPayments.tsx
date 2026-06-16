@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CreditCard, Receipt, DollarSign, Clock, CheckCircle2, XCircle,
-  Loader2, FileText, Wallet,
+  Loader2, FileText, Wallet, Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -315,55 +315,75 @@ export default function PortalPayments() {
 
       {/* Payment Method Selection Dialog */}
       <Dialog open={showMethodDialog} onOpenChange={setShowMethodDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Choose Payment Method</DialogTitle>
+            <DialogTitle>How would you like to pay?</DialogTitle>
             <DialogDescription>
-              Select how you'd like to pay{" "}
+              You're paying{" "}
               {selectedPayment && (
                 <strong>{formatCurrency(selectedPayment.amount)}</strong>
               )}
               {selectedPayment?.trip_name && (
                 <> for <strong>{selectedPayment.trip_name}</strong></>
               )}
-              .
+              . Pick the option that works best for you — all three are secure.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 mt-2">
-            {/* Stripe Option */}
+          <div className="space-y-3 mt-1">
+            {/* Option 1 — Card (recommended) */}
             <button
               onClick={handleStripePayment}
-              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-left"
+              className="w-full text-left rounded-xl border-2 border-primary/40 bg-primary/5 hover:bg-primary/10 hover:border-primary transition-all p-4"
             >
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <CreditCard className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Pay with Card</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Pay instantly using your credit or debit card via Stripe's secure checkout.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-foreground">Pay now with card</p>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Credit or debit card via Stripe's secure checkout. Paid in full today.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <span className="font-medium text-foreground">What happens next:</span> redirect to Stripe → enter card → instant confirmation.
+                  </p>
+                </div>
               </div>
             </button>
 
-            {/* Affirm Option */}
+            {/* Option 2 — Affirm financing */}
             <button
               onClick={handleAffirmPayment}
-              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-accent/50 hover:bg-accent/5 transition-all text-left"
+              className="w-full text-left rounded-xl border-2 border-border hover:border-accent/50 hover:bg-accent/5 transition-all p-4"
             >
-              <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                <Wallet className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Pay with Affirm</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Finance your trip with Affirm. Get approved instantly and pay over time with flexible monthly payments.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                  <Wallet className="h-5 w-5 text-accent-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-foreground">Pay over time with Affirm</p>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground">
+                      Financing
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Split the cost into monthly payments. Rates &amp; terms shown after a soft credit check (no impact to your score).
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <span className="font-medium text-foreground">What happens next:</span> Affirm prequalifies you in seconds → you pick a plan → trip is paid in full today.
+                  </p>
+                </div>
               </div>
             </button>
 
-            {/* CC Authorization — send card info to agent */}
+            {/* Option 3 — Send card to advisor */}
             <button
               onClick={async () => {
                 setShowMethodDialog(false);
@@ -390,19 +410,33 @@ export default function PortalPayments() {
                   toast.error("Something went wrong. Please try again.");
                 }
               }}
-              className="w-full flex items-start gap-4 p-4 rounded-lg border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
+              className="w-full text-left rounded-xl border-2 border-border hover:border-muted-foreground/30 hover:bg-muted/30 transition-all p-4"
             >
-              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Send Card Info to Agent</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Securely authorize your credit card and let your advisor process the payment on your behalf.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <Shield className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-foreground">Send my card to my advisor</p>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                      Concierge
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Securely share your card so your advisor can pay the supplier directly on your behalf.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <span className="font-medium text-foreground">What happens next:</span> encrypted authorization form → your advisor processes the booking → emailed confirmation.
+                  </p>
+                </div>
               </div>
             </button>
           </div>
+
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            All payment methods are PCI-compliant. Your card details are never stored on our servers.
+          </p>
         </DialogContent>
       </Dialog>
 
