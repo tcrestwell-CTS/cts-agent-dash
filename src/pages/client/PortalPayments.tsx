@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CreditCard, Receipt, DollarSign, Clock, CheckCircle2, XCircle,
-  Loader2, FileText, Wallet,
+  Loader2, FileText, Wallet, Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
