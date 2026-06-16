@@ -55,6 +55,7 @@ interface Props {
   disablePay?: boolean;
   pendingDepositPayment?: { id: string; amount: number; payment_type: string } | null;
   onSelectionChange?: (bookingId: string, picks: Record<string, boolean>) => void;
+  readOnly?: boolean;
 }
 
 const fmt = (n: number) =>
@@ -72,6 +73,7 @@ export function BookingOptionsCard({
   disablePay,
   pendingDepositPayment,
   onSelectionChange,
+  readOnly,
 }: Props) {
   const saveMutation = useSaveLineSelections();
   const approveMutation = useApproveLineSelections();
@@ -123,7 +125,7 @@ export function BookingOptionsCard({
       firstRender.current = false;
       return;
     }
-    if (isLocked) return;
+    if (isLocked || readOnly) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       const payload = optionalLines.map((l) => ({
@@ -139,7 +141,7 @@ export function BookingOptionsCard({
   }, [picks, isLocked]);
 
   const togglePick = (id: string) => {
-    if (isLocked) return;
+    if (isLocked || readOnly) return;
     setPicks((p) => ({ ...p, [id]: !p[id] }));
   };
 
@@ -167,6 +169,7 @@ export function BookingOptionsCard({
   const hasOptional = optionalLines.length > 0;
 
   const handleApprove = async () => {
+    if (readOnly) return;
     try {
       // Force-save current state first
       if (saveTimer.current) clearTimeout(saveTimer.current);
