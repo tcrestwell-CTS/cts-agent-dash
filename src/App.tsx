@@ -32,6 +32,7 @@ const TrainingAdmin       = lazy(() => import("./pages/TrainingAdmin"));
 const Commissions         = lazy(() => import("./pages/Commissions"));
 const CommissionReport    = lazy(() => import("./pages/CommissionReport"));
 const SupplierPaymentsDue = lazy(() => import("./pages/SupplierPaymentsDue"));
+const IssuedCards         = lazy(() => import("./pages/IssuedCards"));
 const Analytics           = lazy(() => import("./pages/Analytics"));
 const Branding            = lazy(() => import("./pages/Branding"));
 const Settings            = lazy(() => import("./pages/Settings"));
@@ -175,6 +176,7 @@ const App = () => (
                 <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/commission-report" element={<ProtectedRoute><FeatureRoute feature="quotes"><CommissionReport /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/supplier-payments-due" element={<ProtectedRoute><FeatureRoute feature="commissions"><SupplierPaymentsDue /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/issued-cards" element={<ProtectedRoute><IssuedCards /></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute><FeatureRoute feature="analytics"><Analytics /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/branding" element={<ProtectedRoute><FeatureRoute feature="email_branding"><Branding /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

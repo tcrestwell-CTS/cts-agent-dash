@@ -13,6 +13,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { SendFinancingLinkDialog } from "@/components/financing/SendFinancingLinkDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
+import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
@@ -739,10 +740,23 @@ export function TripPayments({
                           </Badge>
                         </td>
                         {/* Virtual Card Actions:
-                            - Affirm VCN: shown for paid payments where agent can issue an Affirm card */}
+                            - Stripe Issuing: manual issue + retrieve for any paid payment
+                            - Affirm VCN: shown only for explicit Affirm payments */}
                         <td className="py-3">
                           <div className="flex items-center gap-1">
-                            {/* Only show Affirm button for explicit Affirm payments or non-Stripe paid payments */}
+                            {/* Stripe Issuing virtual card — manual trigger */}
+                            {payment.payment_method_choice !== "affirm" && (
+                              <StripeVirtualCardButton
+                                paymentId={payment.id}
+                                paymentStatus={payment.status}
+                                amount={payment.amount}
+                                supplierName={paymentSupplier}
+                                tripName={tripName}
+                                virtualCardId={payment.virtual_card_id}
+                                virtualCardStatus={payment.virtual_card_status}
+                              />
+                            )}
+                            {/* Affirm VCN — only when payment_method_choice is explicitly affirm */}
                             {payment.payment_method_choice === "affirm" && (
                               <AffirmVirtualCardButton
                                 paymentStatus={payment.status}

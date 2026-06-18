@@ -108,6 +108,7 @@ const navGroups: NavGroup[] = [
       { name: "Commissions",      href: "/commissions",         icon: DollarSign,  feature: "commissions" },
       { name: "Commission Report",href: "/commission-report",   icon: FileText,    feature: "quotes" },
       { name: "Supplier Payments Due", href: "/supplier-payments-due", icon: Banknote, feature: "commissions" },
+      { name: "Issued Cards",          href: "/issued-cards",          icon: CreditCard },
     ],
   },
   {
