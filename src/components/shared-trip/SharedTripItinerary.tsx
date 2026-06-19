@@ -169,37 +169,96 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                 </h3>
               </div>
 
-              <div className="space-y-8">
-                {items.map((item: any) => (
-                  <div key={item.id} className="pl-4 border-l-2" style={{ borderColor: `${primaryColor}40` }}>
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl mt-0.5">{categoryIcons[item.category] || "📌"}</span>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-lg font-semibold text-gray-900">{item.title}</h4>
-                        {item.description && (
-                          <p className="text-gray-500 mt-1 leading-relaxed">{item.description}</p>
-                        )}
-                        <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-400">
-                          {item.start_time && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              {item.start_time.slice(0, 5)}
-                              {item.end_time && ` – ${item.end_time.slice(0, 5)}`}
-                            </span>
-                          )}
-                          {item.location && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5" /> {item.location}
-                            </span>
-                          )}
+              <div className="space-y-6">
+                {items.map((item: any) =>
+                  item.image_url ? (
+                    /* ── Image card with text overlay ── */
+                    <div
+                      key={item.id}
+                      className="relative rounded-2xl overflow-hidden shadow-md group cursor-default"
+                      style={{ minHeight: 220 }}
+                    >
+                      <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+                      {/* Category pill — top left */}
+                      <div className="absolute top-3 left-3">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-white backdrop-blur-sm bg-black/30 border border-white/20">
+                          <span>{categoryIcons[item.category] || "📌"}</span>
+                          <span className="capitalize">{item.category}</span>
+                        </span>
+                      </div>
+                      {/* Time pill — top right */}
+                      {item.start_time && (
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-white backdrop-blur-sm bg-black/30 border border-white/20">
+                            <Clock className="h-3 w-3" />
+                            {item.start_time.slice(0, 5)}
+                            {item.end_time && ` – ${item.end_time.slice(0, 5)}`}
+                          </span>
                         </div>
-                        {item.notes && (
-                          <p className="text-sm text-gray-400 mt-2 italic">{item.notes}</p>
+                      )}
+                      {/* Text overlay — bottom */}
+                      <div className="relative px-5 pb-5 pt-16">
+                        <h4 className="text-xl font-bold text-white drop-shadow-md leading-tight">{item.title}</h4>
+                        {item.location && (
+                          <p className="flex items-center gap-1.5 text-white/80 text-sm mt-1">
+                            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                            {item.location}
+                          </p>
+                        )}
+                        {item.description && (
+                          <p className="text-white/70 text-sm mt-2 leading-relaxed line-clamp-3">{item.description}</p>
+                        )}
+                        {item.item_price != null && (
+                          <p className="text-sm font-bold mt-3" style={{ color: "#facc15" }}>
+                            ${item.item_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    /* ── Text-only item (no image) ── */
+                    <div key={item.id} className="pl-4 border-l-2" style={{ borderColor: `${primaryColor}40` }}>
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl mt-0.5">{categoryIcons[item.category] || "📌"}</span>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg font-semibold text-gray-900">{item.title}</h4>
+                          {item.description && (
+                            <p className="text-gray-500 mt-1 leading-relaxed">{item.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-400">
+                            {item.start_time && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {item.start_time.slice(0, 5)}
+                                {item.end_time && ` – ${item.end_time.slice(0, 5)}`}
+                              </span>
+                            )}
+                            {item.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5" /> {item.location}
+                              </span>
+                            )}
+                          </div>
+                          {item.notes && (
+                            <p className="text-sm text-gray-400 mt-2 italic">{item.notes}</p>
+                          )}
+                          {item.item_price != null && (
+                            <p className="text-sm font-bold mt-2" style={{ color: primaryColor }}>
+                              ${item.item_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
 
                 {/* Option blocks */}
                 {blocks.map((block: any) => (
