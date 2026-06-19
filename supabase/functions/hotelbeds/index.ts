@@ -287,6 +287,31 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // ── Image Proxy — fetches GIATA images server-side (bypasses CDN IP restriction) ──
+      case "image_proxy": {
+        const imgPath = params.path as string;
+        const size = (params.size as string) || "bigger";
+        if (!imgPath || !/^[\w/.]+$/.test(imgPath)) {
+          return new Response(JSON.stringify({ error: "Invalid image path" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const sizePrefix = size === "standard" ? "" : `${size}/`;
+        const imageUrl = `https://photos.hotelbeds.com/giata/${sizePrefix}${imgPath}`;
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) {
+          return new Response(JSON.stringify({ error: "Image not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const buf = await imgRes.arrayBuffer();
+        const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const ct = imgRes.headers.get("content-type") || "image/jpeg";
+        return new Response(JSON.stringify({ base64: b64, contentType: ct }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // ── Destinations List (for mapping) ──────────────────────
       case "destinations": {
         const lang = params.language || "ENG";
