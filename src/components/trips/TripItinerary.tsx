@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sparkles, Download, Trash2, Import, Clock, MapPin, Plus,
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, ShoppingBag,
-  Music, Target, Heart, Layers, GripVertical,
+  Music, Target, Heart, Layers, GripVertical, EyeOff,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import {
@@ -511,7 +511,12 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-start justify-between gap-1">
-                                    <span className="font-medium text-sm truncate">{item.title}</span>
+                                    <span className={`font-medium text-sm truncate ${(item as any).is_hidden ? "text-muted-foreground line-through" : ""}`}>{item.title}</span>
+                                    {(item as any).is_hidden && (
+                                      <span title="Hidden from traveler" className="flex-shrink-0">
+                                        <EyeOff className="h-3 w-3 text-muted-foreground/60" />
+                                      </span>
+                                    )}
                                     <Button
                                       variant="ghost" size="icon"
                                       className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive flex-shrink-0"

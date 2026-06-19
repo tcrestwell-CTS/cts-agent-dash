@@ -417,12 +417,18 @@ export function TripPayments({
   };
 
   const getPaymentLabel = (payment: TripPayment) => {
+    // Custom label from details field (e.g. "River Cruise 1 of 3")
+    if ((payment as any).details && !(payment as any).details.startsWith("Installment")) {
+      return (payment as any).details;
+    }
     if (payment.bookings) {
       const supplier = payment.bookings.suppliers?.name || "";
       const destination = (payment.bookings as any).destination || "";
       const tripName = (payment.bookings as any).trip_name || "";
       return tripName || `${supplier} - ${destination}`.trim() || payment.bookings.confirmation_number;
     }
+    // Fall back to details (e.g. "Installment 2 of 4") if present
+    if ((payment as any).details) return (payment as any).details;
     return "Trip Payment";
   };
 

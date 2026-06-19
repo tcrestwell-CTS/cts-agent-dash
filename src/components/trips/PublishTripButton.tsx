@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Globe, Loader2, Copy, Check, Eye, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
   Popover,
@@ -74,7 +75,7 @@ export function PublishTripButton({
     ? `${PRODUCTION_DOMAIN}/shared/${shareToken}`
     : null;
   const previewUrl = shareToken
-    ? `/shared/${shareToken}`
+    ? `/shared/${shareToken}?preview=true`
     : null;
 
   const handlePublish = async () => {
@@ -104,7 +105,7 @@ export function PublishTripButton({
       const [itineraryRes, optionBlocksRes] = await Promise.all([
         supabase
         .from("itinerary_items")
-        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id")
+        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, is_hidden, image_url, thumbnail_url, flight_number, departure_city_code, arrival_city_code, item_price, flight_status")
         .eq("trip_id", tripId)
         .order("day_number", { ascending: true })
         .order("sort_order", { ascending: true }),
@@ -121,7 +122,8 @@ export function PublishTripButton({
 
       // Keep raw items/blocks (no date clamping) so the edge function can
       // sanitize per itinerary using each itinerary's own depart/return dates.
-      const publishedItinerary = (itineraryRes.data as any[]) || [];
+      // Exclude items hidden from traveler view.
+      const publishedItinerary = ((itineraryRes.data as any[]) || []).filter((i: any) => !i.is_hidden);
       const publishedOptionBlocks = (optionBlocksRes.data as any[]) || [];
 
       const snapshot = {
@@ -173,7 +175,12 @@ export function PublishTripButton({
     <div className="flex items-center gap-2">
       {/* Preview button */}
       {shareToken && (
-        <Button variant="outline" size="sm" asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          title="Preview live trip — shows current data including unpublished changes"
+        >
           <a href={previewUrl!} target="_blank" rel="noopener noreferrer">
             <Eye className="h-4 w-4 mr-2" />
             Preview
@@ -211,6 +218,9 @@ export function PublishTripButton({
                     ? "Changes have been made since last publish. Publish again to update the public page."
                     : "Your trip page is live and up to date."
                   : "Publish this trip to create a shareable client proposal page."}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Last updated {formatDistanceToNow(new Date(updatedAt), { addSuffix: true })}
               </p>
             </div>
 

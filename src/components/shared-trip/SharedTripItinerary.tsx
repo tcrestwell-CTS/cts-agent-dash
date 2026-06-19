@@ -113,10 +113,13 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
     );
   }
 
+  // Filter out items hidden from traveler view
+  const visibleItinerary = itinerary.filter((i: any) => !i.is_hidden);
+
   // Separate regular items from option block items
   const regularItems: any[] = [];
   const optionBlockItemMap: Record<string, any[]> = {};
-  for (const item of itinerary) {
+  for (const item of visibleItinerary) {
     if (item.option_block_id) {
       if (!optionBlockItemMap[item.option_block_id]) optionBlockItemMap[item.option_block_id] = [];
       optionBlockItemMap[item.option_block_id].push(item);

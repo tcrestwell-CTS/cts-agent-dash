@@ -202,6 +202,7 @@ export function AddPaymentDialog({
   const [scheduleStartDate, setScheduleStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [scheduleBookingId, setScheduleBookingId] = useState("none");
   const [scheduleNotes, setScheduleNotes] = useState("");
+  const [scheduleLabel, setScheduleLabel] = useState("");
   const [scheduleCreating, setScheduleCreating] = useState(false);
 
   const handleClose = (val: boolean) => {
@@ -377,7 +378,9 @@ export function AddPaymentDialog({
           due_date: format(dueDate, "yyyy-MM-dd"),
           payment_type: i === 0 ? "deposit" : i === scheduleMonthsNum - 1 ? "final_balance" : "payment",
           status: "pending",
-          details: `Installment ${i + 1} of ${scheduleMonthsNum}`,
+          details: scheduleLabel
+            ? `${scheduleLabel} ${i + 1} of ${scheduleMonthsNum}`
+            : `Installment ${i + 1} of ${scheduleMonthsNum}`,
           notes: scheduleNotes || null,
         });
       }
@@ -648,6 +651,18 @@ Crestwell Travel Services`
                 onChange={(e) => setScheduleStartDate(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Custom Payment Label <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                placeholder={`e.g., "Deposit", "River Cruise" — shown to client as label 1 of N`}
+                value={scheduleLabel}
+                onChange={(e) => setScheduleLabel(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Replaces "Installment" in the client-facing payment schedule label
+              </p>
             </div>
 
             <div className="space-y-2">

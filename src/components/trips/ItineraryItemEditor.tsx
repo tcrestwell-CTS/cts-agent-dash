@@ -25,8 +25,9 @@ import { Separator } from "@/components/ui/separator";
 import {
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, Target, Heart,
   ShoppingBag, Music, Loader2, CheckCircle2, AlertTriangle, XCircle,
-  Clock, ExternalLink, ImageIcon, DollarSign, FileText, Info,
+  Clock, ExternalLink, ImageIcon, DollarSign, FileText, Info, EyeOff, Eye as EyeOn,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { type ItineraryItem } from "@/hooks/useItinerary";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -76,6 +77,8 @@ interface ExtendedItem extends ItineraryItem {
   // Flight status
   flight_status?: string | null;
   flight_status_updated_at?: string | null;
+  // Visibility
+  is_hidden?: boolean | null;
 }
 
 interface Props {
@@ -198,6 +201,21 @@ function DetailsTab({ form, setForm }: { form: any; setForm: (f: any) => void })
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           placeholder="Agent-only notes — not shown to client"
           rows={2}
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+        <div className="flex items-center gap-2">
+          {form.is_hidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <EyeOn className="h-4 w-4 text-muted-foreground" />}
+          <div>
+            <p className="text-sm font-medium">Hide from traveler</p>
+            <p className="text-xs text-muted-foreground">Activity stays visible to you but is hidden on the client-facing proposal</p>
+          </div>
+        </div>
+        <Switch
+          checked={!!form.is_hidden}
+          onCheckedChange={(v) => setForm({ ...form, is_hidden: v })}
+          data-testid="switch-hide-activity"
         />
       </div>
     </div>
@@ -506,6 +524,7 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Prop
         commission_amount: form.commission_amount ? parseFloat(form.commission_amount) : null,
         image_url: form.image_url || null,
         thumbnail_url: form.thumbnail_url || null,
+        is_hidden: form.is_hidden ?? false,
       } as any);
       if (success) {
         toast.success("Activity saved");
