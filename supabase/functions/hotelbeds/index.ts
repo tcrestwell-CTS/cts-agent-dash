@@ -32,6 +32,22 @@ async function generateSignature(apiKey: string, secret: string): Promise<string
 const MTLS_PROXY_URL = Deno.env.get("HOTELBEDS_MTLS_PROXY_URL"); // e.g. https://hotelbeds-mtls-proxy.your-domain.workers.dev
 const MTLS_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN");
 
+// Optional direct mTLS (used only in live env when both cert + key are set).
+const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
+const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
+let mtlsClient: Deno.HttpClient | null = null;
+if (HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
+  try {
+    // @ts-ignore — createHttpClient is available in Deno Deploy runtime
+    mtlsClient = Deno.createHttpClient({
+      certChain: HB_CLIENT_CERT,
+      privateKey: HB_CLIENT_KEY,
+    });
+  } catch (e) {
+    console.error("Failed to create mTLS client:", e);
+  }
+}
+
 // Cert 3.x — Recommended Selling Price markup (B2C resale)
 const RSP_MARKUP_PCT = parseFloat(Deno.env.get("HOTELBEDS_RSP_MARKUP_PCT") || "18");
 
@@ -102,6 +118,11 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
   const options: RequestInit = { method, headers: hbHeaders };
   if (body && method !== "GET") {
     options.body = JSON.stringify(body);
+  }
+
+  if (mtlsClient) {
+    // @ts-ignore — `client` is a Deno-specific fetch option
+    (options as any).client = mtlsClient;
   }
 
   const response = await fetch(url, options);
