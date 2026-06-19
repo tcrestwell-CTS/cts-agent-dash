@@ -19,6 +19,7 @@ import { useItinerary, type ItineraryItem } from "@/hooks/useItinerary";
 import { useOptionBlocks } from "@/hooks/useOptionBlocks";
 import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
 import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
+import { ItineraryItemEditor } from "./ItineraryItemEditor";
 import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { TripBooking } from "@/hooks/useTrips";
@@ -523,10 +524,24 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>
                                   )}
                                   {item.category === "flight" && ((item as any).flight_number || (item as any).departure_city_code) && (
-                                    <div className="flex items-center gap-1 mt-0.5 text-[10px] font-medium text-blue-600">
-                                      {(item as any).flight_number && <span>{(item as any).flight_number}</span>}
-                                      {(item as any).departure_city_code && (item as any).arrival_city_code && (
-                                        <span>{(item as any).departure_city_code} → {(item as any).arrival_city_code}</span>
+                                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                      <span className="text-[10px] font-medium text-blue-600">
+                                        {(item as any).flight_number && <span>{(item as any).flight_number}</span>}
+                                        {(item as any).departure_city_code && (item as any).arrival_city_code && (
+                                          <span> {(item as any).departure_city_code} → {(item as any).arrival_city_code}</span>
+                                        )}
+                                      </span>
+                                      {(item as any).flight_status && (item as any).flight_status !== "confirmed" && (
+                                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                                          (item as any).flight_status === "cancelled"
+                                            ? "bg-red-100 text-red-700 border-red-300"
+                                            : "bg-amber-100 text-amber-700 border-amber-300"
+                                        }`}>
+                                          {(item as any).flight_status === "cancelled" ? "Cancelled" : "Changed"}
+                                        </span>
+                                      )}
+                                      {(item as any).flight_status === "confirmed" && (
+                                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-300">On Time</span>
                                       )}
                                     </div>
                                   )}
@@ -754,16 +769,13 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
         />
       )}
 
-      {/* Edit dialog */}
-      {editingItem && (
-        <EditItineraryItemDialog
-          key={editingItem.id}
-          item={editingItem}
-          open={!!editingItem}
-          onOpenChange={(open) => { if (!open) setEditingItem(null); }}
-          onUpdate={updateItem}
-        />
-      )}
+      {/* Advanced itinerary item editor (sheet) */}
+      <ItineraryItemEditor
+        item={editingItem as any}
+        open={!!editingItem}
+        onOpenChange={(open) => { if (!open) setEditingItem(null); }}
+        onUpdate={updateItem}
+      />
     </div>
     </DragDropContext>
   );

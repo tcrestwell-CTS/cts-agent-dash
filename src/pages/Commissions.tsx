@@ -28,6 +28,7 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
+import { CommissionStatusBadge } from "@/components/commissions/CommissionStatusBadge";
 import { CommissionAgingReport } from "@/components/commissions/CommissionAgingReport";
 import { useMemo, useState } from "react";
 import { format, parseISO, startOfMonth, subMonths, subDays, isWithinInterval, isPast, differenceInDays } from "date-fns";
@@ -536,16 +537,11 @@ const Commissions = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={
-                            item.status === "paid"
-                              ? "bg-success/10 text-success"
-                              : "bg-warning/10 text-warning"
-                          }
-                        >
-                          {item.status}
-                        </Badge>
+                        <CommissionStatusBadge
+                          status={item.status}
+                          expectedDate={item.expectedCommissionDate ? item.expectedCommissionDate.toISOString() : null}
+                          daysLabel
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

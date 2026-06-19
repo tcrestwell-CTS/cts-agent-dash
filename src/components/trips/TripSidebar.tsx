@@ -34,6 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { AITripAssistantPanel } from "@/components/trips/AITripAssistantPanel";
 
 interface TripSidebarProps {
   tripId: string;
@@ -224,6 +225,17 @@ export function TripSidebar({
             </Button>
           </div>
         )}
+
+        {/* AI Trip Assistant */}
+        <div className="pt-3 border-t">
+          <AITripAssistantPanel
+            tripId={tripId}
+            destination={destination || null}
+            departDate={departDate || null}
+            returnDate={returnDate || null}
+            tripName={tripName || "this trip"}
+          />
+        </div>
 
         {/* Delete Trip */}
         {onDelete && (
