@@ -356,7 +356,7 @@ export default function CommissionReport() {
                   tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
                 />
                 <Tooltip
-                  formatter={(value: number) => [formatCurrency(value), ""]}
+                  formatter={(value: number, name) => [formatCurrency(value), name]}
                   contentStyle={{
                     fontSize: 12,
                     border: "1px solid hsl(var(--border))",
