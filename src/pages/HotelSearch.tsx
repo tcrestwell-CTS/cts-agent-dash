@@ -59,6 +59,7 @@ export default function HotelSearch() {
   const { user } = useAuth();
 
   const [destination, setDestination] = useState("");
+  const [destinationValid, setDestinationValid] = useState(false);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [adults, setAdults] = useState(2);
@@ -88,7 +89,12 @@ export default function HotelSearch() {
 
   const handleSearch = () => {
     const dest = destination.trim().toUpperCase();
-    if (!dest || dest.length > 3 || !checkIn || !checkOut) {
+    if (!dest || !destinationValid) {
+      toast.error("Please select a destination from the dropdown suggestions.");
+      return;
+    }
+    if (!checkIn || !checkOut) {
+      toast.error("Please select check-in and check-out dates.");
       return;
     }
     if (checkOut <= checkIn) {
@@ -237,7 +243,14 @@ export default function HotelSearch() {
                 <Label>Destination</Label>
                 <HotelDestinationInput
                   value={destination}
-                  onChange={setDestination}
+                  onChange={(code) => {
+                    setDestination(code);
+                    setDestinationValid(false); // reset until confirmed selection
+                  }}
+                  onSelect={(code) => {
+                    setDestination(code);
+                    setDestinationValid(true);
+                  }}
                   placeholder="Search city or code..."
                 />
               </div>

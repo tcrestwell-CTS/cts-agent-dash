@@ -86,11 +86,12 @@ const DESTINATIONS: [string, string, string][] = [
 interface HotelDestinationInputProps {
   value: string;
   onChange: (code: string) => void;
+  onSelect?: (code: string) => void; // called only on confirmed dropdown selection
   placeholder?: string;
   className?: string;
 }
 
-export function HotelDestinationInput({ value, onChange, placeholder = "City or code", className }: HotelDestinationInputProps) {
+export function HotelDestinationInput({ value, onChange, onSelect, placeholder = "City or code", className }: HotelDestinationInputProps) {
   const [query, setQuery] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
@@ -110,6 +111,7 @@ export function HotelDestinationInput({ value, onChange, placeholder = "City or 
   const handleSelect = (code: string) => {
     setQuery(code);
     onChange(code);
+    onSelect?.(code); // notify parent of a confirmed pick
     setShowDropdown(false);
   };
 
@@ -120,8 +122,11 @@ export function HotelDestinationInput({ value, onChange, placeholder = "City or 
     const exactMatch = DESTINATIONS.find(([c]) => c === val.toUpperCase());
     if (exactMatch && val.length === 3) {
       onChange(val.toUpperCase());
-    } else if (val.length < 3) {
+      onSelect?.(val.toUpperCase()); // valid exact match typed
+      setShowDropdown(false);
+    } else {
       onChange(val.toUpperCase());
+      // No confirmed selection yet — onSelect not called
     }
   };
 
@@ -163,6 +168,11 @@ export function HotelDestinationInput({ value, onChange, placeholder = "City or 
         className={`h-10 uppercase ${className || ""}`}
         autoComplete="off"
       />
+      {query.length === 3 && DESTINATIONS.find(([c]) => c === query) && (
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-emerald-600 font-medium pointer-events-none">
+          ✓
+        </span>
+      )}
       {showDropdown && matches.length > 0 && (
         <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden max-h-64 overflow-y-auto">
           {matches.map(([code, city, country], idx) => (
