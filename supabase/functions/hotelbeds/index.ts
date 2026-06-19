@@ -126,12 +126,19 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
   }
 
   const response = await fetch(url, options);
-  const data = await response.json();
+  const rawText = await response.text();
+  let data: any = null;
+  try { data = rawText ? JSON.parse(rawText) : null; } catch { /* non-JSON */ }
 
   if (!response.ok) {
-    const errorMsg =
-      data?.error?.message || `HotelBeds API error [${response.status}]`;
-    throw new Error(errorMsg);
+    console.error("HotelBeds API error", {
+      env: HB_ENV,
+      status: response.status,
+      url,
+      body: rawText?.slice(0, 500),
+    });
+    const detail = data?.error?.message || data?.error || rawText?.slice(0, 200);
+    throw new Error(`HotelBeds API error [${response.status}]${detail ? `: ${detail}` : ""}`);
   }
 
   return data;
