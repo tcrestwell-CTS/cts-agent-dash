@@ -142,8 +142,6 @@ export function AgentChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, view, aiMessages.length]);
 
-  if (!user) return null;
-
   // ── Team/DM send ─────────────────────────────────────────────────────────────
 
   const handleSend = async () => {
@@ -232,6 +230,8 @@ export function AgentChatWidget() {
     recognition.start();
     setIsListening(true);
   }, [isListening, speechSupported]);
+
+  if (!user) return null;
 
   // ── AI send ───────────────────────────────────────────────────────────────────
 
