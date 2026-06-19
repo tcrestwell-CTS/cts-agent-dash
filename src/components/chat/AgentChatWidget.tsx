@@ -36,7 +36,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,12 +101,22 @@ const QUICK_ACTIONS = [
 
 export function AgentChatWidget() {
   const { user } = useAuth();
-  // Auto page context: read current route entity IDs
-  const params = useParams<{ tripId?: string; clientId?: string }>();
-  const pageContext = {
-    tripId: params.tripId ?? null,
-    clientId: params.clientId ?? null,
-  };
+  // Auto page context: parse entity IDs from the current pathname.
+  // useLocation() works at any level of the router tree; useParams() only
+  // returns values when rendered inside a matching <Route> — since this widget
+  // is at the root level of BrowserRouter, useParams always returns {}.
+  const location = useLocation();
+  const pageContext = (() => {
+    const path = location.pathname;
+    // /trips/:tripId  or  /trips/:tripId/anything
+    const tripMatch = path.match(/^\/trips\/([^/]+)/);
+    // /contacts/:clientId  or  /portal-preview/:clientId
+    const clientMatch = path.match(/^\/(?:contacts|portal-preview)\/([^/]+)/);
+    return {
+      tripId: tripMatch?.[1] ?? null,
+      clientId: clientMatch?.[1] ?? null,
+    };
+  })();
 
   const [view, setView] = useState<View>("closed");
   const [dmPartnerId, setDmPartnerId] = useState<string | undefined>();
