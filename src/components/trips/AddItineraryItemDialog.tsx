@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const categories = [
   { value: "flight", label: "✈️ Flight" },
@@ -137,7 +138,12 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
           )}
           <div>
             <Label>Description</Label>
-            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Details about this activity" rows={2} />
+            <RichTextEditor
+              value={form.description}
+              onChange={(html) => setForm({ ...form, description: html })}
+              placeholder="Details about this activity — supports bold, italics, bullets, and links"
+              minHeight={70}
+            />
           </div>
           <div>
             <Label>Notes</Label>

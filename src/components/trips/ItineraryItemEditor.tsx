@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea"; // kept for notes field
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { type ItineraryItem } from "@/hooks/useItinerary";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -187,11 +188,11 @@ function DetailsTab({ form, setForm }: { form: any; setForm: (f: any) => void })
 
       <div>
         <Label>Client-Facing Description</Label>
-        <Textarea
+        <RichTextEditor
           value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="Shown to the client in the trip proposal and portal"
-          rows={3}
+          onChange={(html) => setForm({ ...form, description: html })}
+          placeholder="Shown to the client in the trip proposal and portal — supports bold, italics, bullets, and links"
+          minHeight={90}
         />
       </div>
       <div>

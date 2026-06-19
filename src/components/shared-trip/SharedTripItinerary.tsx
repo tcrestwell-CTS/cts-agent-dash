@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SafeHtml } from "@/components/ui/rich-text-editor";
 import { Clock, MapPin, CheckCircle2 } from "lucide-react";
 import { format, parseISO, addDays } from "date-fns";
 
@@ -80,7 +81,7 @@ function OptionBlockClient({ block, items, primaryColor }: { block: any; items: 
                     )}
                   </div>
                   {item.description && (
-                    <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>
+                    <SafeHtml html={item.description} className="text-sm text-gray-500 mt-0.5" />
                   )}
                   <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-400">
                     {item.start_time && (
@@ -216,7 +217,10 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                           </p>
                         )}
                         {item.description && (
-                          <p className="text-white/70 text-sm mt-2 leading-relaxed line-clamp-3">{item.description}</p>
+                          <SafeHtml
+                            html={item.description}
+                            className="text-white/70 text-sm mt-2 leading-relaxed line-clamp-3 [&_a]:text-white/90 [&_strong]:text-white [&_ul]:pl-3 [&_ol]:pl-3"
+                          />
                         )}
                         {item.item_price != null && (
                           <p className="text-sm font-bold mt-3" style={{ color: "#facc15" }}>
@@ -233,7 +237,10 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                         <div className="flex-1 min-w-0">
                           <h4 className="text-lg font-semibold text-gray-900">{item.title}</h4>
                           {item.description && (
-                            <p className="text-gray-500 mt-1 leading-relaxed">{item.description}</p>
+                            <SafeHtml
+                              html={item.description}
+                              className="text-gray-500 mt-1 leading-relaxed"
+                            />
                           )}
                           <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-400">
                             {item.start_time && (

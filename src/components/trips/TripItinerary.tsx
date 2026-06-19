@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useItinerary, type ItineraryItem } from "@/hooks/useItinerary";
+import { SafeHtml } from "@/components/ui/rich-text-editor";
 import { useOptionBlocks } from "@/hooks/useOptionBlocks";
 import { AddItineraryItemDialog } from "./AddItineraryItemDialog";
 import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
@@ -526,7 +527,10 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                                     </Button>
                                   </div>
                                   {item.description && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>
+                                    <SafeHtml
+                                      html={item.description}
+                                      className="text-xs text-muted-foreground line-clamp-2 mt-0.5"
+                                    />
                                   )}
                                   {item.category === "flight" && ((item as any).flight_number || (item as any).departure_city_code) && (
                                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
