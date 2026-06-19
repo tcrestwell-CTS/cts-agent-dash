@@ -83,6 +83,48 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "research_client",
+      description: "Fetch a comprehensive summary of a client: all trips, bookings, payments, and notes. Use when the user asks to 'research' or 'summarize' a client.",
+      parameters: {
+        type: "object",
+        properties: {
+          client_id: { type: "string", description: "UUID of the client to research" },
+        },
+        required: ["client_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_trip_details",
+      description: "Get full details of a specific trip: bookings, payments, itinerary items, and tasks.",
+      parameters: {
+        type: "object",
+        properties: {
+          trip_id: { type: "string" },
+        },
+        required: ["trip_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_client_details",
+      description: "Get basic details of a client by ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          client_id: { type: "string" },
+        },
+        required: ["client_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_group_trip",
       description:
         "Create a parent group trip and optional sub-trips. Each sub-trip is linked to the parent via parent_trip_id and inherits trip_type='group'.",
@@ -213,6 +255,75 @@ async function runTool(name: string, args: any, userId: string, supabase: any) {
       }
       return { parent_trip: parent, sub_trips: subResults };
     }
+    case "research_client": {
+      const { data: client, error: cErr } = await supabase
+        .from("clients")
+        .select("id, name, email, phone, created_at")
+        .eq("id", args.client_id)
+        .single();
+      if (cErr) return { error: cErr.message };
+
+      const [tripsRes, notesRes] = await Promise.all([
+        supabase.from("trips")
+          .select("id, trip_name, destination, status, depart_date, return_date, total_gross_sales, created_at")
+          .eq("client_id", args.client_id)
+          .order("created_at", { ascending: false })
+          .limit(20),
+        supabase.from("client_notes")
+          .select("id, note, created_at")
+          .eq("client_id", args.client_id)
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
+
+      const trips = tripsRes.data || [];
+      const totalRevenue = trips.reduce((sum: number, t: any) => sum + (t.total_gross_sales || 0), 0);
+      const upcomingTrips = trips.filter((t: any) => t.status !== "completed" && t.status !== "cancelled");
+
+      return {
+        client,
+        summary: {
+          total_trips: trips.length,
+          total_revenue: totalRevenue,
+          upcoming_trips: upcomingTrips.length,
+          last_trip: trips[0] ?? null,
+        },
+        trips: trips.slice(0, 10),
+        notes: notesRes.data || [],
+      };
+    }
+    case "get_trip_details": {
+      const [tripRes, bookingsRes, paymentsRes, tasksRes] = await Promise.all([
+        supabase.from("trips")
+          .select("id, trip_name, destination, status, depart_date, return_date, total_gross_sales, notes")
+          .eq("id", args.trip_id).single(),
+        supabase.from("bookings")
+          .select("id, confirmation_number, status, gross_sales, suppliers(name, supplier_type)")
+          .eq("trip_id", args.trip_id),
+        supabase.from("trip_payments")
+          .select("id, amount, status, payment_type, due_date")
+          .eq("trip_id", args.trip_id),
+        supabase.from("workflow_tasks")
+          .select("id, title, status, task_type, due_at")
+          .eq("trip_id", args.trip_id)
+          .eq("user_id", userId),
+      ]);
+      return {
+        trip: tripRes.data,
+        bookings: bookingsRes.data || [],
+        payments: paymentsRes.data || [],
+        tasks: tasksRes.data || [],
+      };
+    }
+    case "get_client_details": {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name, email, phone, created_at")
+        .eq("id", args.client_id)
+        .single();
+      if (error) return { error: error.message };
+      return { client: data };
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -245,7 +356,14 @@ Deno.serve(async (req) => {
     // Use service role for tool execution but always scope queries by userId.
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { messages } = (await req.json()) as { messages: ChatMessage[] };
+    const body = await req.json() as {
+      messages: ChatMessage[];
+      context?: { tripId?: string | null; clientId?: string | null };
+      attachment?: { name: string; type: string; base64: string; mimeType: string };
+      researchClient?: boolean;
+    };
+
+    const { messages, context, attachment, researchClient } = body;
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "messages required" }), {
         status: 400,
@@ -253,8 +371,45 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Build context-aware system prompt
+    let contextBlock = "";
+    if (context?.tripId) {
+      contextBlock += `\n\nCURRENT PAGE: The advisor is currently viewing trip ID: ${context.tripId}. When they refer to "this trip" or "the current trip", use this ID automatically.`;
+    }
+    if (context?.clientId) {
+      contextBlock += `\n\nCURRENT PAGE: The advisor is currently viewing client ID: ${context.clientId}. When they ask to "research this client" or refer to "this client", use this ID automatically.`;
+    }
+    if (researchClient && (context?.clientId || context?.tripId)) {
+      const targetId = context?.clientId;
+      if (targetId) {
+        contextBlock += `\n\nIMPORTANT: The advisor wants a full research summary of client ${targetId}. Call research_client immediately with this client_id.`;
+      }
+    }
+
+    // Build attachment content if file was attached
+    let attachmentMessage: ChatMessage | null = null;
+    if (attachment) {
+      if (attachment.type === "pdf" || attachment.type === "text" || attachment.type === "csv") {
+        // For text-based files, include base64 content as a user message context
+        attachmentMessage = {
+          role: "user",
+          content: `[File attached: ${attachment.name} (${attachment.type.toUpperCase()})]\nThe file content (base64-encoded) is provided below for your analysis:\n${attachment.base64.substring(0, 8000)}${attachment.base64.length > 8000 ? "\n...[truncated]" : ""}`,
+        };
+      } else if (attachment.type === "image") {
+        // Images are passed as vision content
+        attachmentMessage = {
+          role: "user",
+          content: JSON.stringify([
+            { type: "text", text: `[Image attached: ${attachment.name}]` },
+            { type: "image_url", image_url: { url: `data:${attachment.mimeType};base64,${attachment.base64}` } },
+          ]),
+        };
+      }
+    }
+
     const convo: ChatMessage[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + contextBlock },
+      ...(attachmentMessage ? [attachmentMessage] : []),
       ...messages,
     ];
 

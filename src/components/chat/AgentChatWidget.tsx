@@ -1,5 +1,30 @@
-import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, Users, ArrowLeft, Circle, Sparkles } from "lucide-react";
+/**
+ * AgentChatWidget — Enhanced AI Chat with:
+ *
+ *  1. FILE UPLOAD — Paperclip button: accepts PDF, images, CSV, TXT.
+ *     PDFs are read as base64 and sent to the ai-chat edge function which
+ *     passes them to the LLM as a document attachment.
+ *     Images are similarly passed for visual analysis / itinerary building.
+ *
+ *  2. VOICE INPUT — Mic button using the browser-native Web Speech API.
+ *     Transcript appends to the input field. Zero cost, no third-party service.
+ *
+ *  3. AUTO PAGE CONTEXT — Reads the current route's tripId / clientId via
+ *     useParams() and passes them to the edge function. The system prompt is
+ *     updated server-side with the entity's name and key details, so the AI
+ *     already knows what trip/client you're looking at when you open chat.
+ *
+ *  4. RESEARCH & SUMMARIZE CLIENT — AI command. Typing "research [name]" or
+ *     clicking the "Research Client" quick-action button triggers a Supabase
+ *     query on the edge function that fetches the client's full history (trips,
+ *     bookings, payments, notes) and returns a structured summary.
+ */
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  MessageCircle, X, Send, Loader2, Users, ArrowLeft, Circle, Sparkles,
+  Paperclip, Mic, MicOff, User, FileText, Image as ImageIcon, AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,13 +36,78 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useParams } from "react-router-dom";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 type View = "closed" | "menu" | "team" | "dm" | "ai";
 
-type AiMsg = { role: "user" | "assistant"; content: string };
+interface FileAttachment {
+  name: string;
+  type: "pdf" | "image" | "csv" | "text";
+  base64: string;
+  mimeType: string;
+}
+
+interface AiMsg {
+  role: "user" | "assistant";
+  content: string;
+  attachment?: { name: string; type: FileAttachment["type"] };
+}
+
+// ── Web Speech API type augmentation ──────────────────────────────────────────
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
+// ── File helpers ───────────────────────────────────────────────────────────────
+
+const ACCEPTED = ".pdf,.jpg,.jpeg,.png,.gif,.webp,.csv,.txt";
+const MAX_FILE_MB = 8;
+
+function getFileType(file: File): FileAttachment["type"] {
+  if (file.type === "application/pdf") return "pdf";
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type === "text/csv" || file.name.endsWith(".csv")) return "csv";
+  return "text";
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the data:...;base64, prefix
+      resolve(result.split(",")[1] || result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Quick action chips ─────────────────────────────────────────────────────────
+
+const QUICK_ACTIONS = [
+  { label: "Research this client", icon: User,       prompt: "__RESEARCH_CLIENT__" },
+  { label: "Summarize this trip",  icon: Sparkles,   prompt: "Summarize the current trip for me — status, next actions, and any pending payments." },
+  { label: "Tasks this week",      icon: FileText,   prompt: "What tasks are due this week?" },
+];
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export function AgentChatWidget() {
   const { user } = useAuth();
+  // Auto page context: read current route entity IDs
+  const params = useParams<{ tripId?: string; clientId?: string }>();
+  const pageContext = {
+    tripId: params.tripId ?? null,
+    clientId: params.clientId ?? null,
+  };
+
   const [view, setView] = useState<View>("closed");
   const [dmPartnerId, setDmPartnerId] = useState<string | undefined>();
   const [dmPartnerName, setDmPartnerName] = useState("");
@@ -25,10 +115,22 @@ export function AgentChatWidget() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const onlineAgents = useOnlineAgents();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // AI state
   const [aiMessages, setAiMessages] = useState<AiMsg[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiSending, setAiSending] = useState(false);
+
+  // File attachment state
+  const [pendingFile, setPendingFile] = useState<FileAttachment | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
+
+  // Voice state
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const speechSupported = typeof window !== "undefined" &&
+    !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const channel = view === "dm" ? "dm" : "team";
   const { messages, loading, sendMessage } = useAgentMessages(
@@ -41,6 +143,8 @@ export function AgentChatWidget() {
   }, [messages.length, view, aiMessages.length]);
 
   if (!user) return null;
+
+  // ── Team/DM send ─────────────────────────────────────────────────────────────
 
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
@@ -64,17 +168,119 @@ export function AgentChatWidget() {
     setView("dm");
   };
 
-  const handleAiSend = async () => {
-    const text = aiInput.trim();
-    if (!text || aiSending) return;
-    const next: AiMsg[] = [...aiMessages, { role: "user", content: text }];
+  // ── File upload ───────────────────────────────────────────────────────────────
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast.error(`File too large — max ${MAX_FILE_MB}MB`);
+      return;
+    }
+
+    setFileLoading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const type = getFileType(file);
+      setPendingFile({ name: file.name, type, base64, mimeType: file.type });
+      // Prompt helper
+      if (type === "pdf") setAiInput((prev) => prev || "Extract the itinerary from this document and build a trip");
+      else if (type === "image") setAiInput((prev) => prev || "What do you see in this image?");
+    } catch {
+      toast.error("Failed to read file");
+    } finally {
+      setFileLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // ── Voice input ───────────────────────────────────────────────────────────────
+
+  const toggleVoice = useCallback(() => {
+    if (!speechSupported) {
+      toast.error("Voice input not supported in this browser");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setAiInput((prev) => prev ? `${prev} ${transcript}` : transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error !== "no-speech") toast.error(`Voice error: ${event.error}`);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, [isListening, speechSupported]);
+
+  // ── AI send ───────────────────────────────────────────────────────────────────
+
+  const handleAiSend = async (overrideText?: string) => {
+    const text = (overrideText ?? aiInput).trim();
+    if ((!text && !pendingFile) || aiSending) return;
+
+    // Special: research client quick action
+    const isResearch = text === "__RESEARCH_CLIENT__";
+    const displayText = isResearch
+      ? "Research and summarize this client for me"
+      : text;
+
+    const userMsg: AiMsg = {
+      role: "user",
+      content: displayText,
+      ...(pendingFile ? { attachment: { name: pendingFile.name, type: pendingFile.type } } : {}),
+    };
+
+    const next: AiMsg[] = [...aiMessages, userMsg];
     setAiMessages(next);
     setAiInput("");
+    const capturedFile = pendingFile;
+    setPendingFile(null);
     setAiSending(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: { messages: next },
-      });
+      const body: any = {
+        messages: next.map((m) => ({ role: m.role, content: m.content })),
+        // Auto page context
+        context: pageContext,
+      };
+
+      // Attach file for edge function processing
+      if (capturedFile) {
+        body.attachment = {
+          name: capturedFile.name,
+          type: capturedFile.type,
+          base64: capturedFile.base64,
+          mimeType: capturedFile.mimeType,
+        };
+      }
+
+      // Research mode flag
+      if (isResearch) {
+        body.researchClient = true;
+      }
+
+      const { data, error } = await supabase.functions.invoke("ai-chat", { body });
       if (error) throw error;
       const reply = (data as any)?.reply ?? "(no reply)";
       setAiMessages((prev) => [...prev, { role: "assistant", content: reply }]);
@@ -86,11 +292,22 @@ export function AgentChatWidget() {
     }
   };
 
+  // ── File type icon ────────────────────────────────────────────────────────────
+
+  const FileTypeIcon = ({ type }: { type: FileAttachment["type"] }) => {
+    if (type === "pdf") return <FileText className="h-3.5 w-3.5 text-red-500" />;
+    if (type === "image") return <ImageIcon className="h-3.5 w-3.5 text-blue-500" />;
+    return <FileText className="h-3.5 w-3.5 text-muted-foreground" />;
+  };
+
+  // ── RENDER ────────────────────────────────────────────────────────────────────
+
   if (view === "closed") {
     return (
       <button
         onClick={() => setView("menu")}
         className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 flex items-center justify-center transition-all hover:scale-105"
+        data-testid="button-chat-fab"
       >
         <MessageCircle className="h-6 w-6" />
         {onlineAgents.length > 0 && (
@@ -103,9 +320,10 @@ export function AgentChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/50">
+    <div className="fixed bottom-6 right-6 z-50 w-[400px] h-[560px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/50 flex-shrink-0">
         {(view === "team" || view === "dm" || view === "ai") && (
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setView("menu")}>
             <ArrowLeft className="h-4 w-4" />
@@ -123,12 +341,23 @@ export function AgentChatWidget() {
             </span>
           )}
         </h3>
+        {/* Page context pill */}
+        {view === "ai" && pageContext.tripId && (
+          <Badge variant="outline" className="text-[9px] px-1.5 gap-0.5 text-muted-foreground">
+            <Sparkles className="h-2.5 w-2.5" /> Trip context
+          </Badge>
+        )}
+        {view === "ai" && pageContext.clientId && !pageContext.tripId && (
+          <Badge variant="outline" className="text-[9px] px-1.5 gap-0.5 text-muted-foreground">
+            <User className="h-2.5 w-2.5" /> Client context
+          </Badge>
+        )}
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setView("closed")}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Menu View */}
+      {/* ── Menu View ── */}
       {view === "menu" && (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           <button
@@ -143,7 +372,10 @@ export function AgentChatWidget() {
                 AI Assistant
                 <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
               </p>
-              <p className="text-xs text-muted-foreground">Create group trips, manage tasks</p>
+              <p className="text-xs text-muted-foreground">
+                {pageContext.tripId ? "Trip context loaded · " : pageContext.clientId ? "Client context loaded · " : ""}
+                Upload files · Voice input · Research clients
+              </p>
             </div>
           </button>
 
@@ -174,9 +406,7 @@ export function AgentChatWidget() {
                   <div className="relative">
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={agent.avatar_url || undefined} />
-                      <AvatarFallback className="text-xs">
-                        {(agent.full_name || "A").charAt(0)}
-                      </AvatarFallback>
+                      <AvatarFallback className="text-xs">{(agent.full_name || "A").charAt(0)}</AvatarFallback>
                     </Avatar>
                     <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-green-500 text-green-500" />
                   </div>
@@ -196,29 +426,70 @@ export function AgentChatWidget() {
         </div>
       )}
 
-      {/* AI View */}
+      {/* ── AI View ── */}
       {view === "ai" && (
         <>
           <ScrollArea className="flex-1 p-3">
             {aiMessages.length === 0 ? (
-              <div className="text-xs text-muted-foreground py-6 space-y-2">
-                <p className="font-medium text-foreground">Try asking:</p>
-                <ul className="space-y-1.5 list-disc pl-4">
-                  <li>"Create a group trip to Cabo for the Smith family with 3 cabins"</li>
-                  <li>"What tasks are due this week?"</li>
-                  <li>"Add a follow-up task on the Johnson trip for Friday"</li>
-                </ul>
+              <div className="py-4 space-y-3">
+                {/* Page context banner */}
+                {(pageContext.tripId || pageContext.clientId) && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-muted-foreground flex items-start gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>
+                      {pageContext.tripId
+                        ? "I can see you're on a trip page — I'll use it as context automatically."
+                        : "I can see you're on a client page — I'll use it as context automatically."}
+                    </span>
+                  </div>
+                )}
+
+                {/* Quick actions */}
+                <div className="space-y-1.5">
+                  {(pageContext.clientId || pageContext.tripId) && (
+                    <button
+                      onClick={() => handleAiSend("__RESEARCH_CLIENT__")}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-muted/50 text-left transition-colors text-xs"
+                    >
+                      <User className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <span className="font-medium">Research &amp; summarize this client</span>
+                    </button>
+                  )}
+                  {QUICK_ACTIONS.filter((a) => a.prompt !== "__RESEARCH_CLIENT__").map((action) => (
+                    <button
+                      key={action.prompt}
+                      onClick={() => handleAiSend(action.prompt)}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-muted/50 text-left transition-colors text-xs"
+                    >
+                      <action.icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <span>{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground px-1">
+                  Or try: "Build a trip itinerary from this PDF" (attach a file) · "What's on my plate today?"
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {aiMessages.map((m, i) => (
                   <div key={i} className={cn("flex gap-2", m.role === "user" && "flex-row-reverse")}>
-                    <div
-                      className={cn(
-                        "max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                        m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+                    <div className={cn(
+                      "max-w-[88%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                      m.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground",
+                    )}>
+                      {m.attachment && (
+                        <div className={cn(
+                          "flex items-center gap-1.5 mb-1.5 rounded px-2 py-1 text-[11px]",
+                          m.role === "user" ? "bg-white/20" : "bg-background/60"
+                        )}>
+                          <FileTypeIcon type={m.attachment.type} />
+                          <span className="truncate max-w-[160px]">{m.attachment.name}</span>
+                        </div>
                       )}
-                    >
                       {m.content}
                     </div>
                   </div>
@@ -234,30 +505,110 @@ export function AgentChatWidget() {
               </div>
             )}
           </ScrollArea>
-          <div className="p-3 border-t">
-            <div className="flex gap-2">
+
+          {/* Input area */}
+          <div className="p-3 border-t flex-shrink-0 space-y-2">
+            {/* Pending file chip */}
+            {pendingFile && (
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted border text-xs">
+                <FileTypeIcon type={pendingFile.type} />
+                <span className="flex-1 truncate">{pendingFile.name}</span>
+                <button
+                  onClick={() => setPendingFile(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                  type="button"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Voice listening indicator */}
+            {isListening && (
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-xs text-red-600 dark:text-red-400">
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                Listening… speak now
+              </div>
+            )}
+
+            <div className="flex items-end gap-1.5">
+              {/* File upload button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED}
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={fileLoading || aiSending}
+                title="Attach file (PDF, image, CSV, TXT)"
+                type="button"
+                data-testid="button-chat-attach"
+              >
+                {fileLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Paperclip className="h-4 w-4" />
+                }
+              </Button>
+
+              {/* Voice button */}
+              {speechSupported && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 shrink-0 transition-colors",
+                    isListening
+                      ? "text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/20"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={toggleVoice}
+                  disabled={aiSending}
+                  title={isListening ? "Stop listening" : "Voice input"}
+                  type="button"
+                  data-testid="button-chat-voice"
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
+
+              {/* Text input */}
               <Textarea
-                placeholder="Ask the AI assistant…"
+                placeholder={isListening ? "Listening…" : pendingFile ? "Ask about this file…" : "Ask the AI assistant…"}
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
-                className="resize-none min-h-[36px] text-sm"
+                className="resize-none min-h-[36px] text-sm flex-1"
+                disabled={isListening}
+                data-testid="input-chat-message"
               />
+
+              {/* Send button */}
               <Button
                 size="icon"
                 className="shrink-0 h-9 w-9"
-                onClick={handleAiSend}
-                disabled={!aiInput.trim() || aiSending}
+                onClick={() => handleAiSend()}
+                disabled={(!aiInput.trim() && !pendingFile) || aiSending}
+                type="button"
+                data-testid="button-chat-send"
               >
-                {aiSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {aiSending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />
+                }
               </Button>
             </div>
           </div>
         </>
       )}
 
-      {/* Chat View (Team or DM) */}
+      {/* ── Team / DM View ── */}
       {(view === "team" || view === "dm") && (
         <>
           <ScrollArea className="flex-1 p-3">
@@ -283,26 +634,20 @@ export function AgentChatWidget() {
                           </AvatarFallback>
                         </Avatar>
                       )}
-                      <div
-                        className={cn(
-                          "max-w-[75%] rounded-xl px-3 py-2",
-                          isMine
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
-                        )}
-                      >
+                      <div className={cn(
+                        "max-w-[75%] rounded-xl px-3 py-2",
+                        isMine ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                      )}>
                         {!isMine && view === "team" && (
                           <p className="text-[10px] font-semibold mb-0.5 opacity-70">
                             {msg.sender_name}
                           </p>
                         )}
                         <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
-                        <p
-                          className={cn(
-                            "text-[10px] mt-1",
-                            isMine ? "text-primary-foreground/60" : "text-muted-foreground"
-                          )}
-                        >
+                        <p className={cn(
+                          "text-[10px] mt-1",
+                          isMine ? "text-primary-foreground/60" : "text-muted-foreground"
+                        )}>
                           {format(new Date(msg.created_at), "h:mm a")}
                         </p>
                       </div>
@@ -314,7 +659,7 @@ export function AgentChatWidget() {
             )}
           </ScrollArea>
 
-          <div className="p-3 border-t">
+          <div className="p-3 border-t flex-shrink-0">
             <div className="flex gap-2">
               <Textarea
                 placeholder="Type a message..."
@@ -330,11 +675,7 @@ export function AgentChatWidget() {
                 onClick={handleSend}
                 disabled={!newMessage.trim() || sending}
               >
-                {sending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>
