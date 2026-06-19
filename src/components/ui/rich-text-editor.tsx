@@ -231,13 +231,14 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // Disable heading — we only want paragraphs + lists in activity descriptions
+        // Disable heading — paragraphs + lists only for activity descriptions
         heading: false,
-        // Keep codeBlock off for this use case
         codeBlock: false,
         code: false,
+        // StarterKit doesn't include Link/Underline but exclude them here
+        // to prevent any future version collision warnings
       }),
-      Underline,
+      Underline.configure({}),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
