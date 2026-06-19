@@ -13,6 +13,8 @@ export interface Itinerary {
   overview: string | null;
   depart_date: string | null;
   return_date: string | null;
+  header_style: string | null;   // 'full_bleed' | 'large' | 'minimized' | 'legacy'
+  font_style: string | null;     // 'standard' | 'sans' | 'serif'
   created_at: string;
   updated_at: string;
 }
@@ -94,7 +96,7 @@ export function useItineraries(tripId: string | undefined) {
     }
   };
 
-  const updateItinerary = async (id: string, updates: { name?: string; depart_date?: string | null; return_date?: string | null; cover_image_url?: string | null; overview?: string | null }) => {
+  const updateItinerary = async (id: string, updates: { name?: string; depart_date?: string | null; return_date?: string | null; cover_image_url?: string | null; overview?: string | null; header_style?: string | null; font_style?: string | null }) => {
     try {
       const { error } = await supabase
         .from("itineraries")

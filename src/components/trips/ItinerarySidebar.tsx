@@ -12,6 +12,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ItineraryStylePicker } from "@/components/trips/ItineraryStylePicker";
+import type { HeaderStyle, FontStyle } from "@/components/trips/ItineraryStylePicker";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
@@ -34,6 +36,12 @@ interface ItinerarySidebarProps {
   onClearAll: () => void;
   onAddCategory: (category: string) => void;
   onWidgetyImport: (items: any[]) => Promise<boolean>;
+  // Style picker props (optional — only shown when itinerary is selected)
+  activeItineraryId?: string | null;
+  activeHeaderStyle?: HeaderStyle | null;
+  activeFontStyle?: FontStyle | null;
+  hasCoverImage?: boolean;
+  onUpdateItineraryStyle?: (id: string, updates: { header_style?: string; font_style?: string }) => Promise<any>;
 }
 
 const tripComponents = [
@@ -76,6 +84,11 @@ export function ItinerarySidebar({
   onClearAll,
   onAddCategory,
   onWidgetyImport,
+  activeItineraryId,
+  activeHeaderStyle,
+  activeFontStyle,
+  hasCoverImage,
+  onUpdateItineraryStyle,
 }: ItinerarySidebarProps) {
   const [aiOpen, setAiOpen] = useState(true);
   const [preferences, setPreferences] = useState("");
@@ -235,6 +248,23 @@ export function ItinerarySidebar({
             );
           })}
         </div>
+
+        {/* ── Proposal Style ── */}
+        {activeItineraryId && onUpdateItineraryStyle && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Proposal Style</p>
+              <ItineraryStylePicker
+                itineraryId={activeItineraryId}
+                currentHeaderStyle={activeHeaderStyle ?? null}
+                currentFontStyle={activeFontStyle ?? null}
+                onUpdate={onUpdateItineraryStyle}
+                hasCoverImage={hasCoverImage ?? false}
+              />
+            </div>
+          </>
+        )}
 
         {hasItems && (
           <>

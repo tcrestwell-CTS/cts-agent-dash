@@ -374,6 +374,11 @@ const ItineraryBuilder = () => {
                   onClearAll={sidebarCallbacks.onClearAll}
                   onAddCategory={sidebarCallbacks.onAddCategory}
                   onWidgetyImport={sidebarCallbacks.onWidgetyImport}
+                  activeItineraryId={activeId}
+                  activeHeaderStyle={(activeItinerary as any)?.header_style ?? null}
+                  activeFontStyle={(activeItinerary as any)?.font_style ?? null}
+                  hasCoverImage={!!activeItinerary?.cover_image_url}
+                  onUpdateItineraryStyle={async (id, updates) => { await updateItinerary(id, updates as any); }}
                 />
               )}
             </div>

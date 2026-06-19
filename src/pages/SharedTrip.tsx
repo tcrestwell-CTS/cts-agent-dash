@@ -56,6 +56,8 @@ export interface SharedTripData {
     depart_date: string | null;
     return_date: string | null;
     sort_order: number;
+    header_style: string | null;
+    font_style: string | null;
     items: any[];
     optionBlocks: any[];
   }>;
@@ -491,6 +493,19 @@ export default function SharedTrip() {
   const sourceDepart = activeItinerary?.depart_date ?? data.trip.depart_date;
   const sourceReturn = activeItinerary?.return_date ?? data.trip.return_date;
 
+  // ── Presentation style ────────────────────────────────────────────────────
+  const headerStyle = (activeItinerary as any)?.header_style || "full_bleed";
+  const fontStyle   = (activeItinerary as any)?.font_style   || "standard";
+
+  const FONT_MAP: Record<string, { family: string; googleParam: string | null }> = {
+    standard: { family: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", googleParam: null },
+    sans:     { family: "'Outfit', sans-serif",              googleParam: "Outfit:wght@400;500;600;700" },
+    serif:    { family: "'Cormorant Garamond', serif",        googleParam: "Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600" },
+  };
+  const activeFont = FONT_MAP[fontStyle] ?? FONT_MAP.standard;
+
+  const coverImageUrl = activeItinerary?.cover_image_url ?? data.trip.cover_image_url ?? null;
+
   const publishedItinerary = sanitizePublishedItinerary(sourceItems as any[], {
     departDate: sourceDepart,
     returnDate: sourceReturn,
@@ -518,25 +533,144 @@ export default function SharedTrip() {
           Advisor Preview — clients cannot see this banner. Hidden items are not shown.
         </div>
       )}
-      {/* ── Cover image hero ───────────────────────────────────────────── */}
-      {data.trip.cover_image_url && (
-        <div className="relative w-full h-[40vh] overflow-hidden">
+      {/* ── Google Fonts loader (injected per font_style) ── */}
+      {activeFont.googleParam && (
+        <link
+          rel="stylesheet"
+          href={`https://fonts.googleapis.com/css2?family=${activeFont.googleParam}&display=swap`}
+        />
+      )}
+
+      {/* ── Global font style injection ── */}
+      <style>{`
+        .cw-proposal {
+          font-family: ${activeFont.family};
+        }
+        .cw-proposal h1, .cw-proposal h2, .cw-proposal h3 {
+          font-family: ${activeFont.family};
+        }
+      `}</style>
+
+      {/* ── Cover Hero — 4 display styles ─────────────────────────────────────
+        full_bleed : Full-viewport cinematic — image fills 100vh, title overlaid at bottom
+        large      : Prominent ~50vh image, title/dates below on white
+        minimized  : Compact 120px banner strip, trip name in overlay
+        legacy     : No image — text-only header block
+      ── */}
+
+      {headerStyle === "full_bleed" && coverImageUrl && (
+        <div className="relative w-full overflow-hidden" style={{ height: "100svh", maxHeight: "100vh" }}>
           <img
-            src={data.trip.cover_image_url}
+            src={coverImageUrl}
             alt={data.trip.trip_name}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">{data.trip.trip_name}</h1>
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-white/90 text-sm">
-              {data.trip.destination && <span>📍 {data.trip.destination}</span>}
+          {/* Bottom-weighted gradient for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {/* Top logo/branding strip */}
+          {data.branding?.logo_url && (
+            <div className="absolute top-6 left-6">
+              <img src={data.branding.logo_url} alt={data.branding.agency_name || ""} className="h-10 object-contain drop-shadow-md" />
+            </div>
+          )}
+          {/* Bottom text overlay */}
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-12 max-w-4xl mx-auto">
+            <div className="mb-3">
+              {data.trip.destination && (
+                <span className="inline-flex items-center gap-1.5 text-white/70 text-sm mb-2">
+                  <span>📍</span>{data.trip.destination}
+                </span>
+              )}
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-xl leading-tight tracking-tight"
+                style={{ fontFamily: activeFont.family }}
+            >
+              {data.trip.trip_name}
+            </h1>
+            {data.trip.depart_date && (
+              <p className="mt-3 text-white/80 text-base">
+                {formatDate(data.trip.depart_date)}
+                {data.trip.return_date && ` – ${formatDate(data.trip.return_date)}`}
+              </p>
+            )}
+            {/* Scroll indicator */}
+            <div className="mt-8 flex items-center gap-2 text-white/50 text-xs animate-bounce">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              Scroll to explore
+            </div>
+          </div>
+        </div>
+      )}
+
+      {headerStyle === "large" && coverImageUrl && (
+        <div className="w-full">
+          <div className="relative w-full overflow-hidden" style={{ height: "50vh", minHeight: 280 }}>
+            <img
+              src={coverImageUrl}
+              alt={data.trip.trip_name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30" />
+          </div>
+          <div className="max-w-4xl mx-auto px-6 py-6 border-b border-gray-100">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight"
+                style={{ fontFamily: activeFont.family }}
+            >
+              {data.trip.trip_name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-gray-500 text-sm">
+              {data.trip.destination && <span className="flex items-center gap-1">📍 {data.trip.destination}</span>}
               {data.trip.depart_date && (
-                <span>📅 {formatDate(data.trip.depart_date)}
+                <span className="flex items-center gap-1">
+                  📅 {formatDate(data.trip.depart_date)}
                   {data.trip.return_date && ` – ${formatDate(data.trip.return_date)}`}
                 </span>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {headerStyle === "minimized" && coverImageUrl && (
+        <div className="relative w-full overflow-hidden" style={{ height: 120 }}>
+          <img
+            src={coverImageUrl}
+            alt={data.trip.trip_name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 flex items-end px-6 pb-4 max-w-4xl mx-auto">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-white drop-shadow-md"
+                  style={{ fontFamily: activeFont.family }}
+              >
+                {data.trip.trip_name}
+              </h1>
+              {data.trip.destination && (
+                <p className="text-white/70 text-xs mt-0.5">📍 {data.trip.destination}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(headerStyle === "legacy" || !coverImageUrl) && (
+        <div className="max-w-4xl mx-auto px-6 pt-10 pb-6 border-b border-gray-100">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900"
+              style={{ fontFamily: activeFont.family }}
+          >
+            {data.trip.trip_name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-4 mt-2 text-gray-500 text-sm">
+            {data.trip.destination && <span>📍 {data.trip.destination}</span>}
+            {data.trip.depart_date && (
+              <span>
+                📅 {formatDate(data.trip.depart_date)}
+                {data.trip.return_date && ` – ${formatDate(data.trip.return_date)}`}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -566,7 +700,7 @@ export default function SharedTrip() {
       />
 
       {/* ── Page content ──────────────────────────────────────────────── */}
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-16">
+      <div className="max-w-4xl mx-auto px-6 py-10 space-y-16 cw-proposal">
 
         {/* ── YOUR TRIP section ─────────────────────────────────────────── */}
         <div ref={yourTripRef} id="your-trip" className="scroll-mt-14 space-y-10">

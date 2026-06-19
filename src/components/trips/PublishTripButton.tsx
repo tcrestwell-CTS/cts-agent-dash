@@ -89,7 +89,7 @@ export function PublishTripButton({
           .eq("trip_id", tripId),
         supabase
           .from("itineraries")
-          .select("id, name, sort_order, cover_image_url, overview, depart_date, return_date")
+          .select("id, name, sort_order, cover_image_url, overview, depart_date, return_date, header_style, font_style")
           .eq("trip_id", tripId)
           .order("sort_order", { ascending: true }),
       ]);
