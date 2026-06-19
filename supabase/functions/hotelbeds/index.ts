@@ -8,14 +8,28 @@ const corsHeaders = {
 
 // Toggle between test and production environments
 const HB_ENV = Deno.env.get("HOTELBEDS_ENV") || "test"; // "test" or "live"
-const HB_BASE =
-  HB_ENV === "live"
-    ? "https://api.hotelbeds.com/hotel-api/1.0"
-    : "https://api.test.hotelbeds.com/hotel-api/1.0";
-const HB_CONTENT_BASE =
-  HB_ENV === "live"
-    ? "https://api.hotelbeds.com/hotel-content-api/1.0"
-    : "https://api.test.hotelbeds.com/hotel-content-api/1.0";
+
+// mTLS proxy (Cloudflare Worker) — pass-through contract.
+// When HOTELBEDS_MTLS_PROXY_URL is set, every HotelBeds call is sent to the
+// Worker origin instead of api.hotelbeds.com. The Worker forwards the request
+// (method, path, query, body, headers) unchanged and attaches the client cert
+// for mTLS. Auth is done with the X-MTLS-Proxy-Token header.
+const HB_PROXY_URL = (Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
+const HB_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
+const USE_PROXY = HB_PROXY_URL.length > 0;
+
+if (USE_PROXY && !HB_PROXY_TOKEN) {
+  console.warn(
+    "[hotelbeds] HOTELBEDS_MTLS_PROXY_URL is set but HOTELBEDS_MTLS_PROXY_TOKEN is empty — Worker will return 403.",
+  );
+}
+
+const HB_DIRECT_ORIGIN =
+  HB_ENV === "live" ? "https://api.hotelbeds.com" : "https://api.test.hotelbeds.com";
+const HB_ORIGIN = USE_PROXY ? HB_PROXY_URL : HB_DIRECT_ORIGIN;
+
+const HB_BASE = `${HB_ORIGIN}/hotel-api/1.0`;
+const HB_CONTENT_BASE = `${HB_ORIGIN}/hotel-content-api/1.0`;
 
 async function generateSignature(apiKey: string, secret: string): Promise<string> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -28,15 +42,12 @@ async function generateSignature(apiKey: string, secret: string): Promise<string
     .join("");
 }
 
-// mTLS proxy URL for production (Cloudflare Worker)
-const MTLS_PROXY_URL = Deno.env.get("HOTELBEDS_MTLS_PROXY_URL"); // e.g. https://hotelbeds-mtls-proxy.your-domain.workers.dev
-const MTLS_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN");
-
-// Optional direct mTLS (used only in live env when both cert + key are set).
+// Optional direct mTLS (used only in live env when both cert + key are set,
+// and the Worker proxy is NOT configured).
 const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
 const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
 let mtlsClient: Deno.HttpClient | null = null;
-if (HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
+if (!USE_PROXY && HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
   try {
     // @ts-ignore — createHttpClient is available in Deno Deploy runtime
     mtlsClient = Deno.createHttpClient({
@@ -84,43 +95,19 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
     Accept: "application/json",
     "Accept-Encoding": "gzip",
     "Content-Type": "application/json",
+    ...(USE_PROXY ? { "X-MTLS-Proxy-Token": HB_PROXY_TOKEN } : {}),
   };
 
-  // In production with mTLS proxy, route through Cloudflare Worker
-  if (HB_ENV === "live" && MTLS_PROXY_URL && MTLS_PROXY_TOKEN) {
-    const proxyBody = {
-      targetUrl: path,
-      method,
-      apiBase: basePath === HB_CONTENT_BASE ? "content" : "booking",
-      headers: hbHeaders,
-      body: body || undefined,
-    };
-
-    const proxyResponse = await fetch(MTLS_PROXY_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-proxy-token": MTLS_PROXY_TOKEN,
-      },
-      body: JSON.stringify(proxyBody),
-    });
-
-    const data = await proxyResponse.json();
-    if (!proxyResponse.ok) {
-      const errorMsg = data?.error?.message || data?.error || `HotelBeds API error [${proxyResponse.status}]`;
-      throw new Error(errorMsg);
-    }
-    return data;
-  }
-
-  // Direct call for test environment (no mTLS required)
+  // Build URL against the active origin (proxy or direct). Paths are identical
+  // either way; the Worker forwards /hotel-api/... and /hotel-content-api/...
+  // unchanged to api.hotelbeds.com.
   const url = `${basePath}${path}`;
   const options: RequestInit = { method, headers: hbHeaders };
   if (body && method !== "GET") {
     options.body = JSON.stringify(body);
   }
 
-  if (mtlsClient) {
+  if (mtlsClient && !USE_PROXY) {
     // @ts-ignore — `client` is a Deno-specific fetch option
     (options as any).client = mtlsClient;
   }
@@ -133,6 +120,9 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
   if (!response.ok) {
     console.error("HotelBeds API error", {
       env: HB_ENV,
+      proxied: USE_PROXY,
+      proxyMtls: response.headers.get("x-proxy-mtls"),
+      proxiedBy: response.headers.get("x-proxied-by"),
       status: response.status,
       url,
       body: rawText?.slice(0, 500),
