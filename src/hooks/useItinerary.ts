@@ -18,7 +18,7 @@ export interface ItineraryItem {
   location: string | null;
   notes: string | null;
   sort_order: number;
-  flight_number: string | null;
+  flight_number?: string | null;
   departure_city_code: string | null;
   arrival_city_code: string | null;
   option_block_id: string | null;
@@ -65,7 +65,7 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
       }
       const { data, error } = await query;
       if (error) throw error;
-      setItems((data as ItineraryItem[]) || []);
+      setItems((data as unknown as ItineraryItem[]) || []);
     } catch (error) {
       console.error("Error fetching itinerary:", error);
     } finally {
