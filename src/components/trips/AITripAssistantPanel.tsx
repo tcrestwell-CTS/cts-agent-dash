@@ -408,6 +408,14 @@ ${list.map(c => `<h2>${esc(c.icon || "")} ${esc(c.category)}</h2><ul>${c.items.m
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setPackingList(data.packingList);
+      if (Array.isArray(data.packingList) && data.packingList.length) {
+        await saveHtmlToTripDocuments({
+          label: `Packing List — ${tripName}`,
+          description: "AI-generated packing list for the client.",
+          fileName: `packing-list-${tripName || "trip"}.html`,
+          html: packingToHtml(data.packingList),
+        });
+      }
     } catch {
       // Fallback prompt
       try {
