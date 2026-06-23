@@ -4210,6 +4210,8 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           depart_date: string | null
+          font_style: string | null
+          header_style: string | null
           id: string
           name: string
           overview: string | null
@@ -4223,6 +4225,8 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
+          font_style?: string | null
+          header_style?: string | null
           id?: string
           name?: string
           overview?: string | null
@@ -4236,6 +4240,8 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           depart_date?: string | null
+          font_style?: string | null
+          header_style?: string | null
           id?: string
           name?: string
           overview?: string | null
