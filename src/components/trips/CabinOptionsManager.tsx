@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, BedDouble, Users, Loader2 } from "lucide-react";
+import { Plus, Trash2, BedDouble, Users, Loader2, Pencil, Check, X } from "lucide-react";
 
 interface CabinOption {
   id: string;
@@ -32,6 +32,16 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    category_name: string;
+    description: string;
+    price_per_person: string;
+    deposit_amount: string;
+    capacity: string;
+    image_url: string;
+    price_period: 'trip' | 'night';
+  } | null>(null);
 
   const [newOption, setNewOption] = useState({
     category_name: "",
@@ -102,6 +112,55 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     }
   };
 
+  const startEdit = (opt: CabinOption) => {
+    setEditingId(opt.id);
+    setEditDraft({
+      category_name: opt.category_name,
+      description: opt.description ?? "",
+      price_per_person: String(opt.price_per_person ?? ""),
+      deposit_amount: String(opt.deposit_amount ?? ""),
+      capacity: opt.capacity != null ? String(opt.capacity) : "",
+      image_url: opt.image_url ?? "",
+      price_period: (opt.price_period as 'trip' | 'night') ?? 'trip',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDraft(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingId || !editDraft) return;
+    if (!editDraft.category_name.trim()) {
+      toast.error("Category name is required");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("trip_cabin_options")
+      .update({
+        category_name: editDraft.category_name.trim(),
+        description: editDraft.description.trim() || null,
+        price_per_person: parseFloat(editDraft.price_per_person) || 0,
+        deposit_amount: parseFloat(editDraft.deposit_amount) || 0,
+        capacity: editDraft.capacity ? parseInt(editDraft.capacity) : null,
+        image_url: editDraft.image_url.trim() || null,
+        price_period: editDraft.price_period,
+      } as any)
+      .eq("id", editingId);
+
+    if (error) {
+      toast.error("Failed to update cabin option");
+    } else {
+      toast.success("Cabin option updated");
+      cancelEdit();
+      fetchOptions();
+      onDataChange?.();
+    }
+    setSaving(false);
+  };
+
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
 
@@ -140,7 +199,92 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
           </div>
         )}
 
-        {options.map((opt) => (
+        {options.map((opt) => {
+          const isEditing = editingId === opt.id;
+          if (isEditing && editDraft) {
+            return (
+              <div
+                key={opt.id}
+                className="border rounded-lg p-4 space-y-4 bg-muted/20"
+              >
+                <p className="font-medium text-sm">Edit Cabin / Category</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Category Name *</Label>
+                    <Input
+                      value={editDraft.category_name}
+                      onChange={(e) => setEditDraft((p) => p && ({ ...p, category_name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Price Per Person</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editDraft.price_per_person}
+                      onChange={(e) => setEditDraft((p) => p && ({ ...p, price_per_person: e.target.value }))}
+                    />
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                      <input
+                        type="checkbox"
+                        checked={editDraft.price_period === 'night'}
+                        onChange={(e) =>
+                          setEditDraft((p) => p && ({ ...p, price_period: e.target.checked ? 'night' : 'trip' }))
+                        }
+                      />
+                      Price is per person, per night
+                    </label>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Deposit Amount</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editDraft.deposit_amount}
+                      onChange={(e) => setEditDraft((p) => p && ({ ...p, deposit_amount: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Max Capacity</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Leave empty for unlimited"
+                      value={editDraft.capacity}
+                      onChange={(e) => setEditDraft((p) => p && ({ ...p, capacity: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Description</Label>
+                  <Textarea
+                    rows={2}
+                    value={editDraft.description}
+                    onChange={(e) => setEditDraft((p) => p && ({ ...p, description: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Image URL (optional)</Label>
+                  <Input
+                    placeholder="https://..."
+                    value={editDraft.image_url}
+                    onChange={(e) => setEditDraft((p) => p && ({ ...p, image_url: e.target.value }))}
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={cancelEdit}>
+                    <X className="h-4 w-4 mr-1" /> Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleUpdate} disabled={saving}>
+                    <Check className="h-4 w-4 mr-1" /> {saving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            );
+          }
+          return (
           <div
             key={opt.id}
             className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
@@ -173,16 +317,28 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                 </p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 text-destructive hover:text-destructive"
-              onClick={() => handleDelete(opt.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => startEdit(opt)}
+                title="Edit"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDelete(opt.id)}
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        ))}
+          );
+        })}
 
         {showAddForm && (
           <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
