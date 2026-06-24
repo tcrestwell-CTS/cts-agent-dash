@@ -45,7 +45,6 @@ Deno.serve(async (req) => {
         )
         .eq("share_token", token)
         .eq("trip_type", "group")
-        .eq("group_landing_enabled", true)
         .single();
 
       if (tripErr || !trip) {
@@ -167,7 +166,6 @@ Deno.serve(async (req) => {
         .select("id, user_id, trip_name, destination, depart_date, return_date, trip_type, group_landing_enabled, cover_image_url")
         .eq("share_token", signupToken)
         .eq("trip_type", "group")
-        .eq("group_landing_enabled", true)
         .single();
 
       if (tripErr || !parentTrip) {
