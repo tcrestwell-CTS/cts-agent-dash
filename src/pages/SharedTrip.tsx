@@ -896,6 +896,22 @@ export default function SharedTrip() {
                   </div>
                 ))}
               </div>
+              {data.trip.trip_type === "group" && token && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50">
+                  <div>
+                    <p className="font-semibold text-gray-900">Ready to join this group trip?</p>
+                    <p className="text-sm text-gray-500">Reserve your cabin and we'll set up your personal trip.</p>
+                  </div>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="rounded-xl font-semibold"
+                    style={{ backgroundColor: primaryColor, color: "white" }}
+                  >
+                    <a href={`/group/${token}`}>Sign Up &amp; Reserve</a>
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
