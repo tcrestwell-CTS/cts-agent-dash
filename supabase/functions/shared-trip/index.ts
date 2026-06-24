@@ -907,6 +907,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     cancellationTerms = [...new Set(cancellationTerms)];
 
+    // ── Cabin / category options ─────────────────────────────────────
+    // Fetch options attached to this trip; if none and trip has a parent
+    // (sub-trip of a group), fall back to the parent's options.
+    let cabinOptions: any[] = [];
+    const cabinTripIds: string[] = [trip.id];
+    if (trip.parent_trip_id) cabinTripIds.push(trip.parent_trip_id);
+    const { data: cabinRows } = await supabase
+      .from("trip_cabin_options")
+      .select("id, trip_id, category_name, price_per_person, price_period, deposit_amount, capacity, image_url, description, sort_order")
+      .in("trip_id", cabinTripIds)
+      .order("sort_order", { ascending: true });
+    if (cabinRows && cabinRows.length > 0) {
+      // Prefer this trip's options; otherwise fall back to parent's
+      const own = cabinRows.filter((c: any) => c.trip_id === trip.id);
+      cabinOptions = own.length > 0 ? own : cabinRows;
+    }
+
     // If client has already chosen an itinerary, only expose that one
     // so the proposal page (and downstream portal) hides the others.
     if (trip.approved_itinerary_id && itinerariesList.length > 1) {
