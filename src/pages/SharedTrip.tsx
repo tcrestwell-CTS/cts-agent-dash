@@ -48,6 +48,16 @@ export interface SharedTripData {
   itinerary: any[];
   bookings: any[];
   pricingLines?: any[];
+  cabinOptions?: Array<{
+    id: string;
+    category_name: string;
+    price_per_person: number;
+    price_period?: string | null;
+    deposit_amount?: number | null;
+    capacity?: number | null;
+    image_url?: string | null;
+    description?: string | null;
+  }>;
   itineraries?: Array<{
     id: string;
     name: string;
@@ -849,6 +859,45 @@ export default function SharedTrip() {
               />
             </div>
           ) : null}
+
+          {/* ─ Cabin / Category options ─ */}
+          {data.cabinOptions && data.cabinOptions.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Cabin & Category Options</h2>
+              <p className="text-sm text-gray-500 mb-6">Choose the category that works best for your travel party.</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {data.cabinOptions.map((cabin) => (
+                  <div key={cabin.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
+                    {cabin.image_url && (
+                      <img src={cabin.image_url} alt={cabin.category_name} className="w-full h-40 object-cover" />
+                    )}
+                    <div className="p-4 space-y-2 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
+                        <div className="text-right shrink-0">
+                          <div className="font-bold" style={{ color: primaryColor }}>
+                            ${Number(cabin.price_per_person || 0).toLocaleString()}
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            /person{cabin.price_period === "night" ? " / night" : ""}
+                          </div>
+                        </div>
+                      </div>
+                      {cabin.description && (
+                        <p className="text-sm text-gray-500 whitespace-pre-wrap">{cabin.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 pt-1 mt-auto">
+                        {!!cabin.deposit_amount && cabin.deposit_amount > 0 && (
+                          <span>${Number(cabin.deposit_amount).toLocaleString()} deposit</span>
+                        )}
+                        {cabin.capacity ? <span>Max {cabin.capacity} travelers</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
 
