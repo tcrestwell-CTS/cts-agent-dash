@@ -939,9 +939,12 @@ export default function SharedTrip() {
             />
 
             {/* Budget confirmation widget */}
-            {(data as any).budget?.range && (
+            {((data as any).budget?.range || (liveTripTotal ?? data.trip.total_cost) > 0) && (
               <SharedTripBudgetConfirmation
-                budgetRange={(data as any).budget.range}
+                budgetRange={
+                  (data as any).budget?.range ||
+                  `$${Number(liveTripTotal ?? data.trip.total_cost).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                }
                 confirmed={(data as any).budget.confirmed}
                 confirmedAt={(data as any).budget.confirmed_at}
                 changeRequested={(data as any).budget.change_requested}
