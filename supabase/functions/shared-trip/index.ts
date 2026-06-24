@@ -963,6 +963,7 @@ const handler = async (req: Request): Promise<Response> => {
       pricingLines,
       branding,
       advisor,
+      cabinOptions,
       termsAccepted,
       approvedItineraryId: trip.approved_itinerary_id || null,
       itineraryApprovedAt: trip.itinerary_approved_at || null,
