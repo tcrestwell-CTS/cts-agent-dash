@@ -1,0 +1,1 @@
+alter table public.itinerary_items add column if not exists is_hidden boolean not null default false;
