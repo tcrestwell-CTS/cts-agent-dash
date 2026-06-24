@@ -4272,7 +4272,9 @@ export type Database = {
           description: string | null
           end_time: string | null
           flight_number: string | null
+          flight_status: string | null
           id: string
+          image_url: string | null
           is_hidden: boolean
           item_date: string | null
           item_price: number | null
@@ -4282,6 +4284,7 @@ export type Database = {
           option_block_id: string | null
           sort_order: number
           start_time: string | null
+          thumbnail_url: string | null
           title: string
           trip_id: string
           updated_at: string
@@ -4297,7 +4300,9 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           flight_number?: string | null
+          flight_status?: string | null
           id?: string
+          image_url?: string | null
           is_hidden?: boolean
           item_date?: string | null
           item_price?: number | null
@@ -4307,6 +4312,7 @@ export type Database = {
           option_block_id?: string | null
           sort_order?: number
           start_time?: string | null
+          thumbnail_url?: string | null
           title: string
           trip_id: string
           updated_at?: string
@@ -4322,7 +4328,9 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           flight_number?: string | null
+          flight_status?: string | null
           id?: string
+          image_url?: string | null
           is_hidden?: boolean
           item_date?: string | null
           item_price?: number | null
@@ -4332,6 +4340,7 @@ export type Database = {
           option_block_id?: string | null
           sort_order?: number
           start_time?: string | null
+          thumbnail_url?: string | null
           title?: string
           trip_id?: string
           updated_at?: string
