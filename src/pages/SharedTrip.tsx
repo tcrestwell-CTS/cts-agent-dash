@@ -48,6 +48,16 @@ export interface SharedTripData {
   itinerary: any[];
   bookings: any[];
   pricingLines?: any[];
+  cabinOptions?: Array<{
+    id: string;
+    category_name: string;
+    price_per_person: number;
+    price_period?: string | null;
+    deposit_amount?: number | null;
+    capacity?: number | null;
+    image_url?: string | null;
+    description?: string | null;
+  }>;
   itineraries?: Array<{
     id: string;
     name: string;
