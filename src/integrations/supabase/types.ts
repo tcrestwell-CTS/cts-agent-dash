@@ -4273,6 +4273,7 @@ export type Database = {
           end_time: string | null
           flight_number: string | null
           id: string
+          is_hidden: boolean
           item_date: string | null
           item_price: number | null
           itinerary_id: string | null
@@ -4297,6 +4298,7 @@ export type Database = {
           end_time?: string | null
           flight_number?: string | null
           id?: string
+          is_hidden?: boolean
           item_date?: string | null
           item_price?: number | null
           itinerary_id?: string | null
@@ -4321,6 +4323,7 @@ export type Database = {
           end_time?: string | null
           flight_number?: string | null
           id?: string
+          is_hidden?: boolean
           item_date?: string | null
           item_price?: number | null
           itinerary_id?: string | null
