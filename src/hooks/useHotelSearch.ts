@@ -131,6 +131,12 @@ export function useHotelSearch() {
         body,
       });
       if (error) throw error;
+      if (data?.code === "HOTELBEDS_QUOTA_EXCEEDED") {
+        throw new Error("HotelBeds daily quota exceeded — please try again later.");
+      }
+      if (data?.fallback && data?.error) {
+        throw new Error(data.error);
+      }
       return data?.data;
     } finally {
       if (timeout) clearTimeout(timeout);
