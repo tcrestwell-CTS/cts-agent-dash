@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
     const { data: existing } = await supabase
       .from('email_logs')
       .select('id')
-      .eq('recipient_email', email)
-      .eq('template_name', 'agent_onboarding_guide')
+      .eq('to_email', email)
+      .eq('template', 'agent_onboarding_guide')
       .limit(1)
       .maybeSingle();
     if (existing) {
@@ -91,8 +91,8 @@ Deno.serve(async (req) => {
     }
 
     await supabase.from('email_logs').insert({
-      recipient_email: email,
-      template_name: 'agent_onboarding_guide',
+      to_email: email,
+      template: 'agent_onboarding_guide',
       subject: 'Welcome to Crestwell — Your Agent Setup Guide',
       status: 'sent',
     });
