@@ -9,7 +9,10 @@ const corsHeaders = {
 const FROM_EMAIL = 'notify@crestwellgetaways.com';
 const FROM_NAME = 'Crestwell Travel Services';
 const BUCKET = 'agent-documents';
-const GUIDE_PATH = 'onboarding/CTN_Agent_Setup_Guide.pdf';
+const GUIDES: { path: string; label: string }[] = [
+  { path: 'onboarding/CTN_Agent_Setup_Guide.pdf', label: 'CTN Agent Setup Guide' },
+  { path: 'onboarding/CareerOverview_BecomingATravelAdvisor.pdf', label: 'Career Overview: Becoming a Travel Advisor' },
+];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -41,11 +44,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 7-day signed URL
-    const { data: signed, error: signErr } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrl(GUIDE_PATH, 60 * 60 * 24 * 7);
-    if (signErr || !signed?.signedUrl) throw new Error(signErr?.message || 'sign failed');
+    // 7-day signed URLs for each guide
+    const signedGuides: { url: string; label: string }[] = [];
+    for (const g of GUIDES) {
+      const { data: signed, error: signErr } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(g.path, 60 * 60 * 24 * 7);
+      if (signErr || !signed?.signedUrl) throw new Error(signErr?.message || `sign failed for ${g.path}`);
+      signedGuides.push({ url: signed.signedUrl, label: g.label });
+    }
 
     const name = full_name || 'there';
     const html = `<!DOCTYPE html><html><body style="font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f8;padding:40px;">
@@ -55,9 +62,9 @@ Deno.serve(async (req) => {
     </td></tr>
     <tr><td style="padding:36px 32px;color:#1a1a1a;">
       <h2 style="margin:0 0 16px;">Welcome to Crestwell, ${name}!</h2>
-      <p style="font-size:15px;line-height:1.6;color:#4c5562;">Your agent account is ready. To help you get up and running, we've put together an Agent Setup Guide covering your dashboard, tools, and first steps.</p>
+      <p style="font-size:15px;line-height:1.6;color:#4c5562;">Your agent account is ready. To help you get up and running, we've included two guides below — your dashboard setup walkthrough and a career overview for becoming a travel advisor.</p>
       <div style="text-align:center;margin:28px 0;">
-        <a href="${signed.signedUrl}" style="display:inline-block;background:#173b75;color:#fff;padding:14px 32px;border-radius:12px;font-weight:600;text-decoration:none;">Download the Setup Guide</a>
+        ${signedGuides.map(g => `<a href="${g.url}" style="display:inline-block;background:#173b75;color:#fff;padding:14px 28px;border-radius:12px;font-weight:600;text-decoration:none;margin:6px;">${g.label}</a>`).join('<br/>')}
       </div>
       <p style="font-size:13px;color:#6b7280;">This download link is valid for 7 days. Questions? Reply to this email or call 888.508.6893.</p>
     </td></tr>
@@ -90,7 +97,7 @@ Deno.serve(async (req) => {
       status: 'sent',
     });
 
-    return new Response(JSON.stringify({ success: true, url: signed.signedUrl }), {
+    return new Response(JSON.stringify({ success: true, guides: signedGuides }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
