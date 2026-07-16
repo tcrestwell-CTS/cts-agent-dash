@@ -39,6 +39,22 @@ export function useOnboarding() {
 
         if (insertError) throw insertError;
         data = newProgress;
+
+        // First-time onboarding: send the Agent Setup Guide email (idempotent server-side)
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", user!.id)
+            .maybeSingle();
+          if (user!.email) {
+            await supabase.functions.invoke("send-onboarding-guide", {
+              body: { email: user!.email, full_name: profile?.full_name || null },
+            });
+          }
+        } catch (e) {
+          console.warn("send-onboarding-guide failed", e);
+        }
       }
 
       // Auto-detect completed steps from real data
