@@ -3159,6 +3159,30 @@ export type Database = {
         }
         Relationships: []
       }
+      destinations: {
+        Row: {
+          code: string
+          country_code: string
+          name: string
+          updated_at: string
+          zone_count: number | null
+        }
+        Insert: {
+          code: string
+          country_code: string
+          name: string
+          updated_at?: string
+          zone_count?: number | null
+        }
+        Update: {
+          code?: string
+          country_code?: string
+          name?: string
+          updated_at?: string
+          zone_count?: number | null
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           attempt_count: number
