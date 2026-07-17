@@ -3765,6 +3765,201 @@ export type Database = {
         }
         Relationships: []
       }
+      ic_onboarding: {
+        Row: {
+          account_number: string | null
+          address: string | null
+          annual_sales_volume: string | null
+          arc_number: string | null
+          backup_advisor: string | null
+          bank_name: string | null
+          bio: string | null
+          business_entity: string | null
+          business_name: string | null
+          city: string | null
+          clia_number: string | null
+          code_of_ethics_signed: boolean | null
+          created_at: string
+          crm_preference: string | null
+          current_host: string | null
+          data_consent_signed: boolean | null
+          directory_consent: boolean | null
+          dob: string | null
+          ein: string | null
+          email: string | null
+          email_domain_preference: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
+          eo_carrier: string | null
+          eo_expiry: string | null
+          eo_policy_number: string | null
+          facebook: string | null
+          first_name: string | null
+          has_eo: string | null
+          has_transfer_bookings: string | null
+          headshot_url: string | null
+          hotel_programs: string | null
+          iata_number: string | null
+          ic_agreement_signed: boolean | null
+          id: string
+          id_number: string | null
+          id_type: string | null
+          instagram: string | null
+          last_name: string | null
+          marketing_consent: boolean | null
+          media_release_signed: boolean | null
+          needs_website: string | null
+          own_domain: string | null
+          payment_method: string | null
+          phone: string | null
+          routing_number: string | null
+          seller_of_travel_number: string | null
+          seller_of_travel_states: string | null
+          signature: string | null
+          signature_date: string | null
+          specialties: string | null
+          state: string | null
+          status: string
+          submitted_at: string
+          supplier_notes: string | null
+          supplier_portals: string | null
+          top_destinations: string | null
+          updated_at: string
+          w9_submitted: boolean | null
+          website: string | null
+          years_experience: string | null
+          zip: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          address?: string | null
+          annual_sales_volume?: string | null
+          arc_number?: string | null
+          backup_advisor?: string | null
+          bank_name?: string | null
+          bio?: string | null
+          business_entity?: string | null
+          business_name?: string | null
+          city?: string | null
+          clia_number?: string | null
+          code_of_ethics_signed?: boolean | null
+          created_at?: string
+          crm_preference?: string | null
+          current_host?: string | null
+          data_consent_signed?: boolean | null
+          directory_consent?: boolean | null
+          dob?: string | null
+          ein?: string | null
+          email?: string | null
+          email_domain_preference?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          eo_carrier?: string | null
+          eo_expiry?: string | null
+          eo_policy_number?: string | null
+          facebook?: string | null
+          first_name?: string | null
+          has_eo?: string | null
+          has_transfer_bookings?: string | null
+          headshot_url?: string | null
+          hotel_programs?: string | null
+          iata_number?: string | null
+          ic_agreement_signed?: boolean | null
+          id?: string
+          id_number?: string | null
+          id_type?: string | null
+          instagram?: string | null
+          last_name?: string | null
+          marketing_consent?: boolean | null
+          media_release_signed?: boolean | null
+          needs_website?: string | null
+          own_domain?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          routing_number?: string | null
+          seller_of_travel_number?: string | null
+          seller_of_travel_states?: string | null
+          signature?: string | null
+          signature_date?: string | null
+          specialties?: string | null
+          state?: string | null
+          status?: string
+          submitted_at?: string
+          supplier_notes?: string | null
+          supplier_portals?: string | null
+          top_destinations?: string | null
+          updated_at?: string
+          w9_submitted?: boolean | null
+          website?: string | null
+          years_experience?: string | null
+          zip?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          address?: string | null
+          annual_sales_volume?: string | null
+          arc_number?: string | null
+          backup_advisor?: string | null
+          bank_name?: string | null
+          bio?: string | null
+          business_entity?: string | null
+          business_name?: string | null
+          city?: string | null
+          clia_number?: string | null
+          code_of_ethics_signed?: boolean | null
+          created_at?: string
+          crm_preference?: string | null
+          current_host?: string | null
+          data_consent_signed?: boolean | null
+          directory_consent?: boolean | null
+          dob?: string | null
+          ein?: string | null
+          email?: string | null
+          email_domain_preference?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          eo_carrier?: string | null
+          eo_expiry?: string | null
+          eo_policy_number?: string | null
+          facebook?: string | null
+          first_name?: string | null
+          has_eo?: string | null
+          has_transfer_bookings?: string | null
+          headshot_url?: string | null
+          hotel_programs?: string | null
+          iata_number?: string | null
+          ic_agreement_signed?: boolean | null
+          id?: string
+          id_number?: string | null
+          id_type?: string | null
+          instagram?: string | null
+          last_name?: string | null
+          marketing_consent?: boolean | null
+          media_release_signed?: boolean | null
+          needs_website?: string | null
+          own_domain?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          routing_number?: string | null
+          seller_of_travel_number?: string | null
+          seller_of_travel_states?: string | null
+          signature?: string | null
+          signature_date?: string | null
+          specialties?: string | null
+          state?: string | null
+          status?: string
+          submitted_at?: string
+          supplier_notes?: string | null
+          supplier_portals?: string | null
+          top_destinations?: string | null
+          updated_at?: string
+          w9_submitted?: boolean | null
+          website?: string | null
+          years_experience?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       import_logs: {
         Row: {
           completed_at: string | null
