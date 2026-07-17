@@ -92,6 +92,7 @@ const Campaigns          = lazy(() => import("./pages/Campaigns"));
 const CampaignEditor     = lazy(() => import("./pages/CampaignEditor"));
 const CampaignAudiences  = lazy(() => import("./pages/CampaignAudiences"));
 const CampaignImages     = lazy(() => import("./pages/CampaignImages"));
+const DailyPaymentReport = lazy(() => import("./pages/DailyPaymentReport"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
@@ -199,6 +200,7 @@ const App = () => (
                 <Route path="/recon/settings"   element={<ProtectedRoute><ReconSettings /></ProtectedRoute>} />
                 <Route path="/recon/stripe"     element={<ProtectedRoute><ReconStripe /></ProtectedRoute>} />
                 <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
+                <Route path="/reports/daily-payments" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><DailyPaymentReport /></AdminRoute></ProtectedRoute>} />
                 <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
                 <Route path="/suppliers" element={<ProtectedRoute><FeatureRoute feature="suppliers"><Suppliers /></FeatureRoute></ProtectedRoute>} />
