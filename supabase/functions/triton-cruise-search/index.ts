@@ -138,6 +138,19 @@ async function parseQuery(query: string): Promise<Criteria> {
   return extractJson<Criteria>(raw);
 }
 
+// Deterministic fallback: if the parser leaves regions[] empty, scan the raw
+// query text against the same REGION_MAP vocabulary used downstream. Prevents
+// a Widgety search with no region filter (which typically returns zero
+// candidates once port + date filters are also applied).
+function inferRegionsFromQuery(query: string): string[] {
+  const q = query.toLowerCase();
+  const hits = new Set<string>();
+  for (const keyword of Object.keys(REGION_MAP)) {
+    if (q.includes(keyword)) hits.add(keyword);
+  }
+  return Array.from(hits);
+}
+
 // ---------- Stage 2: retrieve (Widgety) ----------
 // Ported from crestwell-public-site's proven app/api/widgety/cruises/route.ts.
 // Same base URL, same auth (app_id/token as QUERY PARAMS, not headers), same
@@ -456,6 +469,9 @@ serve(async (req) => {
     }
 
     criteria = await parseQuery(query);
+    if (!criteria.regions || criteria.regions.length === 0) {
+      criteria.regions = inferRegionsFromQuery(query);
+    }
     candidates = await searchWidgety(criteria);
     results = await rankCandidates(
       query,
