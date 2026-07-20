@@ -117,7 +117,8 @@ const PARSE_SYSTEM = `You convert a travel advisor's natural-language cruise req
 Rules:
 - Respond with ONLY a JSON object. No prose, no markdown fences.
 - Date phrases resolve to an embark-date window. "Week of Christmas" means embark dates from Dec 19 through Dec 27 of the nearest upcoming Christmas unless a year is given. "Spring break" means mid-March through mid-April. Always return concrete ISO dates.
-- Region keywords expand to embark_ports: "Florida" -> ["Miami","Port Canaveral","Fort Lauderdale","Tampa","Jacksonville"]. "Gulf" -> ["New Orleans","Galveston","Mobile","Tampa"]. A named port stays as-is.
+- Departure-area keywords expand to embark_ports: "Florida" -> ["Miami","Port Canaveral","Fort Lauderdale","Tampa","Jacksonville"]. "Gulf" -> ["New Orleans","Galveston","Mobile","Tampa"]. A named port stays as-is. These describe where the ship leaves FROM, not where it sails to.
+- Itinerary regions go in regions[] (NOT embark_ports). Recognized region vocabulary: Caribbean, Mediterranean, Alaska, Bahamas, Bermuda, Hawaii, Europe, Northern Europe, Southern Europe, Scandinavia, Asia, Pacific, South America, North America, Central America, Americas, Middle East, Indian Ocean, Mississippi, Amazon, Atlantic. Always extract these into regions[] when mentioned — never leave them only in notes. Example: "Caribbean cruise from Florida" -> regions:["Caribbean"], embark_ports:["Miami","Port Canaveral","Fort Lauderdale","Tampa","Jacksonville"].
 - If kids or teens are mentioned, set traveler_profile.kids/teens true and add "Virgin Voyages" and "Explora Journeys" to lines_excluded (adults-only / adult-oriented).
 - nights_min/nights_max: null unless stated or clearly implied ("long weekend" -> 3-4, "week-long" -> 6-8).
 - budget_per_person_max: null unless a number is given.
