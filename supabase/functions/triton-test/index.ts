@@ -8,9 +8,10 @@ serve(async (req) => {
     const regions = url.searchParams.get("regions") ?? "caribbean";
     const date_from = url.searchParams.get("date_from") ?? "2026-08-01";
     const date_to = url.searchParams.get("date_to") ?? "2026-08-31";
+    const tokenName = url.searchParams.get("tokenName") ?? "WIDGETY_APP_TOKEN";
     const params = new URLSearchParams({
       app_id: Deno.env.get("WIDGETY_APP_ID") ?? "",
-      token: Deno.env.get("WIDGETY_APP_TOKEN") ?? "",
+      token: Deno.env.get(tokenName) ?? "",
       market: "us",
       limit: "25",
       operators: operator,
@@ -18,7 +19,11 @@ serve(async (req) => {
       date_from,
       date_to,
     });
-    const results: Record<string, unknown> = {};
+    const results: Record<string, unknown> = {
+      _using_token_env: tokenName,
+      _app_id_len: (Deno.env.get("WIDGETY_APP_ID") ?? "").length,
+      _token_len: (Deno.env.get(tokenName) ?? "").length,
+    };
     // 1. list with region + date filter
     const r1 = await fetch(`https://www.widgety.co.uk/api/holidays.json?${params}`, {
       headers: { Accept: "application/json" },
