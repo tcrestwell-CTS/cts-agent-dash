@@ -1,0 +1,13 @@
+UPDATE training_lessons SET quiz_id = '0edde596-840a-52ca-a87b-c28a50dbd59e' WHERE id = 'beef7709-7045-513a-983d-f99379c002ad';
+UPDATE training_lessons SET quiz_id = 'e0b37265-3546-5b85-8e4b-52013a060b28' WHERE id = '6ac4d60b-d9e5-54f0-841f-dd3e7bbd7d4c';
+UPDATE training_lessons SET quiz_id = '3dc0bd73-523f-5bc7-9a2a-a524f1bc331a' WHERE id = '6ac3a3e4-e67d-59f1-ba88-6214611044ba';
+UPDATE training_lessons SET quiz_id = '87408b58-065b-58e0-bee5-08d8fee956b2' WHERE id = '75dcf70a-c763-5f98-bd24-98d24d1cd560';
+UPDATE training_lessons SET quiz_id = '3b563b38-648e-5dca-966f-f40ba41f1d52' WHERE id = '17e39154-af6d-5551-a8a8-d4bf7789eb57';
+UPDATE training_lessons SET quiz_id = 'fbcdd196-8529-55ce-9267-2edfa5227b6f' WHERE id = '9e9b7d99-d8b9-5d86-8732-6e45dddaf79e';
+UPDATE training_lessons SET quiz_id = '5605c976-e810-5e14-8a67-1dab66be3d10' WHERE id = '9b04a238-bbbe-57e4-85c3-9ba090c4e62a';
+UPDATE training_lessons SET quiz_id = 'a36c06bc-92d5-54d4-aca1-7ff8b0ca0a1e' WHERE id = '99bf7b35-d501-5eb0-8e01-7728d0f686ea';
+UPDATE training_lessons SET quiz_id = '652b968d-fd77-5026-9306-c8595ac7b389' WHERE id = '41078a63-461f-5106-b18b-80e4d8e55523';
+UPDATE training_lessons SET quiz_id = '41a430bb-78ac-5850-aadd-25be7f3683f2' WHERE id = '88019aa8-6c0f-53ef-9ee9-b8e0cd0a84c8';
+UPDATE training_lessons SET quiz_id = '1551bd1f-093b-5a10-90e7-8a9a5f64cb2c' WHERE id = 'f1543947-7d07-5e00-acbd-9393bf7afbae';
+UPDATE training_lessons SET quiz_id = '7609133c-a545-51b0-b463-4fbcd7a51f9f' WHERE id = '1f739a96-af06-5bee-8151-dcb6a8a4e4be';
+UPDATE training_lessons SET quiz_id = '0da2e309-a954-5a30-b77f-ba5145aefba6' WHERE id = '95823174-0aa8-567b-b83d-da5687843e68';
