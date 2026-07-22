@@ -179,6 +179,7 @@ const adminNavigation: NavItem[] = [
   { name: "Portal Management", href: "/portal-management", icon: Globe },
   { name: "Task Monitor", href: "/task-monitor", icon: Activity },
   { name: "Email Activity", href: "/email-activity", icon: Mail },
+  { name: "Daily Payment Report", href: "/reports/daily-payments", icon: FileText },
 ];
 
 const adminNavGroups: NavGroup[] = [
