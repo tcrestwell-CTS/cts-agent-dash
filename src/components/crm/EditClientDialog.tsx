@@ -61,6 +61,7 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
     loyalty_programs: "",
     tags: "",
     status: "lead",
+    membership_tier: "explorer",
     notes: "",
   });
 
@@ -99,6 +100,7 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
         loyalty_programs: client.loyalty_programs || "",
         tags: client.tags || "",
         status: client.status || "lead",
+        membership_tier: (client as any).membership_tier || "explorer",
         notes: client.notes || "",
       });
     }
@@ -143,6 +145,7 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
       loyalty_programs: formData.loyalty_programs || null,
       tags: formData.tags || null,
       status: formData.status,
+      membership_tier: formData.membership_tier as any,
       notes: formData.notes || null,
       location: formData.address_city && formData.address_state 
         ? `${formData.address_city}, ${formData.address_state}` 
@@ -280,6 +283,24 @@ export function EditClientDialog({ client, open, onOpenChange }: EditClientDialo
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
                       <SelectItem value="blacklisted">🚫 Blacklisted (Fraud)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="membership_tier">Membership Tier</Label>
+                  <Select
+                    value={formData.membership_tier}
+                    onValueChange={(value) => updateField("membership_tier", value)}
+                  >
+                    <SelectTrigger id="membership_tier">
+                      <SelectValue placeholder="Select tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="explorer">Explorer</SelectItem>
+                      <SelectItem value="voyager">Voyager</SelectItem>
+                      <SelectItem value="platinum">Platinum</SelectItem>
+                      <SelectItem value="elite">Elite</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
