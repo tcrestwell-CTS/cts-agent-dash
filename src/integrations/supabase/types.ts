@@ -2735,6 +2735,7 @@ export type Database = {
           lodging_elevator_preference: string | null
           lodging_floor_preference: string | null
           loyalty_programs: string | null
+          membership_tier: Database["public"]["Enums"]["client_tier"]
           name: string
           notes: string | null
           passport_info: string | null
@@ -2777,6 +2778,7 @@ export type Database = {
           lodging_elevator_preference?: string | null
           lodging_floor_preference?: string | null
           loyalty_programs?: string | null
+          membership_tier?: Database["public"]["Enums"]["client_tier"]
           name: string
           notes?: string | null
           passport_info?: string | null
@@ -2819,6 +2821,7 @@ export type Database = {
           lodging_elevator_preference?: string | null
           lodging_floor_preference?: string | null
           loyalty_programs?: string | null
+          membership_tier?: Database["public"]["Enums"]["client_tier"]
           name?: string
           notes?: string | null
           passport_info?: string | null
@@ -9410,6 +9413,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "office_admin" | "bookkeeper"
+      client_tier: "explorer" | "voyager" | "platinum" | "elite"
       commission_tier: "tier_1" | "tier_2" | "tier_3" | "none"
     }
     CompositeTypes: {
@@ -9539,6 +9543,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "office_admin", "bookkeeper"],
+      client_tier: ["explorer", "voyager", "platinum", "elite"],
       commission_tier: ["tier_1", "tier_2", "tier_3", "none"],
     },
   },
