@@ -77,6 +77,7 @@ serve(async (req) => {
       const page: Stripe.ApiList<Stripe.Charge> = await stripe.charges.list({
         created: { gte: dayStart, lt: dayEnd },
         limit: 100,
+        expand: ["data.balance_transaction"],
         ...(startingAfter ? { starting_after: startingAfter } : {}),
       });
       for (const c of page.data) {
@@ -90,18 +91,27 @@ serve(async (req) => {
     // Build payment rows and resolve client/trip by email
     type Payment = {
       amount: number;
+      fee: number;
+      net: number;
       email: string | null;
       description: string;
       receiptUrl: string | null;
       chargeId: string;
     };
-    const rawPayments: Payment[] = charges.map((c) => ({
-      amount: (c.amount ?? 0) / 100,
-      email: (c.billing_details?.email || c.receipt_email || null)?.toLowerCase() ?? null,
-      description: c.description || c.statement_descriptor || "Stripe payment",
-      receiptUrl: c.receipt_url ?? null,
-      chargeId: c.id,
-    }));
+    const rawPayments: Payment[] = charges.map((c) => {
+      const gross = (c.amount ?? 0) / 100;
+      const bt = c.balance_transaction as Stripe.BalanceTransaction | null;
+      const fee = bt && typeof bt === "object" && bt.fee ? bt.fee / 100 : 0;
+      return {
+        amount: gross,
+        fee,
+        net: Math.round((gross - fee) * 100) / 100,
+        email: (c.billing_details?.email || c.receipt_email || null)?.toLowerCase() ?? null,
+        description: c.description || c.statement_descriptor || "Stripe payment",
+        receiptUrl: c.receipt_url ?? null,
+        chargeId: c.id,
+      };
+    });
 
     // Look up clients by email in one query
     const emails = Array.from(new Set(rawPayments.map((p) => p.email).filter((e): e is string => !!e)));
@@ -147,7 +157,13 @@ serve(async (req) => {
           if (existing.status !== "paid") {
             await supabase
               .from("trip_payments")
-              .update({ status: "paid", payment_date: target, stripe_receipt_url: p.receiptUrl })
+              .update({
+                status: "paid",
+                payment_date: target,
+                stripe_receipt_url: p.receiptUrl,
+                stripe_fee: p.fee > 0 ? p.fee : null,
+                amount: p.net,
+              })
               .eq("id", existing.id);
           }
           continue;
@@ -196,6 +212,8 @@ serve(async (req) => {
             payment_method: "credit_card",
             stripe_payment_intent_id: p.chargeId,
             stripe_receipt_url: p.receiptUrl,
+            stripe_fee: p.fee > 0 ? p.fee : null,
+            amount: p.net,
           })
           .eq("id", target_tp.id);
         if (upErr) throw upErr;
