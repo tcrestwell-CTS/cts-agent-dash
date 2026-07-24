@@ -2,7 +2,7 @@ import { CommissionReportItem } from "@/hooks/useCommissionReport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
-import { ExternalLink, CheckCircle2, Clock } from "lucide-react";
+import { ExternalLink, CheckCircle2, Clock, Hourglass } from "lucide-react";
 
 interface CommissionReportTableProps {
   data: CommissionReportItem[];
@@ -44,6 +44,7 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
             const agentShare = calculateAgentCommission(item.amount, tier);
             const tierConfig = getTierConfig(tier);
             const isPaid = item.status === "paid";
+            const isExpected = item.status === "expected";
             return (
               <tr key={item.id} className={`hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/10" : ""}`}>
                 <td className="px-5 py-3 text-muted-foreground whitespace-nowrap text-xs">
@@ -70,8 +71,14 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                 <td className="px-5 py-3 text-right tabular-nums font-semibold text-primary">{fmt(item.amount)}</td>
                 <td className="px-5 py-3 text-right tabular-nums font-semibold text-green-600">{fmt(agentShare)}</td>
                 <td className="px-5 py-3 text-right">
-                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${isPaid ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-                    {isPaid ? <><CheckCircle2 className="h-3 w-3" />Paid</> : <><Clock className="h-3 w-3" />Pending</>}
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                    isPaid ? "bg-green-50 text-green-700 border-green-200"
+                    : isExpected ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                  }`}>
+                    {isPaid ? <><CheckCircle2 className="h-3 w-3" />Paid</>
+                     : isExpected ? <><Hourglass className="h-3 w-3" />Expected</>
+                     : <><Clock className="h-3 w-3" />Pending</>}
                   </span>
                 </td>
               </tr>
