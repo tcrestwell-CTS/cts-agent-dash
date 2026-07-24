@@ -1315,6 +1315,45 @@ async function getMappedAccountId(supabase: any, role: string): Promise<string> 
   return data.qbo_account_id;
 }
 
+/**
+ * Preflight: verify a QBO account is live, Active, and AccountType=Bank before
+ * we attempt to post a Deposit against it. QBO returns a generic "Select a
+ * bank account for this deposit" (error 6000) when the target account is
+ * inactive, renamed away from a Bank type, or made a subaccount — this check
+ * turns that into a clear, actionable error before we hit the API.
+ */
+async function assertQBOBankAccountUsable(
+  qboBase: string,
+  qboHeaders: any,
+  accountId: string,
+  role: string,
+): Promise<void> {
+  const r = await fetch(`${qboBase}/account/${accountId}`, { headers: qboHeaders });
+  if (!r.ok) {
+    throw new Error(
+      `Preflight failed for role "${role}" (QBO account ${accountId}): ${r.status} ${await r.text()}. ` +
+      `Verify the mapping in Settings → QuickBooks → Account Mapping.`,
+    );
+  }
+  const j = await r.json().catch(() => ({}));
+  const acct = j?.Account;
+  if (!acct) {
+    throw new Error(
+      `Preflight failed for role "${role}" (QBO account ${accountId}): account not found in QuickBooks.`,
+    );
+  }
+  const active = acct.Active === true;
+  const isBank = acct.AccountType === "Bank";
+  if (!active || !isBank) {
+    throw new Error(
+      `QBO account "${acct.Name}" (id ${accountId}) mapped to "${role}" is not usable as a deposit target ` +
+      `(Active=${active}, AccountType=${acct.AccountType || "unknown"}). ` +
+      `Open QuickBooks → Chart of Accounts and confirm the account is Active and Type=Bank, ` +
+      `or remap the role in Settings → QuickBooks → Account Mapping.`,
+    );
+  }
+}
+
 /** New CRM client → QBO Customer (idempotent via qbo_client_mappings). */
 async function handleClientCreated(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, client: any,
