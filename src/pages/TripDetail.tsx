@@ -546,6 +546,15 @@ const TripDetail = () => {
                         </span>
                       </div>
                     )}
+                    {(trip as any).ship_name && (
+                      <div className="flex items-center gap-2">
+                        <Ship className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">Ship:</span>{" "}
+                          {(trip as any).ship_name}
+                        </span>
+                      </div>
+                    )}
                     {trip.depart_date && (
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
