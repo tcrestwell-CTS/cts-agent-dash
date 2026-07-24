@@ -42,7 +42,7 @@ export default function BookkeeperExpenses() {
       const { start, end } = monthBounds(year, month);
       const { data, error } = await (supabase as any)
         .from("bookings")
-        .select("id, booking_reference, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name), suppliers:supplier_id(name)")
+        .select("id, confirmation_number, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name), suppliers:supplier_id(name)")
         .eq("supplier_paid_status", "paid")
         .gte("supplier_paid_date", start)
         .lt("supplier_paid_date", end)
@@ -76,7 +76,7 @@ export default function BookkeeperExpenses() {
       sorted.map((r: any) => ({
         supplier_paid_date: r.supplier_paid_date,
         trip: r.trips?.trip_name ?? "",
-        booking_reference: r.booking_reference ?? "",
+        booking_reference: r.confirmation_number ?? "",
         supplier: r.suppliers?.name ?? "",
         method: r.supplier_paid_method ?? "",
         amount: Number(r.supplier_paid_amount || 0).toFixed(2),
