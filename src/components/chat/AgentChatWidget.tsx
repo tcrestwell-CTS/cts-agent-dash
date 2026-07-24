@@ -396,25 +396,6 @@ export function AgentChatWidget() {
       {view === "menu" && (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           <button
-            onClick={() => setView("ai")}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-          >
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                Donna · AI Assistant
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {pageContext.tripId ? "Trip context loaded · " : pageContext.clientId ? "Client context loaded · " : ""}
-                Upload files · Voice input · Research clients
-              </p>
-            </div>
-          </button>
-
-          <button
             onClick={() => setView("team")}
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
           >
@@ -422,7 +403,7 @@ export function AgentChatWidget() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">Team Chat</p>
+              <p className="text-sm font-medium text-foreground">Team Channel</p>
               <p className="text-xs text-muted-foreground">Message all agents</p>
             </div>
           </button>
