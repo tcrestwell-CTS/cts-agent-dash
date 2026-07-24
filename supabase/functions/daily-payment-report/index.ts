@@ -327,6 +327,43 @@ serve(async (req) => {
 
     // Persist flagged items to exception_queue (idempotent by source_record_id)
     for (const f of flagged) {
+      // Before flagging — check if this charge was already matched by the
+      // primary webhook path (stripe_payment_intent_id on trip_payments).
+      // If so, auto-resolve the exception rather than creating a duplicate.
+      const { data: alreadyMatched } = await supabase
+        .from("trip_payments")
+        .select("id, status")
+        .eq("stripe_payment_intent_id", f.charge.chargeId)
+        .limit(1)
+        .maybeSingle();
+
+      if (alreadyMatched?.id) {
+        // Charge already landed via webhook — resolve any existing exception row
+        await supabase
+          .from("exception_queue")
+          .update({ status: "resolved", description: `Auto-resolved — matched by stripe-webhook to trip_payment ${alreadyMatched.id}` })
+          .eq("source_system", "stripe")
+          .eq("source_record_id", f.charge.chargeId);
+        continue; // do not insert new exception row
+      }
+
+      // Also check loan_payment_schedules
+      const { data: alreadyLoan } = await supabase
+        .from("loan_payment_schedules")
+        .select("id")
+        .eq("stripe_charge_id", f.charge.chargeId)
+        .limit(1)
+        .maybeSingle();
+
+      if (alreadyLoan?.id) {
+        await supabase
+          .from("exception_queue")
+          .update({ status: "resolved", description: `Auto-resolved — matched to loan_payment_schedule ${alreadyLoan.id}` })
+          .eq("source_system", "stripe")
+          .eq("source_record_id", f.charge.chargeId);
+        continue;
+      }
+
       const { data: dup } = await supabase
         .from("exception_queue")
         .select("id")
