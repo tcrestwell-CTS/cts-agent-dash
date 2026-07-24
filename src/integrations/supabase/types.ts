@@ -8459,6 +8459,7 @@ export type Database = {
           return_date: string | null
           selected_cabin_option_id: string | null
           share_token: string
+          ship_name: string | null
           source: string
           status: string
           tags: string[] | null
@@ -8526,6 +8527,7 @@ export type Database = {
           return_date?: string | null
           selected_cabin_option_id?: string | null
           share_token?: string
+          ship_name?: string | null
           source?: string
           status?: string
           tags?: string[] | null
@@ -8593,6 +8595,7 @@ export type Database = {
           return_date?: string | null
           selected_cabin_option_id?: string | null
           share_token?: string
+          ship_name?: string | null
           source?: string
           status?: string
           tags?: string[] | null
