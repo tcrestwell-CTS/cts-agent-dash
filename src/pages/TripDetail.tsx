@@ -462,7 +462,7 @@ const TripDetail = () => {
         </div>
 
         {/* Main content with left sidebar */}
-        <div className="grid gap-6 lg:grid-cols-[200px_1fr_280px] items-start">
+        <div className="grid gap-6 lg:grid-cols-[200px_1fr] xl:grid-cols-[210px_minmax(0,1fr)_300px] items-start">
           <TripSidebar
             tripId={tripId!}
             parentTripId={trip.parent_trip_id}
@@ -888,8 +888,8 @@ const TripDetail = () => {
           </div>
 
           {/* Right sidebar */}
-          <div className="space-y-4 lg:block">
-            <div className="sticky top-6 space-y-4">
+          <div className="space-y-4 lg:col-span-2 xl:col-span-1">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 xl:sticky xl:top-6">
               <TripReadinessScore
                 tripId={trip.id}
                 departDate={trip.depart_date}

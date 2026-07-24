@@ -309,7 +309,7 @@ export function TripBookings({
       {/* Overview Section */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Overview</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-x-6 gap-y-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Total cost</p>
             <p className="text-xl font-semibold">{formatCurrency(tripTotal)}</p>
