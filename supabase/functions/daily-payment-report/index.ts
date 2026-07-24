@@ -38,19 +38,37 @@ serve(async (req) => {
       body = await req.json();
     } catch (_) { /* no body */ }
 
-    // Default: yesterday (Eastern reporting day)
+    // Default: yesterday in America/New_York (Eastern reporting day)
+    const nowEasternParts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(new Date());
+    const easternToday = `${nowEasternParts.find((p) => p.type === "year")!.value}-${nowEasternParts.find((p) => p.type === "month")!.value}-${nowEasternParts.find((p) => p.type === "day")!.value}`;
     const target = body.date
       ? body.date
-      : new Date(Date.now() - 24 * 60 * 60 * 1000)
+      : new Date(new Date(easternToday + "T12:00:00Z").getTime() - 24 * 60 * 60 * 1000)
           .toISOString()
           .split("T")[0];
 
-    // Pull succeeded Stripe charges for the target date (UTC day window)
+    // Pull succeeded Stripe charges for the target Eastern day window
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    const dayStart = Math.floor(new Date(target + "T00:00:00Z").getTime() / 1000);
+    // Compute UTC epoch bounds for target date in America/New_York.
+    // ET is UTC-5 (EST) or UTC-4 (EDT). Detect offset via Intl.
+    function easternOffsetHours(dateUtc: Date): number {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        timeZoneName: "shortOffset",
+      }).formatToParts(dateUtc);
+      const tz = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT-5";
+      const m = tz.match(/GMT([+-]\d+)/);
+      return m ? parseInt(m[1], 10) : -5;
+    }
+    const noonUtc = new Date(target + "T12:00:00Z");
+    const offset = easternOffsetHours(noonUtc); // -5 or -4
+    const dayStart = Math.floor(new Date(target + "T00:00:00Z").getTime() / 1000) - offset * 3600;
     const dayEnd = dayStart + 24 * 60 * 60;
 
     const charges: Stripe.Charge[] = [];
