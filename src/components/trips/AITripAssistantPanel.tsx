@@ -172,21 +172,21 @@ ${list.map(c => `<h2>${esc(c.icon || "")} ${esc(c.category)}</h2><ul>${c.items.m
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 px-1">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <span className="text-sm font-semibold">AI Trip Assistant</span>
-        <Badge variant="outline" className="text-[10px]">Beta</Badge>
+        <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+        <span className="text-sm font-semibold leading-tight">AI Assistant</span>
+        <Badge variant="outline" className="ml-auto text-[10px] px-1.5 py-0 shrink-0">Beta</Badge>
       </div>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Generate Trip Documents
+          <CardTitle className="text-sm flex items-center gap-2 leading-tight">
+            <FileText className="h-4 w-4 shrink-0 text-primary" />
+            Trip Documents
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 pt-0">
-          <p className="text-xs text-muted-foreground">
-            AI-generated docs are saved directly to Travel Documents for the client.
+          <p className="text-xs text-muted-foreground leading-snug">
+            Saved to Travel Documents for the client.
           </p>
           <Button
             variant="outline" size="sm"
@@ -195,8 +195,8 @@ ${list.map(c => `<h2>${esc(c.icon || "")} ${esc(c.category)}</h2><ul>${c.items.m
             disabled={guideLoading || !destination}
           >
             {guideLoading
-              ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Generating destination guide…</>
-              : <><Globe className="h-3.5 w-3.5" /> Generate Destination Guide</>}
+              ? <><RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" /> <span className="truncate">Generating…</span></>
+              : <><Globe className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Destination Guide</span></>}
           </Button>
           <Button
             variant="outline" size="sm"
@@ -205,8 +205,8 @@ ${list.map(c => `<h2>${esc(c.icon || "")} ${esc(c.category)}</h2><ul>${c.items.m
             disabled={packingLoading}
           >
             {packingLoading
-              ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Generating packing list…</>
-              : <><Backpack className="h-3.5 w-3.5" /> Generate Packing List</>}
+              ? <><RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" /> <span className="truncate">Generating…</span></>
+              : <><Backpack className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Packing List</span></>}
           </Button>
           {!destination && (
             <p className="text-[11px] text-muted-foreground">
