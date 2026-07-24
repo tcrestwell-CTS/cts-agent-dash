@@ -340,6 +340,52 @@ async function runTool(name: string, args: any, userId: string, supabase: any) {
       if (error) return { error: error.message };
       return { client: data };
     }
+    case "create_client_from_lead": {
+      const { data: lead, error: lErr } = await supabase
+        .from("quote_requests")
+        .select("id, first_name, last_name, email, phone, destination, status, proposal_status, lead_source, utm_source")
+        .eq("id", args.quote_request_id)
+        .single();
+      if (lErr || !lead) return { error: lErr?.message ?? "Lead not found" };
+
+      const approved =
+        (lead.status ?? "").toLowerCase() === "approved" ||
+        (lead.proposal_status ?? "").toLowerCase() === "approved";
+      if (!approved) {
+        return { error: `Lead is not approved (status=${lead.status}, proposal_status=${lead.proposal_status}). Approve the proposal before creating a client.` };
+      }
+
+      const email = (lead.email ?? "").trim().toLowerCase();
+      if (email) {
+        const { data: existing } = await supabase
+          .from("clients")
+          .select("id, name, email")
+          .eq("user_id", userId)
+          .ilike("email", email)
+          .maybeSingle();
+        if (existing) return { client: existing, already_existed: true };
+      }
+
+      const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(" ").trim() || (email || "Unnamed lead");
+      const { data: created, error: cErr } = await supabase
+        .from("clients")
+        .insert({
+          user_id: userId,
+          name: fullName,
+          first_name: lead.first_name ?? null,
+          last_name: lead.last_name ?? null,
+          email: lead.email ?? null,
+          phone: lead.phone ?? null,
+          status: "active",
+          lead_source: lead.lead_source ?? lead.utm_source ?? "lead_conversion",
+          source: "lead_conversion",
+          notes: lead.destination ? `Converted from approved lead. Interest: ${lead.destination}` : "Converted from approved lead.",
+        })
+        .select("id, name, email")
+        .single();
+      if (cErr) return { error: cErr.message };
+      return { client: created, already_existed: false };
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
