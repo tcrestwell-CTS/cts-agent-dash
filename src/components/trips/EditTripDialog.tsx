@@ -210,6 +210,16 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="edit_ship_name">Ship Name</Label>
+            <Input
+              id="edit_ship_name"
+              value={formData.ship_name}
+              onChange={(e) => setFormData({ ...formData, ship_name: e.target.value })}
+              placeholder="e.g., Symphony of the Seas"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label>Trip Dates</Label>
             <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
           </div>
