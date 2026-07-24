@@ -118,11 +118,22 @@ export default function BookkeeperExpenses() {
           }
         />
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Supplier payments</CardTitle>
-            {!isLoading && (
-              <div className="text-sm text-muted-foreground">
-                Total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+            {!isLoading && !ytdLoading && (
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:items-end">
+                <div>
+                  Period total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+                </div>
+                <div>
+                  YTD {year}: <span className="font-semibold text-foreground tabular-nums">{fmt(Number(ytdData ?? 0))}</span>
+                </div>
+              </div>
+            )}
+            {(isLoading || ytdLoading) && (
+              <div className="flex flex-col gap-1 sm:items-end">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-32" />
               </div>
             )}
           </CardHeader>
