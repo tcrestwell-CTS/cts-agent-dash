@@ -1,0 +1,1 @@
+ALTER TABLE public.trip_payments ADD COLUMN IF NOT EXISTS stripe_fee NUMERIC;
