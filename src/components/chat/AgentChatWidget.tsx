@@ -346,7 +346,7 @@ export function AgentChatWidget() {
           {view === "ai" && (
             <span className="flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              AI Assistant
+              Donna
               <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
             </span>
           )}
@@ -379,7 +379,7 @@ export function AgentChatWidget() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                AI Assistant
+                Donna · AI Assistant
                 <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
               </p>
               <p className="text-xs text-muted-foreground">
@@ -589,7 +589,7 @@ export function AgentChatWidget() {
 
               {/* Text input */}
               <Textarea
-                placeholder={isListening ? "Listening…" : pendingFile ? "Ask about this file…" : "Ask the AI assistant…"}
+                placeholder={isListening ? "Listening…" : pendingFile ? "Ask about this file…" : "Ask Donna…"}
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 onKeyDown={handleKeyDown}
