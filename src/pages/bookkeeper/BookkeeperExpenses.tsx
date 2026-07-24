@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHeader } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -50,6 +51,21 @@ export default function BookkeeperExpenses() {
         .limit(1000);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const { data: ytdData, isLoading: ytdLoading } = useQuery({
+    queryKey: ["bookkeeper-expenses-ytd", year],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bookings")
+        .select("supplier_paid_amount")
+        .eq("supplier_paid_status", "paid")
+        .gte("supplier_paid_date", `${year}-01-01`)
+        .lte("supplier_paid_date", `${year}-12-31`)
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []).reduce((s: number, r: any) => s + Number(r.supplier_paid_amount || 0), 0);
     },
   });
 
@@ -103,11 +119,22 @@ export default function BookkeeperExpenses() {
           }
         />
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Supplier payments</CardTitle>
-            {!isLoading && (
-              <div className="text-sm text-muted-foreground">
-                Total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+            {!isLoading && !ytdLoading && (
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:items-end">
+                <div>
+                  Period total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+                </div>
+                <div>
+                  YTD {year}: <span className="font-semibold text-foreground tabular-nums">{fmt(Number(ytdData ?? 0))}</span>
+                </div>
+              </div>
+            )}
+            {(isLoading || ytdLoading) && (
+              <div className="flex flex-col gap-1 sm:items-end">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-32" />
               </div>
             )}
           </CardHeader>
