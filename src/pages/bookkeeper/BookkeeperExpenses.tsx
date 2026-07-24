@@ -53,6 +53,21 @@ export default function BookkeeperExpenses() {
     },
   });
 
+  const { data: ytdData, isLoading: ytdLoading } = useQuery({
+    queryKey: ["bookkeeper-expenses-ytd", year],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bookings")
+        .select("supplier_paid_amount")
+        .eq("supplier_paid_status", "paid")
+        .gte("supplier_paid_date", `${year}-01-01`)
+        .lte("supplier_paid_date", `${year}-12-31`)
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []).reduce((s: number, r: any) => s + Number(r.supplier_paid_amount || 0), 0);
+    },
+  });
+
   const rows = (data ?? []) as any[];
   const total = rows.reduce((s, r) => s + Number(r.supplier_paid_amount || 0), 0);
 
