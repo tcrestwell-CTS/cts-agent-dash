@@ -314,18 +314,38 @@ export function AgentChatWidget() {
 
   if (view === "closed") {
     return (
-      <button
-        onClick={() => setView("menu")}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 flex items-center justify-center transition-all hover:scale-105"
-        data-testid="button-chat-fab"
-      >
-        <MessageCircle className="h-6 w-6" />
-        {onlineAgents.length > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-500 text-[10px] text-white font-bold flex items-center justify-center">
-            {onlineAgents.length}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+        {/* Donna (AI) FAB */}
+        <button
+          onClick={() => setView("ai")}
+          className="group relative h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 flex items-center justify-center transition-all hover:scale-105"
+          data-testid="button-ai-fab"
+          title="Chat with Donna (AI Assistant)"
+        >
+          <Sparkles className="h-6 w-6" />
+          <span className="absolute right-full mr-2 whitespace-nowrap rounded-md bg-foreground/90 px-2 py-1 text-[11px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Ask Donna
           </span>
-        )}
-      </button>
+        </button>
+
+        {/* Team Chat FAB */}
+        <button
+          onClick={() => setView("menu")}
+          className="group relative h-14 w-14 rounded-full bg-card border border-border text-foreground shadow-lg hover:bg-muted flex items-center justify-center transition-all hover:scale-105"
+          data-testid="button-chat-fab"
+          title="Team Chat"
+        >
+          <Users className="h-6 w-6" />
+          {onlineAgents.length > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-500 text-[10px] text-white font-bold flex items-center justify-center">
+              {onlineAgents.length}
+            </span>
+          )}
+          <span className="absolute right-full mr-2 whitespace-nowrap rounded-md bg-foreground/90 px-2 py-1 text-[11px] font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Team Chat
+          </span>
+        </button>
+      </div>
     );
   }
 
@@ -335,12 +355,17 @@ export function AgentChatWidget() {
       {/* ── Header ── */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/50 flex-shrink-0">
         {(view === "team" || view === "dm" || view === "ai") && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setView("menu")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setView(view === "ai" ? "closed" : "menu")}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
         <h3 className="text-sm font-semibold flex-1">
-          {view === "menu" && "Agent Chat"}
+          {view === "menu" && "Team Chat"}
           {view === "team" && "Team Chat"}
           {view === "dm" && dmPartnerName}
           {view === "ai" && (
@@ -371,25 +396,6 @@ export function AgentChatWidget() {
       {view === "menu" && (
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           <button
-            onClick={() => setView("ai")}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-          >
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                Donna · AI Assistant
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">BETA</Badge>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {pageContext.tripId ? "Trip context loaded · " : pageContext.clientId ? "Client context loaded · " : ""}
-                Upload files · Voice input · Research clients
-              </p>
-            </div>
-          </button>
-
-          <button
             onClick={() => setView("team")}
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
           >
@@ -397,7 +403,7 @@ export function AgentChatWidget() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">Team Chat</p>
+              <p className="text-sm font-medium text-foreground">Team Channel</p>
               <p className="text-xs text-muted-foreground">Message all agents</p>
             </div>
           </button>
