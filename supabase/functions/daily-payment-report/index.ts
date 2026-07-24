@@ -105,25 +105,126 @@ serve(async (req) => {
 
     // Look up clients by email in one query
     const emails = Array.from(new Set(rawPayments.map((p) => p.email).filter((e): e is string => !!e)));
-    const clientMap = new Map<string, { name: string; email: string; trip: string | null; destination: string | null }>();
+    const clientMap = new Map<string, { id: string; name: string; email: string; trip: string | null; destination: string | null; tripIds: string[] }>();
     if (emails.length > 0) {
       const { data: clientsRows } = await supabase
         .from("clients")
-        .select("id, name, email, trips:trips(trip_name, destination, created_at)")
+        .select("id, name, email, trips:trips(id, trip_name, destination, created_at)")
         .in("email", emails);
       for (const c of clientsRows ?? []) {
-        const trips = ((c as any).trips ?? []) as Array<{ trip_name: string; destination: string | null; created_at: string }>;
+        const trips = ((c as any).trips ?? []) as Array<{ id: string; trip_name: string; destination: string | null; created_at: string }>;
         const latest = trips.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
         const em = ((c as any).email as string | null)?.toLowerCase();
         if (em) {
           clientMap.set(em, {
+            id: (c as any).id,
             name: (c as any).name || em,
             email: em,
             trip: latest?.trip_name ?? null,
             destination: latest?.destination ?? null,
+            tripIds: trips.map((t) => t.id).filter(Boolean),
           });
         }
       }
+    }
+
+    // ====== AUTO-APPLY payments to trip_payments + flag unmatched ======
+    type FlagReason = "no_client" | "no_matching_payment" | "ambiguous" | "already_applied" | "error";
+    type FlagRow = { charge: Payment; reason: FlagReason; detail?: string };
+    const applied: Array<{ charge: Payment; tripPaymentId: string; clientName: string }> = [];
+    const flagged: FlagRow[] = [];
+
+    for (const p of rawPayments) {
+      try {
+        // Skip if this Stripe charge was already applied
+        const { data: existing } = await supabase
+          .from("trip_payments")
+          .select("id, status")
+          .eq("stripe_payment_intent_id", p.chargeId)
+          .limit(1)
+          .maybeSingle();
+        if (existing?.id) {
+          if (existing.status !== "paid") {
+            await supabase
+              .from("trip_payments")
+              .update({ status: "paid", payment_date: target, stripe_receipt_url: p.receiptUrl })
+              .eq("id", existing.id);
+          }
+          continue;
+        }
+
+        const client = p.email ? clientMap.get(p.email) : null;
+        if (!client || client.tripIds.length === 0) {
+          flagged.push({ charge: p, reason: "no_client", detail: p.email ?? "no email on charge" });
+          continue;
+        }
+
+        // Find pending trip_payments across this client's trips with matching amount (±$0.02)
+        const { data: candidates } = await supabase
+          .from("trip_payments")
+          .select("id, amount, status, trip_id")
+          .in("trip_id", client.tripIds)
+          .in("status", ["pending", "scheduled", "due"]);
+
+        const matches = (candidates ?? []).filter(
+          (r) => Math.abs(Number(r.amount) - p.amount) < 0.02,
+        );
+
+        if (matches.length === 0) {
+          flagged.push({
+            charge: p,
+            reason: "no_matching_payment",
+            detail: `${client.name} has no pending payment of ${fmtMoney(p.amount)}`,
+          });
+          continue;
+        }
+        if (matches.length > 1) {
+          flagged.push({
+            charge: p,
+            reason: "ambiguous",
+            detail: `${client.name} has ${matches.length} pending payments of ${fmtMoney(p.amount)}`,
+          });
+          continue;
+        }
+
+        const target_tp = matches[0];
+        const { error: upErr } = await supabase
+          .from("trip_payments")
+          .update({
+            status: "paid",
+            payment_date: target,
+            payment_method: "credit_card",
+            stripe_payment_intent_id: p.chargeId,
+            stripe_receipt_url: p.receiptUrl,
+          })
+          .eq("id", target_tp.id);
+        if (upErr) throw upErr;
+        applied.push({ charge: p, tripPaymentId: target_tp.id, clientName: client.name });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        flagged.push({ charge: p, reason: "error", detail: msg });
+      }
+    }
+
+    // Persist flagged items to exception_queue (idempotent by source_record_id)
+    for (const f of flagged) {
+      const { data: dup } = await supabase
+        .from("exception_queue")
+        .select("id")
+        .eq("source_system", "stripe")
+        .eq("source_record_id", f.charge.chargeId)
+        .limit(1)
+        .maybeSingle();
+      if (dup?.id) continue;
+      await supabase.from("exception_queue").insert({
+        exception_type: "unidentified_stripe_payment",
+        source_system: "stripe",
+        source_record_id: f.charge.chargeId,
+        source_record_type: "charge",
+        amount: f.charge.amount,
+        status: "open",
+        description: `[${f.reason}] ${f.charge.email ?? "no email"} · ${f.charge.description} · ${f.detail ?? ""}`,
+      });
     }
 
     // Group by client
@@ -178,6 +279,15 @@ serve(async (req) => {
       paymentCount: rawPayments.length,
       clientCount: clients.length,
       clients,
+      appliedCount: applied.length,
+      flaggedCount: flagged.length,
+      flagged: flagged.map((f) => ({
+        chargeId: f.charge.chargeId,
+        email: f.charge.email,
+        amount: f.charge.amount,
+        reason: f.reason,
+        detail: f.detail ?? null,
+      })),
     };
 
     // Send email unless caller asked JSON only
@@ -234,6 +344,24 @@ serve(async (req) => {
               </thead>
               <tbody>${rowsHtml}</tbody>
             </table>
+            <div style="margin-top:20px;padding:12px 16px;background:#ecfdf5;border:1px solid #86efac;border-radius:8px;color:#065f46;font-size:13px;">
+              <strong>${applied.length}</strong> payment${applied.length === 1 ? "" : "s"} auto-applied to client trips.
+            </div>
+            ${flagged.length === 0 ? "" : `
+              <div style="margin-top:12px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
+                <div style="font-weight:600;color:#991b1b;margin-bottom:8px;">
+                  ${flagged.length} unidentified payment${flagged.length === 1 ? "" : "s"} flagged for review
+                </div>
+                <div style="font-size:13px;color:#7f1d1d;">
+                  ${flagged.map((f) => `
+                    <div style="margin-bottom:6px;">
+                      <strong>${fmtMoney(f.charge.amount)}</strong> · ${f.charge.email ?? "no email"} · ${f.reason}
+                      ${f.detail ? `<br/><span style="color:#991b1b;font-size:12px;">${f.detail}</span>` : ""}
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            `}
             <p style="margin-top:24px;font-size:13px;color:#6b7280;">
               View full history at
               <a href="https://app.crestwelltravels.com/reports/daily-payments" style="color:#0D7377;">app.crestwelltravels.com/reports/daily-payments</a>
