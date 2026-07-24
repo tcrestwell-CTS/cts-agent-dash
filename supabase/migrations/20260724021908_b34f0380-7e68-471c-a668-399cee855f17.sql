@@ -1,0 +1,1 @@
+UPDATE public.exception_queue SET status = 'resolved', description = description || ' [user-confirmed: reimbursement, omitted from reconciliation]' WHERE id = 'dee6e8af-f47d-42ad-a856-fe2c7e09a792';
