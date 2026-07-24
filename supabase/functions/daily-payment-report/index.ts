@@ -115,14 +115,15 @@ serve(async (req) => {
 
     // Look up clients by email in one query
     const emails = Array.from(new Set(rawPayments.map((p) => p.email).filter((e): e is string => !!e)));
-    const clientMap = new Map<string, { id: string; name: string; email: string; trip: string | null; destination: string | null; tripIds: string[] }>();
+    type TripLite = { id: string; trip_name: string; destination: string | null; created_at: string };
+    const clientMap = new Map<string, { id: string; name: string; email: string; trip: string | null; destination: string | null; tripIds: string[]; trips: TripLite[] }>();
     if (emails.length > 0) {
       const { data: clientsRows } = await supabase
         .from("clients")
         .select("id, name, email, trips:trips(id, trip_name, destination, created_at)")
         .in("email", emails);
       for (const c of clientsRows ?? []) {
-        const trips = ((c as any).trips ?? []) as Array<{ id: string; trip_name: string; destination: string | null; created_at: string }>;
+        const trips = ((c as any).trips ?? []) as TripLite[];
         const latest = trips.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
         const em = ((c as any).email as string | null)?.toLowerCase();
         if (em) {
@@ -133,6 +134,7 @@ serve(async (req) => {
             trip: latest?.trip_name ?? null,
             destination: latest?.destination ?? null,
             tripIds: trips.map((t) => t.id).filter(Boolean),
+            trips,
           });
         }
       }
@@ -175,11 +177,23 @@ serve(async (req) => {
           continue;
         }
 
-        // Find pending trip_payments across this client's trips with matching amount (±$0.02)
+        // Prefer matching by trip name found in charge description/metadata.
+        // If none matches, fall back to email-only (any of the client's trips).
+        const hay = `${p.description ?? ""}`.toLowerCase();
+        const nameMatched = client.trips.filter((t) => {
+          const n = (t.trip_name || "").toLowerCase().trim();
+          const d = (t.destination || "").toLowerCase().trim();
+          return (n && n.length >= 3 && hay.includes(n)) ||
+                 (d && d.length >= 3 && hay.includes(d));
+        });
+        const scopedTripIds = nameMatched.length > 0
+          ? nameMatched.map((t) => t.id)
+          : client.tripIds;
+
         const { data: candidates } = await supabase
           .from("trip_payments")
           .select("id, amount, status, trip_id")
-          .in("trip_id", client.tripIds)
+          .in("trip_id", scopedTripIds)
           .in("status", ["pending", "scheduled", "due"]);
 
         const matches = (candidates ?? []).filter(
