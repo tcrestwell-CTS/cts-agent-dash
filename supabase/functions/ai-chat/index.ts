@@ -11,12 +11,13 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
-const SYSTEM_PROMPT = `You are Crestwell's in-app AI assistant for travel agents. You help with two things:
+const SYSTEM_PROMPT = `You are Donna, Crestwell's in-app AI assistant for travel agents. You help with:
 
 1. Creating group trips (parent trip + optional sub-trips for each cabin/room/family). Group trips use trip_type='group' and sub-trips link via parent_trip_id.
 2. Managing workflow tasks (list, create, complete) tied to trips. Tasks have task_type (follow_up, payment_due, document_request, supplier_followup, internal_review) and status (pending, in_progress, completed).
+3. Converting approved lead proposals into CRM clients. When the advisor approves a lead (a quote_requests row with proposal_status='approved' or status='approved') and asks you to add them as a client, call create_client_from_lead with the quote_request_id. It copies name, email, phone, location, and lead_source into public.clients and links the quote request via converted_trip_id if a trip is created later.
 
-Always confirm important details (dates, destination, number of sub-trips, task due dates) before calling tools when ambiguous. Be concise. After calling tools, summarize what you did in one or two sentences.`;
+Always confirm important details (dates, destination, number of sub-trips, task due dates) before calling tools when ambiguous. Be concise. Introduce yourself as Donna on the first turn only. After calling tools, summarize what you did in one or two sentences.`;
 
 type ChatMessage = { role: "system" | "user" | "assistant" | "tool"; content: string; tool_calls?: any; tool_call_id?: string; name?: string };
 
@@ -119,6 +120,21 @@ const tools = [
           client_id: { type: "string" },
         },
         required: ["client_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_client_from_lead",
+      description:
+        "Create a CRM client record from an approved lead (quote_requests row). Use when the advisor has approved a lead proposal and wants to add the lead as a client. Skips creation and returns the existing client if one already exists for this user with the same email.",
+      parameters: {
+        type: "object",
+        properties: {
+          quote_request_id: { type: "string", description: "UUID of the quote_requests row to convert." },
+        },
+        required: ["quote_request_id"],
       },
     },
   },
@@ -323,6 +339,52 @@ async function runTool(name: string, args: any, userId: string, supabase: any) {
         .single();
       if (error) return { error: error.message };
       return { client: data };
+    }
+    case "create_client_from_lead": {
+      const { data: lead, error: lErr } = await supabase
+        .from("quote_requests")
+        .select("id, first_name, last_name, email, phone, destination, status, proposal_status, lead_source, utm_source")
+        .eq("id", args.quote_request_id)
+        .single();
+      if (lErr || !lead) return { error: lErr?.message ?? "Lead not found" };
+
+      const approved =
+        (lead.status ?? "").toLowerCase() === "approved" ||
+        (lead.proposal_status ?? "").toLowerCase() === "approved";
+      if (!approved) {
+        return { error: `Lead is not approved (status=${lead.status}, proposal_status=${lead.proposal_status}). Approve the proposal before creating a client.` };
+      }
+
+      const email = (lead.email ?? "").trim().toLowerCase();
+      if (email) {
+        const { data: existing } = await supabase
+          .from("clients")
+          .select("id, name, email")
+          .eq("user_id", userId)
+          .ilike("email", email)
+          .maybeSingle();
+        if (existing) return { client: existing, already_existed: true };
+      }
+
+      const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(" ").trim() || (email || "Unnamed lead");
+      const { data: created, error: cErr } = await supabase
+        .from("clients")
+        .insert({
+          user_id: userId,
+          name: fullName,
+          first_name: lead.first_name ?? null,
+          last_name: lead.last_name ?? null,
+          email: lead.email ?? null,
+          phone: lead.phone ?? null,
+          status: "active",
+          lead_source: lead.lead_source ?? lead.utm_source ?? "lead_conversion",
+          source: "lead_conversion",
+          notes: lead.destination ? `Converted from approved lead. Interest: ${lead.destination}` : "Converted from approved lead.",
+        })
+        .select("id, name, email")
+        .single();
+      if (cErr) return { error: cErr.message };
+      return { client: created, already_existed: false };
     }
     default:
       return { error: `Unknown tool: ${name}` };

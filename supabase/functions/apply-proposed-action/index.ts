@@ -166,6 +166,43 @@ async function dispatch(
       // UI surfaces the draft for the agent to send via existing email flow.
       return;
     }
+    case 'create_client_from_lead': {
+      const quoteId = (changes as any).quote_request_id ?? action.target_id;
+      if (!quoteId) throw new Error('quote_request_id required');
+      const { data: lead, error: lErr } = await db
+        .from('quote_requests')
+        .select('first_name, last_name, email, phone, destination, lead_source, utm_source')
+        .eq('id', quoteId)
+        .single();
+      if (lErr || !lead) throw new Error(lErr?.message ?? 'Lead not found');
+
+      const email = ((lead as any).email ?? '').trim().toLowerCase();
+      if (email) {
+        const { data: existing } = await db
+          .from('clients')
+          .select('id')
+          .eq('user_id', action.user_id)
+          .ilike('email', email)
+          .maybeSingle();
+        if (existing) return;
+      }
+
+      const fullName = [(lead as any).first_name, (lead as any).last_name].filter(Boolean).join(' ').trim() || email || 'Unnamed lead';
+      const { error } = await db.from('clients').insert({
+        user_id: action.user_id,
+        name: fullName,
+        first_name: (lead as any).first_name ?? null,
+        last_name: (lead as any).last_name ?? null,
+        email: (lead as any).email ?? null,
+        phone: (lead as any).phone ?? null,
+        status: 'active',
+        lead_source: (lead as any).lead_source ?? (lead as any).utm_source ?? 'lead_conversion',
+        source: 'lead_conversion',
+        notes: (lead as any).destination ? `Converted from approved lead. Interest: ${(lead as any).destination}` : 'Converted from approved lead.',
+      });
+      if (error) throw error;
+      return;
+    }
     default:
       throw new Error(`Unsupported action_type: ${action.action_type}`);
   }
