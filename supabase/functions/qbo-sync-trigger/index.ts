@@ -1431,6 +1431,17 @@ async function handleLoanRepaymentPosted(
     getMappedAccountId(supabase, "interest_income"),
   ]);
 
+  // Preflight: verify the two Deposit target accounts are Active + AccountType=Bank
+  // in QBO. Fails fast with a clear message instead of the opaque 6000 error.
+  const preflight: Promise<void>[] = [];
+  if (principal > 0) {
+    preflight.push(assertQBOBankAccountUsable(qboBase, qboHeaders, principalAcct, "loan_principal_clearing"));
+  }
+  if (interest > 0) {
+    preflight.push(assertQBOBankAccountUsable(qboBase, qboHeaders, interestAcct, "loan_interest_clearing"));
+  }
+  await Promise.all(preflight);
+
   // Resolve loan application for memo/customer linkage.
   const { data: loan } = await supabase
     .from("loan_applications")
