@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,18 +45,68 @@ serve(async (req) => {
           .toISOString()
           .split("T")[0];
 
-    // Pull all Stripe payments marked paid on the target date
-    const { data: payments, error } = await supabase
-      .from("trip_payments")
-      .select(
-        "id, amount, payment_type, payment_date, stripe_payment_intent_id, stripe_receipt_url, trip_id, trips:trip_id(trip_name, destination, client_id, clients:client_id(name, email))",
-      )
-      .eq("payment_method", "stripe")
-      .eq("status", "paid")
-      .eq("payment_date", target)
-      .order("amount", { ascending: false });
+    // Pull succeeded Stripe charges for the target date (UTC day window)
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    if (error) throw error;
+    const dayStart = Math.floor(new Date(target + "T00:00:00Z").getTime() / 1000);
+    const dayEnd = dayStart + 24 * 60 * 60;
+
+    const charges: Stripe.Charge[] = [];
+    let startingAfter: string | undefined = undefined;
+    while (true) {
+      const page: Stripe.ApiList<Stripe.Charge> = await stripe.charges.list({
+        created: { gte: dayStart, lt: dayEnd },
+        limit: 100,
+        ...(startingAfter ? { starting_after: startingAfter } : {}),
+      });
+      for (const c of page.data) {
+        if (c.status === "succeeded" && !c.refunded) charges.push(c);
+      }
+      if (!page.has_more) break;
+      startingAfter = page.data[page.data.length - 1]?.id;
+      if (!startingAfter) break;
+    }
+
+    // Build payment rows and resolve client/trip by email
+    type Payment = {
+      amount: number;
+      email: string | null;
+      description: string;
+      receiptUrl: string | null;
+      chargeId: string;
+    };
+    const rawPayments: Payment[] = charges.map((c) => ({
+      amount: (c.amount ?? 0) / 100,
+      email: (c.billing_details?.email || c.receipt_email || null)?.toLowerCase() ?? null,
+      description: c.description || c.statement_descriptor || "Stripe payment",
+      receiptUrl: c.receipt_url ?? null,
+      chargeId: c.id,
+    }));
+
+    // Look up clients by email in one query
+    const emails = Array.from(new Set(rawPayments.map((p) => p.email).filter((e): e is string => !!e)));
+    const clientMap = new Map<string, { name: string; email: string; trip: string | null; destination: string | null }>();
+    if (emails.length > 0) {
+      const { data: clientsRows } = await supabase
+        .from("clients")
+        .select("id, name, email, trips:trips(trip_name, destination, created_at)")
+        .in("email", emails);
+      for (const c of clientsRows ?? []) {
+        const trips = ((c as any).trips ?? []) as Array<{ trip_name: string; destination: string | null; created_at: string }>;
+        const latest = trips.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
+        const em = ((c as any).email as string | null)?.toLowerCase();
+        if (em) {
+          clientMap.set(em, {
+            name: (c as any).name || em,
+            email: em,
+            trip: latest?.trip_name ?? null,
+            destination: latest?.destination ?? null,
+          });
+        }
+      }
+    }
 
     // Group by client
     type Row = {
@@ -74,14 +125,12 @@ serve(async (req) => {
     const groups = new Map<string, Row>();
     let grandTotal = 0;
 
-    for (const p of payments ?? []) {
-      const trip: any = (p as any).trips;
-      const client: any = trip?.clients;
-      const name = client?.name || "Unknown client";
-      const email = client?.email || null;
+    for (const p of rawPayments) {
+      const matched = p.email ? clientMap.get(p.email) : null;
+      const name = matched?.name || (p.email ? p.email : "Unknown client");
+      const email = p.email;
       const key = `${name}|${email ?? ""}`;
-      const amt = Number(p.amount) || 0;
-      grandTotal += amt;
+      grandTotal += p.amount;
       const g = groups.get(key) ?? {
         clientName: name,
         clientEmail: email,
@@ -89,14 +138,14 @@ serve(async (req) => {
         count: 0,
         items: [],
       };
-      g.total += amt;
+      g.total += p.amount;
       g.count += 1;
       g.items.push({
-        amount: amt,
-        type: p.payment_type || "payment",
-        trip: trip?.trip_name || "—",
-        destination: trip?.destination ?? null,
-        receiptUrl: (p as any).stripe_receipt_url ?? null,
+        amount: p.amount,
+        type: p.description,
+        trip: matched?.trip || "—",
+        destination: matched?.destination ?? null,
+        receiptUrl: p.receiptUrl,
       });
       groups.set(key, g);
     }
@@ -108,7 +157,7 @@ serve(async (req) => {
     const summary = {
       date: target,
       grandTotal,
-      paymentCount: payments?.length ?? 0,
+      paymentCount: rawPayments.length,
       clientCount: clients.length,
       clients,
     };
