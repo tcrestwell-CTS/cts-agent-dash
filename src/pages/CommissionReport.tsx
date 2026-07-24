@@ -93,6 +93,10 @@ export default function CommissionReport() {
     const uniqueAgents = new Set(filteredData.map((item) => item.user_id)).size;
     const paidCount = filteredData.filter((item) => item.status === "paid").length;
     const pendingCount = filteredData.filter((item) => item.status === "pending").length;
+    const expectedCount = filteredData.filter((item) => item.status === "expected").length;
+    const expectedAmount = filteredData
+      .filter((item) => item.status === "expected")
+      .reduce((sum, item) => sum + item.amount, 0);
     const marginPct = totalGrossSales > 0 ? (totalCommission / totalGrossSales) * 100 : 0;
 
     return {
@@ -103,6 +107,8 @@ export default function CommissionReport() {
       count: filteredData.length,
       paidCount,
       pendingCount,
+      expectedCount,
+      expectedAmount,
       marginPct,
     };
   }, [filteredData]);
@@ -314,7 +320,9 @@ export default function CommissionReport() {
             {
               label: canViewAll ? "Active Advisors" : "Status",
               value: canViewAll ? String(stats.uniqueAgents) : `${stats.paidCount} paid`,
-              sub: canViewAll ? `${stats.paidCount} paid · ${stats.pendingCount} pending` : `${stats.pendingCount} pending`,
+              sub: canViewAll
+                ? `${stats.paidCount} paid · ${stats.pendingCount} pending · ${stats.expectedCount} expected`
+                : `${stats.pendingCount} pending · ${stats.expectedCount} expected`,
               icon: Users,
               color: "text-foreground",
               bg: "",
