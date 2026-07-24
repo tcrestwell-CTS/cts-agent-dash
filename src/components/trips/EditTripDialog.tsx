@@ -52,6 +52,7 @@ interface EditTripDialogProps {
     budget_range?: string | null;
     cabin_selection?: string | null;
     cabin_photos?: string[] | null;
+    ship_name?: string | null;
   };
   onUpdated: () => void;
 }
@@ -69,6 +70,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
     budget_range: "",
     cabin_selection: "",
     cabin_photos: "",
+    ship_name: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -83,6 +85,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
         budget_range: (trip as any).budget_range || "",
         cabin_selection: (trip as any).cabin_selection || "",
         cabin_photos: ((trip as any).cabin_photos || []).join("\n"),
+        ship_name: (trip as any).ship_name || "",
       });
       setDateRange(
         trip.depart_date
@@ -118,6 +121,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           return_date: dateRange?.to ? formatLocalDate(dateRange.to) : null,
           cabin_selection: formData.cabin_selection || null,
           cabin_photos: cabinPhotos,
+          ship_name: formData.ship_name || null,
         } as any)
         .eq("id", trip.id);
 
