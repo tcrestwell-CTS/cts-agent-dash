@@ -196,15 +196,102 @@ serve(async (req) => {
           .in("trip_id", scopedTripIds)
           .in("status", ["pending", "scheduled", "due"]);
 
+        // Primary match: within $0.50 or 2% — handles rounding and minor discrepancies
+        const primaryTolerance = Math.max(0.50, p.amount * 0.02);
         const matches = (candidates ?? []).filter(
-          (r) => Math.abs(Number(r.amount) - p.amount) < 0.02,
+          (r) => Math.abs(Number(r.amount) - p.amount) <= primaryTolerance,
         );
 
         if (matches.length === 0) {
+          // ── Gap 1 fix: try loan_payment_schedules ──────────────────────────
+          const { data: loanMatches } = await supabase
+            .from("loan_payment_schedules")
+            .select("id, amount, status, loan_id")
+            .eq("status", "pending")
+            .filter("loan_id", "in", `(select id from loans where client_id = '${client.id}')`)
+            .filter("amount", "gte", p.amount - 0.50)
+            .filter("amount", "lte", p.amount + 0.50);
+
+          if (loanMatches && loanMatches.length === 1) {
+            const lm = loanMatches[0];
+            await supabase
+              .from("loan_payment_schedules")
+              .update({
+                status: "paid",
+                paid_at: new Date().toISOString(),
+                paid_amount: p.net,
+                stripe_charge_id: p.chargeId,
+                stripe_fee: p.fee > 0 ? p.fee : null,
+                stripe_receipt_url: p.receiptUrl,
+              })
+              .eq("id", lm.id);
+            applied.push({ charge: p, tripPaymentId: `loan:${lm.id}`, clientName: client.name });
+            continue;
+          }
+
+          // ── Gap 2 fix: loosen amount tolerance for partial/ad-hoc payments ─
+          // If no exact match, try within 5% tolerance and create an ad-hoc row
+          const { data: tripRows } = await supabase
+            .from("trip_payments")
+            .select("id, amount, status, trip_id")
+            .in("trip_id", client.tripIds)
+            .in("status", ["pending", "scheduled", "due"]);
+
+          // Find closest pending installment within 5%
+          const tolerance = p.amount * 0.05;
+          const softMatches = (tripRows ?? []).filter(
+            (r) => Math.abs(Number(r.amount) - p.amount) <= Math.max(tolerance, 5.00)
+          ).sort((a, b) => Math.abs(Number(a.amount) - p.amount) - Math.abs(Number(b.amount) - p.amount));
+
+          if (softMatches.length > 0) {
+            // Partial/ad-hoc: update the closest match with actual paid amount
+            const sm = softMatches[0];
+            await supabase
+              .from("trip_payments")
+              .update({
+                status: "paid",
+                payment_date: target,
+                payment_method: "credit_card",
+                stripe_payment_intent_id: p.chargeId,
+                stripe_receipt_url: p.receiptUrl,
+                stripe_fee: p.fee > 0 ? p.fee : null,
+                amount: p.net, // actual net paid, not scheduled amount
+                notes: `Ad-hoc/partial payment — scheduled ${fmtMoney(Number(sm.amount))}, received ${fmtMoney(p.amount)}`,
+              })
+              .eq("id", sm.id);
+            applied.push({ charge: p, tripPaymentId: sm.id, clientName: client.name });
+            continue;
+          }
+
+          // Nothing matched — insert ad-hoc trip_payment on most recent trip
+          const latestTripId = client.tripIds[0];
+          if (latestTripId) {
+            const { data: newRow } = await supabase
+              .from("trip_payments")
+              .insert({
+                trip_id: latestTripId,
+                label: `Ad-hoc payment — ${p.description}`,
+                amount: p.net,
+                status: "paid",
+                payment_date: target,
+                payment_method: "credit_card",
+                stripe_payment_intent_id: p.chargeId,
+                stripe_receipt_url: p.receiptUrl,
+                stripe_fee: p.fee > 0 ? p.fee : null,
+                notes: `Auto-created by daily reconciler — no matching scheduled installment found`,
+              })
+              .select("id")
+              .maybeSingle();
+            if (newRow?.id) {
+              applied.push({ charge: p, tripPaymentId: newRow.id, clientName: client.name });
+              continue;
+            }
+          }
+
           flagged.push({
             charge: p,
             reason: "no_matching_payment",
-            detail: `${client.name} has no pending payment of ${fmtMoney(p.amount)}`,
+            detail: `${client.name} has no pending payment near ${fmtMoney(p.amount)} — ad-hoc insert also failed`,
           });
           continue;
         }
