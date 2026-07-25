@@ -9,6 +9,8 @@ import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { CommissionReportFilters } from "@/components/reports/CommissionReportFilters";
 import { CommissionReportTable } from "@/components/reports/CommissionReportTable";
+import { ConfirmPayoutBar } from "@/components/reports/ConfirmPayoutBar";
+import { CommissionPayoutDraftProvider } from "@/hooks/useCommissionSplits";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { toast } from "sonner";
@@ -228,6 +230,7 @@ export default function CommissionReport() {
 
   return (
     <DashboardLayout>
+      <CommissionPayoutDraftProvider>
       <div className="space-y-6">
 
         {/* ── Page Header ────────────────────────────────────────────── */}
