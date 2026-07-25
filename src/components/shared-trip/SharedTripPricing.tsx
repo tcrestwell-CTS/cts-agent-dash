@@ -43,10 +43,19 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
     setEnabledAddons(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  // Line total: trust total_price (total_sell from the margin engine); fall
+  // back to unit × quantity when a synthetic line is missing it.
+  const lineAmount = (l: PricingLine) =>
+    Number(
+      l.total_price != null && l.total_price !== 0
+        ? l.total_price
+        : (l.unit_price || 0) * (l.quantity || 1)
+    );
+
   // Calculate active total — exclude unchecked selectable lines
   const activeLines = pricingLines.filter(l => !isSelectable(l) || enabledAddons[l.id]);
   const grandTotal = activeLines.length > 0
-    ? activeLines.reduce((sum, l) => sum + ((l.unit_price || 0) * (l.quantity || 1) * (l.travelers || 1)), 0)
+    ? activeLines.reduce((sum, l) => sum + lineAmount(l), 0)
     : totalCost;
   const depositTotal = activeLines.reduce((sum, l) => sum + (l.deposit_amount || 0), 0);
 
@@ -130,14 +139,14 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
 
               <div className="divide-y divide-gray-100">
                 {coreLines.map(line => {
-                  const lineTotal = (line.unit_price || 0) * (line.quantity || 1) * (line.travelers || 1);
+                  const lineTotal = lineAmount(line);
                   return (
                     <div key={line.id} className="flex items-center justify-between py-3">
                       <div>
                         <p className="text-sm text-gray-900">{line.description}</p>
-                        {(line.quantity > 1 || (line.travelers || 1) > 1) && (
+                        {(line.quantity > 1) && (
                           <p className="text-xs text-gray-400">
-                            ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} × {line.quantity || 1} × {line.travelers || 1} {(line.travelers || 1) > 1 ? 'persons' : 'person'}
+                            ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} × {line.quantity || 1}
                           </p>
                         )}
                       </div>
@@ -154,7 +163,7 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
                   <p className="text-sm font-semibold text-gray-600 pt-2">Choose Your Add-Ons</p>
                   <div className="divide-y divide-gray-100">
                     {addonLines.map(line => {
-                      const lineTotal = (line.unit_price || 0) * (line.quantity || 1) * (line.travelers || 1);
+                      const lineTotal = lineAmount(line);
                       const isEnabled = enabledAddons[line.id] !== false;
                       return (
                         <div key={line.id} className={`flex items-center justify-between py-3 transition-opacity ${!isEnabled ? 'opacity-40' : ''}`}>
@@ -167,9 +176,9 @@ export default function SharedTripPricing({ pricingLines, totalCost, primaryColo
                               />
                               <p className="text-sm text-gray-900">{line.description}</p>
                             </div>
-                            {(line.quantity > 1 || (line.travelers || 1) > 1) && (
+                            {(line.quantity > 1) && (
                               <p className="text-xs text-gray-400 ml-10">
-                                ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} × {line.quantity || 1} × {line.travelers || 1} {(line.travelers || 1) > 1 ? 'persons' : 'person'}
+                                ${(line.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} × {line.quantity || 1}
                               </p>
                             )}
                           </div>

@@ -790,10 +790,53 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch pricing lines (client-facing sell prices only)
     let pricingLines: any[] = [];
-    const { data: tripBookingIds } = await supabase
+    const { data: tripBookings, error: tripBookingsErr } = await supabase
       .from("bookings")
-      .select("id, trip_name, travelers, gross_sales")
+      .select("id, gross_sales, confirmation_number, supplier_id, status")
       .eq("trip_id", trip.id);
+    if (tripBookingsErr) {
+      console.error("shared-trip: bookings query failed", tripBookingsErr);
+    }
+    const tripBookingIds = (tripBookings || []).filter(
+      (b: any) => b.status !== "cancelled" && b.status !== "archived"
+    );
+
+    // Resolve supplier names + traveler counts so pricing rows can be labeled
+    const supplierIds = Array.from(
+      new Set(tripBookingIds.map((b: any) => b.supplier_id).filter(Boolean))
+    );
+    const supplierNameById: Record<string, string> = {};
+    if (supplierIds.length) {
+      const { data: suppliers } = await supabase
+        .from("suppliers")
+        .select("id, name")
+        .in("id", supplierIds);
+      (suppliers || []).forEach((s: any) => {
+        supplierNameById[s.id] = s.name;
+      });
+    }
+
+    const travelersByBooking: Record<string, number> = {};
+    if (tripBookingIds.length) {
+      const { data: bts } = await supabase
+        .from("booking_travelers")
+        .select("booking_id")
+        .in(
+          "booking_id",
+          tripBookingIds.map((b: any) => b.id)
+        );
+      (bts || []).forEach((r: any) => {
+        travelersByBooking[r.booking_id] =
+          (travelersByBooking[r.booking_id] || 0) + 1;
+      });
+    }
+
+    const bookingLabel = (b: any) => {
+      const supplier = supplierNameById[b.supplier_id] || "";
+      if (supplier && b.confirmation_number)
+        return `${supplier} · ${b.confirmation_number}`;
+      return supplier || b.confirmation_number || trip.trip_name || "Booking";
+    };
 
     if (tripBookingIds?.length) {
       const bIds = tripBookingIds.map((b: any) => b.id);
@@ -821,7 +864,7 @@ const handler = async (req: Request): Promise<Response> => {
         visibleLines.push({
           id: l.id,
           booking_id: l.booking_id,
-          booking_name: parentBooking?.trip_name || "",
+          booking_name: parentBooking ? bookingLabel(parentBooking) : "",
           description: l.description,
           line_type: l.line_type,
           unit_price: l.unit_sell,
@@ -829,7 +872,7 @@ const handler = async (req: Request): Promise<Response> => {
           total_price: l.total_sell,
           is_addon: l.is_pass_through || l.line_type === "addon",
           sort_order: l.sort_order,
-          travelers: parentBooking?.travelers || 1,
+          travelers: travelersByBooking[l.booking_id] || 1,
           deposit_amount: l.deposit_amount || 0,
           is_optional: l.is_optional || false,
         });
@@ -841,7 +884,7 @@ const handler = async (req: Request): Promise<Response> => {
         visibleLines.unshift({
           id: `internal-rollup-${bookingId}`,
           booking_id: bookingId,
-          booking_name: parentBooking?.trip_name || "",
+          booking_name: parentBooking ? bookingLabel(parentBooking) : "",
           description: "Package",
           line_type: "package",
           unit_price: totals.total,
@@ -849,13 +892,39 @@ const handler = async (req: Request): Promise<Response> => {
           total_price: totals.total,
           is_addon: false,
           sort_order: -1,
-          travelers: parentBooking?.travelers || 1,
+          travelers: travelersByBooking[bookingId] || 1,
           deposit_amount: totals.deposit,
           is_optional: false,
         });
       });
 
       pricingLines = visibleLines;
+
+      // Fallback: if a booking has no margin lines, synthesize one line from
+      // its gross_sales so the client always sees a per-booking breakdown.
+      const bookingsWithLines = new Set(
+        (marginLines || []).map((l: any) => l.booking_id)
+      );
+      tripBookingIds.forEach((b: any) => {
+        if (bookingsWithLines.has(b.id)) return;
+        const amount = Number(b.gross_sales || 0);
+        if (amount <= 0) return;
+        pricingLines.push({
+          id: `booking-${b.id}`,
+          booking_id: b.id,
+          booking_name: bookingLabel(b),
+          description: bookingLabel(b),
+          line_type: "package",
+          unit_price: amount,
+          quantity: 1,
+          total_price: amount,
+          is_addon: false,
+          sort_order: 0,
+          travelers: travelersByBooking[b.id] || 1,
+          deposit_amount: 0,
+          is_optional: false,
+        });
+      });
     }
     let branding = null;
     let advisor = null;
