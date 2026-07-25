@@ -483,7 +483,9 @@ export default function CommissionReport() {
           <CommissionReportTable data={filteredData} showAgentColumn={canViewAll || false} />
         </div>
 
+        <ConfirmPayoutBar />
       </div>
+      </CommissionPayoutDraftProvider>
     </DashboardLayout>
   );
 }
