@@ -3,7 +3,7 @@ import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/c
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { ExternalLink, CheckCircle2, Clock, Hourglass, Split as SplitIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -141,8 +141,8 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
             const isPaid = item.status === "paid";
             const isExpected = item.status === "expected";
             return (
-              <>
-              <tr key={item.id} className={`hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/10" : ""}`}>
+              <Fragment key={item.id}>
+              <tr className={`hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/10" : ""}`}>
                 <td className="px-5 py-3 text-muted-foreground whitespace-nowrap text-xs">
                   {format(parseISO(item.created_at), "MMM d, yyyy")}
                 </td>
@@ -222,7 +222,7 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                 </td>
               </tr>
               {expanded === item.id && !isExpected && (
-                <tr key={item.id + "-splits"} className="bg-muted/10">
+                <tr className="bg-muted/10">
                   <td colSpan={colSpanFull} className="p-0">
                     <CommissionSplitsEditor
                       commissionId={item.id}
@@ -240,7 +240,7 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                   </td>
                 </tr>
               )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
