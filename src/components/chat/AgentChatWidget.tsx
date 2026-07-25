@@ -38,6 +38,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
 
+// Lightweight beep so users hear new messages even if the tab is in the background.
+const playPing = () => {
+  try {
+    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.26);
+  } catch { /* ignore */ }
+};
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type View = "closed" | "menu" | "team" | "dm" | "ai";
@@ -147,6 +166,66 @@ export function AgentChatWidget() {
     channel as "team" | "dm",
     dmPartnerId
   );
+
+  // ── Popup notifications for new agent chat messages ──────────────────────────
+  // Subscribe globally so agents get toast pop-ups regardless of which page
+  // they're on. Suppresses toasts for the conversation currently open in the
+  // widget and for messages the current user sent themselves.
+  const mountedAtRef = useRef<string>(new Date().toISOString());
+  useEffect(() => {
+    if (!user) return;
+    const sub = supabase
+      .channel("agent-messages-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "agent_messages" },
+        async (payload) => {
+          const m: any = payload.new;
+          if (!m || m.sender_id === user.id) return;
+          // Only notify on team messages or DMs addressed to this user
+          const isDmToMe = m.channel === "dm" && m.recipient_id === user.id;
+          const isTeam = m.channel === "team";
+          if (!isDmToMe && !isTeam) return;
+          // Suppress if the relevant conversation is already open
+          if (isTeam && view === "team") return;
+          if (isDmToMe && view === "dm" && dmPartnerId === m.sender_id) return;
+
+          // Look up sender name
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("user_id", m.sender_id)
+            .maybeSingle();
+          const senderName = profile?.full_name || "Agent";
+          const preview =
+            (m.message as string).length > 120
+              ? `${(m.message as string).slice(0, 117)}…`
+              : (m.message as string);
+
+          playPing();
+          toast(isDmToMe ? `New message from ${senderName}` : `${senderName} · Team Chat`, {
+            description: preview,
+            duration: 8000,
+            action: {
+              label: "Open",
+              onClick: () => {
+                if (isDmToMe) {
+                  setDmPartnerId(m.sender_id);
+                  setDmPartnerName(senderName);
+                  setView("dm");
+                } else {
+                  setView("team");
+                }
+              },
+            },
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(sub);
+    };
+  }, [user, view, dmPartnerId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
