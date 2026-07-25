@@ -2,13 +2,17 @@ import { CommissionReportItem } from "@/hooks/useCommissionReport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
-import { ExternalLink, CheckCircle2, Clock, Hourglass } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, CheckCircle2, Clock, Hourglass, Split as SplitIcon } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CommissionSplitsEditor } from "./CommissionSplitsEditor";
+import { usePayoutDraft } from "@/hooks/useCommissionSplits";
 
 interface CommissionReportTableProps {
   data: CommissionReportItem[];
@@ -18,6 +22,18 @@ interface CommissionReportTableProps {
 export function CommissionReportTable({ data, showAgentColumn }: CommissionReportTableProps) {
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const { drafts } = usePayoutDraft();
+
+  const agents = useMemo(() => {
+    const m = new Map<string, { user_id: string; full_name: string | null }>();
+    data.forEach((d) => {
+      if (d.agent?.user_id && !m.has(d.agent.user_id)) {
+        m.set(d.agent.user_id, { user_id: d.agent.user_id, full_name: d.agent.full_name });
+      }
+    });
+    return Array.from(m.values());
+  }, [data]);
 
   const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -101,8 +117,9 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
 
   const headers = ["Date", "Booking", "Client",
     ...(showAgentColumn ? ["Agent"] : []),
-    "Supplier", "Gross Sales", "Commission", "Agent Share", "Status", "Received"];
+    "Supplier", "Gross Sales", "Commission", "Agent Share", "Status", "Received", "Splits"];
   const rightAlignFrom = showAgentColumn ? 5 : 4;
+  const colSpanFull = headers.length;
 
   return (
     <div className="overflow-x-auto">
@@ -124,7 +141,8 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
             const isPaid = item.status === "paid";
             const isExpected = item.status === "expected";
             return (
-              <tr key={item.id} className={`hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/10" : ""}`}>
+              <Fragment key={item.id}>
+              <tr className={`hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/10" : ""}`}>
                 <td className="px-5 py-3 text-muted-foreground whitespace-nowrap text-xs">
                   {format(parseISO(item.created_at), "MMM d, yyyy")}
                 </td>
@@ -183,7 +201,46 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                     )}
                   </div>
                 </td>
+                <td className="px-5 py-3 text-right">
+                  <div className="inline-flex items-center gap-2 justify-end">
+                    {drafts[item.id] && (
+                      <Badge variant="outline" className="text-[10px] h-5">
+                        Staged
+                      </Badge>
+                    )}
+                    <Button
+                      variant={expanded === item.id ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={isExpected}
+                      onClick={() => setExpanded(expanded === item.id ? null : item.id)}
+                    >
+                      <SplitIcon className="h-3.5 w-3.5 mr-1" />
+                      Splits
+                    </Button>
+                  </div>
+                </td>
               </tr>
+              {expanded === item.id && !isExpected && (
+                <tr className="bg-muted/10">
+                  <td colSpan={colSpanFull} className="p-0">
+                    <CommissionSplitsEditor
+                      commissionId={item.id}
+                      bookingId={item.booking_id}
+                      amount={item.amount}
+                      agent={item.agent ? {
+                        user_id: item.agent.user_id,
+                        full_name: item.agent.full_name,
+                        commission_tier: item.agent.commission_tier,
+                      } : null}
+                      paidDate={item.paid_date}
+                      agents={agents}
+                      onClose={() => setExpanded(null)}
+                    />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             );
           })}
         </tbody>
@@ -195,6 +252,7 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
             <td className="px-5 py-3 text-right tabular-nums font-bold">{fmt(data.reduce((s,i) => s+(i.booking?.gross_sales||i.booking?.total_amount||0),0))}</td>
             <td className="px-5 py-3 text-right tabular-nums font-bold text-primary">{fmt(data.reduce((s,i)=>s+i.amount,0))}</td>
             <td className="px-5 py-3 text-right tabular-nums font-bold text-green-600">{fmt(data.reduce((s,i)=>s+calculateAgentCommission(i.amount,(i.agent?.commission_tier||"tier_1")as CommissionTier),0))}</td>
+            <td className="px-5 py-3"/>
             <td className="px-5 py-3"/>
             <td className="px-5 py-3"/>
           </tr>
