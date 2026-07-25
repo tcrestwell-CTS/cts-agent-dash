@@ -84,122 +84,105 @@ interface NavGroup {
 const topLevelNav: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: "dashboard" },
   { name: "Approvals", href: "/approvals", icon: Inbox },
-  { name: "Inbox Sync", href: "/inbox-sync", icon: Mail },
 ];
 
 const navGroups: NavGroup[] = [
   {
-    label: "Sales",
-    icon: DollarSign,
+    label: "Clients & Sales",
+    icon: Users,
     items: [
-      { name: "Leads",            href: "/leads",               icon: UserPlus,    feature: "leads" },
-      { name: "Clients",          href: "/contacts",            icon: Users,       feature: "clients" },
-      { name: "Partners",         href: "/business-contacts",   icon: Building2,   feature: "business_contacts" },
+      { name: "Leads",    href: "/leads",             icon: UserPlus,  feature: "leads" },
+      { name: "Clients",  href: "/contacts",           icon: Users,     feature: "clients" },
+      { name: "Partners", href: "/business-contacts",  icon: Building2, feature: "business_contacts" },
     ],
   },
   {
-    label: "Trips & Bookings",
-    icon: Calendar,
+    label: "Trips",
+    icon: Compass,
     items: [
-      { name: "Trips",            href: "/trips",               icon: Compass,     feature: "trips" },
-      { name: "Bookings",         href: "/bookings",            icon: BookOpen,    feature: "trips" },
-      { name: "Payment Reminders",href: "/payment-reminders",   icon: Bell,        feature: "payment_reminders" },
-      { name: "Suppliers",        href: "/suppliers",           icon: Building2,   feature: "suppliers" },
-      { name: "Commissions",      href: "/commissions",         icon: DollarSign,  feature: "commissions" },
-      { name: "Commission Report",href: "/commission-report",   icon: FileText,    feature: "quotes" },
-      { name: "Supplier Payments Due", href: "/supplier-payments-due", icon: Banknote, feature: "commissions" },
-      { name: "Issued Cards",          href: "/issued-cards",          icon: CreditCard },
+      { name: "Trips",       href: "/trips",       icon: Compass,   feature: "trips" },
+      { name: "Bookings",    href: "/bookings",    icon: BookOpen,  feature: "trips" },
+      { name: "Suppliers",   href: "/suppliers",   icon: Building2, feature: "suppliers" },
+      { name: "Commissions", href: "/commissions", icon: DollarSign, feature: "commissions" },
     ],
   },
   {
-    label: "Marketing",
-    icon: Mail,
-    defaultCollapsed: true,
+    label: "Search",
+    icon: Ship,
     items: [
-      { name: "Campaigns",        href: "/campaigns",                icon: Megaphone },
-      { name: "Audiences",        href: "/campaigns/audiences",      icon: Users },
-      { name: "Image Library",    href: "/campaigns/images",         icon: Library },
-      { name: "Email & Branding", href: "/branding",                 icon: Mail,    feature: "email_branding" },
-      { name: "Publish Manager",  href: "/publish-manager",          icon: Globe,   feature: "publish_manager" },
-      { name: "Featured Trips",   href: "/featured-trips",           icon: Star,    feature: "featured_trips" },
-    ],
-  },
-  {
-    label: "Services",
-    icon: Car,
-    items: [
-      { name: "Car Rentals", href: "/car-rentals", icon: Car },
-      { name: "Insurance",   href: "/trips",       icon: ShieldPlus },
-    ],
-  },
-  {
-    label: "Tools",
-    icon: Wrench,
-    defaultCollapsed: true,
-    items: [
-      { name: "Flight Search", href: "/flights", icon: Plane, feature: "flight_search" },
-      { name: "Flight Monitor", href: "/flight-monitoring", icon: Bell, feature: "flight_monitoring" },
-      { name: "Hotel Search", href: "/hotels", icon: Hotel, feature: "hotel_search" },
-      { name: "Cruise Search", href: "/cruises", icon: Ship, feature: "cruise_search" },
+      { name: "Cruises",    href: "/cruises",    icon: Ship,    feature: "cruise_search" },
+      { name: "Hotels",     href: "/hotels",     icon: Hotel,   feature: "hotel_search" },
+      { name: "Flights",    href: "/flights",    icon: Plane,   feature: "flight_search" },
       { name: "Excursions", href: "/excursions", icon: Compass, feature: "excursions" },
+      { name: "Car Rentals", href: "/car-rentals", icon: Car },
       { name: "Loan Applications", href: "/loan-applications", icon: CreditCard, feature: "loan_applications" },
     ],
   },
   {
-    label: "Training",
-    icon: GraduationCap,
+    label: "Grow",
+    icon: Megaphone,
+    defaultCollapsed: true,
     items: [
-      { name: "Dashboard", href: "/training", icon: LayoutDashboard, feature: "training" },
-      { name: "Library", href: "/training/library", icon: Library, feature: "training_library" },
-      { name: "My Badges", href: "/training", icon: Award, feature: "training_badges" },
-    ],
-  },
-  {
-    label: "Reports",
-    icon: BarChart3,
-    items: [
-      { name: "Analytics", href: "/analytics", icon: BarChart3, feature: "analytics" },
+      { name: "Campaigns",  href: "/campaigns",       icon: Megaphone, feature: "campaigns" },
+      { name: "Training",   href: "/training",         icon: GraduationCap, feature: "training" },
+      { name: "Analytics",  href: "/analytics",        icon: BarChart3, feature: "analytics" },
+      { name: "The Circle ✦", href: "/circle-members", icon: Star },
     ],
   },
 ];
 
 const bottomNav: NavItem[] = [
-  { name: "The Circle ✦", href: "/circle-members", icon: Star },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-const adminNavigation: NavItem[] = [
-  { name: "Team Management", href: "/team", icon: UserPlus },
-  { name: "Training Admin", href: "/training/admin", icon: GraduationCap },
-  { name: "AI Agents Health", href: "/kandi", icon: BarChart3 },
-  { name: "QBO Health", href: "/qbo-health", icon: HeartPulse },
-  { name: "QBO Payment Sync", href: "/qbo-payment-sync", icon: HeartPulse },
-  { name: "Risk & Compliance", href: "/risk-compliance", icon: ShieldAlert },
-  { name: "Payment Security", href: "/payment-security", icon: ShieldAlert },
-  { name: "Portal Management", href: "/portal-management", icon: Globe },
-  { name: "Task Monitor", href: "/task-monitor", icon: Activity },
-  { name: "Email Activity", href: "/email-activity", icon: Mail },
-];
+const adminNavigation: NavItem[] = [];
 
 const adminNavGroups: NavGroup[] = [
   {
-    label: "Reports",
-    icon: FileText,
+    label: "Team",
+    icon: UserPlus,
     items: [
-      { name: "Daily Payment Report", href: "/reports/daily-payments", icon: FileText },
+      { name: "Team Management",  href: "/team",               icon: UserPlus },
+      { name: "Training Admin",   href: "/training/admin",     icon: GraduationCap },
+      { name: "Risk & Compliance",href: "/risk-compliance",    icon: ShieldAlert },
+      { name: "Portal Management",href: "/portal-management",  icon: Globe },
+    ],
+  },
+  {
+    label: "Operations",
+    icon: Activity,
+    defaultCollapsed: true,
+    items: [
+      { name: "AI Agents Health", href: "/kandi",            icon: BarChart3 },
+      { name: "Task Monitor",     href: "/task-monitor",      icon: Activity },
+      { name: "Email Activity",   href: "/email-activity",    icon: Mail },
+      { name: "Payment Security", href: "/payment-security",  icon: ShieldAlert },
+      { name: "Flight Monitor",   href: "/flight-monitoring", icon: Bell },
+    ],
+  },
+  {
+    label: "Finance",
+    icon: HeartPulse,
+    items: [
+      { name: "QBO Health",            href: "/qbo-health",            icon: HeartPulse },
+      { name: "QBO Payment Sync",      href: "/qbo-payment-sync",      icon: ArrowRightLeft },
+      { name: "Daily Payment Report",  href: "/reports/daily-payments", icon: FileText },
+      { name: "Supplier Payments Due", href: "/supplier-payments-due",  icon: Banknote },
+      { name: "Commission Report",     href: "/commission-report",      icon: FileText },
     ],
   },
   {
     label: "Reconciliation",
     icon: ArrowRightLeft,
+    defaultCollapsed: true,
     items: [
-      { name: "Recon Dashboard", href: "/recon", icon: ArrowRightLeft },
-      { name: "Match Center", href: "/recon/matches", icon: ArrowRightLeft },
-      { name: "Exceptions", href: "/recon/exceptions", icon: AlertTriangle },
-      { name: "Approvals", href: "/recon/approvals", icon: ShieldCheck },
-      { name: "Stripe Payouts", href: "/recon/payouts", icon: CreditCard },
-      { name: "Monthly Recon", href: "/reconciliation", icon: FileSpreadsheet },
-      { name: "Recon Settings", href: "/recon/settings", icon: Settings },
+      { name: "Recon Dashboard", href: "/recon",             icon: ArrowRightLeft },
+      { name: "Match Center",    href: "/recon/matches",     icon: ArrowRightLeft },
+      { name: "Exceptions",      href: "/recon/exceptions",  icon: AlertTriangle },
+      { name: "Approvals",       href: "/recon/approvals",   icon: ShieldCheck },
+      { name: "Stripe Payouts",  href: "/recon/payouts",     icon: CreditCard },
+      { name: "Monthly Recon",   href: "/reconciliation",    icon: FileSpreadsheet },
+      { name: "Recon Settings",  href: "/recon/settings",    icon: Settings },
     ],
   },
 ];
