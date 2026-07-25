@@ -2899,6 +2899,65 @@ export type Database = {
           },
         ]
       }
+      commission_splits: {
+        Row: {
+          amount: number
+          commission_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          paid_date: string | null
+          percent: number | null
+          recipient_user_id: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          commission_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          percent?: number | null
+          recipient_user_id?: string | null
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          commission_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          percent?: number | null
+          recipient_user_id?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_splits_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commissions: {
         Row: {
           amount: number
@@ -5036,31 +5095,40 @@ export type Database = {
         Row: {
           assigned_by: string
           created_at: string
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean
           mentee_user_id: string
           mentor_user_id: string
           notes: string | null
+          split_percent: number
           updated_at: string
         }
         Insert: {
           assigned_by: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           mentee_user_id: string
           mentor_user_id: string
           notes?: string | null
+          split_percent?: number
           updated_at?: string
         }
         Update: {
           assigned_by?: string
           created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           mentee_user_id?: string
           mentor_user_id?: string
           notes?: string | null
+          split_percent?: number
           updated_at?: string
         }
         Relationships: []
@@ -9358,6 +9426,7 @@ export type Database = {
         Returns: Json
       }
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
+      confirm_commission_payout: { Args: { p_edits: Json }; Returns: Json }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       get_proposal: {
