@@ -861,6 +861,13 @@ const handler = async (req: Request): Promise<Response> => {
           internalTotalsByBooking[l.booking_id] = acc;
           return;
         }
+        // Skip zero-priced, non-optional, non-addon lines — these are
+        // inclusions (e.g. "Onboard internet") and shouldn't appear as
+        // $0.00 rows in the breakdown.
+        const isAddonLike = l.is_pass_through || l.line_type === "addon" || l.is_optional;
+        if (!isAddonLike && Number(l.total_sell || 0) === 0 && Number(l.unit_sell || 0) === 0) {
+          return;
+        }
         visibleLines.push({
           id: l.id,
           booking_id: l.booking_id,
@@ -878,10 +885,35 @@ const handler = async (req: Request): Promise<Response> => {
         });
       });
 
+      // Aggregate duplicate rows within the same booking that share
+      // description + line_type + unit_price (common for per-traveler
+      // cabin lines). Sums quantity and total; keeps earliest sort_order.
+      const aggMap = new Map<string, any>();
+      for (const line of visibleLines) {
+        const key = [
+          line.booking_id,
+          line.line_type,
+          line.description,
+          Number(line.unit_price || 0).toFixed(2),
+          line.is_addon ? "1" : "0",
+          line.is_optional ? "1" : "0",
+        ].join("|");
+        const existing = aggMap.get(key);
+        if (existing) {
+          existing.quantity = Number(existing.quantity || 0) + Number(line.quantity || 0);
+          existing.total_price = Number(existing.total_price || 0) + Number(line.total_price || 0);
+          existing.deposit_amount = Number(existing.deposit_amount || 0) + Number(line.deposit_amount || 0);
+          existing.sort_order = Math.min(existing.sort_order ?? 0, line.sort_order ?? 0);
+        } else {
+          aggMap.set(key, { ...line });
+        }
+      }
+      const aggregatedLines = Array.from(aggMap.values());
+
       // Prepend a single rolled-up Package line per booking that has internals.
       Object.entries(internalTotalsByBooking).forEach(([bookingId, totals]) => {
         const parentBooking = tripBookingIds.find((b: any) => b.id === bookingId);
-        visibleLines.unshift({
+        aggregatedLines.unshift({
           id: `internal-rollup-${bookingId}`,
           booking_id: bookingId,
           booking_name: parentBooking ? bookingLabel(parentBooking) : "",
@@ -898,7 +930,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
       });
 
-      pricingLines = visibleLines;
+      pricingLines = aggregatedLines;
 
       // Fallback: if a booking has no margin lines, synthesize one line from
       // its gross_sales so the client always sees a per-booking breakdown.
