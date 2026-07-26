@@ -3,9 +3,8 @@ import { Link } from "react-router-dom";
 import { Car, ArrowRight } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 
 export function CarRentalsCard() {
   const { data, isLoading } = useQuery({
@@ -35,20 +34,24 @@ export function CarRentalsCard() {
   });
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <Car className="h-4 w-4 text-primary" />
-          Car Rentals
-        </CardTitle>
-        <Link
-          to="/car-rentals"
-          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-        >
-          View all <ArrowRight className="h-3 w-3" />
-        </Link>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Panel>
+      <PanelHeader
+        title={
+          <span className="inline-flex items-center gap-2">
+            <Car className="h-4 w-4 text-accent" />
+            Car Rentals
+          </span>
+        }
+        actions={
+          <Link
+            to="/car-rentals"
+            className="inline-flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground"
+          >
+            View all <ArrowRight className="h-3 w-3" />
+          </Link>
+        }
+      />
+      <PanelBody className="space-y-2">
         {isLoading ? (
           <>
             <Skeleton className="h-10 w-full" />
@@ -58,30 +61,30 @@ export function CarRentalsCard() {
           <>
             <Link
               to="/car-rentals?status=needs_attention"
-              className="flex items-center justify-between rounded-md border border-border/60 p-3 hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between rounded-[9px] border border-border p-3 transition-colors hover:bg-muted/50"
             >
               <div>
-                <p className="text-xs text-muted-foreground">Needs attention</p>
-                <p className="text-xl font-semibold">{data?.needsAttention ?? 0}</p>
+                <p className="text-[12.5px] text-muted-foreground">Needs attention</p>
+                <p className="text-[20px] font-semibold tabular-nums text-foreground">{data?.needsAttention ?? 0}</p>
               </div>
               {(data?.needsAttention ?? 0) > 0 && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                <span className="rounded-full bg-warning/15 px-[9px] py-[2px] text-[11.5px] font-semibold text-warning">
                   New / Pending
-                </Badge>
+                </span>
               )}
             </Link>
             <Link
               to="/car-rentals"
-              className="flex items-center justify-between rounded-md border border-border/60 p-3 hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between rounded-[9px] border border-border p-3 transition-colors hover:bg-muted/50"
             >
               <div>
-                <p className="text-xs text-muted-foreground">Upcoming pickups (7d)</p>
-                <p className="text-xl font-semibold">{data?.upcoming ?? 0}</p>
+                <p className="text-[12.5px] text-muted-foreground">Upcoming pickups (7d)</p>
+                <p className="text-[20px] font-semibold tabular-nums text-foreground">{data?.upcoming ?? 0}</p>
               </div>
             </Link>
           </>
         )}
-      </CardContent>
-    </Card>
+      </PanelBody>
+    </Panel>
   );
 }

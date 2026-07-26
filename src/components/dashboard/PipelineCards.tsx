@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Send, Calendar, CheckCircle2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Panel } from "@/components/patterns/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PipelineData {
@@ -25,27 +24,25 @@ export default function PipelineCards({ data, loading }: PipelineCardsProps) {
   const navigate = useNavigate();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-3">
       {items.map(({ key, title, icon: Icon, route }) => (
-        <Card
+        <Panel
           key={key}
           onClick={() => navigate(route)}
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          className="flex cursor-pointer items-center gap-3 p-[14px] transition-colors hover:bg-muted/40"
         >
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Icon className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">{title}</p>
-              {loading ? (
-                <Skeleton className="h-6 w-8 mt-1" />
-              ) : (
-                <p className="text-xl font-semibold text-foreground">{data[key]}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-accent/10">
+            <Icon className="h-4 w-4 text-accent" />
+          </div>
+          <div>
+            <p className="text-[12.5px] font-medium text-muted-foreground">{title}</p>
+            {loading ? (
+              <Skeleton className="mt-1 h-6 w-8" />
+            ) : (
+              <p className="text-[20px] font-semibold tabular-nums text-foreground">{data[key]}</p>
+            )}
+          </div>
+        </Panel>
       ))}
     </div>
   );

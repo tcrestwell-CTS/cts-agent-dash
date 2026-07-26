@@ -19,6 +19,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { Panel, PanelHeader } from "@/components/patterns/Panel";
 
 const steps = [
   {
@@ -76,34 +77,31 @@ export function OnboardingWizard() {
   const nextStep = steps.find((s) => progress && !progress[s.key]);
 
   return (
-    <div className="bg-card rounded-xl border border-primary/20 shadow-card overflow-hidden mb-6">
-      <div className="bg-gradient-to-r from-primary/10 to-accent/10 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-card-foreground">
-            Getting Started
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {completedSteps}/{totalSteps} steps completed
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="text-xs">
-            {progressPercent}%
-          </Badge>
-          <button
-            onClick={() => setDismissed(true)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+    <Panel className="mb-6 overflow-hidden border-primary/20">
+      <PanelHeader
+        className="bg-gradient-to-r from-primary/10 to-accent/10"
+        title="Getting Started"
+        subtitle={`${completedSteps}/${totalSteps} steps completed`}
+        actions={
+          <>
+            <Badge variant="secondary" className="text-[11.5px]">
+              {progressPercent}%
+            </Badge>
+            <button
+              onClick={() => setDismissed(true)}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </>
+        }
+      />
 
-      <div className="px-6 py-2">
+      <div className="px-[17px] py-2">
         <Progress value={progressPercent} className="h-1.5" />
       </div>
 
-      <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 px-[17px] py-[14px] md:grid-cols-2 lg:grid-cols-3">
         {steps.map((step) => {
           const done = progress?.[step.key] ?? false;
           const isNext = step === nextStep;
@@ -113,12 +111,12 @@ export function OnboardingWizard() {
               key={step.key}
               onClick={() => navigate(step.href)}
               className={cn(
-                "flex items-start gap-3 p-3 rounded-lg text-left transition-all",
+                "flex items-start gap-3 rounded-[9px] p-3 text-left transition-all",
                 done
-                  ? "bg-success/5 border border-success/20"
+                  ? "border border-success/20 bg-success/5"
                   : isNext
-                  ? "bg-primary/5 border border-primary/20 hover:bg-primary/10"
-                  : "bg-muted/30 border border-border hover:bg-muted/50"
+                  ? "border border-primary/20 bg-primary/5 hover:bg-primary/10"
+                  : "border border-border bg-muted/30 hover:bg-muted/50"
               )}
             >
               <div className="mt-0.5">
@@ -133,10 +131,10 @@ export function OnboardingWizard() {
                   />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p
                   className={cn(
-                    "text-sm font-medium",
+                    "text-[13.5px] font-medium",
                     done
                       ? "text-success line-through"
                       : "text-card-foreground"
@@ -144,12 +142,12 @@ export function OnboardingWizard() {
                 >
                   {step.label}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="mt-0.5 text-[12.5px] text-muted-foreground">
                   {step.description}
                 </p>
               </div>
               {isNext && (
-                <ArrowRight className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               )}
             </button>
           );
@@ -158,7 +156,7 @@ export function OnboardingWizard() {
 
       {/* Mentor Card */}
       {mentorData?.mentor && (
-        <div className="mx-6 mb-4 p-3 bg-accent/5 rounded-lg border border-accent/20 flex items-center gap-3">
+        <div className="mx-[17px] mb-[14px] flex items-center gap-3 rounded-[9px] border border-accent/20 bg-accent/5 p-3">
           {mentorData.mentor.avatar_url ? (
             <img
               src={mentorData.mentor.avatar_url}
@@ -166,15 +164,15 @@ export function OnboardingWizard() {
               className="h-10 w-10 rounded-full object-cover"
             />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
               <User className="h-5 w-5 text-accent" />
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-card-foreground">
+          <div className="min-w-0 flex-1">
+            <p className="text-[13.5px] font-medium text-card-foreground">
               Your Mentor: {mentorData.mentor.full_name}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[12.5px] text-muted-foreground">
               {mentorData.mentor.job_title || "Senior Advisor"} • Reach out anytime
             </p>
           </div>
@@ -188,6 +186,6 @@ export function OnboardingWizard() {
           )}
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

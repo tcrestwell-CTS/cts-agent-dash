@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Panel, PanelHeader, PanelBody, EmptyState } from "@/components/patterns/Panel";
+import { KPITile, KPIGrid } from "@/components/patterns/KPITile";
 import { useBookings, isBookingArchived } from "@/hooks/useBookings";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
@@ -163,9 +164,9 @@ export function AgencyMetrics() {
   const ChartTooltip = ({ active, payload, label }: any) => {
     if (active && payload?.[0]) {
       return (
-        <div className="rounded-lg border bg-background p-2 shadow-md text-sm">
-          <p className="font-medium">{label}</p>
-          <p className="text-primary font-semibold">{fmt(payload[0].value)}</p>
+        <div className="rounded-[8px] border border-border bg-popover px-[10px] py-2 text-[12.5px] shadow-lg">
+          <p className="font-medium text-foreground">{label}</p>
+          <p className="font-semibold text-primary">{fmt(payload[0].value)}</p>
         </div>
       );
     }
@@ -173,13 +174,11 @@ export function AgencyMetrics() {
   };
 
   const MiniBarChart = ({ data, title }: { data: { month: string; value: number }[]; title: string }) => (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Panel>
+      <PanelHeader title={title} />
+      <PanelBody>
         {data.every((d) => d.value === 0) ? (
-          <div className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">
+          <div className="flex h-[160px] items-center justify-center text-[13.5px] text-muted-foreground">
             No data yet
           </div>
         ) : (
@@ -201,44 +200,46 @@ export function AgencyMetrics() {
             </ResponsiveContainer>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </PanelBody>
+    </Panel>
   );
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Agency Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <Panel>
+        <PanelHeader
+          title={
+            <span className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Agency Metrics
+            </span>
+          }
+        />
+        <PanelBody className="space-y-[14px]">
+          <KPIGrid>
             {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-20" />
+              <Skeleton key={i} className="h-20 rounded-[11px]" />
             ))}
-          </div>
-          <Skeleton className="h-[200px]" />
-        </CardContent>
-      </Card>
+          </KPIGrid>
+          <Skeleton className="h-[200px] rounded-[11px]" />
+        </PanelBody>
+      </Panel>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header with toggle */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.025em] text-foreground">
+          <Building2 className="h-4 w-4" />
           At a glance
         </h2>
-        <div className="flex rounded-lg border border-border overflow-hidden">
+        <div className="flex overflow-hidden rounded-[8px] border border-border">
           <Button
             variant={range === "mtd" ? "default" : "ghost"}
             size="sm"
-            className="rounded-none text-xs px-4"
+            className="rounded-none px-4 text-[13px]"
             onClick={() => setRange("mtd")}
           >
             Month to date
@@ -246,7 +247,7 @@ export function AgencyMetrics() {
           <Button
             variant={range === "ytd" ? "default" : "ghost"}
             size="sm"
-            className="rounded-none text-xs px-4"
+            className="rounded-none px-4 text-[13px]"
             onClick={() => setRange("ytd")}
           >
             Year to date
@@ -255,24 +256,19 @@ export function AgencyMetrics() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <KPIGrid>
         {[
           { label: "Bookings", value: kpis.bookingCount.toString() },
           { label: "Sales volume", value: fmt(kpis.salesVolume) },
           { label: "Gross margin", value: fmt(kpis.grossMargin) },
           { label: "Agency income", value: fmt(kpis.agencyIncome) },
         ].map((kpi) => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4 space-y-1">
-              <p className="text-xs text-muted-foreground">{kpi.label}</p>
-              <p className="text-xl font-bold text-foreground">{kpi.value}</p>
-            </CardContent>
-          </Card>
+          <KPITile key={kpi.label} label={kpi.label} value={kpi.value} />
         ))}
-      </div>
+      </KPIGrid>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-[14px] md:grid-cols-2">
         <MiniBarChart data={chartData.commission} title="Gross margin by month" />
         <MiniBarChart data={chartData.agencyIncome} title="Agency retained by month" />
       </div>
@@ -345,40 +341,54 @@ function ActiveAuthorizations({
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-primary" />
+    <Panel>
+      <PanelHeader
+        title={
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-success" />
             Active Authorizations
-          </CardTitle>
-          <Badge variant="secondary" className="text-xs">{upcoming.length} upcoming</Badge>
+          </span>
+        }
+        actions={<Badge variant="secondary" className="text-[11.5px]">{upcoming.length} upcoming</Badge>}
+      />
+      {upcoming.length === 0 ? (
+        <EmptyState
+          title="No upcoming confirmed bookings"
+          message="Confirmed and booked trips will appear here as they're scheduled."
+        />
+      ) : (
+        <div className="table-scroll-mobile">
+          <table className="data-table w-full">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th className="data-table-secondary-col">Destination</th>
+                <th className="data-table-secondary-col">Departs</th>
+                <th className="data-table-money">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcoming.map((item) => (
+                <tr
+                  key={item.id}
+                  className="cursor-pointer"
+                  onClick={() => item.tripId ? navigate(`/trips/${item.tripId}`) : navigate("/bookings")}
+                >
+                  <td>
+                    {item.client}
+                    <span className="block data-table-secondary sm:hidden">{item.destination}</span>
+                  </td>
+                  <td className="data-table-secondary-col">{item.destination}</td>
+                  <td className="data-table-secondary-col">
+                    <span className="data-table-secondary">{item.departDateLabel}</span>
+                  </td>
+                  <td className="data-table-money">{fmt(item.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </CardHeader>
-      <CardContent>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">No upcoming confirmed bookings</p>
-        ) : (
-          <div className="divide-y divide-border">
-            {upcoming.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between py-3 cursor-pointer hover:bg-muted/50 -mx-4 px-4 rounded transition-colors"
-                onClick={() => item.tripId ? navigate(`/trips/${item.tripId}`) : navigate("/bookings")}
-              >
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium text-foreground">{item.client}</p>
-                  <p className="text-xs text-muted-foreground">{item.destination}</p>
-                </div>
-                <div className="text-right space-y-0.5">
-                  <p className="text-sm font-semibold text-foreground">{fmt(item.amount)}</p>
-                  <p className="text-xs text-muted-foreground">{item.departDateLabel}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </Panel>
   );
 }
