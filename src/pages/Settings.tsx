@@ -606,7 +606,7 @@ const Settings = () => {
           <AgentPayoutSettings />
         </TabsContent>
 
-        <TabsContent value="integrations">
+        <TabsContent value="integrations" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Connected Integrations</CardTitle>
@@ -653,7 +653,10 @@ const Settings = () => {
               <QBOAccountMappingCard />
             </CardContent>
           </Card>
+
+          <GitSyncSettingsCard />
         </TabsContent>
+
 
         <TabsContent value="statuses">
           <TripStatusesSettings />
