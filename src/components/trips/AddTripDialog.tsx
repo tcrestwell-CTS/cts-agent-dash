@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
 import { formatLocalDate } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -20,10 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useTrips } from "@/hooks/useTrips";
 import { useClients } from "@/hooks/useClients";
-import { DateRange } from "react-day-picker";
 import {
   Popover,
   PopoverContent,
@@ -38,18 +39,18 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, UserPlus } from "lucide-react";
+import { Check, ChevronsUpDown, UserPlus, Compass, Users2, Heart, Home, Gem, Ship, Mountain, Briefcase } from "lucide-react";
 import { QuickAddClientForm } from "@/components/trips/QuickAddClientForm";
 
 const TRIP_TYPES = [
-  { value: "regular", label: "Regular Trip" },
-  { value: "group", label: "Group Trip" },
-  { value: "honeymoon", label: "Honeymoon" },
-  { value: "family", label: "Family Vacation" },
-  { value: "luxury", label: "Luxury" },
-  { value: "cruise", label: "Cruise" },
-  { value: "adventure", label: "Adventure" },
-  { value: "corporate", label: "Corporate / Business" },
+  { value: "regular", label: "Regular Trip", icon: Compass },
+  { value: "group", label: "Group Trip", icon: Users2 },
+  { value: "honeymoon", label: "Honeymoon", icon: Heart },
+  { value: "family", label: "Family Vacation", icon: Home },
+  { value: "luxury", label: "Luxury", icon: Gem },
+  { value: "cruise", label: "Cruise", icon: Ship },
+  { value: "adventure", label: "Adventure", icon: Mountain },
+  { value: "corporate", label: "Corporate / Business", icon: Briefcase },
 ];
 
 interface AddTripDialogProps {
@@ -62,6 +63,7 @@ interface AddTripDialogProps {
 export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId }: AddTripDialogProps) {
   const { createTrip, creating } = useTrips();
   const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     trip_type: "regular",
@@ -70,10 +72,15 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
     notes: "",
     client_id: "",
     budget_range: "",
+    depart_date: "",
+    return_date: "",
   });
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [errors, setErrors] = useState<{ trip_name?: string; depart_date?: string; return_date?: string }>({});
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  const clearError = (field: keyof typeof errors) =>
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
 
   const selectedClient = clients.find((c) => c.id === formData.client_id);
 
@@ -105,19 +112,31 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.trip_name) {
+    const nextErrors: typeof errors = {};
+    if (!formData.trip_name.trim()) nextErrors.trip_name = "Trip name is required";
+    if (!formData.depart_date) nextErrors.depart_date = "Departure date is required";
+    if (formData.depart_date && formData.return_date) {
+      if (differenceInCalendarDays(parseISO(formData.return_date), parseISO(formData.depart_date)) <= 0) {
+        nextErrors.return_date = "Return must be after departure";
+      }
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
+
+    const returnDate = formData.return_date || formatLocalDate(addDays(parseISO(formData.depart_date), 7));
 
     const result = await createTrip({
       ...formData,
       client_id: formData.client_id || undefined,
-      depart_date: dateRange?.from ? formatLocalDate(dateRange.from) : undefined,
-      return_date: dateRange?.to ? formatLocalDate(dateRange.to) : undefined,
+      depart_date: formData.depart_date,
+      return_date: returnDate,
       ...(parentTripId ? { parent_trip_id: parentTripId } : {}),
     } as any);
 
     if (result) {
+      const tripId = (result as any).id;
       setFormData({
         trip_type: "regular",
         trip_name: "",
@@ -125,10 +144,17 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
         notes: "",
         client_id: "",
         budget_range: "",
+        depart_date: "",
+        return_date: "",
       });
-      setDateRange(undefined);
+      setErrors({});
       onOpenChange(false);
       onTripCreated?.();
+      if (!parentTripId && tripId) {
+        const ref = (result as any).trip_name || formData.trip_name;
+        toast.success(`Trip "${ref}" created — start building the itinerary`);
+        navigate(`/trips/${tripId}/itinerary`);
+      }
     }
   };
 
@@ -143,6 +169,32 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Trip type — chip grid */}
+          <div className="space-y-2">
+            <Label>Trip Type</Label>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(126px, 1fr))" }}>
+              {TRIP_TYPES.map((type) => {
+                const selected = formData.trip_type === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, trip_type: type.value })}
+                    className={cn(
+                      "flex items-center gap-2 rounded-[9px] border px-2.5 py-2 text-left text-[13px] transition-colors",
+                      selected
+                        ? "border-accent bg-tint font-semibold text-foreground"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <type.icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{type.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Client Selector — searchable */}
           <div className="space-y-2">
             <Label>Client</Label>
@@ -250,36 +302,18 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="trip_type">Trip Type *</Label>
-            <Select
-              value={formData.trip_type}
-              onValueChange={(value) =>
-                setFormData({ ...formData, trip_type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select trip type" />
-              </SelectTrigger>
-              <SelectContent>
-                {TRIP_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="trip_name">Trip Name *</Label>
             <Input
               id="trip_name"
               value={formData.trip_name}
-              onChange={(e) =>
-                setFormData({ ...formData, trip_name: e.target.value })
-              }
+              onChange={(e) => {
+                setFormData({ ...formData, trip_name: e.target.value });
+                clearError("trip_name");
+              }}
               placeholder="e.g., Smith Family Vacation 2026"
+              className={cn(errors.trip_name && "border-destructive")}
             />
+            <p className="min-h-[15px] text-[12px] text-destructive">{errors.trip_name}</p>
           </div>
 
           <div className="space-y-2">
@@ -294,12 +328,36 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Trip Dates</Label>
-            <DateRangePicker
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="depart_date">Departure *</Label>
+              <Input
+                id="depart_date"
+                type="date"
+                value={formData.depart_date}
+                onChange={(e) => {
+                  setFormData({ ...formData, depart_date: e.target.value });
+                  clearError("depart_date");
+                  clearError("return_date");
+                }}
+                className={cn(errors.depart_date && "border-destructive")}
+              />
+              <p className="min-h-[15px] text-[12px] text-destructive">{errors.depart_date}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="return_date">Return</Label>
+              <Input
+                id="return_date"
+                type="date"
+                value={formData.return_date}
+                onChange={(e) => {
+                  setFormData({ ...formData, return_date: e.target.value });
+                  clearError("return_date");
+                }}
+                className={cn(errors.return_date && "border-destructive")}
+              />
+              <p className="min-h-[15px] text-[12px] text-destructive">{errors.return_date}</p>
+            </div>
           </div>
 
           <div className="space-y-2">

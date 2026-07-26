@@ -1,6 +1,7 @@
 import { differenceInDays, parseISO, format } from "date-fns";
 import { Plane } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SemanticStatusPill, type SemanticStatus } from "@/components/patterns/StatusPill";
 
 interface DepartureUrgencyBadgeProps {
   departDate: string | null | undefined;
@@ -22,7 +23,7 @@ export function DepartureUrgencyBadge({
 
   if (days < 0) {
     return (
-      <span className={cn("inline-flex items-center gap-1 text-xs text-muted-foreground/60", className)}>
+      <span className={cn("inline-flex items-center gap-1 text-[11.5px] text-muted-foreground/60", className)}>
         {showIcon && <Plane className="h-3 w-3" />}
         Departed {format(dep, "MMM d")}
       </span>
@@ -36,26 +37,15 @@ export function DepartureUrgencyBadge({
     days <= 30 ? `${days}d to departure` :
     format(dep, "MMM d, yyyy");
 
-  const colorClass =
-    days === 0 ? "text-red-600 font-semibold" :
-    days <= 3  ? "text-red-500 font-semibold" :
-    days <= 7  ? "text-amber-600 font-medium" :
-    days <= 30 ? "text-amber-500" :
-    "text-muted-foreground";
-
-  const bgClass =
-    days <= 3  ? "bg-red-50 border-red-200" :
-    days <= 7  ? "bg-amber-50 border-amber-200" :
-    days <= 30 ? "bg-amber-50/50 border-amber-100" :
-    "bg-transparent border-transparent";
+  const status: SemanticStatus =
+    days <= 3  ? "destructive" :
+    days <= 30 ? "warning" :
+    "muted";
 
   return (
-    <span className={cn(
-      "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border",
-      colorClass, bgClass, className
-    )}>
-      {showIcon && <Plane className="h-3 w-3" />}
-      {label}
+    <span className={cn("inline-flex items-center gap-1", className)}>
+      {showIcon && <Plane className="h-3 w-3 text-muted-foreground" />}
+      <SemanticStatusPill status={status} label={label} />
     </span>
   );
 }

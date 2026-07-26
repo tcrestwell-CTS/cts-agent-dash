@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +29,8 @@ import {
 } from "lucide-react";
 import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
+import { Panel, EmptyState } from "@/components/patterns/Panel";
+import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
@@ -540,21 +540,21 @@ const Trips = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Trips</h1>
-            <p className="text-muted-foreground text-sm mt-1">Manage client trips and access booking portals</p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Trips</h1>
+            <p className="mt-1 text-[13.5px] text-muted-foreground">Manage client trips and access booking portals</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => generateBookingFlowPDF()}
-              className="gap-2"
+              className="gap-1.5 rounded-[8px] text-[13px]"
             >
               <FileDown className="h-4 w-4" />
               Booking Flow PDF
             </Button>
             {activeTab === "trips" && (
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-1.5 rounded-[8px] text-[13px]">
                 <Plus className="h-4 w-4" />
                 New Trip
               </Button>
@@ -579,18 +579,18 @@ const Trips = () => {
             {/* Search + View Toggle */}
             <div className="flex items-center gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search trips..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="h-10 rounded-[8px] pl-9 text-[13.5px]"
                 />
               </div>
               {viewMode === "list" && (
                 <>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[180px] rounded-[8px] text-[13.5px]">
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -603,7 +603,7 @@ const Trips = () => {
                     </SelectContent>
                   </Select>
                   <Select value={tripNameFilter} onValueChange={setTripNameFilter}>
-                    <SelectTrigger className="w-[220px]">
+                    <SelectTrigger className="w-[220px] rounded-[8px] text-[13.5px]">
                       <SelectValue placeholder="Filter by trip name" />
                     </SelectTrigger>
                     <SelectContent>
@@ -619,7 +619,7 @@ const Trips = () => {
                   </Select>
                 </>
               )}
-              <div className="flex border rounded-lg overflow-hidden">
+              <div className="flex overflow-hidden rounded-[8px] border border-border">
                 <Button
                   variant={viewMode === "kanban" ? "default" : "ghost"}
                   size="sm"
@@ -640,19 +640,24 @@ const Trips = () => {
             </div>
 
             {loading || statusesLoading ? (
-              <div className="grid gap-4">
+              <div className="grid gap-[14px]">
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-32 w-full" />
+                  <Skeleton key={i} className="h-32 w-full rounded-[11px]" />
                 ))}
               </div>
             ) : viewMode === "kanban" ? (
               kanbanColumns.length === 0 ? (
-                <Card>
-                  <CardContent className="py-10 text-center">
-                    <p className="text-sm text-muted-foreground">Trip statuses are still syncing, so Kanban can’t render yet.</p>
-                    <Button variant="outline" className="mt-4" onClick={() => setViewMode("list")}>Switch to List View</Button>
-                  </CardContent>
-                </Card>
+                <Panel>
+                  <EmptyState
+                    title="Kanban view unavailable"
+                    message="Trip statuses are still syncing, so Kanban can't render yet."
+                    action={
+                      <Button variant="outline" size="sm" className="rounded-[8px] text-[13px]" onClick={() => setViewMode("list")}>
+                        Switch to List View
+                      </Button>
+                    }
+                  />
+                </Panel>
               ) : (
                 <TripsKanban
                   trips={filteredTrips.map(t => ({
@@ -674,60 +679,51 @@ const Trips = () => {
                 />
               )
             ) : filteredTrips.length === 0 ? (
-              <Card>
-                <CardContent className="py-12">
-                  <div className="text-center text-muted-foreground">
-                    <Compass className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">
-                      {searchQuery ? "No trips found" : "No trips yet"}
-                    </p>
-                    <p className="text-sm mt-1">
-                      {searchQuery
-                        ? "Try adjusting your search"
-                        : "Create your first trip to get started"}
-                    </p>
-                    {!searchQuery && (
+              <Panel>
+                <EmptyState
+                  title={searchQuery ? "No trips found" : "No trips yet"}
+                  message={searchQuery ? "Try adjusting your search" : "Create your first trip to get started"}
+                  action={
+                    !searchQuery && (
                       <Button
                         onClick={() => setIsAddDialogOpen(true)}
-                        className="mt-4 gap-2"
+                        className="gap-1.5 rounded-[8px] text-[13px]"
                       >
                         <Plus className="h-4 w-4" />
                         Create Trip
                       </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    )
+                  }
+                />
+              </Panel>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-[14px]">
                 {filteredTrips.map((trip) => (
-                  <Card
+                  <Panel
                     key={trip.id}
-                    className={`cursor-pointer hover:shadow-md transition-all ${
-                      trip.isOptimistic 
-                        ? "opacity-70 animate-pulse border-dashed pointer-events-none" 
+                    className={`cursor-pointer transition-shadow hover:shadow-lg ${
+                      trip.isOptimistic
+                        ? "opacity-70 animate-pulse border-dashed pointer-events-none"
                         : ""
                     }`}
                     onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
                   >
-                    <CardContent className="p-5">
+                    <div className="p-[14px]">
                       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-3 mb-2">
                             {trip.isOptimistic && (
                               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
                             )}
-                            <h3 className="text-lg font-semibold truncate">
+                            <h3 className="text-[14.5px] font-semibold truncate text-foreground">
                               {trip.trip_name}
                             </h3>
-                            <Badge
-                              variant="outline"
-                              style={{ borderColor: getStatusColor(trip.status), color: getStatusColor(trip.status) }}
-                            >
-                              {trip.isOptimistic ? "Saving..." : getStatusLabel(trip.status)}
-                            </Badge>
+                            <StatusPill
+                              color={getStatusColor(trip.status)}
+                              label={trip.isOptimistic ? "Saving..." : getStatusLabel(trip.status)}
+                            />
                           </div>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted-foreground">
                             <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
                             <span className="flex items-center gap-1.5">
                               <Users className="h-4 w-4" />
@@ -752,17 +748,17 @@ const Trips = () => {
                         </div>
                         <div className="flex items-center gap-6 lg:gap-8">
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Sales</p>
-                            <p className="text-lg font-semibold">{formatCurrency(trip.total_gross_sales)}</p>
+                            <p className="text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">Total Sales</p>
+                            <p className="text-[14.5px] font-semibold text-foreground">{formatCurrency(trip.total_gross_sales)}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">Commission</p>
-                            <p className="text-lg font-semibold text-primary">{formatCurrency(trip.total_commission_revenue)}</p>
+                            <p className="text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">Commission</p>
+                            <p className="text-[14.5px] font-semibold text-primary">{formatCurrency(trip.total_commission_revenue)}</p>
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </Panel>
                 ))}
               </div>
             )}
@@ -771,11 +767,11 @@ const Trips = () => {
           <TabsContent value="portals" className="mt-6 space-y-6">
             {/* Favorites Section */}
             {favoriteSuppliers.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <div className="space-y-3">
+                <h2 className="flex items-center gap-2 text-[14.5px] font-semibold text-foreground">
                   ⭐ Quick Access
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px]">
                   {favoriteSuppliers.map(supplier => (
                     <SupplierCard
                       key={supplier.id}
@@ -791,13 +787,13 @@ const Trips = () => {
             )}
 
             {/* Portal Category Tabs */}
-            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-6">
+            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="space-y-[18px]">
               <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
                 {portalCategories.map(category => (
                   <TabsTrigger
                     key={category.id}
                     value={category.id}
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2 rounded-lg border border-border"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2 rounded-[8px] border border-border text-[13px]"
                   >
                     <category.icon className="h-4 w-4 mr-2" />
                     {category.label}
@@ -805,19 +801,21 @@ const Trips = () => {
                 ))}
               </TabsList>
 
-              <TabsContent value={selectedCategory} className="mt-6">
+              <TabsContent value={selectedCategory} className="mt-[18px]">
                 {/* CTS Bookings Widget - Show on Hotels tab or All tab */}
                 {(selectedCategory === "hotels" || selectedCategory === "all") && (
                   <CTSBookingsWidget />
                 )}
 
                 {filteredPortalSuppliers.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <p>No suppliers in this category yet.</p>
-                    <p className="text-sm mt-1">More suppliers coming soon!</p>
-                  </div>
+                  <Panel>
+                    <EmptyState
+                      title="No suppliers in this category yet"
+                      message="More suppliers coming soon!"
+                    />
+                  </Panel>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[14px]">
                     {filteredPortalSuppliers.map(supplier => (
                       <SupplierCard
                         key={supplier.id}
