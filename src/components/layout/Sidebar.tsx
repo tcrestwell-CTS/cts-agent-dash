@@ -1,8 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  Calendar,
   GraduationCap,
   DollarSign,
   Mail,
@@ -13,35 +12,34 @@ import {
   Building2,
   FileSpreadsheet,
   Compass,
-  Menu,
   X,
   HeartPulse,
   ArrowRightLeft,
   ShieldAlert,
-  ChevronLeft,
-  ChevronDown,
   ChevronRight,
   Bell,
   CreditCard,
-  CheckCircle2,
-  ExternalLink,
   Globe,
   Plane,
   FileText,
   Hotel,
-  Wrench,
   Ship,
   Star,
   Activity,
   BookOpen,
-  Award,
-  Library,
   Megaphone,
   AlertTriangle,
   ShieldCheck,
   Car,
-  ShieldPlus,
   Inbox,
+  TrendingUp,
+  Landmark,
+  FileBarChart,
+  Download,
+  Wallet,
+  Banknote,
+  FileWarning,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,34 +47,30 @@ import { useCanViewTeam, useUserRole, useIsBookkeeper, useIsAdmin } from "@/hook
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useFeaturePermissions } from "@/hooks/useFeaturePermissions";
 import type { FeatureKey } from "@/lib/featureRegistry";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/CTN-Logo.png";
-import { useState, useEffect, createContext, useContext, useRef } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useAgentNotifications } from "@/hooks/useAgentNotifications";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useState, createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, Landmark, FileBarChart, Download, Wallet, Banknote, FileWarning } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-// Context so DashboardLayout can read collapsed state
 export const SidebarCollapsedContext = createContext<boolean>(false);
 export const useSidebarCollapsed = () => useContext(SidebarCollapsedContext);
+
+export const SIDEBAR_WIDTH_EXPANDED = 260;
+export const SIDEBAR_WIDTH_COLLAPSED = 76;
 
 type NavItem = {
   name: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   /** Optional feature gate. If set, item is hidden when user lacks the feature. */
   feature?: FeatureKey;
 };
 
 interface NavGroup {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   items: NavItem[];
   defaultCollapsed?: boolean;
 }
@@ -119,8 +113,17 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Grow",
+    label: "Marketing",
     icon: Megaphone,
+    defaultCollapsed: true,
+    items: [
+      { name: "Publish Manager", href: "/publish-manager", icon: FileText, feature: "publish_manager" },
+      { name: "Featured Trips",  href: "/featured-trips",  icon: Star, feature: "featured_trips" },
+    ],
+  },
+  {
+    label: "Grow",
+    icon: TrendingUp,
     defaultCollapsed: true,
     items: [
       { name: "Campaigns",  href: "/campaigns",       icon: Megaphone, feature: "campaigns" },
@@ -135,8 +138,6 @@ const bottomNav: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-const adminNavigation: NavItem[] = [];
-
 const adminNavGroups: NavGroup[] = [
   {
     label: "Team",
@@ -146,14 +147,6 @@ const adminNavGroups: NavGroup[] = [
       { name: "Training Admin",   href: "/training/admin",     icon: GraduationCap },
       { name: "Risk & Compliance",href: "/risk-compliance",    icon: ShieldAlert },
       { name: "Portal Management",href: "/portal-management",  icon: Globe },
-    ],
-  },
-  {
-    label: "Marketing",
-    icon: Megaphone,
-    items: [
-      { name: "Publish Manager", href: "/publish-manager", icon: FileText },
-      { name: "Featured Trips",  href: "/featured-trips",  icon: Star },
     ],
   },
   {
@@ -252,8 +245,6 @@ const bookkeeperSections: BookkeeperSection[] = [
   },
 ];
 
-const bookkeeperNav: NavItem[] = bookkeeperSections.flatMap((s) => s.items);
-
 function useUnattributedCount(enabled: boolean) {
   return useQuery({
     queryKey: ["bookkeeper-unattributed-count"],
@@ -274,12 +265,25 @@ function useUnattributedCount(enabled: boolean) {
   });
 }
 
+function getRoleLabel(role: string | null | undefined) {
+  switch (role) {
+    case "admin": return "Admin";
+    case "office_admin": return "Office Admin";
+    case "bookkeeper": return "Bookkeeper";
+    case "user":
+    default: return "Travel Agent";
+  }
+}
+
 interface SidebarProps {
   collapsed: boolean;
   onCollapsedChange: (val: boolean) => void;
+  mobileOpen: boolean;
+  onMobileOpenChange: (val: boolean) => void;
+  isDrawerMode: boolean;
 }
 
-export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpenChange, isDrawerMode }: SidebarProps) {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { canView: canViewTeam } = useCanViewTeam();
@@ -289,16 +293,11 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const bookkeeperMode = !!isBookkeeper && !isAdmin;
   const { data: unattributedCount = 0 } = useUnattributedCount(bookkeeperMode);
   const { can: canFeature } = useFeaturePermissions();
-  const isMobile = useIsMobile();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useAgentNotifications();
   const earnings = useEarningsLabel();
 
-  // Apply owner-vs-agent label for the personal earnings nav entry,
-  // and filter out items the user does not have permission to see.
+  const isCollapsed = collapsed && !isDrawerMode;
+
   const localizedNavGroups = navGroups
     .map((g) => ({
       ...g,
@@ -314,22 +313,6 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
     (i) => !i.feature || canFeature(i.feature)
   );
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    if (isMobile) setMobileOpen(false);
-  }, [location.pathname, isMobile]);
-
-  // Close notification panel on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-    };
-    if (notifOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [notifOpen]);
-
   const userInitials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name
         .split(" ")
@@ -340,20 +323,9 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
 
   const userName = user?.user_metadata?.full_name || user?.email || "User";
 
-  const getRoleLabel = (role: string | null | undefined) => {
-    switch (role) {
-      case "admin": return "Admin";
-      case "office_admin": return "Office Admin";
-      case "bookkeeper": return "Bookkeeper";
-      case "user":
-      default: return "Travel Agent";
-    }
-  };
-
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     [...navGroups, ...adminNavGroups].forEach((g) => {
-      // Collapsed by default unless: contains current route, OR not flagged defaultCollapsed
       const isActive = g.items.some(
         (i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/")
       );
@@ -368,29 +340,30 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
 
   const NavItemLink = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.href;
-    const showBadge =
-      item.href === "/bookkeeper/unattributed" && unattributedCount > 0;
+    const showBadge = item.href === "/bookkeeper/unattributed" && unattributedCount > 0;
+
     const link = (
       <Link
         to={item.href}
+        onClick={() => isDrawerMode && onMobileOpenChange(false)}
         className={cn(
-          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-          collapsed && !isMobile ? "justify-center px-2" : "",
+          "group relative flex items-center rounded-lg text-[13.5px] font-medium transition-colors duration-150",
+          "h-[38px] gap-[11px] px-[11px]",
+          isCollapsed && "justify-center px-0",
           isActive
-            ? "bg-sidebar-accent text-sidebar-primary"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            ? "bg-sidebar-accent text-accent"
+            : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         )}
       >
-        <item.icon
+        <span
           className={cn(
-            "h-4.5 w-4.5 shrink-0 transition-colors",
-            isActive
-              ? "text-sidebar-primary"
-              : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70"
+            "absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-accent transition-opacity duration-150",
+            isActive ? "opacity-100" : "opacity-0"
           )}
         />
-        {(!collapsed || isMobile) && (
-          <span className="flex-1 flex items-center justify-between">
+        <item.icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9} />
+        {!isCollapsed && (
+          <span className="flex flex-1 items-center justify-between">
             <span>{item.name}</span>
             {showBadge && (
               <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-[10px]">
@@ -399,13 +372,13 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
             )}
           </span>
         )}
-        {collapsed && !isMobile && showBadge && (
-          <span className="absolute -mt-3 ml-3 h-2 w-2 rounded-full bg-destructive" />
+        {isCollapsed && showBadge && (
+          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
         )}
       </Link>
     );
 
-    if (collapsed && !isMobile) {
+    if (isCollapsed) {
       return (
         <Tooltip>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
@@ -421,47 +394,35 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
 
   const NavGroupSection = ({ group }: { group: NavGroup }) => {
     const isOpen = openGroups[group.label] ?? false;
-    const hasActiveChild = group.items.some(
-      (i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/")
-    );
 
-    if (collapsed && !isMobile) {
-      // In collapsed mode, show group items as individual icon-only links
+    if (isCollapsed) {
       return (
         <>
-          <div className="pt-2 pb-1">
+          <div className="py-2">
             <hr className="border-sidebar-border" />
           </div>
-          {group.items.map((item) => (
-            <NavItemLink key={item.name} item={item} />
-          ))}
+          <div className="space-y-0.5">
+            {group.items.map((item) => (
+              <NavItemLink key={item.name} item={item} />
+            ))}
+          </div>
         </>
       );
     }
 
     return (
-      <div className="pt-2">
+      <div className="pt-1">
         <button
           onClick={() => toggleGroup(group.label)}
-          className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors",
-            hasActiveChild
-              ? "text-sidebar-foreground/80"
-              : "text-sidebar-foreground/50 hover:text-sidebar-foreground/70"
-          )}
+          className="flex w-full items-center justify-between rounded-lg px-[11px] py-[7px] text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/45 transition-colors hover:text-sidebar-foreground/70"
         >
-          <div className="flex items-center gap-2">
-            <group.icon className="h-4 w-4" />
-            <span>{group.label}</span>
-          </div>
-          {isOpen ? (
-            <ChevronDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
-          )}
+          <span>{group.label}</span>
+          <ChevronRight
+            className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-150", isOpen && "rotate-90")}
+          />
         </button>
         {isOpen && (
-          <div className="ml-2 mt-0.5 space-y-0.5">
+          <div className="mt-0.5 space-y-0.5">
             {group.items.map((item) => (
               <NavItemLink key={item.name} item={item} />
             ))}
@@ -476,93 +437,89 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       {/* Logo / collapse toggle */}
       <div
         className={cn(
-          "flex h-20 items-center border-b border-sidebar-border",
-          collapsed && !isMobile ? "justify-center px-2" : "px-4 justify-between"
+          "flex h-[76px] shrink-0 items-center border-b border-sidebar-border",
+          isCollapsed ? "justify-center px-2" : "justify-between px-4"
         )}
       >
-        {!isMobile ? (
+        {!isDrawerMode ? (
           <button
             onClick={() => onCollapsedChange(!collapsed)}
-            className="flex items-center gap-2 group focus:outline-none"
+            className="flex items-center rounded-[10px] bg-white/94 p-[5px_7px] transition-opacity hover:opacity-90"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <img
               src={crestwellLogo}
               alt="Crestwell Travel Services"
-              className={cn(
-                "object-contain transition-all duration-300",
-                collapsed ? "h-8 w-8" : "h-14 w-auto"
-              )}
+              className={cn("object-contain transition-all duration-300", isCollapsed ? "h-8 w-8" : "h-14 w-auto")}
             />
-            {!collapsed && (
-              <ChevronLeft className="h-4 w-4 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 transition-colors ml-1 shrink-0" />
-            )}
           </button>
         ) : (
           <>
-            <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-14 w-auto object-contain" />
-            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="text-sidebar-foreground">
+            <span className="rounded-[10px] bg-white/94 p-[5px_7px]">
+              <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-14 w-auto object-contain" />
+            </span>
+            <button
+              onClick={() => onMobileOpenChange(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
               <X className="h-5 w-5" />
-            </Button>
+            </button>
           </>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
         <TooltipProvider delayDuration={0}>
           {bookkeeperMode ? (
             <>
               {bookkeeperSections.map((section, idx) => (
                 <div key={section.label ?? `top-${idx}`} className={idx === 0 ? "" : "pt-3"}>
-                  {section.label && (!collapsed || isMobile) && (
-                    <div className="px-3 pb-1">
-                      <p className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                  {section.label && !isCollapsed && (
+                    <div className="px-[11px] pb-1">
+                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/45">
                         {section.label}
                       </p>
                     </div>
                   )}
-                  {section.label && collapsed && !isMobile && (
+                  {section.label && isCollapsed && (
                     <div className="pb-1"><hr className="border-sidebar-border" /></div>
                   )}
-                  {section.items.map((item) => (
-                    <NavItemLink key={item.name} item={item} />
-                  ))}
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => (
+                      <NavItemLink key={item.name} item={item} />
+                    ))}
+                  </div>
                 </div>
               ))}
             </>
           ) : (
             <>
-              {/* Top-level items (Dashboard) */}
-              {visibleTopLevel.map((item) => (
-                <NavItemLink key={item.name} item={item} />
-              ))}
+              <div className="space-y-0.5">
+                {visibleTopLevel.map((item) => (
+                  <NavItemLink key={item.name} item={item} />
+                ))}
+              </div>
 
-              {/* Grouped nav sections */}
               {localizedNavGroups.map((group) => (
                 <NavGroupSection key={group.label} group={group} />
               ))}
 
-              {/* Settings at the bottom of nav */}
               <div className="pt-2">
-                <hr className="border-sidebar-border mb-2" />
+                <hr className="mb-2 border-sidebar-border" />
                 {bottomNav.map((item) => (
                   <NavItemLink key={item.name} item={item} />
                 ))}
               </div>
 
-              {/* Admin section */}
               {canViewTeam && (
                 <>
-                  {(!collapsed || isMobile) && (
-                    <div className="pt-4 pb-2 px-3">
-                      <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">Team</p>
+                  {!isCollapsed && (
+                    <div className="px-[11px] pb-1 pt-4">
+                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/45">Admin</p>
                     </div>
                   )}
-                  {collapsed && !isMobile && <div className="pt-4 pb-2"><hr className="border-sidebar-border" /></div>}
-                  {adminNavigation.map((item) => (
-                    <NavItemLink key={item.name} item={item} />
-                  ))}
+                  {isCollapsed && <div className="pb-1 pt-4"><hr className="border-sidebar-border" /></div>}
                   {adminNavGroups.map((group) => (
                     <NavGroupSection key={group.label} group={group} />
                   ))}
@@ -573,159 +530,52 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
         </TooltipProvider>
       </nav>
 
-      {/* Notification Bell */}
-      <div className="border-t border-sidebar-border px-3 py-2" ref={notifRef}>
-        {collapsed && !isMobile ? (
+      {/* Footer */}
+      <div className={cn("shrink-0 border-t border-sidebar-border p-3", isCollapsed && "px-2")}>
+        {!isCollapsed ? (
+          <div className="flex items-center gap-2.5">
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="Avatar" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent">
+                <span className="text-[11.5px] font-semibold text-primary">{userInitials}</span>
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-sidebar-foreground">{userName}</p>
+              <p className="truncate text-[11.5px] text-sidebar-foreground/60">{getRoleLabel(userRole)}</p>
+            </div>
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={signOut}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Sign out</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        ) : (
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => { navigate("/notifications"); if (isMobile) setMobileOpen(false); }}
-                  className="relative flex items-center justify-center w-full p-2 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                >
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-2 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </button>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent">
+                  <span className="text-[11.5px] font-semibold text-primary">{userInitials}</span>
+                </div>
               </TooltipTrigger>
-              <TooltipContent side="right">Notifications{unreadCount > 0 ? ` (${unreadCount})` : ""}</TooltipContent>
+              <TooltipContent side="right">{userName} — {getRoleLabel(userRole)}</TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <button
-            onClick={() => { navigate("/notifications"); if (isMobile) setMobileOpen(false); }}
-            className="relative flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-          >
-            <Bell className="h-5 w-5 shrink-0" />
-            <span>Notifications</span>
-            {unreadCount > 0 && (
-              <Badge variant="default" className="ml-auto text-[10px] px-1.5 py-0 h-5">
-                {unreadCount}
-              </Badge>
-            )}
-          </button>
-        )}
-
-        {/* Notification Dropdown */}
-        {notifOpen && (
-          <div className={cn(
-            "absolute z-[60] bg-popover border border-border rounded-lg shadow-lg overflow-hidden",
-            collapsed && !isMobile
-              ? "left-[calc(100%+8px)] bottom-16 w-80"
-              : "left-4 right-4 bottom-[calc(100%+4px)] w-auto"
-          )} style={{ maxHeight: 400 }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
-              {unreadCount > 0 && (
-                <button
-                  onClick={() => markAllAsRead.mutate()}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Mark all read
-                </button>
-              )}
-            </div>
-            <div className="overflow-y-auto" style={{ maxHeight: 340 }}>
-              {notifications.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No notifications yet
-                </div>
-              ) : (
-                notifications.slice(0, 10).map((n) => {
-                  const NotifIcon = n.type === "itinerary_approved" ? CheckCircle2
-                    : n.type === "payment_reminder" ? Bell
-                    : n.type === "option_selected" ? ExternalLink
-                    : CreditCard;
-                  return (
-                    <div
-                      key={n.id}
-                      className={cn(
-                        "px-4 py-3 border-b border-border/50 cursor-pointer transition-colors text-sm",
-                        n.is_read ? "bg-popover" : "bg-primary/5"
-                      )}
-                      onClick={() => {
-                        if (!n.is_read) markAsRead.mutate(n.id);
-                        if (n.trip_id) {
-                          navigate(`/trips/${n.trip_id}`);
-                          setNotifOpen(false);
-                          if (isMobile) setMobileOpen(false);
-                        }
-                      }}
-                    >
-                      <div className="flex items-start gap-2">
-                        <NotifIcon className={cn("h-4 w-4 mt-0.5 shrink-0", n.is_read ? "text-muted-foreground" : "text-primary")} />
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("font-medium truncate", n.is_read ? "text-muted-foreground" : "text-foreground")}>
-                            {n.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                          <p className="text-xs text-muted-foreground/60 mt-1">
-                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            {notifications.length > 0 && (
-              <div className="border-t border-border px-4 py-2">
-                <button
-                  onClick={() => {
-                    setNotifOpen(false);
-                    if (isMobile) setMobileOpen(false);
-                    navigate("/notifications?filter=pending");
-                  }}
-                  className="w-full text-center text-xs font-medium text-primary hover:underline py-1"
-                >
-                  View Pending Notifications
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* User section */}
-      <div className="border-t border-sidebar-border p-4">
-        {(!collapsed || isMobile) ? (
-          <>
-            <div className="flex items-center gap-3 mb-3">
-              {user?.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Avatar" className="h-9 w-9 rounded-full object-cover" />
-              ) : (
-                <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center shrink-0">
-                  <span className="text-sm font-medium text-sidebar-foreground">{userInitials}</span>
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">{getRoleLabel(userRole)}</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
-          </>
-        ) : (
-          <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={signOut}
-                  className="flex items-center justify-center w-full p-2 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                  className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">Sign out</TooltipContent>
@@ -736,34 +586,33 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
     </div>
   );
 
-  return (
-    <>
-      {/* Mobile hamburger header */}
-      {isMobile && (
-        <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-3 border-b border-border bg-background px-4">
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)}>
-            <Menu className="h-5 w-5" />
-          </Button>
-          <img src={crestwellLogo} alt="Crestwell Travel Services" className="h-8 w-auto object-contain" />
-        </header>
-      )}
-
-      {/* Mobile overlay */}
-      {isMobile && mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 transition-opacity" onClick={() => setMobileOpen(false)} />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-50 h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
-          isMobile
-            ? cn("w-72", mobileOpen ? "translate-x-0" : "-translate-x-full")
-            : collapsed ? "w-16" : "w-72"
+  if (isDrawerMode) {
+    return (
+      <>
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 z-[35] bg-primary/50 transition-opacity"
+            onClick={() => onMobileOpenChange(false)}
+          />
         )}
-      >
-        {sidebarContent}
-      </aside>
-    </>
+        <aside
+          className={cn(
+            "fixed left-0 top-0 z-40 h-screen w-[260px] bg-sidebar border-r border-sidebar-border transition-transform duration-[280ms] ease-out",
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          {sidebarContent}
+        </aside>
+      </>
+    );
+  }
+
+  return (
+    <aside
+      className="fixed left-0 top-0 z-40 h-screen border-r border-sidebar-border bg-sidebar transition-[width] duration-[280ms] ease"
+      style={{ width: isCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED }}
+    >
+      {sidebarContent}
+    </aside>
   );
 }
