@@ -602,6 +602,33 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          scope: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          scope?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          scope?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       approval_tasks: {
         Row: {
           action_payload: Json | null
