@@ -18,11 +18,13 @@ import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings
 import { BackfillPlanningTripsCard } from "@/components/admin/BackfillPlanningTripsCard";
 import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
 import { AgentPayoutSettings } from "@/components/settings/AgentPayoutSettings";
+import { GitSyncSettingsCard } from "@/components/git-sync/GitSyncSettingsCard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 const Settings = () => {
   const { profile, loading, saving, saveProfile, uploadAvatar, userEmail } = useProfile();
