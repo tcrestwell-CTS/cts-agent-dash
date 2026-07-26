@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useAdmin";
 import { useAgentNotifications } from "@/hooks/useAgentNotifications";
 import { useOnClickOutside } from "@/hooks/use-on-click-outside";
+import { GitSyncStatus } from "@/components/git-sync/GitSyncStatus";
+
 
 function getRoleLabel(role: string | null | undefined) {
   switch (role) {
