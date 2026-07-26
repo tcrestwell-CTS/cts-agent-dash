@@ -149,6 +149,14 @@ const adminNavGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Marketing",
+    icon: Megaphone,
+    items: [
+      { name: "Publish Manager", href: "/publish-manager", icon: FileText },
+      { name: "Featured Trips",  href: "/featured-trips",  icon: Star },
+    ],
+  },
+  {
     label: "Operations",
     icon: Activity,
     defaultCollapsed: true,
