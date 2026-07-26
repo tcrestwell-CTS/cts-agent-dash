@@ -55,8 +55,9 @@ export function useGitSyncStatus() {
     queryKey: ["git-sync-status", local.localSha],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("git-sync-status", {
-        queryParams: { localSha: local.localSha },
+        body: { localSha: local.localSha },
       });
+
 
       if (error) {
         throw error;
