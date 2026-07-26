@@ -59,6 +59,7 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "cruise_search",      label: "Cruise Search",       group: "Tools",      defaultAllowed: true  },
   { key: "excursions",         label: "Excursions",          group: "Tools",      defaultAllowed: true  },
   { key: "loan_applications",  label: "Loan Applications",   group: "Tools",      defaultAllowed: false },
+  { key: "campaigns",          label: "Campaigns",           group: "Marketing",  defaultAllowed: false },
   { key: "payment_reminders",  label: "Payment Reminders",   group: "Bookings",   defaultAllowed: true  },
   { key: "training",           label: "Training Dashboard",  group: "Training",   defaultAllowed: true  },
   { key: "training_library",   label: "Training Library",    group: "Training",   defaultAllowed: true  },
