@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Phone, CheckCircle2 } from "lucide-react";
+import { Panel } from "@/components/patterns/Panel";
 
 interface AdvisorAssistantProps {
   followUps: number;
@@ -41,29 +41,20 @@ export function AdvisorAssistant({ followUps, paymentsDue, confirmedTrips }: Adv
   }
 
   return (
-    <Card className="bg-gradient-to-br from-primary/5 via-background to-accent/5 border-primary/15">
-      <CardContent className="p-5">
-        <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-            <Sparkles className="h-4.5 w-4.5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-foreground mb-1">Advisor Assistant</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              {message}
-            </p>
-            <Button
-              size="sm"
-              variant="default"
-              className="gap-1.5"
-              onClick={() => navigate(actionHref)}
-            >
-              <ActionIcon className="h-3.5 w-3.5" />
-              {actionLabel}
-            </Button>
-          </div>
+    <Panel className="border-accent/20 bg-gradient-to-br from-accent/5 via-card to-accent/10">
+      <div className="flex items-start gap-3 p-[14px]">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-accent/10">
+          <Sparkles className="h-4 w-4 text-accent" />
         </div>
-      </CardContent>
-    </Card>
+        <div className="min-w-0 flex-1">
+          <h3 className="mb-1 text-[14.5px] font-semibold text-foreground">Advisor Assistant</h3>
+          <p className="mb-3 text-[13.5px] text-muted-foreground">{message}</p>
+          <Button size="sm" variant="default" className="gap-1.5 text-[13px]" onClick={() => navigate(actionHref)}>
+            <ActionIcon className="h-3.5 w-3.5" />
+            {actionLabel}
+          </Button>
+        </div>
+      </div>
+    </Panel>
   );
 }

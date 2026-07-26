@@ -131,7 +131,12 @@ export function ExportCustomersTripsButton() {
   };
 
   return (
-    <Button variant="secondary" onClick={handleExport} disabled={loading} className="gap-2">
+    <Button
+      variant="secondary"
+      onClick={handleExport}
+      disabled={loading}
+      className="gap-2 rounded-[8px] text-[13px]"
+    >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       Export CSV
     </Button>

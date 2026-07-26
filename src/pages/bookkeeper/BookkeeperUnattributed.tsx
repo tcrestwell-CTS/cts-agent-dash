@@ -1,5 +1,4 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,19 +7,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, CheckCircle2 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
-import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
-import { CheckCircle2 } from "lucide-react";
+import { BookkeeperHeader, EmptyState, TableSkeleton } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 
 function useUnattributed() {
   return useQuery({
@@ -66,79 +62,71 @@ export default function BookkeeperUnattributed() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="Unattributed Deposits" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">Unattributed Deposits</h1>
-              <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Stripe payments without a linked trip or booking. Read-only.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
-            <Download className="h-4 w-4 mr-2" /> CSV
-          </Button>
-        </div>
+      <div className="space-y-[18px]">
+        <BookkeeperHeader
+          title="Unattributed Deposits"
+          description="Stripe payments without a linked trip or booking. Read-only."
+          year={new Date().getFullYear()}
+          month={new Date().getMonth() + 1}
+          actions={
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
+              <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
+            </Button>
+          }
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending review</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader title="Pending review" />
+          <PanelBody>
             {isLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
+              <TableSkeleton rows={4} cols={5} />
             ) : (data?.length ?? 0) === 0 ? (
               <EmptyState icon={CheckCircle2} title="All deposits matched" description="No unattributed Stripe payments to review." />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Stripe PI</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Date</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Customer</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Amount</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Stripe PI</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data!.map((row: any) => (
                     <TableRow key={row.id}>
-                      <TableCell>
+                      <TableCell className="text-[14px]">
                         {row.created_at
                           ? format(new Date(row.created_at), "MMM d, yyyy")
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">
+                        <div className="text-[14px]">
                           {row.customer_name || "—"}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-[12px] text-muted-foreground">
                           {row.customer_email || ""}
                         </div>
                       </TableCell>
-                      <TableCell className="tabular-nums">
+                      <TableCell className="text-right text-[14px] font-semibold tabular-nums">
                         {fmt(Number(row.amount_cents || 0) / 100, (row.currency || "USD").toUpperCase())}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">
+                      <TableCell className="font-mono text-[12px] text-muted-foreground">
                         {row.stripe_payment_intent_id || "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{row.status || "—"}</Badge>
+                        <span className="inline-flex items-center gap-1 rounded-[20px] border border-border px-[9px] py-[2px] text-[11.5px] font-medium text-muted-foreground">
+                          {row.status || "—"}
+                        </span>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

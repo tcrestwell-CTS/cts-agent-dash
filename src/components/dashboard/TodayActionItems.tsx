@@ -5,6 +5,7 @@ import { differenceInDays, parseISO, format, addDays } from "date-fns";
 import { AlertTriangle, Clock, Users, ChevronRight, Plane, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Panel } from "@/components/patterns/Panel";
 
 interface ActionItem {
   id: string;
@@ -113,33 +114,33 @@ export function TodayActionItems() {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
-        <div className="h-4 w-32 bg-muted animate-pulse rounded mb-4" />
+      <Panel className="p-[14px]">
+        <div className="mb-[14px] h-4 w-32 animate-pulse rounded bg-muted" />
         <div className="space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-10 bg-muted animate-pulse rounded-lg" />)}
+          {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse rounded-[8px] bg-muted" />)}
         </div>
-      </div>
+      </Panel>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <span className="text-sm font-semibold tracking-tight text-foreground">Today's Actions</span>
+      <Panel className="p-[14px]">
+        <div className="mb-1 flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-success" />
+          <span className="text-[14.5px] font-semibold text-foreground">Today's Actions</span>
         </div>
-        <p className="text-sm text-muted-foreground mt-3 pl-3.5">
+        <p className="mt-3 pl-3.5 text-[13.5px] text-muted-foreground">
           You're all caught up — nothing urgent right now.
         </p>
-      </div>
+      </Panel>
     );
   }
 
   const urgencyConfig = {
-    critical: { dot: "bg-red-500", bg: "bg-red-50 border-red-100 hover:bg-red-100/70", text: "text-red-700", icon: AlertTriangle },
-    warning:  { dot: "bg-amber-500", bg: "bg-amber-50 border-amber-100 hover:bg-amber-100/70", text: "text-amber-700", icon: Clock },
-    info:     { dot: "bg-blue-400", bg: "bg-blue-50/60 border-blue-100 hover:bg-blue-100/60", text: "text-blue-600", icon: Users },
+    critical: { dot: "bg-destructive", bg: "border-destructive/20 bg-destructive/5 hover:bg-destructive/10", text: "text-destructive", icon: AlertTriangle },
+    warning:  { dot: "bg-warning", bg: "border-warning/20 bg-warning/5 hover:bg-warning/10", text: "text-warning", icon: Clock },
+    info:     { dot: "bg-info", bg: "border-info/20 bg-info/5 hover:bg-info/10", text: "text-info", icon: Users },
   };
 
   const typeIcon = {
@@ -150,18 +151,18 @@ export function TodayActionItems() {
   };
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card shadow-card overflow-hidden">
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+    <Panel className="overflow-hidden">
+      <div className="flex items-center justify-between px-[14px] pb-[10px] pt-[14px]">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          <span className="text-sm font-semibold tracking-tight text-foreground">Today's Actions</span>
-          <span className="text-xs font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+          <span className="text-[14.5px] font-semibold text-foreground">Today's Actions</span>
+          <span className="rounded-full bg-muted px-[7px] py-[1px] text-[11.5px] font-semibold text-muted-foreground">
             {items.length}
           </span>
         </div>
       </div>
 
-      <div className="px-3 pb-3 space-y-1.5">
+      <div className="space-y-1.5 px-[10px] pb-[10px]">
         {items.map((item) => {
           const cfg = urgencyConfig[item.urgency];
           const TypeIcon = typeIcon[item.type];
@@ -170,20 +171,20 @@ export function TodayActionItems() {
               key={item.id}
               onClick={() => navigate(item.href)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors",
+                "flex w-full items-center gap-3 rounded-[8px] border px-3 py-2.5 text-left transition-colors",
                 cfg.bg
               )}
             >
               <TypeIcon className={cn("h-3.5 w-3.5 shrink-0", cfg.text)} />
-              <div className="flex-1 min-w-0">
-                <p className={cn("text-xs font-semibold leading-tight", cfg.text)}>{item.title}</p>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{item.subtitle}</p>
+              <div className="min-w-0 flex-1">
+                <p className={cn("text-[12.5px] font-semibold leading-tight", cfg.text)}>{item.title}</p>
+                <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{item.subtitle}</p>
               </div>
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
             </button>
           );
         })}
       </div>
-    </div>
+    </Panel>
   );
 }

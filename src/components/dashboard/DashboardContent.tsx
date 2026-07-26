@@ -190,7 +190,7 @@ export function DashboardContent() {
       <TodayActionItems />
       {/* Row 1: Greeting + inline stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">
           Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {firstName}
         </h1>
         <BusinessSnapshot
@@ -214,8 +214,8 @@ export function DashboardContent() {
           <button
             onClick={() => setActiveTab("my")}
             className={cn(
-              "pb-3 text-sm font-medium border-b-2 transition-colors",
-              activeTab === "my" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              "pb-3 text-[13.5px] font-medium border-b-2 transition-colors",
+              activeTab === "my" ? "border-accent text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             My Dashboard
@@ -224,8 +224,8 @@ export function DashboardContent() {
             <button
               onClick={() => setActiveTab("agency")}
               className={cn(
-                "pb-3 text-sm font-medium border-b-2 transition-colors",
-                activeTab === "agency" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                "pb-3 text-[13.5px] font-medium border-b-2 transition-colors",
+                activeTab === "agency" ? "border-accent text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               Agency Metrics
@@ -251,7 +251,7 @@ export function DashboardContent() {
 
           {/* Sales Pipeline */}
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Sales Pipeline</h2>
+            <h2 className="text-[10.5px] font-bold uppercase tracking-[.13em] text-muted-foreground mb-3">Sales Pipeline</h2>
             <PipelineCards
               loading={loading}
               data={{

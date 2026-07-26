@@ -1,10 +1,7 @@
 import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Check, X, AlertTriangle, FileDown, Loader2, FileText } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +9,9 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { BookkeeperBreadcrumb, EmptyState } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -119,15 +118,15 @@ export default function BookkeeperPacket() {
   };
 
   const CheckRow = ({ ok, label, warn }: { ok: boolean; label: string; warn?: boolean }) => (
-    <div className="flex items-center gap-2 text-sm">
+    <div className="flex items-center gap-2 text-[13.5px]">
       {ok ? (
-        <Check className="h-4 w-4 text-emerald-600" />
+        <Check className="h-4 w-4 text-success" />
       ) : warn ? (
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <AlertTriangle className="h-4 w-4 text-warning" />
       ) : (
         <X className="h-4 w-4 text-destructive" />
       )}
-      <span className={ok ? "" : warn ? "text-amber-700" : "text-destructive"}>{label}</span>
+      <span className={ok ? "text-foreground" : warn ? "text-warning" : "text-destructive"}>{label}</span>
     </div>
   );
 
@@ -135,26 +134,22 @@ export default function BookkeeperPacket() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6 max-w-6xl">
+      <div className="max-w-6xl space-y-[18px]">
         <div className="space-y-1">
           <BookkeeperBreadcrumb page="Financial Packet" />
-          <h1 className="text-3xl font-bold tracking-tight">Financial Packet</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Financial Packet</h1>
+          <p className="text-[13.5px] text-muted-foreground">
             Generate and download monthly financial reports.
           </p>
         </div>
 
         {canGenerate && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" /> Generate New Packet
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex flex-wrap gap-3 items-center">
+          <Panel>
+            <PanelHeader title={<span className="flex items-center gap-2"><FileText className="h-4 w-4" /> Generate New Packet</span>} />
+            <PanelBody className="space-y-[14px]">
+              <div className="flex flex-wrap items-center gap-3">
                 <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[180px] text-[13.5px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {MONTHS.map((m, i) => (
                       <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
@@ -162,7 +157,7 @@ export default function BookkeeperPacket() {
                   </SelectContent>
                 </Select>
                 <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-                  <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[120px] text-[13.5px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {yearOptions.map((y) => (
                       <SelectItem key={y} value={String(y)}>{y}</SelectItem>
@@ -171,10 +166,10 @@ export default function BookkeeperPacket() {
                 </Select>
               </div>
 
-              <div className="rounded-md border bg-muted/30 p-4 space-y-2">
-                <div className="text-sm font-medium mb-2">Readiness Checklist</div>
+              <div className="space-y-2 rounded-[9px] border border-border bg-card-2 p-[14px]">
+                <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">Readiness Checklist</div>
                 {readyLoading ? (
-                  <div className="text-sm text-muted-foreground">Checking…</div>
+                  <div className="text-[13px] text-muted-foreground">Checking…</div>
                 ) : (
                   <>
                     <CheckRow ok={!!readiness?.qbo} label="QuickBooks Online connected" />
@@ -197,7 +192,7 @@ export default function BookkeeperPacket() {
               <Button
                 onClick={() => generate.mutate()}
                 disabled={!ready || generate.isPending}
-                className="bg-[hsl(var(--primary))]"
+                className="text-[13px]"
               >
                 {generate.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating…</>
@@ -206,68 +201,67 @@ export default function BookkeeperPacket() {
                 )}
               </Button>
               {!ready && !readyLoading && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[12.5px] text-muted-foreground">
                   Complete the readiness checks above before generating.
                 </p>
               )}
-            </CardContent>
-          </Card>
+            </PanelBody>
+          </Panel>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Previous Packets</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader title="Previous Packets" />
+          <PanelBody>
             {packetsLoading ? (
-              <div className="text-sm text-muted-foreground">Loading…</div>
+              <div className="text-[13px] text-muted-foreground">Loading…</div>
             ) : (packets?.length ?? 0) === 0 ? (
-              <div className="text-sm text-muted-foreground">No packets generated yet.</div>
+              <EmptyState title="No packets yet" description="Generated financial packets will appear here." />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Generated by</TableHead>
-                    <TableHead>Generated at</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Download</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <table className="data-table w-full">
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>Generated by</th>
+                    <th>Generated at</th>
+                    <th>Status</th>
+                    <th className="text-right">Download</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {packets!.map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">
+                    <tr key={p.id}>
+                      <td className="font-medium">
                         {MONTHS[p.period_month - 1]} {p.period_year}
-                      </TableCell>
-                      <TableCell>{p.generated_by_name}</TableCell>
-                      <TableCell>
-                        {p.created_at ? format(new Date(p.created_at), "MMM d, yyyy h:mm a") : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          p.status === "ready" ? "default" :
-                          p.status === "failed" ? "destructive" : "secondary"
-                        }>
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
+                      </td>
+                      <td><span className="data-table-secondary">{p.generated_by_name}</span></td>
+                      <td>
+                        <span className="data-table-secondary">
+                          {p.created_at ? format(new Date(p.created_at), "MMM d, yyyy h:mm a") : "—"}
+                        </span>
+                      </td>
+                      <td>
+                        <SemanticStatusPill
+                          status={p.status === "ready" ? "success" : p.status === "failed" ? "destructive" : "info"}
+                          label={p.status}
+                        />
+                      </td>
+                      <td className="text-right">
                         <Button
                           size="sm" variant="outline"
                           disabled={p.status !== "ready" || !p.storage_path}
                           onClick={() => handleDownload(p.storage_path)}
+                          className="text-[13px]"
                         >
                           <FileDown className="h-4 w-4 mr-1" /> PDF
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

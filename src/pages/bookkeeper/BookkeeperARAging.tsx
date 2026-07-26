@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -25,9 +22,10 @@ import {
   TablePagination,
   MoneyCell,
   TableBodySkeletonRows,
-  BookkeeperBreadcrumb,
+  BookkeeperHeader,
 } from "@/components/bookkeeper/shared";
-import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill, type SemanticStatus } from "@/components/patterns/StatusPill";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -51,12 +49,31 @@ const bucketFor = (daysOverdue: number): BucketKey => {
   return "90+";
 };
 
-const bucketVariant = (b: BucketKey): "outline" | "secondary" | "destructive" => {
-  if (b === "90+") return "destructive";
-  if (b === "61-90") return "destructive";
-  if (b === "31-60") return "secondary";
-  return "outline";
+const bucketStatus = (b: BucketKey): SemanticStatus => {
+  if (b === "90+" || b === "61-90") return "destructive";
+  if (b === "31-60") return "warning";
+  if (b === "1-30") return "muted";
+  return "success";
 };
+
+const HEAD_CLASS = "bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground";
+
+function StatTile({ label, value, tone, emphasis }: { label: string; value: string; tone?: "destructive"; emphasis?: boolean }) {
+  return (
+    <Panel className={cn("p-4", tone === "destructive" && "border-destructive/30")}>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "mt-1 font-semibold tracking-[-0.025em] tabular-nums text-foreground",
+          emphasis ? "text-[20px]" : "text-[17px]",
+          tone === "destructive" && "text-destructive",
+        )}
+      >
+        {value}
+      </div>
+    </Panel>
+  );
+}
 
 export default function BookkeeperARAging() {
   const logAction = useLogBookkeeperAction();
@@ -205,62 +222,31 @@ export default function BookkeeperARAging() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="AR Aging" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">AR Aging</h1>
-              <PeriodLockButton year={currentYear} month={currentMonth} />
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Accounts receivable bucketed by days overdue.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> Export CSV
-          </Button>
-        </div>
+      <div className="space-y-[18px] p-6">
+        <BookkeeperHeader
+          title="AR Aging"
+          description="Accounts receivable bucketed by days overdue."
+          year={currentYear}
+          month={currentMonth}
+          actions={
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Export CSV
+            </Button>
+          }
+        />
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Total AR outstanding</div>
-              <div className="text-xl font-semibold">{fmt(totals.grand)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Current</div>
-              <div className="text-lg font-semibold">{fmt(totals.sums.current)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">1–30 days</div>
-              <div className="text-lg font-semibold">{fmt(totals.sums["1-30"])}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">31–60 days</div>
-              <div className="text-lg font-semibold">{fmt(totals.sums["31-60"])}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-destructive/40">
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">90+ days</div>
-              <div className="text-lg font-semibold text-destructive">
-                {fmt(totals.sums["90+"])}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Summary tiles */}
+        <div className="grid grid-cols-2 gap-[14px] md:grid-cols-5">
+          <StatTile label="Total AR outstanding" value={fmt(totals.grand)} emphasis />
+          <StatTile label="Current" value={fmt(totals.sums.current)} />
+          <StatTile label="1–30 days" value={fmt(totals.sums["1-30"])} />
+          <StatTile label="31–60 days" value={fmt(totals.sums["31-60"])} />
+          <StatTile label="90+ days" value={fmt(totals.sums["90+"])} tone="destructive" />
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+        <Panel>
+          <PanelBody className="flex flex-wrap items-center gap-2">
             <Input
               placeholder="Search client or trip…"
               value={search}
@@ -310,16 +296,14 @@ export default function BookkeeperARAging() {
                 Clear
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
 
         {/* Main table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Open invoices ({arPg.total})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
+        <Panel>
+          <PanelHeader title={`Open invoices (${arPg.total})`} />
+          {isLoading ? (
+            <PanelBody>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -328,85 +312,95 @@ export default function BookkeeperARAging() {
                 </TableHeader>
                 <TableBody><TableBodySkeletonRows rows={8} cols={10} /></TableBody>
               </Table>
-            ) : filtered.length === 0 ? (
+            </PanelBody>
+          ) : filtered.length === 0 ? (
+            <PanelBody>
               <EmptyState
                 icon={Inbox}
                 title="No open invoices"
                 description="Nothing matches the current filters."
               />
-            ) : (
-              <>
-              <Table>
-                <TableHeader>
-                  <tr className="border-b">
-                    <SortableHead label="Client" sortKey="client" sort={arSort} onSort={onArSort} />
-                    <SortableHead label="Trip" sortKey="trip" sort={arSort} onSort={onArSort} />
-                    <SortableHead label="Invoice #" sortKey="invoice_number" sort={arSort} onSort={onArSort} />
-                    <SortableHead label="Invoice date" sortKey="invoice_date" sort={arSort} onSort={onArSort} />
-                    <SortableHead label="Due date" sortKey="due_date" sort={arSort} onSort={onArSort} />
-                    <SortableHead label="Total" sortKey="total" sort={arSort} onSort={onArSort} align="right" />
-                    <SortableHead label="Paid" sortKey="paid" sort={arSort} onSort={onArSort} align="right" />
-                    <SortableHead label="Balance" sortKey="balance" sort={arSort} onSort={onArSort} align="right" />
-                    <SortableHead label="Days outstanding" sortKey="days" sort={arSort} onSort={onArSort} />
-                    <TableHead>Bucket</TableHead>
-                  </tr>
-                </TableHeader>
-                <TableBody>
-                  {arPg.pageRows.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="max-w-[200px] truncate">{r.client_name || "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{r.trip_name || "—"}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.invoice_number || "—"}</TableCell>
-                      <TableCell>{r.invoice_date ? format(parseDate(r.invoice_date)!, "MMM d, yyyy") : "—"}</TableCell>
-                      <TableCell>{r.due_date ? format(parseDate(r.due_date)!, "MMM d, yyyy") : "—"}</TableCell>
-                      <MoneyCell value={r.total} />
-                      <MoneyCell value={r.paid} />
-                      <MoneyCell value={r.balance} bold />
-                      <TableCell className="tabular-nums">{r.days}d</TableCell>
-                      <TableCell>
-                        <Badge variant={bucketVariant(r.bucket)}>{BUCKET_LABEL[r.bucket]}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <TablePagination
-                page={arPg.page}
-                totalPages={arPg.totalPages}
-                total={arPg.total}
-                rangeStart={arPg.rangeStart}
-                rangeEnd={arPg.rangeEnd}
-                onPageChange={arPg.setPage}
-              />
-              </>
-            )}
-          </CardContent>
-        </Card>
+            </PanelBody>
+          ) : (
+            <>
+              <PanelBody className="p-0">
+                <Table>
+                  <TableHeader>
+                    <tr className="border-b border-border">
+                      <SortableHead label="Client" sortKey="client" sort={arSort} onSort={onArSort} />
+                      <SortableHead label="Trip" sortKey="trip" sort={arSort} onSort={onArSort} />
+                      <SortableHead label="Invoice #" sortKey="invoice_number" sort={arSort} onSort={onArSort} />
+                      <SortableHead label="Invoice date" sortKey="invoice_date" sort={arSort} onSort={onArSort} />
+                      <SortableHead label="Due date" sortKey="due_date" sort={arSort} onSort={onArSort} />
+                      <SortableHead label="Total" sortKey="total" sort={arSort} onSort={onArSort} align="right" />
+                      <SortableHead label="Paid" sortKey="paid" sort={arSort} onSort={onArSort} align="right" />
+                      <SortableHead label="Balance" sortKey="balance" sort={arSort} onSort={onArSort} align="right" />
+                      <SortableHead label="Days outstanding" sortKey="days" sort={arSort} onSort={onArSort} />
+                      <TableHead className={HEAD_CLASS}>Bucket</TableHead>
+                    </tr>
+                  </TableHeader>
+                  <TableBody>
+                    {arPg.pageRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="max-w-[200px] truncate text-[13.5px] font-medium text-foreground">{r.client_name || "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-[13.5px]">{r.trip_name || "—"}</TableCell>
+                        <TableCell className="font-mono text-[12px] text-muted-foreground">{r.invoice_number || "—"}</TableCell>
+                        <TableCell className="text-[13.5px] text-muted-foreground">{r.invoice_date ? format(parseDate(r.invoice_date)!, "MMM d, yyyy") : "—"}</TableCell>
+                        <TableCell className="text-[13.5px] text-muted-foreground">{r.due_date ? format(parseDate(r.due_date)!, "MMM d, yyyy") : "—"}</TableCell>
+                        <MoneyCell value={r.total} />
+                        <MoneyCell value={r.paid} />
+                        <MoneyCell value={r.balance} bold />
+                        <TableCell className="tabular-nums text-[13.5px]">{r.days}d</TableCell>
+                        <TableCell>
+                          <SemanticStatusPill status={bucketStatus(r.bucket)} label={BUCKET_LABEL[r.bucket]} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </PanelBody>
+              <div className="border-t border-border px-[14px] py-3">
+                <TablePagination
+                  page={arPg.page}
+                  totalPages={arPg.totalPages}
+                  total={arPg.total}
+                  rangeStart={arPg.rangeStart}
+                  rangeEnd={arPg.rangeEnd}
+                  onPageChange={arPg.setPage}
+                />
+              </div>
+            </>
+          )}
+        </Panel>
 
         {/* Overdue installment plans */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Overdue installment plans ({overdueInstallments.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {overdueInstallments.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                Overdue installment plans ({overdueInstallments.length})
+              </span>
+            }
+          />
+          {overdueInstallments.length === 0 ? (
+            <PanelBody>
+              <div className="py-8 text-center text-[13.5px] text-muted-foreground">
                 No overdue installments.
               </div>
-            ) : (
+            </PanelBody>
+          ) : (
+            <PanelBody className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Trip</TableHead>
-                    <TableHead>Installment</TableHead>
-                    <TableHead className="text-right">Amount due</TableHead>
-                    <TableHead>Due date</TableHead>
-                    <TableHead>Days overdue</TableHead>
-                  </TableRow>
+                  <tr className="border-b border-border">
+                    <TableHead className={HEAD_CLASS}>Client</TableHead>
+                    <TableHead className={HEAD_CLASS}>Trip</TableHead>
+                    <TableHead className={HEAD_CLASS}>Installment</TableHead>
+                    <TableHead className={cn(HEAD_CLASS, "text-right")}>Amount due</TableHead>
+                    <TableHead className={HEAD_CLASS}>Due date</TableHead>
+                    <TableHead className={HEAD_CLASS}>Days overdue</TableHead>
+                  </tr>
                 </TableHeader>
                 <TableBody>
                   {overdueInstallments.map((p: any) => {
@@ -414,35 +408,31 @@ export default function BookkeeperARAging() {
                     const overdue = d ? differenceInDays(today, d) : 0;
                     return (
                       <TableRow key={p.id}>
-                        <TableCell className="max-w-[200px] truncate">
+                        <TableCell className="max-w-[200px] truncate text-[13.5px] font-medium text-foreground">
                           {p.trips?.clients
                             ? `${p.trips.clients.first_name ?? ""} ${p.trips.clients.last_name ?? ""}`.trim() || "—"
                             : "—"}
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate">{p.trips?.trip_name || "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-[13.5px]">{p.trips?.trip_name || "—"}</TableCell>
                         <TableCell>
-                          <div className="text-sm">{p.payment_type || "payment"}</div>
+                          <div className="text-[13.5px] text-foreground">{p.payment_type || "payment"}</div>
                           {p.details && (
-                            <div className="text-xs text-muted-foreground truncate max-w-[240px]">{p.details}</div>
+                            <div className="max-w-[240px] truncate text-[12px] text-muted-foreground">{p.details}</div>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium">{fmt(Number(p.amount || 0))}</TableCell>
-                        <TableCell>{d ? format(d, "MMM d, yyyy") : "—"}</TableCell>
+                        <TableCell className="text-right text-[13.5px] font-semibold text-foreground">{fmt(Number(p.amount || 0))}</TableCell>
+                        <TableCell className="text-[13.5px] text-muted-foreground">{d ? format(d, "MMM d, yyyy") : "—"}</TableCell>
                         <TableCell>
-                          {overdue > 30 ? (
-                            <Badge variant="destructive">{overdue}d</Badge>
-                          ) : (
-                            <Badge variant="secondary">{overdue}d</Badge>
-                          )}
+                          <SemanticStatusPill status={overdue > 30 ? "destructive" : "warning"} label={`${overdue}d`} />
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
+            </PanelBody>
+          )}
+        </Panel>
       </div>
     </DashboardLayout>
   );

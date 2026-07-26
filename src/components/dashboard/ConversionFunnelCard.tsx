@@ -1,7 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send, Eye, CheckCircle2, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 
 interface ConversionFunnelCardProps {
   sent: number;
@@ -25,43 +24,43 @@ export function ConversionFunnelCard({ sent, viewed, approved, booked, loading }
   const overallConversion = pct(booked, sent);
 
   return (
-    <Card>
-      <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Quote Conversion
-        </CardTitle>
-        {!loading && (
-          <span className="text-xs font-semibold text-foreground">
-            {overallConversion}% Sent → Booked
-          </span>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Panel>
+      <PanelHeader
+        title="Quote Conversion"
+        actions={
+          !loading && (
+            <span className="text-[12.5px] font-semibold text-foreground">
+              {overallConversion}% Sent → Booked
+            </span>
+          )
+        }
+      />
+      <PanelBody className="space-y-3">
         {loading ? (
           <Skeleton className="h-24 w-full" />
         ) : (
           stages.map(({ key, label, value, icon: Icon, pct: stagePct }) => (
             <div key={key} className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-[13.5px]">
                 <div className="flex items-center gap-2 text-foreground">
                   <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>{label}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="tabular-nums font-medium text-foreground">{value}</span>
-                  <span className="tabular-nums text-xs w-10 text-right">{stagePct}%</span>
+                  <span className="w-10 text-right text-[12px] tabular-nums">{stagePct}%</span>
                 </div>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn("h-full rounded-full bg-primary transition-all")}
+                  className="h-full rounded-full bg-accent transition-all"
                   style={{ width: `${Math.min(100, stagePct)}%` }}
                 />
               </div>
             </div>
           ))
         )}
-      </CardContent>
-    </Card>
+      </PanelBody>
+    </Panel>
   );
 }

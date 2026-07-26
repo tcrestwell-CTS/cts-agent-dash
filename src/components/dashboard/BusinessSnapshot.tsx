@@ -28,15 +28,15 @@ export function BusinessSnapshot({ revenueMTD, totalClients, conversionRate, avg
   };
 
   return (
-    <div className="flex items-center gap-6 flex-wrap">
+    <div className="flex flex-wrap items-center gap-y-2 divide-x divide-border">
       {stats.map(({ key, label, icon: Icon }) => (
-        <div key={key} className="flex items-center gap-2">
+        <div key={key} className="flex items-center gap-2 px-4 first:pl-0 last:pr-0">
           <Icon className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">{label}</span>
+          <span className="text-[12.5px] text-muted-foreground">{label}</span>
           {loading ? (
-            <Skeleton className="h-5 w-10" />
+            <Skeleton className="h-4 w-10" />
           ) : (
-            <span className="text-sm font-semibold text-foreground">{values[key]}</span>
+            <span className="text-[13.5px] font-semibold tabular-nums text-foreground">{values[key]}</span>
           )}
         </div>
       ))}

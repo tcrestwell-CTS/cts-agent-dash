@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileSpreadsheet, DollarSign, TrendingUp, Users, Percent } from "lucide-react";
 import { useCommissionReport } from "@/hooks/useCommissionReport";
 import { useSuppliers } from "@/hooks/useSuppliers";
-import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
+import { useIsAdmin, useIsOfficeAdmin, useIsBookkeeper } from "@/hooks/useAdmin";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { CommissionReportFilters } from "@/components/reports/CommissionReportFilters";
 import { CommissionReportTable } from "@/components/reports/CommissionReportTable";
@@ -31,9 +31,15 @@ export default function CommissionReport() {
   const { suppliers, isLoading: suppliersLoading } = useSuppliers();
   const { data: isAdmin } = useIsAdmin();
   const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const { data: isBookkeeper } = useIsBookkeeper();
   const earnings = useEarningsLabel();
 
-  const canViewAll = isAdmin || isOfficeAdmin;
+  // Admin, office admin, and bookkeeper all see the agency-wide report.
+  const canViewAll = !!isAdmin || !!isOfficeAdmin || !!isBookkeeper;
+  // Only admin can edit commission splits; office admin/bookkeeper see them read-only.
+  const canEditSplits = !!isAdmin;
+  // Settling a payout (confirm_commission_payout) is admin + bookkeeper only.
+  const canSettle = !!isAdmin || !!isBookkeeper;
   const loading = reportLoading || suppliersLoading;
 
   // Filter states
@@ -480,10 +486,15 @@ export default function CommissionReport() {
               </span>
             </h2>
           </div>
-          <CommissionReportTable data={filteredData} showAgentColumn={canViewAll || false} />
+          <CommissionReportTable
+            data={filteredData}
+            showAgentColumn={canViewAll || false}
+            canEditSplits={canEditSplits}
+            canSettle={canSettle}
+          />
         </div>
 
-        <ConfirmPayoutBar />
+        {canSettle && <ConfirmPayoutBar />}
       </div>
       </CommissionPayoutDraftProvider>
     </DashboardLayout>

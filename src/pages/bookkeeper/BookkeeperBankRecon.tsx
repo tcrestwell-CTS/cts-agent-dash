@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,14 @@ import { format } from "date-fns";
 import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
+
+const STATUS_SEMANTIC: Record<string, "muted" | "info" | "warning" | "success" | "destructive"> = {
+  paid: "success",
+  in_transit: "info",
+  pending: "warning",
+  failed: "destructive",
+  canceled: "muted",
+};
 
 export default function BookkeeperBankRecon() {
   const { data, isLoading } = useQuery({
@@ -26,45 +34,53 @@ export default function BookkeeperBankRecon() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-[18px]">
         <div className="space-y-1">
           <BookkeeperBreadcrumb page="Bank Reconciliation" />
-          <h1 className="text-3xl font-semibold">Bank Reconciliation</h1>
-          <p className="text-muted-foreground text-sm">Stripe payouts arriving in the operating bank account.</p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Bank Reconciliation</h1>
+          <p className="text-[13.5px] text-muted-foreground">Stripe payouts arriving in the operating bank account.</p>
         </div>
-        <Card>
-          <CardHeader><CardTitle>Recent payouts</CardTitle></CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader title="Recent payouts" />
+          <PanelBody>
             {isLoading ? <Skeleton className="h-64 w-full" /> : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Arrival</TableHead>
-                    <TableHead>Payout ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Gross</TableHead>
-                    <TableHead className="text-right">Fees</TableHead>
-                    <TableHead className="text-right">Net</TableHead>
-                    <TableHead>Reconciled</TableHead>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Arrival</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Payout ID</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Status</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Gross</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Fees</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Net</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Reconciled</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((r: any) => (
                     <TableRow key={r.id}>
-                      <TableCell>{r.arrival_date ? format(new Date(r.arrival_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.stripe_payout_id}</TableCell>
-                      <TableCell><Badge variant="outline">{r.status || "—"}</Badge></TableCell>
-                      <TableCell className="text-right">{fmt(Number(r.amount || 0))}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{fmt(Number(r.fee_total || 0))}</TableCell>
-                      <TableCell className="text-right font-medium">{fmt(Number(r.net_amount || 0))}</TableCell>
-                      <TableCell>{r.reconciled ? <Badge>Matched</Badge> : <Badge variant="outline">Pending</Badge>}</TableCell>
+                      <TableCell className="text-[13.5px]">{r.arrival_date ? format(new Date(r.arrival_date + "T00:00:00"), "MMM d, yyyy") : "—"}</TableCell>
+                      <TableCell className="font-mono text-[12.5px] text-muted-foreground">{r.stripe_payout_id}</TableCell>
+                      <TableCell>
+                        <SemanticStatusPill status={STATUS_SEMANTIC[r.status] ?? "muted"} label={r.status || "—"} />
+                      </TableCell>
+                      <TableCell className="text-right text-[14px] tabular-nums">{fmt(Number(r.amount || 0))}</TableCell>
+                      <TableCell className="text-right text-[14px] tabular-nums text-muted-foreground">{fmt(Number(r.fee_total || 0))}</TableCell>
+                      <TableCell className="text-right text-[14px] font-semibold tabular-nums">{fmt(Number(r.net_amount || 0))}</TableCell>
+                      <TableCell>
+                        {r.reconciled ? (
+                          <SemanticStatusPill status="success" label="Matched" />
+                        ) : (
+                          <SemanticStatusPill status="muted" label="Pending" />
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

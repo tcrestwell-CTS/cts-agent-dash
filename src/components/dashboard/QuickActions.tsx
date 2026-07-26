@@ -6,16 +6,16 @@ export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex gap-3">
-      <Button onClick={() => navigate("/trips?action=new")} className="gap-2">
+    <div className="flex flex-wrap gap-2">
+      <Button onClick={() => navigate("/trips?action=new")} className="gap-1.5 rounded-[8px] text-[13px]">
         <Plus className="h-4 w-4" />
         New Trip
       </Button>
-      <Button variant="secondary" onClick={() => navigate("/contacts")} className="gap-2">
+      <Button variant="secondary" onClick={() => navigate("/contacts")} className="gap-1.5 rounded-[8px] text-[13px]">
         <Send className="h-4 w-4" />
         Send Quote
       </Button>
-      <Button variant="secondary" onClick={() => navigate("/contacts?action=new")} className="gap-2">
+      <Button variant="secondary" onClick={() => navigate("/contacts?action=new")} className="gap-1.5 rounded-[8px] text-[13px]">
         <UserPlus className="h-4 w-4" />
         Add Client
       </Button>

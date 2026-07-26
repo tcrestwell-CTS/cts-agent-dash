@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Inbox } from "lucide-react";
 import { format, differenceInDays, addDays } from "date-fns";
@@ -22,9 +19,11 @@ import {
   TablePagination,
   MoneyCell,
   TableBodySkeletonRows,
-  BookkeeperBreadcrumb,
+  BookkeeperHeader,
 } from "@/components/bookkeeper/shared";
-import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill, type SemanticStatus } from "@/components/patterns/StatusPill";
+import { cn } from "@/lib/utils";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -48,11 +47,31 @@ const bucketFor = (daysOverdue: number): BucketKey => {
   return "90+";
 };
 
-const bucketVariant = (b: BucketKey): "outline" | "secondary" | "destructive" => {
+const bucketStatus = (b: BucketKey): SemanticStatus => {
   if (b === "90+" || b === "61-90") return "destructive";
-  if (b === "31-60") return "secondary";
-  return "outline";
+  if (b === "31-60") return "warning";
+  if (b === "1-30") return "muted";
+  return "success";
 };
+
+const HEAD_CLASS = "bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground";
+
+function StatTile({ label, value, tone, emphasis }: { label: string; value: string; tone?: "destructive"; emphasis?: boolean }) {
+  return (
+    <Panel className={cn("p-4", tone === "destructive" && "border-destructive/30")}>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "mt-1 font-semibold tracking-[-0.025em] tabular-nums text-foreground",
+          emphasis ? "text-[20px]" : "text-[17px]",
+          tone === "destructive" && "text-destructive",
+        )}
+      >
+        {value}
+      </div>
+    </Panel>
+  );
+}
 
 export default function BookkeeperAPAging() {
   const logAction = useLogBookkeeperAction();
@@ -190,56 +209,30 @@ export default function BookkeeperAPAging() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="AP Aging" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">AP Aging</h1>
-              <PeriodLockButton year={currentYear} month={currentMonth} />
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Unpaid supplier obligations bucketed by days past estimated due date.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> Export CSV
-          </Button>
-        </div>
+      <div className="space-y-[18px] p-6">
+        <BookkeeperHeader
+          title="AP Aging"
+          description="Unpaid supplier obligations bucketed by days past estimated due date."
+          year={currentYear}
+          month={currentMonth}
+          actions={
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Export CSV
+            </Button>
+          }
+        />
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Total AP outstanding</div>
-              <div className="text-xl font-semibold">{fmt(totals.grand)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Current</div>
-              <div className="text-lg font-semibold">{fmt(totals.sums.current)}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">1–30 days</div>
-              <div className="text-lg font-semibold">{fmt(totals.sums["1-30"])}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-destructive/40">
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">90+ days</div>
-              <div className="text-lg font-semibold text-destructive">
-                {fmt(totals.sums["90+"])}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Summary tiles */}
+        <div className="grid grid-cols-2 gap-[14px] md:grid-cols-4">
+          <StatTile label="Total AP outstanding" value={fmt(totals.grand)} emphasis />
+          <StatTile label="Current" value={fmt(totals.sums.current)} />
+          <StatTile label="1–30 days" value={fmt(totals.sums["1-30"])} />
+          <StatTile label="90+ days" value={fmt(totals.sums["90+"])} tone="destructive" />
         </div>
 
         {/* Filters */}
-        <Card>
-          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+        <Panel>
+          <PanelBody className="flex flex-wrap items-center gap-2">
             <Input
               placeholder="Search supplier or trip…"
               value={search}
@@ -285,85 +278,89 @@ export default function BookkeeperAPAging() {
                 Clear
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
 
         {/* Main table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Unpaid supplier obligations ({apPg.total})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
+        <Panel>
+          <PanelHeader title={`Unpaid supplier obligations (${apPg.total})`} />
+          {isLoading ? (
+            <PanelBody>
               <Table>
                 <TableHeader><TableRow><TableHead colSpan={9}>Loading…</TableHead></TableRow></TableHeader>
                 <TableBody><TableBodySkeletonRows rows={8} cols={9} /></TableBody>
               </Table>
-            ) : filtered.length === 0 ? (
+            </PanelBody>
+          ) : filtered.length === 0 ? (
+            <PanelBody>
               <EmptyState
                 icon={Inbox}
                 title="No unpaid supplier obligations"
                 description="All supplier payments are settled or no rows match the current filters."
               />
-            ) : (
-              <>
-              <Table>
-                <TableHeader>
-                  <tr className="border-b">
-                    <SortableHead label="Supplier" sortKey="supplier" sort={apSort} onSort={onApSort} />
-                    <SortableHead label="Trip" sortKey="trip" sort={apSort} onSort={onApSort} />
-                    <SortableHead label="Confirmation #" sortKey="confirmation" sort={apSort} onSort={onApSort} />
-                    <SortableHead label="Booking date" sortKey="booking_date" sort={apSort} onSort={onApSort} />
-                    <SortableHead label="Est. due date" sortKey="est_due" sort={apSort} onSort={onApSort} />
-                    <SortableHead label="Amount owed" sortKey="amount" sort={apSort} onSort={onApSort} align="right" />
-                    <SortableHead label="Days outstanding" sortKey="days" sort={apSort} onSort={onApSort} />
-                    <TableHead>Bucket</TableHead>
-                    <SortableHead label="Paid status" sortKey="status" sort={apSort} onSort={onApSort} />
-                  </tr>
-                </TableHeader>
-                <TableBody>
-                  {apPg.pageRows.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="max-w-[200px] truncate">
-                        <div>{r.supplier_name || "—"}</div>
-                        {r.supplier_email && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {r.supplier_email}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">{r.trip_name || "—"}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.confirmation_number || "—"}</TableCell>
-                      <TableCell>
-                        {r.booking_date ? format(new Date(r.booking_date), "MMM d, yyyy") : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {r.est_due ? format(parseDate(r.est_due)!, "MMM d, yyyy") : "—"}
-                      </TableCell>
-                      <MoneyCell value={r.amount} bold />
-                      <TableCell className="tabular-nums">{r.days}d</TableCell>
-                      <TableCell>
-                        <Badge variant={bucketVariant(r.bucket)}>{BUCKET_LABEL[r.bucket]}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{r.supplier_paid_status}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <TablePagination
-                page={apPg.page}
-                totalPages={apPg.totalPages}
-                total={apPg.total}
-                rangeStart={apPg.rangeStart}
-                rangeEnd={apPg.rangeEnd}
-                onPageChange={apPg.setPage}
-              />
-              </>
-            )}
-          </CardContent>
-        </Card>
+            </PanelBody>
+          ) : (
+            <>
+              <PanelBody className="p-0">
+                <Table>
+                  <TableHeader>
+                    <tr className="border-b border-border">
+                      <SortableHead label="Supplier" sortKey="supplier" sort={apSort} onSort={onApSort} />
+                      <SortableHead label="Trip" sortKey="trip" sort={apSort} onSort={onApSort} />
+                      <SortableHead label="Confirmation #" sortKey="confirmation" sort={apSort} onSort={onApSort} />
+                      <SortableHead label="Booking date" sortKey="booking_date" sort={apSort} onSort={onApSort} />
+                      <SortableHead label="Est. due date" sortKey="est_due" sort={apSort} onSort={onApSort} />
+                      <SortableHead label="Amount owed" sortKey="amount" sort={apSort} onSort={onApSort} align="right" />
+                      <SortableHead label="Days outstanding" sortKey="days" sort={apSort} onSort={onApSort} />
+                      <TableHead className={HEAD_CLASS}>Bucket</TableHead>
+                      <SortableHead label="Paid status" sortKey="status" sort={apSort} onSort={onApSort} />
+                    </tr>
+                  </TableHeader>
+                  <TableBody>
+                    {apPg.pageRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="max-w-[200px] truncate">
+                          <div className="text-[13.5px] font-medium text-foreground">{r.supplier_name || "—"}</div>
+                          {r.supplier_email && (
+                            <div className="truncate text-[12px] text-muted-foreground">
+                              {r.supplier_email}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-[13.5px]">{r.trip_name || "—"}</TableCell>
+                        <TableCell className="font-mono text-[12px] text-muted-foreground">{r.confirmation_number || "—"}</TableCell>
+                        <TableCell className="text-[13.5px] text-muted-foreground">
+                          {r.booking_date ? format(new Date(r.booking_date), "MMM d, yyyy") : "—"}
+                        </TableCell>
+                        <TableCell className="text-[13.5px] text-muted-foreground">
+                          {r.est_due ? format(parseDate(r.est_due)!, "MMM d, yyyy") : "—"}
+                        </TableCell>
+                        <MoneyCell value={r.amount} bold />
+                        <TableCell className="tabular-nums text-[13.5px]">{r.days}d</TableCell>
+                        <TableCell>
+                          <SemanticStatusPill status={bucketStatus(r.bucket)} label={BUCKET_LABEL[r.bucket]} />
+                        </TableCell>
+                        <TableCell>
+                          <SemanticStatusPill status="muted" label={r.supplier_paid_status} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </PanelBody>
+              <div className="border-t border-border px-[14px] py-3">
+                <TablePagination
+                  page={apPg.page}
+                  totalPages={apPg.totalPages}
+                  total={apPg.total}
+                  rangeStart={apPg.rangeStart}
+                  rangeEnd={apPg.rangeEnd}
+                  onPageChange={apPg.setPage}
+                />
+              </div>
+            </>
+          )}
+        </Panel>
       </div>
     </DashboardLayout>
   );

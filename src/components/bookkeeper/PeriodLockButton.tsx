@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Lock, LockOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,21 +38,17 @@ export function PeriodLockButton({ year, month }: Props) {
 
   // Locked badge (visible to everyone)
   const lockedBadge = isLocked ? (
-    <Badge
-      variant="outline"
-      className="border-amber-500/60 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
-    >
-      <Lock className="h-3 w-3 mr-1" />
-      Closed
-      {lockedAt && <span className="ml-1 opacity-70">· {format(new Date(lockedAt), "MMM d")}</span>}
-    </Badge>
+    <SemanticStatusPill
+      status="warning"
+      label={lockedAt ? `Closed · ${format(new Date(lockedAt), "MMM d")}` : "Closed"}
+    />
   ) : null;
 
   // Bookkeeper (non-admin) view: status only
   if (!isAdmin) {
     if (!isLocked) return null;
     return (
-      <span className="text-sm text-muted-foreground inline-flex items-center gap-2">
+      <span className="inline-flex items-center gap-2 text-[13.5px] text-muted-foreground">
         {lockedBadge}
         {lockedAt && (
           <span>Period closed {format(new Date(lockedAt), "MMM d, yyyy")}</span>
@@ -67,7 +63,7 @@ export function PeriodLockButton({ year, month }: Props) {
       {lockedBadge}
       {isLocked ? (
         <>
-          <Button variant="outline" size="sm" onClick={() => setUnlockOpen(true)}>
+          <Button variant="outline" size="sm" className="text-[13px]" onClick={() => setUnlockOpen(true)}>
             <LockOpen className="h-4 w-4 mr-2" /> Unlock
           </Button>
           <AlertDialog open={unlockOpen} onOpenChange={setUnlockOpen}>
@@ -99,7 +95,7 @@ export function PeriodLockButton({ year, month }: Props) {
         </>
       ) : (
         <>
-          <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <Button variant="outline" size="sm" className="text-[13px]" onClick={() => setOpen(true)}>
             <Lock className="h-4 w-4 mr-2" /> Lock Month
           </Button>
           <AlertDialog open={open} onOpenChange={setOpen}>

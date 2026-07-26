@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { Card, CardContent } from "@/components/ui/card";
+import { Panel } from "@/components/patterns/Panel";
+import { StatusPill } from "@/components/patterns/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Users, MapPin, Loader2 } from "lucide-react";
@@ -92,7 +93,7 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]">
+        <div className="flex gap-3.5 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]">
           {columns.map((col) => (
             <Droppable droppableId={col.id} key={col.id}>
               {(provided, snapshot) => (
@@ -100,15 +101,13 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   style={columnBorderStyle(col.color)}
-                  className={`flex-shrink-0 w-[320px] flex flex-col rounded-lg border-t-4 ${
-                    snapshot.isDraggingOver ? "bg-accent/40" : "bg-muted/30"
+                  className={`flex-shrink-0 w-[320px] flex flex-col rounded-[11px] border-t-4 ${
+                    snapshot.isDraggingOver ? "bg-accent/40" : "bg-card-2"
                   } transition-colors`}
                 >
-                  <div className="px-3.5 py-3 flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-foreground">{col.label}</h3>
-                    <span className="text-sm text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">
-                      {tripsByStatus[col.id]?.length || 0}
-                    </span>
+                  <div className="px-3.5 py-3 flex items-center justify-between gap-2">
+                    <h3 className="text-[14.5px] font-semibold text-foreground truncate">{col.label}</h3>
+                    <StatusPill color={col.color} label={String(tripsByStatus[col.id]?.length || 0)} />
                   </div>
                   <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto">
                     {tripsByStatus[col.id]?.map((trip, index) => (
@@ -199,9 +198,9 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
 
 function KanbanTripCard({ trip }: { trip: Trip }) {
   return (
-    <Card className={`overflow-hidden transition-shadow hover:shadow-md ${trip.isOptimistic ? "opacity-60 animate-pulse" : ""}`}>
+    <Panel className={`overflow-hidden transition-shadow hover:shadow-lg ${trip.isOptimistic ? "opacity-60 animate-pulse" : ""}`}>
       {trip.cover_image_url && (
-        <div className="h-32 w-full overflow-hidden">
+        <div className="h-28 w-full overflow-hidden">
           <img
             src={trip.cover_image_url}
             alt={trip.trip_name}
@@ -209,34 +208,34 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
           />
         </div>
       )}
-      <CardContent className="p-4.5 space-y-3">
-        <h4 className="font-semibold text-[18px] leading-snug line-clamp-2">
+      <div className="p-3.5 space-y-2">
+        <h4 className="text-[14.5px] font-semibold leading-snug line-clamp-2 text-foreground">
           {trip.isOptimistic && <Loader2 className="inline h-4 w-4 animate-spin mr-1" />}
           {trip.trip_name}
         </h4>
         {trip.trip_type && trip.trip_type !== "regular" && (
-          <p className="text-[14px] text-muted-foreground italic">{trip.trip_type}</p>
+          <p className="text-[12.5px] text-muted-foreground italic">{trip.trip_type}</p>
         )}
         {trip.clients?.name && (
-          <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" />
-            {trip.clients.name}
+          <p className="text-[12.5px] text-muted-foreground flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{trip.clients.name}</span>
           </p>
         )}
         {trip.depart_date && (
-          <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" />
+          <p className="text-[12.5px] text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
             {format(parseLocalDate(trip.depart_date), "MMM d")}
             {trip.return_date && ` - ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
           </p>
         )}
         {trip.destination && (
-          <p className="text-[14px] text-muted-foreground flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5" />
-            {trip.destination}
+          <p className="text-[12.5px] text-muted-foreground flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{trip.destination}</span>
           </p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }

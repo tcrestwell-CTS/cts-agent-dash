@@ -24,7 +24,7 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { useBookings } from "@/hooks/useBookings";
 import { useClients } from "@/hooks/useClients";
 import { useProfile } from "@/hooks/useProfile";
-import { useIsAdmin } from "@/hooks/useAdmin";
+import { useIsAdmin, useIsOfficeAdmin, useIsBookkeeper } from "@/hooks/useAdmin";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { PendingOverridesCard } from "@/components/commissions/PendingOverridesCard";
@@ -45,11 +45,14 @@ const Commissions = () => {
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { profile, loading: profileLoading } = useProfile();
   const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const { data: isBookkeeper } = useIsBookkeeper();
+  const canViewAgencyWide = !!isAdmin || !!isOfficeAdmin || !!isBookkeeper;
   const earnings = useEarningsLabel();
   const { data: teamProfiles, isLoading: teamProfilesLoading } = useTeamProfiles();
   const [currentPage, setCurrentPage] = useState(1);
 
-  const loading = commissionsLoading || bookingsLoading || clientsLoading || profileLoading || (isAdmin && teamProfilesLoading);
+  const loading = commissionsLoading || bookingsLoading || clientsLoading || profileLoading || (canViewAgencyWide && teamProfilesLoading);
 
   const tierConfig = getTierConfig(profile?.commission_tier);
 
@@ -155,9 +158,9 @@ const Commissions = () => {
     return months;
   }, [enrichedCommissions]);
 
-  // Admin-only: Agent breakdown with earnings per agent
+  // Agency-wide (admin/office admin/bookkeeper): Agent breakdown with earnings per agent
   const agentBreakdown = useMemo(() => {
-    if (!isAdmin || !commissions || !teamProfiles) return [];
+    if (!canViewAgencyWide || !commissions || !teamProfiles) return [];
 
     const commissionsByAgent = commissions.reduce((acc, commission) => {
       const userId = commission.user_id;
@@ -275,9 +278,9 @@ const Commissions = () => {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{isAdmin ? earnings.teamTitle : earnings.myTitle}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{isAdmin
-            ? "View and manage all agent commission earnings"
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{canViewAgencyWide ? earnings.teamTitle : earnings.myTitle}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{canViewAgencyWide
+            ? "View all agent commission earnings agency-wide"
             : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -303,7 +306,7 @@ const Commissions = () => {
           <p className="text-3xl font-semibold text-card-foreground">
             {formatCurrency(totals.totalEarned)}
           </p>
-          {!isAdmin && (
+          {!canViewAgencyWide && (
             <p className="text-sm text-muted-foreground mt-2">
               Based on your {tierConfig.agentSplit}% rate
             </p>
@@ -375,8 +378,8 @@ const Commissions = () => {
         </div>
       </div>
 
-      {/* Admin: Agent Breakdown */}
-      {isAdmin && agentBreakdown.length > 0 && (
+      {/* Agency-wide: Agent Breakdown */}
+      {canViewAgencyWide && agentBreakdown.length > 0 && (
         <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden mb-6">
           <div className="p-4 border-b border-border flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
@@ -479,7 +482,7 @@ const Commissions = () => {
         <div className="lg:col-span-2 bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold text-card-foreground">
-              Your {earnings.singular} History
+              {canViewAgencyWide ? `All ${earnings.plural}` : `Your ${earnings.singular} History`}
             </h3>
             {enrichedCommissions.length > ITEMS_PER_PAGE && (
               <p className="text-sm text-muted-foreground">

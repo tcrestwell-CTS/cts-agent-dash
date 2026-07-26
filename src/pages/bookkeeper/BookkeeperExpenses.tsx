@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel, PanelHeader } from "@/components/patterns/Panel";
 import { Table, TableBody, TableCell, TableHeader } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -103,7 +103,7 @@ export default function BookkeeperExpenses() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-[18px]">
         <BookkeeperHeader
           title="Expenses"
           description="Supplier payments settled in the selected period."
@@ -118,56 +118,57 @@ export default function BookkeeperExpenses() {
             </>
           }
         />
-        <Card>
-          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Supplier payments</CardTitle>
-            {!isLoading && !ytdLoading && (
-              <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:items-end">
-                <div>
-                  Period total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+        <Panel>
+          <PanelHeader
+            title="Supplier payments"
+            actions={
+              (isLoading || ytdLoading) ? (
+                <div className="flex flex-col items-end gap-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-28" />
                 </div>
-                <div>
-                  YTD {year}: <span className="font-semibold text-foreground tabular-nums">{fmt(Number(ytdData ?? 0))}</span>
+              ) : (
+                <div className="text-right text-[12.5px] text-muted-foreground">
+                  <div>
+                    Period total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+                  </div>
+                  <div>
+                    YTD {year}: <span className="font-semibold text-foreground tabular-nums">{fmt(Number(ytdData ?? 0))}</span>
+                  </div>
                 </div>
-              </div>
-            )}
-            {(isLoading || ytdLoading) && (
-              <div className="flex flex-col gap-1 sm:items-end">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-5 w-32" />
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <tr className="border-b">
-                  <SortableHead label="Paid" sortKey="supplier_paid_date" sort={sort} onSort={onSort} />
-                  <SortableHead label="Trip / Booking" sortKey="trip" sort={sort} onSort={onSort} />
-                  <SortableHead label="Supplier" sortKey="supplier" sort={sort} onSort={onSort} />
-                  <SortableHead label="Method" sortKey="method" sort={sort} onSort={onSort} />
-                  <SortableHead label="Amount" sortKey="amount" sort={sort} onSort={onSort} align="right" />
-                </tr>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableBodySkeletonRows rows={8} cols={5} />
-                ) : (
-                  pg.pageRows.map((r: any) => (
-                    <tr key={r.id} className="border-b transition-colors hover:bg-muted/50">
-                      <TableCell>{r.supplier_paid_date ? format(parseLocalDate(r.supplier_paid_date), "MMM d, yyyy") : "—"}</TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        <div>{r.trips?.trip_name || "—"}</div>
-                        <div className="text-xs text-muted-foreground">{r.booking_reference || ""}</div>
-                      </TableCell>
-                      <TableCell>{r.suppliers?.name || "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{r.supplier_paid_method || "—"}</TableCell>
-                      <MoneyCell value={Number(r.supplier_paid_amount || 0)} bold />
-                    </tr>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+              )
+            }
+          />
+          <Table>
+            <TableHeader>
+              <tr>
+                <SortableHead label="Paid" sortKey="supplier_paid_date" sort={sort} onSort={onSort} />
+                <SortableHead label="Trip / Booking" sortKey="trip" sort={sort} onSort={onSort} />
+                <SortableHead label="Supplier" sortKey="supplier" sort={sort} onSort={onSort} />
+                <SortableHead label="Method" sortKey="method" sort={sort} onSort={onSort} />
+                <SortableHead label="Amount" sortKey="amount" sort={sort} onSort={onSort} align="right" />
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableBodySkeletonRows rows={8} cols={5} />
+              ) : (
+                pg.pageRows.map((r: any) => (
+                  <tr key={r.id} className="border-t border-border transition-colors hover:bg-card-2/60">
+                    <TableCell>{r.supplier_paid_date ? format(parseLocalDate(r.supplier_paid_date), "MMM d, yyyy") : "—"}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      <div>{r.trips?.trip_name || "—"}</div>
+                      <div className="text-[12px] text-muted-foreground">{r.booking_reference || ""}</div>
+                    </TableCell>
+                    <TableCell>{r.suppliers?.name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{r.supplier_paid_method || "—"}</TableCell>
+                    <MoneyCell value={Number(r.supplier_paid_amount || 0)} bold />
+                  </tr>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <div className="px-[14px] pb-[14px]">
             {!isLoading && sorted.length === 0 && (
               <EmptyState icon={Banknote} title="No supplier payments for this period" description="Try a different month or year." />
             )}
@@ -181,8 +182,8 @@ export default function BookkeeperExpenses() {
                 onPageChange={pg.setPage}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Panel>
       </div>
     </DashboardLayout>
   );

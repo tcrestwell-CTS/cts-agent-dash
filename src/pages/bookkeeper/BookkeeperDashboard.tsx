@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { KPITile, KPIGrid } from "@/components/patterns/KPITile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,90 +119,84 @@ export default function BookkeeperDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-[18px]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
             <BookkeeperBreadcrumb page="Dashboard" />
-            <h1 className="text-3xl font-semibold">Bookkeeper Dashboard</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Bookkeeper Dashboard</h1>
+            <p className="text-[13.5px] text-muted-foreground">
               Read-only financial overview for the current month.
             </p>
           </div>
           <PeriodLockButton year={currentYear} month={currentMonth} />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <KPIGrid className="sm:grid-cols-3 lg:grid-cols-3">
           {cards.map((c) => (
-            <Card key={c.label}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {c.label}
-                </CardTitle>
-                <c.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-32" />
-                ) : (
-                  <div className="text-2xl font-bold">{fmt(c.value)}</div>
-                )}
-              </CardContent>
-            </Card>
+            <KPITile
+              key={c.label}
+              label={c.label}
+              value={isLoading ? <Skeleton className="h-7 w-24" /> : fmt(c.value)}
+            />
           ))}
-        </div>
+        </KPIGrid>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-muted-foreground" />
                 Stripe Processing Fees
-              </CardTitle>
+              </span>
+            }
+            actions={
               <Button asChild variant="ghost" size="sm">
                 <Link to="/bookkeeper/bank-recon">
                   View payouts <ArrowRight className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            }
+          />
+          <PanelBody>
+            <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-3">
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">MTD Fees</div>
-                {feesLoading ? <Skeleton className="h-7 w-24 mt-1" /> : (
-                  <div className="text-2xl font-bold">{fmt(fees?.feesMtd ?? 0)}</div>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">MTD Fees</div>
+                {feesLoading ? <Skeleton className="mt-1.5 h-7 w-24" /> : (
+                  <div className="mt-1 text-[20px] font-semibold tabular-nums text-foreground">{fmt(fees?.feesMtd ?? 0)}</div>
                 )}
               </div>
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">YTD Fees</div>
-                {feesLoading ? <Skeleton className="h-7 w-24 mt-1" /> : (
-                  <div className="text-2xl font-bold">{fmt(fees?.feesYtd ?? 0)}</div>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">YTD Fees</div>
+                {feesLoading ? <Skeleton className="mt-1.5 h-7 w-24" /> : (
+                  <div className="mt-1 text-[20px] font-semibold tabular-nums text-foreground">{fmt(fees?.feesYtd ?? 0)}</div>
                 )}
               </div>
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Effective Rate (YTD)</div>
-                {feesLoading ? <Skeleton className="h-7 w-24 mt-1" /> : (
-                  <div className="text-2xl font-bold">{(fees?.effRate ?? 0).toFixed(2)}%</div>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">Effective Rate (YTD)</div>
+                {feesLoading ? <Skeleton className="mt-1.5 h-7 w-24" /> : (
+                  <div className="mt-1 text-[20px] font-semibold tabular-nums text-foreground">{(fees?.effRate ?? 0).toFixed(2)}%</div>
                 )}
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="mt-0.5 text-[12px] text-muted-foreground">
                   on {fmt(fees?.grossYtd ?? 0)} gross
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
 
         <StripeFeesTrendChart />
 
         {(alerts?.failedSyncs || alerts?.staleUnattributed) ? (
-          <Card className="border-amber-500/40">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                Alerts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+          <Panel className="border-warning/40">
+            <PanelHeader
+              title={
+                <span className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  Alerts
+                </span>
+              }
+            />
+            <PanelBody className="space-y-2 text-[13.5px]">
               {alerts.failedSyncs > 0 && (
                 <div className="flex items-center justify-between">
                   <span>{alerts.failedSyncs} failed QBO sync{alerts.failedSyncs === 1 ? "" : "s"} in the last 7 days.</span>
@@ -218,54 +213,54 @@ export default function BookkeeperDashboard() {
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </PanelBody>
+          </Panel>
         ) : null}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2">
-                <FileWarning className="h-5 w-5 text-amber-500" />
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <FileWarning className="h-4 w-4 text-warning" />
                 Unattributed Deposits
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Stripe payments not yet matched to a trip or booking.
-              </p>
-            </div>
-            {!isLoading && (data?.unattributed ?? 0) > 0 && (
-              <Badge variant="destructive">{data?.unattributed}</Badge>
-            )}
-          </CardHeader>
-          <CardContent>
+              </span>
+            }
+            subtitle="Stripe payments not yet matched to a trip or booking."
+            actions={
+              !isLoading && (data?.unattributed ?? 0) > 0 ? (
+                <Badge variant="destructive">{data?.unattributed}</Badge>
+              ) : undefined
+            }
+          />
+          <PanelBody>
             <Button asChild variant="outline">
               <Link to="/bookkeeper/unattributed">
                 Review unattributed
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Monthly Financial Packet
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Generate and download the monthly financial packet (P&L, AR/AP aging, bank recon).
-            </p>
-          </CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Monthly Financial Packet
+              </span>
+            }
+            subtitle="Generate and download the monthly financial packet (P&L, AR/AP aging, bank recon)."
+          />
+          <PanelBody>
             <Button asChild>
               <Link to="/bookkeeper/packet">
                 Generate financial packet
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

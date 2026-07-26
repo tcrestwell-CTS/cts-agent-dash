@@ -17,9 +17,13 @@ import { usePayoutDraft } from "@/hooks/useCommissionSplits";
 interface CommissionReportTableProps {
   data: CommissionReportItem[];
   showAgentColumn: boolean;
+  /** Admin only — can edit split recipients/percentages/amounts. */
+  canEditSplits: boolean;
+  /** Admin + bookkeeper — can mark commissions received and stage/confirm payouts. */
+  canSettle: boolean;
 }
 
-export function CommissionReportTable({ data, showAgentColumn }: CommissionReportTableProps) {
+export function CommissionReportTable({ data, showAgentColumn, canEditSplits, canSettle }: CommissionReportTableProps) {
   const queryClient = useQueryClient();
   const [savingId, setSavingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -178,50 +182,60 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                   </span>
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <div className="inline-flex items-center gap-2 justify-end">
-                    <Checkbox
-                      checked={isPaid}
-                      disabled={savingId === item.id}
-                      onCheckedChange={(checked) => {
-                        if (checked) markReceived(item, item.paid_date || todayISO());
-                        else unmarkReceived(item);
-                      }}
-                      aria-label="Mark commission received"
-                    />
-                    {isPaid ? (
-                      <Input
-                        type="date"
-                        value={item.paid_date ? item.paid_date.slice(0, 10) : ""}
+                  {canSettle ? (
+                    <div className="inline-flex items-center gap-2 justify-end">
+                      <Checkbox
+                        checked={isPaid}
                         disabled={savingId === item.id}
-                        onChange={(e) => updateReceivedDate(item, e.target.value)}
-                        className="h-7 w-[140px] text-xs"
+                        onCheckedChange={(checked) => {
+                          if (checked) markReceived(item, item.paid_date || todayISO());
+                          else unmarkReceived(item);
+                        }}
+                        aria-label="Mark commission received"
                       />
-                    ) : (
-                      <span className="text-xs text-muted-foreground w-[140px] inline-block">—</span>
-                    )}
-                  </div>
+                      {isPaid ? (
+                        <Input
+                          type="date"
+                          value={item.paid_date ? item.paid_date.slice(0, 10) : ""}
+                          disabled={savingId === item.id}
+                          onChange={(e) => updateReceivedDate(item, e.target.value)}
+                          className="h-7 w-[140px] text-xs"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground w-[140px] inline-block">—</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {isPaid && item.paid_date ? format(parseISO(item.paid_date), "MMM d, yyyy") : "—"}
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <div className="inline-flex items-center gap-2 justify-end">
-                    {drafts[item.id] && (
-                      <Badge variant="outline" className="text-[10px] h-5">
-                        Staged
-                      </Badge>
-                    )}
-                    <Button
-                      variant={expanded === item.id ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={isExpected}
-                      onClick={() => setExpanded(expanded === item.id ? null : item.id)}
-                    >
-                      <SplitIcon className="h-3.5 w-3.5 mr-1" />
-                      Splits
-                    </Button>
-                  </div>
+                  {showAgentColumn ? (
+                    <div className="inline-flex items-center gap-2 justify-end">
+                      {drafts[item.id] && (
+                        <Badge variant="outline" className="text-[10px] h-5">
+                          Staged
+                        </Badge>
+                      )}
+                      <Button
+                        variant={expanded === item.id ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={isExpected}
+                        onClick={() => setExpanded(expanded === item.id ? null : item.id)}
+                      >
+                        <SplitIcon className="h-3.5 w-3.5 mr-1" />
+                        Splits
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
               </tr>
-              {expanded === item.id && !isExpected && (
+              {expanded === item.id && !isExpected && showAgentColumn && (
                 <tr className="bg-muted/10">
                   <td colSpan={colSpanFull} className="p-0">
                     <CommissionSplitsEditor
@@ -235,6 +249,8 @@ export function CommissionReportTable({ data, showAgentColumn }: CommissionRepor
                       } : null}
                       paidDate={item.paid_date}
                       agents={agents}
+                      editable={canEditSplits}
+                      canSettle={canSettle}
                       onClose={() => setExpanded(null)}
                     />
                   </td>

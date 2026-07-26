@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Phone, CreditCard, GraduationCap, Plane, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 
 interface NextActionsProps {
   followUps: number;
@@ -63,39 +62,28 @@ export function NextActions({ followUps, paymentsDue, departuresSoon, loading }:
   }
 
   return (
-    <Card className="border-primary/20">
-      <CardHeader className="pb-2 pt-4 px-5">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Next Actions
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-5 pb-4">
-        <div className="space-y-2">
-          {actions.map((action, i) => (
-            <button
-              key={i}
-              onClick={() => navigate(action.href)}
-              className={cn(
-                "flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-left transition-colors group",
-                action.urgent
-                  ? "bg-destructive/5 hover:bg-destructive/10 border border-destructive/15"
-                  : "bg-muted/50 hover:bg-muted border border-border"
-              )}
-            >
-              <action.icon
-                className={cn(
-                  "h-4 w-4 shrink-0",
-                  action.urgent ? "text-destructive" : "text-primary"
-                )}
-              />
-              <span className="text-sm font-medium text-foreground flex-1">
-                {action.label}
-              </span>
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-            </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <Panel>
+      <PanelHeader title="Next Actions" />
+      <PanelBody className="space-y-2">
+        {actions.map((action, i) => (
+          <button
+            key={i}
+            onClick={() => navigate(action.href)}
+            className={cn(
+              "group flex w-full items-center gap-3 rounded-[9px] border px-3 py-2.5 text-left transition-colors",
+              action.urgent
+                ? "border-destructive/15 bg-destructive/5 hover:bg-destructive/10"
+                : "border-border bg-muted/50 hover:bg-muted"
+            )}
+          >
+            <action.icon
+              className={cn("h-4 w-4 shrink-0", action.urgent ? "text-destructive" : "text-accent")}
+            />
+            <span className="flex-1 text-[13.5px] font-medium text-foreground">{action.label}</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
+          </button>
+        ))}
+      </PanelBody>
+    </Panel>
   );
 }
