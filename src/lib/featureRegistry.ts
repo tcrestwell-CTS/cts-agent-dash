@@ -29,6 +29,7 @@ export type FeatureKey =
   | "training_library"
   | "training_badges"
   | "analytics"
+  | "campaigns"
   | "notifications"
   | "settings";
 
