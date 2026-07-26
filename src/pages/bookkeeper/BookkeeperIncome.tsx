@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -23,6 +21,7 @@ import {
   TablePagination,
   MoneyCell,
 } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { parseLocalDate } from "@/lib/utils";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -88,7 +87,7 @@ export default function BookkeeperIncome() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-[18px]">
         <BookkeeperHeader
           title="Income"
           description="Paid client payments for the selected period."
@@ -97,22 +96,24 @@ export default function BookkeeperIncome() {
           actions={
             <>
               <PeriodPicker year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
-              <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || sorted.length === 0}>
-                <Download className="h-4 w-4 mr-2" /> CSV
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || sorted.length === 0} className="text-[13px]">
+                <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
               </Button>
             </>
           }
         />
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Paid payments</CardTitle>
-            {!isLoading && (
-              <div className="text-sm text-muted-foreground">
-                Total: <span className="font-semibold text-foreground tabular-nums">{fmt(total)}</span>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader
+            title="Paid payments"
+            actions={
+              !isLoading && (
+                <div className="text-[12.5px] text-muted-foreground">
+                  Total: <span className="text-[13px] font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+                </div>
+              )
+            }
+          />
+          <PanelBody>
             <Table>
               <TableHeader>
                 <tr className="border-b">
@@ -129,10 +130,14 @@ export default function BookkeeperIncome() {
                 ) : (
                   pg.pageRows.map((r: any) => (
                     <tr key={r.id} className="border-b transition-colors hover:bg-muted/50">
-                      <TableCell>{r.payment_date ? format(parseLocalDate(r.payment_date), "MMM d, yyyy") : "—"}</TableCell>
-                      <TableCell className="max-w-xs truncate">{r.trips?.trip_name || "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{r.payment_type || "payment"}</Badge></TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{r.payment_method || (r.stripe_payment_intent_id ? "stripe" : "—")}</TableCell>
+                      <TableCell className="text-[14px]">{r.payment_date ? format(parseLocalDate(r.payment_date), "MMM d, yyyy") : "—"}</TableCell>
+                      <TableCell className="max-w-xs truncate text-[14px]">{r.trips?.trip_name || "—"}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 rounded-[20px] border border-border px-[9px] py-[2px] text-[11.5px] font-medium capitalize text-muted-foreground">
+                          {r.payment_type || "payment"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-[14px] text-muted-foreground">{r.payment_method || (r.stripe_payment_intent_id ? "stripe" : "—")}</TableCell>
                       <MoneyCell value={Number(r.amount || 0)} bold />
                     </tr>
                   ))
@@ -152,8 +157,8 @@ export default function BookkeeperIncome() {
                 onPageChange={pg.setPage}
               />
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

@@ -60,13 +60,13 @@ export function BookkeeperHeader({ title, description, year, month, actions }: B
       <BookkeeperBreadcrumb page={title} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-semibold">{title}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">{title}</h1>
             <PeriodLockButton year={year} month={month} />
           </div>
-          {description && <p className="text-muted-foreground text-sm">{description}</p>}
+          {description && <p className="text-[13.5px] text-muted-foreground">{description}</p>}
         </div>
-        {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
     </div>
   );
@@ -131,13 +131,13 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon = Inbox, title, description, className }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center text-center py-12 px-4", className)}>
-      <div className="rounded-full bg-muted p-3 mb-3">
+    <div className={cn("flex flex-col items-center justify-center px-4 py-12 text-center", className)}>
+      <div className="mb-3 rounded-full bg-card-2 p-3">
         <Icon className="h-6 w-6 text-muted-foreground" />
       </div>
-      <div className="font-medium">{title}</div>
+      <div className="text-[15px] font-semibold text-foreground">{title}</div>
       {description && (
-        <div className="text-sm text-muted-foreground mt-1 max-w-md">{description}</div>
+        <div className="mt-1 max-w-md text-[13px] text-muted-foreground">{description}</div>
       )}
     </div>
   );
@@ -185,12 +185,18 @@ export function SortableHead<K extends string>({ label, sortKey, sort, onSort, a
   const active = sort.key === sortKey;
   const Icon = !active ? ChevronsUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
   return (
-    <TableHead className={cn(align === "right" && "text-right", className)}>
+    <TableHead
+      className={cn(
+        "bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground",
+        align === "right" && "text-right",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => onSort(sortKey)}
         className={cn(
-          "inline-flex items-center gap-1 hover:text-foreground transition-colors",
+          "inline-flex items-center gap-1 transition-colors hover:text-foreground",
           active && "text-foreground",
           align === "right" && "ml-auto",
         )}
@@ -277,8 +283,8 @@ export function TablePagination({ page, totalPages, total, rangeStart, rangeEnd,
     }
   }
   return (
-    <div className="flex items-center justify-between flex-wrap gap-3 pt-4">
-      <div className="text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+      <div className="text-[12px] text-muted-foreground">
         Showing <span className="tabular-nums">{rangeStart}</span>–<span className="tabular-nums">{rangeEnd}</span> of{" "}
         <span className="tabular-nums">{total}</span>
       </div>
@@ -325,7 +331,7 @@ export function TablePagination({ page, totalPages, total, rangeStart, rangeEnd,
 
 export function MoneyCell({ value, className, bold }: { value: number; className?: string; bold?: boolean }) {
   return (
-    <TableCell className={cn("text-right tabular-nums", bold && "font-semibold", className)}>
+    <TableCell className={cn("text-right text-[14px] tabular-nums", bold && "font-semibold", className)}>
       {Number(value || 0).toLocaleString("en-US", { style: "currency", currency: "USD" })}
     </TableCell>
   );

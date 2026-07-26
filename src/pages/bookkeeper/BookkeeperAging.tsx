@@ -1,7 +1,5 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -12,7 +10,10 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect, useMemo } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { format, differenceInDays } from "date-fns";
-import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { BookkeeperBreadcrumb, EmptyState, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { KPITile, KPIGrid } from "@/components/patterns/KPITile";
+import { SemanticStatusPill, type SemanticStatus } from "@/components/patterns/StatusPill";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -23,7 +24,13 @@ const BUCKETS: Bucket[] = ["0-30", "31-60", "61-90", "90+"];
 const bucketFor = (days: number): Bucket =>
   days <= 30 ? "0-30" : days <= 60 ? "31-60" : days <= 90 ? "61-90" : "90+";
 
+const bucketStatus = (b: Bucket): SemanticStatus =>
+  b === "0-30" ? "muted" : b === "31-60" ? "warning" : "destructive";
+
 const parseDate = (s?: string | null) => (s ? new Date(s + "T00:00:00") : null);
+
+// Shared visual treatment for the (non-sortable) column headers on these tables.
+const TH_CLASS = "bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground";
 
 function BucketSummary({ rows }: { rows: { bucket: Bucket; amount: number }[] }) {
   const totals = useMemo(() => {
@@ -33,22 +40,12 @@ function BucketSummary({ rows }: { rows: { bucket: Bucket; amount: number }[] })
   }, [rows]);
   const grand = BUCKETS.reduce((s, b) => s + totals[b], 0);
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <KPIGrid className="grid-cols-2 lg:grid-cols-5">
       {BUCKETS.map((b) => (
-        <Card key={b}>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{b} days</div>
-            <div className="text-lg font-semibold">{fmt(totals[b])}</div>
-          </CardContent>
-        </Card>
+        <KPITile key={b} label={`${b} days`} value={fmt(totals[b])} />
       ))}
-      <Card className="bg-muted/40">
-        <CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">Total outstanding</div>
-          <div className="text-lg font-semibold">{fmt(grand)}</div>
-        </CardContent>
-      </Card>
-    </div>
+      <KPITile label="Total outstanding" value={fmt(grand)} className="bg-card-2" />
+    </KPIGrid>
   );
 }
 
@@ -122,27 +119,29 @@ function ReceivablesTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-[18px]">
       <BucketSummary rows={aged.map((a) => ({ bucket: a.bucket, amount: a.amount }))} />
 
       {overdueScheduled.length > 0 && (
-        <Card className="border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/10">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Overdue scheduled client payments
-            </CardTitle>
-            <Badge variant="outline">{overdueScheduled.length}</Badge>
-          </CardHeader>
-          <CardContent>
+        <Panel className="border-warning/40 bg-warning/5">
+          <PanelHeader
+            title={
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                Overdue scheduled client payments
+              </span>
+            }
+            actions={<Badge variant="outline">{overdueScheduled.length}</Badge>}
+          />
+          <PanelBody>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Due</TableHead>
-                  <TableHead>Trip</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className={TH_CLASS}>Due</TableHead>
+                  <TableHead className={TH_CLASS}>Trip</TableHead>
+                  <TableHead className={TH_CLASS}>Type</TableHead>
+                  <TableHead className={TH_CLASS}>Status</TableHead>
+                  <TableHead className={`${TH_CLASS} text-right`}>Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -153,68 +152,68 @@ function ReceivablesTab() {
                     <TableRow key={p.id}>
                       <TableCell>
                         {d ? format(d, "MMM d, yyyy") : "—"}
-                        <div className="text-xs text-amber-700">{overdue}d overdue</div>
+                        <div className="text-[12px] font-medium text-warning">{overdue}d overdue</div>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">{p.trips?.trip_name || "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{p.payment_type || "payment"}</Badge></TableCell>
-                      <TableCell><Badge variant="secondary">{p.status}</Badge></TableCell>
-                      <TableCell className="text-right font-medium">{fmt(Number(p.amount || 0))}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-[11.5px] font-normal">{p.payment_type || "payment"}</Badge></TableCell>
+                      <TableCell><SemanticStatusPill status="warning" label={p.status} /></TableCell>
+                      <MoneyCell value={Number(p.amount || 0)} bold />
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Open invoices</CardTitle>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || aged.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> CSV
-          </Button>
-        </CardHeader>
-        <CardContent>
+      <Panel>
+        <PanelHeader
+          title="Open invoices"
+          actions={
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || aged.length === 0}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> CSV
+            </Button>
+          }
+        />
+        <PanelBody>
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <TableSkeleton rows={8} cols={6} />
           ) : aged.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-8 text-center">No open invoices.</div>
+            <EmptyState title="No open invoices." />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Client / Trip</TableHead>
-                  <TableHead>Invoice date</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead>Bucket</TableHead>
-                  <TableHead className="text-right">Remaining</TableHead>
+                  <TableHead className={TH_CLASS}>Invoice</TableHead>
+                  <TableHead className={TH_CLASS}>Client / Trip</TableHead>
+                  <TableHead className={TH_CLASS}>Invoice date</TableHead>
+                  <TableHead className={TH_CLASS}>Age</TableHead>
+                  <TableHead className={TH_CLASS}>Bucket</TableHead>
+                  <TableHead className={`${TH_CLASS} text-right`}>Remaining</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {aged.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs">{r.invoice_number || "—"}</TableCell>
+                    <TableCell className="font-mono text-[12px]">{r.invoice_number || "—"}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       <div>{r.client_name || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{r.trip_name || ""}</div>
+                      <div className="data-table-secondary">{r.trip_name || ""}</div>
                     </TableCell>
                     <TableCell>{r.invoice_date ? format(parseDate(r.invoice_date)!, "MMM d, yyyy") : "—"}</TableCell>
-                    <TableCell>{r.days}d</TableCell>
+                    <TableCell className="tabular-nums">{r.days}d</TableCell>
                     <TableCell>
-                      <Badge variant={r.bucket === "90+" ? "destructive" : r.bucket === "61-90" ? "secondary" : "outline"}>
-                        {r.bucket}
-                      </Badge>
+                      <SemanticStatusPill status={bucketStatus(r.bucket)} label={r.bucket} />
                     </TableCell>
-                    <TableCell className="text-right font-medium">{fmt(r.amount)}</TableCell>
+                    <MoneyCell value={r.amount} bold />
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </PanelBody>
+      </Panel>
     </div>
   );
 }
@@ -273,31 +272,33 @@ function PayablesTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-[18px]">
       <BucketSummary rows={aged.map((a) => ({ bucket: a.bucket, amount: a.amount }))} />
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Unpaid supplier bookings</CardTitle>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || aged.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> CSV
-          </Button>
-        </CardHeader>
-        <CardContent>
+      <Panel>
+        <PanelHeader
+          title="Unpaid supplier bookings"
+          actions={
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || aged.length === 0}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> CSV
+            </Button>
+          }
+        />
+        <PanelBody>
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <TableSkeleton rows={8} cols={7} />
           ) : aged.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-8 text-center">All supplier payments are settled.</div>
+            <EmptyState title="All supplier payments are settled." />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Trip / Booking</TableHead>
-                  <TableHead>Departure</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead>Bucket</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Due</TableHead>
+                  <TableHead className={TH_CLASS}>Supplier</TableHead>
+                  <TableHead className={TH_CLASS}>Trip / Booking</TableHead>
+                  <TableHead className={TH_CLASS}>Departure</TableHead>
+                  <TableHead className={TH_CLASS}>Age</TableHead>
+                  <TableHead className={TH_CLASS}>Bucket</TableHead>
+                  <TableHead className={TH_CLASS}>Status</TableHead>
+                  <TableHead className={`${TH_CLASS} text-right`}>Due</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -306,30 +307,28 @@ function PayablesTab() {
                     <TableCell>{r.suppliers?.name || "—"}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       <div>{r.trips?.trip_name || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{r.booking_reference || ""}</div>
+                      <div className="data-table-secondary">{r.booking_reference || ""}</div>
                     </TableCell>
                     <TableCell>
                       {r.trips?.departure_date
                         ? format(parseDate(r.trips.departure_date)!, "MMM d, yyyy")
                         : "—"}
                     </TableCell>
-                    <TableCell>{r.days}d</TableCell>
+                    <TableCell className="tabular-nums">{r.days}d</TableCell>
                     <TableCell>
-                      <Badge variant={r.bucket === "90+" ? "destructive" : r.bucket === "61-90" ? "secondary" : "outline"}>
-                        {r.bucket}
-                      </Badge>
+                      <SemanticStatusPill status={bucketStatus(r.bucket)} label={r.bucket} />
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{r.supplier_paid_status || "unpaid"}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-medium">{fmt(r.amount)}</TableCell>
+                    <MoneyCell value={r.amount} bold />
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </PanelBody>
+      </Panel>
     </div>
   );
 }
@@ -342,13 +341,15 @@ export default function BookkeeperAging() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="space-y-1">
+      <div className="space-y-[18px] p-6">
+        <div className="space-y-2">
           <BookkeeperBreadcrumb page="AR / AP Aging" />
-          <h1 className="text-3xl font-semibold">AR / AP Aging</h1>
-          <p className="text-muted-foreground text-sm">
-            Outstanding receivables and payables bucketed by days overdue.
-          </p>
+          <div className="space-y-1">
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">AR / AP Aging</h1>
+            <p className="text-[13.5px] text-muted-foreground">
+              Outstanding receivables and payables bucketed by days overdue.
+            </p>
+          </div>
         </div>
         <Tabs defaultValue="ar">
           <TabsList>

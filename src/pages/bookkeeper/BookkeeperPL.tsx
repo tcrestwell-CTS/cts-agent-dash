@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -16,10 +15,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
-import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { BookkeeperBreadcrumb, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { KPITile } from "@/components/patterns/KPITile";
 
 const fmt = (n: number) =>
   Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -100,74 +100,89 @@ export default function BookkeeperPL() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="P&L" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">Profit & Loss</h1>
-              <PeriodLockButton year={year} month={new Date().getMonth() + 1} />
+      <div className="space-y-[18px]">
+        <div className="space-y-2">
+          <BookkeeperBreadcrumb page="P&L" />
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Profit & Loss</h1>
+                <PeriodLockButton year={year} month={new Date().getMonth() + 1} />
+              </div>
+              <p className="text-[13.5px] text-muted-foreground">
+                Cash-basis income minus supplier expenses by month.
+              </p>
             </div>
-            <p className="text-muted-foreground text-sm">
-              Cash-basis income minus supplier expenses by month.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {years.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
-              <Download className="h-4 w-4 mr-2" /> CSV
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                <SelectTrigger className="w-32 text-[13.5px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
+                <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Income</CardTitle></CardHeader>
-            <CardContent>{isLoading ? <Skeleton className="h-7 w-28" /> : <div className="text-2xl font-bold">{fmt(totals.income)}</div>}</CardContent>
-          </Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Expenses</CardTitle></CardHeader>
-            <CardContent>{isLoading ? <Skeleton className="h-7 w-28" /> : <div className="text-2xl font-bold">{fmt(totals.expense)}</div>}</CardContent>
-          </Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Net Income</CardTitle></CardHeader>
-            <CardContent>{isLoading ? <Skeleton className="h-7 w-28" /> : <div className={`text-2xl font-bold ${totals.net >= 0 ? "" : "text-destructive"}`}>{fmt(totals.net)}</div>}</CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-3">
+          <KPITile
+            label="Total Income"
+            value={isLoading ? <Skeleton className="h-[26px] w-24" /> : fmt(totals.income)}
+          />
+          <KPITile
+            label="Total Expenses"
+            value={isLoading ? <Skeleton className="h-[26px] w-24" /> : fmt(totals.expense)}
+          />
+          <KPITile
+            label="Net Income"
+            value={
+              isLoading ? (
+                <Skeleton className="h-[26px] w-24" />
+              ) : (
+                <span className={totals.net < 0 ? "text-destructive" : undefined}>{fmt(totals.net)}</span>
+              )
+            }
+          />
         </div>
 
-        <Card>
-          <CardHeader><CardTitle>Monthly breakdown</CardTitle></CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader title="Monthly breakdown" />
+          <PanelBody>
             {isLoading ? (
-              <Skeleton className="h-48 w-full" />
+              <TableSkeleton rows={12} cols={4} />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead className="text-right">Income</TableHead>
-                    <TableHead className="text-right">Expenses</TableHead>
-                    <TableHead className="text-right">Net</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Month</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Income</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Expenses</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Net</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((row, i) => (
-                   <TableRow key={i}>
-                      <TableCell>{MONTHS[i]} {year}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(row.income)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(row.expense)}</TableCell>
-                      <TableCell className={`text-right tabular-nums font-medium ${row.income - row.expense < 0 ? "text-destructive" : ""}`}>{fmt(row.income - row.expense)}</TableCell>
+                    <TableRow key={i}>
+                      <TableCell className="text-[14px]">{MONTHS[i]} {year}</TableCell>
+                      <MoneyCell value={row.income} />
+                      <MoneyCell value={row.expense} />
+                      <MoneyCell
+                        value={row.income - row.expense}
+                        bold
+                        className={row.income - row.expense < 0 ? "text-destructive" : undefined}
+                      />
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

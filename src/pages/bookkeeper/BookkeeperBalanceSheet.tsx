@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,43 +32,47 @@ export default function BookkeeperBalanceSheet() {
   const equity = assets - liabilities;
 
   const Row = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => (
-    <div className={`flex justify-between py-2 ${bold ? "border-t font-semibold" : "text-sm"}`}>
+    <div className={`flex justify-between py-2 ${bold ? "border-t border-border pt-3 text-[13.5px] font-semibold text-foreground" : "text-[13.5px] text-muted-foreground"}`}>
       <span>{label}</span><span className="tabular-nums">{fmt(value)}</span>
     </div>
   );
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-[18px]">
         <div className="space-y-1">
           <BookkeeperBreadcrumb page="Balance Sheet" />
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-semibold">Balance Sheet</h1>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Balance Sheet</h1>
             <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
           </div>
-          <p className="text-muted-foreground text-sm">Snapshot from local data. Bank balances not included.</p>
+          <p className="text-[13.5px] text-muted-foreground">Snapshot from local data. Bank balances not included.</p>
         </div>
         {isLoading ? <Skeleton className="h-64 w-full" /> : assets === 0 && liabilities === 0 ? (
-          <EmptyState icon={FileText} title="No balance sheet data" description="There are no open invoices, supplier liabilities, or paid payments yet." />
+          <Panel>
+            <PanelBody>
+              <EmptyState icon={FileText} title="No balance sheet data" description="There are no open invoices, supplier liabilities, or paid payments yet." />
+            </PanelBody>
+          </Panel>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle>Assets</CardTitle></CardHeader>
-              <CardContent>
+          <div className="grid gap-[14px] md:grid-cols-2">
+            <Panel>
+              <PanelHeader title="Assets" />
+              <PanelBody className="gap-0">
                 <Row label="Accounts Receivable (open invoices)" value={data?.ar ?? 0} />
                 <Row label="Client Funds Held" value={data?.clientFunds ?? 0} />
                 <Row label="Total Assets" value={assets} bold />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>Liabilities & Equity</CardTitle></CardHeader>
-              <CardContent>
+              </PanelBody>
+            </Panel>
+            <Panel>
+              <PanelHeader title="Liabilities & Equity" />
+              <PanelBody className="gap-0">
                 <Row label="Accounts Payable (suppliers)" value={data?.ap ?? 0} />
                 <Row label="Pending Commissions" value={data?.pendingComm ?? 0} />
                 <Row label="Total Liabilities" value={liabilities} bold />
                 <Row label="Equity" value={equity} bold />
-              </CardContent>
-            </Card>
+              </PanelBody>
+            </Panel>
           </div>
         )}
       </div>

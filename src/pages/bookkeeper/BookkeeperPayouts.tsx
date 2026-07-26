@@ -1,7 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,49 +55,53 @@ export default function BookkeeperPayouts() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-[18px]">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
             <BookkeeperBreadcrumb page="Agent Payouts" />
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">Agent Payouts</h1>
+              <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Agent Payouts</h1>
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
             </div>
-            <p className="text-muted-foreground text-sm">Commission paid and pending, by advisor.</p>
+            <p className="text-[13.5px] text-muted-foreground">Commission paid and pending, by advisor.</p>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
             <Download className="h-4 w-4 mr-2" /> CSV
           </Button>
         </div>
-        <Card>
-          <CardHeader><CardTitle>By advisor</CardTitle></CardHeader>
-          <CardContent>
+        <Panel>
+          <PanelHeader title="By advisor" />
+          <PanelBody>
             {isLoading ? <Skeleton className="h-48 w-full" /> : (data?.length ?? 0) === 0 ? (
               <EmptyState icon={Wallet} title="No agent commissions yet" />
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Advisor</TableHead>
-                    <TableHead className="text-right">Commissions</TableHead>
-                    <TableHead className="text-right">Pending</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Advisor</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Commissions</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Pending</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Paid</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((r) => (
                     <TableRow key={r.user_id}>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell className="text-right"><Badge variant="outline">{r.count}</Badge></TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(r.pending)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">{fmt(r.paid)}</TableCell>
+                      <TableCell className="text-[13.5px]">{r.name}</TableCell>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center rounded-full border border-border px-[9px] py-[2px] text-[11.5px] font-medium text-muted-foreground tabular-nums">
+                          {r.count}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right text-[14px] tabular-nums">{fmt(r.pending)}</TableCell>
+                      <TableCell className="text-right text-[14px] font-semibold tabular-nums">{fmt(r.paid)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

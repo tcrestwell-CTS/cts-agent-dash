@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
-import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { BookkeeperHeader, EmptyState, TableSkeleton } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { toast } from "sonner";
 
 const fmt = (n: number) =>
@@ -75,6 +73,9 @@ async function fetchTrialBalance(year: number, month: number, refresh = false): 
   }
   return json;
 }
+
+// Shared visual treatment for the (non-sortable) column headers on this report.
+const TH_CLASS = "bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground";
 
 export default function BookkeeperTrialBalance() {
   const logAction = useLogBookkeeperAction();
@@ -150,98 +151,94 @@ export default function BookkeeperTrialBalance() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="Trial Balance" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">
-                Trial Balance — {MONTHS[month - 1]} {year}
-              </h1>
-              <PeriodLockButton year={year} month={month} />
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Pulled from QuickBooks Online{data?.fetched_at ? ` · last fetched ${new Date(data.fetched_at).toLocaleString()}` : ""}
-              {data?.cached ? " · cached" : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
-              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((m, i) => (
-                  <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {isAdmin && (
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || !qboConnection}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                Refresh from QBO
-              </Button>
-            )}
-          </div>
-        </div>
+      <div className="space-y-[18px] p-6">
+        <BookkeeperHeader
+          title={`Trial Balance — ${MONTHS[month - 1]} ${year}`}
+          description={`Pulled from QuickBooks Online${data?.fetched_at ? ` · last fetched ${new Date(data.fetched_at).toLocaleString()}` : ""}${data?.cached ? " · cached" : ""}`}
+          year={year}
+          month={month}
+          actions={
+            <>
+              <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
+                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || !qboConnection}>
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
+                  Refresh from QBO
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {/* Connection / error / empty states */}
         {!connLoading && !qboConnection && (
-          <Card className="border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/10">
-            <CardContent className="p-6">
-              <div className="font-medium">QuickBooks Online is not connected</div>
-              <div className="text-sm text-muted-foreground mt-1">
+          <Panel className="border-warning/40 bg-warning/5">
+            <PanelBody>
+              <div className="text-[14.5px] font-semibold text-foreground">QuickBooks Online is not connected</div>
+              <div className="mt-1 text-[13px] text-muted-foreground">
                 Connect QuickBooks Online in Settings to view the trial balance.
               </div>
-            </CardContent>
-          </Card>
+            </PanelBody>
+          </Panel>
         )}
 
         {qboConnection && error && (
-          <Card className="border-destructive/40">
-            <CardContent className="p-4 text-sm text-destructive">
+          <Panel className="border-destructive/40">
+            <PanelBody className="text-[13px] text-destructive">
               {(error as Error).message}
-            </CardContent>
-          </Card>
+            </PanelBody>
+          </Panel>
         )}
 
         {qboConnection && (isLoading || isFetching) && !data && (
-          <Skeleton className="h-96 w-full" />
+          <Panel>
+            <PanelHeader title="Accounts" />
+            <PanelBody>
+              <TableSkeleton rows={8} cols={5} />
+            </PanelBody>
+          </Panel>
         )}
 
         {qboConnection && data && (
           <>
             {outOfBalance && (
-              <Card className="border-destructive/60 bg-destructive/5">
-                <CardContent className="p-4 flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="font-medium">Out of balance</span>
-                  <span className="text-sm">
+              <Panel className="border-destructive/60 bg-destructive/5">
+                <PanelBody className="flex flex-wrap items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span className="text-[13.5px] font-semibold">Out of balance</span>
+                  <span className="text-[13px]">
                     Debits {fmt(totals!.debit)} ≠ Credits {fmt(totals!.credit)} (diff {fmt(totals!.difference)})
                   </span>
-                </CardContent>
-              </Card>
+                </PanelBody>
+              </Panel>
             )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Accounts</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <Panel>
+              <PanelHeader title="Accounts" />
+              <PanelBody>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Credit</TableHead>
-                      <TableHead className="text-right">Net</TableHead>
+                      <TableHead className={TH_CLASS}>Account</TableHead>
+                      <TableHead className={TH_CLASS}>Type</TableHead>
+                      <TableHead className={`${TH_CLASS} text-right`}>Debit</TableHead>
+                      <TableHead className={`${TH_CLASS} text-right`}>Credit</TableHead>
+                      <TableHead className={`${TH_CLASS} text-right`}>Net</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -253,39 +250,39 @@ export default function BookkeeperTrialBalance() {
                       const subNet = subDebit - subCredit;
                       return (
                         <>
-                          <TableRow key={`${group}-header`} className="bg-muted/40">
-                            <TableCell colSpan={5} className="font-semibold text-sm uppercase tracking-wide">
+                          <TableRow key={`${group}-header`} className="bg-card-2 hover:bg-card-2">
+                            <TableCell colSpan={5} className="text-[11.5px] font-semibold uppercase tracking-[.09em] text-muted-foreground">
                               {group}
                             </TableCell>
                           </TableRow>
                           {rows.map((r, i) => (
                             <TableRow key={`${group}-${i}`}>
-                            <TableCell>{r.account}</TableCell>
+                              <TableCell>{r.account}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="font-normal">{r.account_type}</Badge>
+                                <Badge variant="outline" className="text-[11.5px] font-normal">{r.account_type}</Badge>
                               </TableCell>
-                            <TableCell className="text-right tabular-nums">{r.debit ? fmt(r.debit) : ""}</TableCell>
-                            <TableCell className="text-right tabular-nums">{r.credit ? fmt(r.credit) : ""}</TableCell>
-                            <TableCell className="text-right tabular-nums font-medium">{fmt(r.net)}</TableCell>
+                              <TableCell className="text-right text-[14px] tabular-nums">{r.debit ? fmt(r.debit) : ""}</TableCell>
+                              <TableCell className="text-right text-[14px] tabular-nums">{r.credit ? fmt(r.credit) : ""}</TableCell>
+                              <TableCell className="text-right text-[14px] tabular-nums font-semibold">{fmt(r.net)}</TableCell>
                             </TableRow>
                           ))}
-                          <TableRow key={`${group}-sub`} className="border-t border-border/60">
+                          <TableRow key={`${group}-sub`} className="border-t border-border">
                             <TableCell className="font-semibold">Subtotal — {group}</TableCell>
                             <TableCell />
-                          <TableCell className="text-right tabular-nums font-semibold">{fmt(subDebit)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-semibold">{fmt(subCredit)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-semibold">{fmt(subNet)}</TableCell>
+                            <TableCell className="text-right text-[14px] tabular-nums font-semibold">{fmt(subDebit)}</TableCell>
+                            <TableCell className="text-right text-[14px] tabular-nums font-semibold">{fmt(subCredit)}</TableCell>
+                            <TableCell className="text-right text-[14px] tabular-nums font-semibold">{fmt(subNet)}</TableCell>
                           </TableRow>
                         </>
                       );
                     })}
                     {totals && (
-                      <TableRow className="bg-muted">
+                      <TableRow className="bg-card-2 hover:bg-card-2">
                         <TableCell className="font-bold">Grand total</TableCell>
                         <TableCell />
-                        <TableCell className="text-right tabular-nums font-bold">{fmt(totals.debit)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-bold">{fmt(totals.credit)}</TableCell>
-                        <TableCell className={`text-right tabular-nums font-bold ${outOfBalance ? "text-destructive" : ""}`}>
+                        <TableCell className="text-right text-[14px] tabular-nums font-bold">{fmt(totals.debit)}</TableCell>
+                        <TableCell className="text-right text-[14px] tabular-nums font-bold">{fmt(totals.credit)}</TableCell>
+                        <TableCell className={`text-right text-[14px] tabular-nums font-bold ${outOfBalance ? "text-destructive" : ""}`}>
                           {fmt(totals.difference)}
                         </TableCell>
                       </TableRow>
@@ -293,12 +290,10 @@ export default function BookkeeperTrialBalance() {
                   </TableBody>
                 </Table>
                 {(!data.accounts || data.accounts.length === 0) && (
-                  <div className="text-sm text-muted-foreground py-8 text-center">
-                    No accounts returned by QuickBooks for this period.
-                  </div>
+                  <EmptyState title="No accounts returned by QuickBooks for this period." />
                 )}
-              </CardContent>
-            </Card>
+              </PanelBody>
+            </Panel>
           </>
         )}
       </div>

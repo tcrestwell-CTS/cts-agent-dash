@@ -1,20 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, FileSpreadsheet } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
-import { useEffect } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
-import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
-import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
-import { FileSpreadsheet } from "lucide-react";
+import { BookkeeperHeader, EmptyState, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const THRESHOLD = 600;
@@ -62,53 +58,59 @@ export default function Bookkeeper1099() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="1099 Prep" />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold">1099 Prep</h1>
-              <PeriodLockButton year={year} month={12} />
-            </div>
-            <p className="text-muted-foreground text-sm">Annual paid commission totals per advisor. IRS threshold {fmt(THRESHOLD)}.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
-              <Download className="h-4 w-4 mr-2" /> CSV
-            </Button>
-          </div>
-        </div>
-        <Card>
-          <CardHeader><CardTitle>Tax year {year}</CardTitle></CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-48 w-full" /> : (data?.length ?? 0) === 0 ? (
+      <div className="space-y-[18px]">
+        <BookkeeperHeader
+          title="1099 Prep"
+          description={`Annual paid commission totals per advisor. IRS threshold ${fmt(THRESHOLD)}.`}
+          year={year}
+          month={12}
+          actions={
+            <>
+              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                <SelectTrigger className="w-32 text-[13.5px]"><SelectValue /></SelectTrigger>
+                <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
+                <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
+              </Button>
+            </>
+          }
+        />
+        <Panel>
+          <PanelHeader title={`Tax year ${year}`} />
+          <PanelBody>
+            {isLoading ? (
+              <TableSkeleton rows={6} cols={3} />
+            ) : (data?.length ?? 0) === 0 ? (
               <EmptyState icon={FileSpreadsheet} title={`No paid commissions in ${year}`} description="Switch tax years to view earlier data." />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Advisor</TableHead>
-                    <TableHead className="text-right">Paid commissions</TableHead>
-                    <TableHead>1099 required</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Advisor</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Paid commissions</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">1099 required</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((r) => (
                     <TableRow key={r.user_id}>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">{fmt(r.total)}</TableCell>
-                      <TableCell>{r.total >= THRESHOLD ? <Badge variant="destructive">Yes</Badge> : <Badge variant="outline">No</Badge>}</TableCell>
+                      <TableCell className="text-[14px]">{r.name}</TableCell>
+                      <MoneyCell value={r.total} bold />
+                      <TableCell>
+                        {r.total >= THRESHOLD ? (
+                          <SemanticStatusPill status="destructive" label="Yes" />
+                        ) : (
+                          <SemanticStatusPill status="muted" label="No" />
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );

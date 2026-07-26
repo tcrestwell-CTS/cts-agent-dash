@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useQuery } from "@tanstack/react-query";
@@ -82,37 +82,35 @@ export function StripeFeesTrendChart() {
   }, [chartData]);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Stripe Fees Trend
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              {fmtCurrency(totals.fees)} in fees on {fmtCurrency(totals.gross)} gross · {totals.rate.toFixed(2)}% effective
-            </p>
-          </div>
+    <Panel>
+      <PanelHeader
+        title={
+          <span className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            Stripe Fees Trend
+          </span>
+        }
+        subtitle={`${fmtCurrency(totals.fees)} in fees on ${fmtCurrency(totals.gross)} gross · ${totals.rate.toFixed(2)}% effective`}
+        actions={
           <ToggleGroup
             type="single"
             size="sm"
             value={range}
             onValueChange={(v) => v && setRange(v as RangeKey)}
           >
-            <ToggleGroupItem value="30d">30D</ToggleGroupItem>
-            <ToggleGroupItem value="90d">90D</ToggleGroupItem>
-            <ToggleGroupItem value="mtd">MTD</ToggleGroupItem>
-            <ToggleGroupItem value="ytd">YTD</ToggleGroupItem>
-            <ToggleGroupItem value="12m">12M</ToggleGroupItem>
+            <ToggleGroupItem value="30d" className="text-[13px]">30D</ToggleGroupItem>
+            <ToggleGroupItem value="90d" className="text-[13px]">90D</ToggleGroupItem>
+            <ToggleGroupItem value="mtd" className="text-[13px]">MTD</ToggleGroupItem>
+            <ToggleGroupItem value="ytd" className="text-[13px]">YTD</ToggleGroupItem>
+            <ToggleGroupItem value="12m" className="text-[13px]">12M</ToggleGroupItem>
           </ToggleGroup>
-        </div>
-      </CardHeader>
-      <CardContent>
+        }
+      />
+      <PanelBody>
         {isLoading ? (
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full rounded-[9px]" />
         ) : chartData.length === 0 ? (
-          <div className="text-sm text-muted-foreground py-12 text-center">No payout data in this range.</div>
+          <div className="py-12 text-center text-[13.5px] text-muted-foreground">No payout data in this range.</div>
         ) : (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -132,7 +130,7 @@ export function StripeFeesTrendChart() {
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => fmtCurrency(Number(v))} width={70} />
                 <Tooltip
                   formatter={(v: any, name) => [fmtCurrency(Number(v)), name === "fees" ? "Fees" : "Gross"]}
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="gross" name="Gross" stroke="hsl(var(--muted-foreground))" fill="url(#grossGrad)" strokeWidth={1.5} />
@@ -141,7 +139,7 @@ export function StripeFeesTrendChart() {
             </ResponsiveContainer>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </PanelBody>
+    </Panel>
   );
 }

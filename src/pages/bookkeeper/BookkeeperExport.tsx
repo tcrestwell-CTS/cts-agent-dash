@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Panel, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
@@ -503,22 +503,22 @@ export default function BookkeeperExport() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-[18px] p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
             <BookkeeperBreadcrumb page="Export Center" />
-            <h1 className="text-3xl font-semibold flex items-center gap-2">
-              <FileSpreadsheet className="h-7 w-7 text-primary" />
+            <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+              <FileSpreadsheet className="h-[18px] w-[18px] text-accent" />
               Export Center
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-[13.5px] text-muted-foreground">
               One-click CSV exports for the accountant. Period applies to monthly reports; aging snapshots are always
               as-of-today.
             </p>
           </div>
           <div className="flex items-end gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Month</label>
+              <label className="text-[12.5px] font-medium text-muted-foreground">Month</label>
               <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
                 <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -529,7 +529,7 @@ export default function BookkeeperExport() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Year</label>
+              <label className="text-[12.5px] font-medium text-muted-foreground">Year</label>
               <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
                 <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -542,32 +542,32 @@ export default function BookkeeperExport() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-[14px] md:grid-cols-2 xl:grid-cols-3">
           {cards.map((c) => {
             const Icon = c.icon;
             return (
-              <Card key={c.title} className="flex flex-col">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-primary/10 p-2 text-primary">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <CardTitle className="text-lg">{c.title}</CardTitle>
+              <Panel key={c.title} className="flex flex-col">
+                <div className="flex items-start justify-between gap-3 border-b border-border px-[17px] py-[14px]">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-accent/10">
+                      <Icon className="h-4 w-4 text-accent" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-[14.5px] font-semibold text-foreground">{c.title}</h3>
+                      <p className="mt-1 text-[12.5px] text-muted-foreground">{c.description}</p>
                     </div>
-                    <Badge variant="outline" className="text-xs">{c.period}</Badge>
                   </div>
-                  <CardDescription className="pt-2">{c.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="mt-auto flex items-center justify-between gap-2">
-                  <div className="text-sm">
+                  <SemanticStatusPill status="muted" label={c.period} className="shrink-0" />
+                </div>
+                <PanelBody className="mt-auto flex items-center justify-between gap-2">
+                  <div className="text-[13.5px]">
                     {c.loading ? (
-                      <span className="text-muted-foreground inline-flex items-center gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Counting…
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Counting…
                       </span>
                     ) : (
                       <span>
-                        <span className="font-semibold tabular-nums">{c.count.toLocaleString()}</span>{" "}
+                        <span className="font-semibold tabular-nums text-foreground">{c.count.toLocaleString()}</span>{" "}
                         <span className="text-muted-foreground">row{c.count === 1 ? "" : "s"}</span>
                       </span>
                     )}
@@ -580,8 +580,8 @@ export default function BookkeeperExport() {
                     <Download className="mr-2 h-4 w-4" />
                     Download CSV
                   </Button>
-                </CardContent>
-              </Card>
+                </PanelBody>
+              </Panel>
             );
           })}
         </div>

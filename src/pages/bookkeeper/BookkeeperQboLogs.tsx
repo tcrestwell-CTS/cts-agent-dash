@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,9 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { exportToCSV } from "@/lib/csvExport";
 import { Download } from "lucide-react";
-import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
+import { BookkeeperBreadcrumb, TableSkeleton } from "@/components/bookkeeper/shared";
+import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill, type SemanticStatus } from "@/components/patterns/StatusPill";
 
 type StatusFilter = "all" | "success" | "error" | "pending";
+
+const STATUS_SEMANTIC: Record<string, SemanticStatus> = {
+  success: "success",
+  error: "destructive",
+  pending: "warning",
+};
 
 export default function BookkeeperQboLogs() {
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -50,71 +55,73 @@ export default function BookkeeperQboLogs() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <BookkeeperBreadcrumb page="QBO Sync Logs" />
-            <h1 className="text-3xl font-semibold">QBO Sync Logs</h1>
-            <p className="text-muted-foreground text-sm">Recent QuickBooks sync activity. Read-only.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="success">Success</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)}>
-              <Download className="h-4 w-4 mr-2" /> CSV
-            </Button>
+      <div className="space-y-[18px]">
+        <div className="space-y-2">
+          <BookkeeperBreadcrumb page="QBO Sync Logs" />
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">QBO Sync Logs</h1>
+              <p className="text-[13.5px] text-muted-foreground">Recent QuickBooks sync activity. Read-only.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+                <SelectTrigger className="w-36 text-[13.5px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="success">Success</SelectItem>
+                  <SelectItem value="error">Error</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
+                <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
+              </Button>
+            </div>
           </div>
         </div>
 
-        <Card>
-          <CardHeader><CardTitle>Last 300 entries</CardTitle></CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-64 w-full" /> : (
+        <Panel>
+          <PanelHeader title="Last 300 entries" />
+          <PanelBody>
+            {isLoading ? (
+              <TableSkeleton rows={8} cols={6} />
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>When</TableHead>
-                    <TableHead>Sync type</TableHead>
-                    <TableHead>Direction</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Records</TableHead>
-                    <TableHead>Error</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">When</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Sync type</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Direction</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Status</TableHead>
+                    <TableHead className="bg-card-2 text-right text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Records</TableHead>
+                    <TableHead className="bg-card-2 text-[10.5px] font-semibold uppercase tracking-[.11em] text-muted-foreground">Error</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((r: any) => (
                     <TableRow key={r.id}>
-                      <TableCell className="text-sm">{format(new Date(r.created_at), "MMM d, HH:mm")}</TableCell>
-                      <TableCell>{r.sync_type}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.direction}</TableCell>
+                      <TableCell className="text-[14px]">{format(new Date(r.created_at), "MMM d, HH:mm")}</TableCell>
+                      <TableCell className="text-[14px]">{r.sync_type}</TableCell>
+                      <TableCell className="text-[14px] text-muted-foreground">{r.direction}</TableCell>
                       <TableCell>
-                        <Badge variant={r.status === "error" ? "destructive" : r.status === "success" ? "outline" : "secondary"}>
-                          {r.status}
-                        </Badge>
+                        <SemanticStatusPill status={STATUS_SEMANTIC[r.status] ?? "muted"} label={r.status} />
                       </TableCell>
-                      <TableCell className="text-right">{r.records_processed}</TableCell>
-                      <TableCell className="max-w-md truncate text-xs text-muted-foreground" title={r.error_message ?? ""}>
+                      <TableCell className="text-right text-[14px] tabular-nums">{r.records_processed}</TableCell>
+                      <TableCell className="max-w-md truncate text-[12px] text-muted-foreground" title={r.error_message ?? ""}>
                         {r.error_message ?? "—"}
                       </TableCell>
                     </TableRow>
                   ))}
                   {(data ?? []).length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">No log entries.</TableCell>
+                      <TableCell colSpan={6} className="py-10 text-center text-[13px] text-muted-foreground">No log entries.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
       </div>
     </DashboardLayout>
   );
