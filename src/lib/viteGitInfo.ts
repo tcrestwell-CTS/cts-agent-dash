@@ -30,7 +30,7 @@ export function getGitBuildInfo(rootDir: string): GitBuildInfo {
   const branch = safeExec("git rev-parse --abbrev-ref HEAD", rootDir) || "unknown";
   const commitDate = safeExec("git log -1 --format=%cI", rootDir) || "";
   const commitMessage = safeExec("git log -1 --format=%s", rootDir) || "unknown";
-  const isDirty = safeExec("git status --porcelain", rootDir)?.length > 0 ?? false;
+  const isDirty = (safeExec("git status --porcelain", rootDir) || "").length > 0;
   const originUrl = safeExec("git remote get-url origin", rootDir) || "";
 
   return {
