@@ -7,10 +7,20 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
-
 interface AppConfig {
   key: string;
   value: string;
+}
+
+type CompareStatus = "identical" | "ahead" | "behind" | "diverged" | "unknown";
+
+interface GitHubComparison {
+  status: CompareStatus;
+  aheadBy: number;
+  behindBy: number;
+  githubSha: string;
+  githubMessage: string;
+  githubDate: string;
 }
 
 function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
@@ -24,11 +34,12 @@ function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
   }
 }
 
-async function getGitHubLatestCommit(
+async function compareWithGitHub(
   owner: string,
   repo: string,
+  localSha: string,
   token: string | null,
-): Promise<{ sha: string; message: string; date: string } | null> {
+): Promise<GitHubComparison | null> {
   try {
     const headers: Record<string, string> = {
       Accept: "application/vnd.github+json",
@@ -38,30 +49,37 @@ async function getGitHubLatestCommit(
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/commits/HEAD`,
+
+    const compareRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/compare/${localSha}...HEAD`,
       { headers },
     );
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`GitHub ${res.status}: ${text}`);
+
+    if (!compareRes.ok) {
+      const text = await compareRes.text();
+      throw new Error(`GitHub compare ${compareRes.status}: ${text}`);
     }
-    const data = await res.json();
+
+    const compare = await compareRes.json();
+    const statusRaw = compare.status as string;
+    const status: CompareStatus =
+      statusRaw === "identical" ? "identical" :
+      statusRaw === "ahead" ? "ahead" :
+      statusRaw === "behind" ? "behind" :
+      statusRaw === "diverged" ? "diverged" : "unknown";
+
     return {
-      sha: data.sha,
-      message: data.commit?.message?.split("\n")[0] || "",
-      date: data.commit?.committer?.date || "",
+      status,
+      aheadBy: Number(compare.ahead_by || 0),
+      behindBy: Number(compare.behind_by || 0),
+      githubSha: compare.commits?.[compare.commits.length - 1]?.sha || "",
+      githubMessage: compare.commits?.[compare.commits.length - 1]?.commit?.message?.split("\n")[0] || "",
+      githubDate: compare.commits?.[compare.commits.length - 1]?.commit?.committer?.date || "",
     };
   } catch (err) {
-    console.error("GitHub fetch failed:", err);
+    console.error("GitHub compare failed:", err);
     return null;
   }
-}
-
-async function getOriginCommitFromConfig(config: AppConfig[] | null): Promise<string | null> {
-  if (!config) return null;
-  const raw = config.find((c) => c.key === "git_origin_commit")?.value;
-  return raw || null;
 }
 
 serve(async (req) => {
@@ -70,6 +88,9 @@ serve(async (req) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const localSha = url.searchParams.get("localSha") || "";
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -84,7 +105,7 @@ serve(async (req) => {
     const { data: configRows, error: configError } = await supabase
       .from("app_config")
       .select("key, value")
-      .in("key", ["github_repo_url", "github_token", "git_origin_commit"])
+      .in("key", ["github_repo_url", "github_token"])
       .eq("scope", "git_sync");
 
     if (configError) {
@@ -95,38 +116,32 @@ serve(async (req) => {
     }
 
     const config = configRows || [];
-    const repoUrl = config.find((c) => c.key === "github_repo_url")?.value || "";
-    const token = config.find((c) => c.key === "github_token")?.value || null;
-    const originCommit = await getOriginCommitFromConfig(config);
+    const repoUrl = config.find((c: AppConfig) => c.key === "github_repo_url")?.value || "";
+    const token = config.find((c: AppConfig) => c.key === "github_token")?.value || null;
 
-    let github: { sha: string; shortSha: string; message: string; date: string } | null = null;
-    let githubError: string | null = null;
     const repo = parseGitHubRepo(repoUrl);
+    let comparison: GitHubComparison | null = null;
+    let githubError: string | null = null;
 
     if (repoUrl) {
-      if (repo) {
-        const gh = await getGitHubLatestCommit(repo.owner, repo.repo, token);
-        if (gh) {
-          github = {
-            sha: gh.sha,
-            shortSha: gh.sha.slice(0, 8),
-            message: gh.message,
-            date: gh.date,
-          };
-        } else {
+      if (!repo) {
+        githubError = "GitHub repo URL format is not recognized.";
+      } else if (!localSha || localSha === "unknown") {
+        githubError = "Local commit SHA is not available.";
+      } else {
+        comparison = await compareWithGitHub(repo.owner, repo.repo, localSha, token);
+        if (!comparison) {
           githubError = "Could not reach GitHub. If the repo is private, add a GitHub token in Settings.";
         }
-      } else {
-        githubError = "GitHub repo URL format is not recognized.";
       }
     }
 
     return new Response(
       JSON.stringify({
         githubRepoUrl: repoUrl,
-        github: github || undefined,
+        comparison: comparison || undefined,
         githubError: githubError || undefined,
-        originCommit: originCommit || undefined,
+        localSha: localSha || undefined,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
