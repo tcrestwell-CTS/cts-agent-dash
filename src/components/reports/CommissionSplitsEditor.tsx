@@ -23,6 +23,10 @@ interface Props {
   agent: { user_id: string; full_name: string | null; commission_tier: string | null } | null;
   paidDate: string | null;
   agents: AgentOption[];
+  /** Admin only. When false, split values render as read-only text. */
+  editable: boolean;
+  /** Admin + bookkeeper. When false, no Stage/Discard/Confirm controls render at all. */
+  canSettle: boolean;
   onClose?: () => void;
 }
 
@@ -83,6 +87,8 @@ export function CommissionSplitsEditor({
   agent,
   paidDate,
   agents,
+  editable,
+  canSettle,
   onClose,
 }: Props) {
   const { drafts: allDrafts, stage, unstage } = usePayoutDraft();
@@ -176,10 +182,19 @@ export function CommissionSplitsEditor({
             type="date"
             value={receivedDate}
             onChange={(e) => setReceivedDate(e.target.value)}
+            disabled={!canSettle}
             className="h-7 w-[150px] text-xs"
           />
         </div>
       </div>
+
+      {!editable && (
+        <p className="text-xs text-muted-foreground italic">
+          {canSettle
+            ? "Split amounts are set by an agency administrator — you can confirm this payout as-is."
+            : "Splits can only be edited by an agency administrator."}
+        </p>
+      )}
 
       <div className="space-y-2">
         {splits.map((s, idx) => (
@@ -187,90 +202,108 @@ export function CommissionSplitsEditor({
             key={idx}
             className="grid grid-cols-12 gap-2 items-center bg-background rounded-md border border-border/60 px-2 py-1.5"
           >
-            <Select
-              value={s.role}
-              onValueChange={(v) => updateSplit(idx, { role: v as SplitRole })}
-            >
-              <SelectTrigger className="col-span-2 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="agent">Agent</SelectItem>
-                <SelectItem value="mentor">Mentor</SelectItem>
-                <SelectItem value="house">House</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
+            {editable ? (
+              <>
+                <Select
+                  value={s.role}
+                  onValueChange={(v) => updateSplit(idx, { role: v as SplitRole })}
+                >
+                  <SelectTrigger className="col-span-2 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="mentor">Mentor</SelectItem>
+                    <SelectItem value="house">House</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
 
-            <Select
-              value={s.recipient_user_id ?? "__house"}
-              onValueChange={(v) =>
-                updateSplit(idx, { recipient_user_id: v === "__house" ? null : v })
-              }
-            >
-              <SelectTrigger className="col-span-4 h-8 text-xs">
-                <SelectValue placeholder="Recipient" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__house">— House (agency) —</SelectItem>
-                {agents.map((a) => (
-                  <SelectItem key={a.user_id} value={a.user_id}>
-                    {a.full_name || a.user_id.slice(0, 8)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <Select
+                  value={s.recipient_user_id ?? "__house"}
+                  onValueChange={(v) =>
+                    updateSplit(idx, { recipient_user_id: v === "__house" ? null : v })
+                  }
+                >
+                  <SelectTrigger className="col-span-4 h-8 text-xs">
+                    <SelectValue placeholder="Recipient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__house">— House (agency) —</SelectItem>
+                    {agents.map((a) => (
+                      <SelectItem key={a.user_id} value={a.user_id}>
+                        {a.full_name || a.user_id.slice(0, 8)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <div className="col-span-2 flex items-center gap-1">
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={s.percent}
-                onChange={(e) => changePercent(idx, Number(e.target.value))}
-                className="h-8 text-xs tabular-nums"
-              />
-              <span className="text-xs text-muted-foreground">%</span>
-            </div>
+                <div className="col-span-2 flex items-center gap-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    value={s.percent}
+                    onChange={(e) => changePercent(idx, Number(e.target.value))}
+                    className="h-8 text-xs tabular-nums"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
 
-            <div className="col-span-2 flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">$</span>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={s.amount}
-                onChange={(e) => changeAmount(idx, Number(e.target.value))}
-                className="h-8 text-xs tabular-nums"
-              />
-            </div>
+                <div className="col-span-2 flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={s.amount}
+                    onChange={(e) => changeAmount(idx, Number(e.target.value))}
+                    className="h-8 text-xs tabular-nums"
+                  />
+                </div>
 
-            <div className="col-span-2 flex items-center justify-end gap-1">
-              <Input
-                placeholder="Note"
-                value={s.notes ?? ""}
-                onChange={(e) => updateSplit(idx, { notes: e.target.value })}
-                className="h-8 text-xs"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-                onClick={() => removeSplit(idx)}
-                aria-label="Remove split"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+                <div className="col-span-2 flex items-center justify-end gap-1">
+                  <Input
+                    placeholder="Note"
+                    value={s.notes ?? ""}
+                    onChange={(e) => updateSplit(idx, { notes: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => removeSplit(idx)}
+                    aria-label="Remove split"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="col-span-2 text-xs capitalize">{s.role}</span>
+                <span className="col-span-4 text-xs truncate">
+                  {s.recipient_user_id
+                    ? agents.find((a) => a.user_id === s.recipient_user_id)?.full_name || s.recipient_user_id.slice(0, 8)
+                    : "House (agency)"}
+                </span>
+                <span className="col-span-2 text-xs tabular-nums">{s.percent}%</span>
+                <span className="col-span-2 text-xs tabular-nums">{fmt(s.amount)}</span>
+                <span className="col-span-2 text-xs text-muted-foreground truncate">{s.notes ?? ""}</span>
+              </>
+            )}
           </div>
         ))}
       </div>
 
       <div className="flex items-center justify-between gap-4 flex-wrap pt-1">
-        <Button variant="outline" size="sm" onClick={addSplit} className="h-7 text-xs">
-          <Plus className="h-3 w-3 mr-1" /> Add split
-        </Button>
+        {editable ? (
+          <Button variant="outline" size="sm" onClick={addSplit} className="h-7 text-xs">
+            <Plus className="h-3 w-3 mr-1" /> Add split
+          </Button>
+        ) : <span />}
 
         <div className="flex items-center gap-3 text-xs">
           <span className="text-muted-foreground">
@@ -288,21 +321,23 @@ export function CommissionSplitsEditor({
           )}
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
-          {existing && (
-            <Button variant="ghost" size="sm" onClick={handleDiscard} className="h-7 text-xs">
-              Discard
+        {canSettle && (
+          <div className="flex items-center gap-2 ml-auto">
+            {existing && (
+              <Button variant="ghost" size="sm" onClick={handleDiscard} className="h-7 text-xs">
+                Discard
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleStage}
+              disabled={!balanced}
+              className="h-7 text-xs"
+            >
+              Stage for payout
             </Button>
-          )}
-          <Button
-            size="sm"
-            onClick={handleStage}
-            disabled={!balanced}
-            className="h-7 text-xs"
-          >
-            Stage for payout
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
