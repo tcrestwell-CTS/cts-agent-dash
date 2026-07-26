@@ -88,10 +88,18 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const localSha = url.searchParams.get("localSha") || "";
+    let localSha = "";
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        localSha = body?.localSha || "";
+      } catch {
+        localSha = "";
+      }
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
+
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
