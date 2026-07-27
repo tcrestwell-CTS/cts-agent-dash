@@ -138,15 +138,15 @@ export function DashboardContent() {
 
     const quotesTrips = (trips || []).filter((t) => t.status === "quoted");
     const quotesSent = quotesTrips.length;
-    const quotesValue = quotesTrips.reduce((sum, t) => sum + (t.total_cost || t.budget || 0), 0);
+    const quotesValue = quotesTrips.reduce((sum, t) => sum + (t.total_gross_sales || 0), 0);
 
     const proposalsTrips = (trips || []).filter((t) => t.status === "proposal_sent");
     const proposalsSent = proposalsTrips.length;
-    const proposalsValue = proposalsTrips.reduce((sum, t) => sum + (t.total_cost || t.budget || 0), 0);
+    const proposalsValue = proposalsTrips.reduce((sum, t) => sum + (t.total_gross_sales || 0), 0);
 
     const confirmedTrips = (trips || []).filter((t) => t.status === "booked" || t.status === "confirmed");
     const confirmedCount = confirmedTrips.length;
-    const confirmedValue = confirmedTrips.reduce((sum, t) => sum + (t.total_cost || t.budget || 0), 0);
+    const confirmedValue = confirmedTrips.reduce((sum, t) => sum + (t.total_gross_sales || 0), 0);
 
     const pendingBookingsCount = activeBookings.filter((b) => b.status === "pending").length;
 
