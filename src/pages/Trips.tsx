@@ -725,70 +725,79 @@ const Trips = () => {
                 />
               </Panel>
             ) : (
-              <div className="grid gap-[14px]">
-                {filteredTrips.map((trip) => (
-                  <Panel
-                    key={trip.id}
-                    className={`cursor-pointer transition-shadow hover:shadow-lg ${
-                      trip.isOptimistic
-                        ? "opacity-70 animate-pulse border-dashed pointer-events-none"
-                        : ""
-                    }`}
-                    onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
-                  >
-                    <div className="p-[14px]">
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-3 mb-2">
-                            {trip.isOptimistic && (
-                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
+              <Panel className="overflow-hidden p-0">
+                <DataTable>
+                  <DataTableHead>
+                    <DataTableHeaderRow>
+                      <DataTableHeaderCell>Trip / Client</DataTableHeaderCell>
+                      <DataTableHeaderCell secondary>Destination</DataTableHeaderCell>
+                      <DataTableHeaderCell>Departure</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right" secondary>Guests</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right">Value</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right" secondary>Commission</DataTableHeaderCell>
+                      <DataTableHeaderCell>Status</DataTableHeaderCell>
+                    </DataTableHeaderRow>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {filteredTrips.map((trip) => {
+                      const days = daysUntil(trip.depart_date);
+                      const guests = (trip as any).num_travelers ?? (trip as any).travelers ?? null;
+                      return (
+                        <DataTableRow
+                          key={trip.id}
+                          interactive={!trip.isOptimistic}
+                          onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
+                          className={trip.isOptimistic ? "opacity-70 animate-pulse pointer-events-none" : ""}
+                        >
+                          <DataTableCell
+                            primary={
+                              <span className="flex items-center gap-2">
+                                {trip.isOptimistic && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                                <span className="truncate">{trip.trip_name}</span>
+                              </span>
+                            }
+                            sub={trip.clients?.name || "Unassigned client"}
+                          />
+                          <DataTableCell secondary>
+                            {trip.destination ? (
+                              <span className="text-[13.5px] text-muted-foreground">{trip.destination}</span>
+                            ) : (
+                              <span className="text-[13px] text-muted-foreground">—</span>
                             )}
-                            <h3 className="text-[14.5px] font-semibold truncate text-foreground">
-                              {trip.trip_name}
-                            </h3>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[13.5px]">
+                                {trip.depart_date
+                                  ? format(parseLocalDate(trip.depart_date), "MMM d, yyyy")
+                                  : "—"}
+                              </span>
+                              <DaysOutBadge days={days} />
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell align="right" secondary>
+                            {guests ? (
+                              <span className="[font-variant-numeric:tabular-nums]">{guests}</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </DataTableCell>
+                          <DataTableCell money>{formatCurrency(trip.total_gross_sales)}</DataTableCell>
+                          <DataTableCell money secondary className="text-primary">
+                            {formatCurrency(trip.total_commission_revenue)}
+                          </DataTableCell>
+                          <DataTableCell>
                             <StatusPill
                               color={getStatusColor(trip.status)}
                               label={trip.isOptimistic ? "Saving..." : getStatusLabel(trip.status)}
                             />
-                          </div>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted-foreground">
-                            <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
-                            <span className="flex items-center gap-1.5">
-                              <Users className="h-4 w-4" />
-                              {trip.clients?.name || "Unknown Client"}
-                            </span>
-                            {trip.destination && (
-                              <span className="flex items-center gap-1.5">
-                                <MapPin className="h-4 w-4" />
-                                {trip.destination}
-                              </span>
-                            )}
-                            {trip.depart_date && (
-                              <span className="flex items-center gap-1.5">
-                                <Calendar className="h-4 w-4" />
-                                {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
-                                {trip.return_date && (
-                                  <> - {format(parseLocalDate(trip.return_date), "MMM d, yyyy")}</>
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-6 lg:gap-8">
-                          <div className="text-right">
-                            <p className="text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">Total Sales</p>
-                            <p className="text-[14.5px] font-semibold text-foreground">{formatCurrency(trip.total_gross_sales)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">Commission</p>
-                            <p className="text-[14.5px] font-semibold text-primary">{formatCurrency(trip.total_commission_revenue)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Panel>
-                ))}
-              </div>
+                          </DataTableCell>
+                        </DataTableRow>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </Panel>
             )}
           </TabsContent>
 
