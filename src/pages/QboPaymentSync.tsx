@@ -93,8 +93,11 @@ export default function QboPaymentSync() {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">QBO Payment Sync</h1>
-            <p className="text-muted-foreground">Per-payment sync status with errors and retry actions.</p>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">QBO Payment Sync</h1>
+            <p className="mt-1 text-[13.5px] text-muted-foreground">Per-payment sync status with errors and retry actions.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => refetch()} disabled={isRefetching}>
