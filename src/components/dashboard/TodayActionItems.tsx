@@ -6,6 +6,7 @@ import { AlertTriangle, Clock, Users, ChevronRight, Plane, DollarSign } from "lu
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/patterns/Panel";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ActionItem {
   id: string;
@@ -47,8 +48,8 @@ export function TodayActionItems() {
           id: p.id,
           type: "payment_due",
           urgency: days <= 3 ? "critical" : days <= 7 ? "warning" : "info",
-          title: `$${Number(p.amount).toLocaleString()} due ${days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days}d`}`,
-          subtitle: `${tripName}${clientName ? ` · ${clientName}` : ""}`,
+          title: `${clientName || tripName} balance`,
+          subtitle: `$${Number(p.amount).toLocaleString()} ${days <= 0 ? "due today" : days === 1 ? "due tomorrow" : `due in ${days} days`}`,
           href: `/trips/${(p as any).trip_id}?tab=payments`,
           daysUntil: days,
           amount: Number(p.amount),
@@ -73,8 +74,8 @@ export function TodayActionItems() {
           id: t.id,
           type: "departing_soon",
           urgency: days <= 3 ? "critical" : days <= 7 ? "warning" : "info",
-          title: `Departing ${days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}`,
-          subtitle: `${t.trip_name || "Trip"}${(t as any).clients?.name ? ` · ${(t as any).clients.name}` : ""}`,
+          title: `${t.trip_name || "Trip"} departing`,
+          subtitle: `${(t as any).clients?.name || "Client"} · ${days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}`,
           href: `/trips/${t.id}`,
           daysUntil: days,
         });
@@ -96,8 +97,8 @@ export function TodayActionItems() {
           id: `stale-${t.id}`,
           type: "follow_up",
           urgency: days >= 7 ? "warning" : "info",
-          title: `No activity for ${days} day${days !== 1 ? "s" : ""}`,
-          subtitle: `${t.trip_name || "Trip"}${(t as any).clients?.name ? ` · ${(t as any).clients.name}` : ""}`,
+          title: `Follow up on ${t.trip_name || "Trip"}`,
+          subtitle: `${(t as any).clients?.name || "Client"} · no reply for ${days} day${days !== 1 ? "s" : ""}`,
           href: `/trips/${t.id}`,
         });
       }
@@ -114,10 +115,12 @@ export function TodayActionItems() {
 
   if (isLoading) {
     return (
-      <Panel className="p-[14px]">
-        <div className="mb-[14px] h-4 w-32 animate-pulse rounded bg-muted" />
-        <div className="space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse rounded-[8px] bg-muted" />)}
+      <Panel className="p-[18px]">
+        <div className="mb-4 h-4 w-40 animate-pulse rounded bg-muted" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
+          ))}
         </div>
       </Panel>
     );
@@ -125,22 +128,25 @@ export function TodayActionItems() {
 
   if (items.length === 0) {
     return (
-      <Panel className="p-[14px]">
-        <div className="mb-1 flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-success" />
-          <span className="text-[14.5px] font-semibold text-foreground">Today's Actions</span>
+      <Panel className="p-[18px]">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-success" />
+          <span className="text-[15px] font-semibold text-foreground">Needs your attention today</span>
         </div>
-        <p className="mt-3 pl-3.5 text-[13.5px] text-muted-foreground">
+        <p className="mt-3 text-[13.5px] text-muted-foreground">
           You're all caught up — nothing urgent right now.
         </p>
       </Panel>
     );
   }
 
+  const departuresCount = items.filter((i) => i.type === "departing_soon").length;
+  const proposalsCount = items.filter((i) => i.type === "follow_up").length;
+
   const urgencyConfig = {
-    critical: { dot: "bg-destructive", bg: "border-destructive/20 bg-destructive/5 hover:bg-destructive/10", text: "text-destructive", icon: AlertTriangle },
-    warning:  { dot: "bg-warning", bg: "border-warning/20 bg-warning/5 hover:bg-warning/10", text: "text-warning", icon: Clock },
-    info:     { dot: "bg-info", bg: "border-info/20 bg-info/5 hover:bg-info/10", text: "text-info", icon: Users },
+    critical: { dot: "bg-destructive", border: "border-destructive/20", text: "text-destructive" },
+    warning:  { dot: "bg-warning", border: "border-warning/20", text: "text-warning" },
+    info:     { dot: "bg-info", border: "border-info/20", text: "text-info" },
   };
 
   const typeIcon = {
@@ -150,20 +156,22 @@ export function TodayActionItems() {
     unread_lead:    Users,
   };
 
+  const topThree = items.slice(0, 3);
+
   return (
-    <Panel className="overflow-hidden">
-      <div className="flex items-center justify-between px-[14px] pb-[10px] pt-[14px]">
+    <Panel className="p-[18px]">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-          <span className="text-[14.5px] font-semibold text-foreground">Today's Actions</span>
-          <span className="rounded-full bg-muted px-[7px] py-[1px] text-[11.5px] font-semibold text-muted-foreground">
-            {items.length}
-          </span>
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <span className="text-[15px] font-semibold text-foreground">Needs your attention today</span>
         </div>
+        <p className="text-[12px] text-muted-foreground">
+          {departuresCount} departure{departuresCount !== 1 ? "s" : ""} ≤14d · {proposalsCount} proposal{proposalsCount !== 1 ? "s" : ""} awaiting reply
+        </p>
       </div>
 
-      <div className="space-y-1.5 px-[10px] pb-[10px]">
-        {items.map((item) => {
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {topThree.map((item) => {
           const cfg = urgencyConfig[item.urgency];
           const TypeIcon = typeIcon[item.type];
           return (
@@ -171,16 +179,16 @@ export function TodayActionItems() {
               key={item.id}
               onClick={() => navigate(item.href)}
               className={cn(
-                "flex w-full items-center gap-3 rounded-[8px] border px-3 py-2.5 text-left transition-colors",
-                cfg.bg
+                "flex items-start gap-3 rounded-xl border bg-background px-4 py-4 text-left transition-colors hover:bg-muted/30",
+                cfg.border
               )}
             >
-              <TypeIcon className={cn("h-3.5 w-3.5 shrink-0", cfg.text)} />
+              <div className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", cfg.dot)} />
               <div className="min-w-0 flex-1">
-                <p className={cn("text-[12.5px] font-semibold leading-tight", cfg.text)}>{item.title}</p>
-                <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">{item.subtitle}</p>
+                <p className="text-[13.5px] font-semibold leading-tight text-foreground">{item.title}</p>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">{item.subtitle}</p>
               </div>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+              <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
             </button>
           );
         })}
