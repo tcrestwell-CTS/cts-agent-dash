@@ -1100,8 +1100,11 @@ export default function ReconSettings() {
     <DashboardLayout>
       <div className="p-6 space-y-5 max-w-5xl mx-auto">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Settings className="h-5 w-5 text-primary" />
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+            <Settings className="h-[17px] w-[17px] text-primary" />
             Reconciliation Settings
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
