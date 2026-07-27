@@ -39,10 +39,13 @@ export default function BusinessContacts() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-card-foreground flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary" /> Business Contacts
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+              <Building2 className="h-[17px] w-[17px] text-primary" /> Partners
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="mt-1 text-[13.5px] text-muted-foreground">
               {contacts.length} total contacts
             </p>
           </div>
