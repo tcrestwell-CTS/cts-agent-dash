@@ -6267,6 +6267,8 @@ export type Database = {
           ai_stage: string | null
           ai_summary: string | null
           ai_tags: string[] | null
+          assigned_agent_id: string | null
+          assigned_at: string | null
           budget: string | null
           converted_trip_id: string | null
           created_at: string | null
@@ -6316,6 +6318,8 @@ export type Database = {
           ai_stage?: string | null
           ai_summary?: string | null
           ai_tags?: string[] | null
+          assigned_agent_id?: string | null
+          assigned_at?: string | null
           budget?: string | null
           converted_trip_id?: string | null
           created_at?: string | null
@@ -6365,6 +6369,8 @@ export type Database = {
           ai_stage?: string | null
           ai_summary?: string | null
           ai_tags?: string[] | null
+          assigned_agent_id?: string | null
+          assigned_at?: string | null
           budget?: string | null
           converted_trip_id?: string | null
           created_at?: string | null
