@@ -74,6 +74,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
     budget_range: "",
     depart_date: "",
     return_date: "",
+    num_travelers: "",
   });
   const [errors, setErrors] = useState<{ trip_name?: string; depart_date?: string; return_date?: string }>({});
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
@@ -132,6 +133,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
       client_id: formData.client_id || undefined,
       depart_date: formData.depart_date,
       return_date: returnDate,
+      num_travelers: formData.num_travelers ? Number(formData.num_travelers) : undefined,
       ...(parentTripId ? { parent_trip_id: parentTripId } : {}),
     } as any);
 
@@ -146,6 +148,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
         budget_range: "",
         depart_date: "",
         return_date: "",
+        num_travelers: "",
       });
       setErrors({});
       onOpenChange(false);
@@ -160,18 +163,18 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Trip</DialogTitle>
-          <DialogDescription>
-            Create a trip to organize bookings for your client.
+      <DialogContent className="max-w-[600px] max-h-[92vh] overflow-y-auto rounded-[14px] p-0 shadow-lg gap-0">
+        <DialogHeader className="sticky top-0 z-10 border-b border-border bg-card px-5 py-4 space-y-0.5">
+          <DialogTitle className="text-[16.5px] font-semibold">Create new trip</DialogTitle>
+          <DialogDescription className="text-[12.5px] text-muted-foreground">
+            Set the trip up now — you can refine the itinerary in the next step.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-[18px] px-5 py-4">
           {/* Trip type — chip grid */}
           <div className="space-y-2">
-            <Label>Trip Type</Label>
+            <Label className="text-[12.5px]">Trip type</Label>
             <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(126px, 1fr))" }}>
               {TRIP_TYPES.map((type) => {
                 const selected = formData.trip_type === type.value;
@@ -181,7 +184,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                     type="button"
                     onClick={() => setFormData({ ...formData, trip_type: type.value })}
                     className={cn(
-                      "flex items-center gap-2 rounded-[9px] border px-2.5 py-2 text-left text-[13px] transition-colors",
+                      "flex items-center gap-2 rounded-[9px] border-[1.5px] px-[10px] py-[9px] text-left text-[12.5px] transition-colors",
                       selected
                         ? "border-accent bg-tint font-semibold text-foreground"
                         : "border-border text-muted-foreground hover:bg-muted/50"
@@ -195,9 +198,27 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
             </div>
           </div>
 
+          {/* Trip name */}
+          <div className="space-y-2">
+            <Label htmlFor="trip_name" className="text-[12.5px]">
+              Trip name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="trip_name"
+              value={formData.trip_name}
+              onChange={(e) => {
+                setFormData({ ...formData, trip_name: e.target.value });
+                clearError("trip_name");
+              }}
+              placeholder="e.g. Smith Family Vacation 2027"
+              className={cn("h-10 text-[13.5px]", errors.trip_name && "border-destructive focus-visible:ring-destructive")}
+            />
+            <p className="min-h-[15px] text-[11.5px] text-destructive">{errors.trip_name}</p>
+          </div>
+
           {/* Client Selector — searchable */}
           <div className="space-y-2">
-            <Label>Client</Label>
+            <Label className="text-[12.5px]">Client</Label>
             {quickAddOpen ? (
               <QuickAddClientForm
                 onClientCreated={(id) => {
@@ -214,13 +235,13 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                     variant="outline"
                     role="combobox"
                     aria-expanded={clientPickerOpen}
-                    className="w-full justify-between font-normal"
+                    className="h-10 w-full justify-between font-normal text-[13.5px]"
                   >
                     <span className={cn("truncate", !selectedClient && "text-muted-foreground")}>
                       {clientsLoading
                         ? "Loading clients..."
                         : selectedClient
-                          ? `${selectedClient.name}${selectedClient.email ? ` (${selectedClient.email})` : ""}`
+                          ? selectedClient.name
                           : "Search for a client (optional)"}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -254,9 +275,23 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                               !formData.client_id ? "opacity-100" : "opacity-0",
                             )}
                           />
-                          No client yet
+                          <div className="flex flex-col">
+                            <span className="text-[13.5px] font-medium">No client yet</span>
+                            <span className="text-[11.5px] text-muted-foreground">Attach one later</span>
+                          </div>
                         </CommandItem>
-                        {clients.map((client) => (
+                        {clients.map((client) => {
+                          const tier = (client as any).membership_tier as string | null | undefined;
+                          const sinceYear = client.created_at
+                            ? new Date(client.created_at).getFullYear()
+                            : null;
+                          const tierLabel = tier
+                            ? tier.charAt(0).toUpperCase() + tier.slice(1)
+                            : null;
+                          const meta = [tierLabel, sinceYear ? `since ${sinceYear}` : null]
+                            .filter(Boolean)
+                            .join(" · ");
+                          return (
                           <CommandItem
                             key={client.id}
                             value={`${client.name} ${client.email ?? ""} ${client.phone ?? ""}`}
@@ -267,20 +302,21 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                           >
                             <Check
                               className={cn(
-                                "mr-2 h-4 w-4",
+                                "mr-2 h-4 w-4 text-accent",
                                 formData.client_id === client.id ? "opacity-100" : "opacity-0",
                               )}
                             />
                             <div className="flex flex-col">
-                              <span>{client.name}</span>
-                              {client.email && (
-                                <span className="text-xs text-muted-foreground">
-                                  {client.email}
-                                </span>
-                              )}
+                              <span className="text-[13.5px] font-medium">{client.name}</span>
+                              {meta ? (
+                                <span className="text-[11.5px] text-muted-foreground">{meta}</span>
+                              ) : client.email ? (
+                                <span className="text-[11.5px] text-muted-foreground">{client.email}</span>
+                              ) : null}
                             </div>
                           </CommandItem>
-                        ))}
+                          );
+                        })}
                       </CommandGroup>
                       <CommandGroup>
                         <CommandItem
@@ -289,9 +325,10 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                             setClientPickerOpen(false);
                             setQuickAddOpen(true);
                           }}
+                          className="text-accent"
                         >
                           <UserPlus className="mr-2 h-4 w-4" />
-                          Add new client
+                          <span className="font-medium">Add new client</span>
                         </CommandItem>
                       </CommandGroup>
                     </CommandList>
@@ -302,35 +339,23 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="trip_name">Trip Name *</Label>
-            <Input
-              id="trip_name"
-              value={formData.trip_name}
-              onChange={(e) => {
-                setFormData({ ...formData, trip_name: e.target.value });
-                clearError("trip_name");
-              }}
-              placeholder="e.g., Smith Family Vacation 2026"
-              className={cn(errors.trip_name && "border-destructive")}
-            />
-            <p className="min-h-[15px] text-[12px] text-destructive">{errors.trip_name}</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="destination">Destination</Label>
+            <Label htmlFor="destination" className="text-[12.5px]">Destination</Label>
             <Input
               id="destination"
               value={formData.destination}
               onChange={(e) =>
                 setFormData({ ...formData, destination: e.target.value })
               }
-              placeholder="e.g., New York, Hawaii, Europe"
+              placeholder="e.g. Amalfi Coast, Italy"
+              className="h-10 text-[13.5px]"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="depart_date">Departure *</Label>
+              <Label htmlFor="depart_date" className="text-[12.5px]">
+                Departure <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="depart_date"
                 type="date"
@@ -340,12 +365,12 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                   clearError("depart_date");
                   clearError("return_date");
                 }}
-                className={cn(errors.depart_date && "border-destructive")}
+                className={cn("h-10 text-[13.5px]", errors.depart_date && "border-destructive focus-visible:ring-destructive")}
               />
-              <p className="min-h-[15px] text-[12px] text-destructive">{errors.depart_date}</p>
+              <p className="min-h-[15px] text-[11.5px] text-destructive">{errors.depart_date}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="return_date">Return</Label>
+              <Label htmlFor="return_date" className="text-[12.5px]">Return</Label>
               <Input
                 id="return_date"
                 type="date"
@@ -354,21 +379,35 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                   setFormData({ ...formData, return_date: e.target.value });
                   clearError("return_date");
                 }}
-                className={cn(errors.return_date && "border-destructive")}
+                className={cn("h-10 text-[13.5px]", errors.return_date && "border-destructive focus-visible:ring-destructive")}
               />
-              <p className="min-h-[15px] text-[12px] text-destructive">{errors.return_date}</p>
+              <p className="min-h-[15px] text-[11.5px] text-destructive">{errors.return_date}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="num_travelers" className="text-[12.5px]">Guests</Label>
+              <Input
+                id="num_travelers"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={formData.num_travelers}
+                onChange={(e) => setFormData({ ...formData, num_travelers: e.target.value })}
+                placeholder="2"
+                className="h-10 text-[13.5px] [font-variant-numeric:tabular-nums]"
+              />
+              <p className="min-h-[15px]" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="budget_range">Estimated Budget</Label>
+            <Label htmlFor="budget_range" className="text-[12.5px]">Estimated budget</Label>
             <Select
               value={formData.budget_range}
               onValueChange={(value) =>
                 setFormData({ ...formData, budget_range: value === "none" ? "" : value })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 text-[13.5px]">
                 <SelectValue placeholder="Select budget range (optional)" />
               </SelectTrigger>
               <SelectContent>
@@ -384,34 +423,38 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes" className="text-[12.5px]">Notes</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              placeholder="Any additional notes about this trip..."
+              placeholder="Preferences, occasion, anything the itinerary should respect…"
               rows={3}
+              className="text-[13.5px]"
             />
           </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={creating || !formData.trip_name}
-            >
-              {creating ? "Creating..." : "Create Trip"}
-            </Button>
-          </DialogFooter>
         </form>
+
+        <DialogFooter className="sticky bottom-0 z-10 justify-end gap-2 border-t border-border bg-card px-5 py-3 sm:justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="text-[13px]"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={creating || !formData.trip_name}
+            onClick={handleSubmit as any}
+            className="text-[13px]"
+          >
+            {creating ? "Creating..." : "Create trip"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
