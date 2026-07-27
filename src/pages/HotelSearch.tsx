@@ -226,8 +226,11 @@ export default function HotelSearch() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Hotel className="h-6 w-6 text-primary" />
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+            <Hotel className="h-[17px] w-[17px] text-primary" />
             Hotel Search
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
