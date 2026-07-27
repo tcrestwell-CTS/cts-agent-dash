@@ -19,6 +19,15 @@ export function parseLocalDate(dateStr: string): Date {
   return new Date(dateStr);
 }
 
+export function formatCurrency(amount: number, options?: { maximumFractionDigits?: number }): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: options?.maximumFractionDigits ?? 0,
+  }).format(amount);
+}
+
+
 /**
  * Format a Date as "YYYY-MM-DD" using *local* time, avoiding the
  * UTC-shift bug that `.toISOString().split("T")[0]` causes in
