@@ -142,8 +142,10 @@ const CRM = () => {
       <div className="space-y-[18px]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Client Management</h1>
-            <p className="mt-1 text-[13.5px] text-muted-foreground">Manage your clients and track their journey</p>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Clients</h1>
           </div>
           <div className="flex items-center gap-2">
             <ExportCustomersTripsButton />
