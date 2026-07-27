@@ -95,8 +95,11 @@ export default function IssuedCards() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <CreditCard className="h-6 w-6 text-primary" />
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+              <CreditCard className="h-[17px] w-[17px] text-primary" />
               Issued Virtual Cards
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
