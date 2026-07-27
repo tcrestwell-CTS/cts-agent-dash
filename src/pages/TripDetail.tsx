@@ -41,6 +41,8 @@ import {
   Settings2,
   Lock,
   Compass,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { TripPayments } from "@/components/trips/TripPayments";
@@ -84,6 +86,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,7 +129,9 @@ const TripDetail = () => {
   };
 
   const { trip, bookings, subTrips, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
-  const { deleteTrip, cloneTrip, creating: cloning } = useTrips();
+  const { trips: allTrips, deleteTrip, cloneTrip, creating: cloning } = useTrips();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [switcherQuery, setSwitcherQuery] = useState("");
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
   const earnings = useEarningsLabel();
@@ -401,6 +407,68 @@ const TripDetail = () => {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">{trip.trip_name}</h1>
+                <Popover open={switcherOpen} onOpenChange={setSwitcherOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      aria-label="Switch trip"
+                    >
+                      <ChevronsUpDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[320px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search trips…"
+                        value={switcherQuery}
+                        onValueChange={setSwitcherQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No trips found.</CommandEmpty>
+                        <CommandGroup heading="Recent trips">
+                          {(allTrips || [])
+                            .filter((t) => !switcherQuery ||
+                              t.trip_name.toLowerCase().includes(switcherQuery.toLowerCase()) ||
+                              (t.destination || "").toLowerCase().includes(switcherQuery.toLowerCase()) ||
+                              ((t as any).clients?.name || "").toLowerCase().includes(switcherQuery.toLowerCase())
+                            )
+                            .slice(0, 30)
+                            .map((t) => {
+                              const isCurrent = t.id === trip.id;
+                              const clientName = (t as any).clients?.name;
+                              return (
+                                <CommandItem
+                                  key={t.id}
+                                  value={`${t.trip_name} ${clientName ?? ""} ${t.destination ?? ""}`}
+                                  onSelect={() => {
+                                    setSwitcherOpen(false);
+                                    setSwitcherQuery("");
+                                    if (!isCurrent) navigate(`/trips/${t.id}${activeTab === "itinerary" ? "/itinerary" : ""}`);
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Check className={`h-3.5 w-3.5 ${isCurrent ? "opacity-100 text-accent" : "opacity-0"}`} />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[13px] font-medium">{t.trip_name}</p>
+                                    <p className="truncate text-[11.5px] text-muted-foreground">
+                                      {clientName || "No client"}
+                                      {t.destination ? ` · ${t.destination}` : ""}
+                                      {t.depart_date ? ` · ${format(parseLocalDate(t.depart_date) as Date, "MMM d, yyyy")}` : ""}
+                                    </p>
+                                  </div>
+                                  <span className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
+                                    {t.status}
+                                  </span>
+                                </CommandItem>
+                              );
+                            })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <StatusPill
                   color="hsl(var(--accent))"
                   label={trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
