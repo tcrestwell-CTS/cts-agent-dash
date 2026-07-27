@@ -38,8 +38,11 @@ export default function CampaignAudiences() {
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Audiences</h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Audiences</h1>
+            <p className="mt-1 text-[13.5px] text-muted-foreground">
               Define recipient groups you can target with campaigns.
             </p>
           </div>
