@@ -34,6 +34,15 @@ import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeaderRow,
+  DataTableHeaderCell,
+  DataTableBody,
+  DataTableRow,
+  DataTableCell,
+} from "@/components/ui/data-table";
 import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useTripStatuses } from "@/hooks/useTripStatuses";
@@ -43,6 +52,36 @@ import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import type { Supplier } from "@/types/supplier";
+
+function daysUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const target = parseLocalDate(dateStr);
+  if (isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function DaysOutBadge({ days }: { days: number | null }) {
+  if (days === null) return <span className="text-[12px] text-muted-foreground">—</span>;
+  if (days < 0)
+    return (
+      <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground bg-muted">
+        {Math.abs(days)}d ago
+      </span>
+    );
+  const tone =
+    days < 7
+      ? "bg-destructive/15 text-destructive"
+      : days < 14
+        ? "bg-warning/15 text-warning"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
+      in {days}d
+    </span>
+  );
+}
 
 
 const initialPortalSuppliers: Supplier[] = [
