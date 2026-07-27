@@ -41,6 +41,8 @@ import {
   Settings2,
   Lock,
   Compass,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { TripPayments } from "@/components/trips/TripPayments";
