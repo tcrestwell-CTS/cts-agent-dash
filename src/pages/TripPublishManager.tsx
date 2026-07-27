@@ -86,7 +86,10 @@ function TripPublishManager() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Trip Publish Manager</h1>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Trip Publish Manager</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage which trips are publicly visible to clients
           </p>
