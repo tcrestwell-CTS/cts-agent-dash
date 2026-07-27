@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Ticket, Search, List, Star, Clock, Check, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL!,
@@ -90,71 +93,88 @@ function SearchTab() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
+      <div className="mb-5 flex items-center gap-3">
         <select
           value={destination}
           onChange={e => setDestination(e.target.value)}
-          style={{ flex: 1, padding: "10px 14px", background: "#0f1c2e", border: "1px solid rgba(255,255,255,0.15)", color: "white", fontFamily: "sans-serif", fontSize: "0.85rem", borderRadius: 4 }}
+          className="flex-1 rounded-md border border-input bg-background px-3.5 py-2.5 text-[13.5px] text-foreground"
         >
           {PORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <button
-          onClick={search}
-          disabled={loading}
-          style={{ padding: "10px 20px", background: "#c9a84c", color: "#0d1b2a", border: "none", fontWeight: 700, fontSize: "0.8rem", letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", fontFamily: "sans-serif", borderRadius: 4, opacity: loading ? 0.7 : 1 }}
-        >
+        <Button onClick={search} disabled={loading}>
           {loading ? "..." : "Search"}
-        </button>
+        </Button>
       </div>
 
-      {total > 0 && <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>{total.toLocaleString()} activities found</p>}
+      {total > 0 && (
+        <p className="mb-4 text-[12px] text-muted-foreground tabular-nums">
+          {total.toLocaleString()} activities found
+        </p>
+      )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {products.map(p => {
           const img = p.images?.[0]?.variants?.find(v => v.width >= 200)?.url;
           const isOpen = expanded === p.productCode;
           return (
-            <div key={p.productCode} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, overflow: "hidden" }}>
+            <div key={p.productCode} className="overflow-hidden rounded-md border border-border bg-card">
               <div
                 onClick={() => setExpanded(isOpen ? null : p.productCode)}
-                style={{ display: "flex", gap: 14, padding: "12px 14px", cursor: "pointer", alignItems: "center" }}
+                className="flex cursor-pointer items-center gap-3.5 px-3.5 py-3 hover:bg-muted/40"
               >
-                {img && <img src={img} alt="" style={{ width: 56, height: 42, objectFit: "cover", borderRadius: 3, flexShrink: 0 }} />}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "0.85rem", fontWeight: 500, color: "white", marginBottom: 4, lineHeight: 1.3 }}>{p.title}</div>
-                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    {p.reviews && <span style={{ fontSize: "0.72rem", color: "#f59e0b" }}>★ {p.reviews.combinedAverageRating.toFixed(1)} ({p.reviews.totalReviews.toLocaleString()})</span>}
-                    {p.pricing && <span style={{ fontSize: "0.72rem", color: "#c9a84c", fontWeight: 700 }}>From ${p.pricing.summary.fromPrice.toFixed(2)}</span>}
-                    {formatDuration(p.duration) && <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)" }}>⏱ {formatDuration(p.duration)}</span>}
-                    {p.flags?.includes("FREE_CANCELLATION") && <span style={{ fontSize: "0.68rem", color: "#4ade80" }}>✓ Free Cancel</span>}
+                {img && <img src={img} alt="" className="h-[42px] w-14 flex-shrink-0 rounded object-cover" />}
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 text-[13.5px] font-medium leading-snug text-foreground">{p.title}</div>
+                  <div className="flex flex-wrap items-center gap-3 tabular-nums">
+                    {p.reviews && (
+                      <span className="flex items-center gap-1 text-[11.5px] text-warning">
+                        <Star className="h-3 w-3 fill-current" />
+                        {p.reviews.combinedAverageRating.toFixed(1)} ({p.reviews.totalReviews.toLocaleString()})
+                      </span>
+                    )}
+                    {p.pricing && (
+                      <span className="text-[11.5px] font-bold text-primary">
+                        From ${p.pricing.summary.fromPrice.toFixed(2)}
+                      </span>
+                    )}
+                    {formatDuration(p.duration) && (
+                      <span className="flex items-center gap-1 text-[11.5px] text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDuration(p.duration)}
+                      </span>
+                    )}
+                    {p.flags?.includes("FREE_CANCELLATION") && (
+                      <span className="flex items-center gap-1 text-[11px] text-success">
+                        <Check className="h-3 w-3" />
+                        Free Cancel
+                      </span>
+                    )}
                   </div>
                 </div>
-                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.8rem", flexShrink: 0 }}>{isOpen ? "▲" : "▼"}</span>
+                {isOpen ? (
+                  <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                )}
               </div>
 
               {isOpen && (
-                <div style={{ padding: "0 14px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="border-t border-border/60 px-3.5 pb-3.5">
                   {p.description && (
-                    <p style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.65, marginBottom: 14, marginTop: 12 }}>
+                    <p className="mb-3.5 mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
                       {p.description.replace(/<[^>]*>/g, "").slice(0, 300)}...
                     </p>
                   )}
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <a
-                      href={p.productUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ padding: "8px 16px", background: "#c9a84c", color: "#0d1b2a", textDecoration: "none", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "sans-serif", borderRadius: 3 }}
-                    >
-                      View on Viator →
-                    </a>
-                    <button
-                      onClick={() => navigator.clipboard?.writeText(p.productUrl || "")}
-                      style={{ padding: "8px 16px", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", fontFamily: "sans-serif", borderRadius: 3 }}
-                    >
+                  <div className="flex items-center gap-2.5">
+                    <Button asChild size="sm">
+                      <a href={p.productUrl} target="_blank" rel="noopener noreferrer">
+                        View on Viator
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigator.clipboard?.writeText(p.productUrl || "")}>
                       Copy Link
-                    </button>
-                    <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.3)", alignSelf: "center", marginLeft: "auto" }}>
+                    </Button>
+                    <span className="ml-auto self-center text-[11px] text-muted-foreground/70">
                       {p.productCode}
                     </span>
                   </div>
@@ -186,37 +206,47 @@ function BookingsTab() {
   }, []);
 
   const statusColor = (s: string) => ({
-    CONFIRMED: "#4ade80", PENDING: "#f59e0b", CANCELLED: "#f87171",
-    HELD: "#60a5fa", FAILED: "#f87171", AMENDED: "#a78bfa",
-  }[s] || "#94a3b8");
+    CONFIRMED: "hsl(var(--success))",
+    PENDING: "hsl(var(--warning))",
+    CANCELLED: "hsl(var(--destructive))",
+    HELD: "hsl(var(--info))",
+    FAILED: "hsl(var(--destructive))",
+    AMENDED: "hsl(var(--accent))",
+  }[s] || "hsl(var(--muted-foreground))");
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>Loading bookings...</div>;
+  if (loading) return <div className="p-10 text-center text-[13.5px] text-muted-foreground">Loading bookings...</div>;
   if (!bookings.length) return (
-    <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.4)" }}>
-      <div style={{ fontSize: "2rem", marginBottom: 12 }}>🎫</div>
-      <p style={{ fontSize: "0.85rem" }}>No Viator bookings yet.</p>
-      <p style={{ fontSize: "0.78rem", marginTop: 8 }}>Bookings made through the website will appear here.</p>
+    <div className="p-10 text-center">
+      <Ticket className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" strokeWidth={1.5} />
+      <p className="text-[13.5px] font-semibold text-foreground">No Viator bookings yet.</p>
+      <p className="mt-1 text-[12.5px] text-muted-foreground">Bookings made through the website will appear here.</p>
     </div>
   );
 
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="flex flex-col gap-2">
         {bookings.map(b => (
-          <div key={b.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: "14px 16px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "white", marginBottom: 4 }}>{b.product_title || b.viator_booking_ref}</div>
-                <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>{b.customer_name} · {b.customer_email}</div>
+          <div key={b.id} className="rounded-md border border-border bg-card px-4 py-3.5">
+            <div className="mb-2.5 flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 text-[13.5px] font-medium text-foreground">{b.product_title || b.viator_booking_ref}</div>
+                <div className="text-[12.5px] text-muted-foreground">{b.customer_name} · {b.customer_email}</div>
               </div>
-              <span style={{ background: `${statusColor(b.status)}22`, border: `1px solid ${statusColor(b.status)}`, color: statusColor(b.status), padding: "3px 10px", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "sans-serif", borderRadius: 3, flexShrink: 0 }}>
+              <span
+                className="flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-[.13em]"
+                style={{ color: statusColor(b.status), background: `color-mix(in srgb, ${statusColor(b.status)} 15%, transparent)` }}
+              >
                 {b.status}
               </span>
             </div>
-            <div style={{ display: "flex", gap: 20, fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
-              <span>📅 {b.travel_date ? new Date(b.travel_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</span>
-              {b.total_price && <span style={{ color: "#c9a84c", fontWeight: 600 }}>${b.total_price.toFixed(2)}</span>}
-              <span style={{ marginLeft: "auto" }}>Ref: {b.viator_booking_ref}</span>
+            <div className="flex flex-wrap items-center gap-5 text-[12px] text-muted-foreground tabular-nums">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {b.travel_date ? new Date(b.travel_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+              </span>
+              {b.total_price && <span className="font-semibold text-primary">${b.total_price.toFixed(2)}</span>}
+              <span className="ml-auto">Ref: {b.viator_booking_ref}</span>
             </div>
           </div>
         ))}
@@ -230,40 +260,43 @@ export default function ViatorPanel() {
   const [tab, setTab] = useState<"search" | "bookings">("search");
 
   return (
-    <div style={{ background: "#0d1b2a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}>
-      {/* Header */}
-      <div style={{ background: "rgba(201,168,76,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: "1.2rem" }}>🎫</span>
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+      <div className="flex items-center justify-between border-b border-border/60 bg-primary/5 px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <Ticket className="h-5 w-5 text-primary" strokeWidth={1.9} />
           <div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "white", fontFamily: "sans-serif" }}>Viator Excursions</div>
-            <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.4)", fontFamily: "sans-serif", letterSpacing: "0.06em" }}>300,000+ activities worldwide</div>
+            <div className="text-[14.5px] font-semibold text-foreground">Viator Excursions</div>
+            <div className="text-[11px] text-muted-foreground">300,000+ activities worldwide</div>
           </div>
         </div>
         <a
           href="/excursions"
           target="_blank"
-          style={{ fontSize: "0.72rem", color: "#c9a84c", textDecoration: "none", fontFamily: "sans-serif", letterSpacing: "0.08em", textTransform: "uppercase" }}
+          className="text-[10.5px] font-bold uppercase tracking-[.13em] text-primary hover:underline"
         >
           View on Site →
         </a>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="flex border-b border-border/60">
         {(["search", "bookings"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            style={{ flex: 1, padding: "12px 0", background: "none", border: "none", borderBottom: tab === t ? "2px solid #c9a84c" : "2px solid transparent", color: tab === t ? "#c9a84c" : "rgba(255,255,255,0.45)", fontFamily: "sans-serif", fontSize: "0.78rem", fontWeight: tab === t ? 700 : 400, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", transition: "all 0.2s" }}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 border-b-2 py-3 text-[11.5px] font-semibold uppercase tracking-[.13em] transition-colors",
+              tab === t
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
           >
-            {t === "search" ? "🔍 Search" : "📋 Bookings"}
+            {t === "search" ? <Search className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+            {t === "search" ? "Search" : "Bookings"}
           </button>
         ))}
       </div>
 
-      {/* Content */}
-      <div style={{ padding: "20px" }}>
+      <div className="p-5">
         {tab === "search" ? <SearchTab /> : <BookingsTab />}
       </div>
     </div>
