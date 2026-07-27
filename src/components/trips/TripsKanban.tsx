@@ -5,7 +5,7 @@ import { Panel } from "@/components/patterns/Panel";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Users, MapPin, Loader2 } from "lucide-react";
+import { Calendar, Users, MapPin, Loader2, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import {
@@ -20,6 +20,43 @@ import type { Trip } from "@/hooks/useTrips";
 import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 
 type KanbanTrip = Trip & { kanbanStatus?: string };
+
+function daysUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const target = parseLocalDate(dateStr);
+  if (isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function formatMoney(v: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(v || 0);
+}
+
+function DaysOutBadge({ days }: { days: number | null }) {
+  if (days === null) return null;
+  if (days < 0)
+    return (
+      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10.5px] font-semibold text-muted-foreground">
+        {Math.abs(days)}d ago
+      </span>
+    );
+  const tone =
+    days < 7
+      ? "bg-destructive/15 text-destructive"
+      : days < 14
+        ? "bg-warning/15 text-warning"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold ${tone}`}>in {days}d</span>
+  );
+}
 
 export interface KanbanColumn {
   id: string;
@@ -197,6 +234,8 @@ export function TripsKanban({ trips, columns, onStatusChange }: TripsKanbanProps
 }
 
 function KanbanTripCard({ trip }: { trip: Trip }) {
+  const days = daysUntil(trip.depart_date);
+  const guests = (trip as any).num_travelers ?? (trip as any).travelers ?? null;
   return (
     <Panel className={`overflow-hidden transition-shadow hover:shadow-lg ${trip.isOptimistic ? "opacity-60 animate-pulse" : ""}`}>
       {trip.cover_image_url && (
@@ -213,20 +252,10 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
           {trip.isOptimistic && <Loader2 className="inline h-4 w-4 animate-spin mr-1" />}
           {trip.trip_name}
         </h4>
-        {trip.trip_type && trip.trip_type !== "regular" && (
-          <p className="text-[12.5px] text-muted-foreground italic">{trip.trip_type}</p>
-        )}
         {trip.clients?.name && (
           <p className="text-[12.5px] text-muted-foreground flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{trip.clients.name}</span>
-          </p>
-        )}
-        {trip.depart_date && (
-          <p className="text-[12.5px] text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {format(parseLocalDate(trip.depart_date), "MMM d")}
-            {trip.return_date && ` - ${format(parseLocalDate(trip.return_date), "MMM d, yyyy")}`}
           </p>
         )}
         {trip.destination && (
@@ -235,6 +264,27 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
             <span className="truncate">{trip.destination}</span>
           </p>
         )}
+        {trip.depart_date && (
+          <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <span>{format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}</span>
+            <DaysOutBadge days={days} />
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-1">
+          {guests ? (
+            <span className="inline-flex items-center gap-1 text-[12px] text-muted-foreground [font-variant-numeric:tabular-nums]">
+              <Users className="h-3.5 w-3.5" />
+              {guests}
+            </span>
+          ) : (
+            <span />
+          )}
+          <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-foreground [font-variant-numeric:tabular-nums]">
+            <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+            {formatMoney(trip.total_gross_sales)}
+          </span>
+        </div>
       </div>
     </Panel>
   );

@@ -11,10 +11,7 @@ import {
   Compass,
   Plus,
   Search,
-  Calendar,
   Users,
-  MapPin,
-  DollarSign,
   ExternalLink,
   Plane,
   Ship,
@@ -28,12 +25,20 @@ import {
   FileDown,
 } from "lucide-react";
 import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
-import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 import { Panel, EmptyState } from "@/components/patterns/Panel";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import {
+  DataTable,
+  DataTableHead,
+  DataTableHeaderRow,
+  DataTableHeaderCell,
+  DataTableBody,
+  DataTableRow,
+  DataTableCell,
+} from "@/components/ui/data-table";
 import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 import { useWorkflowAutomation } from "@/hooks/useWorkflowAutomation";
 import { useTripStatuses } from "@/hooks/useTripStatuses";
@@ -43,6 +48,36 @@ import { QuickBookingDialog } from "@/components/suppliers/QuickBookingDialog";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import type { Supplier } from "@/types/supplier";
+
+function daysUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const target = parseLocalDate(dateStr);
+  if (isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function DaysOutBadge({ days }: { days: number | null }) {
+  if (days === null) return <span className="text-[12px] text-muted-foreground">—</span>;
+  if (days < 0)
+    return (
+      <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-muted-foreground bg-muted">
+        {Math.abs(days)}d ago
+      </span>
+    );
+  const tone =
+    days < 7
+      ? "bg-destructive/15 text-destructive"
+      : days < 14
+        ? "bg-warning/15 text-warning"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
+      in {days}d
+    </span>
+  );
+}
 
 
 const initialPortalSuppliers: Supplier[] = [
@@ -454,7 +489,6 @@ const Trips = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [tripNameFilter, setTripNameFilter] = useState<string>("all");
 
   const handleTripCreated = () => {
     setIsAddDialogOpen(false);
@@ -480,10 +514,7 @@ const Trips = () => {
       trip.destination?.toLowerCase().includes(searchLower) ||
       trip.clients?.name.toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
-    const matchesTripName =
-      tripNameFilter === "all" ||
-      trip.trip_name?.toLowerCase().startsWith(tripNameFilter.toLowerCase());
-    return matchesSearch && matchesStatus && matchesTripName;
+    return matchesSearch && matchesStatus;
   });
 
   const filteredPortalSuppliers = selectedCategory === "all" 
@@ -540,7 +571,15 @@ const Trips = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Trips</h1>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+              Trips
+              {!loading && (
+                <span className="ml-2 text-[13px] font-medium text-muted-foreground">
+                  ({filteredTrips.length}
+                  {filteredTrips.length !== trips.length ? ` of ${trips.length}` : ""})
+                </span>
+              )}
+            </h1>
             <p className="mt-1 text-[13.5px] text-muted-foreground">Manage client trips and access booking portals</p>
           </div>
           <div className="flex items-center gap-2">
@@ -587,38 +626,19 @@ const Trips = () => {
                   className="h-10 rounded-[8px] pl-9 text-[13.5px]"
                 />
               </div>
-              {viewMode === "list" && (
-                <>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px] rounded-[8px] text-[13.5px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All statuses</SelectItem>
-                      {statuses.map((s) => (
-                        <SelectItem key={s.id} value={statusToSlug(s.name)}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={tripNameFilter} onValueChange={setTripNameFilter}>
-                    <SelectTrigger className="w-[220px] rounded-[8px] text-[13.5px]">
-                      <SelectValue placeholder="Filter by trip name" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All trip names</SelectItem>
-                      {Array.from(new Set(trips.map((t) => t.trip_name).filter(Boolean)))
-                        .sort((a, b) => a.localeCompare(b))
-                        .map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px] rounded-[8px] text-[13.5px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {statuses.map((s) => (
+                    <SelectItem key={s.id} value={statusToSlug(s.name)}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex overflow-hidden rounded-[8px] border border-border">
                 <Button
                   variant={viewMode === "kanban" ? "default" : "ghost"}
@@ -697,70 +717,79 @@ const Trips = () => {
                 />
               </Panel>
             ) : (
-              <div className="grid gap-[14px]">
-                {filteredTrips.map((trip) => (
-                  <Panel
-                    key={trip.id}
-                    className={`cursor-pointer transition-shadow hover:shadow-lg ${
-                      trip.isOptimistic
-                        ? "opacity-70 animate-pulse border-dashed pointer-events-none"
-                        : ""
-                    }`}
-                    onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
-                  >
-                    <div className="p-[14px]">
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-3 mb-2">
-                            {trip.isOptimistic && (
-                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
+              <Panel className="overflow-hidden p-0">
+                <DataTable>
+                  <DataTableHead>
+                    <DataTableHeaderRow>
+                      <DataTableHeaderCell>Trip / Client</DataTableHeaderCell>
+                      <DataTableHeaderCell secondary>Destination</DataTableHeaderCell>
+                      <DataTableHeaderCell>Departure</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right" secondary>Guests</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right">Value</DataTableHeaderCell>
+                      <DataTableHeaderCell align="right" secondary>Commission</DataTableHeaderCell>
+                      <DataTableHeaderCell>Status</DataTableHeaderCell>
+                    </DataTableHeaderRow>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {filteredTrips.map((trip) => {
+                      const days = daysUntil(trip.depart_date);
+                      const guests = (trip as any).num_travelers ?? (trip as any).travelers ?? null;
+                      return (
+                        <DataTableRow
+                          key={trip.id}
+                          interactive={!trip.isOptimistic}
+                          onClick={() => !trip.isOptimistic && navigate(`/trips/${trip.id}`)}
+                          className={trip.isOptimistic ? "opacity-70 animate-pulse pointer-events-none" : ""}
+                        >
+                          <DataTableCell
+                            primary={
+                              <span className="flex items-center gap-2">
+                                {trip.isOptimistic && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                                <span className="truncate">{trip.trip_name}</span>
+                              </span>
+                            }
+                            sub={trip.clients?.name || "Unassigned client"}
+                          />
+                          <DataTableCell secondary>
+                            {trip.destination ? (
+                              <span className="text-[13.5px] text-muted-foreground">{trip.destination}</span>
+                            ) : (
+                              <span className="text-[13px] text-muted-foreground">—</span>
                             )}
-                            <h3 className="text-[14.5px] font-semibold truncate text-foreground">
-                              {trip.trip_name}
-                            </h3>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[13.5px]">
+                                {trip.depart_date
+                                  ? format(parseLocalDate(trip.depart_date), "MMM d, yyyy")
+                                  : "—"}
+                              </span>
+                              <DaysOutBadge days={days} />
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell align="right" secondary>
+                            {guests ? (
+                              <span className="[font-variant-numeric:tabular-nums]">{guests}</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </DataTableCell>
+                          <DataTableCell money>{formatCurrency(trip.total_gross_sales)}</DataTableCell>
+                          <DataTableCell money secondary className="text-primary">
+                            {formatCurrency(trip.total_commission_revenue)}
+                          </DataTableCell>
+                          <DataTableCell>
                             <StatusPill
                               color={getStatusColor(trip.status)}
                               label={trip.isOptimistic ? "Saving..." : getStatusLabel(trip.status)}
                             />
-                          </div>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted-foreground">
-                            <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
-                            <span className="flex items-center gap-1.5">
-                              <Users className="h-4 w-4" />
-                              {trip.clients?.name || "Unknown Client"}
-                            </span>
-                            {trip.destination && (
-                              <span className="flex items-center gap-1.5">
-                                <MapPin className="h-4 w-4" />
-                                {trip.destination}
-                              </span>
-                            )}
-                            {trip.depart_date && (
-                              <span className="flex items-center gap-1.5">
-                                <Calendar className="h-4 w-4" />
-                                {format(parseLocalDate(trip.depart_date), "MMM d, yyyy")}
-                                {trip.return_date && (
-                                  <> - {format(parseLocalDate(trip.return_date), "MMM d, yyyy")}</>
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-6 lg:gap-8">
-                          <div className="text-right">
-                            <p className="text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">Total Sales</p>
-                            <p className="text-[14.5px] font-semibold text-foreground">{formatCurrency(trip.total_gross_sales)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">Commission</p>
-                            <p className="text-[14.5px] font-semibold text-primary">{formatCurrency(trip.total_commission_revenue)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Panel>
-                ))}
-              </div>
+                          </DataTableCell>
+                        </DataTableRow>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </Panel>
             )}
           </TabsContent>
 
