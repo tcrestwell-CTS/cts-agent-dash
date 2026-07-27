@@ -1,5 +1,6 @@
 import { DollarSign, Users, TrendingUp, Receipt } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/utils";
 
 interface BusinessSnapshotProps {
   revenueMTD: number;
@@ -8,9 +9,6 @@ interface BusinessSnapshotProps {
   avgBookingValue?: number;
   loading?: boolean;
 }
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
 
 const stats = [
   { key: "revenue" as const, label: "Revenue MTD", icon: DollarSign, format: (v: number) => formatCurrency(v) },
