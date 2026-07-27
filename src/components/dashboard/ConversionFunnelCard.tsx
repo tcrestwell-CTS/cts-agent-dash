@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Eye, CheckCircle2, Sparkles } from "lucide-react";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 
 interface ConversionFunnelCardProps {
@@ -15,50 +14,37 @@ const pct = (numerator: number, denominator: number) =>
 
 export function ConversionFunnelCard({ sent, viewed, approved, booked, loading }: ConversionFunnelCardProps) {
   const stages = [
-    { key: "sent", label: "Sent", value: sent, icon: Send, pct: 100 },
-    { key: "viewed", label: "Viewed", value: viewed, icon: Eye, pct: pct(viewed, sent) },
-    { key: "approved", label: "Approved", value: approved, icon: CheckCircle2, pct: pct(approved, sent) },
-    { key: "booked", label: "Booked", value: booked, icon: Sparkles, pct: pct(booked, sent) },
+    { key: "sent" as const, label: "Sent", value: sent, pct: 100 },
+    { key: "viewed" as const, label: "Viewed", value: viewed, pct: pct(viewed, sent) },
+    { key: "approved" as const, label: "Approved", value: approved, pct: pct(approved, sent) },
   ];
-
-  const overallConversion = pct(booked, sent);
 
   return (
     <Panel>
       <PanelHeader
-        title="Quote Conversion"
-        actions={
-          !loading && (
-            <span className="text-[12.5px] font-semibold text-foreground">
-              {overallConversion}% Sent → Booked
-            </span>
-          )
-        }
+        title="Quote funnel"
+        subtitle="Last 90 days"
       />
-      <PanelBody className="space-y-3">
+      <PanelBody className="space-y-4">
         {loading ? (
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-28 w-full" />
         ) : (
-          stages.map(({ key, label, value, icon: Icon, pct: stagePct }) => (
-            <div key={key} className="space-y-1">
-              <div className="flex items-center justify-between text-[13.5px]">
-                <div className="flex items-center gap-2 text-foreground">
-                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{label}</span>
+          <>
+            {stages.map(({ label, value, pct: stagePct }) => (
+              <div key={label} className="space-y-1.5">
+                <div className="flex items-center justify-between text-[13.5px]">
+                  <span className="font-medium text-foreground">{label}</span>
+                  <span className="tabular-nums font-semibold text-foreground">{value}</span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <span className="tabular-nums font-medium text-foreground">{value}</span>
-                  <span className="w-10 text-right text-[12px] tabular-nums">{stagePct}%</span>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${Math.min(100, stagePct)}%` }}
+                  />
                 </div>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-accent transition-all"
-                  style={{ width: `${Math.min(100, stagePct)}%` }}
-                />
-              </div>
-            </div>
-          ))
+            ))}
+          </>
         )}
       </PanelBody>
     </Panel>

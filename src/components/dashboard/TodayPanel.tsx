@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Phone, CreditCard, Plane } from "lucide-react";
+import { Phone, DollarSign, Plane } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Panel } from "@/components/patterns/Panel";
 import { cn } from "@/lib/utils";
@@ -15,51 +15,72 @@ export function TodayPanel({ followUps, paymentsDue, departuresSoon, loading }: 
   const navigate = useNavigate();
 
   return (
-    <div>
-      <h2 className="text-[10.5px] font-bold uppercase tracking-[.13em] text-muted-foreground mb-3">Today</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
-        <CounterCard label="Follow Ups" count={loading ? null : followUps} icon={Phone} onClick={() => navigate("/trips")} urgent={followUps > 0} />
-        <CounterCard label="Payments Due" count={loading ? null : paymentsDue} icon={CreditCard} onClick={() => navigate("/payments-due")} urgent={paymentsDue > 0} />
-        <CounterCard label="Departures Soon" count={loading ? null : departuresSoon} icon={Plane} onClick={() => navigate("/trips")} urgent={departuresSoon >= 3} />
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
+      <CounterCard
+        label="Follow-ups"
+        description="Proposals & quotes awaiting reply"
+        count={loading ? null : followUps}
+        icon={Phone}
+        onClick={() => navigate("/trips")}
+        accent="primary"
+      />
+      <CounterCard
+        label="Commissions Due"
+        description="Agency lines awaiting supplier"
+        count={loading ? null : paymentsDue}
+        icon={DollarSign}
+        onClick={() => navigate("/payments-due")}
+        accent="accent"
+      />
+      <CounterCard
+        label="Departures ≤14D"
+        description="Docs and final balances due"
+        count={loading ? null : departuresSoon}
+        icon={Plane}
+        onClick={() => navigate("/trips")}
+        accent="info"
+      />
     </div>
   );
 }
 
 function CounterCard({
   label,
+  description,
   count,
   icon: Icon,
   onClick,
-  urgent,
+  accent,
 }: {
   label: string;
+  description: string;
   count: number | null;
   icon: React.ElementType;
   onClick?: () => void;
-  urgent?: boolean;
+  accent: "primary" | "accent" | "info";
 }) {
+  const accentClasses = {
+    primary: "bg-primary/10 text-primary",
+    accent: "bg-accent/10 text-accent",
+    info: "bg-info/10 text-info",
+  };
+
   return (
     <Panel
       onClick={onClick}
       className={cn(
-        "flex items-center gap-4 p-[14px] cursor-pointer transition-colors hover:bg-muted/30",
-        urgent && "border-destructive/30 bg-destructive/5"
+        "flex items-start justify-between p-[18px] cursor-pointer transition-colors hover:bg-muted/30"
       )}
     >
-      <div
-        className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-[9px]",
-          urgent ? "bg-destructive/10" : "bg-primary/10"
-        )}
-      >
-        <Icon className={cn("h-5 w-5", urgent ? "text-destructive" : "text-primary")} />
-      </div>
       <div className="min-w-0">
         <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-muted-foreground">{label}</p>
-        <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums text-foreground">
-          {count === null ? <Skeleton className="inline-block h-7 w-10" /> : count}
+        <p className="mt-1 text-[32px] font-semibold leading-none tabular-nums text-foreground">
+          {count === null ? <Skeleton className="inline-block h-8 w-10" /> : count}
         </p>
+        <p className="mt-2 text-[12.5px] text-muted-foreground">{description}</p>
+      </div>
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]", accentClasses[accent])}>
+        <Icon className="h-5 w-5" />
       </div>
     </Panel>
   );

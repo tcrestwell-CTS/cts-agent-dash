@@ -29,7 +29,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 export function DashboardContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"my" | "agency">("agency");
+  const [activeTab, setActiveTab] = useState<"my" | "agency">("my");
   const { canView: canViewAgencyMetrics } = useCanViewTeam();
   const { isComplete: onboardingComplete, isLoading: onboardingLoading } = useOnboarding();
 
@@ -47,7 +47,7 @@ export function DashboardContent() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trip_payments")
-        .select("id, due_date, status")
+        .select("id, amount, due_date, status")
         .eq("status", "pending")
         .not("due_date", "is", null)
         .order("due_date", { ascending: true })
@@ -136,9 +136,19 @@ export function DashboardContent() {
       return isFuture(d) && isWithinInterval(d, { start: now, end: addDays(now, 14) });
     }).length;
 
-    const quotesSent = (trips || []).filter((t) => t.status === "quoted").length;
+    const quotesTrips = (trips || []).filter((t) => t.status === "quoted");
+    const quotesSent = quotesTrips.length;
+    const quotesValue = quotesTrips.reduce((sum, t) => sum + (t.total_gross_sales || 0), 0);
+
+    const proposalsTrips = (trips || []).filter((t) => t.status === "proposal_sent");
+    const proposalsSent = proposalsTrips.length;
+    const proposalsValue = proposalsTrips.reduce((sum, t) => sum + (t.total_gross_sales || 0), 0);
+
+    const confirmedTrips = (trips || []).filter((t) => t.status === "booked" || t.status === "confirmed");
+    const confirmedCount = confirmedTrips.length;
+    const confirmedValue = confirmedTrips.reduce((sum, t) => sum + (t.total_gross_sales || 0), 0);
+
     const pendingBookingsCount = activeBookings.filter((b) => b.status === "pending").length;
-    const confirmedTrips = (trips || []).filter((t) => t.status === "booked" || t.status === "confirmed").length;
 
     const upcomingTrips = (trips || [])
       .filter((t) => {
@@ -176,7 +186,7 @@ export function DashboardContent() {
     ).length;
 
     return {
-      followUps, paymentsDue, departuresSoon, quotesSent, pendingBookingsCount, confirmedTrips,
+      followUps, paymentsDue, departuresSoon, quotesSent, quotesValue, proposalsSent, proposalsValue, confirmedCount, confirmedValue, pendingBookingsCount,
       upcomingTrips, revenueMTD, totalClients, conversionRate, avgBookingValue,
       funnelSent, funnelViewed, funnelApproved, funnelBooked,
     };
@@ -186,13 +196,22 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      {/* Action Items — always first, above the fold */}
+      {/* Page header */}
+      <div className="space-y-1">
+        <p className="text-[10.5px] font-bold uppercase tracking-[.18em] text-muted-foreground">
+          Crestwell Travel Services
+        </p>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">Dashboard</h1>
+      </div>
+
+      {/* Attention banner */}
       <TodayActionItems />
-      {/* Row 1: Greeting + inline stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+
+      {/* Greeting + inline stats */}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+        <h2 className="text-[28px] font-semibold tracking-[-0.02em] text-foreground">
           Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {firstName}
-        </h1>
+        </h2>
         <BusinessSnapshot
           revenueMTD={computed.revenueMTD}
           totalClients={computed.totalClients}
@@ -202,7 +221,7 @@ export function DashboardContent() {
         />
       </div>
 
-      {/* Row 2: Actions + Search */}
+      {/* Actions + Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <QuickActions />
         <TopBar />
@@ -256,8 +275,11 @@ export function DashboardContent() {
               loading={loading}
               data={{
                 quotes: computed.quotesSent,
-                pending: computed.pendingBookingsCount,
-                confirmed: computed.confirmedTrips,
+                quotesValue: computed.quotesValue,
+                proposals: computed.proposalsSent,
+                proposalsValue: computed.proposalsValue,
+                confirmed: computed.confirmedCount,
+                confirmedValue: computed.confirmedValue,
               }}
             />
           </div>
@@ -292,7 +314,7 @@ export function DashboardContent() {
               <AdvisorAssistant
                 followUps={computed.followUps}
                 paymentsDue={computed.paymentsDue}
-                confirmedTrips={computed.confirmedTrips}
+                confirmedTrips={computed.confirmedCount}
               />
             </div>
           </div>

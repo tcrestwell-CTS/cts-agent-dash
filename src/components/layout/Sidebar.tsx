@@ -78,6 +78,7 @@ interface NavGroup {
 const topLevelNav: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: "dashboard" },
   { name: "Approvals", href: "/approvals", icon: Inbox },
+  { name: "Notifications", href: "/notifications", icon: Bell },
 ];
 
 const navGroups: NavGroup[] = [
@@ -95,6 +96,7 @@ const navGroups: NavGroup[] = [
     icon: Compass,
     items: [
       { name: "Trips",       href: "/trips",       icon: Compass,   feature: "trips" },
+      { name: "Trip Builder",href: "/trip-builder",icon: Compass,   feature: "trips" },
       { name: "Bookings",    href: "/bookings",    icon: BookOpen,  feature: "trips" },
       { name: "Suppliers",   href: "/suppliers",   icon: Building2, feature: "suppliers" },
       { name: "Commissions", href: "/commissions", icon: DollarSign, feature: "commissions" },
@@ -104,12 +106,9 @@ const navGroups: NavGroup[] = [
     label: "Search",
     icon: Ship,
     items: [
-      { name: "Cruises",    href: "/cruises",    icon: Ship,    feature: "cruise_search" },
-      { name: "Hotels",     href: "/hotels",     icon: Hotel,   feature: "hotel_search" },
-      { name: "Flights",    href: "/flights",    icon: Plane,   feature: "flight_search" },
-      { name: "Excursions", href: "/excursions", icon: Compass, feature: "excursions" },
-      { name: "Car Rentals", href: "/car-rentals", icon: Car },
-      { name: "Loan Applications", href: "/loan-applications", icon: CreditCard, feature: "loan_applications" },
+      { name: "Cruises", href: "/cruises", icon: Ship, feature: "cruise_search" },
+      { name: "Hotels",  href: "/hotels",  icon: Hotel, feature: "hotel_search" },
+      { name: "Flights", href: "/flights", icon: Plane, feature: "flight_search" },
     ],
   },
   {
