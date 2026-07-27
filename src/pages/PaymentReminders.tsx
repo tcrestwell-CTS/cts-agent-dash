@@ -144,7 +144,7 @@ export default function PaymentReminders() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-serif tracking-tight" style={{ color: "#0d1b2a" }}>
+            <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
               Payment Reminders
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -153,14 +153,11 @@ export default function PaymentReminders() {
           </div>
           <div className="flex gap-2">
             {selected.size > 0 && (
-              <Button
-                onClick={() => setBulkOpen(true)}
-                style={{ background: "#0d1b2a", color: "#ffffff" }}
-              >
+              <Button onClick={() => setBulkOpen(true)} variant="secondary">
                 <Mail className="h-4 w-4 mr-2" /> Send {selected.size} Reminder{selected.size === 1 ? "" : "s"}
               </Button>
             )}
-            <Button onClick={() => setAddOpen(true)} style={{ background: "#c9a84c", color: "#0d1b2a" }}>
+            <Button onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Add Reminder
             </Button>
           </div>
@@ -279,11 +276,7 @@ export default function PaymentReminders() {
                                 <AlertCircle className="h-3 w-3" /> No email
                               </Badge>
                             ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => handleSend(r)}
-                                style={{ background: "#0d1b2a", color: "#ffffff" }}
-                              >
+                              <Button size="sm" variant="secondary" onClick={() => handleSend(r)}>
                                 <Send className="h-3 w-3 mr-1" />
                                 {r.last_sent_at ? "Resend" : "Send"}
                               </Button>
