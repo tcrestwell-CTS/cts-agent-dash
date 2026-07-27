@@ -42,6 +42,7 @@ const Suppliers           = lazy(() => import("./pages/Suppliers"));
 const SupplierDocs        = lazy(() => import("./pages/SupplierDocs"));
 const Trips               = lazy(() => import("./pages/Trips"));
 const TripDetail          = lazy(() => import("./pages/TripDetail"));
+import TripBuilderEntry from "@/pages/TripBuilderEntry";
 const Auth                = lazy(() => import("./pages/Auth"));
 const NotFound            = lazy(() => import("./pages/NotFound"));
 const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
@@ -207,7 +208,8 @@ const App = () => (
                 <Route path="/suppliers" element={<ProtectedRoute><FeatureRoute feature="suppliers"><Suppliers /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips" element={<ProtectedRoute><FeatureRoute feature="trips"><Trips /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips/:tripId" element={<ProtectedRoute><FeatureRoute feature="trips"><TripDetail /></FeatureRoute></ProtectedRoute>} />
-                <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><FeatureRoute feature="trips"><TripDetail /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/trip-builder" element={<ProtectedRoute><FeatureRoute feature="trips"><TripBuilderEntry /></FeatureRoute></ProtectedRoute>} />
+        <Route path="/trips/:tripId/itinerary" element={<ProtectedRoute><FeatureRoute feature="trips"><TripDetail /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips/:tripId/insurance" element={<ProtectedRoute><TripInsurance /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/landing-page" element={<ProtectedRoute><GroupLandingBuilder /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
