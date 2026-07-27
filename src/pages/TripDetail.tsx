@@ -127,7 +127,9 @@ const TripDetail = () => {
   };
 
   const { trip, bookings, subTrips, loading, removeBookingFromTrip, updateTripStatus, updatingStatus, fetchTrip } = useTrip(tripId);
-  const { deleteTrip, cloneTrip, creating: cloning } = useTrips();
+  const { trips: allTrips, deleteTrip, cloneTrip, creating: cloning } = useTrips();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [switcherQuery, setSwitcherQuery] = useState("");
   const { payments } = useTripPayments(tripId);
   const { profile } = useProfile();
   const earnings = useEarningsLabel();
