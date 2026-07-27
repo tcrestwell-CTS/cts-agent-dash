@@ -13,30 +13,32 @@ const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
 
 const stats = [
-  { key: "revenue" as const, label: "Revenue MTD", icon: DollarSign },
-  { key: "avg" as const, label: "Avg Booking", icon: Receipt },
-  { key: "clients" as const, label: "Clients", icon: Users },
-  { key: "conversion" as const, label: "Conversion", icon: TrendingUp },
+  { key: "revenue" as const, label: "Revenue MTD", icon: DollarSign, format: (v: number) => formatCurrency(v) },
+  { key: "clients" as const, label: "Clients", icon: Users, format: (v: number) => String(v) },
+  { key: "conversion" as const, label: "Conversion", icon: TrendingUp, format: (v: number) => `${v}%` },
+  { key: "avg" as const, label: "Avg Booking", icon: Receipt, format: (v: number) => formatCurrency(v) },
 ];
 
 export function BusinessSnapshot({ revenueMTD, totalClients, conversionRate, avgBookingValue = 0, loading }: BusinessSnapshotProps) {
   const values = {
-    revenue: formatCurrency(revenueMTD),
-    avg: formatCurrency(avgBookingValue),
-    clients: String(totalClients),
-    conversion: `${conversionRate}%`,
+    revenue: revenueMTD,
+    clients: totalClients,
+    conversion: conversionRate,
+    avg: avgBookingValue,
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-y-2 divide-x divide-border">
-      {stats.map(({ key, label, icon: Icon }) => (
-        <div key={key} className="flex items-center gap-2 px-4 first:pl-0 last:pr-0">
-          <Icon className="h-4 w-4 text-muted-foreground" />
-          <span className="text-[12.5px] text-muted-foreground">{label}</span>
+    <div className="flex flex-wrap items-end gap-6 sm:gap-8">
+      {stats.map(({ key, label, icon: Icon, format }) => (
+        <div key={key} className="flex flex-col items-start">
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[.13em] text-muted-foreground">
+            <Icon className="h-3.5 w-3.5" />
+            <span>{label}</span>
+          </div>
           {loading ? (
-            <Skeleton className="h-4 w-10" />
+            <Skeleton className="mt-1.5 h-6 w-14" />
           ) : (
-            <span className="text-[13.5px] font-semibold tabular-nums text-foreground">{values[key]}</span>
+            <span className="mt-1 text-[18px] font-semibold tabular-nums text-foreground">{format(values[key])}</span>
           )}
         </div>
       ))}
