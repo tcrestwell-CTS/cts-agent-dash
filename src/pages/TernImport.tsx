@@ -144,7 +144,10 @@ export default function TernImport() {
   return (
     <div className="container mx-auto max-w-5xl py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Import from Tern.travel</h1>
+        <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+        Crestwell Travel Services
+      </p>
+      <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Import from Tern.travel</h1>
         <p className="text-muted-foreground mt-1">
           Upload your <span className="font-mono">All_Trips.csv</span> and{" "}
           <span className="font-mono">All_Bookings.csv</span> exports from Tern. We dedupe against existing
