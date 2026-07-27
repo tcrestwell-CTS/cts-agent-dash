@@ -89,8 +89,11 @@ export default function Kandi() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">AI Agents Health</h1>
-          <p className="text-sm text-muted-foreground">Agent monitoring dashboard — all 7 agents at a glance</p>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">AI Agents Health</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">Agent monitoring dashboard — all 7 agents at a glance</p>
         </div>
 
         {/* Agent Cards Grid with Individual Gauges */}
