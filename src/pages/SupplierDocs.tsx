@@ -144,7 +144,10 @@ export default function SupplierDocs() {
               <Webhook className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Supplier Webhook Integration</h1>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+                Crestwell Travel Services
+              </p>
+              <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Supplier Webhook Integration</h1>
               <p className="text-muted-foreground">API documentation for integrating your booking system</p>
             </div>
           </div>
