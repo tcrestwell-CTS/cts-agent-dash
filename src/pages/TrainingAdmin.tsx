@@ -24,8 +24,11 @@ const TrainingAdmin = () => {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground flex items-center gap-3">
-            <Settings className="h-8 w-8 text-accent" />
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+            <Settings className="h-[17px] w-[17px] text-accent" />
             Training Admin
           </h1>
           <p className="text-muted-foreground mt-1">Manage training content, track progress, and publish announcements</p>
