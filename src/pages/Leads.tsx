@@ -57,6 +57,8 @@ type QuoteRequest = {
   proposal_approved_at: string | null;
   proposal_expires_at: string | null;
   selected_option: string | null;
+  assigned_agent_id: string | null;
+  assigned_at: string | null;
 };
 
 // ─── Proposal Review Gate ────────────────────────────────────────────────────
