@@ -351,87 +351,61 @@ const Commissions = () => {
       {isAdmin && <div className="mb-6"><PendingOverridesCard /></div>}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-muted-foreground">Total Earned (Your Share)</p>
-            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-success" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {[
+          {
+            label: canViewAgencyWide ? "Agency expected" : "My expected",
+            value: formatCurrency(totals.expected),
+            sub: `${totals.pendingCount} open`,
+            icon: DollarSign,
+            tone: "text-foreground",
+            bg: "bg-primary/10",
+            iconTone: "text-primary",
+          },
+          {
+            label: canViewAgencyWide ? "Agency received" : "My received",
+            value: formatCurrency(totals.received),
+            sub: `${totals.paidCount} settled`,
+            icon: TrendingUp,
+            tone: "text-success",
+            bg: "bg-success/10",
+            iconTone: "text-success",
+          },
+          {
+            label: canViewAgencyWide ? "Paid out YTD" : "Paid to me YTD",
+            value: formatCurrency(totals.paidYTD),
+            sub: `Since Jan 1, ${new Date().getFullYear()}`,
+            icon: Calendar,
+            tone: "text-foreground",
+            bg: "bg-accent/10",
+            iconTone: "text-accent",
+          },
+          {
+            label: canViewAgencyWide ? "Over 60 days" : "My lines over 60 days",
+            value: formatCurrency(totals.overSixty),
+            sub: `${totals.overSixtyCount} line${totals.overSixtyCount === 1 ? "" : "s"}`,
+            icon: ArrowUpRight,
+            tone: totals.overSixty > 0 ? "text-warning" : "text-foreground",
+            bg: "bg-warning/10",
+            iconTone: "text-warning",
+          },
+        ].map(({ label, value, sub, icon: Icon, tone, bg, iconTone }) => (
+          <div key={label} className="bg-card rounded-xl p-5 shadow-card border border-border/50">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${bg}`}>
+                <Icon className={`h-5 w-5 ${iconTone}`} />
+              </div>
             </div>
+            <p className={`text-3xl font-semibold tabular-nums ${tone}`}>{value}</p>
+            <p className="text-sm text-muted-foreground mt-2">{sub}</p>
           </div>
-          <p className="text-3xl font-semibold text-card-foreground">
-            {formatCurrency(totals.totalEarned)}
+        ))}
+        {!canViewAgencyWide && (
+          <p className="md:col-span-4 text-xs text-muted-foreground -mt-2">
+            Amounts reflect your {tierConfig.agentSplit}% share after the tier split.
           </p>
-          {!canViewAgencyWide && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Based on your {tierConfig.agentSplit}% rate
-            </p>
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-muted-foreground">This Month</p>
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-primary" />
-            </div>
-          </div>
-          <p className="text-3xl font-semibold text-card-foreground">
-            {formatCurrency(totals.thisMonth)}
-          </p>
-          {totals.thisMonth > 0 && (
-            <div className="flex items-center gap-1 mt-2 text-success">
-              <TrendingUp className="h-4 w-4" />
-              <span className="text-sm font-medium">Earnings this month</span>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-muted-foreground">Paid</p>
-            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-success" />
-            </div>
-          </div>
-          <p className="text-3xl font-semibold text-success">
-            {formatCurrency(totals.paid)}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {totals.paidCount} payment{totals.paidCount !== 1 ? "s" : ""}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-muted-foreground">Pending</p>
-            <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-warning" />
-            </div>
-          </div>
-          <p className="text-3xl font-semibold text-warning">
-            {formatCurrency(totals.pending)}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {totals.pendingCount} pending
-          </p>
-        </div>
-
-        {/* Holdback Reserve Card — now uses memoized totals */}
-        <div className="bg-card rounded-xl p-5 shadow-card border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-muted-foreground">Holdback Reserve</p>
-            <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <ArrowUpRight className="h-5 w-5 text-accent" />
-            </div>
-          </div>
-          <p className="text-3xl font-semibold text-accent">
-            {formatCurrency(totals.holdbackTotal)}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {totals.holdbackReleasedCount} released
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Agency-wide: Agent Breakdown */}
@@ -553,9 +527,12 @@ const Commissions = () => {
                   <TableRow>
                     <TableHead>Booking</TableHead>
                     <TableHead>Client</TableHead>
+                    {canViewAgencyWide && <TableHead>Agent</TableHead>}
                     <TableHead className="text-right">Booking Amt</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
-                    <TableHead className="text-right">Your Share</TableHead>
+                    <TableHead className="text-right">
+                      {canViewAgencyWide ? "Commission" : "My Share"}
+                    </TableHead>
                     <TableHead>Expected Date</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -574,12 +551,25 @@ const Commissions = () => {
                           </p>
                         </div>
                       </TableCell>
+                      {canViewAgencyWide && (
+                        <TableCell>
+                          <p className="text-sm">{item.agentName || "—"}</p>
+                          <p className="text-xs text-muted-foreground">{item.splitPct}% split</p>
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         {formatCurrency(item.booking?.total_amount || 0)}
                       </TableCell>
                       <TableCell className="text-right">{item.rate}%</TableCell>
-                      <TableCell className="text-right font-semibold text-success">
-                        {formatCurrency(item.agentShare)}
+                      <TableCell className="text-right">
+                        <p className="font-semibold text-success tabular-nums">
+                          {formatCurrency(canViewAgencyWide ? item.amount : item.agentShare)}
+                        </p>
+                        {!canViewAgencyWide && (
+                          <p className="text-xs text-muted-foreground tabular-nums">
+                            at {item.splitPct}% split
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell>
                         {item.expectedCommissionDate && (
