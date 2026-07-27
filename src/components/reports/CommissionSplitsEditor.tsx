@@ -190,9 +190,8 @@ export function CommissionSplitsEditor({
 
       {!editable && (
         <p className="text-xs text-muted-foreground italic">
-          {canSettle
-            ? "Split amounts are set by an agency administrator — you can confirm this payout as-is."
-            : "Splits can only be edited by an agency administrator."}
+          Read-only — only an admin can change allocations.
+          {canSettle && " You can still confirm this payout as-is."}
         </p>
       )}
 
