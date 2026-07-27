@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,8 @@ type QuoteRequest = {
   proposal_approved_at: string | null;
   proposal_expires_at: string | null;
   selected_option: string | null;
+  assigned_agent_id: string | null;
+  assigned_at: string | null;
 };
 
 // ─── Proposal Review Gate ────────────────────────────────────────────────────
@@ -295,6 +298,100 @@ function ScoreBar({ score }: { score: number | null }) {
   );
 }
 
+function AssignAgentControl({
+  lead,
+  refetch,
+}: {
+  lead: QuoteRequest;
+  refetch: () => void;
+}) {
+  const { user } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
+  const { data: isOfficeAdmin } = useIsOfficeAdmin();
+  const canAssign = !!(isAdmin || isOfficeAdmin);
+  const [saving, setSaving] = useState(false);
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ["assignable-agents"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      return (data || []) as { user_id: string; full_name: string | null }[];
+    },
+  });
+
+  const assignee = agents.find((a) => a.user_id === lead.assigned_agent_id);
+  const assigneeLabel = assignee?.full_name || (lead.assigned_agent_id ? "Assigned" : "Unassigned");
+
+  const handleChange = async (value: string) => {
+    setSaving(true);
+    try {
+      const newId = value === "__unassigned" ? null : value;
+      const { error } = await supabase
+        .from("quote_requests")
+        .update({
+          assigned_agent_id: newId,
+          assigned_at: newId ? new Date().toISOString() : null,
+        })
+        .eq("id", lead.id);
+      if (error) throw error;
+      toast.success(newId ? "Lead assigned" : "Lead unassigned");
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to assign lead");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClaim = async () => {
+    if (!user) return;
+    await handleChange(user.id);
+  };
+
+  if (!canAssign) {
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">Assigned to:</span>
+        <Badge variant="outline" className={lead.assigned_agent_id ? "bg-primary/10 text-primary border-primary/30" : "bg-muted text-muted-foreground"}>
+          {assigneeLabel}
+        </Badge>
+        {!lead.assigned_agent_id && (
+          <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={handleClaim} disabled={saving}>
+            Claim
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground whitespace-nowrap">Assigned agent:</span>
+      <Select
+        value={lead.assigned_agent_id || "__unassigned"}
+        onValueChange={handleChange}
+        disabled={saving}
+      >
+        <SelectTrigger className="h-8 w-[220px] text-xs">
+          <SelectValue placeholder="Unassigned" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__unassigned">Unassigned</SelectItem>
+          {agents.map((a) => (
+            <SelectItem key={a.user_id} value={a.user_id}>
+              {a.full_name || a.user_id.slice(0, 8)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function LeadProposalSheet({
   lead,
   onClose,
@@ -443,6 +540,8 @@ function LeadProposalSheet({
                 <Badge variant="outline" className="bg-primary/15 text-primary border-primary/30">Financing</Badge>
               )}
             </div>
+
+            <AssignAgentControl lead={lead} refetch={refetch} />
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="space-y-1">
