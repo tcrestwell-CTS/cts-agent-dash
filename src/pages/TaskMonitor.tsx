@@ -39,8 +39,11 @@ export default function TaskMonitor() {
     <DashboardLayout>
       <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Task Monitor</h1>
-          <p className="text-muted-foreground text-sm mt-1">Track cron jobs, edge functions, and AI agent activity</p>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Task Monitor</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">Track cron jobs, edge functions, and AI agent activity</p>
         </div>
 
         {/* Stats Cards */}
