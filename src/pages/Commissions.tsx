@@ -334,8 +334,11 @@ const Commissions = () => {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{canViewAgencyWide ? earnings.teamTitle : earnings.myTitle}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{canViewAgencyWide
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">{canViewAgencyWide ? earnings.teamTitle : earnings.myTitle}</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">{canViewAgencyWide
             ? "View all agent commission earnings agency-wide"
             : `Track your earnings and payment history • Your Rate: ${tierConfig.agentSplit}%`}</p>
         </div>
