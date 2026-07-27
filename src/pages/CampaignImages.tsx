@@ -12,8 +12,11 @@ export default function CampaignImages() {
     <DashboardLayout>
       <div className="container mx-auto p-6 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Image Library</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Image Library</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">
             Drag and drop images to use in your email campaigns.
           </p>
         </div>
