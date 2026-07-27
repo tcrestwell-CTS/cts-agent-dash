@@ -39,8 +39,11 @@ export default function Campaigns() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Mail className="h-6 w-6" /> Campaigns
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+              <Mail className="h-[17px] w-[17px]" /> Campaigns
             </h1>
             <p className="text-sm text-muted-foreground">Create and send marketing emails to your audience</p>
           </div>
