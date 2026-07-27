@@ -195,21 +195,21 @@ export function DashboardContent() {
   const showOnboarding = !onboardingLoading && !onboardingComplete;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[18px]">
       {/* Page header */}
       <div className="space-y-1">
         <p className="text-[10.5px] font-bold uppercase tracking-[.18em] text-muted-foreground">
           Crestwell Travel Services
         </p>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">Dashboard</h1>
+        <h1 className="text-[22px] font-semibold tracking-[-0.025em] text-foreground">Dashboard</h1>
       </div>
 
       {/* Attention banner */}
       <TodayActionItems />
 
       {/* Greeting + inline stats */}
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <h2 className="text-[28px] font-semibold tracking-[-0.02em] text-foreground">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <h2 className="text-[26px] font-semibold tracking-[-0.025em] text-foreground">
           Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {firstName}
         </h2>
         <BusinessSnapshot
@@ -222,19 +222,21 @@ export function DashboardContent() {
       </div>
 
       {/* Actions + Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
         <QuickActions />
         <TopBar />
       </div>
 
       {/* Dashboard Tabs */}
       <div className="border-b border-border">
-        <div className="flex gap-6">
+        <div className="flex gap-5">
           <button
             onClick={() => setActiveTab("my")}
             className={cn(
-              "pb-3 text-[13.5px] font-medium border-b-2 transition-colors",
-              activeTab === "my" ? "border-accent text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              "-mb-px border-b-2 pb-2.5 text-[13px] font-medium transition-colors",
+              activeTab === "my"
+                ? "border-accent text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             My Dashboard
@@ -243,8 +245,10 @@ export function DashboardContent() {
             <button
               onClick={() => setActiveTab("agency")}
               className={cn(
-                "pb-3 text-[13.5px] font-medium border-b-2 transition-colors",
-                activeTab === "agency" ? "border-accent text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                "-mb-px border-b-2 pb-2.5 text-[13px] font-medium transition-colors",
+                activeTab === "agency"
+                  ? "border-accent text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               Agency Metrics
@@ -256,7 +260,7 @@ export function DashboardContent() {
       {activeTab === "agency" ? (
         <AgencyMetrics />
       ) : (
-        <>
+        <div className="space-y-[18px]">
           {/* Onboarding (only shown until setup complete) */}
           {showOnboarding && <OnboardingWizard />}
 
@@ -269,8 +273,10 @@ export function DashboardContent() {
           />
 
           {/* Sales Pipeline */}
-          <div>
-            <h2 className="text-[10.5px] font-bold uppercase tracking-[.13em] text-muted-foreground mb-3">Sales Pipeline</h2>
+          <section className="space-y-3">
+            <h2 className="text-[10.5px] font-bold uppercase tracking-[.13em] text-muted-foreground">
+              Sales Pipeline
+            </h2>
             <PipelineCards
               loading={loading}
               data={{
@@ -282,17 +288,17 @@ export function DashboardContent() {
                 confirmedValue: computed.confirmedValue,
               }}
             />
-          </div>
+          </section>
 
           {/* Main content grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-3">
             {/* Left: Upcoming Trips (2 cols) */}
             <div className="lg:col-span-2">
               <UpcomingTrips trips={computed.upcomingTrips} loading={loading} />
             </div>
 
             {/* Right: Next Actions + Activity + Assistant */}
-            <div className="space-y-5">
+            <div className="space-y-[18px]">
               {!showOnboarding && (
                 <NextActions
                   followUps={computed.followUps}
@@ -318,7 +324,7 @@ export function DashboardContent() {
               />
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
