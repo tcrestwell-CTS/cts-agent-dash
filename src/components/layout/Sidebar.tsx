@@ -433,7 +433,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
       <div className="pt-1">
         <button
           onClick={() => toggleGroup(group.label)}
-          className="flex w-full items-center justify-between rounded-lg px-[11px] py-[7px] text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/45 transition-colors hover:text-sidebar-foreground/70"
+          className="flex w-full items-center justify-between rounded-lg px-[11px] py-[7px] text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75 transition-colors hover:text-sidebar-foreground"
         >
           <span>{group.label}</span>
           <ChevronRight
@@ -496,7 +496,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
                 <div key={section.label ?? `top-${idx}`} className={idx === 0 ? "" : "pt-3"}>
                   {section.label && !isCollapsed && (
                     <div className="px-[11px] pb-1">
-                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/45">
+                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75">
                         {section.label}
                       </p>
                     </div>
@@ -535,7 +535,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
                 <>
                   {!isCollapsed && (
                     <div className="px-[11px] pb-1 pt-4">
-                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/45">Admin</p>
+                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75">Admin</p>
                     </div>
                   )}
                   {isCollapsed && <div className="pb-1 pt-4"><hr className="border-sidebar-border" /></div>}
