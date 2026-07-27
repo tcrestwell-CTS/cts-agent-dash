@@ -80,7 +80,10 @@ export default function DailyPaymentReport() {
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Daily Payment Report</h1>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Daily Payment Report</h1>
             <p className="text-sm text-muted-foreground">
               Stripe payments received on the selected date, grouped by client.
             </p>
