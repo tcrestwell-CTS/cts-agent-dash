@@ -32,7 +32,10 @@ export default function Notifications() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Notifications</h1>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Notifications</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
             </p>
