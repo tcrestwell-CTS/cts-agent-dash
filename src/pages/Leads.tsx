@@ -541,6 +541,8 @@ function LeadProposalSheet({
               )}
             </div>
 
+            <AssignAgentControl lead={lead} refetch={refetch} />
+
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="space-y-1">
                 <p className="text-muted-foreground text-xs">Email</p>
