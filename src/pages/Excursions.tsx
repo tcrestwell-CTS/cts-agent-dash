@@ -6,8 +6,11 @@ export default function Excursions() {
     <DashboardLayout>
       <div className="space-y-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Excursions</h1>
-          <p className="text-muted-foreground text-sm mt-1">Search and manage Viator activities and bookings</p>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Excursions</h1>
+          <p className="mt-1 text-[13.5px] text-muted-foreground">Search and manage Viator activities and bookings</p>
         </div>
         <ViatorPanel />
       </div>
