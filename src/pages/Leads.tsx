@@ -175,14 +175,14 @@ function ProposalReviewDialog({
 
         {/* Unlock gate banner — shown until agent has acted */}
         {!canSend && (
-          <div className="mx-6 mt-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 shrink-0">
-            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="mx-6 mt-4 flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 shrink-0">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-amber-800">Review required before sending</p>
-              <p className="text-amber-700 mt-0.5">
+              <p className="font-medium text-foreground">Review required before sending</p>
+              <p className="text-warning mt-0.5">
                 Edit the draft below, or click{" "}
                 <button
-                  className="underline font-semibold hover:text-amber-900"
+                  className="underline font-semibold hover:text-warning/80"
                   onClick={() => setConfirmed(true)}
                 >
                   "Looks good, send as-is"
@@ -195,9 +195,9 @@ function ProposalReviewDialog({
 
         {/* Cleared banner after agent confirms */}
         {canSend && (
-          <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2.5 shrink-0">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <p className="text-sm font-medium text-emerald-800">
+          <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-4 py-2.5 shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+            <p className="text-sm font-medium text-foreground">
               {hasEdited ? "Draft updated — ready to send." : "Draft approved — ready to send."}
             </p>
           </div>
@@ -276,15 +276,15 @@ function simpleMarkdownToHtml(md: string): string {
 }
 
 const stageConfig: Record<string, { color: string; label: string }> = {
-  "Qualified": { color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", label: "Qualified" },
-  "Quote Needed": { color: "bg-amber-500/15 text-amber-700 border-amber-500/30", label: "Quote Needed" },
-  "Call Needed": { color: "bg-orange-500/15 text-orange-700 border-orange-500/30", label: "Call Needed" },
+  "Qualified": { color: "bg-success/15 text-success border-success/30", label: "Qualified" },
+  "Quote Needed": { color: "bg-warning/15 text-warning border-warning/30", label: "Quote Needed" },
+  "Call Needed": { color: "bg-warning/15 text-warning border-warning/30", label: "Call Needed" },
   "new": { color: "bg-muted text-muted-foreground border-border", label: "New" },
 };
 
 function ScoreBar({ score }: { score: number | null }) {
   if (score === null) return <span className="text-xs text-muted-foreground">—</span>;
-  const color = score >= 70 ? "bg-emerald-500" : score >= 50 ? "bg-amber-500" : "bg-red-400";
+  const color = score >= 70 ? "bg-success" : score >= 50 ? "bg-warning" : "bg-destructive";
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
       <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
@@ -350,11 +350,11 @@ function LeadProposalSheet({
   const proposalStatusColors: Record<string, string> = {
     draft: "bg-muted text-muted-foreground border-border",
     draft_ready: "bg-muted text-muted-foreground border-border",
-    sent: "bg-blue-500/15 text-blue-700 border-blue-500/30",
-    quote_sent: "bg-blue-500/15 text-blue-700 border-blue-500/30",
-    viewed: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
-    approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
-    converted: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+    sent: "bg-info/15 text-info border-info/30",
+    quote_sent: "bg-info/15 text-info border-info/30",
+    viewed: "bg-info/15 text-info border-info/30",
+    approved: "bg-success/15 text-success border-success/30",
+    converted: "bg-success/15 text-success border-success/30",
   };
   const proposalStatusLabel: Record<string, string> = {
     draft: "Draft",
@@ -437,10 +437,10 @@ function LeadProposalSheet({
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
               {(lead.proposal_status === "sent" || lead.proposal_status === "quote_sent") && (
-                <Badge variant="outline" className="bg-blue-500/15 text-blue-700 border-blue-500/30">Proposal Sent</Badge>
+                <Badge variant="outline" className="bg-info/15 text-info border-info/30">Proposal Sent</Badge>
               )}
               {lead.wants_financing && (
-                <Badge variant="outline" className="bg-violet-500/15 text-violet-700 border-violet-500/30">Financing</Badge>
+                <Badge variant="outline" className="bg-primary/15 text-primary border-primary/30">Financing</Badge>
               )}
             </div>
 
@@ -498,11 +498,11 @@ function LeadProposalSheet({
               )}
 
               {lead.ai_next_action && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20">
+                  <Info className="h-4 w-4 text-info mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs font-medium text-blue-700 mb-0.5">Next Action</p>
-                    <p className="text-sm text-blue-900">{lead.ai_next_action}</p>
+                    <p className="text-xs font-medium text-info mb-0.5">Next Action</p>
+                    <p className="text-sm text-foreground">{lead.ai_next_action}</p>
                   </div>
                 </div>
               )}
@@ -616,7 +616,7 @@ function LeadProposalSheet({
                 </CardContent>
               </Card>
             ) : needsCall ? (
-              <Card className="border bg-orange-500/5">
+              <Card className="border bg-warning/5">
                 <CardContent className="p-6 text-center space-y-3">
                   <p className="text-sm text-muted-foreground">This lead needs a phone call before a proposal can be drafted.</p>
                   {lead.phone && (
@@ -644,7 +644,7 @@ function LeadProposalSheet({
           {canApproveQuote && !quoteAlreadySent && (
             <Button
               size="sm"
-              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 font-semibold"
               disabled={sendingQuote}
               onClick={handleApproveQuote}
             >
@@ -657,7 +657,7 @@ function LeadProposalSheet({
             </Button>
           )}
           {quoteAlreadySent && (
-            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+            <span className="text-xs font-semibold text-success flex items-center gap-1">
               <span>✓</span> Quote Sent to Client
             </span>
           )}
@@ -947,7 +947,7 @@ export default function Leads() {
                         <TableCell>
                           <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
                           {lead.wants_financing && (
-                            <Badge variant="outline" className="ml-1 bg-violet-500/15 text-violet-700 border-violet-500/30 text-[10px]">$</Badge>
+                            <Badge variant="outline" className="ml-1 bg-primary/15 text-primary border-primary/30 text-[10px]">$</Badge>
                           )}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell max-w-[200px]">
