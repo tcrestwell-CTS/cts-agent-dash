@@ -7,7 +7,7 @@ import { useCanViewTeam } from "@/hooks/useAdmin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { addDays, isFuture, isWithinInterval, startOfMonth, endOfMonth, differenceInDays, parseISO, isPast } from "date-fns";
-import { cn, parseLocalDate, formatCurrency } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 
 import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
 import { AgencyMetrics } from "@/components/dashboard/AgencyMetrics";
