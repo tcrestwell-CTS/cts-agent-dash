@@ -78,6 +78,7 @@ interface NavGroup {
 const topLevelNav: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, feature: "dashboard" },
   { name: "Approvals", href: "/approvals", icon: Inbox },
+  { name: "Notifications", href: "/notifications", icon: Bell },
 ];
 
 const navGroups: NavGroup[] = [
