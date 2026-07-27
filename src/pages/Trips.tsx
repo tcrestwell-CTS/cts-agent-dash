@@ -579,7 +579,15 @@ const Trips = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Trips</h1>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+              Trips
+              {!loading && (
+                <span className="ml-2 text-[13px] font-medium text-muted-foreground">
+                  ({filteredTrips.length}
+                  {filteredTrips.length !== trips.length ? ` of ${trips.length}` : ""})
+                </span>
+              )}
+            </h1>
             <p className="mt-1 text-[13.5px] text-muted-foreground">Manage client trips and access booking portals</p>
           </div>
           <div className="flex items-center gap-2">
@@ -626,38 +634,19 @@ const Trips = () => {
                   className="h-10 rounded-[8px] pl-9 text-[13.5px]"
                 />
               </div>
-              {viewMode === "list" && (
-                <>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px] rounded-[8px] text-[13.5px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All statuses</SelectItem>
-                      {statuses.map((s) => (
-                        <SelectItem key={s.id} value={statusToSlug(s.name)}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={tripNameFilter} onValueChange={setTripNameFilter}>
-                    <SelectTrigger className="w-[220px] rounded-[8px] text-[13.5px]">
-                      <SelectValue placeholder="Filter by trip name" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All trip names</SelectItem>
-                      {Array.from(new Set(trips.map((t) => t.trip_name).filter(Boolean)))
-                        .sort((a, b) => a.localeCompare(b))
-                        .map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px] rounded-[8px] text-[13.5px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {statuses.map((s) => (
+                    <SelectItem key={s.id} value={statusToSlug(s.name)}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex overflow-hidden rounded-[8px] border border-border">
                 <Button
                   variant={viewMode === "kanban" ? "default" : "ghost"}
