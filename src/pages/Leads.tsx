@@ -826,8 +826,11 @@ export default function Leads() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
-            <p className="text-sm text-muted-foreground">AI-qualified travel inquiries from your quote form</p>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Leads</h1>
+            <p className="mt-1 text-[13.5px] text-muted-foreground">AI-qualified travel inquiries from your quote form</p>
           </div>
         </div>
 
