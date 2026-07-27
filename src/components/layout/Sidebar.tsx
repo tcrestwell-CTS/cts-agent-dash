@@ -106,9 +106,11 @@ const navGroups: NavGroup[] = [
     label: "Search",
     icon: Ship,
     items: [
-      { name: "Cruises", href: "/cruises", icon: Ship, feature: "cruise_search" },
-      { name: "Hotels",  href: "/hotels",  icon: Hotel, feature: "hotel_search" },
-      { name: "Flights", href: "/flights", icon: Plane, feature: "flight_search" },
+      { name: "Cruises",     href: "/cruises",     icon: Ship,    feature: "cruise_search" },
+      { name: "Hotels",      href: "/hotels",       icon: Hotel,   feature: "hotel_search" },
+      { name: "Flights",     href: "/flights",      icon: Plane,   feature: "flight_search" },
+      { name: "Excursions",  href: "/excursions",   icon: Compass, feature: "excursions" },
+      { name: "Car Rentals", href: "/car-rentals",  icon: Car },
     ],
   },
   {
