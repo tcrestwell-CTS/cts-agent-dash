@@ -226,7 +226,10 @@ export default function TripInsurance() {
             </Link>
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Travel Insurance</h1>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Travel Insurance</h1>
             <p className="text-sm text-muted-foreground">
               Provide your clients insurance options for the trip here.
             </p>
