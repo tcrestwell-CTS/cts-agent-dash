@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Panel, PanelBody } from "@/components/patterns/Panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,13 +105,13 @@ export function ReconExceptions() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-5 max-w-7xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
+      <div className="space-y-[18px]">
+        <div className="space-y-1">
+          <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
             Exception Queue
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-[13.5px] text-muted-foreground">
             Records that need manual review before QBO can be updated
           </p>
         </div>
@@ -145,8 +145,8 @@ export function ReconExceptions() {
           </Select>
         </div>
 
-        <Card>
-          <CardContent className="p-0">
+        <Panel>
+          <PanelBody className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -225,8 +225,8 @@ export function ReconExceptions() {
                 )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
 
         {/* Resolve Dialog */}
         <Dialog open={!!resolving} onOpenChange={(v) => !v && setResolving(null)}>
