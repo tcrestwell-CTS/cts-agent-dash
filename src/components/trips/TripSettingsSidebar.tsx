@@ -287,7 +287,7 @@ export function TripSettingsSidebar({
                 </div>
 
                 {tripTotal <= 0 && (
-                  <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 rounded-md p-2">
+                  <div className="flex items-start gap-2 text-xs text-warning bg-warning/10 rounded-md p-2">
                     <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                     <span>Add bookings to auto-calculate the deposit amount.</span>
                   </div>
@@ -402,7 +402,7 @@ export function TripSettingsSidebar({
                 {creatingSchedule ? "Creating..." : "Create Scheduled Payments"}
               </Button>
               {!departDate && (
-                <p className="text-xs text-amber-600">Set a departure date to calculate the schedule.</p>
+                <p className="text-xs text-warning">Set a departure date to calculate the schedule.</p>
               )}
             </div>
           )}

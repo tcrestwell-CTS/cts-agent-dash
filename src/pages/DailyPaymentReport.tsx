@@ -110,7 +110,7 @@ export default function DailyPaymentReport() {
           <div className="grid grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Collected</CardTitle></CardHeader>
-              <CardContent><div className="text-3xl font-bold text-emerald-700">{money(report.grandTotal)}</div></CardContent>
+              <CardContent><div className="text-3xl font-bold text-success">{money(report.grandTotal)}</div></CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Payments</CardTitle></CardHeader>
@@ -157,7 +157,7 @@ export default function DailyPaymentReport() {
                         ))}
                       </ul>
                     </div>
-                    <div className="text-lg font-bold text-emerald-700 whitespace-nowrap">
+                    <div className="text-lg font-bold text-success whitespace-nowrap">
                       {money(c.total)}
                     </div>
                   </div>

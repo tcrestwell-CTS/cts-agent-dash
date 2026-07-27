@@ -94,7 +94,7 @@ export function EmailActivityTable({ rows, loading, page, pageSize, total, onPag
                     <TableRow>
                       <TableCell />
                       <TableCell colSpan={7} className="bg-muted/40">
-                        <p className="text-xs text-red-700 font-mono whitespace-pre-wrap">{r.error_message}</p>
+                        <p className="text-xs text-destructive font-mono whitespace-pre-wrap">{r.error_message}</p>
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -135,7 +135,7 @@ export function EmailActivityTable({ rows, loading, page, pageSize, total, onPag
               {drawerRow.error_message && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-1">Error</p>
-                  <pre className="bg-red-50 text-red-700 text-xs p-2 rounded whitespace-pre-wrap">{drawerRow.error_message}</pre>
+                  <pre className="bg-destructive/10 text-destructive text-xs p-2 rounded whitespace-pre-wrap">{drawerRow.error_message}</pre>
                 </div>
               )}
               {drawerRow.metadata && (

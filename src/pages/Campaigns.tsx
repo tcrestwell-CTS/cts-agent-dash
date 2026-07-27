@@ -17,9 +17,9 @@ import { format } from "date-fns";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  scheduled: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  sending: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  sent: "bg-green-500/15 text-green-700 dark:text-green-400",
+  scheduled: "bg-info/15 text-info dark:text-info",
+  sending: "bg-warning/15 text-warning dark:text-warning",
+  sent: "bg-success/15 text-success dark:text-success",
   failed: "bg-destructive/15 text-destructive",
   paused: "bg-muted text-muted-foreground",
 };

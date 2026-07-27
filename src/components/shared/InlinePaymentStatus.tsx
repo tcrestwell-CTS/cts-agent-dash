@@ -21,14 +21,14 @@ export function InlinePaymentStatus({
   const isUnpaid  = !isPaid && paidAmount === 0;
 
   if (isPaid) return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full", className)}>
+    <span className={cn("inline-flex items-center gap-1 text-xs font-medium text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded-full", className)}>
       <Check className="h-3 w-3" />
       {type === "supplier" ? "Supplier paid" : "Paid"}
     </span>
   );
 
   if (isPartial) return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full", className)}>
+    <span className={cn("inline-flex items-center gap-1 text-xs font-medium text-warning bg-warning/10 border border-warning/20 px-2 py-0.5 rounded-full", className)}>
       <Clock className="h-3 w-3" />
       Partial
     </span>

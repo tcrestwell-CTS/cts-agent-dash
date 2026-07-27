@@ -47,11 +47,11 @@ function KPICard({ title, value, change, changeType = "neutral", icon: Icon, onC
             <p className="text-2xl font-bold">{value}</p>
             {change && (
               <div className="flex items-center gap-1">
-                {changeType === "positive" && <TrendingUp className="h-3 w-3 text-green-500" />}
-                {changeType === "negative" && <TrendingDown className="h-3 w-3 text-red-500" />}
+                {changeType === "positive" && <TrendingUp className="h-3 w-3 text-success" />}
+                {changeType === "negative" && <TrendingDown className="h-3 w-3 text-destructive" />}
                 <span className={`text-xs ${
-                  changeType === "positive" ? "text-green-500" : 
-                  changeType === "negative" ? "text-red-500" : 
+                  changeType === "positive" ? "text-success" : 
+                  changeType === "negative" ? "text-destructive" : 
                   "text-muted-foreground"
                 }`}>
                   {change}

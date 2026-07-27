@@ -86,7 +86,7 @@ export function PortalActionStrip() {
       icon: CreditCard,
     },
     info: {
-      bg: "bg-info/10 border-blue-100 hover:bg-info/10/60",
+      bg: "bg-info/10 border-info/20 hover:bg-info/10/60",
       text: "text-info",
       icon: FileCheck,
     },

@@ -43,7 +43,7 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
   const urgencyColor = isOverdue
     ? "bg-destructive"
     : isDueSoon
-    ? "bg-amber-500"
+    ? "bg-warning"
     : "bg-primary";
 
   const formatCurrency = (n: number) =>

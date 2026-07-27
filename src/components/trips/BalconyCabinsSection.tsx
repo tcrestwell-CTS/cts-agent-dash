@@ -308,7 +308,7 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
                           <span className="flex items-center gap-1">
                             {remaining > 0 ? (
                               <>
-                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                <CheckCircle2 className="h-3 w-3 text-success" />
                                 {remaining} remaining
                               </>
                             ) : (

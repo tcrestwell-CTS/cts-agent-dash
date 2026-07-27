@@ -43,7 +43,7 @@ const roleBadgeStyles: Record<AppRole, string> = {
   admin: "bg-primary/10 text-primary",
   office_admin: "bg-accent/10 text-accent",
   user: "bg-muted text-muted-foreground",
-  bookkeeper: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  bookkeeper: "bg-warning/10 text-warning dark:text-warning",
 };
 
 export function TeamProfiles() {

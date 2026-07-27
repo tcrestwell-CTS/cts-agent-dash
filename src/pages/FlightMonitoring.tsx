@@ -181,9 +181,9 @@ export default function FlightMonitoring() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Confirmed</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
+                  <p className="text-2xl font-bold text-success">{stats.confirmed}</p>
                 </div>
-                <CheckCircle2 className="h-8 w-8 text-green-600/30" />
+                <CheckCircle2 className="h-8 w-8 text-success/30" />
               </div>
             </CardContent>
           </Card>
@@ -192,9 +192,9 @@ export default function FlightMonitoring() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Schedule Changed</p>
-                  <p className="text-2xl font-bold text-amber-600">{stats.scheduleChanged}</p>
+                  <p className="text-2xl font-bold text-warning">{stats.scheduleChanged}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-amber-600/30" />
+                <AlertTriangle className="h-8 w-8 text-warning/30" />
               </div>
             </CardContent>
           </Card>

@@ -195,7 +195,7 @@ export function HotelBookingVoucher({ booking, hotelDetails, agencyName = "Crest
               <Separator />
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase">Rate Comments</h3>
-                <div className="rounded-lg border p-4 bg-amber-50/50 dark:bg-amber-950/10 space-y-2">
+                <div className="rounded-lg border p-4 bg-warning/10/50 dark:bg-warning/10 space-y-2">
                   {hotel.rooms?.map((room) =>
                     room.rates?.filter((rt: any) => rt.rateComments).map((rt: any, i: number) => (
                       <p key={i} className="text-sm text-foreground">{rt.rateComments}</p>

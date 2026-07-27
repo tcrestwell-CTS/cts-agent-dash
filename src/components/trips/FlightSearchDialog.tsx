@@ -694,7 +694,7 @@ function FlightOfferCard({
                         {slice.segments.length - 1} stop{slice.segments.length > 2 ? "s" : ""}
                       </Badge>
                     ) : (
-                      <span className="text-[9px] text-green-600 font-medium">Direct</span>
+                      <span className="text-[9px] text-success font-medium">Direct</span>
                     )}
                   </div>
                   <div className="text-center">

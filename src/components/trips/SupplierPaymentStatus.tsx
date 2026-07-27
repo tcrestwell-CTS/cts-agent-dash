@@ -27,9 +27,9 @@ interface SupplierPaymentStatusProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  paid: { label: "Paid", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
-  partial: { label: "Partial", color: "bg-blue-100 text-blue-700", icon: Clock },
-  unpaid: { label: "Unpaid", color: "bg-amber-100 text-amber-700", icon: Clock },
+  paid: { label: "Paid", color: "bg-success/10 text-success", icon: CheckCircle2 },
+  partial: { label: "Partial", color: "bg-info/10 text-info", icon: Clock },
+  unpaid: { label: "Unpaid", color: "bg-warning/10 text-warning", icon: Clock },
 };
 
 export function SupplierPaymentStatus({ bookings }: SupplierPaymentStatusProps) {
@@ -49,11 +49,11 @@ export function SupplierPaymentStatus({ bookings }: SupplierPaymentStatusProps) 
           <Building2 className="h-4 w-4" />
           Supplier Payments
           {allPaid ? (
-            <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700 text-xs">
+            <Badge variant="secondary" className="ml-auto bg-success/10 text-success text-xs">
               All Paid
             </Badge>
           ) : (
-            <Badge variant="secondary" className="ml-auto bg-amber-100 text-amber-700 text-xs">
+            <Badge variant="secondary" className="ml-auto bg-warning/10 text-warning text-xs">
               {formatCurrency(totalDue - totalPaid)} outstanding
             </Badge>
           )}

@@ -274,7 +274,7 @@ export function CarRentalsManager() {
                     </TableCell>
                     <TableCell>
                       {hasCc ? (
-                        <span className="inline-flex items-center gap-1 text-green-600 text-sm">
+                        <span className="inline-flex items-center gap-1 text-success text-sm">
                           <CheckCircle2 className="h-4 w-4" /> Authorized
                         </span>
                       ) : (

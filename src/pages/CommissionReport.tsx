@@ -315,8 +315,8 @@ export default function CommissionReport() {
               value: formatCurrency(stats.totalAgentShare),
               sub: "After tier splits",
               icon: DollarSign,
-              color: "text-green-600",
-              bg: "bg-green-50 border-green-200",
+              color: "text-success",
+              bg: "bg-success/10 border-success/20",
             },
             {
               label: "Agency Revenue",
@@ -465,7 +465,7 @@ export default function CommissionReport() {
                       </td>
                       <td className="px-5 py-3 tabular-nums">{formatCurrency(a.grossSales)}</td>
                       <td className="px-5 py-3 tabular-nums font-medium text-primary">{formatCurrency(a.totalCommission)}</td>
-                      <td className="px-5 py-3 tabular-nums text-green-600 font-medium">{formatCurrency(a.agentEarnings)}</td>
+                      <td className="px-5 py-3 tabular-nums text-success font-medium">{formatCurrency(a.agentEarnings)}</td>
                       <td className="px-5 py-3 tabular-nums text-muted-foreground">{a.tripCount}</td>
                       <td className="px-5 py-3 tabular-nums text-muted-foreground">{a.margin.toFixed(1)}%</td>
                     </tr>

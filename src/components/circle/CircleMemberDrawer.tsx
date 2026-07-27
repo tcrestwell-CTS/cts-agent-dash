@@ -92,7 +92,7 @@ export function CircleMemberDrawer({ member, onClose }: Props) {
           <SheetTitle className="flex items-center gap-2">
             {member.name || member.email}
             {member.founding_member && (
-              <Sparkles className="h-4 w-4 text-amber-500" />
+              <Sparkles className="h-4 w-4 text-warning" />
             )}
           </SheetTitle>
         </SheetHeader>

@@ -1065,11 +1065,11 @@ export default function StripeReconcilePanel() {
                 </div>
                 <div className="rounded-lg border p-3 text-center">
                   <p className="text-xs text-muted-foreground">Newly linked</p>
-                  <p className="text-xl font-semibold text-green-600">{autoMatchResult.summary?.newly_linked ?? 0}</p>
+                  <p className="text-xl font-semibold text-success">{autoMatchResult.summary?.newly_linked ?? 0}</p>
                 </div>
                 <div className="rounded-lg border p-3 text-center">
                   <p className="text-xs text-muted-foreground">Ambiguous</p>
-                  <p className="text-xl font-semibold text-amber-600">{autoMatchResult.summary?.ambiguous ?? 0}</p>
+                  <p className="text-xl font-semibold text-warning">{autoMatchResult.summary?.ambiguous ?? 0}</p>
                 </div>
                 <div className="rounded-lg border p-3 text-center">
                   <p className="text-xs text-muted-foreground">No match</p>
@@ -1107,7 +1107,7 @@ export default function StripeReconcilePanel() {
 
               {autoMatchResult.ambiguous?.length > 0 && (
                 <div>
-                  <p className="text-sm font-semibold mb-2 text-amber-700">
+                  <p className="text-sm font-semibold mb-2 text-warning">
                     Ambiguous ({autoMatchResult.ambiguous.length}) — multiple manual payments matched; resolve in the orphan list.
                   </p>
                   <div className="max-h-48 overflow-auto rounded-lg border">

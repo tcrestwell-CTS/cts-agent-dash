@@ -79,7 +79,7 @@ export function PaymentAgreementStep({
       </div>
 
       {!allAccepted && (
-        <div className="flex items-center gap-2 text-xs text-amber-600">
+        <div className="flex items-center gap-2 text-xs text-warning">
           <AlertTriangle className="h-3.5 w-3.5" />
           Please check all boxes to continue.
         </div>

@@ -169,12 +169,12 @@ export function CommissionReportTable({ data, showAgentColumn, canEditSplits, ca
                 <td className="px-5 py-3 text-sm text-muted-foreground">{item.booking?.supplier?.name || "—"}</td>
                 <td className="px-5 py-3 text-right tabular-nums font-medium">{fmt(item.booking?.gross_sales || item.booking?.total_amount || 0)}</td>
                 <td className="px-5 py-3 text-right tabular-nums font-semibold text-primary">{fmt(item.amount)}</td>
-                <td className="px-5 py-3 text-right tabular-nums font-semibold text-green-600">{fmt(agentShare)}</td>
+                <td className="px-5 py-3 text-right tabular-nums font-semibold text-success">{fmt(agentShare)}</td>
                 <td className="px-5 py-3 text-right">
                   <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                    isPaid ? "bg-green-50 text-green-700 border-green-200"
-                    : isExpected ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200"
+                    isPaid ? "bg-success/10 text-success border-success/20"
+                    : isExpected ? "bg-info/10 text-info border-info/20"
+                    : "bg-warning/10 text-warning border-warning/20"
                   }`}>
                     {isPaid ? <><CheckCircle2 className="h-3 w-3" />Paid</>
                      : isExpected ? <><Hourglass className="h-3 w-3" />Expected</>
@@ -267,7 +267,7 @@ export function CommissionReportTable({ data, showAgentColumn, canEditSplits, ca
             </td>
             <td className="px-5 py-3 text-right tabular-nums font-bold">{fmt(data.reduce((s,i) => s+(i.booking?.gross_sales||i.booking?.total_amount||0),0))}</td>
             <td className="px-5 py-3 text-right tabular-nums font-bold text-primary">{fmt(data.reduce((s,i)=>s+i.amount,0))}</td>
-            <td className="px-5 py-3 text-right tabular-nums font-bold text-green-600">{fmt(data.reduce((s,i)=>s+calculateAgentCommission(i.amount,(i.agent?.commission_tier||"tier_1")as CommissionTier),0))}</td>
+            <td className="px-5 py-3 text-right tabular-nums font-bold text-success">{fmt(data.reduce((s,i)=>s+calculateAgentCommission(i.amount,(i.agent?.commission_tier||"tier_1")as CommissionTier),0))}</td>
             <td className="px-5 py-3"/>
             <td className="px-5 py-3"/>
             <td className="px-5 py-3"/>

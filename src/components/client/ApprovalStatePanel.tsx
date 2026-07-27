@@ -90,7 +90,7 @@ export function ApprovalStatePanel({
 
   const toneClasses = {
     success: "border-primary/40 bg-primary/5",
-    active: "border-amber-500/40 bg-amber-500/[0.04]",
+    active: "border-warning/40 bg-warning/[0.04]",
     muted: "border-muted bg-muted/30",
   } as const;
 
@@ -126,14 +126,14 @@ export function ApprovalStatePanel({
               s.state === "done"
                 ? "bg-background border-primary/30"
                 : s.state === "active"
-                ? "bg-background border-amber-500/40 ring-1 ring-amber-500/20"
+                ? "bg-background border-warning/40 ring-1 ring-warning/20"
                 : "bg-background/60 border-border opacity-70";
 
             const numberTone =
               s.state === "done"
                 ? "bg-primary text-primary-foreground border-primary"
                 : s.state === "active"
-                ? "bg-amber-500 text-white border-amber-500"
+                ? "bg-warning text-white border-warning"
                 : "bg-muted text-muted-foreground border-border";
 
             const text =
@@ -177,7 +177,7 @@ export function ApprovalStatePanel({
                       </Badge>
                     )}
                     {s.state === "active" && (
-                      <Badge className="h-5 text-[10px] bg-amber-500 hover:bg-amber-500 text-white border-0">
+                      <Badge className="h-5 text-[10px] bg-warning hover:bg-warning text-white border-0">
                         Do this next
                       </Badge>
                     )}

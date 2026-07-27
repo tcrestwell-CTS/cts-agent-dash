@@ -433,7 +433,7 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
                 <p className="text-3xl font-bold">{formatCurrency(kpis.expectedAgencyIncome)}</p>
                 <p className="text-xs text-muted-foreground">After agent splits</p>
               </div>
-              <Building2 className="h-6 w-6 text-blue-500" />
+              <Building2 className="h-6 w-6 text-info" />
             </div>
           </CardContent>
         </Card>
@@ -443,10 +443,10 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Received Commission</p>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(kpis.receivedCommission)}</p>
+                <p className="text-3xl font-bold text-success">{formatCurrency(kpis.receivedCommission)}</p>
                 <p className="text-xs text-muted-foreground">Already paid out</p>
               </div>
-              <Banknote className="h-6 w-6 text-green-500" />
+              <Banknote className="h-6 w-6 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -456,10 +456,10 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Received Agency Income</p>
-                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(kpis.receivedAgencyIncome)}</p>
+                <p className="text-3xl font-bold text-success">{formatCurrency(kpis.receivedAgencyIncome)}</p>
                 <p className="text-xs text-muted-foreground">Agency portion paid</p>
               </div>
-              <TrendingUp className="h-6 w-6 text-emerald-600" />
+              <TrendingUp className="h-6 w-6 text-success" />
             </div>
           </CardContent>
         </Card>

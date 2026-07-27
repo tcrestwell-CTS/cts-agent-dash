@@ -53,9 +53,9 @@ const DECISIONS: { value: Decision; label: string }[] = [
 function decisionBadge(d: Decision) {
   const map: Record<Decision, string> = {
     pending: "bg-muted text-muted-foreground",
-    linked: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-    refunded: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-    written_off: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
+    linked: "bg-success/15 text-success dark:text-success",
+    refunded: "bg-warning/15 text-warning dark:text-warning",
+    written_off: "bg-destructive/15 text-destructive dark:text-destructive",
     skip: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
   };
   return <Badge variant="outline" className={map[d]}>{DECISIONS.find((x) => x.value === d)?.label}</Badge>;
@@ -413,7 +413,7 @@ export default function QboUnmatchedReview() {
                         </TableCell>
                         <TableCell>
                           {r.crm_payment_id ? (
-                            <Badge variant="outline" className="bg-blue-500/15 text-blue-700 dark:text-blue-400">CRM</Badge>
+                            <Badge variant="outline" className="bg-info/15 text-info dark:text-info">CRM</Badge>
                           ) : (
                             <Badge variant="outline">Orphan</Badge>
                           )}

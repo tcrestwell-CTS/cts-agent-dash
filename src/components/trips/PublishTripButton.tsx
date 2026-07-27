@@ -199,7 +199,7 @@ export function PublishTripButton({
             <Globe className="h-4 w-4 mr-2" />
             {publishedAt ? "Published" : "Publish Trip"}
             {hasUnpublishedChanges && publishedAt && (
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-orange-500 border-2 border-background" />
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-warning border-2 border-background" />
             )}
             {!publishedAt && (
               <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
@@ -259,7 +259,7 @@ export function PublishTripButton({
 
             {hasUnpublishedChanges && publishedAt && (
               <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 rounded px-2 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
+                <span className="h-2 w-2 rounded-full bg-warning shrink-0" />
                 Unpublished changes — clients see the last published version
               </div>
             )}

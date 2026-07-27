@@ -33,7 +33,7 @@ function StepHeader({ n, title, done, locked }: { n: number; title: string; done
         className={
           "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold " +
           (done
-            ? "bg-green-600 text-white"
+            ? "bg-success text-white"
             : locked
             ? "bg-muted text-muted-foreground"
             : "bg-primary text-primary-foreground")
@@ -230,7 +230,7 @@ export function CarRentalWorkflow({ rental, onChanged }: Props) {
                 <Clock className="h-3 w-3" />
                 Sent {format(new Date(rental.quote_sent_at), "PPp")}
                 {rental.quote_accepted_at && (
-                  <span className="ml-2 inline-flex items-center gap-1 text-green-600">
+                  <span className="ml-2 inline-flex items-center gap-1 text-success">
                     <CheckCircle2 className="h-3 w-3" />
                     Customer confirmed {format(new Date(rental.quote_accepted_at), "PPp")}
                   </span>
@@ -256,7 +256,7 @@ export function CarRentalWorkflow({ rental, onChanged }: Props) {
           <div className="space-y-2">
             <div className="text-sm">
               {cardCollected ? (
-                <span className="inline-flex items-center gap-1 text-green-700">
+                <span className="inline-flex items-center gap-1 text-success">
                   <CheckCircle2 className="h-4 w-4" />
                   Full card collected
                   {rental.cc_collection_method && (

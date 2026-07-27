@@ -182,7 +182,7 @@ export function ItineraryStylePicker({
         </div>
 
         {!hasCoverImage && (
-          <p className="text-xs text-warning bg-warning/10 dark:bg-amber-900/20 border border-warning/30 dark:border-amber-700 rounded-md px-2.5 py-1.5 mb-3">
+          <p className="text-xs text-warning bg-warning/10 dark:bg-warning/20 border border-warning/30 dark:border-warning rounded-md px-2.5 py-1.5 mb-3">
             Add a cover image to the itinerary to preview image-based header styles.
           </p>
         )}

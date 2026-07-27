@@ -12,9 +12,9 @@ interface Props {
 export function EmailActivityStats({ total, sent, failed, retries, successRate }: Props) {
   const items = [
     { label: "Total", value: total, icon: Mail, color: "text-foreground" },
-    { label: "Sent", value: sent, icon: CheckCircle2, color: "text-green-600" },
-    { label: "Failed", value: failed, icon: XCircle, color: "text-red-600" },
-    { label: "Retries", value: retries, icon: RotateCw, color: "text-yellow-600" },
+    { label: "Sent", value: sent, icon: CheckCircle2, color: "text-success" },
+    { label: "Failed", value: failed, icon: XCircle, color: "text-destructive" },
+    { label: "Retries", value: retries, icon: RotateCw, color: "text-warning" },
     { label: "Success rate", value: `${successRate.toFixed(1)}%`, icon: Percent, color: "text-primary" },
   ];
   return (

@@ -31,7 +31,7 @@ export function CircleStatsBar() {
             <it.icon
               className={
                 "h-4 w-4 " +
-                (it.highlight ? "text-amber-500" : "text-muted-foreground")
+                (it.highlight ? "text-warning" : "text-muted-foreground")
               }
             />
           </div>

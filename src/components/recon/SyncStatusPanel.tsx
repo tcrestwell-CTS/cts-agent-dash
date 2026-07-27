@@ -74,12 +74,12 @@ export function SyncStatusPanel() {
           {loadingSuccess || loadingFailures ? (
             <Skeleton className="h-6 w-24" />
           ) : lastWasSuccess ? (
-            <Badge className="bg-green-100 text-green-800 border-green-200">
+            <Badge className="bg-success/10 text-success border-success/20">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Healthy
             </Badge>
           ) : lastFailure ? (
-            <Badge className="bg-red-100 text-red-800 border-red-200">
+            <Badge className="bg-destructive/10 text-destructive border-destructive/20">
               <XCircle className="h-3 w-3 mr-1" />
               Last run failed
             </Badge>
@@ -136,10 +136,10 @@ export function SyncStatusPanel() {
               {failures.map((f) => (
                 <li
                   key={f.id}
-                  className="text-sm border border-red-100 bg-red-50/50 rounded-md p-2"
+                  className="text-sm border border-destructive/20 bg-destructive/10/50 rounded-md p-2"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-red-800">
+                    <span className="font-medium text-destructive">
                       {formatDistanceToNow(new Date(f.created_at), { addSuffix: true })}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -147,7 +147,7 @@ export function SyncStatusPanel() {
                     </span>
                   </div>
                   {f.error_message && (
-                    <p className="text-xs text-red-700 mt-1 break-words">
+                    <p className="text-xs text-destructive mt-1 break-words">
                       {f.error_message}
                     </p>
                   )}

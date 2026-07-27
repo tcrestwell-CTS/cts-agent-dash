@@ -106,7 +106,7 @@ export function TripReadinessScore({
               {checks.map((check, i) => (
                 <div key={i} className={cn(
                   "h-1.5 w-1.5 rounded-full transition-colors",
-                  check.checked ? "bg-green-500" : "bg-muted-foreground/25"
+                  check.checked ? "bg-success" : "bg-muted-foreground/25"
                 )} />
               ))}
             </div>

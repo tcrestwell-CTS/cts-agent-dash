@@ -615,9 +615,9 @@ export function FlightBookingCheckout({ offer, seatMaps, baggageServices, loadin
       </Card>
 
       {/* Legal notice */}
-      <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-        <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-        <p className="text-xs text-amber-800 dark:text-amber-200">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 dark:bg-warning/20 border border-warning/20 dark:border-warning/40">
+        <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+        <p className="text-xs text-warning dark:text-warning-foreground">
           By confirming this booking, you agree that passenger details are accurate and acknowledge
           the airline's terms, conditions, and fare rules.
         </p>

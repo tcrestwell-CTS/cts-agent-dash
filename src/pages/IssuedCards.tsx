@@ -191,8 +191,8 @@ export default function IssuedCards() {
                           variant="outline"
                           className={
                             card.payment_method_choice === "stripe"
-                              ? "border-violet-400 text-violet-700"
-                              : "border-blue-400 text-blue-700"
+                              ? "border-primary text-primary"
+                              : "border-info text-info"
                           }
                         >
                           {card.payment_method_choice === "stripe" ? "Stripe Issuing" : "Affirm VCN"}
@@ -203,8 +203,8 @@ export default function IssuedCards() {
                           variant="outline"
                           className={
                             card.virtual_card_status === "ready"
-                              ? "border-emerald-400 text-emerald-700"
-                              : "border-amber-400 text-amber-700"
+                              ? "border-success text-success"
+                              : "border-warning text-warning"
                           }
                         >
                           {card.virtual_card_status || "—"}

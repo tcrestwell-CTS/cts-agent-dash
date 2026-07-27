@@ -248,7 +248,7 @@ export default function TripInsurance() {
             {/* ─── Main Content (2 cols) ─── */}
             <div className="lg:col-span-2 space-y-6">
             {/* Agency Disclaimer */}
-            <Card className="border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800">
+            <Card className="border-warning/20 bg-warning/10/60 dark:bg-warning/20 dark:border-warning">
               <CardContent className="flex gap-3 pt-5">
                 <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
                 <div>

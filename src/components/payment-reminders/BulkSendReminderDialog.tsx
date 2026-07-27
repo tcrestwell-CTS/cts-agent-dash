@@ -130,7 +130,7 @@ export function BulkSendReminderDialog({ open, onOpenChange, reminders }: Props)
           <DialogDescription>
             Sending to <strong>{eligible.length}</strong> client{eligible.length === 1 ? "" : "s"}
             {skipped > 0 && (
-              <> · <span className="text-amber-600">{skipped} skipped (no email)</span></>
+              <> · <span className="text-warning">{skipped} skipped (no email)</span></>
             )}
             . Each client receives the same branded template with their own amount, due date, and pay link.
           </DialogDescription>
@@ -180,7 +180,7 @@ export function BulkSendReminderDialog({ open, onOpenChange, reminders }: Props)
                       </span>
                       {result ? (
                         result.ok ? (
-                          <Badge className="bg-emerald-600 text-white"><CheckCircle2 className="h-3 w-3 mr-1" />Sent</Badge>
+                          <Badge className="bg-success text-white"><CheckCircle2 className="h-3 w-3 mr-1" />Sent</Badge>
                         ) : (
                           <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>
                         )

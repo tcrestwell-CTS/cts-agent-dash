@@ -309,11 +309,11 @@ export function CommissionSplitsEditor({
             Total {fmt(totalAmount)} ({totalPercent.toFixed(2)}%)
           </span>
           {balanced ? (
-            <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+            <span className="inline-flex items-center gap-1 text-success font-medium">
               <CheckCircle2 className="h-3.5 w-3.5" /> Balanced
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+            <span className="inline-flex items-center gap-1 text-warning font-medium">
               <AlertCircle className="h-3.5 w-3.5" />
               Off by {fmt(amount - totalAmount)}
             </span>

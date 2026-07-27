@@ -44,11 +44,11 @@ function getInitials(name: string) {
 
 // Color scale for heatmap cells
 function getHeatmapColor(rate: number): string {
-  if (rate >= 80) return "bg-green-500/20 text-green-700 dark:text-green-400";
-  if (rate >= 60) return "bg-green-500/10 text-green-600 dark:text-green-500";
-  if (rate >= 40) return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400";
-  if (rate >= 20) return "bg-orange-500/10 text-orange-700 dark:text-orange-400";
-  if (rate > 0) return "bg-red-500/10 text-red-700 dark:text-red-400";
+  if (rate >= 80) return "bg-success/20 text-success dark:text-success";
+  if (rate >= 60) return "bg-success/10 text-success dark:text-success";
+  if (rate >= 40) return "bg-warning/10 text-warning dark:text-warning";
+  if (rate >= 20) return "bg-warning/10 text-warning dark:text-warning";
+  if (rate > 0) return "bg-destructive/10 text-destructive dark:text-destructive";
   return "text-muted-foreground";
 }
 

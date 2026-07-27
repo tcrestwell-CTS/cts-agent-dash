@@ -74,7 +74,7 @@ export function ActiveSessionsWidget() {
             <Monitor className="h-4 w-4 text-primary" />
             Active Sessions
           </span>
-          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
+          <Badge variant="secondary" className="bg-success/10 text-success">
             {onlineCount} Online
           </Badge>
         </CardTitle>
@@ -100,7 +100,7 @@ export function ActiveSessionsWidget() {
                     </Avatar>
                     <Circle
                       className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 fill-current ${
-                        online ? "text-emerald-500" : "text-muted-foreground/40"
+                        online ? "text-success" : "text-muted-foreground/40"
                       }`}
                     />
                   </div>

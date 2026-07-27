@@ -92,8 +92,8 @@ function StatCard({
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
         {change && (
           <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${
-            changeType === "positive" ? "text-green-600" :
-            changeType === "negative" ? "text-red-500" : "text-muted-foreground"
+            changeType === "positive" ? "text-success" :
+            changeType === "negative" ? "text-destructive" : "text-muted-foreground"
           }`}>
             {changeType === "positive" ? "↑" : changeType === "negative" ? "↓" : ""}
             {change}

@@ -77,7 +77,7 @@ export default function PortalMessages() {
       <Card className="flex flex-col overflow-hidden" style={{ height: "calc(100vh - 260px)", minHeight: 400 }}>
         <CardHeader className="pb-3 border-b shrink-0">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="w-2 h-2 rounded-full bg-success" />
             Chat with {agent?.name || "Your Travel Agent"}
           </CardTitle>
         </CardHeader>

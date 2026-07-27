@@ -381,7 +381,7 @@ export default function HotelSearch() {
                             {Array.from({ length: stars }).map((_, i) => (
                               <Star
                                 key={i}
-                                className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                                className="h-3.5 w-3.5 fill-warning text-warning"
                               />
                             ))}
                           </div>
@@ -455,7 +455,7 @@ export default function HotelSearch() {
                                       rate.promotions?.some((p) =>
                                         /exclus|deal/i.test(p.name),
                                       )) && (
-                                      <Badge className="text-xs bg-amber-500/90 hover:bg-amber-500 text-white">
+                                      <Badge className="text-xs bg-warning/90 hover:bg-warning text-white">
                                         Exclusive Deal
                                       </Badge>
                                     )}
@@ -590,7 +590,7 @@ export default function HotelSearch() {
 
                 {/* Rate comments — must be shown before confirmation (3.9) */}
                 {selectedRate.rate.rateComments && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/10 p-3">
+                  <div className="rounded-lg border border-warning/20 bg-warning/10/50 dark:bg-warning/10 p-3">
                     <p className="text-xs font-medium text-muted-foreground mb-1">Rate Comments</p>
                     <p className="text-sm text-foreground">{selectedRate.rate.rateComments}</p>
                   </div>
