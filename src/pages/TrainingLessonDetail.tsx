@@ -128,8 +128,8 @@ const TrainingLessonDetail = () => {
               <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {lesson.estimated_minutes} min</span>
               {isCompleted && <Badge className="bg-success/10 text-success border-0 text-xs">✓ Completed</Badge>}
             </div>
-            <h1 className="text-2xl font-bold text-foreground">{lesson.title}</h1>
-            {lesson.description && <p className="text-muted-foreground mt-2">{lesson.description}</p>}
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">{lesson.title}</h1>
+            {lesson.description && <p className="mt-2 text-[13.5px] text-muted-foreground">{lesson.description}</p>}
           </div>
 
           {/* Video */}
