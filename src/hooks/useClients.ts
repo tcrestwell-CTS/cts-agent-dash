@@ -44,6 +44,12 @@ export function useClient(clientId: string) {
   });
 }
 
+export type NextDeparture = {
+  tripName: string;
+  destination: string | null;
+  departureDate: string;
+} | null;
+
 export function useClientWithBookings() {
   const { user } = useAuth();
 
@@ -57,50 +63,48 @@ export function useClientWithBookings() {
 
       if (clientsError) throw clientsError;
 
-      // Fetch booking stats via trips
+      // Trips carry lifetime value, trip counts, and departure dates directly —
+      // no need to join through bookings.
       const { data: trips, error: tripsError } = await supabase
         .from("trips")
-        .select("id, client_id");
-      
+        .select("client_id, trip_name, destination, departure_date, depart_date, status, total_gross_sales");
+
       if (tripsError) throw tripsError;
-      
-      const tripsByClient = (trips || []).reduce((acc: Record<string, string[]>, t: any) => {
-        if (t.client_id) {
-          if (!acc[t.client_id]) acc[t.client_id] = [];
-          acc[t.client_id].push(t.id);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const statsByClient: Record<
+        string,
+        { count: number; total: number; nextDeparture: NextDeparture }
+      > = {};
+
+      for (const t of trips || []) {
+        if (!t.client_id) continue;
+        const bucket = (statsByClient[t.client_id] ??= { count: 0, total: 0, nextDeparture: null });
+        bucket.count += 1;
+        bucket.total += Number(t.total_gross_sales) || 0;
+
+        const depart = t.departure_date || t.depart_date;
+        if (
+          depart &&
+          t.status !== "cancelled" &&
+          new Date(depart) >= today &&
+          (!bucket.nextDeparture || new Date(depart) < new Date(bucket.nextDeparture.departureDate))
+        ) {
+          bucket.nextDeparture = {
+            tripName: t.trip_name,
+            destination: t.destination,
+            departureDate: depart,
+          };
         }
-        return acc;
-      }, {});
-
-      const allTripIds = (trips || []).map((t: any) => t.id);
-      
-      let bookingStats: Record<string, { count: number; total: number }> = {};
-      
-      if (allTripIds.length > 0) {
-        const { data: bookings, error: bookingsError } = await supabase
-          .from("bookings")
-          .select("trip_id, total_price")
-          .in("trip_id", allTripIds);
-
-        if (bookingsError) throw bookingsError;
-
-        // Map bookings back to clients via trip_id
-        bookingStats = (bookings || []).reduce((acc: Record<string, { count: number; total: number }>, booking: any) => {
-          // Find which client owns this trip
-          const clientId = Object.keys(tripsByClient).find(cid => tripsByClient[cid].includes(booking.trip_id));
-          if (clientId) {
-            if (!acc[clientId]) acc[clientId] = { count: 0, total: 0 };
-            acc[clientId].count += 1;
-            acc[clientId].total += Number(booking.total_price) || 0;
-          }
-          return acc;
-        }, {});
       }
 
       return (clients || []).map((client) => ({
         ...client,
-        totalBookings: bookingStats?.[client.id]?.count || 0,
-        totalSpent: bookingStats?.[client.id]?.total || 0,
+        totalBookings: statsByClient[client.id]?.count || 0,
+        totalSpent: statsByClient[client.id]?.total || 0,
+        nextDeparture: statsByClient[client.id]?.nextDeparture || null,
       }));
     },
     enabled: !!user,
