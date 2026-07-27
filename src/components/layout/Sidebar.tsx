@@ -433,7 +433,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
       <div className="pt-1">
         <button
           onClick={() => toggleGroup(group.label)}
-          className="flex w-full items-center justify-between rounded-lg px-[11px] py-[7px] text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75 transition-colors hover:text-sidebar-foreground"
+          className="flex w-full items-center justify-between rounded-lg px-[11px] py-[7px] text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/0 transition-colors hover:text-sidebar-foreground"
         >
           <span>{group.label}</span>
           <ChevronRight
