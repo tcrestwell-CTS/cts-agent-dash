@@ -230,7 +230,6 @@ export function BulkSendReminderDialog({ open, onOpenChange, reminders }: Props)
           <Button
             onClick={handleBulkSend}
             disabled={sending || eligible.length === 0 || (results.length > 0 && results.every((r) => r.ok))}
-            style={{ background: "#0d1b2a", color: "#ffffff" }}
           >
             <Send className="h-4 w-4 mr-2" />
             {sending ? `Sending... (${results.length}/${eligible.length})` : `Send ${eligible.length} Reminder${eligible.length === 1 ? "" : "s"}`}

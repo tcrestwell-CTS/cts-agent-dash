@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Activity, HeartPulse, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type AgentResult = {
   agent: string;
@@ -47,92 +50,57 @@ export default function AgentHealthPanel() {
     : null;
 
   return (
-    <div style={{
-      background: '#0f1c2e',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12,
-      overflow: 'hidden',
-      fontFamily: 'sans-serif',
-    }}>
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
       {/* Header */}
-      <div style={{
-        padding: '20px 24px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
-      }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
         <div>
-          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500, color: '#f1f5f9', fontFamily: 'Georgia, serif' }}>
-            AI Agent Health
-          </h3>
+          <h3 className="text-[14.5px] font-semibold text-foreground">AI Agent Health</h3>
           {checkedAt && (
-            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#475569' }}>
-              Last checked at {checkedAt}
-            </p>
+            <p className="mt-1 text-[11.5px] text-muted-foreground">Last checked at {checkedAt}</p>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="flex items-center gap-2">
           {data && (
-            <span style={{
-              padding: '4px 10px',
-              background: data.all_ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-              border: `1px solid ${data.all_ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-              color: data.all_ok ? '#22c55e' : '#ef4444',
-              fontSize: '0.7rem', fontWeight: 700, borderRadius: 4,
-            }}>
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[.13em]",
+                data.all_ok
+                  ? "bg-success/15 text-success"
+                  : "bg-destructive/15 text-destructive"
+              )}
+            >
               {data.healthy}/{data.total} Healthy
             </span>
           )}
-          <button
-            onClick={runCheck}
-            disabled={loading}
-            style={{
-              background: 'rgba(201,168,76,0.08)',
-              border: '1px solid rgba(201,168,76,0.25)',
-              color: '#c9a84c',
-              padding: '6px 16px', borderRadius: 6,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '0.78rem', fontWeight: 600,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-              display: 'flex', alignItems: 'center', gap: 6,
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={runCheck} disabled={loading}>
             {loading ? (
               <>
-                <svg width="14" height="14" viewBox="0 0 24 24" style={{ animation: 'spin 0.7s linear infinite' }}>
-                  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="30 70" />
-                </svg>
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                 Checking…
               </>
             ) : (
               <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
+                <Activity className="mr-1 h-3.5 w-3.5" />
                 Run Check
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Error state */}
       {error && (
-        <div style={{ padding: '12px 24px', background: 'rgba(239,68,68,0.08)', color: '#fca5a5', fontSize: '0.8rem' }}>
+        <div className="border-b border-border/60 bg-destructive/10 px-5 py-3 text-[12.5px] text-destructive">
           {error}
         </div>
       )}
 
       {/* Empty state */}
       {!data && !loading && !error && (
-        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <div style={{ marginBottom: 12 }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5" style={{ margin: '0 auto' }}>
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-          </div>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Click Run Check to test all agents</p>
+        <div className="px-5 py-12 text-center">
+          <HeartPulse className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" strokeWidth={1.5} />
+          <p className="text-[13px] text-muted-foreground">Click Run Check to test all agents</p>
         </div>
       )}
 
@@ -140,17 +108,19 @@ export default function AgentHealthPanel() {
       {loading && !data && (
         <div>
           {[...Array(7)].map((_, i) => (
-            <div key={i} style={{
-              padding: '14px 24px',
-              borderBottom: i < 6 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-              display: 'grid', gridTemplateColumns: '10px 1fr 100px', gap: 16, alignItems: 'center',
-            }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+            <div
+              key={i}
+              className={cn(
+                "grid grid-cols-[10px_1fr_100px] items-center gap-4 px-5 py-3.5",
+                i < 6 && "border-b border-border/40"
+              )}
+            >
+              <div className="h-2.5 w-2.5 rounded-full bg-muted" />
               <div>
-                <div style={{ height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 4, width: `${50 + i * 7}%`, marginBottom: 6 }} />
-                <div style={{ height: 10, background: 'rgba(255,255,255,0.04)', borderRadius: 4, width: '40%' }} />
+                <div className="mb-1.5 h-3 rounded bg-muted" style={{ width: `${50 + i * 7}%` }} />
+                <div className="h-2 w-2/5 rounded bg-muted/60" />
               </div>
-              <div style={{ height: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 4 }} />
+              <div className="h-2.5 rounded bg-muted/60" />
             </div>
           ))}
         </div>
@@ -160,43 +130,44 @@ export default function AgentHealthPanel() {
       {data && (
         <div>
           {data.results.map((r, i) => (
-            <div key={r.slug} style={{
-              padding: '14px 24px',
-              borderBottom: i < data.results.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-              display: 'grid', gridTemplateColumns: '10px 1fr auto', gap: 16, alignItems: 'center',
-              background: r.status === 'fail' ? 'rgba(239,68,68,0.04)' : 'transparent',
-            }}>
-              {/* Status dot */}
-              <div style={{
-                width: 10, height: 10, borderRadius: '50%',
-                background: r.status === 'ok' ? '#22c55e' : '#ef4444',
-              }} />
-
-              {/* Agent info */}
+            <div
+              key={r.slug}
+              className={cn(
+                "grid grid-cols-[10px_1fr_auto] items-center gap-4 px-5 py-3.5",
+                i < data.results.length - 1 && "border-b border-border/40",
+                r.status === "fail" && "bg-destructive/5"
+              )}
+            >
+              <div
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full",
+                  r.status === "ok" ? "bg-success" : "bg-destructive"
+                )}
+              />
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontFamily: 'Georgia, serif', fontSize: '0.88rem', color: '#e2e8f0' }}>
-                    {r.agent}
-                  </span>
-                  <span style={{
-                    padding: '1px 6px', borderRadius: 3,
-                    fontSize: '0.62rem', fontWeight: 700,
-                    background: r.status === 'ok' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-                    color: r.status === 'ok' ? '#22c55e' : '#ef4444',
-                  }}>
-                    {r.status === 'ok' ? 'OK' : 'FAIL'}
+                <div className="flex items-center gap-2">
+                  <span className="text-[13.5px] font-medium text-foreground">{r.agent}</span>
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[.13em]",
+                      r.status === "ok"
+                        ? "bg-success/15 text-success"
+                        : "bg-destructive/15 text-destructive"
+                    )}
+                  >
+                    {r.status === "ok" ? "OK" : "FAIL"}
                   </span>
                 </div>
-                <p style={{ margin: '2px 0 0', fontSize: '0.7rem', color: '#475569' }}>{r.role}</p>
-                {r.status === 'fail' && (
-                  <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#fca5a5' }}>{r.response}</p>
+                <p className="mt-0.5 text-[11.5px] text-muted-foreground">{r.role}</p>
+                {r.status === "fail" && (
+                  <p className="mt-1 text-[12px] text-destructive">{r.response}</p>
                 )}
               </div>
-
-              {/* Latency + code */}
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b' }}>{r.latency_ms}ms</p>
-                <p style={{ margin: '2px 0 0', fontFamily: 'monospace', fontSize: '0.65rem', color: '#475569' }}>{r.http_code}</p>
+              <div className="text-right tabular-nums">
+                <p className="font-mono text-[12px] text-muted-foreground">{r.latency_ms}ms</p>
+                <p className="mt-0.5 font-mono text-[10.5px] text-muted-foreground/70">
+                  {r.http_code}
+                </p>
               </div>
             </div>
           ))}
@@ -205,21 +176,17 @@ export default function AgentHealthPanel() {
 
       {/* Footer summary */}
       {data && (
-        <div style={{
-          padding: '12px 24px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(0,0,0,0.2)',
-          fontSize: '0.75rem',
-          color: data.all_ok ? '#22c55e' : '#f59e0b',
-        }}>
+        <div
+          className={cn(
+            "border-t border-border/60 bg-muted/30 px-5 py-3 text-[12.5px]",
+            data.all_ok ? "text-success" : "text-warning"
+          )}
+        >
           {data.all_ok
-            ? '✓ All agents operational'
-            : `⚠ ${data.failed} agent${data.failed > 1 ? 's' : ''} need attention`
-          }
+            ? "All agents operational"
+            : `${data.failed} agent${data.failed > 1 ? "s" : ""} need attention`}
         </div>
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

@@ -35,7 +35,7 @@ const tierBadge = (tier: CircleMember["tier"]) => {
     return <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Founders Society</Badge>;
   if (tier === "premier")
     return <Badge className="bg-amber-200 hover:bg-amber-200 text-amber-900">Premier</Badge>;
-  return <Badge className="bg-[#0a1f44] hover:bg-[#0a1f44] text-white">Circle</Badge>;
+  return <Badge className="bg-primary text-primary-foreground hover:bg-primary">Circle</Badge>;
 };
 
 const statusBadge = (s: CircleMember["status"]) => {
