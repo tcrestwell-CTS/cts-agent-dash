@@ -20,11 +20,11 @@ const SectionCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
 );
 SectionCard.displayName = "SectionCard";
 
-interface SectionCardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+type SectionCardHeaderProps = Omit<React.HTMLAttributes<HTMLDivElement>, "title"> & {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
-}
+};
 
 const SectionCardHeader = React.forwardRef<HTMLDivElement, SectionCardHeaderProps>(
   ({ className, title, subtitle, actions, children, ...props }, ref) => (
