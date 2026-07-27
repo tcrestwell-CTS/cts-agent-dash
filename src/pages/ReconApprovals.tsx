@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Panel, PanelBody } from "@/components/patterns/Panel";
+import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -34,7 +35,7 @@ function TaskDetail({ task }: { task: ApprovalTask }) {
         <pre>{JSON.stringify(payload, null, 2)}</pre>
       </div>
       {task.requires_admin && (
-        <div className="flex items-center gap-2 text-orange-600 bg-orange-50 border border-orange-200 rounded p-2 text-xs">
+        <div className="flex items-center gap-2 rounded border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
           <AlertTriangle className="h-3 w-3 flex-shrink-0" />
           Admin approval required — transaction exceeds approval threshold
         </div>
@@ -64,49 +65,45 @@ export function ReconApprovals() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-5 max-w-7xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-blue-600" />
+      <div className="space-y-[18px]">
+        <div className="space-y-1">
+          <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+            <ShieldCheck className="h-4 w-4 text-info" />
             Approval Center
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-[13.5px] text-muted-foreground">
             Review and approve proposed QBO writes — nothing posts without your sign-off
           </p>
         </div>
 
         {!isLoading && tasks?.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-3" />
-              <p className="font-medium">No pending approvals</p>
-              <p className="text-sm text-muted-foreground mt-1">All proposed QBO writes have been reviewed</p>
-            </CardContent>
-          </Card>
+          <Panel>
+            <PanelBody className="py-12 text-center">
+              <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-success" />
+              <p className="text-[14px] font-medium text-foreground">No pending approvals</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">All proposed QBO writes have been reviewed</p>
+            </PanelBody>
+          </Panel>
         )}
 
         <div className="space-y-3">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}><CardContent className="p-4"><Skeleton className="h-16 w-full" /></CardContent></Card>
+              <Panel key={i}><PanelBody><Skeleton className="h-16 w-full" /></PanelBody></Panel>
             ))
           ) : (
             tasks?.map((task) => (
-              <Card
+              <Panel
                 key={task.id}
-                className={`cursor-pointer hover:shadow-md transition-shadow ${task.requires_admin ? "border-orange-200" : ""}`}
+                className={`transition-shadow hover:shadow-md ${task.requires_admin ? "border-warning/40" : ""}`}
               >
-                <CardContent className="p-4">
+                <PanelBody>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
-                          {ACTION_LABELS[task.action_type] || task.action_type}
-                        </Badge>
+                        <SemanticStatusPill status="info" label={ACTION_LABELS[task.action_type] || task.action_type} />
                         {task.requires_admin && (
-                          <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
-                            Admin Required
-                          </Badge>
+                          <SemanticStatusPill status="warning" label="Admin Required" />
                         )}
                       </div>
                       <div className="mt-2 font-mono text-xs text-muted-foreground truncate">
@@ -129,7 +126,7 @@ export function ReconApprovals() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        className="text-destructive hover:bg-destructive/10"
                         onClick={() => { setRejecting(task); setRejectReason(""); }}
                       >
                         <XCircle className="h-3.5 w-3.5 mr-1" />
@@ -137,7 +134,6 @@ export function ReconApprovals() {
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700"
                         disabled={approve.isPending}
                         onClick={() => handleApprove(task)}
                       >
@@ -149,12 +145,12 @@ export function ReconApprovals() {
 
                   {selected?.id === task.id && (
                     <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">QBO Payload Preview</p>
+                      <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">QBO Payload Preview</p>
                       <TaskDetail task={task} />
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </PanelBody>
+              </Panel>
             ))
           )}
         </div>

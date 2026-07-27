@@ -2,6 +2,7 @@
 // Lists all reconciliation matches with filtering, search, and detail drawer
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Panel, PanelBody } from "@/components/patterns/Panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
