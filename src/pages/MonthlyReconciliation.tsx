@@ -155,7 +155,10 @@ const MonthlyReconciliation = () => {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">
             Monthly Reconciliation
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
