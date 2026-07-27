@@ -371,7 +371,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
           isCollapsed && "justify-center px-0",
           isActive
             ? "bg-sidebar-accent text-accent"
-            : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         )}
       >
         <span
