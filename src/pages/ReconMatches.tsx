@@ -606,13 +606,13 @@ export default function ReconMatches() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-5 max-w-7xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-primary" />
+      <div className="space-y-[18px]">
+        <div className="space-y-1">
+          <h1 className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.025em] text-foreground">
+            <ArrowRightLeft className="h-4 w-4 text-primary" />
             Match Center
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-[13.5px] text-muted-foreground">
             Confidence-scored matches between CRM, Stripe, and QuickBooks
           </p>
         </div>
@@ -673,8 +673,8 @@ export default function ReconMatches() {
         )}
 
         {/* Table */}
-        <Card>
-          <CardContent className="p-0">
+        <Panel>
+          <PanelBody className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -765,8 +765,8 @@ export default function ReconMatches() {
                 )}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </PanelBody>
+        </Panel>
 
         <MatchDrawer
           match={selected}
