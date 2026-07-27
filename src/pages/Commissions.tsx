@@ -56,6 +56,19 @@ const Commissions = () => {
 
   const tierConfig = getTierConfig(profile?.commission_tier);
 
+  // Build a lookup of user_id -> profile so agency-wide viewers can see the
+  // selling agent per row, and each agent row can show the correct split %.
+  const profileByUser = useMemo(() => {
+    const m = new Map<string, { full_name: string | null; commission_tier: CommissionTier | null }>();
+    for (const p of teamProfiles ?? []) {
+      m.set(p.user_id, {
+        full_name: p.full_name ?? null,
+        commission_tier: (p.commission_tier as CommissionTier | null) ?? null,
+      });
+    }
+    return m;
+  }, [teamProfiles]);
+
   // Build lookup maps to avoid O(n²) scans
   const bookingMap = useMemo(
     () => new Map((bookings || []).map((b) => [b.id, b])),
@@ -80,34 +93,72 @@ const Commissions = () => {
           ? subDays(departDate, 30)
           : null;
 
+        // Score each row against the *selling agent's* tier when viewing
+        // agency-wide; agents themselves always see their own split.
+        const rowTier = (canViewAgencyWide
+          ? profileByUser.get(commission.user_id)?.commission_tier ?? null
+          : (profile?.commission_tier as CommissionTier | null) ?? null);
+        const rowTierConfig = getTierConfig(rowTier);
+
         return {
           ...commission,
           booking,
           client,
-          agentShare: calculateAgentCommission(commission.amount, profile?.commission_tier),
+          agentShare: calculateAgentCommission(commission.amount, rowTier),
+          agentName: profileByUser.get(commission.user_id)?.full_name ?? null,
+          splitPct: rowTierConfig.agentSplit,
           expectedCommissionDate,
         };
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [commissions, bookings, clients, profile?.commission_tier, bookingMap, clientMap]);
+  }, [commissions, bookings, clients, profile?.commission_tier, bookingMap, clientMap, canViewAgencyWide, profileByUser]);
 
   // Calculate totals including holdback
   const totals = useMemo(() => {
     if (!enrichedCommissions.length) {
-      return { totalEarned: 0, thisMonth: 0, paid: 0, pending: 0, paidCount: 0, pendingCount: 0, holdbackTotal: 0, holdbackReleasedCount: 0 };
+      return { expected: 0, received: 0, paidYTD: 0, overSixty: 0, overSixtyCount: 0, thisMonth: 0, paid: 0, pending: 0, paidCount: 0, pendingCount: 0, totalEarned: 0, holdbackTotal: 0, holdbackReleasedCount: 0 };
     }
 
     const now = new Date();
     const thisMonthStart = startOfMonth(now);
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const sixtyDaysAgo = subDays(now, 60);
 
-    const totalEarned = enrichedCommissions.reduce((sum, c) => sum + c.agentShare, 0);
+    // Amount basis: agency-wide viewers see the full commission amount;
+    // agents see their own share after the tier split.
+    const rowAmount = (c: (typeof enrichedCommissions)[number]) =>
+      canViewAgencyWide ? c.amount : c.agentShare;
+
+    const expected = enrichedCommissions
+      .filter((c) => c.status !== "paid")
+      .reduce((sum, c) => sum + rowAmount(c), 0);
+
+    const received = enrichedCommissions
+      .filter((c) => c.status === "paid")
+      .reduce((sum, c) => sum + rowAmount(c), 0);
+
+    const paidYTD = enrichedCommissions
+      .filter((c) => {
+        if (c.status !== "paid" || !c.paid_date) return false;
+        return parseISO(c.paid_date) >= yearStart;
+      })
+      .reduce((sum, c) => sum + rowAmount(c), 0);
+
+    const overSixtyRows = enrichedCommissions.filter((c) => {
+      if (c.status === "paid") return false;
+      return parseISO(c.created_at) <= sixtyDaysAgo;
+    });
+    const overSixty = overSixtyRows.reduce((sum, c) => sum + rowAmount(c), 0);
+    const overSixtyCount = overSixtyRows.length;
+
+    const totalEarned = enrichedCommissions.reduce((sum, c) => sum + rowAmount(c), 0);
 
     const thisMonth = enrichedCommissions
       .filter((c) => {
         const createdDate = parseISO(c.created_at);
         return isWithinInterval(createdDate, { start: thisMonthStart, end: now });
       })
-      .reduce((sum, c) => sum + c.agentShare, 0);
+      .reduce((sum, c) => sum + rowAmount(c), 0);
 
     const paidCommissions = enrichedCommissions.filter((c) => c.status === "paid");
     const pendingCommissions = enrichedCommissions.filter((c) => c.status === "pending");
@@ -120,16 +171,21 @@ const Commissions = () => {
     const holdbackReleasedCount = (commissions || []).filter((c) => c.holdback_released).length;
 
     return {
+      expected,
+      received,
+      paidYTD,
+      overSixty,
+      overSixtyCount,
       totalEarned,
       thisMonth,
-      paid: paidCommissions.reduce((sum, c) => sum + c.agentShare, 0),
-      pending: pendingCommissions.reduce((sum, c) => sum + c.agentShare, 0),
+      paid: paidCommissions.reduce((sum, c) => sum + rowAmount(c), 0),
+      pending: pendingCommissions.reduce((sum, c) => sum + rowAmount(c), 0),
       paidCount: paidCommissions.length,
       pendingCount: pendingCommissions.length,
       holdbackTotal,
       holdbackReleasedCount,
     };
-  }, [enrichedCommissions, commissions]);
+  }, [enrichedCommissions, commissions, canViewAgencyWide]);
 
   // Monthly earnings data for Recharts
   const monthlyData = useMemo(() => {
