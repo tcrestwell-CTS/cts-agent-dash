@@ -169,7 +169,7 @@ export default function PaymentReminders() {
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Overdue</CardTitle></CardHeader>
             <CardContent><div className="text-2xl font-semibold text-destructive">{counts.overdue}</div></CardContent></Card>
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Due This Week</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-semibold text-amber-600">{counts.week}</div></CardContent></Card>
+            <CardContent><div className="text-2xl font-semibold text-warning">{counts.week}</div></CardContent></Card>
           <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Outstanding</CardTitle></CardHeader>
             <CardContent><div className="text-2xl font-semibold">{fmtUSD(counts.totalDue)}</div></CardContent></Card>
         </div>

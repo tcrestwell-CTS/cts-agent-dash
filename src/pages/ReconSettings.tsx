@@ -352,11 +352,11 @@ function AccountConfigTab() {
               />
               <span className="text-sm">
                 {form.allow_auto_post ? (
-                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                  <Badge className="bg-warning/10 text-warning border-warning/30">
                     ⚠ Auto-post enabled
                   </Badge>
                 ) : (
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                  <Badge className="bg-success/10 text-success border-success/30">
                     Manual approval required
                   </Badge>
                 )}
@@ -520,11 +520,11 @@ function SuggestedSupplierMappings() {
   if (!isLoading && visible.length === 0) return null;
 
   return (
-    <Card className="border-blue-200 bg-blue-50/30">
+    <Card className="border-info/30 bg-info/10/30">
       <CardHeader className="pb-2 flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-blue-600" />
+            <Link2 className="h-4 w-4 text-info" />
             Suggested Supplier → Vendor Mappings
           </CardTitle>
           <CardDescription className="text-xs">
@@ -562,9 +562,9 @@ function SuggestedSupplierMappings() {
                   <Badge
                     variant="outline"
                     className={
-                      s.score >= 0.85 ? "bg-green-100 text-green-800 border-green-200" :
-                      s.score >= 0.65 ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
-                      "bg-orange-100 text-orange-800 border-orange-200"
+                      s.score >= 0.85 ? "bg-success/10 text-success border-success/30" :
+                      s.score >= 0.65 ? "bg-warning/10 text-warning border-warning/30" :
+                      "bg-warning/10 text-warning border-warning/30"
                     }
                   >
                     {Math.round(s.score * 100)}%
@@ -792,16 +792,16 @@ function EntityMappingsTab() {
                     <TableCell className="font-mono text-xs">{m.stripe_id || "—"}</TableCell>
                     <TableCell>
                       {m.verified ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 text-success" />
                       ) : (
-                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        <AlertTriangle className="h-4 w-4 text-warning" />
                       )}
                     </TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-red-500 hover:bg-red-50"
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10"
                         onClick={() => deleteMapping.mutate(m.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

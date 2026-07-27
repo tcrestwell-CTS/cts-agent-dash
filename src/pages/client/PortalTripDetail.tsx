@@ -816,11 +816,11 @@ export default function PortalTripDetail() {
           ) : (
             <div className="space-y-3">
               {depositRequired && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                  <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                  <Lock className="h-5 w-5 text-warning shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-amber-800">Confirmation details unlock after deposit</p>
-                    <p className="text-xs text-amber-600 mt-0.5">Choose your options below and pay your deposit to unlock full booking confirmations.</p>
+                    <p className="text-sm font-medium text-warning">Confirmation details unlock after deposit</p>
+                    <p className="text-xs text-warning mt-0.5">Choose your options below and pay your deposit to unlock full booking confirmations.</p>
                   </div>
                 </div>
               )}
@@ -935,11 +935,11 @@ export default function PortalTripDetail() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Payments Applied</p>
-                      <p className="text-lg font-bold mt-1 text-green-700">{fmt(totalPaid)}</p>
+                      <p className="text-lg font-bold mt-1 text-success">{fmt(totalPaid)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">Balance Due</p>
-                      <p className={`text-lg font-bold mt-1 ${balanceDue > 0 ? "text-amber-700" : "text-green-700"}`}>
+                      <p className={`text-lg font-bold mt-1 ${balanceDue > 0 ? "text-warning" : "text-success"}`}>
                         {fmt(balanceDue)}
                       </p>
                     </div>
@@ -994,14 +994,14 @@ export default function PortalTripDetail() {
                 const statusIcon = isPaid ? CheckCircle2 : isPending ? Clock : p.status === "refunded" ? DollarSign : p.status === "cancelled" ? XCircle : CreditCard;
                 const StatusIcon = statusIcon;
                 const statusClass = isPaid
-                  ? "bg-green-100 text-green-700 border-green-200"
+                  ? "bg-success/10 text-success border-success/30"
                   : isPending
-                  ? "bg-amber-100 text-amber-700 border-amber-200"
+                  ? "bg-warning/10 text-warning border-warning/30"
                   : p.status === "authorized"
-                  ? "bg-blue-100 text-blue-700 border-blue-200"
+                  ? "bg-info/10 text-info border-info/30"
                   : p.status === "refunded"
-                  ? "bg-purple-100 text-purple-700 border-purple-200"
-                  : "bg-red-100 text-red-700 border-red-200";
+                  ? "bg-primary/10 text-primary border-primary/30"
+                  : "bg-destructive/10 text-destructive border-destructive/30";
 
                 const typeLabel = p.payment_type === "final_balance" ? "Final Balance" :
                   p.payment_type === "full_payment" ? "Full Payment" :
@@ -1010,7 +1010,7 @@ export default function PortalTripDetail() {
                 return (
                   <div
                     key={p.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-amber-200 bg-amber-50/50" : ""}`}
+                    className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-warning/30 bg-warning/10/50" : ""}`}
                   >
                     <div className="space-y-0.5">
                       <p className="font-medium">{typeLabel}</p>

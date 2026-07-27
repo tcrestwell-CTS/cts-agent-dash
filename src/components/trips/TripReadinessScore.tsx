@@ -60,9 +60,9 @@ export function TripReadinessScore({
 
   // Color by completion
   const ringColor = isReady
-    ? "text-green-500"
+    ? "text-success"
     : completedCount >= 4
-      ? "text-amber-500"
+      ? "text-warning"
       : "text-muted-foreground";
 
   return (
@@ -71,7 +71,7 @@ export function TripReadinessScore({
         <TooltipTrigger asChild>
           <div className={cn(
             "flex items-center gap-3 rounded-xl border px-4 py-3 cursor-default transition-colors",
-            isReady ? "border-green-200 bg-green-50/60" : "border-border bg-card"
+            isReady ? "border-success/30 bg-success/10/60" : "border-border bg-card"
           )}>
             {/* Circular progress */}
             <div className="relative h-9 w-9 shrink-0">
@@ -91,7 +91,7 @@ export function TripReadinessScore({
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className={cn("text-sm font-semibold leading-none", isReady ? "text-green-700" : "text-foreground")}>
+              <p className={cn("text-sm font-semibold leading-none", isReady ? "text-success" : "text-foreground")}>
                 {isReady ? "Trip Ready" : `${completedCount} of ${total} complete`}
               </p>
               {!isReady && (
@@ -117,7 +117,7 @@ export function TripReadinessScore({
           {checks.map((check) => (
             <div key={check.label} className="flex items-center gap-2">
               {check.checked
-                ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                ? <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                 : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
               }
               <span className={cn("text-xs", check.checked ? "text-foreground" : "text-muted-foreground")}>

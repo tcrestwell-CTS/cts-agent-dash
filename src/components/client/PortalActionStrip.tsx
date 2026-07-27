@@ -76,18 +76,18 @@ export function PortalActionStrip() {
 
   const urgencyConfig = {
     critical: {
-      bg: "bg-red-50 border-red-200 hover:bg-red-100/70",
-      text: "text-red-700",
+      bg: "bg-destructive/10 border-destructive/30 hover:bg-destructive/10/70",
+      text: "text-destructive",
       icon: AlertTriangle,
     },
     warning: {
-      bg: "bg-amber-50 border-amber-200 hover:bg-amber-100/70",
-      text: "text-amber-700",
+      bg: "bg-warning/10 border-warning/30 hover:bg-warning/10/70",
+      text: "text-warning",
       icon: CreditCard,
     },
     info: {
-      bg: "bg-blue-50 border-blue-100 hover:bg-blue-100/60",
-      text: "text-blue-700",
+      bg: "bg-info/10 border-blue-100 hover:bg-info/10/60",
+      text: "text-info",
       icon: FileCheck,
     },
   };

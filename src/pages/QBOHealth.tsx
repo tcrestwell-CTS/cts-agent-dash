@@ -133,7 +133,7 @@ export default function QBOHealth() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Connection</CardTitle>
               {status.connected ? (
-                <Wifi className="h-4 w-4 text-emerald-500" />
+                <Wifi className="h-4 w-4 text-success" />
               ) : (
                 <WifiOff className="h-4 w-4 text-destructive" />
               )}
@@ -168,7 +168,7 @@ export default function QBOHealth() {
                 <div className="text-xl font-bold text-muted-foreground">N/A</div>
               ) : (
                 <>
-                  <div className={`text-xl font-bold ${tokenExpired ? "text-destructive" : "text-emerald-600"}`}>
+                  <div className={`text-xl font-bold ${tokenExpired ? "text-destructive" : "text-success"}`}>
                     {tokenExpired ? "Expired" : "Valid"}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -191,7 +191,7 @@ export default function QBOHealth() {
                 <Skeleton className="h-7 w-24" />
               ) : (
                 <>
-                  <div className={`text-xl font-bold ${successRate >= 90 ? "text-emerald-600" : successRate >= 70 ? "text-amber-600" : "text-destructive"}`}>
+                  <div className={`text-xl font-bold ${successRate >= 90 ? "text-success" : successRate >= 70 ? "text-warning" : "text-destructive"}`}>
                     {successRate}%
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -212,7 +212,7 @@ export default function QBOHealth() {
                 <Skeleton className="h-7 w-24" />
               ) : (
                 <>
-                  <div className={`text-xl font-bold ${errorCount > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                  <div className={`text-xl font-bold ${errorCount > 0 ? "text-destructive" : "text-success"}`}>
                     {errorCount}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -307,7 +307,7 @@ export default function QBOHealth() {
                 <div className="bg-muted/30 rounded-lg p-4 grid grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Income (This Month)</p>
-                    <p className="text-sm font-semibold text-emerald-600">
+                    <p className="text-sm font-semibold text-success">
                       ${financials.profit_and_loss.total_income.toLocaleString()}
                     </p>
                   </div>
@@ -368,7 +368,7 @@ export default function QBOHealth() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-muted/30 rounded-lg p-3">
                       <p className="text-xs text-muted-foreground">Available</p>
-                      <p className="text-lg font-bold text-emerald-600">
+                      <p className="text-lg font-bold text-success">
                         ${stripePayouts.balance.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -497,24 +497,24 @@ export default function QBOHealth() {
                   </div>
                   <div className="bg-muted/30 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Matched</p>
-                    <p className="text-lg font-bold text-emerald-600">{fullRecon.summary.matched}</p>
+                    <p className="text-lg font-bold text-success">{fullRecon.summary.matched}</p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Discrepancies</p>
-                    <p className={`text-lg font-bold ${fullRecon.summary.discrepancies > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                    <p className={`text-lg font-bold ${fullRecon.summary.discrepancies > 0 ? "text-destructive" : "text-success"}`}>
                       {fullRecon.summary.discrepancies}
                     </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Orphaned in Stripe</p>
-                    <p className={`text-lg font-bold ${fullRecon.summary.orphaned_in_stripe > 0 ? "text-amber-600" : "text-foreground"}`}>
+                    <p className={`text-lg font-bold ${fullRecon.summary.orphaned_in_stripe > 0 ? "text-warning" : "text-foreground"}`}>
                       {fullRecon.summary.orphaned_in_stripe}
                     </p>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Overall</p>
                     {fullRecon.summary.all_clear ? (
-                      <Badge variant="outline" className="mt-1 text-emerald-600 border-emerald-200">
+                      <Badge variant="outline" className="mt-1 text-success border-success/30">
                         <CheckCircle2 className="h-3 w-3 mr-1" /> All Clear
                       </Badge>
                     ) : (
@@ -539,7 +539,7 @@ export default function QBOHealth() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Variance</p>
-                      <p className={`font-mono font-bold ${Math.abs(fullRecon.volume_comparison.variance) > 1 ? "text-destructive" : "text-emerald-600"}`}>
+                      <p className={`font-mono font-bold ${Math.abs(fullRecon.volume_comparison.variance) > 1 ? "text-destructive" : "text-success"}`}>
                         ${fullRecon.volume_comparison.variance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -552,7 +552,7 @@ export default function QBOHealth() {
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <p className="text-xs text-muted-foreground">Available</p>
-                      <p className="font-mono font-bold text-emerald-600">${fullRecon.stripe_balance.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      <p className="font-mono font-bold text-success">${fullRecon.stripe_balance.available.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Pending</p>
@@ -563,7 +563,7 @@ export default function QBOHealth() {
 
                 {/* QBO Clearing */}
                 {fullRecon.qbo_clearing && (
-                  <div className={`rounded-lg p-4 ${fullRecon.qbo_clearing.is_balanced ? "bg-emerald-50/50 dark:bg-emerald-950/20" : fullRecon.qbo_clearing.error ? "bg-amber-50/50 dark:bg-amber-950/20" : "bg-destructive/5"}`}>
+                  <div className={`rounded-lg p-4 ${fullRecon.qbo_clearing.is_balanced ? "bg-success/10/50 dark:bg-emerald-950/20" : fullRecon.qbo_clearing.error ? "bg-warning/10/50 dark:bg-amber-950/20" : "bg-destructive/5"}`}>
                     <h4 className="text-sm font-medium mb-1 text-foreground flex items-center gap-2">
                       <Landmark className="h-4 w-4" /> QBO Stripe Clearing
                     </h4>
@@ -580,7 +580,7 @@ export default function QBOHealth() {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Variance</p>
-                          <p className={`font-mono font-bold ${fullRecon.qbo_clearing.is_balanced ? "text-emerald-600" : "text-destructive"}`}>
+                          <p className={`font-mono font-bold ${fullRecon.qbo_clearing.is_balanced ? "text-success" : "text-destructive"}`}>
                             ${fullRecon.qbo_clearing.variance.toFixed(2)}
                           </p>
                         </div>
@@ -650,7 +650,7 @@ export default function QBOHealth() {
 
                 {fullRecon.orphaned_stripe_payments?.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium mb-2 text-amber-600">Orphaned Stripe Payments ({fullRecon.orphaned_stripe_payments.length})</h4>
+                    <h4 className="text-sm font-medium mb-2 text-warning">Orphaned Stripe Payments ({fullRecon.orphaned_stripe_payments.length})</h4>
                     <div className="rounded-md border">
                       <Table>
                         <TableHeader>
@@ -750,7 +750,7 @@ export default function QBOHealth() {
                           <TableCell className="text-right font-mono text-xs">${row.commissionEarned.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-right font-mono text-xs">${row.commissionPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell className={`text-right font-mono text-xs font-semibold ${
-                            isBalanced ? "text-emerald-600" : hasDiscrepancy ? "text-destructive" : "text-foreground"
+                            isBalanced ? "text-success" : hasDiscrepancy ? "text-destructive" : "text-foreground"
                           }`}>
                             ${row.netPosition.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             {isBalanced && <CheckCircle2 className="h-3 w-3 inline ml-1" />}
@@ -814,7 +814,7 @@ export default function QBOHealth() {
                             </TableCell>
                             <TableCell>
                               {log.status === "success" ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                <CheckCircle2 className="h-4 w-4 text-success" />
                               ) : (
                                 <XCircle className="h-4 w-4 text-destructive" />
                               )}
@@ -850,9 +850,9 @@ export default function QBOHealth() {
           );
           if (!unmatchedTrips.length) return null;
           return (
-            <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10">
+            <Card className="border-warning/30 bg-warning/10/30 dark:bg-amber-950/10">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <CardTitle className="flex items-center gap-2 text-warning dark:text-warning">
                   <AlertTriangle className="h-5 w-5" />
                   In-Progress Trips with Open Positions
                 </CardTitle>
@@ -866,7 +866,7 @@ export default function QBOHealth() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>Paid: ${t.clientPaid.toLocaleString()}</span>
                         <span>Supplier: ${t.supplierPaid.toLocaleString()}</span>
-                        <span className="font-semibold text-amber-600">Net: ${t.netPosition.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="font-semibold text-warning">Net: ${t.netPosition.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                   ))}
@@ -944,7 +944,7 @@ export default function QBOHealth() {
                         </TableCell>
                         <TableCell>
                           {log.status === "success" ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <CheckCircle2 className="h-4 w-4 text-success" />
                           ) : (
                             <XCircle className="h-4 w-4 text-destructive" />
                           )}

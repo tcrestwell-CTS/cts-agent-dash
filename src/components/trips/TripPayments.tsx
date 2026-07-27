@@ -57,11 +57,11 @@ interface TripPaymentsProps {
 }
 
 const statusColors: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700 border-amber-200",
-  paid: "bg-green-100 text-green-700 border-green-200",
-  authorized: "bg-blue-100 text-blue-700 border-blue-200",
-  refunded: "bg-purple-100 text-purple-700 border-purple-200",
-  cancelled: "bg-red-100 text-red-700 border-red-200",
+  pending: "bg-warning/10 text-warning border-warning/30",
+  paid: "bg-success/10 text-success border-success/30",
+  authorized: "bg-info/10 text-info border-info/30",
+  refunded: "bg-primary/10 text-primary border-primary/30",
+  cancelled: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 export function TripPayments({ 
@@ -473,8 +473,8 @@ export function TripPayments({
                   variant="outline"
                   className={
                     unsyncedCount > 0
-                      ? "bg-amber-100 text-amber-700 border-amber-200"
-                      : "bg-green-100 text-green-700 border-green-200"
+                      ? "bg-warning/10 text-warning border-warning/30"
+                      : "bg-success/10 text-success border-success/30"
                   }
                   title={
                     unsyncedCount > 0
@@ -575,11 +575,11 @@ export function TripPayments({
                           {payment.status === "paid" && (
                             <div className="mt-1">
                               {qboSyncedIds.has(payment.id) ? (
-                                <span className="inline-flex items-center text-xs text-green-700" title="Pushed to QBO">
+                                <span className="inline-flex items-center text-xs text-success" title="Pushed to QBO">
                                   <Cloud className="h-3 w-3 mr-1" /> QBO synced
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center text-xs text-amber-700" title="Not yet pushed to QBO — will be sent on next sync">
+                                <span className="inline-flex items-center text-xs text-warning" title="Not yet pushed to QBO — will be sent on next sync">
                                   <CloudOff className="h-3 w-3 mr-1" /> Not in QBO
                                 </span>
                               )}

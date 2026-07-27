@@ -18,9 +18,9 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 const typeConfig: Record<string, { label: string; icon: any; color: string }> = {
-  cron: { label: "Cron Job", icon: Timer, color: "text-blue-500" },
-  edge_function: { label: "Edge Function", icon: Zap, color: "text-amber-500" },
-  ai_agent: { label: "AI Agent", icon: Bot, color: "text-purple-500" },
+  cron: { label: "Cron Job", icon: Timer, color: "text-info" },
+  edge_function: { label: "Edge Function", icon: Zap, color: "text-warning" },
+  ai_agent: { label: "AI Agent", icon: Bot, color: "text-primary" },
 };
 
 export default function TaskMonitor() {
@@ -53,37 +53,37 @@ export default function TaskMonitor() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{stats?.success ?? 0}</p>
+              <p className="text-2xl font-bold text-success">{stats?.success ?? 0}</p>
               <p className="text-xs text-muted-foreground">Success</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-red-600">{stats?.failed ?? 0}</p>
+              <p className="text-2xl font-bold text-destructive">{stats?.failed ?? 0}</p>
               <p className="text-xs text-muted-foreground">Failed</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">{stats?.running ?? 0}</p>
+              <p className="text-2xl font-bold text-info">{stats?.running ?? 0}</p>
               <p className="text-xs text-muted-foreground">Running</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-500">{stats?.byType.cron ?? 0}</p>
+              <p className="text-2xl font-bold text-info">{stats?.byType.cron ?? 0}</p>
               <p className="text-xs text-muted-foreground">Cron</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-amber-500">{stats?.byType.edge_function ?? 0}</p>
+              <p className="text-2xl font-bold text-warning">{stats?.byType.edge_function ?? 0}</p>
               <p className="text-xs text-muted-foreground">Functions</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-purple-500">{stats?.byType.ai_agent ?? 0}</p>
+              <p className="text-2xl font-bold text-primary">{stats?.byType.ai_agent ?? 0}</p>
               <p className="text-xs text-muted-foreground">AI Agents</p>
             </CardContent>
           </Card>
@@ -220,8 +220,8 @@ export default function TaskMonitor() {
                 )}
                 {selectedRun.error_message && (
                   <div>
-                    <p className="text-red-500 mb-1">Error:</p>
-                    <pre className="bg-red-50 dark:bg-red-900/20 p-3 rounded text-xs whitespace-pre-wrap text-red-700 dark:text-red-300">{selectedRun.error_message}</pre>
+                    <p className="text-destructive mb-1">Error:</p>
+                    <pre className="bg-destructive/10 dark:bg-red-900/20 p-3 rounded text-xs whitespace-pre-wrap text-destructive dark:text-red-300">{selectedRun.error_message}</pre>
                   </div>
                 )}
                 {selectedRun.metadata && Object.keys(selectedRun.metadata).length > 0 && (

@@ -19,24 +19,24 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const EXCEPTION_LABELS: Record<string, { label: string; color: string }> = {
-  missing_qbo_invoice:        { label: "Missing Invoice",      color: "bg-red-100 text-red-800 border-red-200" },
-  missing_qbo_payment:        { label: "Missing Payment",      color: "bg-orange-100 text-orange-800 border-orange-200" },
-  missing_qbo_bill:           { label: "Missing Bill",         color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  missing_qbo_billpayment:    { label: "Missing Bill Payment", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  unmatched_stripe_payment:   { label: "Unmatched Stripe",     color: "bg-purple-100 text-purple-800 border-purple-200" },
-  stripe_dispute:             { label: "Dispute",              color: "bg-red-100 text-red-800 border-red-200" },
-  stripe_refund:              { label: "Refund",               color: "bg-blue-100 text-blue-800 border-blue-200" },
-  failed_payout:              { label: "Failed Payout",        color: "bg-red-100 text-red-800 border-red-200" },
-  amount_mismatch:            { label: "Amount Mismatch",      color: "bg-orange-100 text-orange-800 border-orange-200" },
-  duplicate_payment:          { label: "Duplicate",            color: "bg-pink-100 text-pink-800 border-pink-200" },
-  closed_period_conflict:     { label: "Closed Period",        color: "bg-gray-100 text-gray-800 border-gray-200" },
+  missing_qbo_invoice:        { label: "Missing Invoice",      color: "bg-destructive/10 text-destructive border-destructive/30" },
+  missing_qbo_payment:        { label: "Missing Payment",      color: "bg-warning/10 text-warning border-warning/30" },
+  missing_qbo_bill:           { label: "Missing Bill",         color: "bg-warning/10 text-warning border-warning/30" },
+  missing_qbo_billpayment:    { label: "Missing Bill Payment", color: "bg-warning/10 text-warning border-warning/30" },
+  unmatched_stripe_payment:   { label: "Unmatched Stripe",     color: "bg-primary/10 text-primary border-primary/30" },
+  stripe_dispute:             { label: "Dispute",              color: "bg-destructive/10 text-destructive border-destructive/30" },
+  stripe_refund:              { label: "Refund",               color: "bg-info/10 text-info border-info/30" },
+  failed_payout:              { label: "Failed Payout",        color: "bg-destructive/10 text-destructive border-destructive/30" },
+  amount_mismatch:            { label: "Amount Mismatch",      color: "bg-warning/10 text-warning border-warning/30" },
+  duplicate_payment:          { label: "Duplicate",            color: "bg-primary/10 text-primary border-primary/30" },
+  closed_period_conflict:     { label: "Closed Period",        color: "bg-muted text-foreground border-border" },
 };
 
 const STATUS_COLORS: Record<ExceptionStatus, string> = {
-  open:      "bg-red-100 text-red-800 border-red-200",
-  in_review: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  resolved:  "bg-green-100 text-green-800 border-green-200",
-  archived:  "bg-gray-100 text-gray-800 border-gray-200",
+  open:      "bg-destructive/10 text-destructive border-destructive/30",
+  in_review: "bg-warning/10 text-warning border-warning/30",
+  resolved:  "bg-success/10 text-success border-success/30",
+  archived:  "bg-muted text-foreground border-border",
 };
 
 export function ReconExceptions() {
@@ -179,7 +179,7 @@ export function ReconExceptions() {
                 ) : (
                   filtered.map((ex) => {
                     const typeCfg = EXCEPTION_LABELS[ex.exception_type] || {
-                      label: ex.exception_type, color: "bg-gray-100 text-gray-800 border-gray-200",
+                      label: ex.exception_type, color: "bg-muted text-foreground border-border",
                     };
                     return (
                       <TableRow key={ex.id}>

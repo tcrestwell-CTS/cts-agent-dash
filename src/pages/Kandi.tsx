@@ -13,7 +13,7 @@ const AGENTS = [
     description: "Scores incoming leads using AI, tags service area fit, and routes qualified prospects to the next stage automatically.",
     icon: Brain,
     color: "hsl(var(--primary))",
-    badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+    badgeColor: "bg-purple-500/10 text-primary border-purple-500/30",
     trigger: "Form submission",
   },
   {
@@ -23,7 +23,7 @@ const AGENTS = [
     description: "Sends personalized follow-up emails to qualified leads on a timed drip sequence to keep prospects engaged.",
     icon: Zap,
     color: "hsl(var(--accent))",
-    badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+    badgeColor: "bg-blue-500/10 text-info border-blue-500/30",
     trigger: "Lead qualified",
   },
   {
@@ -33,7 +33,7 @@ const AGENTS = [
     description: "Generates trip proposal drafts via n8n workflow when a lead is marked qualified, ready for advisor review.",
     icon: Bot,
     color: "hsl(142 71% 45%)",
-    badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    badgeColor: "bg-emerald-500/10 text-success border-emerald-500/30",
     trigger: "Qualified → n8n",
   },
   {
@@ -43,7 +43,7 @@ const AGENTS = [
     description: "Sends milestone emails like 'You're Booked,' '4 Months Out,' and '1 Month Out' plus prep checklists to travelers.",
     icon: Heart,
     color: "hsl(24 95% 53%)",
-    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/30",
+    badgeColor: "bg-orange-500/10 text-warning border-orange-500/30",
     trigger: "Trip status: booked",
   },
   {
@@ -53,7 +53,7 @@ const AGENTS = [
     description: "Monitors bookings, invoices, and commissions for discrepancies. Flags missing invoices, unpaid balances, and QBO desyncs.",
     icon: Shield,
     color: "hsl(45 93% 47%)",
-    badgeColor: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
+    badgeColor: "bg-yellow-500/10 text-warning border-yellow-500/30",
     trigger: "DB changes + daily cron",
   },
   {
@@ -63,7 +63,7 @@ const AGENTS = [
     description: "Posts offline conversion events to Google Ads when leads are qualified or booked, optimizing ad spend automatically.",
     icon: Megaphone,
     color: "hsl(330 81% 60%)",
-    badgeColor: "bg-pink-500/10 text-pink-400 border-pink-500/30",
+    badgeColor: "bg-pink-500/10 text-primary border-pink-500/30",
     trigger: "Qualified / Booked",
   },
   {
@@ -73,7 +73,7 @@ const AGENTS = [
     description: "Verifies database connectivity and ensures lead data flows correctly between the portal and backend systems.",
     icon: Database,
     color: "hsl(215 16% 47%)",
-    badgeColor: "bg-slate-500/10 text-slate-400 border-slate-500/30",
+    badgeColor: "bg-slate-500/10 text-muted-foreground border-slate-500/30",
     trigger: "Health check",
   },
 ];

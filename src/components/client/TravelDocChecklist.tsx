@@ -104,9 +104,9 @@ export function TravelDocChecklist({ tripId }: TravelDocChecklistProps) {
 
       <CardContent className="space-y-4">
         {completed === DOC_ITEMS.length && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
-            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-            <p className="text-sm font-medium text-green-700">All items complete — you're ready to travel!</p>
+          <div className="flex items-center gap-2 rounded-lg bg-success/10 border border-success/30 px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+            <p className="text-sm font-medium text-success">All items complete — you're ready to travel!</p>
           </div>
         )}
 
@@ -130,15 +130,15 @@ export function TravelDocChecklist({ tripId }: TravelDocChecklistProps) {
             {item.requiresUpload && (
               <div className="ml-7">
                 {uploads[item.key]?.url ? (
-                  <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs text-success bg-success/10 border border-success/30 rounded-lg px-3 py-2">
                     <FileText className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate flex-1">{uploads[item.key].name}</span>
                     <a href={uploads[item.key].url} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-1 text-green-700 hover:underline shrink-0">
+                      className="flex items-center gap-1 text-success hover:underline shrink-0">
                       <Eye className="h-3 w-3" />View
                     </a>
                     <button onClick={() => setUploads(prev => { const n = {...prev}; delete n[item.key]; return n; })}
-                      className="text-green-600 hover:text-red-500 shrink-0">
+                      className="text-success hover:text-destructive shrink-0">
                       <X className="h-3 w-3" />
                     </button>
                   </div>

@@ -384,8 +384,8 @@ export function AgentChatWidget() {
   // ── File type icon ────────────────────────────────────────────────────────────
 
   const FileTypeIcon = ({ type }: { type: FileAttachment["type"] }) => {
-    if (type === "pdf") return <FileText className="h-3.5 w-3.5 text-red-500" />;
-    if (type === "image") return <ImageIcon className="h-3.5 w-3.5 text-blue-500" />;
+    if (type === "pdf") return <FileText className="h-3.5 w-3.5 text-destructive" />;
+    if (type === "image") return <ImageIcon className="h-3.5 w-3.5 text-info" />;
     return <FileText className="h-3.5 w-3.5 text-muted-foreground" />;
   };
 
@@ -503,7 +503,7 @@ export function AgentChatWidget() {
                       <AvatarImage src={agent.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">{(agent.full_name || "A").charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-green-500 text-green-500" />
+                    <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-green-500 text-success" />
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">
                     {agent.full_name || "Agent"}
@@ -620,7 +620,7 @@ export function AgentChatWidget() {
 
             {/* Voice listening indicator */}
             {isListening && (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-xs text-red-600 dark:text-red-400">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-destructive/10 dark:bg-red-900/20 border border-destructive/30 dark:border-red-700 text-xs text-destructive dark:text-destructive">
                 <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
                 Listening… speak now
               </div>
@@ -659,7 +659,7 @@ export function AgentChatWidget() {
                   className={cn(
                     "h-9 w-9 shrink-0 transition-colors",
                     isListening
-                      ? "text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-900/20"
+                      ? "text-destructive hover:text-destructive bg-destructive/10 dark:bg-red-900/20"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   onClick={toggleVoice}

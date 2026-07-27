@@ -615,8 +615,8 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-bold">S</span>
+                  <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
+                    <span className="text-info font-bold">S</span>
                   </div>
                   <div>
                     <p className="font-medium text-card-foreground">
@@ -632,8 +632,8 @@ const Settings = () => {
 
               <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                    <span className="text-green-600 font-bold">A</span>
+                  <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                    <span className="text-success font-bold">A</span>
                   </div>
                   <div>
                     <p className="font-medium text-card-foreground">

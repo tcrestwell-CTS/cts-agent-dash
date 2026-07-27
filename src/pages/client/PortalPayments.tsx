@@ -23,11 +23,11 @@ import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
 import { getPortalAuthHeaders } from "@/lib/portalAuthHeaders";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: any; className: string }> = {
-  paid: { label: "Paid", variant: "default", icon: CheckCircle2, className: "bg-green-100 text-green-700 border-green-200" },
-  pending: { label: "Unpaid", variant: "secondary", icon: Clock, className: "bg-amber-100 text-amber-700 border-amber-200" },
-  authorized: { label: "Authorized", variant: "outline", icon: CreditCard, className: "bg-blue-100 text-blue-700 border-blue-200" },
-  refunded: { label: "Refunded", variant: "outline", icon: DollarSign, className: "bg-purple-100 text-purple-700 border-purple-200" },
-  cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle, className: "bg-red-100 text-red-700 border-red-200" },
+  paid: { label: "Paid", variant: "default", icon: CheckCircle2, className: "bg-success/10 text-success border-success/30" },
+  pending: { label: "Unpaid", variant: "secondary", icon: Clock, className: "bg-warning/10 text-warning border-warning/30" },
+  authorized: { label: "Authorized", variant: "outline", icon: CreditCard, className: "bg-info/10 text-info border-info/30" },
+  refunded: { label: "Refunded", variant: "outline", icon: DollarSign, className: "bg-primary/10 text-primary border-primary/30" },
+  cancelled: { label: "Cancelled", variant: "destructive", icon: XCircle, className: "bg-destructive/10 text-destructive border-destructive/30" },
 };
 
 export default function PortalPayments() {
@@ -215,8 +215,8 @@ export default function PortalPayments() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{formatCurrency(totalPaid)}</p>
@@ -228,8 +228,8 @@ export default function PortalPayments() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-600" />
+              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
@@ -258,12 +258,12 @@ export default function PortalPayments() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-500" /> Payments Due ({pendingPayments.length})
+              <Clock className="h-4 w-4 text-warning" /> Payments Due ({pendingPayments.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingPayments.map((p: any) => (
-              <div key={p.id} className="flex items-center justify-between p-4 rounded-lg border border-amber-200 bg-amber-50/50">
+              <div key={p.id} className="flex items-center justify-between p-4 rounded-lg border border-warning/30 bg-warning/10/50">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold">{formatPaymentType(p.payment_type)}</p>

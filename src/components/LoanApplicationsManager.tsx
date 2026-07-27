@@ -134,11 +134,11 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  pending: "border-amber-400 text-amber-600 bg-amber-50",
-  reviewing: "border-blue-400 text-blue-600 bg-blue-50",
-  approved: "border-emerald-400 text-emerald-600 bg-emerald-50",
-  denied: "border-red-400 text-red-600 bg-red-50",
-  more_info: "border-purple-400 text-purple-600 bg-purple-50",
+  pending: "border-amber-400 text-warning bg-warning/10",
+  reviewing: "border-blue-400 text-info bg-info/10",
+  approved: "border-emerald-400 text-success bg-success/10",
+  denied: "border-red-400 text-destructive bg-destructive/10",
+  more_info: "border-purple-400 text-primary bg-primary/10",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -151,24 +151,24 @@ const STATUS_LABELS: Record<string, string> = {
 
 // ── Decision badge (Equifax pre-qual result) ──────────────────────────
 const DECISION_META: Record<string, { label: string; cls: string }> = {
-  approved: { label: "✓ Pre-Qualified", cls: "border-emerald-400 text-emerald-700 bg-emerald-50" },
-  review:   { label: "◷ Under Review",  cls: "border-amber-400 text-amber-700 bg-amber-50" },
-  declined: { label: "✕ Not Approved",  cls: "border-red-400 text-red-700 bg-red-50" },
+  approved: { label: "✓ Pre-Qualified", cls: "border-emerald-400 text-success bg-success/10" },
+  review:   { label: "◷ Under Review",  cls: "border-amber-400 text-warning bg-warning/10" },
+  declined: { label: "✕ Not Approved",  cls: "border-red-400 text-destructive bg-destructive/10" },
 };
 
 function DecisionBadge({ decision }: { decision: string | null | undefined }) {
   const meta = decision ? DECISION_META[decision] : null;
   if (!meta) {
-    return <Badge variant="outline" className="border-gray-300 text-gray-600 bg-gray-50">Pending Review</Badge>;
+    return <Badge variant="outline" className="border-border text-muted-foreground bg-muted">Pending Review</Badge>;
   }
   return <Badge variant="outline" className={meta.cls}>{meta.label}</Badge>;
 }
 
 function EnvironmentBadge({ env }: { env: string | null | undefined }) {
   if (env === "production") {
-    return <Badge variant="outline" className="border-emerald-400 text-emerald-700 bg-emerald-50 text-[10px]">Live</Badge>;
+    return <Badge variant="outline" className="border-emerald-400 text-success bg-success/10 text-[10px]">Live</Badge>;
   }
-  return <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50 text-[10px]">Sandbox</Badge>;
+  return <Badge variant="outline" className="border-amber-400 text-warning bg-warning/10 text-[10px]">Sandbox</Badge>;
 }
 
 function fmt$(n: number | null) {
@@ -748,7 +748,7 @@ export default function LoanApplicationsManager() {
                   </div>
                 )}
                 {selected.equifax_error && (
-                  <p className="text-[11px] text-red-600 font-mono">
+                  <p className="text-[11px] text-destructive font-mono">
                     {selected.equifax_error}
                   </p>
                 )}
@@ -870,7 +870,7 @@ export default function LoanApplicationsManager() {
                     }}
                     disabled={sendingEmail}
                     variant="outline"
-                    className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    className="w-full border-success/30 text-success hover:bg-success/10"
                   >
                     <Mail className="h-4 w-4 mr-1.5" />
                     {sendingEmail ? "Sending..." : "Send Approval Email"}
@@ -883,7 +883,7 @@ export default function LoanApplicationsManager() {
                     onClick={syncToQBO}
                     disabled={syncingQBO}
                     variant="outline"
-                    className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                    className="w-full border-info/30 text-info hover:bg-info/10"
                   >
                     <BookOpen className="h-4 w-4 mr-1.5" />
                     {syncingQBO ? "Syncing..." : paymentSchedule.length > 0 ? "Re-sync to QuickBooks" : "Sync Financing to QuickBooks"}
@@ -919,7 +919,7 @@ export default function LoanApplicationsManager() {
 
             {/* ── Autopay Panel ─────────────────────────────────────── */}
             {selected.status === "approved" && selected.consent_autopay && selected.stripe_payment_method_id && (
-              <Card className={selected.autopay_active ? "border-emerald-300" : "border-amber-300"}>
+              <Card className={selected.autopay_active ? "border-success/30" : "border-warning/30"}>
                 <CardHeader className="py-3 px-4 bg-muted/50 border-b">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -927,7 +927,7 @@ export default function LoanApplicationsManager() {
                       Auto-Payment
                     </CardTitle>
                     {selected.autopay_active ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 text-[10px]">
+                      <Badge className="bg-success/10 text-success border-success/30 text-[10px]">
                         <CheckCircle className="h-3 w-3 mr-0.5" />
                         Active
                       </Badge>
@@ -1090,8 +1090,8 @@ export default function LoanApplicationsManager() {
                     </Popover>
                   </div>
 
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
-                    <p className="text-xs text-amber-800">
+                  <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                    <p className="text-xs text-warning">
                       <strong>⚠️ Warning:</strong> This will immediately create a Stripe Customer and Subscription.
                       The applicant's payment method will be charged on the selected start date.
                     </p>
@@ -1192,7 +1192,7 @@ export default function LoanApplicationsManager() {
                       </TableCell>
                       <TableCell className="text-center">
                         {pmt.status === "paid" ? (
-                          <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-300 text-[10px]">
+                          <Badge variant="default" className="bg-success/10 text-success border-success/30 text-[10px]">
                             <CheckCircle className="h-3 w-3 mr-0.5" />
                             Paid
                           </Badge>
@@ -1265,9 +1265,9 @@ export default function LoanApplicationsManager() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: "Total", value: stats.total },
-          { label: "Pending", value: stats.pending, cls: "text-amber-600" },
-          { label: "Under Review", value: stats.reviewing, cls: "text-blue-600" },
-          { label: "Approved", value: stats.approved, cls: "text-emerald-600" },
+          { label: "Pending", value: stats.pending, cls: "text-warning" },
+          { label: "Under Review", value: stats.reviewing, cls: "text-info" },
+          { label: "Approved", value: stats.approved, cls: "text-success" },
           { label: "Total Requested", value: fmt$(stats.totalRequested) },
         ].map((s, i) => (
           <Card key={i}>

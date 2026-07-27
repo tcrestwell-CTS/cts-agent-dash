@@ -12,13 +12,13 @@ import { Building2, Search, Trash2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-500/10 text-blue-600",
-  contacted: "bg-yellow-500/10 text-yellow-600",
-  qualified: "bg-emerald-500/10 text-emerald-600",
-  proposal: "bg-purple-500/10 text-purple-600",
-  negotiation: "bg-orange-500/10 text-orange-600",
-  won: "bg-green-500/10 text-green-700",
-  lost: "bg-red-500/10 text-red-600",
+  new: "bg-blue-500/10 text-info",
+  contacted: "bg-yellow-500/10 text-warning",
+  qualified: "bg-emerald-500/10 text-success",
+  proposal: "bg-purple-500/10 text-primary",
+  negotiation: "bg-orange-500/10 text-warning",
+  won: "bg-green-500/10 text-success",
+  lost: "bg-red-500/10 text-destructive",
 };
 
 export default function BusinessContacts() {

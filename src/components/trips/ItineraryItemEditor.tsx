@@ -48,16 +48,16 @@ const CATEGORIES = [
 ];
 
 const BOOKING_STATUSES = [
-  { value: "pending",    label: "Pending",    color: "text-amber-600" },
-  { value: "confirmed",  label: "Confirmed",  color: "text-emerald-600" },
-  { value: "cancelled",  label: "Cancelled",  color: "text-red-600" },
-  { value: "waitlisted", label: "Waitlisted", color: "text-purple-600" },
+  { value: "pending",    label: "Pending",    color: "text-warning" },
+  { value: "confirmed",  label: "Confirmed",  color: "text-success" },
+  { value: "cancelled",  label: "Cancelled",  color: "text-destructive" },
+  { value: "waitlisted", label: "Waitlisted", color: "text-primary" },
 ];
 
 const FLIGHT_STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
-  confirmed:        { label: "On Time / Confirmed",  icon: CheckCircle2, className: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-  schedule_changed: { label: "Schedule Changed",      icon: AlertTriangle, className: "text-amber-600 bg-amber-50 border-amber-200" },
-  cancelled:        { label: "Cancelled",             icon: XCircle,       className: "text-red-600 bg-red-50 border-red-200" },
+  confirmed:        { label: "On Time / Confirmed",  icon: CheckCircle2, className: "text-success bg-success/10 border-success/30" },
+  schedule_changed: { label: "Schedule Changed",      icon: AlertTriangle, className: "text-warning bg-warning/10 border-warning/30" },
+  cancelled:        { label: "Cancelled",             icon: XCircle,       className: "text-destructive bg-destructive/10 border-destructive/30" },
   pending:          { label: "Awaiting Status",        icon: Clock,         className: "text-muted-foreground bg-muted border-border" },
 };
 
@@ -312,9 +312,9 @@ function BookingPricingTab({ form, setForm }: { form: any; setForm: (f: any) => 
         </div>
         {margin !== null && (
           <div className="flex items-end pb-1">
-            <div className="rounded-md bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 px-3 py-2 w-full text-center">
+            <div className="rounded-md bg-success/10 dark:bg-emerald-900/30 border border-success/30 dark:border-emerald-700 px-3 py-2 w-full text-center">
               <p className="text-[10px] text-muted-foreground">Gross Margin</p>
-              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{margin}%</p>
+              <p className="text-lg font-bold text-success dark:text-success">{margin}%</p>
             </div>
           </div>
         )}
