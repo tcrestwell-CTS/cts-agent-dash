@@ -31,12 +31,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 
 const STATUS_CONFIG: Record<ReconMatchStatus, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  new:           { label: "Needs Review",   color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock },
-  reviewing:     { label: "Reviewing",      color: "bg-blue-100 text-blue-800 border-blue-200",       icon: Clock },
-  approved:      { label: "Approved",       color: "bg-green-100 text-green-800 border-green-200",    icon: CheckCircle2 },
-  posted_to_qbo: { label: "Posted to QBO",  color: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: CheckCircle2 },
-  rejected:      { label: "Rejected",       color: "bg-red-100 text-red-800 border-red-200",          icon: XCircle },
-  exception:     { label: "Exception",      color: "bg-orange-100 text-orange-800 border-orange-200", icon: AlertTriangle },
+  new:           { label: "Needs Review",   color: "bg-warning/10 text-warning border-warning/30", icon: Clock },
+  reviewing:     { label: "Reviewing",      color: "bg-info/10 text-info border-info/30",       icon: Clock },
+  approved:      { label: "Approved",       color: "bg-success/10 text-success border-success/30",    icon: CheckCircle2 },
+  posted_to_qbo: { label: "Posted to QBO",  color: "bg-success/10 text-success border-success/30", icon: CheckCircle2 },
+  rejected:      { label: "Rejected",       color: "bg-destructive/10 text-destructive border-destructive/30",          icon: XCircle },
+  exception:     { label: "Exception",      color: "bg-warning/10 text-warning border-warning/30", icon: AlertTriangle },
 };
 
 const MATCH_TYPE_LABELS: Record<string, string> = {
@@ -52,9 +52,9 @@ const MATCH_TYPE_LABELS: Record<string, string> = {
 
 function ConfidenceBadge({ score }: { score: number }) {
   const color =
-    score >= 95 ? "bg-green-100 text-green-800 border-green-200" :
-    score >= 70 ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
-    "bg-red-100 text-red-800 border-red-200";
+    score >= 95 ? "bg-success/10 text-success border-success/30" :
+    score >= 70 ? "bg-warning/10 text-warning border-warning/30" :
+    "bg-destructive/10 text-destructive border-destructive/30";
   return (
     <Badge className={`${color} font-mono text-xs`}>{score}%</Badge>
   );
@@ -96,7 +96,7 @@ function MatchDrawer({
             <Badge className={cfg.color}>{cfg.label}</Badge>
             <ConfidenceBadge score={match.confidence_score} />
             {match.auto_matched && (
-              <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+              <Badge className="bg-primary/10 text-primary border-primary/30 text-xs">
                 Auto-matched
               </Badge>
             )}
@@ -159,7 +159,7 @@ function MatchDrawer({
               )}
             </div>
             {(match.amount_variance ?? 0) > 0 && (
-              <p className="text-xs text-orange-600 mt-1">
+              <p className="text-xs text-warning mt-1">
                 ⚠ Variance: ${match.amount_variance?.toFixed(2)}
               </p>
             )}
@@ -194,9 +194,9 @@ function MatchDrawer({
 
           {/* Recommended Action */}
           {match.recommended_action && (
-            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-              <p className="text-xs font-semibold text-blue-700 mb-1">Recommended Action</p>
-              <p className="text-sm text-blue-900">{match.recommended_action}</p>
+            <div className="bg-info/10 border border-info/30 rounded p-3">
+              <p className="text-xs font-semibold text-info mb-1">Recommended Action</p>
+              <p className="text-sm text-info">{match.recommended_action}</p>
             </div>
           )}
 

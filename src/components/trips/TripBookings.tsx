@@ -226,7 +226,7 @@ export function TripBookings({
     // If there are some payments (partial)
     if (effectivePaid > 0 && effectivePaid < bookingCost) {
       return (
-        <span className="text-amber-600 font-medium">
+        <span className="text-warning font-medium">
           Partial ({formatCurrency(effectivePaid)})
         </span>
       );
@@ -234,7 +234,7 @@ export function TripBookings({
     
     // If there are authorized payments
     if (effectiveAuthorized > 0) {
-      return <span className="text-blue-600 font-medium">Authorized</span>;
+      return <span className="text-info font-medium">Authorized</span>;
     }
     
     // If there are pending payments scheduled

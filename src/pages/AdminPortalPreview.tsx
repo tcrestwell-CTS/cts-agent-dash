@@ -85,7 +85,7 @@ export default function AdminPortalPreview() {
               Read-only admin view · This is what your client sees in their portal
             </p>
           </div>
-          <Badge variant="outline" className="gap-1.5 text-amber-600 border-amber-300 bg-amber-50">
+          <Badge variant="outline" className="gap-1.5 text-warning border-warning/30 bg-warning/10">
             <Eye className="h-3 w-3" /> Admin Preview
           </Badge>
         </div>
@@ -183,8 +183,8 @@ function DashboardTab({ clientId }: { clientId?: string }) {
         </Card>
         <Card>
           <CardContent className="pt-6 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-info" />
             </div>
             <div>
               <p className="text-2xl font-bold">0</p>
@@ -498,7 +498,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                       p.payment_type?.charAt(0).toUpperCase() + p.payment_type?.slice(1);
 
                     return (
-                      <div key={p.id} className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-amber-200 bg-amber-50/50" : ""}`}>
+                      <div key={p.id} className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-warning/30 bg-warning/10/50" : ""}`}>
                         <div className="space-y-0.5">
                           <p className="font-medium">{typeLabel}</p>
                           <p className="text-sm text-muted-foreground">
@@ -508,8 +508,8 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         <div className="flex items-center gap-3">
                           <Badge variant="outline" className={cn(
                             "gap-1",
-                            isPaid ? "bg-green-100 text-green-700 border-green-200" :
-                            isPending ? "bg-amber-100 text-amber-700 border-amber-200" : ""
+                            isPaid ? "bg-success/10 text-success border-success/30" :
+                            isPending ? "bg-warning/10 text-warning border-warning/30" : ""
                           )}>
                             {isPaid ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                             {p.status === "pending" ? "Unpaid" : p.status?.charAt(0).toUpperCase() + p.status?.slice(1)}
@@ -547,7 +547,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                         <CardTitle className="text-base flex items-center gap-2">
                           {itin.name}
                           {isApproved && (
-                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 gap-1">
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1">
                               <CheckCircle2 className="h-3 w-3" /> Approved
                             </Badge>
                           )}
@@ -555,7 +555,7 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
                       </div>
                       {!trip.approved_itinerary_id && (
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
+                          <Badge variant="outline" className="gap-1 text-warning border-warning/30 bg-warning/10">
                             <Lock className="h-3 w-3" /> Client-only action
                           </Badge>
                           <Button size="sm" disabled className="opacity-50">
@@ -688,8 +688,8 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{formatCurrency(totalPaid)}</p>
@@ -701,8 +701,8 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-600" />
+              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
@@ -736,7 +736,7 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
                 p.payment_type?.charAt(0).toUpperCase() + p.payment_type?.slice(1);
 
               return (
-                <div key={p.id} className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-amber-200 bg-amber-50/50" : ""}`}>
+                <div key={p.id} className={`flex items-center justify-between p-4 rounded-lg border ${isPending ? "border-warning/30 bg-warning/10/50" : ""}`}>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{typeLabel}</p>
@@ -749,8 +749,8 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className={cn(
                       "gap-1",
-                      isPaid ? "bg-green-100 text-green-700 border-green-200" :
-                      isPending ? "bg-amber-100 text-amber-700 border-amber-200" : ""
+                      isPaid ? "bg-success/10 text-success border-success/30" :
+                      isPending ? "bg-warning/10 text-warning border-warning/30" : ""
                     )}>
                       {isPaid ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                       {p.status === "pending" ? "Unpaid" : p.status?.charAt(0).toUpperCase() + p.status?.slice(1)}

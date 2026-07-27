@@ -354,8 +354,8 @@ export function BookingFinancialsDisplay({
 
             {/* Advisor Split */}
             {(advisorSplitPct ?? 0) > 0 && (
-              <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950/30 p-2 rounded">
-                <span className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="flex items-center justify-between bg-info/10 dark:bg-blue-950/30 p-2 rounded">
+                <span className="text-sm text-info dark:text-blue-300">
                   Advisor ({((advisorSplitPct ?? 0) * 100).toFixed(0)}%)
                   {commissionTier && (
                     <span className="ml-1 text-xs opacity-70">
@@ -363,18 +363,18 @@ export function BookingFinancialsDisplay({
                     </span>
                   )}
                 </span>
-                <span className="font-semibold text-blue-700 dark:text-blue-300">
+                <span className="font-semibold text-info dark:text-blue-300">
                   {formatCurrency(advisorMarginAmount ?? 0)}
                 </span>
               </div>
             )}
 
             {/* Agency Retained */}
-            <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/30 p-2 rounded">
-              <span className="text-sm text-purple-700 dark:text-purple-300">
+            <div className="flex items-center justify-between bg-primary/10 dark:bg-purple-950/30 p-2 rounded">
+              <span className="text-sm text-primary dark:text-purple-300">
                 Agency Retained ({((agencySplitPct ?? 0) * 100).toFixed(0)}%)
               </span>
-              <span className="font-semibold text-purple-700 dark:text-purple-300">
+              <span className="font-semibold text-primary dark:text-purple-300">
                 {formatCurrency(agencyMarginAmount ?? 0)}
               </span>
             </div>

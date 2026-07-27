@@ -229,7 +229,7 @@ export function PublishTripButton({
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Readiness</p>
                 <span className={`text-[11px] font-bold ${
-                  allPassed ? "text-emerald-600" : passedCount >= 2 ? "text-amber-600" : "text-red-500"
+                  allPassed ? "text-success" : passedCount >= 2 ? "text-warning" : "text-destructive"
                 }`}>
                   {passedCount}/{readinessChecks.length}
                 </span>
@@ -237,7 +237,7 @@ export function PublishTripButton({
               {readinessChecks.map((check) => (
                 <div key={check.label} className="flex items-start gap-2">
                   {check.passed
-                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                    ? <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
                     : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
                   }
                   <span className={`text-xs leading-tight ${
@@ -251,14 +251,14 @@ export function PublishTripButton({
 
             {/* Blocker warning if critical items missing */}
             {!allPassed && !publishedAt && blockers.length > 0 && (
-              <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2.5 py-2">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+              <div className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded px-2.5 py-2">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
                 <span>You can still publish, but completing the checklist gives clients a better experience.</span>
               </div>
             )}
 
             {hasUnpublishedChanges && publishedAt && (
-              <div className="flex items-center gap-2 text-xs text-orange-600 bg-orange-50 rounded px-2 py-1.5">
+              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 rounded px-2 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
                 Unpublished changes — clients see the last published version
               </div>

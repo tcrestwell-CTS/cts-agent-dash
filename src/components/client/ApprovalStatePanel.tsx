@@ -96,7 +96,7 @@ export function ApprovalStatePanel({
 
   const headlineTextClasses = {
     success: "text-primary",
-    active: "text-amber-700 dark:text-amber-400",
+    active: "text-warning dark:text-warning",
     muted: "text-foreground",
   } as const;
 
@@ -166,7 +166,7 @@ export function ApprovalStatePanel({
                         s.state === "done"
                           ? "text-primary"
                           : s.state === "active"
-                          ? "text-amber-600"
+                          ? "text-warning"
                           : "text-muted-foreground"
                       )}
                     />

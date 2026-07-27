@@ -142,7 +142,7 @@ export function StripeVirtualCardButton({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 text-xs border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+          className="gap-1.5 text-xs border-emerald-500 text-success hover:bg-success/10"
           onClick={handleRetrieve}
           disabled={retrieving}
           data-testid="button-retrieve-virtual-card"
@@ -155,7 +155,7 @@ export function StripeVirtualCardButton({
           View Card
           <Badge
             variant="outline"
-            className="ml-1 text-[10px] px-1 py-0 border-emerald-400 text-emerald-600"
+            className="ml-1 text-[10px] px-1 py-0 border-emerald-400 text-success"
           >
             Stripe
           </Badge>
@@ -231,7 +231,7 @@ export function StripeVirtualCardButton({
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-emerald-600" />
+              <CreditCard className="h-5 w-5 text-success" />
               Stripe Virtual Card
             </DialogTitle>
             <DialogDescription>
@@ -246,15 +246,15 @@ export function StripeVirtualCardButton({
               {/* Card visual */}
               <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-700 p-5 text-white font-mono shadow-lg">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs tracking-widest text-slate-400 uppercase">
+                  <span className="text-xs tracking-widest text-muted-foreground uppercase">
                     {cardDetails.brand}
                   </span>
                   <Badge
                     variant="outline"
                     className={
                       cardDetails.status === "active"
-                        ? "border-emerald-400 text-emerald-400 text-[10px]"
-                        : "border-amber-400 text-amber-400 text-[10px]"
+                        ? "border-emerald-400 text-success text-[10px]"
+                        : "border-amber-400 text-warning text-[10px]"
                     }
                   >
                     {cardDetails.status}
@@ -270,7 +270,7 @@ export function StripeVirtualCardButton({
                   </span>
                   <div className="flex items-center gap-1">
                     <button
-                      className="text-slate-400 hover:text-white transition-colors p-1"
+                      className="text-muted-foreground hover:text-white transition-colors p-1"
                       onClick={() => setShowNumber((v) => !v)}
                       title={showNumber ? "Hide number" : "Reveal number"}
                     >
@@ -278,12 +278,12 @@ export function StripeVirtualCardButton({
                     </button>
                     {cardDetails.number && (
                       <button
-                        className="text-slate-400 hover:text-white transition-colors p-1"
+                        className="text-muted-foreground hover:text-white transition-colors p-1"
                         onClick={() => copy(cardDetails.number!, "number")}
                         title="Copy card number"
                       >
                         {copied === "number" ? (
-                          <CheckCheck className="h-3.5 w-3.5 text-emerald-400" />
+                          <CheckCheck className="h-3.5 w-3.5 text-success" />
                         ) : (
                           <Copy className="h-3.5 w-3.5" />
                         )}
@@ -295,20 +295,20 @@ export function StripeVirtualCardButton({
                 {/* Expiry + CVV row */}
                 <div className="flex items-end justify-between text-xs">
                   <div>
-                    <p className="text-slate-500 text-[10px] uppercase tracking-wider mb-0.5">Expires</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Expires</p>
                     <span>
                       {String(cardDetails.exp_month).padStart(2, "0")}/
                       {String(cardDetails.exp_year).slice(-2)}
                     </span>
                   </div>
                   <div className="text-right">
-                    <p className="text-slate-500 text-[10px] uppercase tracking-wider mb-0.5">CVC</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">CVC</p>
                     <div className="flex items-center gap-1">
                       <span className="tracking-widest">
                         {showCvc && cardDetails.cvc ? cardDetails.cvc : "•••"}
                       </span>
                       <button
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className="text-muted-foreground hover:text-white transition-colors"
                         onClick={() => setShowCvc((v) => !v)}
                         title={showCvc ? "Hide CVC" : "Reveal CVC"}
                       >
@@ -316,12 +316,12 @@ export function StripeVirtualCardButton({
                       </button>
                       {cardDetails.cvc && (
                         <button
-                          className="text-slate-400 hover:text-white transition-colors"
+                          className="text-muted-foreground hover:text-white transition-colors"
                           onClick={() => copy(cardDetails.cvc!, "cvc")}
                           title="Copy CVC"
                         >
                           {copied === "cvc" ? (
-                            <CheckCheck className="h-3 w-3 text-emerald-400" />
+                            <CheckCheck className="h-3 w-3 text-success" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -330,7 +330,7 @@ export function StripeVirtualCardButton({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-slate-500 text-[10px] uppercase tracking-wider mb-0.5">Cardholder</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-0.5">Cardholder</p>
                     <span className="text-[11px]">{cardDetails.cardholder_name || "—"}</span>
                   </div>
                 </div>
@@ -340,7 +340,7 @@ export function StripeVirtualCardButton({
               {cardDetails.spending_limit !== null && (
                 <div className="flex items-center justify-between text-sm px-1">
                   <span className="text-muted-foreground">Spending limit</span>
-                  <span className="font-semibold text-emerald-700">
+                  <span className="font-semibold text-success">
                     {formatCurrency(cardDetails.spending_limit)}
                   </span>
                 </div>

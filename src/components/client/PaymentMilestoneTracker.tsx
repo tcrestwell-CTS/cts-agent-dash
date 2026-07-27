@@ -60,16 +60,16 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
           isOverdue
             ? "bg-destructive/10 border border-destructive/20"
             : isDueSoon
-            ? "bg-amber-50 border border-amber-200"
+            ? "bg-warning/10 border border-warning/30"
             : "bg-muted/50 border border-border"
         }`}>
           {isOverdue ? (
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
           ) : isDueSoon ? (
-            <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+            <Clock className="h-4 w-4 text-warning shrink-0" />
           ) : null}
           <p className={`text-sm font-medium ${
-            isOverdue ? "text-destructive" : isDueSoon ? "text-amber-800" : "text-foreground"
+            isOverdue ? "text-destructive" : isDueSoon ? "text-warning" : "text-foreground"
           }`}>
             {formatCurrency(remaining)} remaining
             {nextDueDate && (
@@ -109,17 +109,17 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
           return (
             <div key={payment.id} className="flex items-center gap-3">
               {isPaid ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
               ) : paymentOverdue ? (
                 <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
               ) : isPending ? (
-                <Clock className="h-5 w-5 text-amber-500 shrink-0" />
+                <Clock className="h-5 w-5 text-warning shrink-0" />
               ) : (
                 <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium ${
-                  isPaid ? "text-green-700" : paymentOverdue ? "text-destructive" : "text-foreground"
+                  isPaid ? "text-success" : paymentOverdue ? "text-destructive" : "text-foreground"
                 }`}>
                   {typeLabel(payment.payment_type)}
                 </p>
@@ -129,7 +129,7 @@ export function PaymentMilestoneTracker({ payments, totalCost }: PaymentMileston
                 </p>
               </div>
               <span className={`text-sm font-semibold ${
-                isPaid ? "text-green-700" : paymentOverdue ? "text-destructive" : "text-foreground"
+                isPaid ? "text-success" : paymentOverdue ? "text-destructive" : "text-foreground"
               }`}>
                 {formatCurrency(payment.amount)}
               </span>

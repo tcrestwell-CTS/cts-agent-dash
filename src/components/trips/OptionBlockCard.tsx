@@ -18,16 +18,16 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  flight: "bg-blue-100 text-blue-700 border-blue-200",
-  hotel: "bg-amber-100 text-amber-700 border-amber-200",
+  flight: "bg-info/10 text-info border-info/30",
+  hotel: "bg-warning/10 text-warning border-warning/30",
   cruise: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  transportation: "bg-slate-100 text-slate-700 border-slate-200",
-  dining: "bg-orange-100 text-orange-700 border-orange-200",
-  activity: "bg-green-100 text-green-700 border-green-200",
-  sightseeing: "bg-purple-100 text-purple-700 border-purple-200",
-  relaxation: "bg-pink-100 text-pink-700 border-pink-200",
-  shopping: "bg-rose-100 text-rose-700 border-rose-200",
-  entertainment: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  transportation: "bg-muted text-foreground border-border",
+  dining: "bg-warning/10 text-warning border-warning/30",
+  activity: "bg-success/10 text-success border-success/30",
+  sightseeing: "bg-primary/10 text-primary border-primary/30",
+  relaxation: "bg-primary/10 text-primary border-primary/30",
+  shopping: "bg-destructive/10 text-destructive border-destructive/30",
+  entertainment: "bg-primary/10 text-primary border-primary/30",
 };
 
 const optionLabels = ["A", "B", "C", "D", "E", "F"];

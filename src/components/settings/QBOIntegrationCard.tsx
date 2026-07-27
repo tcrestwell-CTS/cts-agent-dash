@@ -113,8 +113,8 @@ export function QBOIntegrationCard() {
 
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <span className="text-green-700 font-bold text-sm">QB</span>
+            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+              <span className="text-success font-bold text-sm">QB</span>
             </div>
             <div>
               <p className="font-medium text-card-foreground">QuickBooks Online</p>
@@ -183,13 +183,13 @@ export function QBOIntegrationCard() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-            <span className="text-green-700 font-bold text-sm">QB</span>
+          <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+            <span className="text-success font-bold text-sm">QB</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <p className="font-medium text-card-foreground">QuickBooks Online</p>
-              <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
+              <Badge variant="outline" className="text-xs border-success/30 text-success bg-success/10">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Connected
               </Badge>
@@ -246,12 +246,12 @@ export function QBOIntegrationCard() {
                   Expired
                 </Badge>
               ) : tokenExpiringSoon ? (
-                <Badge className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                <Badge className="text-xs bg-warning/10 text-warning border-warning/30">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   Expiring Soon
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
+                <Badge variant="outline" className="text-xs border-success/30 text-success bg-success/10">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Valid
                 </Badge>

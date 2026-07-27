@@ -29,12 +29,12 @@ interface SubTripsProps {
 }
 
 const statusColors: Record<string, string> = {
-  planning: "bg-blue-100 text-blue-700 border-blue-200",
-  booked: "bg-green-100 text-green-700 border-green-200",
-  traveling: "bg-purple-100 text-purple-700 border-purple-200",
-  completed: "bg-gray-100 text-gray-700 border-gray-200",
-  cancelled: "bg-red-100 text-red-700 border-red-200",
-  archived: "bg-slate-100 text-slate-500 border-slate-200",
+  planning: "bg-info/10 text-info border-info/30",
+  booked: "bg-success/10 text-success border-success/30",
+  traveling: "bg-primary/10 text-primary border-primary/30",
+  completed: "bg-muted text-foreground border-border",
+  cancelled: "bg-destructive/10 text-destructive border-destructive/30",
+  archived: "bg-muted text-muted-foreground border-border",
 };
 
 export function SubTrips({ parentTripId, subTrips, onDataChange }: SubTripsProps) {
