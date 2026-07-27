@@ -95,7 +95,10 @@ export default function HotelbedsCoverage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Hotelbeds Mapping Coverage</h1>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+            Crestwell Travel Services
+          </p>
+          <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Hotelbeds Mapping Coverage</h1>
           <p className="text-sm text-muted-foreground">
             Local Content API cache — required for certification
           </p>
