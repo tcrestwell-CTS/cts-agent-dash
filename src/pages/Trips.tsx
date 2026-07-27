@@ -11,10 +11,7 @@ import {
   Compass,
   Plus,
   Search,
-  Calendar,
   Users,
-  MapPin,
-  DollarSign,
   ExternalLink,
   Plane,
   Ship,
@@ -28,7 +25,6 @@ import {
   FileDown,
 } from "lucide-react";
 import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
-import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 import { Panel, EmptyState } from "@/components/patterns/Panel";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
@@ -493,7 +489,6 @@ const Trips = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [tripNameFilter, setTripNameFilter] = useState<string>("all");
 
   const handleTripCreated = () => {
     setIsAddDialogOpen(false);
@@ -519,10 +514,7 @@ const Trips = () => {
       trip.destination?.toLowerCase().includes(searchLower) ||
       trip.clients?.name.toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
-    const matchesTripName =
-      tripNameFilter === "all" ||
-      trip.trip_name?.toLowerCase().startsWith(tripNameFilter.toLowerCase());
-    return matchesSearch && matchesStatus && matchesTripName;
+    return matchesSearch && matchesStatus;
   });
 
   const filteredPortalSuppliers = selectedCategory === "all" 
