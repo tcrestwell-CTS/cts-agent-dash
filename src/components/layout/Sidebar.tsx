@@ -49,7 +49,7 @@ import { useFeaturePermissions } from "@/hooks/useFeaturePermissions";
 import type { FeatureKey } from "@/lib/featureRegistry";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import crestwellLogo from "@/assets/CTN-Logo.png";
-import { useState, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -322,9 +322,21 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
 
   const userName = user?.user_metadata?.full_name || user?.email || "User";
 
+  const OPEN_GROUPS_KEY = "cts.sidebar.openGroups.v1";
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    let stored: Record<string, boolean> = {};
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(OPEN_GROUPS_KEY) : null;
+      if (raw) stored = JSON.parse(raw) as Record<string, boolean>;
+    } catch {
+      stored = {};
+    }
     const initial: Record<string, boolean> = {};
     [...navGroups, ...adminNavGroups].forEach((g) => {
+      if (Object.prototype.hasOwnProperty.call(stored, g.label)) {
+        initial[g.label] = stored[g.label];
+        return;
+      }
       const isActive = g.items.some(
         (i) => location.pathname === i.href || location.pathname.startsWith(i.href + "/")
       );
@@ -332,6 +344,14 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
     });
     return initial;
   });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(openGroups));
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
+  }, [openGroups]);
 
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
