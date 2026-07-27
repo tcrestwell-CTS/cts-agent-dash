@@ -13,11 +13,11 @@ export function TopBar() {
   };
 
   return (
-    <div className="relative max-w-xl flex-1">
+    <div className="relative max-w-md flex-1">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
-        placeholder="Search clients, trips, bookings..."
-        className="h-10 rounded-[8px] pl-9 text-[13.5px]"
+        placeholder="Search trips, clients, invoice #..."
+        className="h-10 rounded-[8px] border-border bg-background pl-10 pr-3 text-[13.5px]"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
