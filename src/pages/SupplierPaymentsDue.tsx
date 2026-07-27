@@ -155,7 +155,10 @@ export default function SupplierPaymentsDue() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Supplier Payments Due</h1>
+            <p className="text-[10.5px] font-semibold uppercase tracking-[.13em] text-muted-foreground">
+              Crestwell Travel Services
+            </p>
+            <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Supplier Payments Due</h1>
             <p className="text-muted-foreground mt-1">
               Payments owed to suppliers, grouped by client trip. "Ready to pay" means the client has paid in full.
             </p>
