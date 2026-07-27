@@ -19,7 +19,7 @@ export function CircleTierRoadmap() {
         className="flex w-full items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-500" />
+          <Sparkles className="h-4 w-4 text-warning" />
           <span className="text-sm font-semibold">Tier Roadmap</span>
         </div>
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}

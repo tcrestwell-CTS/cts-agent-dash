@@ -416,7 +416,7 @@ export function AgentChatWidget() {
         >
           <Users className="h-6 w-6" />
           {onlineAgents.length > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-500 text-[10px] text-white font-bold flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-success text-[10px] text-white font-bold flex items-center justify-center">
               {onlineAgents.length}
             </span>
           )}
@@ -503,7 +503,7 @@ export function AgentChatWidget() {
                       <AvatarImage src={agent.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">{(agent.full_name || "A").charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-green-500 text-success" />
+                    <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-success text-success" />
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">
                     {agent.full_name || "Agent"}
@@ -620,8 +620,8 @@ export function AgentChatWidget() {
 
             {/* Voice listening indicator */}
             {isListening && (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-destructive/10 dark:bg-red-900/20 border border-destructive/30 dark:border-red-700 text-xs text-destructive dark:text-destructive">
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 dark:border-destructive text-xs text-destructive dark:text-destructive">
+                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse flex-shrink-0" />
                 Listening… speak now
               </div>
             )}
@@ -659,7 +659,7 @@ export function AgentChatWidget() {
                   className={cn(
                     "h-9 w-9 shrink-0 transition-colors",
                     isListening
-                      ? "text-destructive hover:text-destructive bg-destructive/10 dark:bg-red-900/20"
+                      ? "text-destructive hover:text-destructive bg-destructive/10 dark:bg-destructive/20"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   onClick={toggleVoice}

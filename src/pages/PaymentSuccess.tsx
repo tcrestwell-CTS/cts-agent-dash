@@ -64,7 +64,7 @@ export default function PaymentSuccess() {
 
         {status === "success" && (
           <>
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+            <CheckCircle className="h-16 w-16 text-success mx-auto" />
             <h1 className="text-2xl font-semibold">Payment Successful!</h1>
             <p className="text-muted-foreground">The payment has been recorded and the client has been emailed a receipt.</p>
             <div className="flex flex-col gap-3">

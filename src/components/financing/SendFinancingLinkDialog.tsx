@@ -173,15 +173,15 @@ Crestwell Travel Services
           </div>
         ) : (
           <div className="space-y-4 mt-2">
-            <div className="rounded-lg border border-green-200 bg-green-50/50 p-4 space-y-3">
+            <div className="rounded-lg border border-success/20 bg-success/10/50 p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <p className="text-sm font-semibold text-green-800">Link ready — valid for {TOKEN_EXPIRY_DAYS} days</p>
+                <div className="w-2 h-2 rounded-full bg-success" />
+                <p className="text-sm font-semibold text-success">Link ready — valid for {TOKEN_EXPIRY_DAYS} days</p>
               </div>
               <p className="text-xs text-muted-foreground">
                 This link pre-fills the client's name, email, and trip details so they can complete the application in minutes.
               </p>
-              <div className="rounded-md bg-white border border-green-200 px-3 py-2">
+              <div className="rounded-md bg-white border border-success/20 px-3 py-2">
                 <p className="text-xs font-mono text-foreground break-all leading-relaxed">{generatedLink}</p>
               </div>
               <div className="flex gap-2">

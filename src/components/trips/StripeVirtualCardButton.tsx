@@ -142,7 +142,7 @@ export function StripeVirtualCardButton({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 text-xs border-emerald-500 text-success hover:bg-success/10"
+          className="gap-1.5 text-xs border-success text-success hover:bg-success/10"
           onClick={handleRetrieve}
           disabled={retrieving}
           data-testid="button-retrieve-virtual-card"
@@ -155,7 +155,7 @@ export function StripeVirtualCardButton({
           View Card
           <Badge
             variant="outline"
-            className="ml-1 text-[10px] px-1 py-0 border-emerald-400 text-success"
+            className="ml-1 text-[10px] px-1 py-0 border-success text-success"
           >
             Stripe
           </Badge>
@@ -253,8 +253,8 @@ export function StripeVirtualCardButton({
                     variant="outline"
                     className={
                       cardDetails.status === "active"
-                        ? "border-emerald-400 text-success text-[10px]"
-                        : "border-amber-400 text-warning text-[10px]"
+                        ? "border-success text-success text-[10px]"
+                        : "border-warning text-warning text-[10px]"
                     }
                   >
                     {cardDetails.status}

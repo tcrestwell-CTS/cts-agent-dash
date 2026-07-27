@@ -243,7 +243,7 @@ export default function QboPaymentSync() {
                       <div key={l.id} className="border rounded p-2 text-xs">
                         <div className="flex justify-between">
                           <span className="font-medium">{l.sync_type}</span>
-                          <span className={l.status === "error" ? "text-destructive" : "text-emerald-600"}>{l.status}</span>
+                          <span className={l.status === "error" ? "text-destructive" : "text-success"}>{l.status}</span>
                         </div>
                         <div className="text-muted-foreground">{format(new Date(l.created_at), "PPp")}</div>
                         {l.error_message && <div className="text-destructive mt-1">{l.error_message}</div>}

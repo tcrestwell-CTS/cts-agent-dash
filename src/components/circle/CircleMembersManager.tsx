@@ -32,15 +32,15 @@ import { CircleFoundingInviteComposer } from "./CircleFoundingInviteComposer";
 
 const tierBadge = (tier: CircleMember["tier"]) => {
   if (tier === "founders_society")
-    return <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Founders Society</Badge>;
+    return <Badge className="bg-warning hover:bg-warning text-white">Founders Society</Badge>;
   if (tier === "premier")
-    return <Badge className="bg-amber-200 hover:bg-amber-200 text-amber-900">Premier</Badge>;
+    return <Badge className="bg-warning/20 hover:bg-warning/20 text-warning">Premier</Badge>;
   return <Badge className="bg-primary text-primary-foreground hover:bg-primary">Circle</Badge>;
 };
 
 const statusBadge = (s: CircleMember["status"]) => {
   if (s === "active")
-    return <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white">Active</Badge>;
+    return <Badge className="bg-success hover:bg-success text-white">Active</Badge>;
   if (s === "unsubscribed")
     return <Badge variant="secondary">Unsubscribed</Badge>;
   return <Badge variant="destructive">Cancelled</Badge>;
@@ -74,7 +74,7 @@ export function CircleMembersManager() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-amber-500" />
+            <Sparkles className="h-6 w-6 text-warning" />
             The Crestwell Circle
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -162,7 +162,7 @@ export function CircleMembersManager() {
                   <TableCell>{m.email}</TableCell>
                   <TableCell>{tierBadge(m.tier)}</TableCell>
                   <TableCell>
-                    {m.founding_member ? <Sparkles className="h-4 w-4 text-amber-500" /> : ""}
+                    {m.founding_member ? <Sparkles className="h-4 w-4 text-warning" /> : ""}
                   </TableCell>
                   <TableCell>
                     {m.trial_ends_at ? format(new Date(m.trial_ends_at), "MMM d, yyyy") : "—"}

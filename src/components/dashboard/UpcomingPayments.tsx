@@ -155,7 +155,7 @@ export function UpcomingPayments() {
   const getUrgencyColor = (daysUntil: number, isOverdue: boolean) => {
     if (isOverdue) return "text-destructive font-semibold";
     if (daysUntil <= 3) return "text-destructive font-semibold";
-    if (daysUntil <= 7) return "text-amber-600";
+    if (daysUntil <= 7) return "text-warning";
     return "text-muted-foreground";
   };
 
@@ -173,7 +173,7 @@ export function UpcomingPayments() {
   const getSourceBadge = (source: "trip" | "loan") => {
     if (source === "loan") {
       return (
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-700 bg-amber-50">
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-warning/20 text-warning bg-warning/10">
           Loan
         </Badge>
       );
@@ -256,7 +256,7 @@ export function UpcomingPayments() {
                       <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
                     )}
                     {payment.source === "loan" ? (
-                      <Landmark className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+                      <Landmark className="h-3.5 w-3.5 text-warning flex-shrink-0" />
                     ) : null}
                     <p className="font-medium text-sm truncate">
                       {payment.tripName}

@@ -572,7 +572,7 @@ export function MarginLinesEditor({ lines, onChange, readOnly = false, rules = [
               return (
                 <button
                   type="button"
-                  className="absolute -bottom-5 left-0 text-[10px] text-blue-500 hover:text-blue-700 whitespace-nowrap"
+                  className="absolute -bottom-5 left-0 text-[10px] text-info hover:text-info whitespace-nowrap"
                   onClick={() => updateLine(line.id, { unit_sell: suggested })}
                 >
                   Suggest: ${suggested.toFixed(2)}

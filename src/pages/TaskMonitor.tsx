@@ -221,7 +221,7 @@ export default function TaskMonitor() {
                 {selectedRun.error_message && (
                   <div>
                     <p className="text-destructive mb-1">Error:</p>
-                    <pre className="bg-destructive/10 dark:bg-red-900/20 p-3 rounded text-xs whitespace-pre-wrap text-destructive dark:text-red-300">{selectedRun.error_message}</pre>
+                    <pre className="bg-destructive/10 dark:bg-destructive/20 p-3 rounded text-xs whitespace-pre-wrap text-destructive dark:text-destructive">{selectedRun.error_message}</pre>
                   </div>
                 )}
                 {selectedRun.metadata && Object.keys(selectedRun.metadata).length > 0 && (

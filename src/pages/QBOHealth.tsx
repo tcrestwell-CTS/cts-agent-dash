@@ -563,7 +563,7 @@ export default function QBOHealth() {
 
                 {/* QBO Clearing */}
                 {fullRecon.qbo_clearing && (
-                  <div className={`rounded-lg p-4 ${fullRecon.qbo_clearing.is_balanced ? "bg-success/10/50 dark:bg-emerald-950/20" : fullRecon.qbo_clearing.error ? "bg-warning/10/50 dark:bg-amber-950/20" : "bg-destructive/5"}`}>
+                  <div className={`rounded-lg p-4 ${fullRecon.qbo_clearing.is_balanced ? "bg-success/10/50 dark:bg-success/20" : fullRecon.qbo_clearing.error ? "bg-warning/10/50 dark:bg-warning/20" : "bg-destructive/5"}`}>
                     <h4 className="text-sm font-medium mb-1 text-foreground flex items-center gap-2">
                       <Landmark className="h-4 w-4" /> QBO Stripe Clearing
                     </h4>
@@ -850,7 +850,7 @@ export default function QBOHealth() {
           );
           if (!unmatchedTrips.length) return null;
           return (
-            <Card className="border-warning/30 bg-warning/10/30 dark:bg-amber-950/10">
+            <Card className="border-warning/30 bg-warning/10/30 dark:bg-warning/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-warning dark:text-warning">
                   <AlertTriangle className="h-5 w-5" />

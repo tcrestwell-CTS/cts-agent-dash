@@ -87,7 +87,7 @@ export default function PortalManagement() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 pt-6">
-              <Shield className="h-8 w-8 text-emerald-500" />
+              <Shield className="h-8 w-8 text-success" />
               <div>
                 <p className="text-2xl font-bold">{stats.active}</p>
                 <p className="text-xs text-muted-foreground">
@@ -98,7 +98,7 @@ export default function PortalManagement() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 pt-6">
-              <Eye className="h-8 w-8 text-blue-500" />
+              <Eye className="h-8 w-8 text-info" />
               <div>
                 <p className="text-2xl font-bold">{stats.enabled}</p>
                 <p className="text-xs text-muted-foreground">
@@ -166,7 +166,7 @@ export default function PortalManagement() {
                           {client.hasPortalAccess ? (
                             <Badge
                               variant="default"
-                              className="bg-emerald-500/10 text-emerald-600 border-emerald-200"
+                              className="bg-success/10 text-success border-success/20"
                             >
                               Active
                             </Badge>

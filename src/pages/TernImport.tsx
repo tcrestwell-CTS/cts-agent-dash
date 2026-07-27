@@ -277,7 +277,7 @@ export default function TernImport() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" /> Import complete
+              <CheckCircle2 className="h-5 w-5 text-success" /> Import complete
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -342,7 +342,7 @@ function StatCard({
   return (
     <div className="rounded-lg border p-4">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`text-2xl font-semibold ${accent === "green" ? "text-green-600" : ""}`}>{value}</div>
+      <div className={`text-2xl font-semibold ${accent === "green" ? "text-success" : ""}`}>{value}</div>
       {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
     </div>
   );

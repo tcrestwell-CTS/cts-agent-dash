@@ -169,7 +169,7 @@ export default function SupplierPaymentsDue() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" /> Ready to pay
+                <CheckCircle2 className="h-4 w-4 text-success" /> Ready to pay
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -180,7 +180,7 @@ export default function SupplierPaymentsDue() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600" /> Waiting on client
+                <AlertTriangle className="h-4 w-4 text-warning" /> Waiting on client
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -272,9 +272,9 @@ export default function SupplierPaymentsDue() {
                           {r.supplier_paid_status === "paid" ? (
                             <Badge variant="outline" className="bg-muted">Paid</Badge>
                           ) : r.client_paid_in_full ? (
-                            <Badge className="bg-green-600 hover:bg-green-700">Ready to pay</Badge>
+                            <Badge className="bg-success hover:bg-success">Ready to pay</Badge>
                           ) : (
-                            <Badge variant="outline" className="border-amber-500 text-amber-700">Waiting on client</Badge>
+                            <Badge variant="outline" className="border-warning text-warning">Waiting on client</Badge>
                           )}
                         </TableCell>
                       </TableRow>

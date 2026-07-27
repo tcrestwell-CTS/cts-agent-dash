@@ -36,22 +36,22 @@ const CONFIG: Record<
   received: {
     label: "Received",
     className:
-      "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400",
+      "bg-success/10 text-success border-success/20 dark:bg-success/30 dark:text-success",
   },
   overdue: {
     label: "Overdue",
     className:
-      "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400",
+      "bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/30 dark:text-destructive",
   },
   upcoming: {
     label: "Upcoming",
     className:
-      "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400",
+      "bg-warning/10 text-warning border-warning/20 dark:bg-warning/30 dark:text-warning",
   },
   paid: {
     label: "Received",
     className:
-      "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400",
+      "bg-success/10 text-success border-success/20 dark:bg-success/30 dark:text-success",
   },
 };
 

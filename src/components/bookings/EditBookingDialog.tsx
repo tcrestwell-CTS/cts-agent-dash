@@ -322,7 +322,7 @@ export function EditBookingDialog({
                   <span>{fmt(formData.supplier_payout)}</span>
                 </div>
                 {formData.supplier_payout === 0 && formData.gross_sales > 0 && (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-warning">
                     ⚠ Supplier cost is $0 — update with Net Charges from your booking confirmation.
                   </p>
                 )}

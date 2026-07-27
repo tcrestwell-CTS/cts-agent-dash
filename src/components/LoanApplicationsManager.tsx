@@ -134,11 +134,11 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  pending: "border-amber-400 text-warning bg-warning/10",
-  reviewing: "border-blue-400 text-info bg-info/10",
-  approved: "border-emerald-400 text-success bg-success/10",
-  denied: "border-red-400 text-destructive bg-destructive/10",
-  more_info: "border-purple-400 text-primary bg-primary/10",
+  pending: "border-warning text-warning bg-warning/10",
+  reviewing: "border-info text-info bg-info/10",
+  approved: "border-success text-success bg-success/10",
+  denied: "border-destructive text-destructive bg-destructive/10",
+  more_info: "border-primary text-primary bg-primary/10",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -151,9 +151,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 // ── Decision badge (Equifax pre-qual result) ──────────────────────────
 const DECISION_META: Record<string, { label: string; cls: string }> = {
-  approved: { label: "✓ Pre-Qualified", cls: "border-emerald-400 text-success bg-success/10" },
-  review:   { label: "◷ Under Review",  cls: "border-amber-400 text-warning bg-warning/10" },
-  declined: { label: "✕ Not Approved",  cls: "border-red-400 text-destructive bg-destructive/10" },
+  approved: { label: "✓ Pre-Qualified", cls: "border-success text-success bg-success/10" },
+  review:   { label: "◷ Under Review",  cls: "border-warning text-warning bg-warning/10" },
+  declined: { label: "✕ Not Approved",  cls: "border-destructive text-destructive bg-destructive/10" },
 };
 
 function DecisionBadge({ decision }: { decision: string | null | undefined }) {
@@ -166,9 +166,9 @@ function DecisionBadge({ decision }: { decision: string | null | undefined }) {
 
 function EnvironmentBadge({ env }: { env: string | null | undefined }) {
   if (env === "production") {
-    return <Badge variant="outline" className="border-emerald-400 text-success bg-success/10 text-[10px]">Live</Badge>;
+    return <Badge variant="outline" className="border-success text-success bg-success/10 text-[10px]">Live</Badge>;
   }
-  return <Badge variant="outline" className="border-amber-400 text-warning bg-warning/10 text-[10px]">Sandbox</Badge>;
+  return <Badge variant="outline" className="border-warning text-warning bg-warning/10 text-[10px]">Sandbox</Badge>;
 }
 
 function fmt$(n: number | null) {

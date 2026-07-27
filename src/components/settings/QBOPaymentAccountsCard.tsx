@@ -167,9 +167,9 @@ export function QBOPaymentAccountsCard() {
       )}
 
       {!loading && !initial.bankId && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-800">
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+          <p className="text-xs text-warning">
             No bank account configured yet — supplier BillPayments will continue to fail until one is selected and saved.
           </p>
         </div>

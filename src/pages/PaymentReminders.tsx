@@ -42,17 +42,17 @@ function reminderTypeLabel(t: string | null | undefined) {
 
 function urgencyClass(daysUntil: number) {
   if (daysUntil < 0) return "bg-destructive/10 hover:bg-destructive/15";
-  if (daysUntil <= 7) return "bg-amber-500/10 hover:bg-amber-500/15";
-  if (daysUntil <= 30) return "bg-yellow-500/10 hover:bg-yellow-500/15";
-  return "bg-emerald-500/10 hover:bg-emerald-500/15";
+  if (daysUntil <= 7) return "bg-warning/10 hover:bg-warning/15";
+  if (daysUntil <= 30) return "bg-warning/10 hover:bg-warning/15";
+  return "bg-success/10 hover:bg-success/15";
 }
 
 function urgencyBadge(daysUntil: number) {
   if (daysUntil < 0) return <Badge variant="destructive">Overdue {Math.abs(daysUntil)}d</Badge>;
-  if (daysUntil === 0) return <Badge className="bg-amber-500 text-white hover:bg-amber-600">Due today</Badge>;
-  if (daysUntil <= 7) return <Badge className="bg-amber-500 text-white hover:bg-amber-600">{daysUntil}d</Badge>;
-  if (daysUntil <= 30) return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">{daysUntil}d</Badge>;
-  return <Badge className="bg-emerald-600 text-white hover:bg-emerald-700">{daysUntil}d</Badge>;
+  if (daysUntil === 0) return <Badge className="bg-warning text-white hover:bg-warning">Due today</Badge>;
+  if (daysUntil <= 7) return <Badge className="bg-warning text-white hover:bg-warning">{daysUntil}d</Badge>;
+  if (daysUntil <= 30) return <Badge className="bg-warning text-white hover:bg-warning">{daysUntil}d</Badge>;
+  return <Badge className="bg-success text-white hover:bg-success">{daysUntil}d</Badge>;
 }
 
 const fmtUSD = (n: number) =>

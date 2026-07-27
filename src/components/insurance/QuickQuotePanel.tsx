@@ -63,7 +63,7 @@ export function QuickQuotePanel({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
-        <Zap className="h-4 w-4 text-amber-500" />
+        <Zap className="h-4 w-4 text-warning" />
         <p className="text-sm font-semibold text-foreground">Quick Quote</p>
         <span className="text-xs text-muted-foreground">
           — select a provider to open their quote tool pre-filled with trip data
@@ -97,7 +97,7 @@ export function QuickQuotePanel({
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-foreground">{provider.shortName}</p>
                     {isTop && (
-                      <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-amber-200">
+                      <Badge className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/20">
                         <Star className="h-2.5 w-2.5 mr-0.5" />Recommended
                       </Badge>
                     )}
@@ -148,7 +148,7 @@ export function QuickQuotePanel({
                           <span
                             key={key}
                             title={label}
-                            className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full"
+                            className="text-[10px] bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded-full"
                           >
                             {emoji} {label}
                           </span>

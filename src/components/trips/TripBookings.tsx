@@ -56,15 +56,15 @@ interface TripBookingsProps {
 
 // Map supplier types to icons and colors
 const supplierTypeConfig: Record<string, { icon: typeof Building2; color: string }> = {
-  airline: { icon: Plane, color: "bg-sky-500" },
-  flight: { icon: Plane, color: "bg-sky-500" },
-  hotel: { icon: Hotel, color: "bg-rose-500" },
-  lodging: { icon: Hotel, color: "bg-rose-500" },
-  cruise: { icon: Ship, color: "bg-teal-500" },
-  transfer: { icon: Car, color: "bg-amber-500" },
-  car_rental: { icon: Car, color: "bg-amber-500" },
-  tour: { icon: Umbrella, color: "bg-purple-500" },
-  insurance: { icon: Umbrella, color: "bg-green-500" },
+  airline: { icon: Plane, color: "bg-info" },
+  flight: { icon: Plane, color: "bg-info" },
+  hotel: { icon: Hotel, color: "bg-destructive" },
+  lodging: { icon: Hotel, color: "bg-destructive" },
+  cruise: { icon: Ship, color: "bg-success" },
+  transfer: { icon: Car, color: "bg-warning" },
+  car_rental: { icon: Car, color: "bg-warning" },
+  tour: { icon: Umbrella, color: "bg-primary" },
+  insurance: { icon: Umbrella, color: "bg-success" },
 };
 
 export function TripBookings({ 

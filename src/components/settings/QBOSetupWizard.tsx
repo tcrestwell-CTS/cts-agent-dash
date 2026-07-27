@@ -64,7 +64,7 @@ export function QBOSetupWizard({ onConnect, connectError }: QBOSetupWizardProps)
       onClick={() => copyToClipboard(text)}
     >
       {copied === text ? (
-        <Check className="h-3 w-3 text-green-600" />
+        <Check className="h-3 w-3 text-success" />
       ) : (
         <Copy className="h-3 w-3 text-muted-foreground" />
       )}
@@ -90,7 +90,7 @@ export function QBOSetupWizard({ onConnect, connectError }: QBOSetupWizardProps)
       className="flex items-start gap-2.5 text-left w-full group"
     >
       {checked ? (
-        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+        <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
       ) : (
         <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-primary" />
       )}
@@ -128,7 +128,7 @@ export function QBOSetupWizard({ onConnect, connectError }: QBOSetupWizardProps)
                 idx === currentStep
                   ? "bg-primary text-primary-foreground"
                   : idx < currentStep
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-success/10 text-success"
                     : "bg-muted text-muted-foreground"
               }`}
             >

@@ -73,8 +73,8 @@ export function TrainingProgress() {
                 <span
                   className={`text-xs font-medium px-2 py-1 rounded-full ${
                     course.badge === "Gold"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-orange-100 text-orange-700"
+                      ? "bg-warning/10 text-warning"
+                      : "bg-warning/10 text-warning"
                   }`}
                 >
                   {course.badge}

@@ -169,7 +169,7 @@ export function HotelDestinationInput({ value, onChange, onSelect, placeholder =
         autoComplete="off"
       />
       {query.length === 3 && DESTINATIONS.find(([c]) => c === query) && (
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-emerald-600 font-medium pointer-events-none">
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-success font-medium pointer-events-none">
           ✓
         </span>
       )}

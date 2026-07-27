@@ -184,14 +184,14 @@ export function FlightLegsSection({ tripId, flightItems, onAddFlightToItinerary,
                   key={item.id}
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 group"
                 >
-                  <div className="h-8 w-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
+                  <div className="h-8 w-8 rounded-lg bg-info/10 text-info flex items-center justify-center flex-shrink-0">
                     <Plane className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{item.title}</span>
                       {item.flight_number && (
-                        <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/20">
                           {item.flight_number}
                         </Badge>
                       )}
@@ -522,7 +522,7 @@ function OfferResultCard({ offer, onSelect }: { offer: FlightOffer; onSelect: ()
                         {slice.segments.length - 1} stop{slice.segments.length > 2 ? "s" : ""}
                       </Badge>
                     ) : (
-                      <span className="text-[9px] text-green-600 font-medium">Direct</span>
+                      <span className="text-[9px] text-success font-medium">Direct</span>
                     )}
                   </div>
                   <div className="text-center">

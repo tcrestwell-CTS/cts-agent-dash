@@ -25,11 +25,11 @@ function getInitials(name: string) {
 function getRankIcon(rank: number) {
   switch (rank) {
     case 1:
-      return <Trophy className="h-5 w-5 text-yellow-500" />;
+      return <Trophy className="h-5 w-5 text-warning" />;
     case 2:
       return <Medal className="h-5 w-5 text-gray-400" />;
     case 3:
-      return <Award className="h-5 w-5 text-amber-600" />;
+      return <Award className="h-5 w-5 text-warning" />;
     default:
       return <span className="text-sm font-medium text-muted-foreground w-5 text-center">{rank}</span>;
   }

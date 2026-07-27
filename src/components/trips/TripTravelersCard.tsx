@@ -362,7 +362,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-medium truncate">{client.name}</p>
-                    <Crown className="h-3 w-3 text-amber-500 shrink-0" />
+                    <Crown className="h-3 w-3 text-warning shrink-0" />
                   </div>
                   {client.email && (
                     <p className="text-xs text-muted-foreground truncate">{client.email}</p>
@@ -405,7 +405,7 @@ export function TripTravelersCard({ client, clientId, tripId }: TripTravelersCar
                 >
                   <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                     {t.is_primary ? (
-                      <Crown className="h-4 w-4 text-amber-500" />
+                      <Crown className="h-4 w-4 text-warning" />
                     ) : (
                       <UserRound className="h-4 w-4 text-muted-foreground" />
                     )}

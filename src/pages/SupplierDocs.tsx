@@ -227,7 +227,7 @@ export default function SupplierDocs() {
                           </td>
                           <td className="p-3">
                             {field.required ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <CheckCircle className="h-4 w-4 text-success" />
                             ) : (
                               <span className="text-muted-foreground">Optional</span>
                             )}

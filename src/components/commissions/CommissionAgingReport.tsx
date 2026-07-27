@@ -36,7 +36,7 @@ export function CommissionAgingReport({ commissions }: CommissionAgingReportProp
 
   const buckets: AgingBucket[] = [
     { label: "0–30 days", range: "0-30", count: 0, total: 0, color: "text-warning", bgColor: "bg-warning" },
-    { label: "31–60 days", range: "31-60", count: 0, total: 0, color: "text-orange-600", bgColor: "bg-orange-500" },
+    { label: "31–60 days", range: "31-60", count: 0, total: 0, color: "text-warning", bgColor: "bg-warning" },
     { label: "61–90 days", range: "61-90", count: 0, total: 0, color: "text-destructive", bgColor: "bg-destructive" },
     { label: "90+ days", range: "90+", count: 0, total: 0, color: "text-destructive", bgColor: "bg-destructive" },
   ];

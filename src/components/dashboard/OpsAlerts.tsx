@@ -233,7 +233,7 @@ export function OpsAlerts() {
                 alert.severity === "critical"
                   ? "border-destructive/30 bg-destructive/5"
                   : alert.severity === "warning"
-                  ? "border-orange-500/30 bg-orange-500/5"
+                  ? "border-warning/30 bg-warning/5"
                   : "border-border"
               )}
               onClick={alert.action}
@@ -244,7 +244,7 @@ export function OpsAlerts() {
                   alert.severity === "critical"
                     ? "bg-destructive/10 text-destructive"
                     : alert.severity === "warning"
-                    ? "bg-orange-500/10 text-orange-600"
+                    ? "bg-warning/10 text-warning"
                     : "bg-primary/10 text-primary"
                 )}
               >

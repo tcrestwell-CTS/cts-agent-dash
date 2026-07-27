@@ -20,7 +20,7 @@ const categoryIcons: Record<string, any> = {
 const categoryColors: Record<string, string> = {
   flight: "bg-info/10 text-info border-info/30",
   hotel: "bg-warning/10 text-warning border-warning/30",
-  cruise: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  cruise: "bg-info/10 text-info border-info/20",
   transportation: "bg-muted text-foreground border-border",
   dining: "bg-warning/10 text-warning border-warning/30",
   activity: "bg-success/10 text-success border-success/30",

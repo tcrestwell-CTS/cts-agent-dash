@@ -404,7 +404,7 @@ const ClientDetail = () => {
                       variant="secondary"
                       className={
                         hasPortalAccount
-                          ? "bg-emerald-500/30 text-white border border-emerald-400/40"
+                          ? "bg-success/30 text-white border border-success/40"
                           : "bg-white/10 text-white/60 border border-white/20"
                       }
                     >

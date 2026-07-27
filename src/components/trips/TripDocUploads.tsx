@@ -34,7 +34,7 @@ export function TripDocUploads({ tripId }: TripDocUploadsProps) {
           <FileText className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold text-foreground">Client Documents</span>
           {unreviewed > 0 && (
-            <span className="text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
+            <span className="text-xs font-semibold bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded-full">
               {unreviewed} new
             </span>
           )}
@@ -55,8 +55,8 @@ export function TripDocUploads({ tripId }: TripDocUploadsProps) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {doc.reviewed
-                ? <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3 w-3" />Reviewed</span>
-                : <span className="inline-flex items-center gap-1 text-xs text-amber-600"><Clock className="h-3 w-3" />New</span>
+                ? <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-3 w-3" />Reviewed</span>
+                : <span className="inline-flex items-center gap-1 text-xs text-warning"><Clock className="h-3 w-3" />New</span>
               }
               <a
                 href={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/client-documents/${doc.storage_path}`}

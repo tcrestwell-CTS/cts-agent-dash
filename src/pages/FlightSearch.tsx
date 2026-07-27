@@ -771,7 +771,7 @@ function SliceCard({
                     {slice.segments.length - 1} stop{slice.segments.length > 2 ? "s" : ""}
                   </Badge>
                 ) : (
-                  <span className="text-[10px] text-green-600 font-medium">Direct</span>
+                  <span className="text-[10px] text-success font-medium">Direct</span>
                 )}
               </div>
 
@@ -867,7 +867,7 @@ function OfferCard({
                         </Badge>
                       )}
                       {slice.segments.length === 1 && (
-                        <span className="text-[10px] text-green-600 font-medium">Direct</span>
+                        <span className="text-[10px] text-success font-medium">Direct</span>
                       )}
                     </div>
 
