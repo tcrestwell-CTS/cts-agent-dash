@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
  * 15px/600 title + 13px muted next-action sentence. Optional action slot.
  * Never a shrug: the sentence should tell the user what to do next.
  */
-export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
+export type EmptyStateProps = Omit<React.HTMLAttributes<HTMLDivElement>, "title"> & {
   icon?: React.ReactNode;
   title: React.ReactNode;
   description: React.ReactNode;
   action?: React.ReactNode;
-}
+};
 
 export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
   ({ className, icon, title, description, action, ...props }, ref) => (
