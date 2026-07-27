@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 const TripBuilderEntry = () => {
   const navigate = useNavigate();
-  const { trips, isLoading } = useTrips();
+  const { trips, loading: isLoading } = useTrips();
 
   useEffect(() => {
     if (isLoading || !trips) return;
