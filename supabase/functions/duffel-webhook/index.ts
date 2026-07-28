@@ -4,8 +4,52 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-duffel-signature",
 };
+
+// Verify Duffel webhook signature.
+// Duffel sends header `x-duffel-signature: t=<timestamp>,v1=<hex-hmac-sha256>`
+// where the signed payload is `${timestamp}.${rawBody}` HMAC'd with the
+// webhook's secret. See https://duffel.com/docs/guides/receiving-webhook-notifications
+async function verifyDuffelSignature(
+  rawBody: string,
+  header: string | null,
+  secret: string,
+  toleranceSeconds = 300,
+): Promise<boolean> {
+  if (!header) return false;
+  const parts: Record<string, string> = {};
+  for (const p of header.split(",")) {
+    const [k, ...rest] = p.trim().split("=");
+    parts[k] = rest.join("=");
+  }
+  const t = parts["t"];
+  const v1 = parts["v1"];
+  if (!t || !v1) return false;
+
+  const ts = Number(t);
+  if (!Number.isFinite(ts)) return false;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - ts) > toleranceSeconds) return false;
+
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(`${t}.${rawBody}`));
+  const expected = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  if (expected.length !== v1.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
+  return diff === 0;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -13,7 +57,28 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+
+    const secret = Deno.env.get("DUFFEL_WEBHOOK_SECRET");
+    if (!secret) {
+      console.error("DUFFEL_WEBHOOK_SECRET not configured — rejecting webhook");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const sigHeader = req.headers.get("x-duffel-signature");
+    const valid = await verifyDuffelSignature(rawBody, sigHeader, secret);
+    if (!valid) {
+      console.warn("Duffel webhook signature verification failed");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const payload = JSON.parse(rawBody);
     const { type, data } = payload;
 
     console.log(`Duffel webhook received: ${type}`, JSON.stringify(data).substring(0, 500));
