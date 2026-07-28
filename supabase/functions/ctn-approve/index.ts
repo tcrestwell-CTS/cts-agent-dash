@@ -28,6 +28,95 @@ function generateToken(): string {
   return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Fetches the two onboarding PDFs from Supabase Storage and emails them.
+// Shared by: new-invitation flow, existing-user flow, and docs_only mode
+// (fired by the Stripe webhook once payment confirms for an already-approved applicant).
+async function sendOnboardingDocs(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  firstName: string | undefined
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const docs = [
+      { filename: "CTN_IC_Agent_Onboarding_Guide_2026.pdf", path: "onboarding-guide.pdf" },
+      { filename: "CTN_Agent_Setup_Guide_2026.pdf",          path: "setup-guide.pdf" },
+    ];
+
+    const attachments: Array<{ filename: string; content: string }> = [];
+
+    for (const doc of docs) {
+      const fileRes = await fetch(
+        `${supabaseUrl}/storage/v1/object/agent-documents/${doc.path}`,
+        { headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey } }
+      );
+      if (fileRes.ok) {
+        const arrayBuffer = await fileRes.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+        const b64 = btoa(uint8.reduce((data, byte) => data + String.fromCharCode(byte), ""));
+        attachments.push({ filename: doc.filename, content: b64 });
+      } else {
+        console.warn(`[ctn-approve] Could not load ${doc.path}: ${fileRes.status}`);
+      }
+    }
+
+    if (attachments.length === 0) return;
+
+    const docsRes = await fetch(
+      `${supabaseUrl}/functions/v1/send-email`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to:       email,
+          subject:  "Welcome to Crestwell Travel Network — Your Onboarding Documents",
+          template: "custom",
+          customHtml: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1e293b;">
+              <div style="background:#1a2744;padding:28px 32px;border-radius:10px 10px 0 0;">
+                <h2 style="color:#c9a84c;margin:0;">Your Onboarding Documents</h2>
+                <p style="color:rgba(255,255,255,0.6);margin:6px 0 0;font-size:13px;">Crestwell Travel Network · Host Agency</p>
+              </div>
+              <div style="padding:28px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;">
+                <p style="font-size:14px;line-height:1.7;color:#374151;">Hi ${firstName || "there"},</p>
+                <p style="font-size:14px;line-height:1.7;color:#374151;">
+                  Your subscription is confirmed! Attached are two important documents to help you get started:
+                </p>
+                <ul style="font-size:13px;line-height:2;color:#475569;padding-left:20px;">
+                  <li><strong>IC Agent Onboarding Guide</strong> — Your complete reference for policies, commission structure, compliance, and support</li>
+                  <li><strong>New Agent Setup Guide</strong> — Step-by-step platform walkthrough to get you up and running quickly</li>
+                </ul>
+                <p style="font-size:14px;line-height:1.7;color:#374151;">
+                  Once you activate your account, start with the <strong>Platform Basics</strong> training module.
+                </p>
+                <p style="font-size:13px;color:#6b7280;margin-top:24px;">
+                  Questions? Email us at <a href="mailto:agents@crestwellgetaways.com" style="color:#c9a84c;">agents@crestwellgetaways.com</a>
+                  or call <a href="tel:8885086893" style="color:#c9a84c;">888.508.6893</a>.
+                </p>
+                <p style="font-size:14px;margin-top:20px;">Welcome aboard,<br/><strong>Crestwell Travel Network</strong></p>
+              </div>
+            </div>
+          `,
+          attachments,
+        }),
+      }
+    );
+
+    if (!docsRes.ok) {
+      console.error("[ctn-approve] Document email failed:", await docsRes.text());
+    } else {
+      console.log("[ctn-approve] ✓ Onboarding documents sent to", email);
+    }
+  } catch (docErr) {
+    console.error("[ctn-approve] Document send error:", docErr);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -62,7 +151,10 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { email, first_name, plan, application_id } = body;
+    const { email, first_name, plan, application_id, skip_docs, docs_only } = body;
+    // skip_docs: caller confirms payment not yet received — invite only, no docs.
+    // docs_only: payment just confirmed for an already-approved applicant —
+    //            send the onboarding docs email now, skip invite/role setup.
 
     if (!email || !plan) {
       return new Response(JSON.stringify({ error: "email and plan required" }), {
@@ -125,8 +217,27 @@ serve(async (req) => {
       }
 
       const inviteUrl = `https://app.crestwelltravels.com/auth`;
+
+      if (!skip_docs) {
+        await sendOnboardingDocs(supabase, email, first_name);
+      }
+
       return new Response(
-        JSON.stringify({ success: true, email, tier: commissionTier, invite_url: inviteUrl, note: "existing_user_role_updated" }),
+        JSON.stringify({
+          success: true, email, tier: commissionTier, invite_url: inviteUrl,
+          note: "existing_user_role_updated",
+          docs_sent: !skip_docs,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── docs_only mode: payment just confirmed for an already-approved
+    //    applicant. Skip invite/role setup entirely, just send the docs. ────
+    if (docs_only) {
+      await sendOnboardingDocs(supabase, email, first_name);
+      return new Response(
+        JSON.stringify({ success: true, email, docs_sent: true, note: "docs_only" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -220,89 +331,10 @@ serve(async (req) => {
     }
 
     // ── Send onboarding documents ──────────────────────────────────────────
-    // Fetch both PDFs from Supabase Storage and send as attachments
-    try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-      // Fetch PDFs from public storage bucket "agent-documents"
-      const docs = [
-        { filename: "CTN_IC_Agent_Onboarding_Guide_2026.pdf", path: "onboarding-guide.pdf" },
-        { filename: "CTN_Agent_Setup_Guide_2026.pdf",          path: "setup-guide.pdf" },
-      ];
-
-      const attachments: Array<{ filename: string; content: string }> = [];
-
-      for (const doc of docs) {
-        const fileRes = await fetch(
-          `${supabaseUrl}/storage/v1/object/agent-documents/${doc.path}`,
-          { headers: { "Authorization": `Bearer ${serviceKey}`, "apikey": serviceKey } }
-        );
-        if (fileRes.ok) {
-          const arrayBuffer = await fileRes.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          const b64 = btoa(uint8.reduce((data, byte) => data + String.fromCharCode(byte), ""));
-          attachments.push({ filename: doc.filename, content: b64 });
-          console.log(`[ctn-approve] Loaded ${doc.filename} (${Math.round(arrayBuffer.byteLength / 1024)}kb)`);
-        } else {
-          console.warn(`[ctn-approve] Could not load ${doc.path}: ${fileRes.status}`);
-        }
-      }
-
-      if (attachments.length > 0) {
-        const docsRes = await fetch(
-          `${supabaseUrl}/functions/v1/send-email`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${serviceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              to:       email,
-              subject:  "Welcome to Crestwell Travel Network — Your Onboarding Documents",
-              template: "custom",
-              customHtml: `
-                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1e293b;">
-                  <div style="background:#1a2744;padding:28px 32px;border-radius:10px 10px 0 0;">
-                    <h2 style="color:#c9a84c;margin:0;">Your Onboarding Documents</h2>
-                    <p style="color:rgba(255,255,255,0.6);margin:6px 0 0;font-size:13px;">Crestwell Travel Network · Host Agency</p>
-                  </div>
-                  <div style="padding:28px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;">
-                    <p style="font-size:14px;line-height:1.7;color:#374151;">Hi ${first_name || "there"},</p>
-                    <p style="font-size:14px;line-height:1.7;color:#374151;">
-                      Welcome to the Crestwell Travel Network! Attached to this email are two important documents to help you get started:
-                    </p>
-                    <ul style="font-size:13px;line-height:2;color:#475569;padding-left:20px;">
-                      <li><strong>IC Agent Onboarding Guide</strong> — Your complete reference for policies, commission structure, compliance, and support</li>
-                      <li><strong>New Agent Setup Guide</strong> — Step-by-step platform walkthrough to get you up and running quickly</li>
-                    </ul>
-                    <p style="font-size:14px;line-height:1.7;color:#374151;">
-                      Your platform invite link was sent in a separate email. Once you activate your account, 
-                      start with the <strong>Platform Basics</strong> training module.
-                    </p>
-                    <p style="font-size:13px;color:#6b7280;margin-top:24px;">
-                      Questions? Email us at <a href="mailto:agents@crestwellgetaways.com" style="color:#c9a84c;">agents@crestwellgetaways.com</a> 
-                      or call <a href="tel:8885086893" style="color:#c9a84c;">888.508.6893</a>.
-                    </p>
-                    <p style="font-size:14px;margin-top:20px;">Welcome aboard,<br/><strong>Crestwell Travel Network</strong></p>
-                  </div>
-                </div>
-              `,
-              attachments,
-            }),
-          }
-        );
-
-        if (!docsRes.ok) {
-          console.error("[ctn-approve] Document email failed:", await docsRes.text());
-        } else {
-          console.log("[ctn-approve] ✓ Onboarding documents sent to", email);
-        }
-      }
-    } catch (docErr) {
-      console.error("[ctn-approve] Document send error:", docErr);
-      // Non-fatal — invitation was already sent successfully
+    if (!skip_docs) {
+      await sendOnboardingDocs(supabase, email, first_name);
+    } else {
+      console.log(`[ctn-approve] skip_docs=true for ${email} — docs will send once payment is confirmed`);
     }
 
     console.log(`[ctn-approve] ✓ ${email} invited as agent | tier: ${commissionTier}`);
