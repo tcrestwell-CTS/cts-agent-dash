@@ -175,7 +175,7 @@ const App = () => (
                 <Route path="/training/phase/:phaseId" element={<ProtectedRoute><TrainingPhaseDetail /></ProtectedRoute>} />
                 <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
                 <Route path="/training/lesson/:lessonId" element={<ProtectedRoute><TrainingLessonDetail /></ProtectedRoute>} />
-                <Route path="/training/admin" element={<ProtectedRoute><TrainingAdmin /></ProtectedRoute>} />
+                <Route path="/training/admin" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><TrainingAdmin /></AdminRoute></ProtectedRoute>} />
                 <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/commission-report" element={<ProtectedRoute><FeatureRoute feature="quotes"><CommissionReport /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/supplier-payments-due" element={<ProtectedRoute><FeatureRoute feature="commissions"><SupplierPaymentsDue /></FeatureRoute></ProtectedRoute>} />
