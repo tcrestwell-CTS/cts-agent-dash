@@ -18,16 +18,22 @@ import {
 
 interface MagicLinkEmailProps {
   siteName: string
+  siteUrl: string
+  recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const MagicLinkEmail = ({
   siteName,
+  siteUrl,
+  recipient,
   confirmationUrl,
+  token,
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your Crestwell Travel Services login link</Preview>
+    <Preview>Your Crestwell Travel Services login code</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={logoSection}>
@@ -40,7 +46,15 @@ export const MagicLinkEmail = ({
         </Section>
         <Heading style={h1}>Sign in to your account</Heading>
         <Text style={text}>
-          Click the button below to securely sign in to Crestwell Travel Services. This link will expire shortly.
+          Use the code below to sign in to Crestwell Travel Services. It will expire shortly.
+        </Text>
+        {token ? (
+          <Section style={codeSection}>
+            <Text style={code}>{token}</Text>
+          </Section>
+        ) : null}
+        <Text style={text}>
+          Or, if you prefer, click the button below to sign in automatically.
         </Text>
         <Section style={buttonSection}>
           <Button style={button} href={confirmationUrl}>
@@ -84,4 +98,12 @@ const button = {
   textDecoration: 'none',
 }
 const hr = { borderColor: '#e5e7eb', margin: '32px 0 20px' }
+const codeSection = { textAlign: 'center' as const, margin: '24px 0', backgroundColor: '#f1f5f9', borderRadius: '12px', padding: '20px 0' }
+const code = {
+  fontSize: '32px',
+  fontWeight: '700' as const,
+  letterSpacing: '6px',
+  color: '#0f2b52',
+  margin: '0',
+}
 const footer = { fontSize: '12px', color: '#9ca3af', margin: '0' }
