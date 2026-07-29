@@ -897,7 +897,7 @@ const BookingDetail = () => {
                     cancellation_reason: cancelReason || null,
                     cancellation_penalty: parseFloat(cancelPenalty) || 0,
                     cancellation_refund_amount: parseFloat(cancelRefund) || 0,
-                  })
+                  } as any)
                   .eq("id", booking.id);
 
                 if (error) {
