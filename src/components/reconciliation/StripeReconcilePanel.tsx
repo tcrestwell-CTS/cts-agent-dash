@@ -351,7 +351,7 @@ export default function StripeReconcilePanel() {
 
         const { error } = await supabase
           .from(table)
-          .update(updateData)
+          .update(updateData as any)
           .eq("id", item.local_id);
         if (error) throw error;
         toast.success("Local record updated to match Stripe");

@@ -120,7 +120,7 @@ function CCAuthForm({
 
       const { error: updErr } = await supabase
         .from("car_rental_requests")
-        .update(patch)
+        .update(patch as any)
         .eq("id", rentalId);
       if (updErr) throw updErr;
 

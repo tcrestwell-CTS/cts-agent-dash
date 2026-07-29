@@ -267,7 +267,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
         if (flightOffer.departureDate) dateUpdates.depart_date = flightOffer.departureDate;
         if (flightOffer.returnDate) dateUpdates.return_date = flightOffer.returnDate;
         if (Object.keys(dateUpdates).length > 0) {
-          await supabase.from("trips").update(dateUpdates).eq("id", selectedTripId);
+          await supabase.from("trips").update(dateUpdates as any).eq("id", selectedTripId);
         }
       }
 
@@ -277,7 +277,7 @@ export function AddToTripSelector({ items, disabled, label = "Add to Trip", defa
         if (cruiseOffer.departureDate) dateUpdates.depart_date = cruiseOffer.departureDate;
         if (cruiseOffer.returnDate) dateUpdates.return_date = cruiseOffer.returnDate;
         if (Object.keys(dateUpdates).length > 0) {
-          await supabase.from("trips").update(dateUpdates).eq("id", selectedTripId);
+          await supabase.from("trips").update(dateUpdates as any).eq("id", selectedTripId);
         }
       }
 

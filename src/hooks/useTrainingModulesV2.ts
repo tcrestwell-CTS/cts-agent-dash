@@ -56,7 +56,7 @@ export function useUpdateModuleV2() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; [key: string]: unknown }) => {
-      const { error } = await supabase.from("training_modules_v2").update(updates).eq("id", id);
+      const { error } = await supabase.from("training_modules_v2").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -177,7 +177,7 @@ export function FlightSearchDialog({
         dateUpdates.return_date = format(parseISO(lastSlice.segments[0].departing_at), "yyyy-MM-dd");
       }
       if (Object.keys(dateUpdates).length > 0) {
-        await supabase.from("trips").update(dateUpdates).eq("id", tripId);
+        await supabase.from("trips").update(dateUpdates as any).eq("id", tripId);
       }
 
       // Add each slice to itinerary
@@ -273,7 +273,7 @@ export function FlightSearchDialog({
         dateUpdates.return_date = format(parseISO(lastSlice.segments[0].departing_at), "yyyy-MM-dd");
       }
       if (Object.keys(dateUpdates).length > 0) {
-        await supabase.from("trips").update(dateUpdates).eq("id", tripId);
+        await supabase.from("trips").update(dateUpdates as any).eq("id", tripId);
       }
 
       // Also add to itinerary
