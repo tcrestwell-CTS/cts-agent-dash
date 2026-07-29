@@ -444,7 +444,7 @@ export default function LoanApplicationsManager() {
       update.approved_rate = approvedRate ? parseFloat(approvedRate) : null;
       update.approved_term_months = approvedTerm ? parseInt(approvedTerm) : null;
     }
-    const { error } = await supabase.from("loan_applications").update(update).eq("id", selected.id);
+    const { error } = await supabase.from("loan_applications").update(update as any).eq("id", selected.id);
     if (error) {
       toast.error("Failed to save decision");
     } else {

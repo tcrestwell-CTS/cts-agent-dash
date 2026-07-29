@@ -73,7 +73,7 @@ export function useUpsertProgress() {
       if (existing) {
         const { error } = await supabase
           .from("training_user_progress")
-          .update(base as Record<string, unknown>)
+          .update(base as any)
           .eq("id", existing.id);
         if (error) throw error;
       } else {

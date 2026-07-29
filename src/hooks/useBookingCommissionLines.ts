@@ -81,7 +81,7 @@ export function useBookingCommissionLines(bookingId: string | undefined) {
       }
       const { error } = await supabase
         .from("booking_commission_lines")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", id);
       if (error) throw error;
     },
