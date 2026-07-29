@@ -18,16 +18,22 @@ import {
 
 interface MagicLinkEmailProps {
   siteName: string
+  siteUrl: string
+  recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const MagicLinkEmail = ({
   siteName,
+  siteUrl,
+  recipient,
   confirmationUrl,
+  token,
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your Crestwell Travel Services login link</Preview>
+    <Preview>Your Crestwell Travel Services login code</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={logoSection}>
@@ -40,7 +46,15 @@ export const MagicLinkEmail = ({
         </Section>
         <Heading style={h1}>Sign in to your account</Heading>
         <Text style={text}>
-          Click the button below to securely sign in to Crestwell Travel Services. This link will expire shortly.
+          Use the code below to sign in to Crestwell Travel Services. It will expire shortly.
+        </Text>
+        {token ? (
+          <Section style={codeSection}>
+            <Text style={code}>{token}</Text>
+          </Section>
+        ) : null}
+        <Text style={text}>
+          Or, if you prefer, click the button below to sign in automatically.
         </Text>
         <Section style={buttonSection}>
           <Button style={button} href={confirmationUrl}>
