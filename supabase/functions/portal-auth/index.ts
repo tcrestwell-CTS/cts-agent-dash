@@ -62,6 +62,25 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+// ── Case-insensitive email matching ──────────────────────────────────────────
+// clients.email is stored exactly as an agent typed it, so it can contain
+// capitals. Comparing it with .eq() against a lowercased input silently misses
+// those rows, and the failure surfaces to the client as the misleading
+// "No client account found for this email" — the record exists, the query just
+// didn't match it.
+//
+// ilike gives case-insensitivity, but it also treats % and _ as wildcards, and
+// _ is legal in an email local part. Left unescaped, a_b@example.com would
+// match aXb@example.com — a wrong-account link, not just a cosmetic bug. So
+// escape the LIKE metacharacters and keep the comparison an exact one.
+function likeEscape(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+function normalizeEmail(value: string): string {
+  return (value || "").toLowerCase().trim();
+}
+
 const handler = async (req: Request): Promise<Response> => {
   const headers = corsHeaders(req);
 
@@ -90,7 +109,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: client } = await supabaseAdmin
         .from("clients")
         .select("id")
-        .eq("email", emailLower)
+        .ilike("email", likeEscape(emailLower))
         .limit(1)
         .maybeSingle();
 
@@ -160,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: client } = await supabaseAdmin
         .from("clients")
         .select("id, name, first_name, email")
-        .eq("email", emailLower)
+        .ilike("email", likeEscape(emailLower))
         .limit(1)
         .maybeSingle();
 
@@ -232,7 +251,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: client } = await supabaseAdmin
         .from("clients")
         .select("id, name, first_name, email, user_id")
-        .eq("email", emailLower)
+        .ilike("email", likeEscape(emailLower))
         .limit(1)
         .maybeSingle();
 
@@ -400,7 +419,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: client } = await supabaseAdmin
         .from("clients")
         .select("id, name, first_name, email, user_id")
-        .eq("email", emailFromToken)
+        .ilike("email", likeEscape(normalizeEmail(emailFromToken)))
         .limit(1)
         .maybeSingle();
 
