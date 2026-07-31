@@ -265,6 +265,13 @@ Deno.serve(async (req) => {
             known_traveler_number: client.known_traveler_number,
             redress_number: client.redress_number,
             passport_info: client.passport_info,
+            passport_number: client.passport_number,
+            passport_full_name: client.passport_full_name,
+            passport_nationality: client.passport_nationality,
+            passport_issuing_country: client.passport_issuing_country,
+            passport_date_of_birth: client.passport_date_of_birth,
+            passport_sex: client.passport_sex,
+            passport_expiry: client.passport_expiry,
             food_drink_allergies: client.food_drink_allergies,
             activities_interests: client.activities_interests,
             loyalty_programs: client.loyalty_programs,
@@ -331,6 +338,9 @@ Deno.serve(async (req) => {
         "address_line_1", "address_line_2", "address_city",
         "address_state", "address_zip_code", "address_country",
         "known_traveler_number", "redress_number", "passport_info",
+        "passport_number", "passport_full_name", "passport_nationality",
+        "passport_issuing_country", "passport_date_of_birth", "passport_sex",
+        "passport_expiry",
         "food_drink_allergies", "activities_interests", "loyalty_programs",
       ];
 
