@@ -36,7 +36,22 @@ export function useTeamProfiles() {
         throw error;
       }
 
-      return data as TeamProfile[];
+      // Bookkeepers have no direct read on `profiles` (it holds phone numbers
+      // and commission rates), so backfill names from the limited view.
+      const rows = (data ?? []) as any[];
+      const lite = await fetchAllProfilesLite();
+      const known = new Set(rows.map((r) => r.user_id));
+      const merged = [
+        ...rows,
+        ...lite
+          .filter((p) => !known.has(p.user_id))
+          .map((p) => ({
+            user_id: p.user_id,
+            full_name: p.full_name,
+            commission_tier: p.commission_tier,
+          })),
+      ];
+      return merged as TeamProfile[];
     },
     enabled: !!user,
   });
