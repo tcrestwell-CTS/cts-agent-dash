@@ -15,11 +15,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/** Mirrors portal-auth's likeEscape(): escape LIKE/ILIKE wildcards. */
-function likeEscape(value: string): string {
-  return value.replace(/([%_\\])/g, "\\$1");
-}
-
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // Textract sync limit is 10MB
 
 function decodeBase64Size(b64: string): number {
