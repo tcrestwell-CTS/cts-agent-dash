@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
           .select("id")
           .eq("token", portalToken)
           .gt("expires_at", new Date().toISOString())
+          .not("verified_at", "is", null)
           .maybeSingle();
         if (session) authorized = true;
       }
