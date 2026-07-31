@@ -1552,7 +1552,7 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: client, error: clientErr } = await supabase
         .from("clients")
         .select(
-          "id, name, first_name, last_name, preferred_first_name, email, phone, secondary_email, secondary_phone, birthday, address_line_1, address_line_2, address_city, address_state, address_zip_code, address_country, passport_info, known_traveler_number, redress_number, food_drink_allergies, activities_interests, flight_seating_preference, flight_bulkhead_preference, lodging_floor_preference, lodging_elevator_preference, cruise_cabin_floor_preference, cruise_cabin_location_preference, loyalty_programs"
+          "id, name, first_name, last_name, preferred_first_name, email, phone, secondary_email, secondary_phone, birthday, address_line_1, address_line_2, address_city, address_state, address_zip_code, address_country, passport_info, passport_number, passport_full_name, passport_nationality, passport_issuing_country, passport_date_of_birth, passport_sex, passport_expiry, known_traveler_number, redress_number, food_drink_allergies, activities_interests, flight_seating_preference, flight_bulkhead_preference, lodging_floor_preference, lodging_elevator_preference, cruise_cabin_floor_preference, cruise_cabin_location_preference, loyalty_programs"
         )
         .eq("id", clientId)
         .maybeSingle();
@@ -1576,6 +1576,9 @@ const handler = async (req: Request): Promise<Response> => {
         "address_line_1", "address_line_2", "address_city",
         "address_state", "address_zip_code", "address_country",
         "passport_info", "known_traveler_number", "redress_number",
+        "passport_number", "passport_full_name", "passport_nationality",
+        "passport_issuing_country", "passport_date_of_birth", "passport_sex",
+        "passport_expiry",
         "food_drink_allergies", "activities_interests",
         "flight_seating_preference", "flight_bulkhead_preference",
         "lodging_floor_preference", "lodging_elevator_preference",
