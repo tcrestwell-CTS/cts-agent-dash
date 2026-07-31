@@ -1,0 +1,1 @@
+insert into public.client_update_tokens (client_id, user_id, token, expires_at) select id, user_id, 'e2e-rerun-token-0731', now() + interval '2 hours' from public.clients where email ilike '%fredwilliamson%' limit 1;
