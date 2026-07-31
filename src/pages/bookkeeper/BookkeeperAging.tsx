@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect, useMemo } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { fetchSupplierMap } from "@/lib/bookkeeperLookups";
 import { format, differenceInDays } from "date-fns";
 import { BookkeeperBreadcrumb, EmptyState, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
@@ -226,12 +227,13 @@ function PayablesTab() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("bookings")
-        .select("id, booking_reference, status, supplier_paid_status, supplier_payout, gross_sales, created_at, trip_id, supplier_id, trips:trip_id(trip_name, departure_date), suppliers:supplier_id(name)")
+        .select("id, booking_reference, status, supplier_paid_status, supplier_payout, gross_sales, created_at, trip_id, supplier_id, trips:trip_id(trip_name, departure_date)")
         .in("supplier_paid_status", ["unpaid", "pending", "partial"])
         .order("created_at", { ascending: true })
         .limit(500);
       if (error) throw error;
-      return data ?? [];
+      const supMap = await fetchSupplierMap((data ?? []).map((r: any) => r.supplier_id));
+      return (data ?? []).map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
     },
   });
 

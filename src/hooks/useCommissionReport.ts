@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllProfilesLite } from "@/lib/bookkeeperLookups";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 
@@ -66,11 +67,9 @@ export function useCommissionReport() {
 
       if (commError) throw commError;
 
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, commission_tier");
-
-      if (profileError) throw profileError;
+      // Read agent display data from the column-limited view so bookkeepers
+      // (who have no direct read on `profiles`) still see agent names.
+      const profiles = await fetchAllProfilesLite();
 
       const result: CommissionReportItem[] = (commissions || [])
         .map((comm: any) => {

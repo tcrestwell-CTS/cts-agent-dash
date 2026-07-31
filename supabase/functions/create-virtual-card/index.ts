@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
+import { isInternalCaller, getRequestUser, hasAnyRole } from "../_shared/internal-auth.ts";
 
 /**
  * create-virtual-card
@@ -41,6 +42,20 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // ── Auth: internal caller (service role / agent secret) or an agent JWT ──
+    const internal = isInternalCaller(req);
+    let callerUserId: string | null = null;
+    if (!internal) {
+      const user = await getRequestUser(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      callerUserId = user.id;
+    }
+
     const body = await req.json();
     const {
       paymentId,
@@ -74,6 +89,17 @@ serve(async (req) => {
       .select("trip_name, destination, client_id, user_id")
       .eq("id", payment.trip_id)
       .single();
+
+    // Non-internal callers must own the payment/trip (or be an admin)
+    if (!internal && callerUserId) {
+      const owns = payment.user_id === callerUserId || trip?.user_id === callerUserId;
+      if (!owns && !(await hasAnyRole(callerUserId, ["admin", "office_admin"]))) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const agentUserId = trip?.user_id || payment.user_id;
 

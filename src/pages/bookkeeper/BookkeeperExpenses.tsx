@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Banknote } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { fetchSupplierMap } from "@/lib/bookkeeperLookups";
 import {
   BookkeeperHeader,
   PeriodPicker,
@@ -43,14 +44,15 @@ export default function BookkeeperExpenses() {
       const { start, end } = monthBounds(year, month);
       const { data, error } = await (supabase as any)
         .from("bookings")
-        .select("id, confirmation_number, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name), suppliers:supplier_id(name)")
+        .select("id, confirmation_number, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name)")
         .eq("supplier_paid_status", "paid")
         .gte("supplier_paid_date", start)
         .lt("supplier_paid_date", end)
         .order("supplier_paid_date", { ascending: false })
         .limit(1000);
       if (error) throw error;
-      return data ?? [];
+      const supMap = await fetchSupplierMap((data ?? []).map((r: any) => r.supplier_id));
+      return (data ?? []).map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
     },
   });
 

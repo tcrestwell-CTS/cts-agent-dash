@@ -9270,18 +9270,21 @@ export type Database = {
       }
       bookkeeper_suppliers_view: {
         Row: {
+          contact_email: string | null
           created_at: string | null
           id: string | null
           name: string | null
           user_id: string | null
         }
         Insert: {
+          contact_email?: string | null
           created_at?: string | null
           id?: string | null
           name?: string | null
           user_id?: string | null
         }
         Update: {
+          contact_email?: string | null
           created_at?: string | null
           id?: string | null
           name?: string | null
