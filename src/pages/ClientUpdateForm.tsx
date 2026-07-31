@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, CheckCircle2, AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PassportScanButton, { type ParsedPassport } from "@/components/passport/PassportScanButton";
 
 type ClientInfo = Record<string, string | null>;
 type Branding = {
@@ -77,6 +78,13 @@ const FIELDS = [
   { section: "Travel Documents", fields: [
     { key: "known_traveler_number", label: "Known Traveler Number", type: "text" },
     { key: "redress_number", label: "Redress Number", type: "text" },
+    { key: "passport_full_name", label: "Name as printed on passport", type: "text" },
+    { key: "passport_number", label: "Passport Number", type: "text" },
+    { key: "passport_nationality", label: "Nationality", type: "text" },
+    { key: "passport_issuing_country", label: "Issuing Country", type: "text" },
+    { key: "passport_date_of_birth", label: "Date of Birth (passport)", type: "date" },
+    { key: "passport_expiry", label: "Passport Expiration Date", type: "date" },
+    { key: "passport_sex", label: "Sex", type: "text" },
     { key: "passport_info", label: "Passport Info", type: "textarea" },
   ]},
   { section: "Preferences", fields: [
@@ -172,6 +180,24 @@ const ClientUpdateForm = () => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const applyParsedPassport = (parsed: ParsedPassport) => {
+    setFormData((prev) => ({
+      ...prev,
+      first_name: prev.first_name || parsed.first_name || "",
+      last_name: prev.last_name || parsed.last_name || "",
+      passport_full_name: parsed.passport_full_name ?? prev.passport_full_name ?? "",
+      passport_number: parsed.passport_number ?? prev.passport_number ?? "",
+      passport_nationality: parsed.passport_nationality ?? prev.passport_nationality ?? "",
+      passport_issuing_country:
+        parsed.passport_issuing_country ?? prev.passport_issuing_country ?? "",
+      passport_date_of_birth:
+        parsed.passport_date_of_birth ?? prev.passport_date_of_birth ?? "",
+      passport_expiry: parsed.passport_expiry ?? prev.passport_expiry ?? "",
+      passport_sex: parsed.passport_sex ?? prev.passport_sex ?? "",
+      birthday: prev.birthday || parsed.passport_date_of_birth || "",
+    }));
+  };
+
   const addCompanion = () => {
     setCompanions((prev) => [...prev, { ...EMPTY_COMPANION }]);
   };
@@ -256,6 +282,11 @@ const ClientUpdateForm = () => {
               <CardTitle className="text-base font-semibold">{section.section}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
+              {section.section === "Travel Documents" && (
+                <div className="sm:col-span-2">
+                  <PassportScanButton updateToken={token} onParsed={applyParsedPassport} />
+                </div>
+              )}
               {section.fields.map((field) => (
                 <div
                   key={field.key}

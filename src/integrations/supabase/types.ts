@@ -2768,7 +2768,14 @@ export type Database = {
           membership_tier: Database["public"]["Enums"]["client_tier"]
           name: string
           notes: string | null
+          passport_date_of_birth: string | null
+          passport_expiry: string | null
+          passport_full_name: string | null
           passport_info: string | null
+          passport_issuing_country: string | null
+          passport_nationality: string | null
+          passport_number: string | null
+          passport_sex: string | null
           phone: string | null
           preferred_first_name: string | null
           redress_number: string | null
@@ -2811,7 +2818,14 @@ export type Database = {
           membership_tier?: Database["public"]["Enums"]["client_tier"]
           name: string
           notes?: string | null
+          passport_date_of_birth?: string | null
+          passport_expiry?: string | null
+          passport_full_name?: string | null
           passport_info?: string | null
+          passport_issuing_country?: string | null
+          passport_nationality?: string | null
+          passport_number?: string | null
+          passport_sex?: string | null
           phone?: string | null
           preferred_first_name?: string | null
           redress_number?: string | null
@@ -2854,7 +2868,14 @@ export type Database = {
           membership_tier?: Database["public"]["Enums"]["client_tier"]
           name?: string
           notes?: string | null
+          passport_date_of_birth?: string | null
+          passport_expiry?: string | null
+          passport_full_name?: string | null
           passport_info?: string | null
+          passport_issuing_country?: string | null
+          passport_nationality?: string | null
+          passport_number?: string | null
+          passport_sex?: string | null
           phone?: string | null
           preferred_first_name?: string | null
           redress_number?: string | null
