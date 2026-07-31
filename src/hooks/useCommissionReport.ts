@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllProfilesLite } from "@/lib/bookkeeperLookups";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin, useIsOfficeAdmin } from "@/hooks/useAdmin";
 
