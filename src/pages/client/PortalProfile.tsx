@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import PassportScanButton, { type ParsedPassport } from "@/components/passport/PassportScanButton";
+import { supabase } from "@/integrations/supabase/client";
 
 const FIELDS = [
   "first_name", "last_name", "preferred_first_name",
@@ -15,6 +17,9 @@ const FIELDS = [
   "address_line_1", "address_line_2", "address_city",
   "address_state", "address_zip_code", "address_country",
   "passport_info", "known_traveler_number", "redress_number",
+  "passport_number", "passport_full_name", "passport_nationality",
+  "passport_issuing_country", "passport_date_of_birth", "passport_sex",
+  "passport_expiry",
   "food_drink_allergies", "activities_interests",
   "flight_seating_preference", "flight_bulkhead_preference",
   "lodging_floor_preference", "lodging_elevator_preference",
@@ -49,6 +54,37 @@ export default function PortalProfile() {
   }, [data]);
 
   const set = (k: keyof FormState) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const getPortalHeaders = async (): Promise<Record<string, string>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return { authorization: `Bearer ${session.access_token}` };
+    }
+    try {
+      const stored = localStorage.getItem("portal_session");
+      const token = stored ? JSON.parse(stored).token : null;
+      if (token) return { "x-portal-token": token };
+    } catch {}
+    return {};
+  };
+
+  const applyParsedPassport = (parsed: ParsedPassport) => {
+    setForm((f) => ({
+      ...f,
+      first_name: f.first_name || parsed.first_name || "",
+      last_name: f.last_name || parsed.last_name || "",
+      passport_full_name: parsed.passport_full_name ?? f.passport_full_name ?? "",
+      passport_number: parsed.passport_number ?? f.passport_number ?? "",
+      passport_nationality: parsed.passport_nationality ?? f.passport_nationality ?? "",
+      passport_issuing_country:
+        parsed.passport_issuing_country ?? f.passport_issuing_country ?? "",
+      passport_date_of_birth:
+        parsed.passport_date_of_birth ?? f.passport_date_of_birth ?? "",
+      passport_expiry: parsed.passport_expiry ?? f.passport_expiry ?? "",
+      passport_sex: parsed.passport_sex ?? f.passport_sex ?? "",
+      birthday: f.birthday || parsed.passport_date_of_birth || "",
+    }));
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,11 +154,21 @@ export default function PortalProfile() {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
+            <PassportScanButton getHeaders={getPortalHeaders} onParsed={applyParsedPassport} />
+          </div>
+          <Field id="passport_full_name" label="Name as printed on passport" value={form.passport_full_name ?? ""} onChange={set("passport_full_name")} />
+          <Field id="passport_number" label="Passport Number" value={form.passport_number ?? ""} onChange={set("passport_number")} />
+          <Field id="passport_nationality" label="Nationality" value={form.passport_nationality ?? ""} onChange={set("passport_nationality")} />
+          <Field id="passport_issuing_country" label="Issuing Country" value={form.passport_issuing_country ?? ""} onChange={set("passport_issuing_country")} />
+          <Field id="passport_date_of_birth" label="Date of Birth (passport)" type="date" value={form.passport_date_of_birth ?? ""} onChange={set("passport_date_of_birth")} />
+          <Field id="passport_expiry" label="Expiration Date" type="date" value={form.passport_expiry ?? ""} onChange={set("passport_expiry")} />
+          <Field id="passport_sex" label="Sex" value={form.passport_sex ?? ""} onChange={set("passport_sex")} />
+          <div className="sm:col-span-2">
             <Label htmlFor="passport_info">Passport Information</Label>
             <Textarea
               id="passport_info"
               rows={3}
-              placeholder="Passport number, country, expiration date"
+              placeholder="Anything else we should know about your travel documents"
               value={form.passport_info ?? ""}
               onChange={(e) => set("passport_info")(e.target.value)}
             />
