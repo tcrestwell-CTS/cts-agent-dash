@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useEffect, useMemo } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { fetchSupplierMap } from "@/lib/bookkeeperLookups";
 import { format, differenceInDays } from "date-fns";
 import { BookkeeperBreadcrumb, EmptyState, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";

@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { fetchSupplierMap } from "@/lib/bookkeeperLookups";
 import {
   EmptyState,
   SortableHead,
