@@ -7,6 +7,7 @@
 //   POST { mailbox_id: "uuid" }   — process a single mailbox (manual sync)
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireInternalOrUser } from '../_shared/internal-auth.ts';
 
 const SUPA_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPA_SVC = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -339,6 +340,11 @@ async function processMailbox(
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+
+  // Auth: internal cron (service role or x-agent-secret) or signed-in user
+  const auth = await requireInternalOrUser(req, CORS);
+  if (auth instanceof Response) return auth;
+
   if (!LOVABLE_API_KEY || !GMAIL_KEY) {
     return json({ error: 'Gmail connector not linked' }, 500);
   }

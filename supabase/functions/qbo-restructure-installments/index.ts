@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireInternalOrAdmin } from "../_shared/internal-auth.ts";
 
 /**
  * QBO Installment Restructure
@@ -435,6 +436,10 @@ async function processTrip(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Admin-only: internal service-role caller, or an authenticated admin/office_admin
+  const auth = await requireInternalOrAdmin(req, corsHeaders);
+  if (auth instanceof Response) return auth;
 
   let body: any;
   try {
