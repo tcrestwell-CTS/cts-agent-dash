@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
           .select("id")
           .eq("token", portalToken)
           .gt("expires_at", new Date().toISOString())
+          .not("verified_at", "is", null)
           .maybeSingle();
         if (session) authorized = true;
       }
@@ -144,6 +145,20 @@ Deno.serve(async (req) => {
     if (!res.ok) {
       const errText = await res.text();
       console.error("Textract AnalyzeID failed:", res.status, errText.slice(0, 500));
+      // Account/credential problems are not the client's fault — don't tell them
+      // to retake the photo.
+      if (
+        /SubscriptionRequiredException|UnrecognizedClientException|InvalidSignatureException|AccessDenied/i
+          .test(errText)
+      ) {
+        return json(
+          {
+            error:
+              "Passport scanning is temporarily unavailable. Please enter your details manually.",
+          },
+          503,
+        );
+      }
       return json(
         { error: "Could not read the passport image. Please try a clearer photo." },
         502,
