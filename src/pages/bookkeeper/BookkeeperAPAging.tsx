@@ -94,14 +94,15 @@ export default function BookkeeperAPAging() {
       const { data, error } = await (supabase as any)
         .from("bookings")
         .select(
-          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, trip_id, supplier_id, trips:trip_id(trip_name, return_date, departure_date), suppliers:supplier_id(name, contact_email)"
+          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, trip_id, supplier_id, trips:trip_id(trip_name, return_date, departure_date)"
         )
         .neq("supplier_paid_status", "paid")
         .in("status", ["confirmed", "completed"])
         .order("created_at", { ascending: true })
         .limit(1000);
       if (error) throw error;
-      return data ?? [];
+      const supMap = await fetchSupplierMap((data ?? []).map((r: any) => r.supplier_id));
+      return (data ?? []).map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
     },
   });
 

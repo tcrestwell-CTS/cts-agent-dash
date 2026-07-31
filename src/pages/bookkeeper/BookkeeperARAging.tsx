@@ -117,14 +117,18 @@ export default function BookkeeperARAging() {
       const { data, error } = await (supabase as any)
         .from("trip_payments")
         .select(
-          "id, amount, due_date, payment_type, status, details, trip_id, trips:trip_id(trip_name, clients:client_id(first_name, last_name))"
+          "id, amount, due_date, payment_type, status, details, trip_id, trips:trip_id(trip_name, client_id)"
         )
         .eq("status", "pending")
         .lt("due_date", today)
         .order("due_date", { ascending: true })
         .limit(500);
       if (error) throw error;
-      return data ?? [];
+      const clientMap = await fetchClientMap((data ?? []).map((r: any) => r.trips?.client_id));
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        trips: r.trips ? { ...r.trips, clients: clientMap[r.trips.client_id] ?? null } : r.trips,
+      }));
     },
   });
 
