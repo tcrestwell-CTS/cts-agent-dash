@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
+import { fetchSupplierMap, fetchClientMap, fetchProfileMap } from "@/lib/bookkeeperLookups";
 import { toast } from "sonner";
 import { BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 
@@ -55,7 +56,7 @@ function useIncomeRows(year: number, month: number) {
       const { data, error } = await (supabase as any)
         .from("trip_payments")
         .select(
-          "id, payment_date, amount, payment_type, payment_method, status, stripe_payment_intent_id, qbo_payment_id, qbo_sync_status, trip_id, booking_id, trips:trip_id(trip_name, client_id, clients:client_id(name, email))"
+          "id, payment_date, amount, payment_type, payment_method, status, stripe_payment_intent_id, qbo_payment_id, qbo_sync_status, trip_id, booking_id, trips:trip_id(trip_name, client_id)"
         )
         .eq("status", "paid")
         .gte("payment_date", start)
@@ -63,7 +64,11 @@ function useIncomeRows(year: number, month: number) {
         .order("payment_date", { ascending: true })
         .limit(1000);
       if (error) throw error;
-      return data ?? [];
+      const clientMap = await fetchClientMap((data ?? []).map((r: any) => r.trips?.client_id));
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        trips: r.trips ? { ...r.trips, clients: clientMap[r.trips.client_id] ?? null } : r.trips,
+      }));
     },
   });
 }
@@ -77,7 +82,7 @@ function useExpenseRows(year: number, month: number) {
         (supabase as any)
           .from("bookings")
           .select(
-            "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, booking_reference, confirmation_number, supplier_id, trip_id, suppliers:supplier_id(name), trips:trip_id(trip_name)"
+            "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, booking_reference, confirmation_number, supplier_id, trip_id, trips:trip_id(trip_name)"
           )
           .eq("supplier_paid_status", "paid")
           .gte("supplier_paid_date", start)
@@ -94,7 +99,14 @@ function useExpenseRows(year: number, month: number) {
       ]);
       if (supRes.error) throw supRes.error;
       if (feeRes.error) throw feeRes.error;
-      return { suppliers: supRes.data ?? [], fees: feeRes.data ?? [] };
+      const supMap = await fetchSupplierMap((supRes.data ?? []).map((r: any) => r.supplier_id));
+      return {
+        suppliers: (supRes.data ?? []).map((r: any) => ({
+          ...r,
+          suppliers: supMap[r.supplier_id] ?? null,
+        })),
+        fees: feeRes.data ?? [],
+      };
     },
   });
 }
@@ -112,16 +124,8 @@ function useCommissionRows(year: number, month: number) {
         .limit(1000);
       if (error) throw error;
       const userIds = Array.from(new Set((data ?? []).map((r: any) => r.user_id).filter(Boolean)));
-      let profiles: any[] = [];
-      if (userIds.length) {
-        const { data: p } = await (supabase as any)
-          .from("profiles")
-          .select("user_id, full_name, email, commission_tier")
-          .in("user_id", userIds);
-        profiles = p ?? [];
-      }
-      const pMap = new Map(profiles.map((p) => [p.user_id, p]));
-      return (data ?? []).map((r: any) => ({ ...r, profile: pMap.get(r.user_id) }));
+      const profMap = await fetchProfileMap(userIds as string[]);
+      return (data ?? []).map((r: any) => ({ ...r, profile: profMap[r.user_id] }));
     },
   });
 }
@@ -144,17 +148,10 @@ function usePayoutRegister(year: number) {
         totals.set(r.user_id, (totals.get(r.user_id) || 0) + Number(r.amount || 0));
       });
       const userIds = Array.from(totals.keys());
-      let profiles: any[] = [];
-      if (userIds.length) {
-        const { data: p } = await (supabase as any)
-          .from("profiles")
-          .select("user_id, full_name, email")
-          .in("user_id", userIds);
-        profiles = p ?? [];
-      }
-      return profiles.map((p) => ({
+      const profMap = await fetchProfileMap(userIds);
+      return Object.values(profMap).map((p) => ({
         agent_name: p.full_name ?? "",
-        agent_email: p.email ?? "",
+        agent_email: "",
         total_earnings_ytd: totals.get(p.user_id) || 0,
       }));
     },
@@ -199,14 +196,16 @@ function useAPAging() {
       const { data, error } = await (supabase as any)
         .from("bookings")
         .select(
-          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, trips:trip_id(trip_name, return_date), suppliers:supplier_id(name, contact_email)"
+          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, supplier_id, trips:trip_id(trip_name, return_date)"
         )
         .neq("supplier_paid_status", "paid")
         .in("status", ["confirmed", "completed"])
         .limit(2000);
       if (error) throw error;
       const today = new Date();
+      const supMap = await fetchSupplierMap((data ?? []).map((b: any) => b.supplier_id));
       return (data ?? [])
+        .map((b: any) => ({ ...b, suppliers: supMap[b.supplier_id] ?? null }))
         .filter((b: any) => Number(b.supplier_payout || 0) > 0)
         .map((b: any) => {
           const ret = b.trips?.return_date ? new Date(b.trips.return_date + "T00:00:00") : null;

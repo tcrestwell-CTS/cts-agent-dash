@@ -70,12 +70,10 @@ export default function BookkeeperPacket() {
       const ids = Array.from(
         new Set((data || []).map((p: any) => p.generated_by).filter(Boolean) as string[]),
       ) as string[];
-      let map: Record<string, string> = {};
-      if (ids.length) {
-        const { data: profs } = await supabase
-          .from("profiles").select("user_id, full_name").in("user_id", ids);
-        map = Object.fromEntries((profs || []).map((p: any) => [p.user_id, p.full_name || "—"]));
-      }
+      const profMap = await fetchProfileMap(ids);
+      const map: Record<string, string> = Object.fromEntries(
+        Object.values(profMap).map((p) => [p.user_id, p.full_name || "—"]),
+      );
       return (data || []).map((p: any) => ({ ...p, generated_by_name: map[p.generated_by] || "—" }));
     },
   });
