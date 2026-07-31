@@ -1,0 +1,1 @@
+UPDATE public.client_update_tokens SET used_at = NULL, expires_at = now() + interval '1 day' WHERE token = 'e2e-valid-token-0731';
