@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Check, X, AlertTriangle, FileDown, Loader2, FileText } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchProfileMap } from "@/lib/bookkeeperLookups";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { format } from "date-fns";
