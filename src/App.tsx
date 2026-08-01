@@ -66,6 +66,8 @@ const PaymentReminders    = lazy(() => import("./pages/PaymentReminders"));
 const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
 const Scheduling          = lazy(() => import("./pages/Scheduling"));
 const BookMeeting         = lazy(() => import("./pages/BookMeeting"));
+const IntakeForms         = lazy(() => import("./pages/IntakeForms"));
+const PublicIntakeForm    = lazy(() => import("./pages/PublicIntakeForm"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
 const FlightMonitoring    = lazy(() => import("./pages/FlightMonitoring"));
@@ -212,6 +214,8 @@ const App = () => (
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
                 <Route path="/scheduling" element={<ProtectedRoute><Scheduling /></ProtectedRoute>} />
                 <Route path="/book/:slug" element={<BookMeeting />} />
+                <Route path="/forms" element={<ProtectedRoute><IntakeForms /></ProtectedRoute>} />
+                <Route path="/intake/:slug" element={<PublicIntakeForm />} />
                 <Route path="/suppliers" element={<ProtectedRoute><FeatureRoute feature="suppliers"><Suppliers /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips" element={<ProtectedRoute><FeatureRoute feature="trips"><Trips /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips/:tripId" element={<ProtectedRoute><FeatureRoute feature="trips"><TripDetail /></FeatureRoute></ProtectedRoute>} />
