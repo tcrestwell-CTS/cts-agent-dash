@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, ShieldCheck, DollarSign, TrendingUp, Percent } from "lucide-react";
+import { Loader2, ShieldCheck, DollarSign, TrendingUp, Percent, Building2 } from "lucide-react";
 import { useAgencySettings, useUpdateAgencySettings } from "@/hooks/useAgencySettings";
 
 export function AgencySettingsTab() {
@@ -21,6 +21,9 @@ export function AgencySettingsTab() {
     evaluation_period_months: 12,
     txtya_enabled: false,
     txtya_default_group_id: "",
+    consortium_name: "",
+    consortium_member_id: "",
+    consortium_joined_on: "",
   });
 
   useEffect(() => {
@@ -34,6 +37,9 @@ export function AgencySettingsTab() {
         evaluation_period_months: settings.evaluation_period_months,
         txtya_enabled: settings.txtya_enabled ?? false,
         txtya_default_group_id: settings.txtya_default_group_id ?? "",
+        consortium_name: settings.consortium_name ?? "",
+        consortium_member_id: settings.consortium_member_id ?? "",
+        consortium_joined_on: settings.consortium_joined_on ?? "",
       });
     }
   }, [settings]);
@@ -42,6 +48,9 @@ export function AgencySettingsTab() {
     updateSettings.mutate({
       ...formData,
       txtya_default_group_id: formData.txtya_default_group_id.trim() || null,
+      consortium_name: formData.consortium_name.trim() || null,
+      consortium_member_id: formData.consortium_member_id.trim() || null,
+      consortium_joined_on: formData.consortium_joined_on || null,
     });
   };
 
@@ -274,6 +283,57 @@ export function AgencySettingsTab() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Consortium Affiliation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Consortium Affiliation
+          </CardTitle>
+          <CardDescription>
+            Your host consortium membership. Used on agency-facing documents and supplier
+            registrations.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="consortium_name">Consortium</Label>
+              <Input
+                id="consortium_name"
+                value={formData.consortium_name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, consortium_name: e.target.value }))
+                }
+                placeholder="Ensemble Travel Group"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="consortium_member_id">Member ID</Label>
+              <Input
+                id="consortium_member_id"
+                value={formData.consortium_member_id}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, consortium_member_id: e.target.value }))
+                }
+                placeholder="e.g. ENS-123456"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="consortium_joined_on">Member since</Label>
+              <Input
+                id="consortium_joined_on"
+                type="date"
+                value={formData.consortium_joined_on}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, consortium_joined_on: e.target.value }))
+                }
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
