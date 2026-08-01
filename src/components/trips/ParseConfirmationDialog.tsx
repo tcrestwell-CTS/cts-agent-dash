@@ -39,9 +39,10 @@ interface Props {
 
 /** Map a parsed calendar date onto a trip day number (1-based). */
 function dayNumberFor(date: string | null, departDate: string | null, totalDays: number) {
+  if (!date || !departDate) return 1;
   const start = parseLocalDate(departDate);
   const target = parseLocalDate(date);
-  if (!start || !target) return 1;
+  if (isNaN(start.getTime()) || isNaN(target.getTime())) return 1;
   const diff = differenceInDays(target, start) + 1;
   if (!isFinite(diff)) return 1;
   return Math.min(Math.max(diff, 1), Math.max(totalDays, 1));
