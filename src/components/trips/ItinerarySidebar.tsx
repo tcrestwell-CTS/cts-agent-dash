@@ -36,6 +36,8 @@ interface ItinerarySidebarProps {
   onClearAll: () => void;
   onAddCategory: (category: string) => void;
   onWidgetyImport: (items: any[]) => Promise<boolean>;
+  totalDays?: number;
+  onAddParsedItem?: (data: any) => Promise<boolean>;
   // Style picker props (optional — only shown when itinerary is selected)
   activeItineraryId?: string | null;
   activeHeaderStyle?: HeaderStyle | null;
