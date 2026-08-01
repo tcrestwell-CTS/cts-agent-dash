@@ -272,6 +272,154 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_availability: {
+        Row: {
+          buffer_minutes: number
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          slot_minutes: number
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buffer_minutes?: number
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          slot_minutes?: number
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buffer_minutes?: number
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          slot_minutes?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_availability_blocks: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          reason: string | null
+          starts_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          reason?: string | null
+          starts_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          reason?: string | null
+          starts_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      agent_meetings: {
+        Row: {
+          agent_notes: string | null
+          cancelled_at: string | null
+          client_id: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          ends_at: string
+          id: string
+          notes: string | null
+          starts_at: string
+          status: string
+          timezone: string
+          topic: string | null
+          trip_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_notes?: string | null
+          cancelled_at?: string | null
+          client_id?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          ends_at: string
+          id?: string
+          notes?: string | null
+          starts_at: string
+          status?: string
+          timezone?: string
+          topic?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_notes?: string | null
+          cancelled_at?: string | null
+          client_id?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          notes?: string | null
+          starts_at?: string
+          status?: string
+          timezone?: string
+          topic?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_meetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_meetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_meetings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_messages: {
         Row: {
           channel: string
@@ -5504,6 +5652,11 @@ export type Database = {
           agency_name: string | null
           asta_number: string | null
           avatar_url: string | null
+          booking_contact_phone: string | null
+          booking_enabled: boolean
+          booking_instructions: string | null
+          booking_slug: string | null
+          booking_timezone: string
           ccra_number: string | null
           clia_number: string | null
           commission_rate: number | null
@@ -5521,6 +5674,11 @@ export type Database = {
           agency_name?: string | null
           asta_number?: string | null
           avatar_url?: string | null
+          booking_contact_phone?: string | null
+          booking_enabled?: boolean
+          booking_instructions?: string | null
+          booking_slug?: string | null
+          booking_timezone?: string
           ccra_number?: string | null
           clia_number?: string | null
           commission_rate?: number | null
@@ -5540,6 +5698,11 @@ export type Database = {
           agency_name?: string | null
           asta_number?: string | null
           avatar_url?: string | null
+          booking_contact_phone?: string | null
+          booking_enabled?: boolean
+          booking_instructions?: string | null
+          booking_slug?: string | null
+          booking_timezone?: string
           ccra_number?: string | null
           clia_number?: string | null
           commission_rate?: number | null
