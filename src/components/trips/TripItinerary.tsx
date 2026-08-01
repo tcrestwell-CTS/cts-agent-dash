@@ -479,6 +479,8 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
       )}
 
       {/* Day-by-day timeline */}
+      {items.length > 0 && <ItineraryPricingSummary items={items} />}
+
       {items.length > 0 && layout === "horizontal" ? (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4" style={{ minWidth: `${totalDays * 320}px` }}>
