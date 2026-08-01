@@ -24,6 +24,8 @@ import { ItineraryItemEditor } from "./ItineraryItemEditor";
 import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { ParseConfirmationDialog } from "./ParseConfirmationDialog";
+import { ItineraryTemplateDialog } from "./ItineraryTemplateDialog";
+import { ItineraryPricingSummary } from "./ItineraryPricingSummary";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import jsPDF from "jspdf";
@@ -74,6 +76,9 @@ export interface ItinerarySidebarCallbacks {
   onAddCategoryToDay: (category: string, day: number) => void;
   onWidgetyImport: (items: any[]) => Promise<boolean>;
   onAddParsedItem: (data: any) => Promise<boolean>;
+  items: ItineraryItem[];
+  tripName: string;
+  destination: string | null;
 }
 
 function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop: (category: string, day: number) => void; children: React.ReactNode; className?: string }) {
@@ -256,9 +261,12 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
         },
         onWidgetyImport: handleWidgetyImport,
         onAddParsedItem: addItem,
+        items,
+        tripName,
+        destination,
       });
     }
-  }, [onSidebarReady, generating, items.length, unimportedBookings.length, totalDays]);
+  }, [onSidebarReady, generating, items, unimportedBookings.length, totalDays, tripName, destination]);
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
     if (!result.destination) return;
@@ -376,6 +384,17 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
           tripId={tripId}
           departDate={departDate}
           returnDate={returnDate}
+          totalDays={totalDays}
+          onAdd={addItem}
+          bookings={bookings as any}
+          existingItems={items}
+        />
+
+        <ItineraryTemplateDialog
+          tripId={tripId}
+          tripName={tripName}
+          destination={destination}
+          items={items}
           totalDays={totalDays}
           onAdd={addItem}
         />
