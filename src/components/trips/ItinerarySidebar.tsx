@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { ParseConfirmationDialog } from "./ParseConfirmationDialog";
+import { ItineraryTemplateDialog } from "./ItineraryTemplateDialog";
 import { TripBooking } from "@/hooks/useTrips";
 
 interface ItinerarySidebarProps {
@@ -39,6 +40,7 @@ interface ItinerarySidebarProps {
   onWidgetyImport: (items: any[]) => Promise<boolean>;
   totalDays?: number;
   onAddParsedItem?: (data: any) => Promise<boolean>;
+  items?: any[];
   // Style picker props (optional — only shown when itinerary is selected)
   activeItineraryId?: string | null;
   activeHeaderStyle?: HeaderStyle | null;
