@@ -68,7 +68,8 @@ export default function NotesChat() {
               Notes Chat
             </h1>
             <p className="text-sm text-muted-foreground">
-              Ask questions across client records, call notes, trips, portal messages and leads.
+              Ask questions across your client records, call notes, trips, portal messages and leads.
+              Results are scoped to your own records — admins see the whole agency.
             </p>
           </div>
           {messages.length > 0 && (
