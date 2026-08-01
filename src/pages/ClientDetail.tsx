@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SendInviteLinkDialog } from "@/components/trips/SendInviteLinkDialog";
 import { parseLocalDate } from "@/lib/utils";
+import CallNotesPanel from "@/components/clients/CallNotesPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1166,6 +1167,9 @@ const ClientDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* AI Call Notes (Nadia) */}
+        <CallNotesPanel clientId={clientId!} />
 
         {/* Booking History */}
         <Card>

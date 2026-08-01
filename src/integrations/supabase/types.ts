@@ -2392,6 +2392,82 @@ export type Database = {
           },
         ]
       }
+      client_call_notes: {
+        Row: {
+          action_items: Json
+          call_date: string
+          call_type: string
+          client_id: string
+          created_at: string
+          follow_up_date: string | null
+          id: string
+          key_points: Json
+          sentiment: string | null
+          summary: string | null
+          title: string
+          transcript: string | null
+          trip_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json
+          call_date?: string
+          call_type?: string
+          client_id: string
+          created_at?: string
+          follow_up_date?: string | null
+          id?: string
+          key_points?: Json
+          sentiment?: string | null
+          summary?: string | null
+          title?: string
+          transcript?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json
+          call_date?: string
+          call_type?: string
+          client_id?: string
+          created_at?: string
+          follow_up_date?: string | null
+          id?: string
+          key_points?: Json
+          sentiment?: string | null
+          summary?: string | null
+          title?: string
+          transcript?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_call_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_call_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_call_notes_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_companions: {
         Row: {
           birthday: string | null
