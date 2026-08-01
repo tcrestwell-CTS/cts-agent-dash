@@ -73,6 +73,7 @@ const HotelSearch         = lazy(() => import("./pages/HotelSearch"));
 const CruiseSearch        = lazy(() => import("./pages/CruiseSearch"));
 const TripInsurance       = lazy(() => import("./pages/TripInsurance"));
 const FeaturedTrips       = lazy(() => import("./pages/FeaturedTrips"));
+const TemplateLibrary     = lazy(() => import("./pages/TemplateLibrary"));
 const LoanApplications   = lazy(() => import("./pages/LoanApplications"));
 const CarRentals         = lazy(() => import("./pages/CarRentals"));
 const CircleMembers      = lazy(() => import("./pages/CircleMembers"));
@@ -228,6 +229,7 @@ const App = () => (
                 <Route path="/hotelbeds-coverage" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><HotelbedsCoverage /></AdminRoute></ProtectedRoute>} />
                 <Route path="/cruises" element={<ProtectedRoute><FeatureRoute feature="cruise_search"><CruiseSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/featured-trips" element={<ProtectedRoute><FeatureRoute feature="featured_trips"><FeaturedTrips /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
                 <Route path="/loan-applications" element={<ProtectedRoute><FeatureRoute feature="loan_applications"><LoanApplications /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/car-rentals" element={<ProtectedRoute><CarRentals /></ProtectedRoute>} />
                 <Route path="/circle-members" element={<ProtectedRoute><CircleMembers /></ProtectedRoute>} />
