@@ -1167,6 +1167,9 @@ const ClientDetail = () => {
           </CardContent>
         </Card>
 
+        {/* AI Call Notes (Nadia) */}
+        <CallNotesPanel clientId={clientId!} />
+
         {/* Booking History */}
         <Card>
           <CardHeader className="pb-2">
