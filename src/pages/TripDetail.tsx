@@ -873,6 +873,9 @@ const TripDetail = () => {
                       onWidgetyImport={itinerarySidebarCallbacks.onWidgetyImport}
                       totalDays={itinerarySidebarCallbacks.totalDays}
                       onAddParsedItem={itinerarySidebarCallbacks.onAddParsedItem}
+                      items={itinerarySidebarCallbacks.items}
+                      totalDays={itinerarySidebarCallbacks.totalDays}
+                      onAddParsedItem={itinerarySidebarCallbacks.onAddParsedItem}
                       activeItineraryId={activeId}
                       activeHeaderStyle={(activeItinerary as any)?.header_style ?? null}
                       activeFontStyle={(activeItinerary as any)?.font_style ?? null}
