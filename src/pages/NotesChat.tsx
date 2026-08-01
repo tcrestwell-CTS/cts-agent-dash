@@ -171,7 +171,8 @@ export default function NotesChat() {
             <CardTitle className="text-sm">How it works</CardTitle>
             <CardDescription className="text-xs">
               Each question runs a keyword search across your clients, Nadia call notes, trips, portal messages
-              and assigned leads, then answers only from what it finds — with the record cited inline.
+              and assigned leads, then answers only from what it finds — with the record cited inline. Non-admin
+              agents see only records tied to their user ID; admins see all agency records.
             </CardDescription>
           </CardHeader>
         </Card>
