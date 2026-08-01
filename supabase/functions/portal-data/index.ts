@@ -1771,7 +1771,6 @@ const handler = async (req: Request): Promise<Response> => {
           title: "New excursion request",
           message: `${clientInfo?.name || "A client"} requested "${clean(body?.productTitle) || productCode}"${body?.travelDate ? ` for ${clean(body?.travelDate, 10)}` : ""}.`,
           trip_id: tripId,
-          client_id: clientId,
         });
       }
 
