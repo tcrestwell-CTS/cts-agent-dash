@@ -198,6 +198,9 @@ export type Database = {
         Row: {
           approval_threshold: number
           commission_holdback_pct: number
+          consortium_joined_on: string | null
+          consortium_member_id: string | null
+          consortium_name: string | null
           created_at: string
           evaluation_period_months: number
           id: string
@@ -212,6 +215,9 @@ export type Database = {
         Insert: {
           approval_threshold?: number
           commission_holdback_pct?: number
+          consortium_joined_on?: string | null
+          consortium_member_id?: string | null
+          consortium_name?: string | null
           created_at?: string
           evaluation_period_months?: number
           id?: string
@@ -226,6 +232,9 @@ export type Database = {
         Update: {
           approval_threshold?: number
           commission_holdback_pct?: number
+          consortium_joined_on?: string | null
+          consortium_member_id?: string | null
+          consortium_name?: string | null
           created_at?: string
           evaluation_period_months?: number
           id?: string
