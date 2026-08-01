@@ -202,6 +202,10 @@ export type Database = {
           consortium_member_id: string | null
           consortium_name: string | null
           created_at: string
+          ensemble_account_ref: string | null
+          ensemble_last_sync_at: string | null
+          ensemble_last_sync_status: string | null
+          ensemble_sync_connected: boolean
           evaluation_period_months: number
           id: string
           tier_1_threshold: number
@@ -219,6 +223,10 @@ export type Database = {
           consortium_member_id?: string | null
           consortium_name?: string | null
           created_at?: string
+          ensemble_account_ref?: string | null
+          ensemble_last_sync_at?: string | null
+          ensemble_last_sync_status?: string | null
+          ensemble_sync_connected?: boolean
           evaluation_period_months?: number
           id?: string
           tier_1_threshold?: number
@@ -236,6 +244,10 @@ export type Database = {
           consortium_member_id?: string | null
           consortium_name?: string | null
           created_at?: string
+          ensemble_account_ref?: string | null
+          ensemble_last_sync_at?: string | null
+          ensemble_last_sync_status?: string | null
+          ensemble_sync_connected?: boolean
           evaluation_period_months?: number
           id?: string
           tier_1_threshold?: number
