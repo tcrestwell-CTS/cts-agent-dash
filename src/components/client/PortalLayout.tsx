@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
 import { usePortalBranding } from "@/hooks/usePortalBranding";
 import { usePortalDashboard } from "@/hooks/usePortalData";
-import { Home, Map, MessageSquare, FileText, LogOut, Menu, X, CreditCard, FolderOpen, User } from "lucide-react";
+import { Home, Map, MessageSquare, FileText, LogOut, Menu, X, CreditCard, FolderOpen, User, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ interface NavItem { to: string; label: string; icon: any; end?: boolean; showUnr
 const navItems: NavItem[] = [
   { to: "/client", label: "Dashboard", icon: Home, end: true },
   { to: "/client/trips", label: "My Trips", icon: Map },
+  { to: "/client/excursions", label: "Excursions", icon: Ticket },
   { to: "/client/documents", label: "Documents", icon: FolderOpen },
   { to: "/client/payments", label: "Payments", icon: CreditCard },
   { to: "/client/messages", label: "Messages", icon: MessageSquare, showUnreadBadge: true },
