@@ -4450,11 +4450,13 @@ export type Database = {
       }
       inbox_processed_messages: {
         Row: {
+          body_text: string | null
           classification: string | null
           error_message: string | null
           from_email: string | null
           from_name: string | null
           id: string
+          itinerary_imported_at: string | null
           linked_booking_id: string | null
           linked_lead_id: string | null
           linked_trip_id: string | null
@@ -4468,11 +4470,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          body_text?: string | null
           classification?: string | null
           error_message?: string | null
           from_email?: string | null
           from_name?: string | null
           id?: string
+          itinerary_imported_at?: string | null
           linked_booking_id?: string | null
           linked_lead_id?: string | null
           linked_trip_id?: string | null
@@ -4486,11 +4490,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          body_text?: string | null
           classification?: string | null
           error_message?: string | null
           from_email?: string | null
           from_name?: string | null
           id?: string
+          itinerary_imported_at?: string | null
           linked_booking_id?: string | null
           linked_lead_id?: string | null
           linked_trip_id?: string | null
