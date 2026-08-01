@@ -1,0 +1,1 @@
+update client_update_tokens set expires_at = now() + interval '2 hours', used_at = null where token = 'e2e-rerun-token-0731';
