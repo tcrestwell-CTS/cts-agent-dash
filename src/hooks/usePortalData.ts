@@ -282,3 +282,59 @@ export function useUpdatePortalProfile() {
     },
   });
 }
+
+// ── Excursions (client self-service) ────────────────────────────────────────
+export interface PortalExcursionRequest {
+  id: string;
+  trip_id: string | null;
+  product_code: string;
+  product_title: string | null;
+  destination: string | null;
+  product_url: string | null;
+  image_url: string | null;
+  travel_date: string | null;
+  travelers: number;
+  price_per_person: number | null;
+  estimated_total: number | null;
+  client_notes: string | null;
+  agent_notes: string | null;
+  status: string;
+  created_at: string;
+}
+
+export function usePortalExcursionSearch() {
+  return useMutation({
+    mutationFn: ({ destination, count }: { destination: string; count?: number }) =>
+      portalPost("excursion-search", { destination, count: count ?? 12 }),
+  });
+}
+
+export function usePortalExcursionRequests() {
+  return useQuery({
+    queryKey: ["portal", "excursion-requests"],
+    queryFn: () => portalFetch("excursion-requests"),
+    enabled: hasAnyAuth(),
+    staleTime: 15_000,
+  });
+}
+
+export function useRequestExcursion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      productCode: string;
+      productTitle?: string | null;
+      destination?: string | null;
+      productUrl?: string | null;
+      imageUrl?: string | null;
+      travelDate?: string | null;
+      travelers?: number;
+      pricePerPerson?: number | null;
+      notes?: string | null;
+      tripId?: string | null;
+    }) => portalPost("request-excursion", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["portal", "excursion-requests"] });
+    },
+  });
+}

@@ -1639,6 +1639,145 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "excursion-search") {
+      // Proxy Viator search so the portal never needs supplier credentials
+      const body = await req.json().catch(() => ({}));
+      const destination = String(body?.destination || "caribbean").slice(0, 60);
+      const count = Math.min(Math.max(Number(body?.count) || 12, 1), 30);
+
+      const res = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/viator-api`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY") ?? ""}`,
+          },
+          body: JSON.stringify({ action: "search", destination, count }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return new Response(JSON.stringify({ error: "Excursion search unavailable" }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ products: data.products || [], totalCount: data.totalCount || 0 }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "excursion-requests") {
+      const allClientIds = await getAllClientIds();
+      const { data: requests } = await supabase
+        .from("excursion_requests")
+        .select("*")
+        .in("client_id", allClientIds)
+        .order("created_at", { ascending: false });
+
+      return new Response(JSON.stringify({ requests: requests || [] }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "request-excursion") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const body = await req.json().catch(() => ({}));
+      const productCode = typeof body?.productCode === "string" ? body.productCode.trim() : "";
+      if (!productCode) {
+        return new Response(JSON.stringify({ error: "An excursion is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const travelers = Math.min(Math.max(Number(body?.travelers) || 2, 1), 20);
+      const pricePerPerson = Number(body?.pricePerPerson) > 0 ? Number(body.pricePerPerson) : null;
+      const estimatedTotal = pricePerPerson ? Number((pricePerPerson * travelers).toFixed(2)) : null;
+      const COMMISSION_RATE = 0.08; // Viator affiliate commission
+      const estimatedCommission = estimatedTotal
+        ? Number((estimatedTotal * COMMISSION_RATE).toFixed(2))
+        : null;
+
+      // Resolve the owning agent from the trip (falls back to the client owner)
+      let tripId: string | null = typeof body?.tripId === "string" ? body.tripId : null;
+      let agentUserId: string | null = null;
+
+      if (tripId) {
+        const allClientIds = await getAllClientIds();
+        const { data: trip } = await supabase
+          .from("trips")
+          .select("id, user_id, client_id")
+          .eq("id", tripId)
+          .maybeSingle();
+        if (!trip || !allClientIds.includes(trip.client_id)) {
+          tripId = null;
+        } else {
+          agentUserId = trip.user_id;
+        }
+      }
+      if (!agentUserId) {
+        const { data: clientRow } = await supabase
+          .from("clients")
+          .select("user_id")
+          .eq("id", clientId)
+          .maybeSingle();
+        agentUserId = clientRow?.user_id ?? null;
+      }
+
+      const clean = (v: unknown, max = 300) =>
+        typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
+
+      const { data: inserted, error: insErr } = await supabase
+        .from("excursion_requests")
+        .insert({
+          client_id: clientId,
+          trip_id: tripId,
+          agent_user_id: agentUserId,
+          product_code: productCode.slice(0, 60),
+          product_title: clean(body?.productTitle),
+          destination: clean(body?.destination, 60),
+          product_url: clean(body?.productUrl, 1000),
+          image_url: clean(body?.imageUrl, 1000),
+          travel_date: clean(body?.travelDate, 10),
+          travelers,
+          price_per_person: pricePerPerson,
+          estimated_total: estimatedTotal,
+          estimated_commission: estimatedCommission,
+          client_notes: clean(body?.notes, 1000),
+        })
+        .select("id")
+        .single();
+
+      if (insErr) {
+        console.error("Excursion request insert error:", insErr);
+        return new Response(JSON.stringify({ error: "Could not submit that request" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Notify the agent in-app
+      if (agentUserId) {
+        const { data: clientInfo } = await supabase
+          .from("clients")
+          .select("name")
+          .eq("id", clientId)
+          .maybeSingle();
+        await supabase.from("agent_notifications").insert({
+          user_id: agentUserId,
+          type: "excursion_request",
+          title: "New excursion request",
+          message: `${clientInfo?.name || "A client"} requested "${clean(body?.productTitle) || productCode}"${body?.travelDate ? ` for ${clean(body?.travelDate, 10)}` : ""}.`,
+          trip_id: tripId,
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, id: inserted.id }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else {
       return new Response(JSON.stringify({ error: "Invalid resource" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

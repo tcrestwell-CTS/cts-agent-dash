@@ -3708,6 +3708,97 @@ export type Database = {
           },
         ]
       }
+      excursion_requests: {
+        Row: {
+          agent_notes: string | null
+          agent_user_id: string | null
+          client_id: string
+          client_notes: string | null
+          created_at: string
+          currency: string
+          destination: string | null
+          estimated_commission: number | null
+          estimated_total: number | null
+          id: string
+          image_url: string | null
+          price_per_person: number | null
+          product_code: string
+          product_title: string | null
+          product_url: string | null
+          status: string
+          travel_date: string | null
+          travelers: number
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_notes?: string | null
+          agent_user_id?: string | null
+          client_id: string
+          client_notes?: string | null
+          created_at?: string
+          currency?: string
+          destination?: string | null
+          estimated_commission?: number | null
+          estimated_total?: number | null
+          id?: string
+          image_url?: string | null
+          price_per_person?: number | null
+          product_code: string
+          product_title?: string | null
+          product_url?: string | null
+          status?: string
+          travel_date?: string | null
+          travelers?: number
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_notes?: string | null
+          agent_user_id?: string | null
+          client_id?: string
+          client_notes?: string | null
+          created_at?: string
+          currency?: string
+          destination?: string | null
+          estimated_commission?: number | null
+          estimated_total?: number | null
+          id?: string
+          image_url?: string | null
+          price_per_person?: number | null
+          product_code?: string
+          product_title?: string | null
+          product_url?: string | null
+          status?: string
+          travel_date?: string | null
+          travelers?: number
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "excursion_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "excursion_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "excursion_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_trips: {
         Row: {
           cover_image_url: string | null
