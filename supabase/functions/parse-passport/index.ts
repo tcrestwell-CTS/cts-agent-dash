@@ -145,6 +145,13 @@ Deno.serve(async (req) => {
     if (!res.ok) {
       const errText = await res.text();
       console.error("Textract AnalyzeID failed:", res.status, errText.slice(0, 500));
+      let awsCode: string | null = null;
+      try {
+        const parsedErr = JSON.parse(errText);
+        awsCode = String(parsedErr?.__type || parsedErr?.code || "").split("#").pop() || null;
+      } catch {
+        awsCode = null;
+      }
       // Account/credential problems are not the client's fault — don't tell them
       // to retake the photo.
       if (
@@ -155,12 +162,13 @@ Deno.serve(async (req) => {
           {
             error:
               "Passport scanning is temporarily unavailable. Please enter your details manually.",
+            code: awsCode,
           },
           503,
         );
       }
       return json(
-        { error: "Could not read the passport image. Please try a clearer photo." },
+        { error: "Could not read the passport image. Please try a clearer photo.", code: awsCode },
         502,
       );
     }
