@@ -142,8 +142,7 @@ Deno.serve(async (req) => {
         message: `${name} booked a call for ${new Date(startsAt).toLocaleString("en-US", {
           timeZone: profile.booking_timezone,
         })}`,
-        link: "/scheduling",
-      }).select("id").maybeSingle();
+      });
 
       return json({ meeting: created, agent });
     }
