@@ -14,6 +14,9 @@ export interface AgencySettings {
   evaluation_period_months: number;
   txtya_enabled: boolean;
   txtya_default_group_id: string | null;
+  consortium_name: string | null;
+  consortium_member_id: string | null;
+  consortium_joined_on: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +48,9 @@ export function useAgencySettings() {
           evaluation_period_months: 12,
           txtya_enabled: false,
           txtya_default_group_id: null,
+          consortium_name: "Ensemble Travel Group",
+          consortium_member_id: null,
+          consortium_joined_on: null,
           created_at: "",
           updated_at: "",
         } as AgencySettings;
