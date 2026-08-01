@@ -23,6 +23,7 @@ import { EditItineraryItemDialog } from "./EditItineraryItemDialog";
 import { ItineraryItemEditor } from "./ItineraryItemEditor";
 import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
+import { ParseConfirmationDialog } from "./ParseConfirmationDialog";
 import { TripBooking } from "@/hooks/useTrips";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import jsPDF from "jspdf";
@@ -72,6 +73,7 @@ export interface ItinerarySidebarCallbacks {
   onAddCategory: (category: string) => void;
   onAddCategoryToDay: (category: string, day: number) => void;
   onWidgetyImport: (items: any[]) => Promise<boolean>;
+  onAddParsedItem: (data: any) => Promise<boolean>;
 }
 
 function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop: (category: string, day: number) => void; children: React.ReactNode; className?: string }) {
@@ -253,6 +255,7 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
           setAddCategoryDay({ day, category });
         },
         onWidgetyImport: handleWidgetyImport,
+        onAddParsedItem: addItem,
       });
     }
   }, [onSidebarReady, generating, items.length, unimportedBookings.length, totalDays]);
@@ -368,6 +371,14 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
             onImport={handleWidgetyImport}
           />
         )}
+
+        <ParseConfirmationDialog
+          tripId={tripId}
+          departDate={departDate}
+          returnDate={returnDate}
+          totalDays={totalDays}
+          onAdd={addItem}
+        />
 
         {items.length > 0 && (
           <>
