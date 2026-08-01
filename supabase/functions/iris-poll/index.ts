@@ -318,6 +318,12 @@ async function processMailbox(
         subject,
         received_at: received,
         classification: cls.category,
+        // Keep the message text for supplier confirmations so agents can turn it
+        // into itinerary items without re-pasting the email.
+        body_text:
+          cls.category === 'supplier_confirmation' || cls.category === 'supplier_update'
+            ? (body || '').slice(0, 50000)
+            : null,
         linked_lead_id: links.lead_id ?? null,
         linked_trip_id: links.trip_id ?? null,
         linked_booking_id: links.booking_id ?? null,

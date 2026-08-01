@@ -28,7 +28,7 @@ export type LibraryTemplateInput = Partial<
     LibraryTemplate,
     "kind" | "name" | "description" | "destination" | "trip_type" | "duration_days" | "content" | "tags" | "is_shared"
   >
->;
+> & { template_data?: Record<string, unknown> };
 
 const KEY = ["library-templates"];
 
