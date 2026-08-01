@@ -18,6 +18,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
+import { ParseConfirmationDialog } from "./ParseConfirmationDialog";
 import { TripBooking } from "@/hooks/useTrips";
 
 interface ItinerarySidebarProps {
@@ -86,6 +87,8 @@ export function ItinerarySidebar({
   onClearAll,
   onAddCategory,
   onWidgetyImport,
+  totalDays = 1,
+  onAddParsedItem,
   activeItineraryId,
   activeHeaderStyle,
   activeFontStyle,
@@ -179,6 +182,17 @@ export function ItinerarySidebar({
               destination={destination}
               cruiseBookings={cruiseBookings}
               onImport={onWidgetyImport}
+            />
+          )}
+
+          {onAddParsedItem && (
+            <ParseConfirmationDialog
+              tripId={tripId}
+              departDate={departDate}
+              returnDate={returnDate}
+              totalDays={totalDays}
+              onAdd={onAddParsedItem}
+              variant="sidebar"
             />
           )}
         </div>
