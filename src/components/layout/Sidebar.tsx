@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Users,
   CalendarClock,
+  MessageSquareText,
   GraduationCap,
   DollarSign,
   Mail,
