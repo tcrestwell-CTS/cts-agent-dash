@@ -17,6 +17,10 @@ export interface AgencySettings {
   consortium_name: string | null;
   consortium_member_id: string | null;
   consortium_joined_on: string | null;
+  ensemble_sync_connected: boolean;
+  ensemble_account_ref: string | null;
+  ensemble_last_sync_at: string | null;
+  ensemble_last_sync_status: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +55,10 @@ export function useAgencySettings() {
           consortium_name: "Ensemble Travel Group",
           consortium_member_id: null,
           consortium_joined_on: null,
+          ensemble_sync_connected: false,
+          ensemble_account_ref: null,
+          ensemble_last_sync_at: null,
+          ensemble_last_sync_status: null,
           created_at: "",
           updated_at: "",
         } as AgencySettings;
