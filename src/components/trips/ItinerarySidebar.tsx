@@ -91,6 +91,7 @@ export function ItinerarySidebar({
   onWidgetyImport,
   totalDays = 1,
   onAddParsedItem,
+  items = [],
   activeItineraryId,
   activeHeaderStyle,
   activeFontStyle,
