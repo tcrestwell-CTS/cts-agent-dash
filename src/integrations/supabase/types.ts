@@ -5001,6 +5001,63 @@ export type Database = {
         }
         Relationships: []
       }
+      library_templates: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          destination: string | null
+          duration_days: number | null
+          id: string
+          is_archived: boolean
+          is_shared: boolean
+          kind: string
+          name: string
+          tags: string[]
+          template_data: Json
+          trip_type: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          destination?: string | null
+          duration_days?: number | null
+          id?: string
+          is_archived?: boolean
+          is_shared?: boolean
+          kind?: string
+          name: string
+          tags?: string[]
+          template_data?: Json
+          trip_type?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          destination?: string | null
+          duration_days?: number | null
+          id?: string
+          is_archived?: boolean
+          is_shared?: boolean
+          kind?: string
+          name?: string
+          tags?: string[]
+          template_data?: Json
+          trip_type?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       loan_applications: {
         Row: {
           address_line1: string
@@ -5328,6 +5385,7 @@ export type Database = {
           filename: string
           height: number | null
           id: string
+          is_shared: boolean
           mime_type: string | null
           public_url: string
           size_bytes: number | null
@@ -5342,6 +5400,7 @@ export type Database = {
           filename: string
           height?: number | null
           id?: string
+          is_shared?: boolean
           mime_type?: string | null
           public_url: string
           size_bytes?: number | null
@@ -5356,6 +5415,7 @@ export type Database = {
           filename?: string
           height?: number | null
           id?: string
+          is_shared?: boolean
           mime_type?: string | null
           public_url?: string
           size_bytes?: number | null
