@@ -41,6 +41,7 @@ import {
   Wallet,
   Banknote,
   FileWarning,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
