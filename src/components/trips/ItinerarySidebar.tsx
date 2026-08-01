@@ -196,6 +196,20 @@ export function ItinerarySidebar({
               totalDays={totalDays}
               onAdd={onAddParsedItem}
               variant="sidebar"
+              bookings={bookings as any}
+              existingItems={items as any}
+            />
+          )}
+
+          {onAddParsedItem && (
+            <ItineraryTemplateDialog
+              tripId={tripId}
+              tripName={tripName}
+              destination={destination}
+              items={items as any}
+              totalDays={totalDays}
+              onAdd={onAddParsedItem}
+              variant="sidebar"
             />
           )}
         </div>
