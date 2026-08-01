@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, ShieldCheck, DollarSign, TrendingUp, Percent, Building2 } from "lucide-react";
 import { useAgencySettings, useUpdateAgencySettings } from "@/hooks/useAgencySettings";
+import { EnsembleSyncPanel } from "./EnsembleSyncPanel";
 
 export function AgencySettingsTab() {
   const { data: settings, isLoading } = useAgencySettings();
@@ -341,6 +342,8 @@ export function AgencySettingsTab() {
         {updateSettings.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Save Agency Settings
       </Button>
+
+      <EnsembleSyncPanel />
     </div>
   );
 }
