@@ -126,6 +126,7 @@ const navGroups: NavGroup[] = [
       { name: "Publish Manager", href: "/publish-manager", icon: FileText, feature: "publish_manager" },
       { name: "Featured Trips",  href: "/featured-trips",  icon: Star, feature: "featured_trips" },
       { name: "Template Library", href: "/template-library", icon: FileText },
+      { name: "Form Builder", href: "/forms", icon: ClipboardList },
     ],
   },
   {
