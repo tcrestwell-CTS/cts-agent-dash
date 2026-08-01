@@ -14,6 +14,7 @@ export interface MarketingImageAsset {
   height: number | null;
   alt_text: string | null;
   tags: string[];
+  is_shared?: boolean;
   created_at: string;
 }
 
@@ -125,5 +126,20 @@ export function useImageAssets() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { ...query, upload, remove, updateAlt };
+  const setShared = useMutation({
+    mutationFn: async ({ id, is_shared }: { id: string; is_shared: boolean }) => {
+      const { error } = await supabase
+        .from("marketing_image_assets" as any)
+        .update({ is_shared } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["marketing-image-assets"] });
+      toast.success(vars.is_shared ? "Shared with the team" : "Removed from shared library");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { ...query, upload, remove, updateAlt, setShared };
 }
