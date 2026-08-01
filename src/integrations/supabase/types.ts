@@ -4561,6 +4561,107 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_form_responses: {
+        Row: {
+          answers: Json
+          client_id: string | null
+          created_at: string
+          form_id: string
+          id: string
+          submitter_email: string | null
+          submitter_name: string | null
+          trip_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          client_id?: string | null
+          created_at?: string
+          form_id: string
+          id?: string
+          submitter_email?: string | null
+          submitter_name?: string | null
+          trip_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          client_id?: string | null
+          created_at?: string
+          form_id?: string
+          id?: string
+          submitter_email?: string | null
+          submitter_name?: string | null
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_form_responses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_responses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_responses_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "intake_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_form_responses_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_forms: {
+        Row: {
+          created_at: string
+          description: string | null
+          fields: Json
+          id: string
+          is_active: boolean
+          slug: string
+          thank_you_message: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          slug: string
+          thank_you_message?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          slug?: string
+          thank_you_message?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
