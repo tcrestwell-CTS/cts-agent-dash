@@ -20,11 +20,10 @@ export function ItineraryPricingSummary({ items, className }: Props) {
   if (priced.length === 0) return null;
 
   const byCategory = priced.reduce<Record<string, number>>((acc, item) => {
-    const amount = Number((i2 = item, (i2 as any).item_price)) || 0;
+    const amount = Number((item as any).item_price) || 0;
     acc[item.category] = (acc[item.category] || 0) + amount;
     return acc;
   }, {});
-  let i2: ItineraryItem;
 
   const total = Object.values(byCategory).reduce((sum, v) => sum + v, 0);
   const unpriced = items.length - priced.length;
