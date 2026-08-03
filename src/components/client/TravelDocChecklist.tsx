@@ -37,16 +37,26 @@ export function TravelDocChecklist({ tripId }: TravelDocChecklistProps) {
     setUpdating(key);
     try {
       const headers = await getPortalAuthHeaders(session);
-      await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=doc-checklist-update`,
+      // BUG FIX: this was previously calling resource=doc-checklist-update
+      // (doesn't exist — portal-data only has "doc-checklist") with body
+      // fields {key, checked} instead of the {itemKey, isChecked} the edge
+      // function actually reads. Every toggle click updated local UI state
+      // optimistically and then silently no-op'd server-side — nothing was
+      // ever actually saved. Fixed to match the real resource + payload
+      // shape, and now checks response.ok instead of assuming success.
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=doc-checklist`,
         {
           method: "POST",
           headers: { ...headers, "Content-Type": "application/json" },
-          body: JSON.stringify({ tripId, key, checked }),
+          body: JSON.stringify({ tripId, itemKey: key, isChecked: checked }),
         }
       );
+      if (!res.ok) throw new Error(`Checklist update failed (${res.status})`);
       setChecklist(prev => ({ ...prev, [key]: checked }));
-    } catch { toast.error("Failed to update checklist"); }
+    } catch {
+      toast.error("Failed to update checklist");
+    }
     setUpdating(null);
   }
 
