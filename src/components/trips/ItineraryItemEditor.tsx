@@ -30,6 +30,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { type ItineraryItem } from "@/hooks/useItinerary";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
