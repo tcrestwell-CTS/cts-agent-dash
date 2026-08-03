@@ -105,6 +105,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { WorkspaceBreadcrumbs } from "@/components/layout/WorkspaceBreadcrumbs";
 
 type OuterTab = "itinerary" | "details" | "bookings";
 
