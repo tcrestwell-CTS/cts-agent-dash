@@ -195,6 +195,21 @@ Deno.serve(async (req) => {
 
     const nationality =
       fields["nationality"] || fields["country"] || fields["issuing_country"] || null;
+
+    // MRZ fallback — line 1: P<ISSUER SURNAME<<GIVEN<NAMES
+    // line 2: NUMBER<CHECK NAT YYMMDD CHECK SEX YYMMDD ...
+    const mrz = (fields["mrz"] || "").replace(/\s+/g, "");
+    let mrzNationality: string | null = null;
+    let mrzSex: string | null = null;
+    if (mrz.length >= 44) {
+      const line2 = mrz.slice(-88).slice(44) || mrz.slice(44);
+      const natCode = line2.slice(10, 13).replace(/</g, "").toUpperCase();
+      if (/^[A-Z]{3}$/.test(natCode)) mrzNationality = natCode;
+      const sexChar = line2.charAt(20).toUpperCase();
+      if (sexChar === "M") mrzSex = "M";
+      else if (sexChar === "F") mrzSex = "F";
+    }
+    const issuerCode = /^P[<A-Z]([A-Z]{3})/.exec(mrz)?.[1] ?? null;
     const fullName = [fields["first_name"], fields["middle_name"], fields["last_name"]]
       .filter(Boolean)
       .join(" ")
@@ -206,12 +221,13 @@ Deno.serve(async (req) => {
       middle_name: fields["middle_name"] || null,
       passport_full_name: fullName || null,
       passport_number: fields["passport_number"] || null,
-      passport_nationality: nationality,
+      passport_nationality: nationality || mrzNationality,
       passport_issuing_country:
-        fields["issuing_country"] || fields["state_name"] || nationality,
+        fields["issuing_country"] || fields["state_name"] || issuerCode || nationality ||
+        mrzNationality,
       passport_date_of_birth: toDateOnly(fields["passport_date_of_birth"]),
       passport_expiry: toDateOnly(fields["passport_expiry"]),
-      passport_sex: fields["sex"] || fields["gender"] || null,
+      passport_sex: fields["sex"] || fields["gender"] || mrzSex,
     };
 
     const anyFound = Object.values(parsed).some((v) => v !== null);
