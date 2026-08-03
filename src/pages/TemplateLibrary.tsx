@@ -25,6 +25,7 @@ import {
   type LibraryTemplateKind,
 } from "@/hooks/useLibraryTemplates";
 import { useImageAssets } from "@/hooks/useImageAssets";
+import { TemplateDaysEditor, type TemplateDayItem } from "@/components/forms/TemplateDaysEditor";
 
 type Draft = {
   id?: string;
@@ -37,6 +38,7 @@ type Draft = {
   content: string;
   tags: string;
   is_shared: boolean;
+  items: TemplateDayItem[];
 };
 
 const emptyDraft = (kind: LibraryTemplateKind): Draft => ({
@@ -49,6 +51,7 @@ const emptyDraft = (kind: LibraryTemplateKind): Draft => ({
   content: "",
   tags: "",
   is_shared: true,
+  items: [],
 });
 
 function toDraft(t: LibraryTemplate): Draft {
@@ -63,6 +66,11 @@ function toDraft(t: LibraryTemplate): Draft {
     content: t.content ?? "",
     tags: (t.tags ?? []).join(", "),
     is_shared: t.is_shared,
+    items: (((t.template_data as any)?.items ?? []) as TemplateDayItem[]).map((it, idx) => ({
+      ...it,
+      day_number: Math.max(1, Number(it.day_number) || 1),
+      sort_order: it.sort_order ?? idx,
+    })),
   };
 }
 
@@ -96,13 +104,26 @@ function TemplateSection({ kind, title, description }: { kind: LibraryTemplateKi
       description: draft.description.trim() || null,
       destination: draft.destination.trim() || null,
       trip_type: draft.trip_type.trim() || null,
-      duration_days: draft.duration_days ? Number(draft.duration_days) : null,
+      duration_days: draft.duration_days
+        ? Number(draft.duration_days)
+        : draft.items.length
+          ? Math.max(...draft.items.map((i) => i.day_number))
+          : null,
       content: draft.content.trim() || null,
       tags: draft.tags
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
       is_shared: draft.is_shared,
+      ...(draft.kind === "itinerary"
+        ? {
+            template_data: {
+              items: draft.items
+                .filter((i) => i.title.trim())
+                .map((i, idx) => ({ ...i, title: i.title.trim(), sort_order: idx })),
+            },
+          }
+        : {}),
     };
     if (draft.id) {
       update.mutate({ id: draft.id, ...payload }, { onSuccess: () => setDraft(null) });
@@ -177,6 +198,11 @@ function TemplateSection({ kind, title, description }: { kind: LibraryTemplateKi
                   {t.destination && <Badge variant="outline">{t.destination}</Badge>}
                   {t.trip_type && <Badge variant="outline">{t.trip_type}</Badge>}
                   {t.duration_days != null && <Badge variant="outline">{t.duration_days} days</Badge>}
+                  {kind === "itinerary" && ((t.template_data as any)?.items?.length ?? 0) > 0 && (
+                    <Badge variant="outline">
+                      {(t.template_data as any).items.length} items
+                    </Badge>
+                  )}
                   {(t.tags ?? []).map((tag) => (
                     <Badge key={tag} variant="outline">
                       {tag}
@@ -265,6 +291,12 @@ function TemplateSection({ kind, title, description }: { kind: LibraryTemplateKi
                   onChange={(e) => setDraft({ ...draft, content: e.target.value })}
                 />
               </div>
+              {draft.kind === "itinerary" && (
+                <TemplateDaysEditor
+                  items={draft.items}
+                  onChange={(items) => setDraft({ ...draft, items })}
+                />
+              )}
               <div className="grid gap-2">
                 <Label>Tags (comma separated)</Label>
                 <Input value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} />
