@@ -108,6 +108,7 @@ import {
 
 type OuterTab = "itinerary" | "details" | "bookings";
 
+
 const TripDetail = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
