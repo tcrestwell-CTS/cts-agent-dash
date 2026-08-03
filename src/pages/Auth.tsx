@@ -93,6 +93,10 @@ const Auth = () => {
         });
 
         if (existingProfile) {
+          if (nextPath) {
+            window.location.href = window.location.origin + nextPath;
+            return;
+          }
           const { data: roles } = await supabase
             .from("user_roles")
             .select("role")
@@ -245,7 +249,9 @@ const Auth = () => {
     setIsSigningIn(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: nextPath
+          ? `${window.location.origin}/auth?next=${encodeURIComponent(nextPath)}`
+          : window.location.origin,
         extraParams: {
           prompt: "select_account",
         },
