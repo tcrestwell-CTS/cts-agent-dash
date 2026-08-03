@@ -7,17 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Compass, ArrowRight } from "lucide-react";
+import { AddTripDialog } from "@/components/trips/AddTripDialog";
+import { Search, Compass, ArrowRight, Plus, Map, Info } from "lucide-react";
 
 /**
- * Entry point for the "Trip Builder" nav item.
- * TripDetail owns the itinerary workspace but needs a :tripId, so this page
- * lets the agent pick which trip to build instead of auto-locking onto one.
+ * Trip Builder is the workspace for creating and managing the trip container:
+ * client, dates, status, bookings, payments, and documents.
+ * Day-by-day itinerary content is edited inside each trip's Itinerary tab.
  */
 const TripBuilderEntry = () => {
   const navigate = useNavigate();
   const { trips, loading: isLoading } = useTrips();
   const [query, setQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   const openStatuses = ["draft", "quoted", "proposal_sent", "booked", "confirmed"];
 
@@ -42,7 +44,7 @@ const TripBuilderEntry = () => {
   const open = sorted.filter((t) => openStatuses.includes(t.status));
   const visible = (open.length > 0 ? open : sorted).slice(0, 24);
 
-  const go = (id: string) => navigate(`/trips/${id}/itinerary`);
+  const go = (id: string) => navigate(`/trips/${id}`);
 
   return (
     <DashboardLayout>
@@ -54,13 +56,39 @@ const TripBuilderEntry = () => {
               Trip Builder
             </h1>
             <p className="text-sm text-muted-foreground">
-              Choose a trip to build its itinerary.
+              Create trips and manage the trip container — client, dates, bookings, and payments.
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate("/trips")}>
-            All trips
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/trips")}>
+              All trips
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Create trip
+            </Button>
+          </div>
         </div>
+
+        <Card className="p-4 bg-muted/30 border-border/60">
+          <div className="flex gap-3">
+            <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>
+                <strong className="text-foreground">Trip Builder</strong> is for the trip container
+                (who, when, where, status, bookings, payments).
+              </p>
+              <p>
+                <strong className="text-foreground">Itinerary</strong> is the day-by-day content and
+                lives inside each trip. Open a trip and switch to the{" "}
+                <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                  <Map className="h-3.5 w-3.5" /> Itinerary
+                </span>{" "}
+                tab to edit it.
+              </p>
+            </div>
+          </div>
+        </Card>
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -81,7 +109,10 @@ const TripBuilderEntry = () => {
         ) : visible.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <p className="text-sm text-muted-foreground">No trips found.</p>
-            <Button onClick={() => navigate("/trips")}>Go to Trips</Button>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Create your first trip
+            </Button>
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -116,6 +147,8 @@ const TripBuilderEntry = () => {
           </div>
         )}
       </div>
+
+      <AddTripDialog open={createOpen} onOpenChange={setCreateOpen} />
     </DashboardLayout>
   );
 };
