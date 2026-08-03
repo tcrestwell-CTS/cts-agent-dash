@@ -170,7 +170,7 @@ export function ItineraryTemplateDialog({
                   </p>
                 )}
                 {templates.map((tpl) => {
-                  const count = ((tpl.template_data as any)?.items?.length ?? 0) as number;
+                  const count = templateItems(tpl).length;
                   return (
                     <div
                       key={tpl.id}
@@ -192,12 +192,26 @@ export function ItineraryTemplateDialog({
                         <p className="text-[11px] text-muted-foreground">
                           {count} item{count === 1 ? "" : "s"} · used {tpl.usage_count ?? 0}×
                         </p>
+                        {count === 0 && (
+                          <p className="text-[11px] text-warning">
+                            No day-by-day items saved yet —{" "}
+                            <Link
+                              to="/template-library"
+                              className="underline"
+                              onClick={() => setOpen(false)}
+                            >
+                              add days in Template Library
+                            </Link>{" "}
+                            to make it applyable.
+                          </p>
+                        )}
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={applyingId !== null || count === 0}
                         onClick={() => handleApply(tpl)}
+                        title={count === 0 ? "This template has no itinerary day items yet" : undefined}
                       >
                         {applyingId === tpl.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                         Apply
