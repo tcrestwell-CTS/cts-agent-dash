@@ -264,12 +264,40 @@ const app = new Hono();
 const MCP_SHARED_SECRET = Deno.env.get("MCP_SHARED_SECRET") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
+const PROJECT_REF = (SUPA_URL.match(/https:\/\/([^.]+)\./)?.[1]) ?? "";
+const OAUTH_ISSUER = `https://${PROJECT_REF}.supabase.co/auth/v1`;
+const RESOURCE_URL = `https://${PROJECT_REF}.supabase.co/functions/v1/mcp-server`;
+const RESOURCE_METADATA_URL = `${RESOURCE_URL}/.well-known/oauth-protected-resource`;
+
 function unauthorized() {
   return new Response(JSON.stringify({ error: "Unauthorized" }), {
     status: 401,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      // Points MCP clients (Claude, ChatGPT) at the OAuth authorization server
+      "WWW-Authenticate": `Bearer resource_metadata="${RESOURCE_METADATA_URL}"`,
+      "Access-Control-Allow-Origin": "*",
+    },
   });
 }
+
+// OAuth 2.0 Protected Resource Metadata (RFC 9728) — must stay unauthenticated.
+app.get("/*/.well-known/oauth-protected-resource", (c) =>
+  c.json({
+    resource: RESOURCE_URL,
+    authorization_servers: [OAUTH_ISSUER],
+    bearer_methods_supported: ["header"],
+    scopes_supported: ["openid", "email", "profile"],
+  }, 200, { "Access-Control-Allow-Origin": "*" })
+);
+app.get("/.well-known/oauth-protected-resource", (c) =>
+  c.json({
+    resource: RESOURCE_URL,
+    authorization_servers: [OAUTH_ISSUER],
+    bearer_methods_supported: ["header"],
+    scopes_supported: ["openid", "email", "profile"],
+  }, 200, { "Access-Control-Allow-Origin": "*" })
+);
 
 app.use("/*", async (c, next) => {
   // Allow CORS preflight
