@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LibraryBig, Loader2, Save } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useLibraryTemplates, type LibraryTemplate } from "@/hooks/useLibraryTemplates";
 import type { ItineraryItem } from "@/hooks/useItinerary";
@@ -32,6 +33,20 @@ interface TemplateItem {
   end_time?: string | null;
   item_price?: number | null;
   sort_order?: number | null;
+}
+
+/** Reads day items from a template, tolerating legacy shapes (items / days[].items / raw array). */
+function templateItems(tpl: LibraryTemplate): TemplateItem[] {
+  const data = tpl.template_data as any;
+  if (!data) return [];
+  if (Array.isArray(data)) return data as TemplateItem[];
+  if (Array.isArray(data.items)) return data.items as TemplateItem[];
+  if (Array.isArray(data.days)) {
+    return data.days.flatMap((d: any, i: number) =>
+      (d?.items ?? []).map((it: any) => ({ ...it, day_number: it.day_number ?? d.day_number ?? i + 1 })),
+    );
+  }
+  return [];
 }
 
 /** Save the current itinerary to the shared library, or apply a saved template to this trip. */
@@ -86,14 +101,14 @@ export function ItineraryTemplateDialog({
   };
 
   const handleApply = async (tpl: LibraryTemplate) => {
-    const templateItems = (tpl.template_data as any)?.items as TemplateItem[] | undefined;
-    if (!templateItems?.length) {
+    const tplItems = templateItems(tpl);
+    if (!tplItems.length) {
       toast.error("That template has no itinerary items saved.");
       return;
     }
     setApplyingId(tpl.id);
     let added = 0;
-    for (const item of templateItems) {
+    for (const item of tplItems) {
       const ok = await onAdd({
         trip_id: tripId,
         day_number: Math.max(1, item.day_number || 1),
