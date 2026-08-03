@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
+import { WorkspaceBreadcrumbs } from "@/components/layout/WorkspaceBreadcrumbs";
 import { Search, Compass, ArrowRight, Plus, Map, Info } from "lucide-react";
 
 /**
@@ -49,6 +50,7 @@ const TripBuilderEntry = () => {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
+        <WorkspaceBreadcrumbs />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
