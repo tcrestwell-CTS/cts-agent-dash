@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowDown, ArrowUp, CalendarDays, Plus, Trash2 } from "lucide-react";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 
 export interface TemplateDayItem {
   day_number: number;
@@ -23,6 +24,7 @@ export interface TemplateDayItem {
   end_time?: string | null;
   item_price?: number | null;
   sort_order?: number | null;
+  image_url?: string | null;
 }
 
 const CATEGORIES = [
@@ -198,6 +200,11 @@ export function TemplateDaysEditor({ items, onChange }: Props) {
                           placeholder="Details clients will see…"
                           value={item.description ?? ""}
                           onChange={(e) => patch(index, { description: e.target.value })}
+                        />
+                        <ImageUploadField
+                          label="Image"
+                          value={item.image_url ?? ""}
+                          onChange={(url) => patch(index, { image_url: url || null })}
                         />
                       </div>
                     ),
