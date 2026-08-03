@@ -30,6 +30,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { type ItineraryItem } from "@/hooks/useItinerary";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -331,47 +332,19 @@ function MediaTab({ form, setForm }: { form: any; setForm: (f: any) => void }) {
         <ImageIcon className="h-3 w-3" /> Proposal Images
       </p>
       <div className="space-y-3">
-        <div>
-          <Label>Main Image URL</Label>
-          <Input
-            value={form.image_url}
-            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-            placeholder="https://..."
-            type="url"
-          />
-          <p className="text-[10px] text-muted-foreground mt-0.5">Shown as the hero image for this activity in the client proposal</p>
-        </div>
-        {form.image_url && (
-          <div className="rounded-lg overflow-hidden border aspect-video">
-            <img
-              src={form.image_url}
-              alt="Preview"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          </div>
-        )}
-        <div>
-          <Label>Thumbnail URL</Label>
-          <Input
-            value={form.thumbnail_url}
-            onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
-            placeholder="https://... (smaller/square image)"
-            type="url"
-          />
-        </div>
-        {form.thumbnail_url && (
-          <div className="h-20 w-20 rounded-lg overflow-hidden border">
-            <img
-              src={form.thumbnail_url}
-              alt="Thumbnail"
-              className="w-full h-full object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          </div>
-        )}
+        <ImageUploadField
+          label="Main Image"
+          value={form.image_url || ""}
+          onChange={(url) => setForm({ ...form, image_url: url })}
+          hint="Shown as the hero image for this activity in the client proposal"
+        />
+        <ImageUploadField
+          label="Thumbnail"
+          value={form.thumbnail_url || ""}
+          onChange={(url) => setForm({ ...form, thumbnail_url: url })}
+          compact
+          hint="Smaller/square image used in list views"
+        />
       </div>
 
       <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">

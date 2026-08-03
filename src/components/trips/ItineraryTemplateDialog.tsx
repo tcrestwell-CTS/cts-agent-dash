@@ -33,6 +33,7 @@ interface TemplateItem {
   end_time?: string | null;
   item_price?: number | null;
   sort_order?: number | null;
+  image_url?: string | null;
 }
 
 /** Reads day items from a template, tolerating legacy shapes (items / days[].items / raw array). */
@@ -81,6 +82,7 @@ export function ItineraryTemplateDialog({
       end_time: item.end_time,
       item_price: (item as any).item_price ?? null,
       sort_order: item.sort_order ?? idx,
+      image_url: (item as any).image_url ?? null,
     }));
     try {
       await create.mutateAsync({
@@ -120,6 +122,7 @@ export function ItineraryTemplateDialog({
         end_time: item.end_time || undefined,
         item_price: item.item_price ?? undefined,
         sort_order: item.sort_order ?? undefined,
+        image_url: item.image_url || undefined,
       });
       if (ok) added++;
     }

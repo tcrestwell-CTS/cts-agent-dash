@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { ImageUploadField } from "@/components/shared/ImageUploadField";
 
 const categories = [
   { value: "flight", label: "✈️ Flight" },
@@ -41,7 +42,7 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
     title: "", description: "", category: defaultCategory || "activity", location: "",
     start_time: "", end_time: "", notes: "",
     flight_number: "", departure_city_code: "", arrival_city_code: "",
-    item_price: "",
+    item_price: "", image_url: "",
   });
 
   // Sync defaultCategory when controlled dialog opens
@@ -69,10 +70,11 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
       departure_city_code: form.departure_city_code || undefined,
       arrival_city_code: form.arrival_city_code || undefined,
       item_price: form.item_price ? parseFloat(form.item_price) : undefined,
+      image_url: form.image_url || undefined,
     });
     setSaving(false);
     if (success) {
-      setForm({ title: "", description: "", category: "activity", location: "", start_time: "", end_time: "", notes: "", flight_number: "", departure_city_code: "", arrival_city_code: "", item_price: "" });
+      setForm({ title: "", description: "", category: "activity", location: "", start_time: "", end_time: "", notes: "", flight_number: "", departure_city_code: "", arrival_city_code: "", item_price: "", image_url: "" });
       setOpen(false);
     }
   };
@@ -86,7 +88,7 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Itinerary Item — Day {dayNumber}</DialogTitle>
         </DialogHeader>
@@ -149,6 +151,12 @@ export function AddItineraryItemDialog({ tripId, dayNumber, onAdd, defaultCatego
             <Label>Notes</Label>
             <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes" rows={2} />
           </div>
+          <ImageUploadField
+            label="Image (Optional)"
+            value={form.image_url}
+            onChange={(url) => setForm({ ...form, image_url: url })}
+            hint="Shown to the client in the proposal / itinerary"
+          />
           <div>
             <Label>Client-Facing Price (Optional)</Label>
             <Input
