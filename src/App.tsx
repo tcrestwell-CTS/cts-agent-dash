@@ -44,6 +44,7 @@ const Trips               = lazy(() => import("./pages/Trips"));
 const TripDetail          = lazy(() => import("./pages/TripDetail"));
 import TripBuilderEntry from "@/pages/TripBuilderEntry";
 const Auth                = lazy(() => import("./pages/Auth"));
+const OAuthConsent        = lazy(() => import("./pages/OAuthConsent"));
 const NotFound            = lazy(() => import("./pages/NotFound"));
 const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
 const GroupLanding        = lazy(() => import("./pages/GroupLanding"));
@@ -172,6 +173,7 @@ const App = () => (
               <Routes>
                 {/* Agent Dashboard Routes */}
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/contacts" element={<ProtectedRoute><FeatureRoute feature="clients"><CRM /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/contacts/:clientId" element={<ProtectedRoute><FeatureRoute feature="clients"><ClientDetail /></FeatureRoute></ProtectedRoute>} />

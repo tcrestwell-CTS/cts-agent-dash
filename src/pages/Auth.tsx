@@ -37,6 +37,9 @@ const Auth = () => {
   const [storedInvitationToken, setStoredInvitationToken] = useState<string | null>(null);
   const inviteToken = searchParams.get("invite");
   const switchAccount = searchParams.get("switch");
+  // Preserve an intended same-origin destination (e.g. the OAuth consent URL)
+  const rawNext = searchParams.get("next");
+  const nextPath = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
   const postAuthRunning = useRef(false);
 
   // If switch=true, sign out immediately
