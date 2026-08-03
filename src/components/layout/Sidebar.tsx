@@ -42,6 +42,7 @@ import {
   Banknote,
   FileWarning,
   ClipboardList,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -101,7 +102,7 @@ const navGroups: NavGroup[] = [
     icon: Compass,
     items: [
       { name: "Trips",       href: "/trips",       icon: Compass,   feature: "trips" },
-      { name: "Trip Builder",href: "/trip-builder",icon: Compass,   feature: "trips" },
+      { name: "Trip Builder",href: "/trip-builder",icon: Pencil,    feature: "trips" },
       { name: "Bookings",    href: "/bookings",    icon: BookOpen,  feature: "trips" },
       { name: "Suppliers",   href: "/suppliers",   icon: Building2, feature: "suppliers" },
       { name: "Commissions", href: "/commissions", icon: DollarSign, feature: "commissions" },
