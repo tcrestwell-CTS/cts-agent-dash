@@ -396,6 +396,12 @@ const TripDetail = () => {
   return (
     <DashboardLayout>
       <div className="space-y-[18px]">
+        <WorkspaceBreadcrumbs
+          tripName={trip.trip_name}
+          tripId={trip.id}
+          section={activeTab}
+          onSectionChange={(s) => goToTab(s)}
+        />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
