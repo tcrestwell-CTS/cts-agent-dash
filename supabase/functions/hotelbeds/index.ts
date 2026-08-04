@@ -184,6 +184,36 @@ Deno.serve(async (req) => {
     let result;
 
     switch (action) {
+      // ── Credential diagnostics (no secrets returned) ─────────
+      case "diag": {
+        const apiKey = Deno.env.get("HOTELBEDS_API_KEY") ?? "";
+        const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET") ?? "";
+        const probe = async (origin: string) => {
+          try {
+            const r = await fetch(`${origin}/hotel-content-api/1.0/types/boards?fields=all&language=ENG&from=1&to=1`, {
+              headers: {
+                "Api-key": apiKey,
+                "X-Signature": await generateSignature(apiKey, apiSecret),
+                Accept: "application/json",
+              },
+            });
+            const t = await r.text();
+            return { status: r.status, body: t.slice(0, 200) };
+          } catch (e) {
+            return { status: 0, body: e instanceof Error ? e.message : String(e) };
+          }
+        };
+        result = {
+          env: HB_ENV,
+          usingProxy: USE_PROXY,
+          keyFingerprint: apiKey ? `${apiKey.slice(0, 5)}…${apiKey.slice(-5)} (len ${apiKey.length})` : null,
+          secretLength: apiSecret.length,
+          testEndpointDirect: await probe("https://api.test.hotelbeds.com"),
+          liveEndpointDirect: await probe("https://api.hotelbeds.com"),
+        };
+        break;
+      }
+
       // ── Availability Search ──────────────────────────────────
       case "search": {
         const body: any = {
