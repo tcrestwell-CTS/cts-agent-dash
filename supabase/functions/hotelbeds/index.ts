@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
   // Allow service-role callers (e.g. stay.crestwelltravels.com Next.js backend)
   // without requiring a user JWT. Service role keys have role="service_role" in payload.
   let isServiceRole = false;
+  let authedUserId: string | null = null;
   try {
     const payload = JSON.parse(atob(authHeader.replace("Bearer ", "").split(".")[1]));
     isServiceRole = payload?.role === "service_role";
@@ -176,6 +177,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    authedUserId = user.id;
   }
 
   try {
@@ -186,6 +188,26 @@ Deno.serve(async (req) => {
     switch (action) {
       // ── Credential diagnostics (no secrets returned) ─────────
       case "diag": {
+        // Admin-only: probes both environments' credential entitlements.
+        if (!isServiceRole) {
+          const admin = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          );
+          const { data: roles } = await admin
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", authedUserId);
+          const allowed = (roles ?? []).some((r: { role: string }) =>
+            r.role === "admin" || r.role === "office_admin"
+          );
+          if (!allowed) {
+            return new Response(JSON.stringify({ error: "Forbidden" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
         const apiKey = Deno.env.get("HOTELBEDS_API_KEY") ?? "";
         const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET") ?? "";
         const probe = async (origin: string) => {
