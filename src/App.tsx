@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { FeatureRoute } from "@/components/FeatureRoute";
 import { BookkeeperRoute } from "@/components/BookkeeperRoute";
 import { AdminRoute } from "@/components/AdminRoute";
+import { BackOfficeRoute } from "@/components/BackOfficeRoute";
 import { PortalProtectedRoute } from "@/components/client/PortalProtectedRoute";
 import { PortalLayout } from "@/components/client/PortalLayout";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -133,6 +134,7 @@ const BookkeeperARAging      = lazy(() => import("./pages/bookkeeper/BookkeeperA
 const BookkeeperAPAging      = lazy(() => import("./pages/bookkeeper/BookkeeperAPAging"));
 const BookkeeperTrialBalance = lazy(() => import("./pages/bookkeeper/BookkeeperTrialBalance"));
 const BookkeeperPacket       = lazy(() => import("./pages/bookkeeper/BookkeeperPacket"));
+const BackOffice             = lazy(() => import("./pages/BackOffice"));
 
 // ─── QueryClient Configuration ───────────────────────────────────────────────
 // FIX: Previously used `new QueryClient()` with no options, meaning:
@@ -186,15 +188,16 @@ const App = () => (
                 <Route path="/training/lesson/:lessonId" element={<ProtectedRoute><TrainingLessonDetail /></ProtectedRoute>} />
                 <Route path="/training/admin" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><TrainingAdmin /></AdminRoute></ProtectedRoute>} />
                 <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
-                <Route path="/commission-report" element={<ProtectedRoute><FeatureRoute feature="quotes"><CommissionReport /></FeatureRoute></ProtectedRoute>} />
-                <Route path="/supplier-payments-due" element={<ProtectedRoute><FeatureRoute feature="commissions"><SupplierPaymentsDue /></FeatureRoute></ProtectedRoute>} />
-                <Route path="/issued-cards" element={<ProtectedRoute><IssuedCards /></ProtectedRoute>} />
+                <Route path="/back-office" element={<ProtectedRoute><BackOfficeRoute><BackOffice /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/commission-report" element={<ProtectedRoute><BackOfficeRoute><CommissionReport /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/supplier-payments-due" element={<ProtectedRoute><BackOfficeRoute><SupplierPaymentsDue /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/issued-cards" element={<ProtectedRoute><BackOfficeRoute><IssuedCards /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute><FeatureRoute feature="analytics"><Analytics /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/branding" element={<ProtectedRoute><FeatureRoute feature="email_branding"><Branding /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="/qbo-health" element={<ProtectedRoute><QBOHealth /></ProtectedRoute>} />
-                <Route path="/qbo-payment-sync" element={<ProtectedRoute><QboPaymentSync /></ProtectedRoute>} />
-                <Route path="/qbo-unmatched-review" element={<ProtectedRoute><QboUnmatchedReview /></ProtectedRoute>} />
+                <Route path="/qbo-health" element={<ProtectedRoute><BackOfficeRoute><QBOHealth /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/qbo-payment-sync" element={<ProtectedRoute><BackOfficeRoute><QboPaymentSync /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/qbo-unmatched-review" element={<ProtectedRoute><BackOfficeRoute><QboUnmatchedReview /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/email-activity" element={<ProtectedRoute><EmailActivity /></ProtectedRoute>} />
                 <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                 <Route path="/campaigns/new" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
@@ -203,15 +206,15 @@ const App = () => (
                 <Route path="/campaigns/:id" element={<ProtectedRoute><CampaignEditor /></ProtectedRoute>} />
                 <Route path="/risk-compliance" element={<ProtectedRoute><RiskCompliance /></ProtectedRoute>} />
                 <Route path="/payment-security" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><PaymentSecurity /></AdminRoute></ProtectedRoute>} />
-                <Route path="/recon"            element={<ProtectedRoute><ReconDashboard /></ProtectedRoute>} />
-                <Route path="/recon/matches"    element={<ProtectedRoute><ReconMatches /></ProtectedRoute>} />
-                <Route path="/recon/exceptions" element={<ProtectedRoute><ReconExceptions /></ProtectedRoute>} />
-                <Route path="/recon/approvals"  element={<ProtectedRoute><ReconApprovals /></ProtectedRoute>} />
-                <Route path="/recon/payouts"    element={<ProtectedRoute><ReconPayouts /></ProtectedRoute>} />
-                <Route path="/recon/settings"   element={<ProtectedRoute><ReconSettings /></ProtectedRoute>} />
-                <Route path="/recon/stripe"     element={<ProtectedRoute><ReconStripe /></ProtectedRoute>} />
-                <Route path="/reconciliation" element={<ProtectedRoute><MonthlyReconciliation /></ProtectedRoute>} />
-                <Route path="/reports/daily-payments" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><DailyPaymentReport /></AdminRoute></ProtectedRoute>} />
+                <Route path="/recon"            element={<ProtectedRoute><BackOfficeRoute><ReconDashboard /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/recon/matches"    element={<ProtectedRoute><BackOfficeRoute><ReconMatches /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/recon/exceptions" element={<ProtectedRoute><BackOfficeRoute><ReconExceptions /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/recon/approvals"  element={<ProtectedRoute><BackOfficeRoute><ReconApprovals /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/recon/payouts"    element={<ProtectedRoute><BackOfficeRoute><ReconPayouts /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/recon/settings"   element={<ProtectedRoute><BackOfficeRoute><ReconSettings /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/recon/stripe"     element={<ProtectedRoute><BackOfficeRoute><ReconStripe /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/reconciliation" element={<ProtectedRoute><BackOfficeRoute><MonthlyReconciliation /></BackOfficeRoute></ProtectedRoute>} />
+                <Route path="/reports/daily-payments" element={<ProtectedRoute><BackOfficeRoute><DailyPaymentReport /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/kandi" element={<ProtectedRoute><Kandi /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
                 <Route path="/scheduling" element={<ProtectedRoute><Scheduling /></ProtectedRoute>} />
@@ -228,7 +231,7 @@ const App = () => (
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
                 <Route path="/inbox-sync" element={<ProtectedRoute><InboxSync /></ProtectedRoute>} />
-                <Route path="/payments-due" element={<ProtectedRoute><PaymentsDue /></ProtectedRoute>} />
+                <Route path="/payments-due" element={<ProtectedRoute><BackOfficeRoute><PaymentsDue /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/payment-reminders" element={<ProtectedRoute><FeatureRoute feature="payment_reminders"><PaymentReminders /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/publish-manager" element={<ProtectedRoute><FeatureRoute feature="publish_manager"><TripPublishManager /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/flights" element={<ProtectedRoute><FeatureRoute feature="flight_search"><FlightSearch /></FeatureRoute></ProtectedRoute>} />
