@@ -1,3 +1,4 @@
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -935,6 +936,14 @@ function ItineraryItemsList({ items }: { items: any[] }) {
                     {item.notes && <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>}
                   </div>
                 </div>
+                {getItemImages(item).length > 1 && (
+                  <ItineraryGallery
+                    images={getItemImages(item)}
+                    alt={item.title}
+                    className="mt-3"
+                    aspectClassName="aspect-[16/10]"
+                  />
+                )}
               </div>
             ))}
           </div>

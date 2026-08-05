@@ -5048,6 +5048,7 @@ export type Database = {
           end_time: string | null
           flight_number: string | null
           flight_status: string | null
+          gallery_urls: Json
           id: string
           image_url: string | null
           is_hidden: boolean
@@ -5076,6 +5077,7 @@ export type Database = {
           end_time?: string | null
           flight_number?: string | null
           flight_status?: string | null
+          gallery_urls?: Json
           id?: string
           image_url?: string | null
           is_hidden?: boolean
@@ -5104,6 +5106,7 @@ export type Database = {
           end_time?: string | null
           flight_number?: string | null
           flight_status?: string | null
+          gallery_urls?: Json
           id?: string
           image_url?: string | null
           is_hidden?: boolean

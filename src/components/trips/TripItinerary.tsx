@@ -543,12 +543,19 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                                   <Icon className="h-3.5 w-3.5" />
                                 </div>
                                 {((item as any).thumbnail_url || (item as any).image_url) && (
-                                  <img
-                                    src={(item as any).thumbnail_url || (item as any).image_url}
-                                    alt={item.title}
-                                    loading="lazy"
-                                    className="h-10 w-10 rounded-md object-cover flex-shrink-0 border"
-                                  />
+                                  <div className="relative flex-shrink-0">
+                                    <img
+                                      src={(item as any).thumbnail_url || (item as any).image_url}
+                                      alt={item.title}
+                                      loading="lazy"
+                                      className="h-10 w-10 rounded-md object-cover border"
+                                    />
+                                    {Array.isArray((item as any).gallery_urls) && (item as any).gallery_urls.length > 0 && (
+                                      <span className="absolute -bottom-1 -right-1 rounded-full bg-background border px-1 text-[9px] font-semibold text-muted-foreground">
+                                        +{(item as any).gallery_urls.length}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-start justify-between gap-1">

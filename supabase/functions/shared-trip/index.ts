@@ -658,7 +658,7 @@ const handler = async (req: Request): Promise<Response> => {
         const [liveItemsRes, liveBlocksRes] = await Promise.all([
           supabase
             .from("itinerary_items")
-            .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, item_price")
+            .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, item_price, is_hidden, image_url, thumbnail_url, gallery_urls")
             .eq("trip_id", trip.id)
             .in("itinerary_id", missingItemItineraryIds)
             .order("day_number", { ascending: true })
@@ -719,7 +719,7 @@ const handler = async (req: Request): Promise<Response> => {
       const [itineraryRes, bookingsRes, optionBlocksRes] = await Promise.all([
         supabase
           .from("itinerary_items")
-          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id, item_price, is_hidden, image_url, thumbnail_url, flight_number, departure_city_code, arrival_city_code, flight_status")
+          .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, option_block_id, itinerary_id, item_price, is_hidden, image_url, thumbnail_url, gallery_urls, flight_number, departure_city_code, arrival_city_code, flight_status")
           .eq("trip_id", trip.id)
           .order("day_number", { ascending: true })
           .order("sort_order", { ascending: true }),

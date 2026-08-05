@@ -1,3 +1,4 @@
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { useState } from "react";
 import { SafeHtml } from "@/components/ui/rich-text-editor";
 import { Clock, MapPin, CheckCircle2 } from "lucide-react";
@@ -175,15 +176,15 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
 
               <div className="space-y-6">
                 {items.map((item: any) =>
-                  item.image_url ? (
+                  getItemImages(item).length > 0 ? (
                     /* ── Image card with text overlay ── */
+                    <div key={item.id} className="space-y-3">
                     <div
-                      key={item.id}
                       className="relative rounded-2xl overflow-hidden shadow-md group cursor-default"
                       style={{ minHeight: 220 }}
                     >
                       <img
-                        src={item.image_url}
+                        src={getItemImages(item)[0]}
                         alt={item.title}
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -228,6 +229,14 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                           </p>
                         )}
                       </div>
+                    </div>
+                    {getItemImages(item).length > 1 && (
+                      <ItineraryGallery
+                        images={getItemImages(item).slice(1)}
+                        alt={item.title}
+                        aspectClassName="aspect-[16/10]"
+                      />
+                    )}
                     </div>
                   ) : (
                     /* ── Text-only item (no image) ── */
