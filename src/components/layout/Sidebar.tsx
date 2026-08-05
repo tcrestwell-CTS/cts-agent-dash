@@ -271,7 +271,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
       stored = {};
     }
     const initial: Record<string, boolean> = {};
-    [...navGroups, ...adminNavGroups].forEach((g) => {
+    [...navGroups, ...adminNavGroups, ...backOfficeNavGroups].forEach((g) => {
       if (Object.prototype.hasOwnProperty.call(stored, g.label)) {
         initial[g.label] = stored[g.label];
         return;
@@ -431,24 +431,15 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
         <TooltipProvider delayDuration={0}>
           {bookkeeperMode ? (
             <>
-              {bookkeeperSections.map((section, idx) => (
-                <div key={section.label ?? `top-${idx}`} className={idx === 0 ? "" : "pt-3"}>
-                  {section.label && !isCollapsed && (
-                    <div className="px-[11px] pb-1">
-                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75">
-                        {section.label}
-                      </p>
-                    </div>
-                  )}
-                  {section.label && isCollapsed && (
-                    <div className="pb-1"><hr className="border-sidebar-border" /></div>
-                  )}
-                  <div className="space-y-0.5">
-                    {section.items.map((item) => (
-                      <NavItemLink key={item.name} item={item} />
-                    ))}
-                  </div>
+              {!isCollapsed && (
+                <div className="px-[11px] pb-1">
+                  <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75">
+                    Agency Back Office
+                  </p>
                 </div>
+              )}
+              {backOfficeNavGroups.map((group) => (
+                <NavGroupSection key={group.label} group={group} />
               ))}
             </>
           ) : (
@@ -479,6 +470,22 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
                   )}
                   {isCollapsed && <div className="pb-1 pt-4"><hr className="border-sidebar-border" /></div>}
                   {adminNavGroups.map((group) => (
+                    <NavGroupSection key={group.label} group={group} />
+                  ))}
+                </>
+              )}
+
+              {hasBackOffice && (
+                <>
+                  {!isCollapsed && (
+                    <div className="px-[11px] pb-1 pt-4">
+                      <p className="text-[10.5px] font-bold uppercase tracking-[.13em] text-sidebar-foreground/75">
+                        Agency Back Office
+                      </p>
+                    </div>
+                  )}
+                  {isCollapsed && <div className="pb-1 pt-4"><hr className="border-sidebar-border" /></div>}
+                  {backOfficeNavGroups.map((group) => (
                     <NavGroupSection key={group.label} group={group} />
                   ))}
                 </>
