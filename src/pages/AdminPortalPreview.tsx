@@ -907,6 +907,14 @@ function ItineraryItemsList({ items }: { items: any[] }) {
             {dayItems.map((item: any) => (
               <div key={item.id} className="p-3 rounded-lg border bg-card">
                 <div className="flex items-start gap-2">
+                  {(item.thumbnail_url || item.image_url) && (
+                    <img
+                      src={item.thumbnail_url || item.image_url}
+                      alt={item.title}
+                      loading="lazy"
+                      className="h-16 w-16 rounded-md object-cover flex-shrink-0 border"
+                    />
+                  )}
                   <span className="text-lg">{categoryIcons[item.category] || "📌"}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{item.title}</p>
