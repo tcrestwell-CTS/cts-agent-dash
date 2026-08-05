@@ -229,6 +229,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
   const { data: isBookkeeper } = useIsBookkeeper();
   const { data: isAdmin } = useIsAdmin();
   const bookkeeperMode = !!isBookkeeper && !isAdmin;
+  const { hasAccess: hasBackOffice } = useHasBackOfficeAccess();
   const { data: unattributedCount = 0 } = useUnattributedCount(bookkeeperMode);
   const { can: canFeature } = useFeaturePermissions();
   const navigate = useNavigate();
