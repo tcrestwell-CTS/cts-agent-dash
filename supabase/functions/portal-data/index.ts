@@ -236,7 +236,7 @@ const handler = async (req: Request): Promise<Response> => {
       let agent = null;
       let branding = null;
       if (clientRes.data?.user_id) {
-        const [agentRes, brandingRes] = await Promise.all([
+        const [agentRes, brandingRes, agentAuthRes] = await Promise.all([
           supabase
             .from("profiles")
             .select("full_name, avatar_url, phone, job_title, clia_number, ccra_number, asta_number, embarc_number")
@@ -247,8 +247,14 @@ const handler = async (req: Request): Promise<Response> => {
             .select("agency_name, primary_color, accent_color, logo_url, tagline")
             .eq("user_id", clientRes.data.user_id)
             .maybeSingle(),
+          // Agent email lives in auth.users, not profiles — same lookup
+          // pattern already used elsewhere in this file for agent emails
+          // (e.g. approve-itinerary, notify-payment-method).
+          supabase.auth.admin.getUserById(clientRes.data.user_id),
         ]);
-        agent = agentRes.data;
+        agent = agentRes.data
+          ? { ...agentRes.data, email: agentAuthRes.data?.user?.email ?? null }
+          : null;
         branding = brandingRes.data;
       }
 
