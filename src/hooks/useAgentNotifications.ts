@@ -40,7 +40,7 @@ export function useAgentNotifications() {
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
-      .channel("agent-notifications-realtime")
+      .channel(`agent-notifications-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
