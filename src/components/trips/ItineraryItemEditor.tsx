@@ -76,6 +76,7 @@ interface ExtendedItem extends ItineraryItem {
   // Media
   image_url?: string | null;
   thumbnail_url?: string | null;
+  gallery_urls?: string[] | null;
   // Flight status
   flight_status?: string | null;
   flight_status_updated_at?: string | null;
@@ -345,6 +346,12 @@ function MediaTab({ form, setForm }: { form: any; setForm: (f: any) => void }) {
           compact
           hint="Smaller/square image used in list views"
         />
+        <GalleryUploadField
+          label="Additional Photos"
+          value={Array.isArray(form.gallery_urls) ? form.gallery_urls : []}
+          onChange={(urls) => setForm({ ...form, gallery_urls: urls })}
+          hint="Extra photos shown as a swipeable gallery in the client portal"
+        />
       </div>
 
       <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
@@ -461,6 +468,7 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Prop
         commission_amount: item.commission_amount != null ? String(item.commission_amount) : "",
         image_url: item.image_url || "",
         thumbnail_url: item.thumbnail_url || "",
+        gallery_urls: Array.isArray((item as any).gallery_urls) ? (item as any).gallery_urls : [],
       });
     }
   }, [item]);
@@ -498,6 +506,7 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Prop
         commission_amount: form.commission_amount ? parseFloat(form.commission_amount) : null,
         image_url: form.image_url || null,
         thumbnail_url: form.thumbnail_url || null,
+        gallery_urls: (Array.isArray(form.gallery_urls) ? form.gallery_urls : []).filter((u: string) => u && u.trim()),
         is_hidden: form.is_hidden ?? false,
       } as any);
       if (success) {
