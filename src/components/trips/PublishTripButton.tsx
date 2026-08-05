@@ -105,7 +105,7 @@ export function PublishTripButton({
       const [itineraryRes, optionBlocksRes] = await Promise.all([
         supabase
         .from("itinerary_items")
-        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, is_hidden, image_url, thumbnail_url, flight_number, departure_city_code, arrival_city_code, item_price, flight_status")
+        .select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, is_hidden, image_url, thumbnail_url, gallery_urls, flight_number, departure_city_code, arrival_city_code, item_price, flight_status")
         .eq("trip_id", tripId)
         .order("day_number", { ascending: true })
         .order("sort_order", { ascending: true }),
