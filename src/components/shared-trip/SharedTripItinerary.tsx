@@ -1,3 +1,4 @@
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { useState } from "react";
 import { SafeHtml } from "@/components/ui/rich-text-editor";
 import { Clock, MapPin, CheckCircle2 } from "lucide-react";

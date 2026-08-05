@@ -1,3 +1,4 @@
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";

@@ -1,3 +1,4 @@
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usePortalTripDetail, useApproveItinerary, usePortalCCAuthorizations, usePortalOptionSelections, useSelectOption, usePortalLineSelections } from "@/hooks/usePortalData";
