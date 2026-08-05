@@ -542,6 +542,14 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                                 <div className={`h-7 w-7 rounded-md flex-shrink-0 flex items-center justify-center ${categoryColors[item.category] || categoryColors.activity}`}>
                                   <Icon className="h-3.5 w-3.5" />
                                 </div>
+                                {((item as any).thumbnail_url || (item as any).image_url) && (
+                                  <img
+                                    src={(item as any).thumbnail_url || (item as any).image_url}
+                                    alt={item.title}
+                                    loading="lazy"
+                                    className="h-10 w-10 rounded-md object-cover flex-shrink-0 border"
+                                  />
+                                )}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-start justify-between gap-1">
                                     <span className={`font-medium text-sm truncate ${(item as any).is_hidden ? "text-muted-foreground line-through" : ""}`}>{item.title}</span>
