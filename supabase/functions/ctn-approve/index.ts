@@ -62,7 +62,25 @@ async function sendOnboardingDocs(
       }
     }
 
-    if (attachments.length === 0) return;
+    // BUG FIX: this previously did `if (attachments.length === 0) return;`
+    // — meaning if the PDFs weren't in the bucket yet (e.g. never uploaded),
+    // the function went completely silent: no email, no error surfaced
+    // anywhere, no record that anything was even attempted. Confirmed this
+    // happened for at least one real agent whose payment/approval completed
+    // with zero onboarding email ever sent. Now it always sends something —
+    // the honest version of the email when attachments are missing, rather
+    // than claiming documents are attached when they aren't.
+    const allDocsFound = attachments.length === docs.length;
+    const missingDocs = docs.filter((_, i) => !attachments.some((a) => a.filename === docs[i].filename));
+    if (!allDocsFound) {
+      console.warn(
+        `[ctn-approve] Sending onboarding email WITHOUT full attachments for ${email} — missing: ${missingDocs.map(d => d.path).join(", ")}. Upload these to the agent-documents bucket.`,
+      );
+    }
+
+    const bodyIntro = allDocsFound
+      ? `Your subscription is confirmed! Attached are two important documents to help you get started:`
+      : `Your subscription is confirmed! Your onboarding documents are being finalized and will follow in a separate email shortly — in the meantime, here's what to expect:`;
 
     const docsRes = await fetch(
       `${supabaseUrl}/functions/v1/send-email`,
@@ -85,7 +103,7 @@ async function sendOnboardingDocs(
               <div style="padding:28px 32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;">
                 <p style="font-size:14px;line-height:1.7;color:#374151;">Hi ${firstName || "there"},</p>
                 <p style="font-size:14px;line-height:1.7;color:#374151;">
-                  Your subscription is confirmed! Attached are two important documents to help you get started:
+                  ${bodyIntro}
                 </p>
                 <ul style="font-size:13px;line-height:2;color:#475569;padding-left:20px;">
                   <li><strong>IC Agent Onboarding Guide</strong> — Your complete reference for policies, commission structure, compliance, and support</li>
