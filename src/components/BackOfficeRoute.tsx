@@ -1,17 +1,15 @@
 import { type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useIsAdmin, useIsOfficeAdmin, useIsBookkeeper } from "@/hooks/useAdmin";
+import { usePermissions } from "@/hooks/usePermissions";
 
 /**
  * Guards the Agency Back Office (financial + accounting) area.
  * Access: admin, office_admin, bookkeeper only.
  */
 export function BackOfficeRoute({ children }: { children: ReactNode }) {
-  const { data: isAdmin, isLoading: l1 } = useIsAdmin();
-  const { data: isOfficeAdmin, isLoading: l2 } = useIsOfficeAdmin();
-  const { data: isBookkeeper, isLoading: l3 } = useIsBookkeeper();
+  const { hasAccess, isLoading } = useHasBackOfficeAccess();
 
-  if (l1 || l2 || l3) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
@@ -22,16 +20,12 @@ export function BackOfficeRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!(isAdmin || isOfficeAdmin || isBookkeeper)) {
-    return <Navigate to="/" replace />;
-  }
+  if (!hasAccess) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }
 
 export function useHasBackOfficeAccess() {
-  const { data: isAdmin, isLoading: l1 } = useIsAdmin();
-  const { data: isOfficeAdmin, isLoading: l2 } = useIsOfficeAdmin();
-  const { data: isBookkeeper, isLoading: l3 } = useIsBookkeeper();
-  return { hasAccess: !!(isAdmin || isOfficeAdmin || isBookkeeper), isLoading: l1 || l2 || l3 };
+  const { isAdmin, isOfficeAdmin, isBookkeeper, isLoading } = usePermissions();
+  return { hasAccess: !!(isAdmin || isOfficeAdmin || isBookkeeper), isLoading };
 }
