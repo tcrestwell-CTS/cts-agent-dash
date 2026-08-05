@@ -1,0 +1,1 @@
+ALTER TABLE public.itinerary_items ADD COLUMN IF NOT EXISTS gallery_urls jsonb NOT NULL DEFAULT '[]'::jsonb;
