@@ -48,6 +48,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanViewTeam, useUserRole, useIsBookkeeper, useIsAdmin } from "@/hooks/useAdmin";
+import { useHasBackOfficeAccess } from "@/components/BackOfficeRoute";
+import { backOfficeSections } from "@/lib/backOfficeNav";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useFeaturePermissions } from "@/hooks/useFeaturePermissions";
 import type { FeatureKey } from "@/lib/featureRegistry";
@@ -171,89 +173,15 @@ const adminNavGroups: NavGroup[] = [
       { name: "Flight Monitor",   href: "/flight-monitoring", icon: Bell },
     ],
   },
-  {
-    label: "Finance",
-    icon: HeartPulse,
-    items: [
-      { name: "QBO Health",            href: "/qbo-health",            icon: HeartPulse },
-      { name: "QBO Payment Sync",      href: "/qbo-payment-sync",      icon: ArrowRightLeft },
-      { name: "Daily Payment Report",  href: "/reports/daily-payments", icon: FileText },
-      { name: "Supplier Payments Due", href: "/supplier-payments-due",  icon: Banknote },
-      { name: "Commission Report",     href: "/commission-report",      icon: FileText },
-    ],
-  },
-  {
-    label: "Reconciliation",
-    icon: ArrowRightLeft,
-    defaultCollapsed: true,
-    items: [
-      { name: "Recon Dashboard", href: "/recon",             icon: ArrowRightLeft },
-      { name: "Match Center",    href: "/recon/matches",     icon: ArrowRightLeft },
-      { name: "Exceptions",      href: "/recon/exceptions",  icon: AlertTriangle },
-      { name: "Approvals",       href: "/recon/approvals",   icon: ShieldCheck },
-      { name: "Stripe Payouts",  href: "/recon/payouts",     icon: CreditCard },
-      { name: "Monthly Recon",   href: "/reconciliation",    icon: FileSpreadsheet },
-      { name: "Recon Settings",  href: "/recon/settings",    icon: Settings },
-    ],
-  },
 ];
 
-// ─── Bookkeeper-only navigation ──────────────────────────────────────────────
-type BookkeeperSection = { label: string | null; items: NavItem[] };
-
-const bookkeeperSections: BookkeeperSection[] = [
-  {
-    label: null,
-    items: [{ name: "Dashboard", href: "/bookkeeper", icon: LayoutDashboard }],
-  },
-  {
-    label: "Financials",
-    items: [
-      { name: "P&L",               href: "/bookkeeper/pl",            icon: TrendingUp },
-      { name: "Balance Sheet",     href: "/bookkeeper/balance-sheet", icon: FileBarChart },
-      { name: "Trial Balance",     href: "/bookkeeper/trial-balance", icon: FileSpreadsheet },
-      { name: "Financial Packet",  href: "/bookkeeper/packet",        icon: FileText },
-    ],
-  },
-  {
-    label: "AR / AP",
-    items: [
-      { name: "AR Aging", href: "/bookkeeper/ar-aging", icon: AlertTriangle },
-      { name: "AP Aging", href: "/bookkeeper/ap-aging", icon: AlertTriangle },
-    ],
-  },
-  {
-    label: "Transactions",
-    items: [
-      { name: "Income",       href: "/bookkeeper/income",       icon: DollarSign },
-      { name: "Expenses",     href: "/bookkeeper/expenses",     icon: Banknote },
-      { name: "Unattributed", href: "/bookkeeper/unattributed", icon: FileWarning },
-    ],
-  },
-  {
-    label: "Payroll",
-    items: [
-      { name: "Agent Payouts", href: "/bookkeeper/payouts", icon: Wallet },
-      { name: "1099 Prep",     href: "/bookkeeper/1099",    icon: FileText },
-    ],
-  },
-  {
-    label: "Sync",
-    items: [
-      { name: "QBO Sync",            href: "/qbo-health",            icon: HeartPulse },
-      { name: "Stripe Recon",        href: "/recon/stripe",          icon: ArrowRightLeft },
-      { name: "Bank Reconciliation", href: "/bookkeeper/bank-recon", icon: Landmark },
-      { name: "QBO Sync Logs",       href: "/bookkeeper/qbo-logs",   icon: Activity },
-    ],
-  },
-  {
-    label: "Export",
-    items: [
-      { name: "Export Center", href: "/bookkeeper/export", icon: Download },
-      { name: "Audit Log",     href: "/bookkeeper/audit",  icon: ShieldCheck },
-    ],
-  },
-];
+// ─── Agency Back Office (financial + accounting) ─────────────────────────────
+const backOfficeNavGroups: NavGroup[] = backOfficeSections.map((s) => ({
+  label: s.label,
+  icon: Landmark,
+  defaultCollapsed: s.defaultCollapsed,
+  items: s.items.map((i) => ({ name: i.name, href: i.href, icon: i.icon })),
+}));
 
 function useUnattributedCount(enabled: boolean) {
   return useQuery({
