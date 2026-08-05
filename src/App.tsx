@@ -134,6 +134,7 @@ const BookkeeperARAging      = lazy(() => import("./pages/bookkeeper/BookkeeperA
 const BookkeeperAPAging      = lazy(() => import("./pages/bookkeeper/BookkeeperAPAging"));
 const BookkeeperTrialBalance = lazy(() => import("./pages/bookkeeper/BookkeeperTrialBalance"));
 const BookkeeperPacket       = lazy(() => import("./pages/bookkeeper/BookkeeperPacket"));
+const BackOffice             = lazy(() => import("./pages/BackOffice"));
 
 // ─── QueryClient Configuration ───────────────────────────────────────────────
 // FIX: Previously used `new QueryClient()` with no options, meaning:
