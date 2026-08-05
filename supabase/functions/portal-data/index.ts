@@ -1553,6 +1553,77 @@ const handler = async (req: Request): Promise<Response> => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
+    } else if (resource === "notifications") {
+      if (req.method === "POST") {
+        // Mark one or all notifications read
+        const { notificationId, markAllRead } = await req.json().catch(() => ({}));
+        if (markAllRead) {
+          await supabase
+            .from("client_notifications")
+            .update({ read_at: new Date().toISOString() })
+            .eq("client_id", clientId)
+            .is("read_at", null);
+        } else if (notificationId) {
+          await supabase
+            .from("client_notifications")
+            .update({ read_at: new Date().toISOString() })
+            .eq("id", notificationId)
+            .eq("client_id", clientId);
+        } else {
+          return new Response(JSON.stringify({ error: "notificationId or markAllRead required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: notifications } = await supabase
+        .from("client_notifications")
+        .select("id, type, title, body, trip_id, created_at, read_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      return new Response(JSON.stringify({ notifications: notifications || [] }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } else if (resource === "register-push-token") {
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { token, platform } = await req.json().catch(() => ({}));
+      if (!token) {
+        return new Response(JSON.stringify({ error: "token required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Upsert on the token itself (unique constraint) — if the same device
+      // token shows up again (reinstall, re-login), refresh which client and
+      // update last_seen_at rather than erroring or duplicating.
+      const { error: upsertError } = await supabase
+        .from("client_push_tokens")
+        .upsert(
+          { client_id: clientId, token, platform: platform ?? null, last_seen_at: new Date().toISOString() },
+          { onConflict: "token" },
+        );
+
+      if (upsertError) {
+        console.error("register-push-token upsert error:", upsertError);
+        return new Response(JSON.stringify({ error: "Failed to register token" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     } else if (resource === "profile") {
       // Return the client's editable profile data
       const { data: client, error: clientErr } = await supabase
