@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-internal-secret",
 };
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
@@ -21,11 +21,16 @@ serve(async (req) => {
   }
 
   try {
-    // Service-role only — this is called exclusively by DB triggers with the
-    // service role key, never directly by a client.
+    // Internal only — called by DB triggers with either the service-role key
+    // or the shared PUSH_INTERNAL_SECRET, never directly by a client.
     const authHeader = req.headers.get("Authorization") ?? "";
+    const internalHeader = req.headers.get("x-internal-secret") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (authHeader !== `Bearer ${serviceKey}`) {
+    const internalSecret = Deno.env.get("PUSH_INTERNAL_SECRET") ?? "";
+    const authorized =
+      authHeader === `Bearer ${serviceKey}` ||
+      (internalSecret.length > 0 && internalHeader === internalSecret);
+    if (!authorized) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
