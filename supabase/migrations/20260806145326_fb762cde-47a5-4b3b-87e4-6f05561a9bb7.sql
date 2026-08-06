@@ -1,0 +1,1 @@
+ALTER TABLE public.ic_onboarding ADD COLUMN IF NOT EXISTS id_number text;
