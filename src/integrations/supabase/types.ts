@@ -4332,6 +4332,7 @@ export type Database = {
         Row: {
           account_number: string | null
           address: string | null
+          agent_dash_synced_at: string | null
           annual_sales_volume: string | null
           arc_number: string | null
           backup_advisor: string | null
@@ -4396,6 +4397,7 @@ export type Database = {
         Insert: {
           account_number?: string | null
           address?: string | null
+          agent_dash_synced_at?: string | null
           annual_sales_volume?: string | null
           arc_number?: string | null
           backup_advisor?: string | null
@@ -4460,6 +4462,7 @@ export type Database = {
         Update: {
           account_number?: string | null
           address?: string | null
+          agent_dash_synced_at?: string | null
           annual_sales_volume?: string | null
           arc_number?: string | null
           backup_advisor?: string | null
