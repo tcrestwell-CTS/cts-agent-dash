@@ -127,7 +127,10 @@ export function Header({ onMobileMenuClick, showMobileMenuButton }: HeaderProps)
                         )}
                         onClick={() => {
                           if (!n.is_read) markAsRead.mutate(n.id);
-                          if (n.trip_id) {
+                          if (n.type === "client_message" && n.client_id) {
+                            navigate(`/contacts/${n.client_id}?messages=1`);
+                            setNotifOpen(false);
+                          } else if (n.trip_id) {
                             navigate(`/trips/${n.trip_id}`);
                             setNotifOpen(false);
                           }

@@ -473,6 +473,7 @@ export type Database = {
       }
       agent_notifications: {
         Row: {
+          client_id: string | null
           created_at: string
           id: string
           is_read: boolean
@@ -484,6 +485,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -495,6 +497,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -506,6 +509,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agent_notifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_notifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agent_notifications_trip_id_fkey"
             columns: ["trip_id"]
