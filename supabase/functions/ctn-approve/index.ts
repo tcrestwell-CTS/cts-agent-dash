@@ -135,6 +135,42 @@ async function sendOnboardingDocs(
   }
 }
 
+// ── Cross-project sync: ic_onboarding lives in CTN's Supabase project
+// (mouwwpftjlumhpntseyz), a completely separate project from this one.
+// Once an agent's platform account exists here, mark their ic_onboarding
+// row as synced so the two systems don't drift out of sync silently.
+// Requires CTN_SUPABASE_URL + CTN_SUPABASE_ANON_KEY to be set as secrets
+// on THIS project — best-effort: logs and continues on failure rather
+// than failing the whole approval over a cross-project sync issue.
+async function notifyIcOnboardingSynced(email: string): Promise<void> {
+  const ctnUrl = Deno.env.get("CTN_SUPABASE_URL");
+  const ctnKey = Deno.env.get("CTN_SUPABASE_ANON_KEY");
+  if (!ctnUrl || !ctnKey) {
+    console.warn("[ctn-approve] CTN_SUPABASE_URL/CTN_SUPABASE_ANON_KEY not configured — skipping ic_onboarding sync.");
+    return;
+  }
+  try {
+    const res = await fetch(
+      `${ctnUrl}/rest/v1/ic_onboarding?email=eq.${encodeURIComponent(email.toLowerCase())}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: ctnKey,
+          Authorization: `Bearer ${ctnKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ agent_dash_synced_at: new Date().toISOString() }),
+      },
+    );
+    if (!res.ok) {
+      console.warn(`[ctn-approve] ic_onboarding sync failed (${res.status}) for ${email}: ${await res.text()}`);
+    }
+  } catch (err) {
+    console.warn(`[ctn-approve] ic_onboarding sync threw for ${email}:`, err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -240,6 +276,7 @@ serve(async (req) => {
         await sendOnboardingDocs(supabase, email, first_name);
       }
 
+      await notifyIcOnboardingSynced(email);
       return new Response(
         JSON.stringify({
           success: true, email, tier: commissionTier, invite_url: inviteUrl,
@@ -254,6 +291,7 @@ serve(async (req) => {
     //    applicant. Skip invite/role setup entirely, just send the docs. ────
     if (docs_only) {
       await sendOnboardingDocs(supabase, email, first_name);
+      await notifyIcOnboardingSynced(email);
       return new Response(
         JSON.stringify({ success: true, email, docs_sent: true, note: "docs_only" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -356,6 +394,7 @@ serve(async (req) => {
     }
 
     console.log(`[ctn-approve] ✓ ${email} invited as agent | tier: ${commissionTier}`);
+    await notifyIcOnboardingSynced(email);
 
     return new Response(
       JSON.stringify({
