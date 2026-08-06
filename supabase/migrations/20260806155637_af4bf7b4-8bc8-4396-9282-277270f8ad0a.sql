@@ -1,0 +1,1 @@
+ALTER TABLE public.ic_onboarding ADD COLUMN IF NOT EXISTS agent_dash_synced_at timestamptz;
