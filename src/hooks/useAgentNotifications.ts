@@ -11,6 +11,7 @@ export interface AgentNotification {
   message: string;
   trip_payment_id: string | null;
   trip_id: string | null;
+  client_id: string | null;
   is_read: boolean;
   created_at: string;
 }
