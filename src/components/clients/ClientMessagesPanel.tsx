@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +18,19 @@ interface ClientMessagesPanelProps {
 
 export function ClientMessagesPanel({ clientId }: ClientMessagesPanelProps) {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const autoOpen = searchParams.get("messages") === "1";
   const [newMessage, setNewMessage] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(autoOpen);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (autoOpen) {
+      setIsOpen(true);
+      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [autoOpen]);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ["portal-messages", clientId],
@@ -85,7 +96,7 @@ export function ClientMessagesPanel({ clientId }: ClientMessagesPanelProps) {
   };
 
   return (
-    <Card className="flex flex-col">
+    <Card ref={cardRef} className="flex flex-col">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <CardHeader className="pb-3 border-b cursor-pointer hover:bg-muted/50 transition-colors">
