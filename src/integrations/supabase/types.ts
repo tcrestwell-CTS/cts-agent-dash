@@ -5931,8 +5931,10 @@ export type Database = {
           category_code: string | null
           created_at: string
           cruise_id: string
+          cruise_only: boolean
           currency_code: string
           fare_code: string
+          fare_description: string | null
           gft_adult: number | null
           gft_child: number | null
           gft_infant: number | null
@@ -5940,6 +5942,7 @@ export type Database = {
           is_closed: boolean
           market_code: string
           ncf_included: boolean
+          now_available: boolean
           occupancy_key: string
           price_type: string | null
           raw: Json | null
@@ -5956,8 +5959,10 @@ export type Database = {
           category_code?: string | null
           created_at?: string
           cruise_id: string
+          cruise_only?: boolean
           currency_code?: string
           fare_code: string
+          fare_description?: string | null
           gft_adult?: number | null
           gft_child?: number | null
           gft_infant?: number | null
@@ -5965,6 +5970,7 @@ export type Database = {
           is_closed?: boolean
           market_code?: string
           ncf_included?: boolean
+          now_available?: boolean
           occupancy_key: string
           price_type?: string | null
           raw?: Json | null
@@ -5981,8 +5987,10 @@ export type Database = {
           category_code?: string | null
           created_at?: string
           cruise_id?: string
+          cruise_only?: boolean
           currency_code?: string
           fare_code?: string
+          fare_description?: string | null
           gft_adult?: number | null
           gft_child?: number | null
           gft_infant?: number | null
@@ -5990,6 +5998,7 @@ export type Database = {
           is_closed?: boolean
           market_code?: string
           ncf_included?: boolean
+          now_available?: boolean
           occupancy_key?: string
           price_type?: string | null
           raw?: Json | null
@@ -6061,6 +6070,8 @@ export type Database = {
           item_code: string
           item_name: string | null
           item_type: string
+          package_code: string | null
+          pax_applicability: string | null
           price: number | null
           raw: Json | null
           updated_at: string
@@ -6075,6 +6086,8 @@ export type Database = {
           item_code: string
           item_name?: string | null
           item_type: string
+          package_code?: string | null
+          pax_applicability?: string | null
           price?: number | null
           raw?: Json | null
           updated_at?: string
@@ -6089,6 +6102,8 @@ export type Database = {
           item_code?: string
           item_name?: string | null
           item_type?: string
+          package_code?: string | null
+          pax_applicability?: string | null
           price?: number | null
           raw?: Json | null
           updated_at?: string
