@@ -201,6 +201,17 @@ function oneStepBookingBody(p: Record<string, any>): XmlNode {
 
 function dispatchBody(operation: string, p: Record<string, any>): XmlNode {
   switch (operation) {
+    case "agencyLogin":
+      // xs:sequence — AgencyID, AgentID, Agentpasswd, AgentpasswdDTS,
+      // AgentpasswdNew, then the optional BookingContext.
+      return {
+        AgencyID: p.agencyId ?? MSC_AGENCY_ID,
+        AgentID: p.agentId ?? MSC_USER_ID,
+        Agentpasswd: p.password ?? MSC_PASSWORD,
+        AgentpasswdDTS: p.passwordDts ?? "",
+        ...(p.newPassword ? { AgentpasswdNew: p.newPassword } : {}),
+        BookingContext: { BookingChannel: "XML" },
+      };
     case "searchCruises":
       return searchCruisesBody(p);
     case "oneStepBooking":
