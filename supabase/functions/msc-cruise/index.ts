@@ -269,15 +269,26 @@ Deno.serve(async (req) => {
       return json({ error: `Endpoint path for ${operation} has not been supplied by MSC yet` }, 501);
     }
 
-    const xml = buildXmlRequest(spec.root, buildBody(operation, payload?.params ?? {}));
+    const params = payload?.params ?? {};
+    const xml = buildXmlRequest(spec.root, buildBody(operation, params));
     const url = `${baseUrl()}${spec.path}`;
+
+    // Agency Login is also how we validate a credential set, so it may be
+    // called with explicit values instead of the stored secrets.
+    const creds = operation === "agencyLogin"
+      ? {
+          userId: params.agentId ?? MSC_USER_ID,
+          agencyId: params.agencyId ?? MSC_AGENCY_ID,
+          password: params.password ?? MSC_PASSWORD,
+        }
+      : { userId: MSC_USER_ID, agencyId: MSC_AGENCY_ID, password: MSC_PASSWORD };
 
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        UserId: MSC_USER_ID,
-        AgencyId: MSC_AGENCY_ID,
-        Password: MSC_PASSWORD,
+        UserId: creds.userId,
+        AgencyId: creds.agencyId,
+        Password: creds.password,
         "Content-Type": "application/xml",
         Accept: "application/xml",
       },
@@ -305,6 +316,7 @@ Deno.serve(async (req) => {
       advisory: advisory.messages,
       bookingNo: readTag(text, "BookingNo"),
       ...(operation === "searchCruises" ? { result: parseSearchCruisesResponse(text) } : {}),
+      ...(operation === "agencyLogin" ? { result: parseAgencyLoginResponse(text) } : {}),
       xml: text,
     });
   } catch (e) {
