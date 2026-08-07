@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       assigned_at: agentId ? new Date().toISOString() : null,
     })
     .eq("id", leadId)
-    .select("id, first_name, last_name, email, phone, destination, trip_type, departure_date, budget, lead_score")
+    .select("id, first_name, last_name, email, phone, destination, trip_type, departure_date, budget, ai_score")
     .maybeSingle();
 
   if (updateErr) {
