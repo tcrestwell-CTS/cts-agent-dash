@@ -823,7 +823,7 @@ const TripDetail = () => {
                       size="sm"
                       variant="outline"
                       className="ml-auto h-7"
-                      onClick={() => setEditApprovedAnyway(!isItineraryLocked ? false : true)}
+                      onClick={() => setItineraryUnlocked(isItineraryLocked)}
                     >
                       {isItineraryLocked ? "Unlock to edit" : "Re-lock"}
                     </Button>
