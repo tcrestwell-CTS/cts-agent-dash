@@ -301,9 +301,11 @@ function ScoreBar({ score }: { score: number | null }) {
 function AssignAgentControl({
   lead,
   refetch,
+  compact = false,
 }: {
   lead: QuoteRequest;
   refetch: () => void;
+  compact?: boolean;
 }) {
   const { user } = useAuth();
   const { data: isAdmin } = useIsAdmin();
@@ -330,15 +332,18 @@ function AssignAgentControl({
     setSaving(true);
     try {
       const newId = value === "__unassigned" ? null : value;
-      const { error } = await supabase
-        .from("quote_requests")
-        .update({
-          assigned_agent_id: newId,
-          assigned_at: newId ? new Date().toISOString() : null,
-        })
-        .eq("id", lead.id);
+      const { data, error } = await supabase.functions.invoke("assign-lead", {
+        body: { leadId: lead.id, agentId: newId, notify: true },
+      });
       if (error) throw error;
-      toast.success(newId ? "Lead assigned" : "Lead unassigned");
+      if (data?.error) throw new Error(data.error);
+      toast.success(
+        !newId
+          ? "Lead unassigned"
+          : data?.notified
+            ? "Lead assigned — agent notified by email"
+            : "Lead assigned"
+      );
       refetch();
     } catch (e: any) {
       toast.error(e.message || "Failed to assign lead");
@@ -355,7 +360,7 @@ function AssignAgentControl({
   if (!canAssign) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-muted-foreground">Assigned to:</span>
+        {!compact && <span className="text-muted-foreground">Assigned to:</span>}
         <Badge variant="outline" className={lead.assigned_agent_id ? "bg-primary/10 text-primary border-primary/30" : "bg-muted text-muted-foreground"}>
           {assigneeLabel}
         </Badge>
@@ -370,13 +375,13 @@ function AssignAgentControl({
 
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground whitespace-nowrap">Assigned agent:</span>
+      {!compact && <span className="text-muted-foreground whitespace-nowrap">Assigned agent:</span>}
       <Select
         value={lead.assigned_agent_id || "__unassigned"}
         onValueChange={handleChange}
         disabled={saving}
       >
-        <SelectTrigger className="h-8 w-[220px] text-xs">
+        <SelectTrigger className={compact ? "h-8 w-[150px] text-xs" : "h-8 w-[220px] text-xs"}>
           <SelectValue placeholder="Unassigned" />
         </SelectTrigger>
         <SelectContent>
