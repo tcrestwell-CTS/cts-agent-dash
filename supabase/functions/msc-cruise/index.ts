@@ -272,32 +272,50 @@ Deno.serve(async (req) => {
     }
 
     const params = payload?.params ?? {};
-    const xml = buildXmlRequest(spec.root, buildBody(operation, params));
     const url = `${baseUrl()}${spec.path}`;
 
-    // Agency Login is also how we validate a credential set, so it may be
-    // called with explicit values instead of the stored secrets.
-    const creds = operation === "agencyLogin"
-      ? {
-          userId: params.agentId ?? MSC_USER_ID,
-          agencyId: params.agencyId ?? MSC_AGENCY_ID,
-          password: params.password ?? MSC_PASSWORD,
-        }
-      : { userId: MSC_USER_ID, agencyId: MSC_AGENCY_ID, password: MSC_PASSWORD };
+    async function call(agentId: string) {
+      const body = buildXmlRequest(
+        spec.root,
+        buildBody(operation, operation === "agencyLogin" ? { ...params, agentId } : params),
+      );
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          UserId: agentId,
+          AgencyId: params.agencyId ?? MSC_AGENCY_ID,
+          Password: params.password ?? MSC_PASSWORD,
+          "Content-Type": "application/xml",
+          Accept: "application/xml",
+        },
+        body,
+      });
+      return { res, text: await res.text() };
+    }
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        UserId: creds.userId,
-        AgencyId: creds.agencyId,
-        Password: creds.password,
-        "Content-Type": "application/xml",
-        Accept: "application/xml",
-      },
-      body: xml,
-    });
+    // MSC issues a UserId (login) and an AgentID (booking representative) that
+    // are not always the same string. On Agency Login, if the configured
+    // MSC_USER_ID is rejected, retry with MSC_AGENT_ID before giving up and
+    // report which one the gateway accepted.
+    const candidates: { agentId: string; source: string }[] = [];
+    if (operation === "agencyLogin" && !params.agentId) {
+      if (MSC_USER_ID) candidates.push({ agentId: MSC_USER_ID, source: "MSC_USER_ID" });
+      const msсAgentId = Deno.env.get("MSC_AGENT_ID") ?? "";
+      if (msсAgentId && msсAgentId !== MSC_USER_ID) {
+        candidates.push({ agentId: msсAgentId, source: "MSC_AGENT_ID" });
+      }
+    } else {
+      candidates.push({ agentId: params.agentId ?? MSC_USER_ID, source: "request" });
+    }
 
-    const text = await res.text();
+    let attempt = await call(candidates[0].agentId);
+    let identitySource = candidates[0].source;
+    for (const next of candidates.slice(1)) {
+      if (attempt.res.ok && !parseAdvisory(attempt.text).failed) break;
+      attempt = await call(next.agentId);
+      identitySource = next.source;
+    }
+    const { res, text } = attempt;
 
     if (!res.ok) {
       console.error("MSC transport error", operation, res.status, url, text.slice(0, 1500));
@@ -315,6 +333,7 @@ Deno.serve(async (req) => {
           error: "MSC returned a failure",
           operation,
           advisory: advisory.messages,
+          ...(operation === "agencyLogin" ? { identitySource, environment: MSC_ENV } : {}),
           ...(operation === "agencyLogin" ? { result: parseAgencyLoginResponse(text) } : {}),
         },
         422,
