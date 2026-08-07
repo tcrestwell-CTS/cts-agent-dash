@@ -124,7 +124,7 @@ serve(async (req: Request) => {
         type: "trip_feedback",
         title: `New trip review — ${overall}/5`,
         message: `${context.clientName || "A client"} submitted feedback for ${context.tripName}.`,
-        link: `/trips/${feedback.trip_id}`,
+        trip_id: feedback.trip_id,
       });
     }
 
