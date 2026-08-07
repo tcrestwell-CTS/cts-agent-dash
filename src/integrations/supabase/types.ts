@@ -5822,6 +5822,408 @@ export type Database = {
         }
         Relationships: []
       }
+      msc_cabin_details: {
+        Row: {
+          category_code: string
+          category_name: string | null
+          created_at: string
+          deck: string | null
+          description: string | null
+          experience: string | null
+          id: string
+          occupancy_max: number | null
+          occupancy_min: number | null
+          raw: Json | null
+          ship_code: string
+          updated_at: string
+        }
+        Insert: {
+          category_code: string
+          category_name?: string | null
+          created_at?: string
+          deck?: string | null
+          description?: string | null
+          experience?: string | null
+          id?: string
+          occupancy_max?: number | null
+          occupancy_min?: number | null
+          raw?: Json | null
+          ship_code: string
+          updated_at?: string
+        }
+        Update: {
+          category_code?: string
+          category_name?: string | null
+          created_at?: string
+          deck?: string | null
+          description?: string | null
+          experience?: string | null
+          id?: string
+          occupancy_max?: number | null
+          occupancy_min?: number | null
+          raw?: Json | null
+          ship_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_cruises: {
+        Row: {
+          area_code: string | null
+          created_at: string
+          cruise_id: string
+          disembark_port_code: string | null
+          embark_port_code: string | null
+          id: string
+          is_closed: boolean
+          itinerary_name: string | null
+          market_code: string
+          nights: number | null
+          raw: Json | null
+          region_code: string | null
+          return_date: string | null
+          sail_date: string | null
+          ship_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          area_code?: string | null
+          created_at?: string
+          cruise_id: string
+          disembark_port_code?: string | null
+          embark_port_code?: string | null
+          id?: string
+          is_closed?: boolean
+          itinerary_name?: string | null
+          market_code?: string
+          nights?: number | null
+          raw?: Json | null
+          region_code?: string | null
+          return_date?: string | null
+          sail_date?: string | null
+          ship_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          area_code?: string | null
+          created_at?: string
+          cruise_id?: string
+          disembark_port_code?: string | null
+          embark_port_code?: string | null
+          id?: string
+          is_closed?: boolean
+          itinerary_name?: string | null
+          market_code?: string
+          nights?: number | null
+          raw?: Json | null
+          region_code?: string | null
+          return_date?: string | null
+          sail_date?: string | null
+          ship_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_fares: {
+        Row: {
+          agency_code: string | null
+          cabin_price: number | null
+          category_code: string | null
+          created_at: string
+          cruise_id: string
+          currency_code: string
+          fare_code: string
+          gft_adult: number | null
+          gft_child: number | null
+          gft_infant: number | null
+          id: string
+          is_closed: boolean
+          market_code: string
+          ncf_included: boolean
+          occupancy_key: string
+          price_type: string | null
+          raw: Json | null
+          service_charge_adult_promo: number | null
+          service_charge_adult_standard: number | null
+          service_charge_child_promo: number | null
+          service_charge_child_standard: number | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          agency_code?: string | null
+          cabin_price?: number | null
+          category_code?: string | null
+          created_at?: string
+          cruise_id: string
+          currency_code?: string
+          fare_code: string
+          gft_adult?: number | null
+          gft_child?: number | null
+          gft_infant?: number | null
+          id?: string
+          is_closed?: boolean
+          market_code?: string
+          ncf_included?: boolean
+          occupancy_key: string
+          price_type?: string | null
+          raw?: Json | null
+          service_charge_adult_promo?: number | null
+          service_charge_adult_standard?: number | null
+          service_charge_child_promo?: number | null
+          service_charge_child_standard?: number | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_code?: string | null
+          cabin_price?: number | null
+          category_code?: string | null
+          created_at?: string
+          cruise_id?: string
+          currency_code?: string
+          fare_code?: string
+          gft_adult?: number | null
+          gft_child?: number | null
+          gft_infant?: number | null
+          id?: string
+          is_closed?: boolean
+          market_code?: string
+          ncf_included?: boolean
+          occupancy_key?: string
+          price_type?: string | null
+          raw?: Json | null
+          service_charge_adult_promo?: number | null
+          service_charge_adult_standard?: number | null
+          service_charge_child_promo?: number | null
+          service_charge_child_standard?: number | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_flatfile_sync_runs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          error_message: string | null
+          file_name: string | null
+          finished_at: string | null
+          id: string
+          market_code: string
+          rows_processed: number
+          rows_upserted: number
+          source: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          file_name?: string | null
+          finished_at?: string | null
+          id?: string
+          market_code?: string
+          rows_processed?: number
+          rows_upserted?: number
+          source?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          file_name?: string | null
+          finished_at?: string | null
+          id?: string
+          market_code?: string
+          rows_processed?: number
+          rows_upserted?: number
+          source?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_items: {
+        Row: {
+          applicability: string | null
+          created_at: string
+          cruise_id: string
+          currency_code: string | null
+          fare_code: string | null
+          id: string
+          item_code: string
+          item_name: string | null
+          item_type: string
+          price: number | null
+          raw: Json | null
+          updated_at: string
+        }
+        Insert: {
+          applicability?: string | null
+          created_at?: string
+          cruise_id: string
+          currency_code?: string | null
+          fare_code?: string | null
+          id?: string
+          item_code: string
+          item_name?: string | null
+          item_type: string
+          price?: number | null
+          raw?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          applicability?: string | null
+          created_at?: string
+          cruise_id?: string
+          currency_code?: string | null
+          fare_code?: string | null
+          id?: string
+          item_code?: string
+          item_name?: string | null
+          item_type?: string
+          price?: number | null
+          raw?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_itineraries: {
+        Row: {
+          arrival_time: string | null
+          at_sea: boolean
+          created_at: string
+          cruise_id: string
+          day_date: string | null
+          day_number: number
+          departure_time: string | null
+          id: string
+          port_code: string | null
+          raw: Json | null
+          updated_at: string
+        }
+        Insert: {
+          arrival_time?: string | null
+          at_sea?: boolean
+          created_at?: string
+          cruise_id: string
+          day_date?: string | null
+          day_number: number
+          departure_time?: string | null
+          id?: string
+          port_code?: string | null
+          raw?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          arrival_time?: string | null
+          at_sea?: boolean
+          created_at?: string
+          cruise_id?: string
+          day_date?: string | null
+          day_number?: number
+          departure_time?: string | null
+          id?: string
+          port_code?: string | null
+          raw?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_ports: {
+        Row: {
+          city_name: string | null
+          country_code: string | null
+          country_name: string | null
+          created_at: string
+          id: string
+          language_code: string | null
+          latitude: number | null
+          longitude: number | null
+          port_code: string
+          port_name: string | null
+          raw: Json | null
+          region_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          city_name?: string | null
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          id?: string
+          language_code?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          port_code: string
+          port_name?: string | null
+          raw?: Json | null
+          region_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city_name?: string | null
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          id?: string
+          language_code?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          port_code?: string
+          port_name?: string | null
+          raw?: Json | null
+          region_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      msc_ships: {
+        Row: {
+          brand: string | null
+          capacity: number | null
+          created_at: string
+          id: string
+          raw: Json | null
+          ship_code: string
+          ship_name: string | null
+          tonnage: number | null
+          updated_at: string
+          year_built: number | null
+        }
+        Insert: {
+          brand?: string | null
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          raw?: Json | null
+          ship_code: string
+          ship_name?: string | null
+          tonnage?: number | null
+          updated_at?: string
+          year_built?: number | null
+        }
+        Update: {
+          brand?: string | null
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          raw?: Json | null
+          ship_code?: string
+          ship_name?: string | null
+          tonnage?: number | null
+          updated_at?: string
+          year_built?: number | null
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           active: boolean | null
