@@ -5157,7 +5157,10 @@ export type Database = {
         Row: {
           arrival_city_code: string | null
           booking_id: string | null
+          booking_status: string | null
           category: string
+          commission_amount: number | null
+          confirmation_number: string | null
           created_at: string
           day_number: number
           departure_city_code: string | null
@@ -5177,6 +5180,8 @@ export type Database = {
           option_block_id: string | null
           sort_order: number
           start_time: string | null
+          supplier_cost: number | null
+          supplier_name: string | null
           thumbnail_url: string | null
           title: string
           trip_id: string
@@ -5186,7 +5191,10 @@ export type Database = {
         Insert: {
           arrival_city_code?: string | null
           booking_id?: string | null
+          booking_status?: string | null
           category?: string
+          commission_amount?: number | null
+          confirmation_number?: string | null
           created_at?: string
           day_number: number
           departure_city_code?: string | null
@@ -5206,6 +5214,8 @@ export type Database = {
           option_block_id?: string | null
           sort_order?: number
           start_time?: string | null
+          supplier_cost?: number | null
+          supplier_name?: string | null
           thumbnail_url?: string | null
           title: string
           trip_id: string
@@ -5215,7 +5225,10 @@ export type Database = {
         Update: {
           arrival_city_code?: string | null
           booking_id?: string | null
+          booking_status?: string | null
           category?: string
+          commission_amount?: number | null
+          confirmation_number?: string | null
           created_at?: string
           day_number?: number
           departure_city_code?: string | null
@@ -5235,6 +5248,8 @@ export type Database = {
           option_block_id?: string | null
           sort_order?: number
           start_time?: string | null
+          supplier_cost?: number | null
+          supplier_name?: string | null
           thumbnail_url?: string | null
           title?: string
           trip_id?: string
