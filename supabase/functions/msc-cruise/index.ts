@@ -2,6 +2,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildXmlRequest, parseAdvisory, readTag, type XmlNode } from "../_shared/msc-xml.ts";
 import { parseSearchCruisesResponse } from "../_shared/msc-search-parse.ts";
+import { parseAgencyLoginResponse } from "../_shared/msc-agency-login.ts";
 
 /**
  * MSC Cruises API 3.0 proxy (Phase 2).
@@ -31,6 +32,7 @@ function baseUrl(): string {
 
 /** Confirmed endpoint paths. Paths marked null are still pending from MSC. */
 const OPERATIONS: Record<string, { path: string | null; root: string }> = {
+  agencyLogin: { path: "/mscbee/services/agency/agencylogin", root: "DtsAgencyLoginMessage" },
   originAirports: { path: "/mscbee/services/air/originairports", root: "DtsOriginAirportsListRequest" },
   searchCruises: { path: "/mscbee/services/shoprequest/searchcruisesV1/", root: "DtsSearchCruisesV1" },
   shopRequest: { path: "/mscbee/services/shoprequest/shoprequestV1/", root: "DtsShopRequestMessageV1" },
