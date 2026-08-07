@@ -260,6 +260,7 @@ const handler = async (req: Request): Promise<Response> => {
         break;
 
       case "agent_invitation":
+        break;
         const inviteUrl = templateData?.inviteUrl || "#";
         const inviterName = templateData?.inviterName || "An administrator";
         const expiresIn = templateData?.expiresIn || "7 days";
