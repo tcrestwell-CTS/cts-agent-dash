@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
     const agentEmail = agentUser?.user?.email;
     if (agentEmail) {
       const { error: mailErr } = await admin.functions.invoke("send-email", {
+        headers: { Authorization: authHeader },
         body: {
           to: agentEmail,
           subject: `New lead assigned: ${leadName}`,
