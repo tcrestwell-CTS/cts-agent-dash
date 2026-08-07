@@ -111,6 +111,73 @@ function bookingContext(p: Record<string, any>): XmlNode {
 }
 
 function buildBody(operation: string, p: Record<string, any>): XmlNode {
+  return dispatchBody(operation, p);
+}
+
+/**
+ * "One Step Booking" — create a QUOTATION in a single call using only cached
+ * fare/item data. MSC requires the chosen fare to be flagged CRUISE-ONLY and
+ * NOW-AVL in the cache; the caller is expected to have filtered on those.
+ * CabinNo G00000 asks MSC to auto-assign within the category.
+ */
+function oneStepBookingBody(p: Record<string, any>): XmlNode {
+  const personNos = (p.participants ?? []).map((_: unknown, i: number) => i + 1).join(",");
+
+  const packageItems = (p.packageItems ?? []).map((item: Record<string, any>) => ({
+    ItemType: item.itemType,
+    ItemCode: item.itemCode,
+    CategoryCode: item.categoryCode ?? "",
+    StartDate: item.startDate ?? p.sailDate,
+    EndDate: item.endDate ?? p.sailDate,
+    // APPLY-PAX '*' in the cache means "everyone".
+    PersonNo: !item.paxApplicability || item.paxApplicability === "*" ? personNos : item.paxApplicability,
+  }));
+
+  return {
+    Itinerary: p.itinerary,
+    BookingAction: { BookOrQuote: "Q" },
+    BookingContext: bookingContext(p),
+    BookingAddress: {
+      AddressLine1: p.address?.line1 ?? "",
+      AddressLine2: p.address?.line2 ?? "",
+      Email: p.address?.email ?? "",
+    },
+    SpecialNeedCodeList: { SpecialNeedCode: p.specialNeedCodes ?? ",,,,,,,,," },
+    ParticipantList: {
+      ParticipantData: (p.participants ?? []).map((pax: Record<string, any>, i: number) => ({
+        PersonNo: i + 1,
+        LastName: pax.lastName,
+        FirstName: pax.firstName,
+        PersonType: pax.personType ?? "A",
+        PassportData: { PersonNo: i + 1 },
+        ParticipantAddress: { PersonNo: i + 1 },
+        CouponCode: pax.couponCode ?? "",
+        ...(i === 0 ? { LeadPax: "Y" } : {}),
+      })),
+    },
+    ComponentsToBook: {
+      ComponentDetails: {
+        ItemType: "CRU",
+        ItemCode: p.cruiseId,
+        CategoryCode: p.categoryCode,
+        PromotionCode: p.fareCode,
+        CabinNo: p.cabinNo ?? "G00000",
+        PersonNo: personNos,
+        ...(p.packageCode
+          ? {
+              PackageItemDefinition: {
+                PackageCode: p.packageCode,
+                PackageItemDetails: packageItems,
+              },
+            }
+          : {}),
+        Dining: { Room: p.dining?.room ?? "M", Seating: p.dining?.seating ?? "N" },
+      },
+    },
+  };
+}
+
+function dispatchBody(operation: string, p: Record<string, any>): XmlNode {
   switch (operation) {
     case "searchCruises":
       return searchCruisesBody(p);
