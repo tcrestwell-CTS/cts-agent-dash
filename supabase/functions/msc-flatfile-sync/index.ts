@@ -159,6 +159,10 @@ function mapFares(rows: Record<string, string>[], market: string, source: Source
     const fareCode = pickField(row, "FARE-CD", "FARECD", "PRICE-CD");
     if (!cruiseId || !fareCode) continue;
     const category = pickField(row, "CAT-CD", "CATEGORY", "CATEGORY-CD") || "";
+    // MSC gates "one step" quoting on these two flags.
+    const yes = (v: string) => /^(y|yes|true|1)$/i.test(v.trim());
+    const cruiseOnly = yes(pickField(row, "CRUISE-ONLY", "CRUISEONLY"));
+    const nowAvailable = yes(pickField(row, "NOW-AVL", "NOWAVL", "NOW-AVAILABLE"));
 
     // The flat file carries one column per occupancy combination (27 combos).
     for (const [adults, children] of [[1, 0], [2, 0], [2, 1], [2, 2], [3, 0], [4, 0]]) {
@@ -171,6 +175,9 @@ function mapFares(rows: Record<string, string>[], market: string, source: Source
         price_type: pickField(row, "PRICE-TYPE", "PRICETYPE") || null,
         category_code: category,
         occupancy_key: key,
+        fare_description: pickField(row, "FARE-DES", "FARE-DESC", "FARE-DESCRIPTION") || null,
+        cruise_only: cruiseOnly,
+        now_available: nowAvailable,
         cabin_price: parseMoney(raw),
         gft_adult: parseMoney(pickField(row, "GFT-A")),
         gft_child: parseMoney(pickField(row, "GFT-C")),
@@ -203,6 +210,9 @@ function mapItems(rows: Record<string, string>[]) {
         item_type: item.type,
         item_code: item.code,
         applicability: item.applicability,
+        package_code: pickField(row, "PACKAGE-CODE", "PACKAGE-CD", "PACKAGE CO") || null,
+        // APPLY-PAX drives PersonNo in a One Step Booking payload; '*' = all pax.
+        pax_applicability: pickField(row, "APPLY-PAX", "APPLYPAX") || item.applicability || null,
       });
     }
   }

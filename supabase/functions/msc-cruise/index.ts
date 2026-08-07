@@ -34,6 +34,9 @@ const OPERATIONS: Record<string, { path: string | null; root: string }> = {
   searchCruises: { path: "/mscbee/services/shoprequest/searchcruisesV1/", root: "DtsSearchCruisesV1" },
   shopRequest: { path: "/mscbee/services/shoprequest/shoprequestV1/", root: "DtsShopRequestMessageV1" },
   book: { path: "/mscbee/services/booking/bookRequestV1/", root: "DtsBookRequestMessageV1" },
+  // "One Step Booking": same endpoint/root as book, but assembled entirely
+  // from cached fare data and forced into QUOTATION status.
+  oneStepBooking: { path: "/mscbee/services/booking/bookRequestV1/", root: "DtsBookRequestMessageV1" },
   retrieveBooking: { path: "/mscbee/services/cruiseBooking/getBookings/", root: "DtsRetrieveBookingRequestMessage" },
   // Paths not captured in the documentation pack — awaiting MSC.
   discountPaxType: { path: null, root: "DtsDiscountPaxType" },
@@ -76,6 +79,12 @@ function searchCruisesBody(p: Record<string, any>): XmlNode {
     NoofAdults: p.adults ?? 2,
     NoofChildren: p.children ?? 0,
     CruiseID: p.cruiseId,
+    // MSC's prescribed approach: search is called with the CruiseID AND the
+    // FARE-CD from the cache in PromotionCode. Omitting it makes the gateway
+    // fan out across every promotion and is what gets calls throttled.
+    PromotionCode: p.promotionCode ?? p.fareCode,
+    PaxType: p.paxType,
+    Discount: p.discountCode,
     // Always send the reduced-payload filters: MSC added them to cut response
     // size and error rates.
     PriceTypes: p.priceTypes?.length ? { PriceType: p.priceTypes } : undefined,
@@ -102,9 +111,78 @@ function bookingContext(p: Record<string, any>): XmlNode {
 }
 
 function buildBody(operation: string, p: Record<string, any>): XmlNode {
+  return dispatchBody(operation, p);
+}
+
+/**
+ * "One Step Booking" — create a QUOTATION in a single call using only cached
+ * fare/item data. MSC requires the chosen fare to be flagged CRUISE-ONLY and
+ * NOW-AVL in the cache; the caller is expected to have filtered on those.
+ * CabinNo G00000 asks MSC to auto-assign within the category.
+ */
+function oneStepBookingBody(p: Record<string, any>): XmlNode {
+  const personNos = (p.participants ?? []).map((_: unknown, i: number) => i + 1).join(",");
+
+  const packageItems = (p.packageItems ?? []).map((item: Record<string, any>) => ({
+    ItemType: item.itemType,
+    ItemCode: item.itemCode,
+    CategoryCode: item.categoryCode ?? "",
+    StartDate: item.startDate ?? p.sailDate,
+    EndDate: item.endDate ?? p.sailDate,
+    // APPLY-PAX '*' in the cache means "everyone".
+    PersonNo: !item.paxApplicability || item.paxApplicability === "*" ? personNos : item.paxApplicability,
+  }));
+
+  return {
+    Itinerary: p.itinerary,
+    BookingAction: { BookOrQuote: "Q" },
+    BookingContext: bookingContext(p),
+    BookingAddress: {
+      AddressLine1: p.address?.line1 ?? "",
+      AddressLine2: p.address?.line2 ?? "",
+      Email: p.address?.email ?? "",
+    },
+    SpecialNeedCodeList: { SpecialNeedCode: p.specialNeedCodes ?? ",,,,,,,,," },
+    ParticipantList: {
+      ParticipantData: (p.participants ?? []).map((pax: Record<string, any>, i: number) => ({
+        PersonNo: i + 1,
+        LastName: pax.lastName,
+        FirstName: pax.firstName,
+        PersonType: pax.personType ?? "A",
+        PassportData: { PersonNo: i + 1 },
+        ParticipantAddress: { PersonNo: i + 1 },
+        CouponCode: pax.couponCode ?? "",
+        ...(i === 0 ? { LeadPax: "Y" } : {}),
+      })),
+    },
+    ComponentsToBook: {
+      ComponentDetails: {
+        ItemType: "CRU",
+        ItemCode: p.cruiseId,
+        CategoryCode: p.categoryCode,
+        PromotionCode: p.fareCode,
+        CabinNo: p.cabinNo ?? "G00000",
+        PersonNo: personNos,
+        ...(p.packageCode
+          ? {
+              PackageItemDefinition: {
+                PackageCode: p.packageCode,
+                PackageItemDetails: packageItems,
+              },
+            }
+          : {}),
+        Dining: { Room: p.dining?.room ?? "M", Seating: p.dining?.seating ?? "N" },
+      },
+    },
+  };
+}
+
+function dispatchBody(operation: string, p: Record<string, any>): XmlNode {
   switch (operation) {
     case "searchCruises":
       return searchCruisesBody(p);
+    case "oneStepBooking":
+      return oneStepBookingBody(p);
     case "originAirports":
       return { ...bookingContext(p), CruiseID: p.cruiseId };
     case "retrieveBooking":
