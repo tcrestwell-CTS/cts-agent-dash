@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
             tripType: lead.trip_type || "—",
             departureDate: lead.departure_date || "—",
             budget: lead.budget ? String(lead.budget) : "—",
-            leadScore: lead.lead_score != null ? String(lead.lead_score) : "—",
+            leadScore: lead.ai_score != null ? String(lead.ai_score) : "—",
             leadUrl: `https://app.crestwelltravels.com/leads?lead=${lead.id}`,
           },
         },
