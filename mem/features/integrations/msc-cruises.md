@@ -3,7 +3,7 @@ name: MSC Cruises API 3.0
 description: MSC integration architecture — Cache REST feed for search (Flat File deprecated), live POX API for booking only, price arithmetic rules
 type: feature
 ---
-MSC API 3.0 is **stateless plain XML over HTTPS** (no SOAP/WSDL, no session, no mTLS). Auth is three headers on every call: `UserId`, `AgencyId`, `Password`. Test base `https://layer7test.msccruises.com/test`; production base must come from MSC (`MSC_BASE_URL`).
+MSC API 3.0 is **stateless plain XML over HTTPS** (no SOAP/WSDL, no session, no mTLS). Auth is three headers on every call: `UserId`, `AgencyId`, `Password`. Test base `https://layer7test.msccruises.com/test`; production base `https://layer7prod.msccruises.com` (NO path prefix — `/prod`, `/prd`, `/live` all return Layer7 `Policy Falsified`). Stored in `MSC_BASE_URL`, with `MSC_ENV=production`.
 
 **Flat File 3.0 is DEPRECATED (MSC, Aug 2026)** — decommissioned during 2027, not for new implementations. The replacement source for the local cache is **MSC Cache REST**. Do not build new work against Flat File; `msc-flatfile-sync` is legacy and to be replaced by a Cache REST sync job.
 
