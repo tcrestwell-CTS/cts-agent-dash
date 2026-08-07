@@ -245,7 +245,12 @@ Deno.serve(async (req) => {
     const user = await requireUser(req);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    if (!MSC_USER_ID || !MSC_AGENCY_ID || !MSC_PASSWORD) {
+    const payload = await req.json().catch(() => ({}));
+    const operation = String(payload?.operation ?? "");
+    const explicitCreds = operation === "agencyLogin" &&
+      Boolean(payload?.params?.agencyId && payload?.params?.agentId && payload?.params?.password);
+
+    if (!explicitCreds && (!MSC_USER_ID || !MSC_AGENCY_ID || !MSC_PASSWORD)) {
       return json(
         {
           error: "MSC credentials are not configured",
@@ -258,9 +263,6 @@ Deno.serve(async (req) => {
         503,
       );
     }
-
-    const payload = await req.json().catch(() => ({}));
-    const operation = String(payload?.operation ?? "");
     const spec = OPERATIONS[operation];
     if (!spec) {
       return json({ error: `Unknown operation: ${operation}`, supported: Object.keys(OPERATIONS) }, 400);
@@ -308,7 +310,15 @@ Deno.serve(async (req) => {
     // HTTP 200 is not success — AdvisoryInfo decides.
     const advisory = parseAdvisory(text);
     if (advisory.failed) {
-      return json({ error: "MSC returned a failure", operation, advisory: advisory.messages }, 422);
+      return json(
+        {
+          error: "MSC returned a failure",
+          operation,
+          advisory: advisory.messages,
+          ...(operation === "agencyLogin" ? { result: parseAgencyLoginResponse(text) } : {}),
+        },
+        422,
+      );
     }
 
     return json({
