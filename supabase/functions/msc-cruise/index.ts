@@ -34,6 +34,9 @@ const OPERATIONS: Record<string, { path: string | null; root: string }> = {
   searchCruises: { path: "/mscbee/services/shoprequest/searchcruisesV1/", root: "DtsSearchCruisesV1" },
   shopRequest: { path: "/mscbee/services/shoprequest/shoprequestV1/", root: "DtsShopRequestMessageV1" },
   book: { path: "/mscbee/services/booking/bookRequestV1/", root: "DtsBookRequestMessageV1" },
+  // "One Step Booking": same endpoint/root as book, but assembled entirely
+  // from cached fare data and forced into QUOTATION status.
+  oneStepBooking: { path: "/mscbee/services/booking/bookRequestV1/", root: "DtsBookRequestMessageV1" },
   retrieveBooking: { path: "/mscbee/services/cruiseBooking/getBookings/", root: "DtsRetrieveBookingRequestMessage" },
   // Paths not captured in the documentation pack — awaiting MSC.
   discountPaxType: { path: null, root: "DtsDiscountPaxType" },
@@ -76,6 +79,12 @@ function searchCruisesBody(p: Record<string, any>): XmlNode {
     NoofAdults: p.adults ?? 2,
     NoofChildren: p.children ?? 0,
     CruiseID: p.cruiseId,
+    // MSC's prescribed approach: search is called with the CruiseID AND the
+    // FARE-CD from the cache in PromotionCode. Omitting it makes the gateway
+    // fan out across every promotion and is what gets calls throttled.
+    PromotionCode: p.promotionCode ?? p.fareCode,
+    PaxType: p.paxType,
+    Discount: p.discountCode,
     // Always send the reduced-payload filters: MSC added them to cut response
     // size and error rates.
     PriceTypes: p.priceTypes?.length ? { PriceType: p.priceTypes } : undefined,
@@ -105,6 +114,8 @@ function buildBody(operation: string, p: Record<string, any>): XmlNode {
   switch (operation) {
     case "searchCruises":
       return searchCruisesBody(p);
+    case "oneStepBooking":
+      return oneStepBookingBody(p);
     case "originAirports":
       return { ...bookingContext(p), CruiseID: p.cruiseId };
     case "retrieveBooking":
