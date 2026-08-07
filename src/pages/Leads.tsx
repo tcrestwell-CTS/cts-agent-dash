@@ -1005,8 +1005,8 @@ export default function Leads() {
                   <TableHead>Trip</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Stage</TableHead>
-                  <TableHead>Assigned To</TableHead>
                   <TableHead className="hidden lg:table-cell">AI Summary</TableHead>
+                  <TableHead>Assigned To</TableHead>
                   <TableHead className="hidden md:table-cell">Next Action</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
