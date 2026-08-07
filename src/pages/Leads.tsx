@@ -1005,6 +1005,7 @@ export default function Leads() {
                   <TableHead>Trip</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Stage</TableHead>
+                  <TableHead>Assigned To</TableHead>
                   <TableHead className="hidden lg:table-cell">AI Summary</TableHead>
                   <TableHead className="hidden md:table-cell">Next Action</TableHead>
                   <TableHead>Date</TableHead>
@@ -1014,11 +1015,11 @@ export default function Leads() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Loading leads...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Loading leads...</TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No leads found</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">No leads found</TableCell>
                   </TableRow>
                 ) : (
                   filtered.map((lead) => {
@@ -1059,6 +1060,9 @@ export default function Leads() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell max-w-[200px]">
                           <p className="text-xs text-muted-foreground truncate">{lead.ai_summary || "—"}</p>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <AssignAgentControl lead={lead} refetch={refetch} compact />
                         </TableCell>
                         <TableCell className="hidden md:table-cell max-w-[200px]">
                           <p className="text-xs text-muted-foreground truncate">{lead.ai_next_action || "—"}</p>
