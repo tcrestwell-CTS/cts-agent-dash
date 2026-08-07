@@ -159,7 +159,24 @@ const TripDetail = () => {
   const [editingItinerary, setEditingItinerary] = useState<Itinerary | null>(null);
   const [editApprovedAnyway, setEditApprovedAnyway] = useState(false);
 
-  useEffect(() => { setEditApprovedAnyway(false); }, [activeId]);
+  // Persist the unlock per itinerary so edits (e.g. adding photos) survive a reload
+  useEffect(() => {
+    if (!activeId) { setEditApprovedAnyway(false); return; }
+    try {
+      setEditApprovedAnyway(localStorage.getItem(`itinerary-unlocked:${activeId}`) === "1");
+    } catch {
+      setEditApprovedAnyway(false);
+    }
+  }, [activeId]);
+
+  const setItineraryUnlocked = useCallback((unlocked: boolean) => {
+    setEditApprovedAnyway(unlocked);
+    if (!activeId) return;
+    try {
+      if (unlocked) localStorage.setItem(`itinerary-unlocked:${activeId}`, "1");
+      else localStorage.removeItem(`itinerary-unlocked:${activeId}`);
+    } catch { /* ignore */ }
+  }, [activeId]);
 
   const activeItinerary = useMemo(
     () => itineraries.find((i) => i.id === activeId),
