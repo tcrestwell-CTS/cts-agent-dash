@@ -210,6 +210,9 @@ function mapItems(rows: Record<string, string>[]) {
         item_type: item.type,
         item_code: item.code,
         applicability: item.applicability,
+        package_code: pickField(row, "PACKAGE-CODE", "PACKAGE-CD", "PACKAGE CO") || null,
+        // APPLY-PAX drives PersonNo in a One Step Booking payload; '*' = all pax.
+        pax_applicability: pickField(row, "APPLY-PAX", "APPLYPAX") || item.applicability || null,
       });
     }
   }
