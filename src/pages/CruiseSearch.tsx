@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Filter } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Filter, Globe, Ship } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,6 +13,7 @@ import { FilterSidebar } from "@/components/cruise-search/FilterSidebar";
 import { CruiseResults } from "@/components/cruise-search/CruiseResults";
 import { CompareDrawer } from "@/components/cruise-search/CompareDrawer";
 import { CruiseDetailsModal } from "@/components/cruise-search/CruiseDetailsModal";
+import { MscCruiseSearch } from "@/components/cruise-search/msc/MscCruiseSearch";
 import {
   AVAILABLE_DESTINATIONS,
   DEFAULT_FILTERS,
