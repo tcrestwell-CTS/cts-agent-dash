@@ -259,6 +259,42 @@ const handler = async (req: Request): Promise<Response> => {
         `;
         break;
 
+      case "lead_assigned": {
+        const laAgentName = templateData?.agentName || "there";
+        const laLeadName = templateData?.leadName || "New lead";
+        const laLeadEmail = templateData?.leadEmail || "—";
+        const laLeadPhone = templateData?.leadPhone || "—";
+        const laDestination = templateData?.destination || "—";
+        const laTripType = templateData?.tripType || "—";
+        const laDeparture = templateData?.departureDate || "—";
+        const laBudget = templateData?.budget || "—";
+        const laScore = templateData?.leadScore || "—";
+        const laUrl = templateData?.leadUrl || "#";
+        emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            ${buildBannerHtml("New Lead Assigned 🎯")}
+            <div style="padding: 24px;">
+            <p style="color: #4b5563; line-height: 1.6;">Hi ${laAgentName},</p>
+            <p style="color: #4b5563; line-height: 1.6;">A new lead has been assigned to you. Please reach out as soon as possible.</p>
+            <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 8px 0; color: #374151;"><strong>Lead:</strong> ${laLeadName}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Email:</strong> ${laLeadEmail}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Phone:</strong> ${laLeadPhone}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Destination:</strong> ${laDestination}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Trip type:</strong> ${laTripType}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Departure:</strong> ${laDeparture}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Budget:</strong> ${laBudget}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Lead score:</strong> ${laScore}</p>
+            </div>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${laUrl}" style="background-color: ${primaryColor}; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Open Lead</a>
+            </div>
+            ${footerHtml}
+          </div>
+        `;
+        break;
+      }
+
       case "agent_invitation":
         const inviteUrl = templateData?.inviteUrl || "#";
         const inviterName = templateData?.inviterName || "An administrator";

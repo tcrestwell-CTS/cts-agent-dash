@@ -301,9 +301,11 @@ function ScoreBar({ score }: { score: number | null }) {
 function AssignAgentControl({
   lead,
   refetch,
+  compact = false,
 }: {
   lead: QuoteRequest;
   refetch: () => void;
+  compact?: boolean;
 }) {
   const { user } = useAuth();
   const { data: isAdmin } = useIsAdmin();
@@ -330,15 +332,18 @@ function AssignAgentControl({
     setSaving(true);
     try {
       const newId = value === "__unassigned" ? null : value;
-      const { error } = await supabase
-        .from("quote_requests")
-        .update({
-          assigned_agent_id: newId,
-          assigned_at: newId ? new Date().toISOString() : null,
-        })
-        .eq("id", lead.id);
+      const { data, error } = await supabase.functions.invoke("assign-lead", {
+        body: { leadId: lead.id, agentId: newId, notify: true },
+      });
       if (error) throw error;
-      toast.success(newId ? "Lead assigned" : "Lead unassigned");
+      if (data?.error) throw new Error(data.error);
+      toast.success(
+        !newId
+          ? "Lead unassigned"
+          : data?.notified
+            ? "Lead assigned — agent notified by email"
+            : "Lead assigned"
+      );
       refetch();
     } catch (e: any) {
       toast.error(e.message || "Failed to assign lead");
@@ -355,7 +360,7 @@ function AssignAgentControl({
   if (!canAssign) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-muted-foreground">Assigned to:</span>
+        {!compact && <span className="text-muted-foreground">Assigned to:</span>}
         <Badge variant="outline" className={lead.assigned_agent_id ? "bg-primary/10 text-primary border-primary/30" : "bg-muted text-muted-foreground"}>
           {assigneeLabel}
         </Badge>
@@ -370,13 +375,13 @@ function AssignAgentControl({
 
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground whitespace-nowrap">Assigned agent:</span>
+      {!compact && <span className="text-muted-foreground whitespace-nowrap">Assigned agent:</span>}
       <Select
         value={lead.assigned_agent_id || "__unassigned"}
         onValueChange={handleChange}
         disabled={saving}
       >
-        <SelectTrigger className="h-8 w-[220px] text-xs">
+        <SelectTrigger className={compact ? "h-8 w-[150px] text-xs" : "h-8 w-[220px] text-xs"}>
           <SelectValue placeholder="Unassigned" />
         </SelectTrigger>
         <SelectContent>
@@ -1001,6 +1006,7 @@ export default function Leads() {
                   <TableHead>Score</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead className="hidden lg:table-cell">AI Summary</TableHead>
+                  <TableHead>Assigned To</TableHead>
                   <TableHead className="hidden md:table-cell">Next Action</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
@@ -1009,11 +1015,11 @@ export default function Leads() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Loading leads...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Loading leads...</TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No leads found</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">No leads found</TableCell>
                   </TableRow>
                 ) : (
                   filtered.map((lead) => {
@@ -1054,6 +1060,9 @@ export default function Leads() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell max-w-[200px]">
                           <p className="text-xs text-muted-foreground truncate">{lead.ai_summary || "—"}</p>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <AssignAgentControl lead={lead} refetch={refetch} compact />
                         </TableCell>
                         <TableCell className="hidden md:table-cell max-w-[200px]">
                           <p className="text-xs text-muted-foreground truncate">{lead.ai_next_action || "—"}</p>
