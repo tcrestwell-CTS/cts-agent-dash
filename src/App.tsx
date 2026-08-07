@@ -70,6 +70,7 @@ const Scheduling          = lazy(() => import("./pages/Scheduling"));
 const BookMeeting         = lazy(() => import("./pages/BookMeeting"));
 const IntakeForms         = lazy(() => import("./pages/IntakeForms"));
 const PublicIntakeForm    = lazy(() => import("./pages/PublicIntakeForm"));
+const TripFeedback        = lazy(() => import("./pages/TripFeedback"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
 const FlightMonitoring    = lazy(() => import("./pages/FlightMonitoring"));
@@ -221,6 +222,7 @@ const App = () => (
                 <Route path="/book/:slug" element={<BookMeeting />} />
                 <Route path="/forms" element={<ProtectedRoute><IntakeForms /></ProtectedRoute>} />
                 <Route path="/intake/:slug" element={<PublicIntakeForm />} />
+                <Route path="/trip-feedback" element={<TripFeedback />} />
                 <Route path="/suppliers" element={<ProtectedRoute><FeatureRoute feature="suppliers"><Suppliers /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips" element={<ProtectedRoute><FeatureRoute feature="trips"><Trips /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/trips/:tripId" element={<ProtectedRoute><FeatureRoute feature="trips"><TripDetail /></FeatureRoute></ProtectedRoute>} />

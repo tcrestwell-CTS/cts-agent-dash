@@ -8661,6 +8661,88 @@ export type Database = {
           },
         ]
       }
+      trip_feedback: {
+        Row: {
+          accommodations_rating: number | null
+          activities_rating: number | null
+          allow_public_use: boolean | null
+          client_id: string | null
+          communication_rating: number | null
+          created_at: string
+          id: string
+          overall_rating: number | null
+          private_comments: string | null
+          review_text: string | null
+          submitted_at: string | null
+          token: string
+          trip_id: string
+          updated_at: string
+          user_id: string | null
+          value_rating: number | null
+          would_recommend: boolean | null
+        }
+        Insert: {
+          accommodations_rating?: number | null
+          activities_rating?: number | null
+          allow_public_use?: boolean | null
+          client_id?: string | null
+          communication_rating?: number | null
+          created_at?: string
+          id?: string
+          overall_rating?: number | null
+          private_comments?: string | null
+          review_text?: string | null
+          submitted_at?: string | null
+          token?: string
+          trip_id: string
+          updated_at?: string
+          user_id?: string | null
+          value_rating?: number | null
+          would_recommend?: boolean | null
+        }
+        Update: {
+          accommodations_rating?: number | null
+          activities_rating?: number | null
+          allow_public_use?: boolean | null
+          client_id?: string | null
+          communication_rating?: number | null
+          created_at?: string
+          id?: string
+          overall_rating?: number | null
+          private_comments?: string | null
+          review_text?: string | null
+          submitted_at?: string | null
+          token?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string | null
+          value_rating?: number | null
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_feedback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_feedback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_feedback_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_insurance_quotes: {
         Row: {
           coverage_amount: number | null
