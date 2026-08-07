@@ -2,6 +2,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildXmlRequest, parseAdvisory, readTag, type XmlNode } from "../_shared/msc-xml.ts";
 import { parseSearchCruisesResponse } from "../_shared/msc-search-parse.ts";
+import { parseAgencyLoginResponse } from "../_shared/msc-agency-login.ts";
 
 /**
  * MSC Cruises API 3.0 proxy (Phase 2).
@@ -31,6 +32,7 @@ function baseUrl(): string {
 
 /** Confirmed endpoint paths. Paths marked null are still pending from MSC. */
 const OPERATIONS: Record<string, { path: string | null; root: string }> = {
+  agencyLogin: { path: "/mscbee/services/agency/agencylogin", root: "DtsAgencyLoginMessage" },
   originAirports: { path: "/mscbee/services/air/originairports", root: "DtsOriginAirportsListRequest" },
   searchCruises: { path: "/mscbee/services/shoprequest/searchcruisesV1/", root: "DtsSearchCruisesV1" },
   shopRequest: { path: "/mscbee/services/shoprequest/shoprequestV1/", root: "DtsShopRequestMessageV1" },
@@ -199,6 +201,17 @@ function oneStepBookingBody(p: Record<string, any>): XmlNode {
 
 function dispatchBody(operation: string, p: Record<string, any>): XmlNode {
   switch (operation) {
+    case "agencyLogin":
+      // xs:sequence — AgencyID, AgentID, Agentpasswd, AgentpasswdDTS,
+      // AgentpasswdNew, then the optional BookingContext.
+      return {
+        AgencyID: p.agencyId ?? MSC_AGENCY_ID,
+        AgentID: p.agentId ?? MSC_USER_ID,
+        Agentpasswd: p.password ?? MSC_PASSWORD,
+        AgentpasswdDTS: p.passwordDts ?? "",
+        ...(p.newPassword ? { AgentpasswdNew: p.newPassword } : {}),
+        BookingContext: { BookingChannel: "XML" },
+      };
     case "searchCruises":
       return searchCruisesBody(p);
     case "oneStepBooking":
@@ -232,7 +245,12 @@ Deno.serve(async (req) => {
     const user = await requireUser(req);
     if (!user) return json({ error: "Unauthorized" }, 401);
 
-    if (!MSC_USER_ID || !MSC_AGENCY_ID || !MSC_PASSWORD) {
+    const payload = await req.json().catch(() => ({}));
+    const operation = String(payload?.operation ?? "");
+    const explicitCreds = operation === "agencyLogin" &&
+      Boolean(payload?.params?.agencyId && payload?.params?.agentId && payload?.params?.password);
+
+    if (!explicitCreds && (!MSC_USER_ID || !MSC_AGENCY_ID || !MSC_PASSWORD)) {
       return json(
         {
           error: "MSC credentials are not configured",
@@ -245,9 +263,6 @@ Deno.serve(async (req) => {
         503,
       );
     }
-
-    const payload = await req.json().catch(() => ({}));
-    const operation = String(payload?.operation ?? "");
     const spec = OPERATIONS[operation];
     if (!spec) {
       return json({ error: `Unknown operation: ${operation}`, supported: Object.keys(OPERATIONS) }, 400);
@@ -256,15 +271,26 @@ Deno.serve(async (req) => {
       return json({ error: `Endpoint path for ${operation} has not been supplied by MSC yet` }, 501);
     }
 
-    const xml = buildXmlRequest(spec.root, buildBody(operation, payload?.params ?? {}));
+    const params = payload?.params ?? {};
+    const xml = buildXmlRequest(spec.root, buildBody(operation, params));
     const url = `${baseUrl()}${spec.path}`;
+
+    // Agency Login is also how we validate a credential set, so it may be
+    // called with explicit values instead of the stored secrets.
+    const creds = operation === "agencyLogin"
+      ? {
+          userId: params.agentId ?? MSC_USER_ID,
+          agencyId: params.agencyId ?? MSC_AGENCY_ID,
+          password: params.password ?? MSC_PASSWORD,
+        }
+      : { userId: MSC_USER_ID, agencyId: MSC_AGENCY_ID, password: MSC_PASSWORD };
 
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        UserId: MSC_USER_ID,
-        AgencyId: MSC_AGENCY_ID,
-        Password: MSC_PASSWORD,
+        UserId: creds.userId,
+        AgencyId: creds.agencyId,
+        Password: creds.password,
         "Content-Type": "application/xml",
         Accept: "application/xml",
       },
@@ -284,7 +310,15 @@ Deno.serve(async (req) => {
     // HTTP 200 is not success — AdvisoryInfo decides.
     const advisory = parseAdvisory(text);
     if (advisory.failed) {
-      return json({ error: "MSC returned a failure", operation, advisory: advisory.messages }, 422);
+      return json(
+        {
+          error: "MSC returned a failure",
+          operation,
+          advisory: advisory.messages,
+          ...(operation === "agencyLogin" ? { result: parseAgencyLoginResponse(text) } : {}),
+        },
+        422,
+      );
     }
 
     return json({
@@ -292,6 +326,7 @@ Deno.serve(async (req) => {
       advisory: advisory.messages,
       bookingNo: readTag(text, "BookingNo"),
       ...(operation === "searchCruises" ? { result: parseSearchCruisesResponse(text) } : {}),
+      ...(operation === "agencyLogin" ? { result: parseAgencyLoginResponse(text) } : {}),
       xml: text,
     });
   } catch (e) {
