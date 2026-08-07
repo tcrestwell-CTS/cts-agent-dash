@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.receive-funnel-lead]
 verify_jwt = false
+
+[functions.trip-feedback]
+verify_jwt = false
