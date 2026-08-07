@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { Search, Sun, Moon, Bell, Menu, CheckCircle2, ExternalLink, CreditCard } from "lucide-react";
+import { Sun, Moon, Bell, Menu, CheckCircle2, ExternalLink, CreditCard } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,7 +28,6 @@ export function Header({ onMobileMenuClick, showMobileMenuButton }: HeaderProps)
   const { user } = useAuth();
   const { data: userRole } = useUserRole();
   const { theme, setTheme } = useTheme();
-  const [search, setSearch] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -54,16 +53,6 @@ export function Header({ onMobileMenuClick, showMobileMenuButton }: HeaderProps)
           <Menu className="h-4.5 w-4.5" />
         </button>
       )}
-
-      <div className="relative hidden sm:block" style={{ width: 300 }}>
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-muted-foreground" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search..."
-          className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
 
       <div className="flex flex-1 items-center justify-end gap-2">
         <span className="hidden md:inline-flex items-center rounded-full border border-border bg-card-2 px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground">
