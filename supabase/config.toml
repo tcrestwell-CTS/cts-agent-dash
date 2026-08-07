@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.trip-feedback]
 verify_jwt = false
+
+[functions.assign-lead]
+verify_jwt = false
