@@ -98,6 +98,56 @@ serve(async (req: Request) => {
     const tripName = record.trip_name || "your trip";
     const destination = record.destination || "your destination";
 
+    // Create (or reuse) a survey record for this trip and build the star links
+    let surveyToken: string | null = null;
+    const { data: existingFeedback } = await supabase
+      .from("trip_feedback")
+      .select("token")
+      .eq("trip_id", tripId)
+      .maybeSingle();
+
+    if (existingFeedback?.token) {
+      surveyToken = existingFeedback.token;
+    } else {
+      const { data: newFeedback, error: feedbackError } = await supabase
+        .from("trip_feedback")
+        .insert({ trip_id: tripId, client_id: clientId, user_id: userId })
+        .select("token")
+        .single();
+      if (feedbackError) {
+        console.error("Could not create trip_feedback row:", feedbackError);
+      } else {
+        surveyToken = newFeedback?.token ?? null;
+      }
+    }
+
+    const surveyBase = surveyToken
+      ? `${portalUrlBase.replace(/\/client$/, "")}/trip-feedback?token=${surveyToken}`
+      : null;
+
+    const surveyHtml = surveyBase
+      ? `
+        <div style="background-color: #f3f4f6; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
+          <h3 style="color: #1f2937; margin: 0 0 8px 0;">How was your trip?</h3>
+          <p style="color: #4b5563; margin: 0 0 16px 0;">Tap a star to start our quick 1-minute survey.</p>
+          <p style="margin: 0 0 16px 0; font-size: 30px; letter-spacing: 6px;">
+            ${[1, 2, 3, 4, 5]
+              .map(
+                (n) =>
+                  `<a href="${surveyBase}&rating=${n}" style="text-decoration: none; color: ${accentColor};" title="${n} star${n > 1 ? "s" : ""}">&#9733;</a>`
+              )
+              .join("")}
+          </p>
+          <a href="${surveyBase}" style="background-color: ${primaryColor}; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">Leave a Review</a>
+        </div>
+      `
+      : `
+        <div style="background-color: #f3f4f6; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
+          <h3 style="color: #1f2937; margin: 0 0 8px 0;">How was your trip?</h3>
+          <p style="color: #6b7280; font-size: 14px; margin: 0;">Reply to this email to share your thoughts — we'd love to hear from you!</p>
+        </div>
+      `;
+
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
         <div style="text-align: center; margin-bottom: 32px;">
@@ -108,11 +158,7 @@ serve(async (req: Request) => {
         <p style="color: #4b5563; line-height: 1.6;">Dear ${clientName},</p>
         <p style="color: #4b5563; line-height: 1.6;">We hope you had an incredible time in <strong>${destination}</strong>! It was a pleasure helping you plan <strong>${tripName}</strong>.</p>
         
-        <div style="background-color: #f3f4f6; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
-          <h3 style="color: #1f2937; margin: 0 0 8px 0;">How was your trip?</h3>
-          <p style="color: #4b5563; margin: 0 0 16px 0;">Your feedback helps us create even better experiences.</p>
-          <p style="color: #6b7280; font-size: 14px;">Reply to this email to share your thoughts — we'd love to hear from you!</p>
-        </div>
+        ${surveyHtml}
 
         <div style="background-color: #fef3c7; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
           <h3 style="color: #92400e; margin: 0 0 8px 0;">Know someone who'd love to travel? ✨</h3>
