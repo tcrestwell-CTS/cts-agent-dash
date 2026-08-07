@@ -274,10 +274,23 @@ Deno.serve(async (req) => {
     const params = payload?.params ?? {};
     const url = `${baseUrl()}${spec.path}`;
 
-    async function call(agentId: string) {
+    async function call(agentId: string, dtsPassword = false) {
       const body = buildXmlRequest(
         spec.root,
-        buildBody(operation, operation === "agencyLogin" ? { ...params, agentId } : params),
+        buildBody(
+          operation,
+          operation === "agencyLogin"
+            ? {
+                ...params,
+                agentId,
+                // Some agencies are provisioned with the XML password in the
+                // DTS slot rather than Agentpasswd.
+                ...(dtsPassword
+                  ? { password: "", passwordDts: params.password ?? MSC_PASSWORD }
+                  : {}),
+              }
+            : params,
+        ),
       );
       const res = await fetch(url, {
         method: "POST",
@@ -297,22 +310,26 @@ Deno.serve(async (req) => {
     // are not always the same string. On Agency Login, if the configured
     // MSC_USER_ID is rejected, retry with MSC_AGENT_ID before giving up and
     // report which one the gateway accepted.
-    const candidates: { agentId: string; source: string }[] = [];
+    const candidates: { agentId: string; source: string; dtsPassword?: boolean }[] = [];
     if (operation === "agencyLogin" && !params.agentId) {
       if (MSC_USER_ID) candidates.push({ agentId: MSC_USER_ID, source: "MSC_USER_ID" });
       const mscAgentId = Deno.env.get("MSC_AGENT_ID") ?? "";
       if (mscAgentId && mscAgentId !== MSC_USER_ID) {
         candidates.push({ agentId: mscAgentId, source: "MSC_AGENT_ID" });
       }
+      // Last resort: same identity, password sent as AgentpasswdDTS.
+      if (MSC_USER_ID) {
+        candidates.push({ agentId: MSC_USER_ID, source: "MSC_USER_ID+AgentpasswdDTS", dtsPassword: true });
+      }
     } else {
       candidates.push({ agentId: params.agentId ?? MSC_USER_ID, source: "request" });
     }
 
-    let attempt = await call(candidates[0].agentId);
+    let attempt = await call(candidates[0].agentId, candidates[0].dtsPassword);
     let identitySource = candidates[0].source;
     for (const next of candidates.slice(1)) {
       if (attempt.res.ok && !parseAdvisory(attempt.text).failed) break;
-      attempt = await call(next.agentId);
+      attempt = await call(next.agentId, next.dtsPassword);
       identitySource = next.source;
     }
     const { res, text } = attempt;
