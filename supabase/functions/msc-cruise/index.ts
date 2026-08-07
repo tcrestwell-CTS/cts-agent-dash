@@ -300,9 +300,9 @@ Deno.serve(async (req) => {
     const candidates: { agentId: string; source: string }[] = [];
     if (operation === "agencyLogin" && !params.agentId) {
       if (MSC_USER_ID) candidates.push({ agentId: MSC_USER_ID, source: "MSC_USER_ID" });
-      const msсAgentId = Deno.env.get("MSC_AGENT_ID") ?? "";
-      if (msсAgentId && msсAgentId !== MSC_USER_ID) {
-        candidates.push({ agentId: msсAgentId, source: "MSC_AGENT_ID" });
+      const mscAgentId = Deno.env.get("MSC_AGENT_ID") ?? "";
+      if (mscAgentId && mscAgentId !== MSC_USER_ID) {
+        candidates.push({ agentId: mscAgentId, source: "MSC_AGENT_ID" });
       }
     } else {
       candidates.push({ agentId: params.agentId ?? MSC_USER_ID, source: "request" });
@@ -345,6 +345,7 @@ Deno.serve(async (req) => {
       advisory: advisory.messages,
       bookingNo: readTag(text, "BookingNo"),
       ...(operation === "searchCruises" ? { result: parseSearchCruisesResponse(text) } : {}),
+      ...(operation === "agencyLogin" ? { identitySource, environment: MSC_ENV } : {}),
       ...(operation === "agencyLogin" ? { result: parseAgencyLoginResponse(text) } : {}),
       xml: text,
     });
