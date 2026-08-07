@@ -282,7 +282,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "commission_override_approval":
         const agentNameOverride = templateData?.agentName || "An agent";
-        const agentNameOverride = templateData?.agentName || "An agent";
         const bookingRef = templateData?.bookingReference || "N/A";
         const clientNameOverride = templateData?.clientName || "Unknown Client";
         const destinationOverride = templateData?.destination || "N/A";
