@@ -1,6 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildXmlRequest, parseAdvisory, readTag, type XmlNode } from "../_shared/msc-xml.ts";
+import { parseSearchCruisesResponse } from "../_shared/msc-search-parse.ts";
 
 /**
  * MSC Cruises API 3.0 proxy (Phase 2).
@@ -68,32 +69,51 @@ async function requireUser(req: Request) {
   return data.user;
 }
 
-/** Flat, abbreviated field names — DtsSearchCruisesV1 only. */
+/**
+ * Flat, abbreviated field names — DtsSearchCruisesV1 only.
+ * Key order follows the published xs:sequence exactly (the schema enforces it).
+ */
 function searchCruisesBody(p: Record<string, any>): XmlNode {
   return {
-    LanguageCd: p.languageCode ?? "ENG",
-    OfficeCd: p.officeCode ?? "USA",
-    MktCd: p.marketCode ?? "USA",
-    CurrcyCd: p.currencyCode ?? "USD",
     AgentId: p.agentId ?? Deno.env.get("MSC_AGENT_ID") ?? "",
+    ArrivalDate: p.arrivalDate,
+    BudgetRange: p.budgetRange ?? "0-5000000",
+    CabinType: p.cabinType,
+    Canvas: p.canvas,
+    BookingChannel: "XML",
+    ChildInfo: p.childAges?.length ? { ChildAge: p.childAges } : undefined,
+    CruiseID: p.cruiseId,
+    CurrcyCd: p.currencyCode ?? "USD",
+    DepStartDate: p.depStartDate,
+    DepEndDate: p.depEndDate,
+    Discounts: p.discountCode ? { DiscountCd: [p.discountCode] } : undefined,
+    Flight: p.flight ?? "N",
+    ItinEmbk: p.itinEmbarkPort,
+    LanguageCd: p.languageCode ?? "ENG",
+    MktCd: p.marketCode ?? "USA",
+    MaxSailingDuration: p.maxNights,
     NoofAdults: p.adults ?? 2,
     NoofChildren: p.children ?? 0,
-    CruiseID: p.cruiseId,
+    OfficeCd: p.officeCode ?? "USA",
+    PageNumber: p.pageNumber,
+    PaxType: p.paxType,
+    PhysicallyChallenged: p.physicallyChallenged ?? "No",
+    PortCD: p.portCode,
     // MSC's prescribed approach: search is called with the CruiseID AND the
     // FARE-CD from the cache in PromotionCode. Omitting it makes the gateway
     // fan out across every promotion and is what gets calls throttled.
     PromotionCode: p.promotionCode ?? p.fareCode,
-    PaxType: p.paxType,
-    Discount: p.discountCode,
+    RecordsPerPage: p.recordsPerPage,
+    RegionCode: p.regionCode,
+    SailingDuration: p.nights,
+    ShipCd: p.shipCode,
+    Sort: p.sort ?? "C",
+    ThemeCd: p.themeCode,
     // Always send the reduced-payload filters: MSC added them to cut response
     // size and error rates.
     PriceTypes: p.priceTypes?.length ? { PriceType: p.priceTypes } : undefined,
-    PriceCodes: p.priceCodes?.length ? { PriceCode: p.priceCodes } : undefined,
     Categories: p.categories?.length ? { Category: p.categories } : undefined,
-    BookingChannel: "XML",
-    BudgetRange: p.budgetRange ?? "0-5000000",
-    Flight: p.flight ?? "N",
-    Sort: p.sort ?? "C",
+    PriceCodes: p.priceCodes?.length ? { PriceCode: p.priceCodes } : undefined,
   };
 }
 
@@ -271,6 +291,7 @@ Deno.serve(async (req) => {
       operation,
       advisory: advisory.messages,
       bookingNo: readTag(text, "BookingNo"),
+      ...(operation === "searchCruises" ? { result: parseSearchCruisesResponse(text) } : {}),
       xml: text,
     });
   } catch (e) {
