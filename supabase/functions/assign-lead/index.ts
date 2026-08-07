@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       assigned_at: agentId ? new Date().toISOString() : null,
     })
     .eq("id", leadId)
-    .select("id, first_name, last_name, email, phone, destination, trip_type, departure_date, budget, lead_score")
+    .select("id, first_name, last_name, email, phone, destination, trip_type, departure_date, budget, ai_score")
     .maybeSingle();
 
   if (updateErr) {
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
             tripType: lead.trip_type || "—",
             departureDate: lead.departure_date || "—",
             budget: lead.budget ? String(lead.budget) : "—",
-            leadScore: lead.lead_score != null ? String(lead.lead_score) : "—",
+            leadScore: lead.ai_score != null ? String(lead.ai_score) : "—",
             leadUrl: `https://app.crestwelltravels.com/leads?lead=${lead.id}`,
           },
         },
