@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Bell, Menu, CheckCircle2, ExternalLink, CreditCard } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -29,6 +30,7 @@ export function Header({ onMobileMenuClick, showMobileMenuButton }: HeaderProps)
   const { theme, setTheme } = useTheme();
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useAgentNotifications();
 
   useOnClickOutside(notifRef, () => setNotifOpen(false));
