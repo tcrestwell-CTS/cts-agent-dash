@@ -356,6 +356,17 @@ export default function CruiseSearch() {
       <div className="space-y-5 pb-24">
         <CruiseSearchHeader />
 
+        <Tabs defaultValue="all" className="space-y-5">
+          <TabsList>
+            <TabsTrigger value="all">
+              <Globe className="h-4 w-4 mr-2" /> All cruise lines
+            </TabsTrigger>
+            <TabsTrigger value="msc">
+              <Ship className="h-4 w-4 mr-2" /> MSC direct
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-5 mt-0">
         <SearchBar
           values={searchValues}
           onChange={handleSearchValuesChange}
@@ -425,6 +436,12 @@ export default function CruiseSearch() {
             </Button>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="msc" className="mt-0">
+            <MscCruiseSearch />
+          </TabsContent>
+        </Tabs>
 
         <CompareDrawer
           sailings={comparingSailings}
