@@ -254,8 +254,11 @@ Deno.serve(async (req) => {
     const text = await res.text();
 
     if (!res.ok) {
-      console.error("MSC transport error", operation, res.status);
-      return json({ error: "MSC gateway error", status: res.status, operation }, 502);
+      console.error("MSC transport error", operation, res.status, url, text.slice(0, 1500));
+      return json(
+        { error: "MSC gateway error", status: res.status, operation, url, detail: text.slice(0, 1500) },
+        502,
+      );
     }
 
     // HTTP 200 is not success — AdvisoryInfo decides.
