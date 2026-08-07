@@ -1,0 +1,1 @@
+update public.trips set post_trip_email_sent = false where id = '009c6c1f-58e0-4c4c-8efb-484ef96adb1c';
