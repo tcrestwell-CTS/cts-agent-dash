@@ -180,6 +180,10 @@ const Settings = () => {
               Agency
             </TabsTrigger>
           )}
+          <TabsTrigger value="storefront" className="gap-2">
+            <Store className="h-4 w-4" />
+            Storefront
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
