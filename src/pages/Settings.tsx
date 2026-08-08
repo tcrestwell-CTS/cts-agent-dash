@@ -711,6 +711,14 @@ const Settings = () => {
                   </div>
 
                   <div className="space-y-2">
+                    <Label>Storefront Name</Label>
+                    <Input value={formData.agency_name} disabled placeholder="Set your agency name in the Profile tab" />
+                    <p className="text-xs text-muted-foreground">
+                      Your agency name is used as your storefront name. Change it in the Profile tab.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="storefrontSlug">Storefront Subdomain</Label>
                     <div className="flex items-center gap-2">
                       <Input
@@ -722,6 +730,23 @@ const Settings = () => {
                       />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">.crestwelltravels.com</span>
                     </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!formData.agency_name}
+                      onClick={() =>
+                        handleInputChange(
+                          "storefront_slug",
+                          formData.agency_name
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, "-")
+                            .replace(/^-+|-+$/g, ""),
+                        )
+                      }
+                    >
+                      Use agency name
+                    </Button>
                     <p className="text-xs text-muted-foreground">
                       Use only lowercase letters, numbers, and hyphens. This becomes your public storefront subdomain.
                     </p>
