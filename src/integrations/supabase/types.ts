@@ -6574,6 +6574,9 @@ export type Database = {
           id: string
           job_title: string | null
           phone: string | null
+          storefront_enabled: boolean
+          storefront_headline: string | null
+          storefront_slug: string | null
           updated_at: string
           user_id: string
         }
@@ -6598,6 +6601,9 @@ export type Database = {
           id?: string
           job_title?: string | null
           phone?: string | null
+          storefront_enabled?: boolean
+          storefront_headline?: string | null
+          storefront_slug?: string | null
           updated_at?: string
           user_id: string
         }
@@ -6622,6 +6628,9 @@ export type Database = {
           id?: string
           job_title?: string | null
           phone?: string | null
+          storefront_enabled?: boolean
+          storefront_headline?: string | null
+          storefront_slug?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -10573,6 +10582,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_storefronts: {
+        Row: {
+          agency_name: string | null
+          avatar_url: string | null
+          full_name: string | null
+          job_title: string | null
+          storefront_headline: string | null
+          storefront_slug: string | null
+        }
+        Insert: {
+          agency_name?: string | null
+          avatar_url?: string | null
+          full_name?: string | null
+          job_title?: string | null
+          storefront_headline?: string | null
+          storefront_slug?: string | null
+        }
+        Update: {
+          agency_name?: string | null
+          avatar_url?: string | null
+          full_name?: string | null
+          job_title?: string | null
+          storefront_headline?: string | null
+          storefront_slug?: string | null
+        }
+        Relationships: []
       }
       tasks: {
         Row: {
