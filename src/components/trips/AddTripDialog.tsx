@@ -524,14 +524,14 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-[12.5px]">Notes</Label>
+            <Label htmlFor="notes" className="text-[12.5px]">Trip Details Overview</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              placeholder="Preferences, occasion, anything the itinerary should respect…"
+              placeholder="Overview of the trip — preferences, occasion, anything the itinerary should respect…"
               rows={3}
               className="text-[13.5px]"
             />
