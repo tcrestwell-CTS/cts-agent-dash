@@ -99,11 +99,14 @@ const Settings = () => {
         ccra_number: profile.ccra_number,
         asta_number: profile.asta_number,
         embarc_number: profile.embarc_number,
+        storefront_enabled: profile.storefront_enabled,
+        storefront_slug: profile.storefront_slug,
+        storefront_headline: profile.storefront_headline,
       });
     }
   }, [profile]);
 
-  const handleInputChange = (field: string, value: string | number) => {
+  const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
