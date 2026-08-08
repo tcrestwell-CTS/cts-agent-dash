@@ -504,6 +504,13 @@ const TripDetail = () => {
                     {trip.trip_type.charAt(0).toUpperCase() + trip.trip_type.slice(1).replace(/_/g, " ")}
                   </Badge>
                 )}
+                {(trip as any).trip_subtype && (
+                  <Badge variant="outline">
+                    {String((trip as any).trip_subtype)
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
                 <span className="text-muted-foreground text-[13px]">
@@ -960,7 +967,8 @@ const TripDetail = () => {
                             </span>
                           </div>
                         )}
-                        {trip.trip_type === "cruise" && (trip as any).ship_name && (
+                        {((trip as any).trip_subtype === "cruise" || trip.trip_type === "cruise") &&
+                          (trip as any).ship_name && (
                           <div className="flex items-center gap-2">
                             <Ship className="h-4 w-4 text-muted-foreground" />
                             <span className="text-[13.5px]">
@@ -969,7 +977,9 @@ const TripDetail = () => {
                             </span>
                           </div>
                         )}
-                        {["lodging", "all_inclusive"].includes(trip.trip_type || "") &&
+                        {["lodging", "all_inclusive"].includes(
+                          ((trip as any).trip_subtype || trip.trip_type || "") as string
+                        ) &&
                           (trip as any).hotel_name && (
                             <div className="flex items-center gap-2">
                               <Hotel className="h-4 w-4 text-muted-foreground" />
