@@ -47,6 +47,14 @@ const TRIP_TYPES = [
   { value: "group", label: "Group Trip", icon: Users2 },
 ];
 
+const TRIP_SUBTYPES = [
+  { value: "lodging", label: "Lodging" },
+  { value: "all_inclusive", label: "All-Inclusive" },
+  { value: "cruise", label: "Cruise" },
+  { value: "flight", label: "Flight" },
+  { value: "transportation", label: "Transportation" },
+];
+
 interface AddTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,6 +69,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
 
   const [formData, setFormData] = useState({
     trip_type: "regular",
+    trip_subtype: "",
     trip_name: "",
     destination: "",
     notes: "",
@@ -101,6 +110,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
         destination: prev.destination || p.destination || "",
         trip_type:
           p.trip_type && p.trip_type !== "group" ? p.trip_type : prev.trip_type,
+        trip_subtype: prev.trip_subtype || p.trip_subtype || "",
         budget_range: prev.budget_range || p.budget_range || "",
         notes: prev.notes || p.notes || "",
         depart_date: prev.depart_date || p.depart_date || "",
@@ -198,6 +208,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
       }
       setFormData({
         trip_type: "regular",
+        trip_subtype: "",
         trip_name: "",
         destination: "",
         notes: "",
@@ -253,8 +264,38 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                 );
               })}
             </div>
+          </div>
+
+          {/* Trip category — sub type */}
+          <div className="space-y-2">
+            <Label className="text-[12.5px]">Trip category</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {TRIP_SUBTYPES.map((sub) => {
+                const selected = formData.trip_subtype === sub.value;
+                return (
+                  <button
+                    key={sub.value}
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        trip_subtype: selected ? "" : sub.value,
+                      })
+                    }
+                    className={cn(
+                      "rounded-[9px] border-[1.5px] px-[10px] py-[9px] text-left text-[12.5px] transition-colors",
+                      selected
+                        ? "border-accent bg-tint font-semibold text-foreground"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <span className="truncate">{sub.label}</span>
+                  </button>
+                );
+              })}
+            </div>
             <p className="text-[11.5px] text-muted-foreground">
-              Cruise, lodging, or all-inclusive details are set on the trip after creation.
+              Ship, hotel, cabin and room details are set on the trip after creation.
             </p>
           </div>
 
