@@ -17,7 +17,11 @@ export interface ProfileData {
   ccra_number: string;
   asta_number: string;
   embarc_number: string;
+  storefront_enabled: boolean;
+  storefront_slug: string;
+  storefront_headline: string;
 }
+
 
 const defaultProfile: ProfileData = {
   full_name: "",
@@ -31,7 +35,11 @@ const defaultProfile: ProfileData = {
   ccra_number: "",
   asta_number: "",
   embarc_number: "",
+  storefront_enabled: false,
+  storefront_slug: "",
+  storefront_headline: "Your Personal Cruise & Vacation Expert",
 };
+
 
 export function useProfile() {
   const { user } = useAuth();
@@ -76,6 +84,9 @@ export function useProfile() {
           ccra_number: (data as any).ccra_number || "",
           asta_number: (data as any).asta_number || "",
           embarc_number: (data as any).embarc_number || "",
+          storefront_enabled: (data as any).storefront_enabled || false,
+          storefront_slug: (data as any).storefront_slug || "",
+          storefront_headline: (data as any).storefront_headline || "Your Personal Cruise & Vacation Expert",
         });
       }
     } catch (error) {
@@ -109,9 +120,13 @@ export function useProfile() {
           ccra_number: updatedProfile.ccra_number || null,
           asta_number: updatedProfile.asta_number || null,
           embarc_number: updatedProfile.embarc_number || null,
+          storefront_enabled: updatedProfile.storefront_enabled,
+          storefront_slug: updatedProfile.storefront_slug || null,
+          storefront_headline: updatedProfile.storefront_headline || null,
         } as any, {
           onConflict: "user_id",
         });
+
 
       if (error) {
         console.error("Error saving profile:", error);
