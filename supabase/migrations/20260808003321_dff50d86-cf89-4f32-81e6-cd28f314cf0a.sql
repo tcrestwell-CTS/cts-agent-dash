@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS anon_insert_quote_requests ON public.quote_requests;
