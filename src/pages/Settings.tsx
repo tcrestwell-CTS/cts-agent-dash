@@ -679,6 +679,86 @@ const Settings = () => {
             </div>
           </TabsContent>
         )}
+
+        <TabsContent value="storefront">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Storefront</CardTitle>
+              <CardDescription>
+                Enable a public landing page that clients can visit to learn more about you and start a trip request.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {loading ? (
+                <div className="space-y-6">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
+                    <div>
+                      <p className="font-medium text-card-foreground">Enable Storefront</p>
+                      <p className="text-sm text-muted-foreground">
+                        When enabled, clients can view your public page and submit trip requests.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.storefront_enabled}
+                      onCheckedChange={(checked) => handleInputChange("storefront_enabled", checked)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="storefrontSlug">Storefront URL Slug</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">app.crestwelltravels.com/storefront/</span>
+                      <Input
+                        id="storefrontSlug"
+                        value={formData.storefront_slug}
+                        onChange={(e) => handleInputChange("storefront_slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                        placeholder="your-name"
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use only lowercase letters, numbers, and hyphens. This becomes your public storefront address.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="storefrontHeadline">Headline</Label>
+                    <Input
+                      id="storefrontHeadline"
+                      value={formData.storefront_headline}
+                      onChange={(e) => handleInputChange("storefront_headline", e.target.value)}
+                      placeholder="Your Personal Cruise & Vacation Expert"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown at the top of your storefront page.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-2">
+                    <p className="text-sm font-medium text-card-foreground">Live Storefront URL</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formData.storefront_enabled && formData.storefront_slug
+                        ? `https://app.crestwelltravels.com/storefront/${formData.storefront_slug}`
+                        : "Enable your storefront and enter a slug to generate the public link."}
+                    </p>
+                  </div>
+
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save Storefront Settings
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
     </DashboardLayout>
   );
