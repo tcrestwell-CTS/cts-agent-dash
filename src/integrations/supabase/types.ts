@@ -6574,6 +6574,7 @@ export type Database = {
           id: string
           job_title: string | null
           phone: string | null
+          storefront_bio: string | null
           storefront_enabled: boolean
           storefront_headline: string | null
           storefront_slug: string | null
@@ -6601,6 +6602,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           phone?: string | null
+          storefront_bio?: string | null
           storefront_enabled?: boolean
           storefront_headline?: string | null
           storefront_slug?: string | null
@@ -6628,6 +6630,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           phone?: string | null
+          storefront_bio?: string | null
           storefront_enabled?: boolean
           storefront_headline?: string | null
           storefront_slug?: string | null
