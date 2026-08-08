@@ -10591,6 +10591,7 @@ export type Database = {
           job_title: string | null
           storefront_headline: string | null
           storefront_slug: string | null
+          user_id: string | null
         }
         Insert: {
           agency_name?: string | null
@@ -10599,6 +10600,7 @@ export type Database = {
           job_title?: string | null
           storefront_headline?: string | null
           storefront_slug?: string | null
+          user_id?: string | null
         }
         Update: {
           agency_name?: string | null
@@ -10607,6 +10609,7 @@ export type Database = {
           job_title?: string | null
           storefront_headline?: string | null
           storefront_slug?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
