@@ -278,27 +278,41 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit_cabin_selection">Cabin Selection</Label>
-            <Input
-              id="edit_cabin_selection"
-              value={formData.cabin_selection}
-              onChange={(e) => setFormData({ ...formData, cabin_selection: e.target.value })}
-              placeholder="e.g., Balcony Stateroom 8A, Cabin #10234"
-            />
-          </div>
+          {(formData.trip_type === "cruise" ||
+            formData.trip_type === "lodging" ||
+            formData.trip_type === "all_inclusive") && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="edit_cabin_selection">
+                  {formData.trip_type === "cruise" ? "Cabin Selection" : "Room Selection"}
+                </Label>
+                <Input
+                  id="edit_cabin_selection"
+                  value={formData.cabin_selection}
+                  onChange={(e) => setFormData({ ...formData, cabin_selection: e.target.value })}
+                  placeholder={
+                    formData.trip_type === "cruise"
+                      ? "e.g., Balcony Stateroom 8A, Cabin #10234"
+                      : "e.g., Ocean View Junior Suite"
+                  }
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit_cabin_photos">Cabin Photos (one URL per line)</Label>
-            <Textarea
-              id="edit_cabin_photos"
-              value={formData.cabin_photos}
-              onChange={(e) => setFormData({ ...formData, cabin_photos: e.target.value })}
-              placeholder={"https://example.com/cabin-1.jpg\nhttps://example.com/cabin-2.jpg"}
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">Paste public image URLs, one per line.</p>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_cabin_photos">
+                  {formData.trip_type === "cruise" ? "Cabin Photos" : "Room Photos"} (one URL per line)
+                </Label>
+                <Textarea
+                  id="edit_cabin_photos"
+                  value={formData.cabin_photos}
+                  onChange={(e) => setFormData({ ...formData, cabin_photos: e.target.value })}
+                  placeholder={"https://example.com/cabin-1.jpg\nhttps://example.com/cabin-2.jpg"}
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">Paste public image URLs, one per line.</p>
+              </div>
+            </>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
