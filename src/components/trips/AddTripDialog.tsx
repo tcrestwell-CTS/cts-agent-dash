@@ -192,6 +192,8 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
               item_date: item.item_date,
               notes: item.notes,
               image_url: item.image_url ?? null,
+              thumbnail_url: item.thumbnail_url ?? null,
+              gallery_urls: item.gallery_urls ?? [],
               sort_order: item.sort_order ?? idx,
             }));
             await supabase.from("itinerary_items").insert(inserts as any);
