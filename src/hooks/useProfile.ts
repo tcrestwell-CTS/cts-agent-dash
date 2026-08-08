@@ -17,7 +17,11 @@ export interface ProfileData {
   ccra_number: string;
   asta_number: string;
   embarc_number: string;
+  storefront_enabled: boolean;
+  storefront_slug: string;
+  storefront_headline: string;
 }
+
 
 const defaultProfile: ProfileData = {
   full_name: "",
