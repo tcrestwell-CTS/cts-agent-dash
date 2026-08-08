@@ -984,7 +984,7 @@ const TripDetail = () => {
                             <div className="flex items-center gap-2">
                               <Hotel className="h-4 w-4 text-muted-foreground" />
                               <span className="text-[13.5px]">
-                                <span className="text-muted-foreground">Hotel / Resort:</span>{" "}
+                                <span className="text-muted-foreground">Property:</span>{" "}
                                 {(trip as any).hotel_name}
                               </span>
                             </div>
@@ -1004,7 +1004,7 @@ const TripDetail = () => {
                       </div>
                       {trip.notes && (
                         <div className="pt-2 border-t">
-                          <p className="text-[12.5px] text-muted-foreground mb-1">Notes</p>
+                          <p className="text-[12.5px] text-muted-foreground mb-1">Trip Details Overview</p>
                           <p className="text-[13.5px]">{trip.notes}</p>
                         </div>
                       )}
