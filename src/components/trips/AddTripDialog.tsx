@@ -39,18 +39,12 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, UserPlus, Compass, Users2, Heart, Home, Gem, Ship, Mountain, Briefcase } from "lucide-react";
+import { Check, ChevronsUpDown, UserPlus, Compass, Users2 } from "lucide-react";
 import { QuickAddClientForm } from "@/components/trips/QuickAddClientForm";
 
 const TRIP_TYPES = [
   { value: "regular", label: "Regular Trip", icon: Compass },
   { value: "group", label: "Group Trip", icon: Users2 },
-  { value: "honeymoon", label: "Honeymoon", icon: Heart },
-  { value: "family", label: "Family Vacation", icon: Home },
-  { value: "luxury", label: "Luxury", icon: Gem },
-  { value: "cruise", label: "Cruise", icon: Ship },
-  { value: "adventure", label: "Adventure", icon: Mountain },
-  { value: "corporate", label: "Corporate / Business", icon: Briefcase },
 ];
 
 interface AddTripDialogProps {
@@ -238,7 +232,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
           {/* Trip type — chip grid */}
           <div className="space-y-2">
             <Label className="text-[12.5px]">Trip type</Label>
-            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(126px, 1fr))" }}>
+            <div className="grid grid-cols-2 gap-2">
               {TRIP_TYPES.map((type) => {
                 const selected = formData.trip_type === type.value;
                 return (
@@ -259,6 +253,9 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
                 );
               })}
             </div>
+            <p className="text-[11.5px] text-muted-foreground">
+              Cruise, lodging, or all-inclusive details are set on the trip after creation.
+            </p>
           </div>
 
           {/* Trip name */}
