@@ -120,9 +120,13 @@ export function useProfile() {
           ccra_number: updatedProfile.ccra_number || null,
           asta_number: updatedProfile.asta_number || null,
           embarc_number: updatedProfile.embarc_number || null,
+          storefront_enabled: updatedProfile.storefront_enabled,
+          storefront_slug: updatedProfile.storefront_slug || null,
+          storefront_headline: updatedProfile.storefront_headline || null,
         } as any, {
           onConflict: "user_id",
         });
+
 
       if (error) {
         console.error("Error saving profile:", error);
