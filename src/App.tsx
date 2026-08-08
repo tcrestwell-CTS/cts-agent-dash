@@ -70,6 +70,16 @@ const Scheduling          = lazy(() => import("./pages/Scheduling"));
 const BookMeeting         = lazy(() => import("./pages/BookMeeting"));
 const IntakeForms         = lazy(() => import("./pages/IntakeForms"));
 const PublicIntakeForm    = lazy(() => import("./pages/PublicIntakeForm"));
+const AgentStorefront     = lazy(() => import("./pages/AgentStorefront"));
+
+/** True when the app is served from an agent storefront subdomain (e.g. jane.crestwelltravels.com) */
+const isStorefrontHost = (() => {
+  const host = window.location.hostname;
+  const parts = host.split(".");
+  if (parts.length < 3) return false;
+  const sub = parts[0].toLowerCase();
+  return !["www", "app", "compass"].includes(sub) && !host.includes("lovable.app");
+})();
 const TripFeedback        = lazy(() => import("./pages/TripFeedback"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
@@ -177,7 +187,11 @@ const App = () => (
                 {/* Agent Dashboard Routes */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route
+                  path="/"
+                  element={isStorefrontHost ? <AgentStorefront /> : <ProtectedRoute><Index /></ProtectedRoute>}
+                />
+                <Route path="/storefront/:slug" element={<AgentStorefront />} />
                 <Route path="/contacts" element={<ProtectedRoute><FeatureRoute feature="clients"><CRM /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/contacts/:clientId" element={<ProtectedRoute><FeatureRoute feature="clients"><ClientDetail /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
