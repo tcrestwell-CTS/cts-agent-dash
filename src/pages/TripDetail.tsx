@@ -29,6 +29,7 @@ import {
   MessageSquare,
   Plane,
   Ship,
+  Hotel,
   ShieldCheck,
   BedDouble,
   Users as UsersIcon,
@@ -959,7 +960,7 @@ const TripDetail = () => {
                             </span>
                           </div>
                         )}
-                        {(trip as any).ship_name && (
+                        {trip.trip_type === "cruise" && (trip as any).ship_name && (
                           <div className="flex items-center gap-2">
                             <Ship className="h-4 w-4 text-muted-foreground" />
                             <span className="text-[13.5px]">
@@ -968,6 +969,16 @@ const TripDetail = () => {
                             </span>
                           </div>
                         )}
+                        {["lodging", "all_inclusive"].includes(trip.trip_type || "") &&
+                          (trip as any).hotel_name && (
+                            <div className="flex items-center gap-2">
+                              <Hotel className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-[13.5px]">
+                                <span className="text-muted-foreground">Hotel / Resort:</span>{" "}
+                                {(trip as any).hotel_name}
+                              </span>
+                            </div>
+                          )}
                         {trip.depart_date && (
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
