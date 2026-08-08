@@ -84,6 +84,9 @@ export function useProfile() {
           ccra_number: (data as any).ccra_number || "",
           asta_number: (data as any).asta_number || "",
           embarc_number: (data as any).embarc_number || "",
+          storefront_enabled: (data as any).storefront_enabled || false,
+          storefront_slug: (data as any).storefront_slug || "",
+          storefront_headline: (data as any).storefront_headline || "Your Personal Cruise & Vacation Expert",
         });
       }
     } catch (error) {
