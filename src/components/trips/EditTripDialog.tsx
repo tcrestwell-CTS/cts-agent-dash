@@ -29,14 +29,14 @@ import { Loader2 } from "lucide-react";
 const TRIP_TYPES = [
   { value: "regular", label: "Regular Trip" },
   { value: "group", label: "Group Trip" },
-  { value: "honeymoon", label: "Honeymoon" },
-  { value: "family", label: "Family Vacation" },
-  { value: "luxury", label: "Luxury" },
-  { value: "cruise", label: "Cruise" },
+];
+
+const TRIP_SUBTYPES = [
   { value: "lodging", label: "Lodging / Hotel" },
-  { value: "all_inclusive", label: "All-Inclusive Resort" },
-  { value: "adventure", label: "Adventure" },
-  { value: "corporate", label: "Corporate / Business" },
+  { value: "all_inclusive", label: "All-Inclusive" },
+  { value: "cruise", label: "Cruise" },
+  { value: "flight", label: "Flight" },
+  { value: "transportation", label: "Transportation" },
 ];
 
 interface EditTripDialogProps {
@@ -49,6 +49,7 @@ interface EditTripDialogProps {
     depart_date: string | null;
     return_date: string | null;
     trip_type: string | null;
+    trip_subtype?: string | null;
     notes: string | null;
     client_id: string | null;
     budget_range?: string | null;
@@ -68,6 +69,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
     trip_name: "",
     destination: "",
     trip_type: "regular",
+    trip_subtype: "",
     notes: "",
     client_id: "",
     budget_range: "",
@@ -84,6 +86,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
         trip_name: trip.trip_name || "",
         destination: trip.destination || "",
         trip_type: trip.trip_type || "regular",
+        trip_subtype: (trip as any).trip_subtype || "",
         notes: trip.notes || "",
         client_id: trip.client_id || "",
         budget_range: (trip as any).budget_range || "",
@@ -119,6 +122,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           trip_name: formData.trip_name,
           destination: formData.destination || null,
           trip_type: formData.trip_type,
+          trip_subtype: formData.trip_subtype || null,
           notes: formData.notes || null,
           client_id: formData.client_id || null,
           budget_range: formData.budget_range || null,
@@ -196,6 +200,28 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           </div>
 
           <div className="space-y-2">
+            <Label>Trip Category</Label>
+            <Select
+              value={formData.trip_subtype || "none"}
+              onValueChange={(value) =>
+                setFormData({ ...formData, trip_subtype: value === "none" ? "" : value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Not specified</SelectItem>
+                {TRIP_SUBTYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="edit_trip_name">Trip Name *</Label>
             <Input
               id="edit_trip_name"
@@ -215,7 +241,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
             />
           </div>
 
-          {formData.trip_type === "cruise" && (
+          {formData.trip_subtype === "cruise" && (
             <div className="space-y-2">
               <Label htmlFor="edit_ship_name">Ship Name</Label>
               <Input
@@ -227,7 +253,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
             </div>
           )}
 
-          {(formData.trip_type === "lodging" || formData.trip_type === "all_inclusive") && (
+          {(formData.trip_subtype === "lodging" || formData.trip_subtype === "all_inclusive") && (
             <div className="space-y-2">
               <Label htmlFor="edit_hotel_name">Hotel / Resort Name</Label>
               <Input
@@ -278,20 +304,20 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
             />
           </div>
 
-          {(formData.trip_type === "cruise" ||
-            formData.trip_type === "lodging" ||
-            formData.trip_type === "all_inclusive") && (
+          {(formData.trip_subtype === "cruise" ||
+            formData.trip_subtype === "lodging" ||
+            formData.trip_subtype === "all_inclusive") && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="edit_cabin_selection">
-                  {formData.trip_type === "cruise" ? "Cabin Selection" : "Room Selection"}
+                  {formData.trip_subtype === "cruise" ? "Cabin Selection" : "Room Selection"}
                 </Label>
                 <Input
                   id="edit_cabin_selection"
                   value={formData.cabin_selection}
                   onChange={(e) => setFormData({ ...formData, cabin_selection: e.target.value })}
                   placeholder={
-                    formData.trip_type === "cruise"
+                    formData.trip_subtype === "cruise"
                       ? "e.g., Balcony Stateroom 8A, Cabin #10234"
                       : "e.g., Ocean View Junior Suite"
                   }
@@ -300,7 +326,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
 
               <div className="space-y-2">
                 <Label htmlFor="edit_cabin_photos">
-                  {formData.trip_type === "cruise" ? "Cabin Photos" : "Room Photos"} (one URL per line)
+                  {formData.trip_subtype === "cruise" ? "Cabin Photos" : "Room Photos"} (one URL per line)
                 </Label>
                 <Textarea
                   id="edit_cabin_photos"
