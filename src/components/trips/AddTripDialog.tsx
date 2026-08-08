@@ -45,12 +45,6 @@ import { QuickAddClientForm } from "@/components/trips/QuickAddClientForm";
 const TRIP_TYPES = [
   { value: "regular", label: "Regular Trip", icon: Compass },
   { value: "group", label: "Group Trip", icon: Users2 },
-  { value: "honeymoon", label: "Honeymoon", icon: Heart },
-  { value: "family", label: "Family Vacation", icon: Home },
-  { value: "luxury", label: "Luxury", icon: Gem },
-  { value: "cruise", label: "Cruise", icon: Ship },
-  { value: "adventure", label: "Adventure", icon: Mountain },
-  { value: "corporate", label: "Corporate / Business", icon: Briefcase },
 ];
 
 interface AddTripDialogProps {
