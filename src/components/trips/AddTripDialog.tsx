@@ -79,6 +79,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
   const [errors, setErrors] = useState<{ trip_name?: string; depart_date?: string; return_date?: string }>({});
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [inherited, setInherited] = useState<Record<string, any>>({});
 
   const clearError = (field: keyof typeof errors) =>
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
@@ -87,23 +88,51 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
 
   // Pre-fill sub-trip with parent trip info
   useEffect(() => {
-    if (!open || !parentTripId) return;
+    if (!open || !parentTripId) {
+      if (!open) setInherited({});
+      return;
+    }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("trips")
-        .select("trip_name, destination, trip_type, budget_range")
+        .select("*")
         .eq("id", parentTripId)
         .maybeSingle();
       if (cancelled || !data) return;
+      const p = data as any;
       setFormData((prev) => ({
         ...prev,
-        trip_name: prev.trip_name || data.trip_name || "",
-        destination: prev.destination || data.destination || "",
+        trip_name: prev.trip_name || p.trip_name || "",
+        destination: prev.destination || p.destination || "",
         trip_type:
-          data.trip_type && data.trip_type !== "group" ? data.trip_type : prev.trip_type,
-        budget_range: prev.budget_range || data.budget_range || "",
+          p.trip_type && p.trip_type !== "group" ? p.trip_type : prev.trip_type,
+        budget_range: prev.budget_range || p.budget_range || "",
+        notes: prev.notes || p.notes || "",
+        depart_date: prev.depart_date || p.depart_date || "",
+        return_date: prev.return_date || p.return_date || "",
       }));
+      // Carry over the rest of the parent's trip setup
+      const carry: Record<string, any> = {};
+      const fields = [
+        "ship_name",
+        "cover_image_url",
+        "currency",
+        "pricing_visibility",
+        "itinerary_style",
+        "header_style",
+        "tags",
+        "allow_pdf_downloads",
+        "budget_range",
+        "trip_page_intro",
+        "supplier_id",
+        "agency_id",
+        "trip_source",
+      ];
+      for (const f of fields) {
+        if (p[f] !== undefined && p[f] !== null) carry[f] = p[f];
+      }
+      setInherited(carry);
     })();
     return () => {
       cancelled = true;
@@ -134,7 +163,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
       depart_date: formData.depart_date,
       return_date: returnDate,
       num_travelers: formData.num_travelers ? Number(formData.num_travelers) : undefined,
-      ...(parentTripId ? { parent_trip_id: parentTripId } : {}),
+      ...(parentTripId ? { parent_trip_id: parentTripId, extra: inherited } : {}),
     } as any);
 
     if (result) {
