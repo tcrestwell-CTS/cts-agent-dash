@@ -5,6 +5,51 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/** Looks up a free-to-use photo (Wikimedia/Wikipedia page image) for a place or landmark. */
+async function findPhoto(query: string): Promise<string | null> {
+  if (!query || !query.trim()) return null;
+  try {
+    const url =
+      "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*" +
+      "&generator=search&gsrlimit=1&gsrnamespace=0" +
+      `&gsrsearch=${encodeURIComponent(query.trim())}` +
+      "&prop=pageimages&piprop=thumbnail&pithumbsize=1000";
+    const res = await fetch(url, { headers: { "User-Agent": "CrestwellTravels/1.0 (itinerary photos)" } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const pages = json?.query?.pages ? Object.values(json.query.pages) : [];
+    for (const p of pages as any[]) {
+      const src = p?.thumbnail?.source;
+      if (typeof src === "string" && src.startsWith("https://")) return src;
+    }
+    return null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/** Attaches photos to items that look visual (sights/activities), with limited concurrency. */
+async function attachPhotos(items: any[], destination?: string) {
+  const PHOTO_CATEGORIES = new Set(["sightseeing", "activity", "entertainment", "relaxation", "shopping", "dining", "cruise", "hotel"]);
+  const candidates = items.filter((it) => PHOTO_CATEGORIES.has(String(it?.category || "").toLowerCase()));
+  const limited = candidates.slice(0, 12);
+  const BATCH = 4;
+  for (let i = 0; i < limited.length; i += BATCH) {
+    const batch = limited.slice(i, i + BATCH);
+    await Promise.all(
+      batch.map(async (item) => {
+        const query =
+          item.photo_query ||
+          [item.location || item.title, destination].filter(Boolean).join(" ");
+        const photo = await findPhoto(query);
+        if (photo) item.image_url = photo;
+        delete item.photo_query;
+      })
+    );
+  }
+  for (const it of items) delete it.photo_query;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -29,6 +74,7 @@ Your response MUST be a valid JSON array of itinerary items. Each item must have
 - location (string, specific location name)
 - start_time (string HH:MM format, 24hr)
 - end_time (string HH:MM format, 24hr)
+- photo_query (string) — for visual items (sightseeing, activities, landmarks, hotels, restaurants), the most likely Wikipedia article title for the specific place (e.g. "Colosseum", "Sagrada Família", "Central Park"). Use an empty string when the item is generic (e.g. "free time", "check in").
 
 Create a realistic, well-paced itinerary with 4-6 items per day. Include meals, travel time, and downtime. Do NOT include any markdown formatting, code blocks, or explanation — ONLY the JSON array.`;
 
@@ -82,6 +128,10 @@ Return ONLY a JSON array of itinerary items.`;
     } catch {
       console.error("Failed to parse AI response:", content);
       items = [];
+    }
+
+    if (Array.isArray(items) && items.length) {
+      await attachPhotos(items, destination);
     }
 
     return new Response(JSON.stringify({ items }), {

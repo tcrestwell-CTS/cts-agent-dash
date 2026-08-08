@@ -180,6 +180,7 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
         location: item.location || null,
         start_time: item.start_time || null,
         end_time: item.end_time || null,
+        image_url: item.image_url || null,
         sort_order: idx,
       }));
 
