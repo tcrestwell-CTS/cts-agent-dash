@@ -711,19 +711,19 @@ const Settings = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="storefrontSlug">Storefront URL Slug</Label>
+                    <Label htmlFor="storefrontSlug">Storefront Subdomain</Label>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">app.crestwelltravels.com/storefront/</span>
                       <Input
                         id="storefrontSlug"
                         value={formData.storefront_slug}
                         onChange={(e) => handleInputChange("storefront_slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
-                        placeholder="your-name"
+                        placeholder="agentcompany"
                         className="flex-1"
                       />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">.crestwelltravels.com</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Use only lowercase letters, numbers, and hyphens. This becomes your public storefront address.
+                      Use only lowercase letters, numbers, and hyphens. This becomes your public storefront subdomain.
                     </p>
                   </div>
 
@@ -744,8 +744,8 @@ const Settings = () => {
                     <p className="text-sm font-medium text-card-foreground">Live Storefront URL</p>
                     <p className="text-sm text-muted-foreground">
                       {formData.storefront_enabled && formData.storefront_slug
-                        ? `https://app.crestwelltravels.com/storefront/${formData.storefront_slug}`
-                        : "Enable your storefront and enter a slug to generate the public link."}
+                        ? `https://${formData.storefront_slug}.crestwelltravels.com`
+                        : "Enable your storefront and enter a subdomain to generate the public link."}
                     </p>
                   </div>
 
