@@ -93,6 +93,7 @@ export interface CreateTripData {
   notes?: string;
   trip_page_url?: string;
   parent_trip_id?: string;
+  trip_subtype?: string;
   /** Extra trips columns to copy over (e.g. inherited from a parent group trip) */
   extra?: Record<string, any>;
 }
@@ -221,6 +222,7 @@ export function useTrips() {
           depart_date: data.depart_date || null,
           return_date: data.return_date || null,
           trip_type: data.trip_type || "regular",
+          trip_subtype: data.trip_subtype || null,
           notes: data.notes || null,
           trip_page_url: data.trip_page_url || null,
            status: "lead",
