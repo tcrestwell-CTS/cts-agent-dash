@@ -35,7 +35,11 @@ const defaultProfile: ProfileData = {
   ccra_number: "",
   asta_number: "",
   embarc_number: "",
+  storefront_enabled: false,
+  storefront_slug: "",
+  storefront_headline: "Your Personal Cruise & Vacation Expert",
 };
+
 
 export function useProfile() {
   const { user } = useAuth();
