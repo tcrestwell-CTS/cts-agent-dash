@@ -42,6 +42,9 @@ const Settings = () => {
     ccra_number: "",
     asta_number: "",
     embarc_number: "",
+    storefront_enabled: false,
+    storefront_slug: "",
+    storefront_headline: "Your Personal Cruise & Vacation Expert",
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
