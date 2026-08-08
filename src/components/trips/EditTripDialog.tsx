@@ -255,7 +255,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
 
           {(formData.trip_subtype === "lodging" || formData.trip_subtype === "all_inclusive") && (
             <div className="space-y-2">
-              <Label htmlFor="edit_hotel_name">Hotel / Resort Name</Label>
+              <Label htmlFor="edit_hotel_name">Property Name</Label>
               <Input
                 id="edit_hotel_name"
                 value={formData.hotel_name}
@@ -294,12 +294,12 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit_notes">Notes</Label>
+            <Label htmlFor="edit_notes">Trip Details Overview</Label>
             <Textarea
               id="edit_notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any additional notes about this trip..."
+              placeholder="Overview of this trip — what's included, key details, notes..."
               rows={3}
             />
           </div>
