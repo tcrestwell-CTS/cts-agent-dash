@@ -39,7 +39,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, UserPlus, Compass, Users2, Heart, Home, Gem, Ship, Mountain, Briefcase } from "lucide-react";
+import { Check, ChevronsUpDown, UserPlus, Compass, Users2 } from "lucide-react";
 import { QuickAddClientForm } from "@/components/trips/QuickAddClientForm";
 
 const TRIP_TYPES = [
