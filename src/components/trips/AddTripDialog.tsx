@@ -111,6 +111,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
         notes: prev.notes || p.notes || "",
         depart_date: prev.depart_date || p.depart_date || "",
         return_date: prev.return_date || p.return_date || "",
+        num_travelers: prev.num_travelers || (p.num_travelers ? String(p.num_travelers) : ""),
       }));
       // Carry over the rest of the parent's trip setup
       const carry: Record<string, any> = {};
@@ -168,6 +169,37 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
 
     if (result) {
       const tripId = (result as any).id;
+      // Copy the parent group itinerary into the new sub-trip
+      if (parentTripId && tripId) {
+        try {
+          const { data: parentItems } = await supabase
+            .from("itinerary_items")
+            .select("*")
+            .eq("trip_id", parentTripId)
+            .order("day_number", { ascending: true })
+            .order("sort_order", { ascending: true });
+          if (parentItems && parentItems.length > 0) {
+            const inserts = parentItems.map((item: any, idx: number) => ({
+              trip_id: tripId,
+              user_id: (result as any).user_id,
+              day_number: item.day_number,
+              title: item.title,
+              description: item.description,
+              category: item.category,
+              location: item.location,
+              start_time: item.start_time,
+              end_time: item.end_time,
+              item_date: item.item_date,
+              notes: item.notes,
+              image_url: item.image_url ?? null,
+              sort_order: item.sort_order ?? idx,
+            }));
+            await supabase.from("itinerary_items").insert(inserts as any);
+          }
+        } catch (err) {
+          console.error("Failed to copy parent itinerary:", err);
+        }
+      }
       setFormData({
         trip_type: "regular",
         trip_name: "",
