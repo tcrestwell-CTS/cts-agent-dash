@@ -1,0 +1,1 @@
+CREATE POLICY authenticated_insert_quote_requests ON public.quote_requests FOR INSERT TO authenticated WITH CHECK (true);
