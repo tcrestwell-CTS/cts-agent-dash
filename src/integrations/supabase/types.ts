@@ -10583,6 +10583,33 @@ export type Database = {
           },
         ]
       }
+      public_storefronts: {
+        Row: {
+          agency_name: string | null
+          avatar_url: string | null
+          full_name: string | null
+          job_title: string | null
+          storefront_headline: string | null
+          storefront_slug: string | null
+        }
+        Insert: {
+          agency_name?: string | null
+          avatar_url?: string | null
+          full_name?: string | null
+          job_title?: string | null
+          storefront_headline?: string | null
+          storefront_slug?: string | null
+        }
+        Update: {
+          agency_name?: string | null
+          avatar_url?: string | null
+          full_name?: string | null
+          job_title?: string | null
+          storefront_headline?: string | null
+          storefront_slug?: string | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed_at: string | null
