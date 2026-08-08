@@ -9752,6 +9752,7 @@ export type Database = {
           total_supplier_payout: number
           trip_name: string
           trip_page_url: string | null
+          trip_subtype: string | null
           trip_type: string | null
           updated_at: string
           upgrade_notes: string | null
@@ -9821,6 +9822,7 @@ export type Database = {
           total_supplier_payout?: number
           trip_name: string
           trip_page_url?: string | null
+          trip_subtype?: string | null
           trip_type?: string | null
           updated_at?: string
           upgrade_notes?: string | null
@@ -9890,6 +9892,7 @@ export type Database = {
           total_supplier_payout?: number
           trip_name?: string
           trip_page_url?: string | null
+          trip_subtype?: string | null
           trip_type?: string | null
           updated_at?: string
           upgrade_notes?: string | null
