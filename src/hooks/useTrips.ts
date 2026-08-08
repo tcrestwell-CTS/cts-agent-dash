@@ -93,6 +93,8 @@ export interface CreateTripData {
   notes?: string;
   trip_page_url?: string;
   parent_trip_id?: string;
+  /** Extra trips columns to copy over (e.g. inherited from a parent group trip) */
+  extra?: Record<string, any>;
 }
 
 export interface UpdateTripData {
@@ -211,6 +213,7 @@ export function useTrips() {
       const { data: newTrip, error } = await supabase
         .from("trips")
         .insert({
+          ...(data.extra || {}),
           user_id: user.id,
           client_id: data.client_id || null,
           trip_name: data.trip_name,
