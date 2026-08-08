@@ -83,18 +83,20 @@ const AgentStorefront = () => {
     load();
   }, [slug]);
 
+  const storefrontName = agent?.agency_name?.trim() || agent?.full_name || "Travel Advisor";
+
   useEffect(() => {
     if (agent) {
-      document.title = `${agent.full_name ?? "Travel Advisor"} | Crestwell Travels`;
+      document.title = `${storefrontName} | Travel Planning`;
       const desc = document.querySelector('meta[name="description"]');
       if (desc) {
         desc.setAttribute(
           "content",
-          agent.storefront_headline ?? `Plan your next trip with ${agent.full_name ?? "your Crestwell travel advisor"}.`,
+          agent.storefront_headline ?? `Plan your next trip with ${storefrontName}.`,
         );
       }
     }
-  }, [agent]);
+  }, [agent, storefrontName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +156,7 @@ const AgentStorefront = () => {
     );
   }
 
-  const initials = (agent.full_name ?? "CT")
+  const initials = storefrontName
     .split(" ")
     .map((p) => p[0])
     .join("")
@@ -166,14 +168,14 @@ const AgentStorefront = () => {
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <Avatar className="h-24 w-24">
-            <AvatarImage src={agent.avatar_url ?? undefined} alt={agent.full_name ?? "Travel advisor"} />
+            <AvatarImage src={agent.avatar_url ?? undefined} alt={storefrontName} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div className="space-y-1">
-            <h1 className="text-3xl font-semibold text-card-foreground">{agent.full_name}</h1>
+            <h1 className="text-3xl font-semibold text-card-foreground">{storefrontName}</h1>
             <p className="text-primary font-medium">{agent.storefront_headline}</p>
             <p className="text-sm text-muted-foreground">
-              {[agent.job_title, agent.agency_name].filter(Boolean).join(" · ")}
+              {[agent.full_name, agent.job_title].filter(Boolean).join(" · ")}
             </p>
           </div>
         </div>
