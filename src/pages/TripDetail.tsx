@@ -29,6 +29,7 @@ import {
   MessageSquare,
   Plane,
   Ship,
+  Hotel,
   ShieldCheck,
   BedDouble,
   Users as UsersIcon,

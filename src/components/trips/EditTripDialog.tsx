@@ -33,6 +33,8 @@ const TRIP_TYPES = [
   { value: "family", label: "Family Vacation" },
   { value: "luxury", label: "Luxury" },
   { value: "cruise", label: "Cruise" },
+  { value: "lodging", label: "Lodging / Hotel" },
+  { value: "all_inclusive", label: "All-Inclusive Resort" },
   { value: "adventure", label: "Adventure" },
   { value: "corporate", label: "Corporate / Business" },
 ];
@@ -53,6 +55,7 @@ interface EditTripDialogProps {
     cabin_selection?: string | null;
     cabin_photos?: string[] | null;
     ship_name?: string | null;
+    hotel_name?: string | null;
   };
   onUpdated: () => void;
 }
@@ -71,6 +74,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
     cabin_selection: "",
     cabin_photos: "",
     ship_name: "",
+    hotel_name: "",
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -86,6 +90,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
         cabin_selection: (trip as any).cabin_selection || "",
         cabin_photos: ((trip as any).cabin_photos || []).join("\n"),
         ship_name: (trip as any).ship_name || "",
+        hotel_name: (trip as any).hotel_name || "",
       });
       setDateRange(
         trip.depart_date
@@ -122,6 +127,7 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
           cabin_selection: formData.cabin_selection || null,
           cabin_photos: cabinPhotos,
           ship_name: formData.ship_name || null,
+          hotel_name: formData.hotel_name || null,
         } as any)
         .eq("id", trip.id);
 
@@ -209,15 +215,29 @@ export function EditTripDialog({ open, onOpenChange, trip, onUpdated }: EditTrip
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit_ship_name">Ship Name</Label>
-            <Input
-              id="edit_ship_name"
-              value={formData.ship_name}
-              onChange={(e) => setFormData({ ...formData, ship_name: e.target.value })}
-              placeholder="e.g., Symphony of the Seas"
-            />
-          </div>
+          {formData.trip_type === "cruise" && (
+            <div className="space-y-2">
+              <Label htmlFor="edit_ship_name">Ship Name</Label>
+              <Input
+                id="edit_ship_name"
+                value={formData.ship_name}
+                onChange={(e) => setFormData({ ...formData, ship_name: e.target.value })}
+                placeholder="e.g., Symphony of the Seas"
+              />
+            </div>
+          )}
+
+          {(formData.trip_type === "lodging" || formData.trip_type === "all_inclusive") && (
+            <div className="space-y-2">
+              <Label htmlFor="edit_hotel_name">Hotel / Resort Name</Label>
+              <Input
+                id="edit_hotel_name"
+                value={formData.hotel_name}
+                onChange={(e) => setFormData({ ...formData, hotel_name: e.target.value })}
+                placeholder="e.g., Sandals Royal Bahamian"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Trip Dates</Label>
