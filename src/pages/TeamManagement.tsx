@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor, ShieldCheck, Banknote, GraduationCap } from "lucide-react";
+import { Users, MoreHorizontal, RefreshCw, Trash2, Loader2, Clock, CheckCircle, XCircle, UserCircle, TrendingUp, Monitor, ShieldCheck, Banknote, GraduationCap, Store } from "lucide-react";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useCanViewTeam } from "@/hooks/useAdmin";
@@ -31,6 +31,7 @@ import { ActiveSessionsWidget } from "@/components/admin/ActiveSessionsWidget";
 import { AgentPermissionsManager } from "@/components/admin/AgentPermissionsManager";
 import { AgentPayoutsManager } from "@/components/admin/AgentPayoutsManager";
 import { MentorAssignmentsManager } from "@/components/admin/MentorAssignmentsManager";
+import { AgentStorefrontsManager } from "@/components/admin/AgentStorefrontsManager";
 
 
 const TeamManagement = () => {
@@ -166,7 +167,19 @@ const TeamManagement = () => {
               Mentors
             </TabsTrigger>
           )}
+          {canManage && (
+            <TabsTrigger value="storefronts" className="gap-2">
+              <Store className="h-4 w-4" />
+              Storefronts
+            </TabsTrigger>
+          )}
         </TabsList>
+
+        {canManage && (
+          <TabsContent value="storefronts">
+            <AgentStorefrontsManager />
+          </TabsContent>
+        )}
 
         <TabsContent value="profiles">
           <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
