@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2, TrendingUp, LayoutDashboard } from "lucide-react";
+import { Loader2, User, Phone, Briefcase, Percent, Shield, Trash2, TrendingUp, LayoutDashboard, Palette } from "lucide-react";
 import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { useAllUserRoles, useUpdateUserRole, useDeleteUser } from "@/hooks/useUserRoles";
 import { useUpdateCommissionTier } from "@/hooks/useUpdateCommissionTier";
@@ -30,7 +30,12 @@ import { useIsAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { getTierConfig, CommissionTier, COMMISSION_TIERS } from "@/lib/commissionTiers";
-import { useDashboardAccess, useToggleDashboardAccess } from "@/hooks/useDashboardAccess";
+import {
+  useDashboardAccess,
+  useEmailBrandingAccess,
+  useToggleDashboardAccess,
+  useToggleEmailBrandingAccess,
+} from "@/hooks/useDashboardAccess";
 
 type AppRole = "admin" | "office_admin" | "user" | "bookkeeper";
 
@@ -58,6 +63,8 @@ export function TeamProfiles() {
   const deleteUser = useDeleteUser();
   const { data: dashboardAccess } = useDashboardAccess();
   const toggleDashboard = useToggleDashboardAccess();
+  const { data: emailBrandingAccess } = useEmailBrandingAccess();
+  const toggleEmailBranding = useToggleEmailBrandingAccess();
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -271,18 +278,35 @@ export function TeamProfiles() {
               <div className="mt-4 pt-3 border-t border-border space-y-3">
                 {/* Dashboard access toggle */}
                 {isAdmin && !isCurrentUser && currentRole !== "admin" && (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <LayoutDashboard className="h-4 w-4" />
-                      <span>Dashboard access</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Dashboard access</span>
+                      </div>
+                      <Switch
+                        aria-label={`Dashboard access for ${profile.full_name || "agent"}`}
+                        checked={dashboardAccess?.[profile.user_id] ?? true}
+                        onCheckedChange={(next) =>
+                          toggleDashboard.mutate({ userId: profile.user_id, allowed: next })
+                        }
+                        disabled={toggleDashboard.isPending}
+                      />
                     </div>
-                    <Switch
-                      checked={dashboardAccess?.[profile.user_id] ?? true}
-                      onCheckedChange={(next) =>
-                        toggleDashboard.mutate({ userId: profile.user_id, allowed: next })
-                      }
-                      disabled={toggleDashboard.isPending}
-                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Palette className="h-4 w-4" />
+                        <span>Email &amp; Branding</span>
+                      </div>
+                      <Switch
+                        aria-label={`Email and Branding access for ${profile.full_name || "agent"}`}
+                        checked={emailBrandingAccess?.[profile.user_id] ?? false}
+                        onCheckedChange={(next) =>
+                          toggleEmailBranding.mutate({ userId: profile.user_id, allowed: next })
+                        }
+                        disabled={toggleEmailBranding.isPending}
+                      />
+                    </div>
                   </div>
                 )}
                 {/* Role display/edit */}
