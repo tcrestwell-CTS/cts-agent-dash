@@ -76,10 +76,13 @@ const AgentStorefront     = lazy(() => import("./pages/AgentStorefront"));
 /** True when the app is served from an agent storefront subdomain (e.g. jane.crestwelltravels.com) */
 const isStorefrontHost = (() => {
   const host = window.location.hostname;
+  // Only real production subdomains count. Lovable preview/sandbox hosts and
+  // localhost must never be treated as an agent storefront.
+  if (!host.endsWith("crestwelltravels.com")) return false;
   const parts = host.split(".");
   if (parts.length < 3) return false;
   const sub = parts[0].toLowerCase();
-  return !["www", "app", "compass"].includes(sub) && !host.includes("lovable.app");
+  return !["www", "app", "compass"].includes(sub);
 })();
 const TripFeedback        = lazy(() => import("./pages/TripFeedback"));
 const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
