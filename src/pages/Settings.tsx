@@ -180,10 +180,12 @@ const Settings = () => {
               Agency
             </TabsTrigger>
           )}
-          <TabsTrigger value="storefront" className="gap-2">
-            <Store className="h-4 w-4" />
-            Storefront
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="storefront" className="gap-2">
+              <Store className="h-4 w-4" />
+              Storefront
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -680,8 +682,9 @@ const Settings = () => {
           </TabsContent>
         )}
 
-        <TabsContent value="storefront">
-          <Card>
+        {isAdmin && (
+          <TabsContent value="storefront">
+            <Card>
             <CardHeader>
               <CardTitle>Agent Storefront</CardTitle>
               <CardDescription>
@@ -781,8 +784,9 @@ const Settings = () => {
                 </>
               )}
             </CardContent>
-          </Card>
-        </TabsContent>
+            </Card>
+          </TabsContent>
+        )}
 
       </Tabs>
     </DashboardLayout>
