@@ -133,7 +133,6 @@ const navGroups: NavGroup[] = [
       { name: "Featured Trips",  href: "/featured-trips",  icon: Star, feature: "featured_trips" },
       { name: "Template Library", href: "/template-library", icon: FileText },
       { name: "Form Builder", href: "/forms", icon: ClipboardList },
-      { name: "Email & Branding", href: "/branding", icon: Palette, feature: "email_branding" },
     ],
   },
   {
@@ -150,6 +149,7 @@ const navGroups: NavGroup[] = [
 ];
 
 const bottomNav: NavItem[] = [
+  { name: "Email & Branding", href: "/branding", icon: Palette, feature: "email_branding" },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -460,7 +460,7 @@ export function Sidebar({ collapsed, onCollapsedChange, mobileOpen, onMobileOpen
 
               <div className="pt-2">
                 <hr className="mb-2 border-sidebar-border" />
-                {bottomNav.map((item) => (
+                {bottomNav.filter((item) => !item.feature || canFeature(item.feature)).map((item) => (
                   <NavItemLink key={item.name} item={item} />
                 ))}
               </div>
