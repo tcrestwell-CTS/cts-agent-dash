@@ -10,7 +10,9 @@ import { User, Bell, Shield, CreditCard, Link2, Loader2, TrendingUp, Percent, Bu
 import { useProfile } from "@/hooks/useProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getTierConfig } from "@/lib/commissionTiers";
+import { getTierConfig, getNextTier, COMMISSION_TIERS } from "@/lib/commissionTiers";
+import { useAgentPayoutAccount } from "@/hooks/useAgentPayoutAccount";
+import { Badge } from "@/components/ui/badge";
 import { QBOIntegrationCard } from "@/components/settings/QBOIntegrationCard";
 import { QBOAccountMappingCard } from "@/components/settings/QBOAccountMappingCard";
 import { AgencySettingsTab } from "@/components/settings/AgencySettingsTab";
@@ -29,6 +31,7 @@ const Settings = () => {
   const { preferences, loading: notifLoading, updatePreference } = useNotificationPreferences();
   const { isAdmin } = usePermissions();
   const earnings = useEarningsLabel();
+  const { data: payoutAccount } = useAgentPayoutAccount();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
