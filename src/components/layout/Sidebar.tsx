@@ -32,6 +32,7 @@ import {
   Megaphone,
   AlertTriangle,
   ShieldCheck,
+  Palette,
   Car,
   Inbox,
   TrendingUp,
