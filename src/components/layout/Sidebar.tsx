@@ -133,6 +133,7 @@ const navGroups: NavGroup[] = [
       { name: "Featured Trips",  href: "/featured-trips",  icon: Star, feature: "featured_trips" },
       { name: "Template Library", href: "/template-library", icon: FileText },
       { name: "Form Builder", href: "/forms", icon: ClipboardList },
+      { name: "Email & Branding", href: "/branding", icon: Palette, feature: "email_branding" },
     ],
   },
   {
