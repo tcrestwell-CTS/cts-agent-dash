@@ -177,6 +177,20 @@ const AgentStorefront = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <div className="relative h-56 sm:h-72 w-full overflow-hidden bg-muted">
+        {STOREFRONT_STOCK_IMAGES.map((img, i) => (
+          <img
+            key={img.url}
+            src={img.url}
+            alt={img.alt}
+            loading={i === 0 ? "eager" : "lazy"}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+              i === heroIndex ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+      </div>
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <div className="flex flex-col items-center gap-4 sm:flex-row">
