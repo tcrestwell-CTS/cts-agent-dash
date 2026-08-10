@@ -24,6 +24,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { StorefrontLogoUpload } from "@/components/storefront/StorefrontLogoUpload";
 import { toast } from "sonner";
 
 const Settings = () => {
@@ -48,6 +49,7 @@ const Settings = () => {
     storefront_enabled: false,
     storefront_slug: "",
     storefront_headline: "Your Personal Cruise & Vacation Expert",
+    storefront_logo_url: "",
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -105,6 +107,7 @@ const Settings = () => {
         storefront_enabled: profile.storefront_enabled,
         storefront_slug: profile.storefront_slug,
         storefront_headline: profile.storefront_headline,
+        storefront_logo_url: profile.storefront_logo_url || "",
       });
     }
   }, [profile]);
@@ -812,6 +815,12 @@ const Settings = () => {
                       Shown at the top of your storefront page.
                     </p>
                   </div>
+
+                  <StorefrontLogoUpload
+                    userId={user?.id}
+                    value={formData.storefront_logo_url || null}
+                    onChange={(url) => handleInputChange("storefront_logo_url", url ?? "")}
+                  />
 
                   <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-2">
                     <p className="text-sm font-medium text-card-foreground">Live Storefront URL</p>
