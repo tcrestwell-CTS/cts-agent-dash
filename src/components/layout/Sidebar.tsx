@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Bell,
   CreditCard,
+  MessageCircleMore,
   Globe,
   Plane,
   FileText,
