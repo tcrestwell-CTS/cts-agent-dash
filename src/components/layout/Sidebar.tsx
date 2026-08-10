@@ -98,6 +98,7 @@ const navGroups: NavGroup[] = [
       { name: "Partners", href: "/business-contacts",  icon: Building2, feature: "business_contacts" },
       { name: "Scheduling", href: "/scheduling",        icon: CalendarClock },
       { name: "My Payments", href: "/my-payments",       icon: CreditCard },
+      { name: "LINE Inbox", href: "/line-inbox",         icon: MessageCircleMore },
       { name: "Notes Chat", href: "/notes-chat",        icon: MessageSquareText },
     ],
   },
