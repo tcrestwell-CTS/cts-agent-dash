@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { STOREFRONT_STOCK_IMAGES } from "@/lib/storefrontStockImages";
 
 interface Storefront {
   user_id: string;
@@ -54,6 +55,15 @@ const AgentStorefront = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(
+      () => setHeroIndex((i) => (i + 1) % STOREFRONT_STOCK_IMAGES.length),
+      6000,
+    );
+    return () => window.clearInterval(id);
+  }, []);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
