@@ -75,7 +75,7 @@ export function PublishTripButton({
     ? `${PRODUCTION_DOMAIN}/shared/${shareToken}`
     : null;
   const previewUrl = shareToken
-    ? `/shared/${shareToken}?preview=true`
+    ? `${PRODUCTION_DOMAIN}/shared/${shareToken}?preview=true`
     : null;
 
   const handlePublish = async () => {
