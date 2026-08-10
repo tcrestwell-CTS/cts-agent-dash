@@ -170,7 +170,7 @@ const AgentStorefront = () => {
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <Avatar className="h-24 w-24 border border-border shadow-sm">
+            <Avatar className="h-48 w-48 border border-border shadow-sm">
               <AvatarImage
                 src={agent.avatar_url ?? undefined}
                 alt={agent.full_name ? `${agent.full_name} profile photo` : storefrontName}
