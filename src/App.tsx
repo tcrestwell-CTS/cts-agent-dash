@@ -72,6 +72,7 @@ const BookMeeting         = lazy(() => import("./pages/BookMeeting"));
 const IntakeForms         = lazy(() => import("./pages/IntakeForms"));
 const PublicIntakeForm    = lazy(() => import("./pages/PublicIntakeForm"));
 const AgentStorefront     = lazy(() => import("./pages/AgentStorefront"));
+const AdvisorSite         = lazy(() => import("./pages/AdvisorSite"));
 
 /** True when the app is served from an agent storefront subdomain (e.g. jane.crestwelltravels.com) */
 const isStorefrontHost = (() => {
@@ -196,6 +197,7 @@ const App = () => (
                   element={isStorefrontHost ? <AgentStorefront /> : <ProtectedRoute><Index /></ProtectedRoute>}
                 />
                 <Route path="/storefront/:slug" element={<AgentStorefront />} />
+                <Route path="/advisor-site" element={<AdvisorSite />} />
                 <Route path="/contacts" element={<ProtectedRoute><FeatureRoute feature="clients"><CRM /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/contacts/:clientId" element={<ProtectedRoute><FeatureRoute feature="clients"><ClientDetail /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
