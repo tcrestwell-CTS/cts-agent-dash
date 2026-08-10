@@ -12,6 +12,14 @@ interface StorefrontLogoUploadProps {
   onChange: (url: string | null) => void;
   label?: string;
   compact?: boolean;
+  /** file name (without extension) stored under the user's folder */
+  fileBase?: string;
+  /** preview shape — circle for profile photos, square for logos */
+  shape?: "square" | "circle";
+  /** how the preview image fills its frame */
+  fit?: "contain" | "cover";
+  /** noun used in buttons, toasts and helper copy */
+  noun?: string;
 }
 
 /**
@@ -25,13 +33,17 @@ export const StorefrontLogoUpload = ({
   onChange,
   label = "Storefront Logo",
   compact = false,
+  fileBase = "storefront-logo",
+  shape = "square",
+  fit = "contain",
+  noun = "logo",
 }: StorefrontLogoUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   const handleFile = async (file: File) => {
     if (!userId) {
-      toast.error("Missing agent account — cannot upload logo");
+      toast.error(`Missing agent account — cannot upload ${noun}`);
       return;
     }
     if (!file.type.startsWith("image/")) {
@@ -39,22 +51,22 @@ export const StorefrontLogoUpload = ({
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Logo must be under 5MB");
+      toast.error(`${noun.charAt(0).toUpperCase()}${noun.slice(1)} must be under 5MB`);
       return;
     }
 
     setUploading(true);
     try {
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `${userId}/storefront-logo.${ext}`;
+      const path = `${userId}/${fileBase}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("logos")
         .upload(path, file, { upsert: true, contentType: file.type });
 
       if (uploadError) {
-        console.error("Logo upload failed:", uploadError);
-        toast.error(uploadError.message || "Failed to upload logo");
+        console.error("Image upload failed:", uploadError);
+        toast.error(uploadError.message || `Failed to upload ${noun}`);
         return;
       }
 
@@ -63,7 +75,7 @@ export const StorefrontLogoUpload = ({
       } = supabase.storage.from("logos").getPublicUrl(path);
 
       onChange(`${publicUrl}?v=${Date.now()}`);
-      toast.success("Logo uploaded");
+      toast.success(`${noun.charAt(0).toUpperCase()}${noun.slice(1)} uploaded`);
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -74,11 +86,19 @@ export const StorefrontLogoUpload = ({
     <div className="space-y-2">
       {!compact && <Label>{label}</Label>}
       <div className="flex items-center gap-3">
-        <div className="h-16 w-16 shrink-0 rounded-md border border-border bg-muted/30 flex items-center justify-center overflow-hidden">
+        <div
+          className={`h-16 w-16 shrink-0 border border-border bg-muted/30 flex items-center justify-center overflow-hidden ${
+            shape === "circle" ? "rounded-full" : "rounded-md"
+          }`}
+        >
           {value ? (
-            <img src={value} alt="Agent logo" className="h-full w-full object-contain" />
+            <img
+              src={value}
+              alt={`Agent ${noun}`}
+              className={`h-full w-full ${fit === "cover" ? "object-cover" : "object-contain"}`}
+            />
           ) : (
-            <span className="text-[10px] text-muted-foreground text-center px-1">No logo</span>
+            <span className="text-[10px] text-muted-foreground text-center px-1">No {noun}</span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -94,7 +114,7 @@ export const StorefrontLogoUpload = ({
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}
-            {value ? "Replace logo" : "Upload logo"}
+            {value ? `Replace ${noun}` : `Upload ${noun}`}
           </Button>
           {value && (
             <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>

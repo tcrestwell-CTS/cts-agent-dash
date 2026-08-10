@@ -20,6 +20,7 @@ interface StorefrontRow {
   storefront_slug: string | null;
   storefront_headline: string | null;
   storefront_logo_url: string | null;
+  avatar_url: string | null;
 }
 
 const slugify = (value: string) =>
@@ -33,7 +34,7 @@ export const AgentStorefrontsManager = () => {
   const load = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, agency_name, storefront_enabled, storefront_slug, storefront_headline, storefront_logo_url")
+      .select("id, user_id, full_name, agency_name, storefront_enabled, storefront_slug, storefront_headline, storefront_logo_url, avatar_url")
       .order("agency_name", { ascending: true, nullsFirst: false });
     if (error) {
       console.error("Failed to load storefronts:", error);
@@ -60,6 +61,7 @@ export const AgentStorefrontsManager = () => {
         storefront_slug: row.storefront_slug ? slugify(row.storefront_slug) : null,
         storefront_headline: row.storefront_headline,
         storefront_logo_url: row.storefront_logo_url,
+        avatar_url: row.avatar_url,
       } as any)
       .eq("id", row.id);
     setSavingId(null);
@@ -148,12 +150,25 @@ export const AgentStorefrontsManager = () => {
                   />
                   {url && <p className="text-xs text-muted-foreground">{url}</p>}
                 </div>
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
                   <Label>Logo</Label>
                   <StorefrontLogoUpload
                     userId={row.user_id}
                     value={row.storefront_logo_url}
                     onChange={(logoUrl) => patchLocal(row.id, { storefront_logo_url: logoUrl })}
+                    compact
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Profile photo</Label>
+                  <StorefrontLogoUpload
+                    userId={row.user_id}
+                    value={row.avatar_url}
+                    onChange={(avatarUrl) => patchLocal(row.id, { avatar_url: avatarUrl })}
+                    noun="photo"
+                    fileBase="storefront-avatar"
+                    shape="circle"
+                    fit="cover"
                     compact
                   />
                 </div>
