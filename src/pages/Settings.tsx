@@ -822,6 +822,20 @@ const Settings = () => {
                     onChange={(url) => handleInputChange("storefront_logo_url", url ?? "")}
                   />
 
+                  <StorefrontLogoUpload
+                    userId={user?.id}
+                    label="Storefront Profile Photo"
+                    noun="photo"
+                    fileBase="storefront-avatar"
+                    shape="circle"
+                    fit="cover"
+                    value={profile.avatar_url || null}
+                    onChange={(url) => saveProfile({ avatar_url: url ?? "" })}
+                  />
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    Shown beside your logo at the top of your storefront. Saves right away.
+                  </p>
+
                   <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-2">
                     <p className="text-sm font-medium text-card-foreground">Live Storefront URL</p>
                     <p className="text-sm text-muted-foreground">
