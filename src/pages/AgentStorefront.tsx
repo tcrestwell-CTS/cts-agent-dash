@@ -19,6 +19,8 @@ interface Storefront {
   avatar_url: string | null;
   job_title: string | null;
   agency_name: string | null;
+  storefront_logo_url: string | null;
+  storefront_bio: string | null;
 }
 
 const TRIP_TYPES = [
@@ -167,16 +169,28 @@ const AgentStorefront = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={agent.avatar_url ?? undefined} alt={storefrontName} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
+          {agent.storefront_logo_url ? (
+            <img
+              src={agent.storefront_logo_url}
+              alt={`${storefrontName} logo`}
+              className="h-24 w-auto max-w-[220px] object-contain"
+              loading="eager"
+            />
+          ) : (
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={agent.avatar_url ?? undefined} alt={storefrontName} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          )}
           <div className="space-y-1">
             <h1 className="text-3xl font-semibold text-card-foreground">{storefrontName}</h1>
             <p className="text-primary font-medium">{agent.storefront_headline}</p>
             <p className="text-sm text-muted-foreground">
               {[agent.full_name, agent.job_title].filter(Boolean).join(" · ")}
             </p>
+            {agent.storefront_bio && (
+              <p className="text-sm text-muted-foreground max-w-xl pt-2">{agent.storefront_bio}</p>
+            )}
           </div>
         </div>
       </header>

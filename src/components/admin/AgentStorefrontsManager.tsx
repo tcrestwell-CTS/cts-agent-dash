@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Loader2, Store } from "lucide-react";
 import { toast } from "sonner";
+import { StorefrontLogoUpload } from "@/components/storefront/StorefrontLogoUpload";
 
 interface StorefrontRow {
   id: string;
@@ -18,6 +19,7 @@ interface StorefrontRow {
   storefront_enabled: boolean | null;
   storefront_slug: string | null;
   storefront_headline: string | null;
+  storefront_logo_url: string | null;
 }
 
 const slugify = (value: string) =>
@@ -31,7 +33,7 @@ export const AgentStorefrontsManager = () => {
   const load = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, agency_name, storefront_enabled, storefront_slug, storefront_headline")
+      .select("id, user_id, full_name, agency_name, storefront_enabled, storefront_slug, storefront_headline, storefront_logo_url")
       .order("agency_name", { ascending: true, nullsFirst: false });
     if (error) {
       console.error("Failed to load storefronts:", error);
@@ -57,7 +59,8 @@ export const AgentStorefrontsManager = () => {
         storefront_enabled: row.storefront_enabled ?? false,
         storefront_slug: row.storefront_slug ? slugify(row.storefront_slug) : null,
         storefront_headline: row.storefront_headline,
-      })
+        storefront_logo_url: row.storefront_logo_url,
+      } as any)
       .eq("id", row.id);
     setSavingId(null);
     if (error) {
@@ -144,6 +147,15 @@ export const AgentStorefrontsManager = () => {
                     placeholder="Your Personal Cruise & Vacation Expert"
                   />
                   {url && <p className="text-xs text-muted-foreground">{url}</p>}
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Logo</Label>
+                  <StorefrontLogoUpload
+                    userId={row.user_id}
+                    value={row.storefront_logo_url}
+                    onChange={(logoUrl) => patchLocal(row.id, { storefront_logo_url: logoUrl })}
+                    compact
+                  />
                 </div>
               </div>
               <Button size="sm" onClick={() => save(row)} disabled={savingId === row.id}>
