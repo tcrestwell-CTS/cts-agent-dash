@@ -20,6 +20,7 @@ export interface ProfileData {
   storefront_enabled: boolean;
   storefront_slug: string;
   storefront_headline: string;
+  storefront_logo_url: string;
 }
 
 
