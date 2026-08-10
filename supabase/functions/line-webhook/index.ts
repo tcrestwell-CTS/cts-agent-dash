@@ -99,25 +99,21 @@ serve(async (req) => {
       });
       if (msgError) console.error("[line-webhook] Failed to insert message:", msgError);
 
-      await supabase
-        .from("line_conversations")
-        .update({
-          last_message_at: new Date().toISOString(),
-          last_message_preview: text.slice(0, 120),
-          unread_count: supabase.rpc ? undefined : undefined, // placeholder, see note below
-        })
-        .eq("id", convo.id);
-
-      // Increment unread_count via a raw update — Supabase JS doesn't do
-      // atomic increments in a simple .update() call, so read-then-write.
+      // Read-then-write for unread_count since Supabase JS doesn't do
+      // atomic increments in a plain .update() call.
       const { data: current } = await supabase
         .from("line_conversations")
         .select("unread_count")
         .eq("id", convo.id)
         .single();
+
       await supabase
         .from("line_conversations")
-        .update({ unread_count: (current?.unread_count ?? 0) + 1 })
+        .update({
+          last_message_at: new Date().toISOString(),
+          last_message_preview: text.slice(0, 120),
+          unread_count: (current?.unread_count ?? 0) + 1,
+        })
         .eq("id", convo.id);
     }
     // Other event types (follow, image messages, stickers, etc.) can be
