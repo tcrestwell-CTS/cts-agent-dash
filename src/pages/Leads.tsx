@@ -60,6 +60,7 @@ type QuoteRequest = {
   selected_option: string | null;
   assigned_agent_id: string | null;
   assigned_at: string | null;
+  funnel_name: string | null;
 };
 
 // ─── Proposal Review Gate ────────────────────────────────────────────────────
