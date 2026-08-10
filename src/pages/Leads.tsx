@@ -1036,6 +1036,14 @@ export default function Leads() {
                             <p className="font-medium">{lead.first_name} {lead.last_name}</p>
                             <p className="text-xs text-muted-foreground">{lead.email}</p>
                             {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                            {/* funnel_name was being stored correctly all along (e.g. "Agent
+                                Storefront: crownledgertravel") but never actually rendered
+                                anywhere in this table — added here as a small tag. */}
+                            {lead.funnel_name && (
+                              <Badge variant="outline" className="mt-1 text-[10px] font-normal">
+                                {lead.funnel_name}
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
