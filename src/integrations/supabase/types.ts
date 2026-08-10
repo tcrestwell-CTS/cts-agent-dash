@@ -5412,6 +5412,101 @@ export type Database = {
         }
         Relationships: []
       }
+      line_conversations: {
+        Row: {
+          assigned_agent_id: string | null
+          client_id: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          line_user_id: string
+          picture_url: string | null
+          unread_count: number
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          line_user_id: string
+          picture_url?: string | null
+          unread_count?: number
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          line_user_id?: string
+          picture_url?: string | null
+          unread_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      line_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          direction: string
+          id: string
+          message_type: string
+          raw_line_message_id: string | null
+          sent_by_agent_id: string | null
+          text: string | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          message_type?: string
+          raw_line_message_id?: string | null
+          sent_by_agent_id?: string | null
+          text?: string | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          message_type?: string
+          raw_line_message_id?: string | null
+          sent_by_agent_id?: string | null
+          text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "line_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_applications: {
         Row: {
           address_line1: string
