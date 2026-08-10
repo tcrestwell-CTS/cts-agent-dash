@@ -169,19 +169,24 @@ const AgentStorefront = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-6 py-12 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-          {agent.storefront_logo_url ? (
-            <img
-              src={agent.storefront_logo_url}
-              alt={`${storefrontName} logo`}
-              className="h-24 w-auto max-w-[220px] object-contain"
-              loading="eager"
-            />
-          ) : (
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={agent.avatar_url ?? undefined} alt={storefrontName} />
+          <div className="flex flex-col items-center gap-4 sm:flex-row">
+            <Avatar className="h-24 w-24 border border-border shadow-sm">
+              <AvatarImage
+                src={agent.avatar_url ?? undefined}
+                alt={agent.full_name ? `${agent.full_name} profile photo` : storefrontName}
+                className="object-cover"
+              />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-          )}
+            {agent.storefront_logo_url && (
+              <img
+                src={agent.storefront_logo_url}
+                alt={`${storefrontName} logo`}
+                className="h-16 w-auto max-w-[180px] object-contain"
+                loading="eager"
+              />
+            )}
+          </div>
           <div className="space-y-1">
             <h1 className="text-3xl font-semibold text-card-foreground">{storefrontName}</h1>
             <p className="text-primary font-medium">{agent.storefront_headline}</p>
