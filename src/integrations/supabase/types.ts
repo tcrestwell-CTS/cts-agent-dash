@@ -10598,7 +10598,10 @@ export type Database = {
           avatar_url: string | null
           full_name: string | null
           job_title: string | null
+          storefront_bio: string | null
+          storefront_email: string | null
           storefront_headline: string | null
+          storefront_logo_url: string | null
           storefront_slug: string | null
           user_id: string | null
         }
@@ -10607,7 +10610,10 @@ export type Database = {
           avatar_url?: string | null
           full_name?: string | null
           job_title?: string | null
+          storefront_bio?: string | null
+          storefront_email?: string | null
           storefront_headline?: string | null
+          storefront_logo_url?: string | null
           storefront_slug?: string | null
           user_id?: string | null
         }
@@ -10616,7 +10622,10 @@ export type Database = {
           avatar_url?: string | null
           full_name?: string | null
           job_title?: string | null
+          storefront_bio?: string | null
+          storefront_email?: string | null
           storefront_headline?: string | null
+          storefront_logo_url?: string | null
           storefront_slug?: string | null
           user_id?: string | null
         }
