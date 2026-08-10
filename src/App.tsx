@@ -65,6 +65,7 @@ const Approvals           = lazy(() => import("./pages/Approvals"));
 const InboxSync           = lazy(() => import("./pages/InboxSync"));
 const PaymentsDue         = lazy(() => import("./pages/PaymentsDue"));
 const MyPayments          = lazy(() => import("./pages/MyPayments"));
+const LineInbox           = lazy(() => import("./pages/LineInbox"));
 const PaymentReminders    = lazy(() => import("./pages/PaymentReminders"));
 const ClientUpdateForm    = lazy(() => import("./pages/ClientUpdateForm"));
 const Scheduling          = lazy(() => import("./pages/Scheduling"));
@@ -253,6 +254,7 @@ const App = () => (
                 <Route path="/inbox-sync" element={<ProtectedRoute><InboxSync /></ProtectedRoute>} />
                 <Route path="/payments-due" element={<ProtectedRoute><BackOfficeRoute><PaymentsDue /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/my-payments" element={<ProtectedRoute><MyPayments /></ProtectedRoute>} />
+                <Route path="/line-inbox" element={<ProtectedRoute><LineInbox /></ProtectedRoute>} />
                 <Route path="/payment-reminders" element={<ProtectedRoute><FeatureRoute feature="payment_reminders"><PaymentReminders /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/publish-manager" element={<ProtectedRoute><FeatureRoute feature="publish_manager"><TripPublishManager /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/flights" element={<ProtectedRoute><FeatureRoute feature="flight_search"><FlightSearch /></FeatureRoute></ProtectedRoute>} />
