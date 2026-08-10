@@ -21,17 +21,17 @@ export interface BrandingSettings {
 }
 
 const defaultSettings: BrandingSettings = {
-  agency_name: "Crestwell Travel Services",
+  agency_name: "",
   tagline: "Your Journey, Our Passion",
   logo_url: "",
   primary_color: "#0D7377",
   accent_color: "#E8763A",
-  email_address: "info@crestwellgetaways.com",
-  phone: "1-888-508-6893",
-  address: "105 Pine Hill Drive\nCalhoun, GA 30701",
-  website: "https://crestwellgetaways.com",
-  instagram: "@crestwelltravels",
-  facebook: "crestwelltravel",
+  email_address: "",
+  phone: "",
+  address: "",
+  website: "",
+  instagram: "",
+  facebook: "",
   from_email: "",
   from_name: "",
 };
@@ -54,11 +54,14 @@ export function useBrandingSettings() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("branding_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const [{ data, error }, { data: profile }] = await Promise.all([
+        supabase.from("branding_settings").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("agency_name, phone, full_name").eq("user_id", user.id).maybeSingle(),
+      ]);
+
+      // Agent-specific fallbacks so branding never defaults to the parent agency name
+      const fallbackAgency = profile?.agency_name || profile?.full_name || "";
+      const fallbackPhone = profile?.phone || "";
 
       if (error) {
         console.error("Error fetching branding settings:", error);
@@ -68,20 +71,22 @@ export function useBrandingSettings() {
       if (data) {
         setSettings({
           id: data.id,
-          agency_name: data.agency_name || defaultSettings.agency_name,
+          agency_name: data.agency_name || fallbackAgency,
           tagline: data.tagline || defaultSettings.tagline,
           logo_url: data.logo_url || "",
           primary_color: data.primary_color || defaultSettings.primary_color,
           accent_color: data.accent_color || defaultSettings.accent_color,
-          email_address: data.email_address || defaultSettings.email_address,
-          phone: data.phone || defaultSettings.phone,
-          address: data.address || defaultSettings.address,
-          website: data.website || defaultSettings.website,
-          instagram: data.instagram || defaultSettings.instagram,
-          facebook: data.facebook || defaultSettings.facebook,
+          email_address: data.email_address || "",
+          phone: data.phone || fallbackPhone,
+          address: data.address || "",
+          website: data.website || "",
+          instagram: data.instagram || "",
+          facebook: data.facebook || "",
           from_email: data.from_email || "",
           from_name: data.from_name || "",
         });
+      } else {
+        setSettings({ ...defaultSettings, agency_name: fallbackAgency, phone: fallbackPhone });
       }
     } catch (error) {
       console.error("Error fetching branding settings:", error);

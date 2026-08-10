@@ -85,6 +85,14 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching branding:", brandingError);
     }
 
+    // Fall back to the agent's own profile so emails carry the agent's brand,
+    // never the parent agency's name.
+    const { data: senderProfile } = await supabase
+      .from("profiles")
+      .select("agency_name, full_name, phone")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     const { to, subject, template, data: templateData, customHtml, clientId, attachments, metadata, idempotencyKey }: EmailRequest = await req.json();
 
     const logKey = idempotencyKey || crypto.randomUUID();
@@ -98,12 +106,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Build email HTML based on template and branding
-    const agencyName = branding?.agency_name || "Your Travel Agency";
+    const agencyName =
+      branding?.agency_name ||
+      senderProfile?.agency_name ||
+      senderProfile?.full_name ||
+      "Your Travel Agency";
     const tagline = branding?.tagline || "Your Journey, Our Passion";
     const primaryColor = branding?.primary_color || "#0D7377";
     const accentColor = branding?.accent_color || "#E8763A";
     const logoUrl = branding?.logo_url || "";
-    const phone = branding?.phone || "";
+    const phone = branding?.phone || senderProfile?.phone || "";
     const website = branding?.website || "";
     // Use verified domain for sending emails
     const fromEmail = branding?.from_email || "send@crestwellgetaways.com";
