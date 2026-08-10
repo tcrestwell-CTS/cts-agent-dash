@@ -168,7 +168,7 @@ export function TripSidebar({
               variant="ghost"
               size="sm"
               className="w-full justify-start text-muted-foreground hover:text-foreground"
-              onClick={() => window.open(`/shared/${shareToken}`, "_blank", "noopener,noreferrer")}
+              onClick={() => window.open(`https://app.crestwelltravels.com/shared/${shareToken}`, "_blank", "noopener,noreferrer")}
             >
               <Eye className="h-4 w-4 mr-2" />
               Preview Proposal
