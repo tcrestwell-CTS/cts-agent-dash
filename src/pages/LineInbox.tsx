@@ -37,6 +37,9 @@ export default function LineInbox() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<LineMessage[]>([]);
   const [replyText, setReplyText] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientResults, setClientResults] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [linking, setLinking] = useState(false);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +112,40 @@ export default function LineInbox() {
     }
   };
 
+  const searchClients = async (query: string) => {
+    setClientSearch(query);
+    if (query.trim().length < 2) {
+      setClientResults([]);
+      return;
+    }
+    const { data } = await supabase
+      .from("clients")
+      .select("id, name, email")
+      .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
+      .limit(8);
+    setClientResults((data as { id: string; name: string; email: string }[]) || []);
+  };
+
+  const linkClient = async (clientId: string) => {
+    if (!selectedId) return;
+    setLinking(true);
+    try {
+      const { error } = await supabase
+        .from("line_conversations")
+        .update({ client_id: clientId })
+        .eq("id", selectedId);
+      if (error) throw error;
+      setClientSearch("");
+      setClientResults([]);
+      loadConversations();
+    } catch (err) {
+      console.error(err);
+      alert("Could not link this client");
+    } finally {
+      setLinking(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="flex h-[calc(100vh-4rem)]">
@@ -173,9 +210,29 @@ export default function LineInbox() {
                 <div>
                   <p className="font-medium text-sm">{selectedConvo.display_name ?? "Unknown LINE user"}</p>
                   {!selectedConvo.client_id && (
-                    <p className="text-xs text-muted-foreground">
-                      Not yet linked to a client record — reply normally, link them from the client's profile when confirmed
-                    </p>
+                    <div className="mt-1 relative">
+                      <Input
+                        value={clientSearch}
+                        onChange={(e) => searchClients(e.target.value)}
+                        placeholder="Search a client to link..."
+                        className="h-7 text-xs w-56"
+                      />
+                      {clientResults.length > 0 && (
+                        <div className="absolute z-10 top-full left-0 w-56 bg-popover border border-border rounded-md shadow-md mt-1 max-h-48 overflow-y-auto">
+                          {clientResults.map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={() => linkClient(c.id)}
+                              disabled={linking}
+                              className="w-full text-left px-2 py-1.5 text-xs hover:bg-muted/70"
+                            >
+                              <p className="font-medium">{c.name}</p>
+                              <p className="text-muted-foreground">{c.email}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
