@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, MessageCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
@@ -29,8 +29,20 @@ function loadLiffSdk(): Promise<any> {
  * portal session (see the liff-line-session edge function) and hand off
  * to the normal client portal.
  */
+/** Maps the LIFF URL segment (e.g. /liff/payments) to a portal route. */
+const LIFF_DESTINATIONS: Record<string, string> = {
+  payments: "/client/payments",
+  invoices: "/client/invoices",
+  trips: "/client/trips",
+  messages: "/client/messages",
+  documents: "/client/documents",
+  profile: "/client/profile",
+};
+
 export default function PortalLiffEntry() {
   const navigate = useNavigate();
+  const { target } = useParams();
+  const destination = (target && LIFF_DESTINATIONS[target]) || "/client";
   const { loginWithToken } = usePortalAuth();
   const [status, setStatus] = useState<"loading" | "not_linked" | "error">("loading");
   const [message, setMessage] = useState("Connecting to your travel portal…");
@@ -71,14 +83,14 @@ export default function PortalLiffEntry() {
           return;
         }
 
-        navigate("/client", { replace: true });
+        navigate(destination, { replace: true });
       } catch (err) {
         console.error("[LIFF] entry failed:", err);
         setStatus("error");
         setMessage(err instanceof Error ? err.message : "Something went wrong.");
       }
     })();
-  }, [loginWithToken, navigate]);
+  }, [loginWithToken, navigate, destination]);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background px-6">
