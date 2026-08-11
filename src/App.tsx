@@ -306,8 +306,6 @@ const App = () => (
                 <Route path="/client/login" element={<PortalLogin />} />
                 <Route path="/client/verify" element={<PortalLogin />} />
                 <Route path="/client/line" element={<PortalLiffEntry />} />
-                <Route path="/liff" element={<PortalLiffEntry />} />
-                <Route path="/liff/:target" element={<PortalLiffEntry />} />
                 <Route path="/client" element={<PortalProtectedRoute><PortalLayout /></PortalProtectedRoute>}>
                   <Route index element={<PortalDashboard />} />
                   <Route path="trips" element={<PortalTrips />} />
