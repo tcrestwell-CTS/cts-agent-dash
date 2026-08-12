@@ -988,9 +988,118 @@ const handler = async (req: Request): Promise<Response> => {
         trip_name: tripNameMap[p.trip_id] || "Trip",
       }));
 
-      return new Response(JSON.stringify({ payments: enrichedPayments, client: clientRes.data || null }), {
+      // Outstanding balances: trips priced above what is already paid or scheduled.
+      // This lets the portal offer a payment option even when the advisor has not
+      // built a payment schedule yet.
+      const { data: balanceTrips } = await supabase
+        .from("trips")
+        .select("id, trip_name, total_gross_sales, departure_date, itinerary_approved_at, budget_confirmed")
+        .in("id", allTripIds);
+
+      const balances = (balanceTrips || []).map((t: any) => {
+        const tripPays = (payments || []).filter((p: any) => p.trip_id === t.id);
+        const paid = tripPays
+          .filter((p: any) => p.status === "paid")
+          .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+        const scheduled = tripPays
+          .filter((p: any) => ["pending", "authorized"].includes(p.status))
+          .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+        const total = Number(t.total_gross_sales || 0);
+        const outstanding = Math.max(0, Math.round((total - paid - scheduled) * 100) / 100);
+        return {
+          trip_id: t.id,
+          trip_name: t.trip_name || tripNameMap[t.id] || "Trip",
+          total,
+          paid,
+          scheduled,
+          outstanding,
+          departure_date: t.departure_date,
+          unlocked: !!t.itinerary_approved_at || !!t.budget_confirmed,
+        };
+      }).filter((b: any) => b.outstanding > 0);
+
+      return new Response(JSON.stringify({ payments: enrichedPayments, balances, client: clientRes.data || null }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+
+    } else if (resource === "pay-balance") {
+      // Creates a pending payment record for a trip's remaining balance so the
+      // client can check out even when no payment schedule exists yet.
+      if (req.method !== "POST") {
+        return new Response(JSON.stringify({ error: "POST required" }), {
+          status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { tripId, amount } = await req.json();
+      if (!tripId) {
+        return new Response(JSON.stringify({ error: "tripId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const allowedIds = await getAllClientIds();
+      const companionTrips = await getCompanionTripIds();
+      const { data: balTrip } = await supabase
+        .from("trips")
+        .select("id, trip_name, client_id, user_id, total_gross_sales, departure_date")
+        .eq("id", tripId)
+        .maybeSingle();
+
+      const hasAccess =
+        balTrip &&
+        ((balTrip.client_id && allowedIds.includes(balTrip.client_id)) ||
+          companionTrips.includes(tripId));
+
+      if (!hasAccess) {
+        return new Response(JSON.stringify({ error: "Trip not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: existingPays } = await supabase
+        .from("trip_payments")
+        .select("id, amount, status")
+        .eq("trip_id", tripId);
+
+      const alreadyCovered = (existingPays || [])
+        .filter((p: any) => ["paid", "pending", "authorized"].includes(p.status))
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const remaining =
+        Math.round((Number(balTrip.total_gross_sales || 0) - alreadyCovered) * 100) / 100;
+
+      const requested = Number(amount || 0);
+      const payAmount = requested > 0 ? Math.min(requested, remaining) : remaining;
+
+      if (!(payAmount > 0)) {
+        return new Response(JSON.stringify({ error: "No balance due" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: created, error: payErr } = await supabase
+        .from("trip_payments")
+        .insert({
+          trip_id: tripId,
+          user_id: balTrip.user_id,
+          amount: payAmount,
+          status: "pending",
+          payment_type: payAmount >= remaining ? "final_balance" : "payment",
+          due_date: balTrip.departure_date || null,
+          details: "Client-initiated balance payment",
+        })
+        .select("id, amount, payment_type, due_date, trip_id")
+        .single();
+
+      if (payErr) {
+        console.error("pay-balance insert error:", payErr);
+        throw payErr;
+      }
+
+      return new Response(
+        JSON.stringify({ payment: { ...created, trip_name: balTrip.trip_name || "Trip" } }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
 
     } else if (resource === "doc-checklist") {
       if (req.method === "POST") {
