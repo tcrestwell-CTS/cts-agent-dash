@@ -574,9 +574,17 @@ const handler = async (req: Request): Promise<Response> => {
         if (RESEND_API_KEY) {
           const resend = new Resend(RESEND_API_KEY);
 
-          // Get agent email from auth.users
+          // Get agent email from auth.users (fall back to profiles)
           const { data: agentUser } = await supabase.auth.admin.getUserById(tripCheck.user_id);
-          const agentEmail = agentUser?.user?.email;
+          let agentEmail = agentUser?.user?.email as string | undefined;
+          if (!agentEmail) {
+            const { data: agentProfile } = await supabase
+              .from("profiles")
+              .select("email, storefront_email")
+              .eq("id", tripCheck.user_id)
+              .maybeSingle();
+            agentEmail = agentProfile?.email || agentProfile?.storefront_email || undefined;
+          }
 
           // Get branding for styled email
           const { data: branding } = await supabase
@@ -633,15 +641,30 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
             `;
 
-            await resend.emails.send({
+            const subject = `✅ ${clientName} approved "${itineraryName}" — ${tripName}`;
+            const sendRes = await resend.emails.send({
               from: `${fromName} <${fromEmail}>`,
               to: [agentEmail],
-              subject: `✅ ${clientName} approved "${itineraryName}" — ${tripName}`,
+              subject,
               html,
             });
 
-            console.log("Itinerary approval email sent to agent:", agentEmail);
+            await supabase.from("email_logs").insert({
+              user_id: tripCheck.user_id,
+              client_id: clientId,
+              to_email: agentEmail,
+              subject,
+              template: "itinerary_approved_agent",
+              status: sendRes?.error ? "failed" : "sent",
+              error_message: sendRes?.error ? String(sendRes.error.message || sendRes.error) : null,
+              provider_message_id: sendRes?.data?.id || null,
+              metadata: { trip_id: tripId, itinerary_id: itineraryId, source: "portal-data" },
+            });
+
+            console.log("Itinerary approval email sent to agent:", agentEmail, sendRes?.error || "");
           }
+        } else {
+          console.warn("RESEND_API_KEY missing — agent approval email not sent");
         }
       } catch (emailErr) {
         // Don't fail the approval if email fails
