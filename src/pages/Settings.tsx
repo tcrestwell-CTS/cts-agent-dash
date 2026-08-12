@@ -340,7 +340,7 @@ const Settings = () => {
                       id="title"
                       value={formData.job_title}
                       onChange={(e) => handleInputChange("job_title", e.target.value)}
-                      placeholder="Travel Agent"
+                      placeholder="Travel Advisor"
                     />
                   </div>
 

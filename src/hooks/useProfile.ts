@@ -27,7 +27,7 @@ export interface ProfileData {
 const defaultProfile: ProfileData = {
   full_name: "",
   phone: "",
-  job_title: "Travel Agent",
+  job_title: "Travel Advisor",
   agency_name: "",
   avatar_url: "",
   commission_rate: 10,
@@ -78,7 +78,7 @@ export function useProfile() {
           id: data.id,
           full_name: data.full_name || "",
           phone: data.phone || "",
-          job_title: data.job_title || "Travel Agent",
+          job_title: data.job_title || "Travel Advisor",
           agency_name: data.agency_name || "",
           avatar_url: data.avatar_url || "",
           commission_rate: data.commission_rate || 10,
