@@ -36,6 +36,8 @@ interface SharedTripInvestmentProps {
   bookingSupplierTypes?: string[];
   /** Stripe publishable key for self-serve payment */
   stripePublishableKey?: string;
+  /** Whether the client has approved an itinerary — payment options unlock after approval */
+  itineraryApproved?: boolean;
 }
 
 // ─── Stripe self-serve payment button ─────────────────────────────────────────────────
@@ -164,6 +166,7 @@ export default function SharedTripInvestment({
   onTermsAccepted,
   bookingSupplierTypes = [],
   stripePublishableKey,
+  itineraryApproved = true,
 }: SharedTripInvestmentProps) {
   const totalCost = trip.total_cost || 0;
   const depositAmount = deposit.required ? deposit.amount : 0;
@@ -378,8 +381,50 @@ export default function SharedTripInvestment({
         </div>
       )}
 
-
       {/* Terms Acceptance Dialog */}
+      {/* Payment CTA — unlocks once the itinerary is approved */}
+      <div
+        className="rounded-xl border-2 p-6 space-y-4"
+        style={{ borderColor: itineraryApproved ? primaryColor : "#e5e7eb", backgroundColor: itineraryApproved ? `${primaryColor}08` : "#f9fafb" }}
+      >
+        {itineraryApproved ? (
+          <>
+            <div className="flex items-start gap-3">
+              <CreditCard className="h-5 w-5 mt-0.5 shrink-0" style={{ color: primaryColor }} />
+              <div>
+                <p className="font-semibold text-gray-900">
+                  {termsAccepted ? "Choose your payment method" : "Ready to book?"}
+                </p>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  {termsAccepted
+                    ? `Your agreement is on file. Pay ${formatCurrency(paymentAmount)} to confirm your trip.`
+                    : `Review and sign the pre-payment agreement, then pay ${formatCurrency(paymentAmount)} to lock in your trip.`}
+                </p>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="w-full text-white"
+              style={{ backgroundColor: primaryColor }}
+              onClick={() => (termsAccepted ? setShowPaymentMethods(true) : setShowTerms(true))}
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              {termsAccepted ? "Choose Payment Method" : `Review & Pay ${formatCurrency(paymentAmount)}`}
+            </Button>
+          </>
+        ) : (
+          <div className="flex items-start gap-3">
+            <Lock className="h-5 w-5 mt-0.5 shrink-0 text-gray-400" />
+            <div>
+              <p className="font-semibold text-gray-900">Payment options unlock after approval</p>
+              <p className="text-sm text-gray-600 mt-0.5">
+                Approve your itinerary above and payment options will appear here right away.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <Dialog open={showTerms} onOpenChange={setShowTerms}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
