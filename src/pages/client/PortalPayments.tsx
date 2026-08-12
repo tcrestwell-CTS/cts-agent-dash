@@ -39,6 +39,37 @@ export default function PortalPayments() {
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [affirmLoading, setAffirmLoading] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
+  const [startingBalanceTripId, setStartingBalanceTripId] = useState<string | null>(null);
+  const balances = data?.balances || [];
+
+  /**
+   * Balance due with no schedule yet: create a pending payment record on the fly,
+   * then continue into the normal agreement + checkout flow.
+   */
+  const handlePayBalance = async (balance: any) => {
+    setStartingBalanceTripId(balance.trip_id);
+    try {
+      const headers = await getPortalAuthHeaders(session, { includeContentType: true });
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-data?resource=pay-balance`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ tripId: balance.trip_id }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok || !result.payment) throw new Error(result.error || "Unable to start payment");
+      await refetch();
+      setSelectedPayment(result.payment);
+      setShowAgreement(true);
+    } catch (err: any) {
+      console.error("Balance payment error:", err);
+      toast.error(err.message || "Could not start this payment. Please contact your advisor.");
+    } finally {
+      setStartingBalanceTripId(null);
+    }
+  };
 
   /**
    * Opens the payment agreement step first before showing payment methods.
@@ -254,6 +285,48 @@ export default function PortalPayments() {
       </div>
 
       {/* Pending Payments with Payment Method Choice */}
+      {balances.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" /> Balance Due
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {balances.map((b: any) => (
+              <div
+                key={b.trip_id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5"
+              >
+                <div className="space-y-1">
+                  <p className="font-semibold">{b.trip_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Trip total {formatCurrency(b.total)}
+                    {b.paid > 0 && <> · Paid {formatCurrency(b.paid)}</>}
+                    {b.scheduled > 0 && <> · Scheduled {formatCurrency(b.scheduled)}</>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-lg font-bold">{formatCurrency(b.outstanding)}</p>
+                  <Button
+                    size="sm"
+                    onClick={() => handlePayBalance(b)}
+                    disabled={startingBalanceTripId === b.trip_id}
+                  >
+                    {startingBalanceTripId === b.trip_id ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <CreditCard className="h-4 w-4 mr-1" />
+                    )}
+                    Pay Balance
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {pendingPayments.length > 0 && (
         <Card>
           <CardHeader>
