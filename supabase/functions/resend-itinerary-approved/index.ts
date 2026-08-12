@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const secret = Deno.env.get("CW_AGENT_SECRET");
+    const secret = Deno.env.get("MANUAL_NOTICE_SECRET") || Deno.env.get("CW_AGENT_SECRET");
     if (!secret || req.headers.get("x-agent-secret") !== secret) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
