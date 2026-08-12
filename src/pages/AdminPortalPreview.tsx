@@ -233,7 +233,7 @@ function DashboardTab({ clientId }: { clientId?: string }) {
       {/* Agent */}
       {agent && (
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> Your Travel Agent</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> Your Travel Advisor</CardTitle></CardHeader>
           <CardContent className="flex items-center gap-4">
             {agent.avatar_url ? (
               <img src={agent.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />

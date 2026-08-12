@@ -121,13 +121,13 @@ export function useInvitations() {
         role === "admin" ? "an administrator"
         : role === "office_admin" ? "an office administrator"
         : role === "bookkeeper" ? "an accountant"
-        : "a travel agent";
+        : "a travel advisor";
 
       const subjectRoleLabel =
         role === "admin" ? "an Admin"
         : role === "office_admin" ? "an Office Admin"
         : role === "bookkeeper" ? "an Accountant"
-        : "a Travel Agent";
+        : "a Travel Advisor";
 
       const { error: emailError } = await supabase.functions.invoke("send-email", {
         body: {
@@ -195,13 +195,13 @@ export function useInvitations() {
         invitation.role === "admin" ? "an administrator"
         : invitation.role === "office_admin" ? "an office administrator"
         : invitation.role === "bookkeeper" ? "an accountant"
-        : "a travel agent";
+        : "a travel advisor";
 
       const subjectRoleLabel =
         invitation.role === "admin" ? "an Admin"
         : invitation.role === "office_admin" ? "an Office Admin"
         : invitation.role === "bookkeeper" ? "an Accountant"
-        : "a Travel Agent";
+        : "a Travel Advisor";
 
       await supabase.functions.invoke("send-email", {
         body: {

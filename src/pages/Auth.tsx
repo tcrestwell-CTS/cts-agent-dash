@@ -497,7 +497,7 @@ const Auth = () => {
           <div className="flex items-center gap-8 pt-4">
             <div>
               <p className="text-3xl font-semibold text-white">500+</p>
-              <p className="text-white/70">Travel Agents</p>
+              <p className="text-white/70">Travel Advisors</p>
             </div>
             <div>
               <p className="text-3xl font-semibold text-white">$2M+</p>

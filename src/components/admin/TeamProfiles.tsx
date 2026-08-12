@@ -206,7 +206,7 @@ export function TeamProfiles() {
                     )}
                   </h3>
                   <p className="text-sm text-muted-foreground truncate">
-                    {profile.job_title || "Travel Agent"}
+                    {profile.job_title || "Travel Advisor"}
                   </p>
                 </div>
               </div>

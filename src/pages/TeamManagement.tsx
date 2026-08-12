@@ -113,7 +113,7 @@ const TeamManagement = () => {
           </p>
           <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Team Management</h1>
           <p className="mt-1 text-[13.5px] text-muted-foreground">{canManage 
-            ? "Invite and manage travel agents in your organization"
+            ? "Invite and manage travel advisors in your organization"
             : "View team invitations and members"}</p>
         </div>
         <div className="flex items-center gap-2">

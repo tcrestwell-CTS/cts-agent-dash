@@ -214,7 +214,7 @@ function getRoleLabel(role: string | null | undefined) {
     case "office_admin": return "Office Admin";
     case "bookkeeper": return "Bookkeeper";
     case "user":
-    default: return "Travel Agent";
+    default: return "Travel Advisor";
   }
 }
 
