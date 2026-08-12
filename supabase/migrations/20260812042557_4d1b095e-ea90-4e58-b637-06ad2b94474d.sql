@@ -1,0 +1,1 @@
+update public.profiles set full_name='Robert Pleasant', storefront_logo_url='https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/logos/122757fd-e24a-459e-9f47-1c6e3238736e/storefront-logo.png?v=1786500000' where user_id='122757fd-e24a-459e-9f47-1c6e3238736e';
