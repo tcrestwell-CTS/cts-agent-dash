@@ -4205,6 +4205,24 @@ export type Database = {
           },
         ]
       }
+      hotelbeds_api_usage: {
+        Row: {
+          day: string
+          search_calls: number
+          updated_at: string
+        }
+        Insert: {
+          day: string
+          search_calls?: number
+          updated_at?: string
+        }
+        Update: {
+          day?: string
+          search_calls?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hotelbeds_hotels: {
         Row: {
           accommodation_type_code: string | null
@@ -4289,6 +4307,27 @@ export type Database = {
           updated_at?: string
           web?: string | null
           zone_code?: string | null
+        }
+        Relationships: []
+      }
+      hotelbeds_search_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          payload: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at: string
+          payload: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          payload?: Json
         }
         Relationships: []
       }
@@ -10835,6 +10874,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      hotelbeds_increment_search_usage: {
+        Args: { _cap: number }
+        Returns: number
       }
       increment_campaign_stat: {
         Args: { p_campaign_id: string; p_delta?: number; p_field: string }

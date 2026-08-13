@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getClientIP } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +62,44 @@ if (!USE_PROXY && HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
 
 // Cert 3.x — Recommended Selling Price markup (B2C resale)
 const RSP_MARKUP_PCT = parseFloat(Deno.env.get("HOTELBEDS_RSP_MARKUP_PCT") || "18");
+
+// ── Search quota protection (test credentials cap out at ~50 calls/day) ──
+const SEARCH_CACHE_TTL_SECONDS = parseInt(
+  Deno.env.get("HOTELBEDS_SEARCH_CACHE_TTL_SECONDS") || "1800",
+  10,
+);
+// Test-tier credentials allow ~50 searches/day; raise via secret once live keys are active.
+const DAILY_SEARCH_CAP = parseInt(Deno.env.get("HOTELBEDS_DAILY_SEARCH_CAP") || "45", 10);
+const SEARCH_RATE_LIMIT_PER_MIN = parseInt(
+  Deno.env.get("HOTELBEDS_SEARCH_RATE_LIMIT_PER_MIN") || "6",
+  10,
+);
+
+function adminClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+}
+
+// Stable cache key for an availability search (same criteria → same key)
+async function searchCacheKey(body: unknown): Promise<string> {
+  const canonical = (v: any): any => {
+    if (Array.isArray(v)) return v.map(canonical);
+    if (v && typeof v === "object") {
+      return Object.keys(v).sort().reduce((acc: any, k) => {
+        if (v[k] !== undefined && v[k] !== null) acc[k] = canonical(v[k]);
+        return acc;
+      }, {});
+    }
+    return v;
+  };
+  const raw = `${HB_ENV}|${JSON.stringify(canonical(body))}`;
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 function decorateRsp(result: any) {
   const hotels = result?.hotels?.hotels;
@@ -261,8 +300,64 @@ Deno.serve(async (req) => {
           body.filter = params.filter;
         }
 
+        // 1) Serve from cache when the exact same criteria were searched recently.
+        const admin = adminClient();
+        const cacheKey = await searchCacheKey(body);
+        const nowIso = new Date().toISOString();
+        const { data: cached } = await admin
+          .from("hotelbeds_search_cache")
+          .select("payload")
+          .eq("cache_key", cacheKey)
+          .gt("expires_at", nowIso)
+          .maybeSingle();
+
+        if (cached?.payload) {
+          result = { ...(cached.payload as any), cached: true };
+          break;
+        }
+
+        // 2) Throttle per caller so one visitor can't drain the quota.
+        const ip = getClientIP(req);
+        const limited = checkRateLimit(`hb-search:${ip}`, SEARCH_RATE_LIMIT_PER_MIN, 60);
+        if (limited) {
+          return new Response(
+            JSON.stringify({
+              fallback: true,
+              error: `Too many searches — please wait ${limited.retryAfter}s and try again.`,
+              code: "HOTELBEDS_RATE_LIMITED",
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // 3) Hard-stop before we blow the supplier's daily allowance.
+        const { data: usage, error: usageError } = await admin.rpc(
+          "hotelbeds_increment_search_usage",
+          { _cap: DAILY_SEARCH_CAP },
+        );
+        if (usageError) {
+          console.error("Search usage counter failed", usageError);
+        } else if (usage === -1) {
+          return new Response(
+            JSON.stringify({
+              fallback: true,
+              error: "Hotel search is temporarily unavailable — daily supplier limit reached. Please try again tomorrow.",
+              code: "HOTELBEDS_QUOTA_EXCEEDED",
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
         result = await bookingApi("/hotels", "POST", body);
         decorateRsp(result);
+
+        // 4) Cache the fresh result.
+        const expiresAt = new Date(Date.now() + SEARCH_CACHE_TTL_SECONDS * 1000).toISOString();
+        const { error: cacheError } = await admin
+          .from("hotelbeds_search_cache")
+          .upsert({ cache_key: cacheKey, payload: result, expires_at: expiresAt }, { onConflict: "cache_key" });
+        if (cacheError) console.error("Search cache write failed", cacheError);
+        await admin.from("hotelbeds_search_cache").delete().lt("expires_at", nowIso);
         break;
       }
 
