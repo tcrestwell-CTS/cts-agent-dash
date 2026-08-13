@@ -46,12 +46,14 @@ async function generateSignature(apiKey: string, secret: string): Promise<string
     .join("");
 }
 
-// Optional direct mTLS (used only in live env when both cert + key are set,
-// and the Worker proxy is NOT configured).
+// Optional direct mTLS. Hotelbeds registers an API key as either mTLS or
+// non-mTLS; an mTLS key is rejected (401) on plain TLS even on the test host,
+// so attach the client cert whenever it is available and the Worker proxy is
+// not in use.
 const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
 const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
 let mtlsClient: Deno.HttpClient | null = null;
-if (!USE_PROXY && HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
+if (!USE_PROXY && HB_CLIENT_CERT && HB_CLIENT_KEY) {
   try {
     // @ts-ignore — createHttpClient is available in Deno Deploy runtime
     mtlsClient = Deno.createHttpClient({
