@@ -280,6 +280,25 @@ Deno.serve(async (req) => {
             return { status: 0, body: e instanceof Error ? e.message : String(e) };
           }
         };
+        // Probe the mTLS gateway's hotel-api /status endpoint with different key headers
+        const probeMtlsStatus = async (extra: Record<string, string>) => {
+          try {
+            const init: any = {
+              headers: {
+                "Api-key": apiKey,
+                "X-Signature": await generateSignature(apiKey, apiSecret),
+                Accept: "application/json",
+                ...extra,
+              },
+            };
+            if (mtlsClient) init.client = mtlsClient;
+            const r = await fetch("https://api-mtls.test.hotelbeds.com/hotel-api/1.0/status", init);
+            const t = await r.text();
+            return { status: r.status, body: t.slice(0, 160) };
+          } catch (e) {
+            return { status: 0, body: e instanceof Error ? e.message : String(e) };
+          }
+        };
         result = {
           env: HB_ENV,
           usingProxy: USE_PROXY,
@@ -293,6 +312,11 @@ Deno.serve(async (req) => {
           testMtlsNoAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true }),
           testMtlsWithAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true, auth: true }),
           liveMtlsNoAuth: await probe("https://api-mtls.hotelbeds.com", { mtls: true }),
+          statusPlain: await probeMtlsStatus({}),
+          statusAuthKey: await probeMtlsStatus({ Authorization: apiKey }),
+          statusAuthBearer: await probeMtlsStatus({ Authorization: `Bearer ${apiKey}` }),
+          statusXApiKey: await probeMtlsStatus({ "x-api-key": apiKey }),
+          statusApikeyLower: await probeMtlsStatus({ apikey: apiKey }),
         };
         break;
       }
