@@ -1,95 +1,104 @@
 /**
- * Cloudflare Worker — Hotelbeds mTLS Proxy
+ * Cloudflare Worker — Hotelbeds mTLS Proxy (pass-through)
  *
- * This worker sits between the Supabase Edge Function and Hotelbeds production API.
- * It attaches the client certificate (mTLS) required by Hotelbeds for production access.
+ * The Supabase Edge Function sends the request exactly as Hotelbeds expects it
+ * (same method, path, query, body and Api-key/X-Signature headers). This worker
+ * only swaps the origin and attaches the registered client certificate.
  *
- * Flow:  Edge Function  →  this Worker (adds mTLS cert)  →  Hotelbeds API
+ * Flow:  Edge Function  →  this Worker (adds mTLS cert)  →  api-mtls[.test].hotelbeds.com
+ *
+ * IMPORTANT: an mTLS-registered API key MUST use the api-mtls hosts. The plain
+ * api.hotelbeds.com host rejects it with 403 "Access to this API has been
+ * disallowed", and api.test.hotelbeds.com with 401 "You cannot access a
+ * non-mTLS endpoint with an apikey for mTLS".
+ *
+ * Auth: the caller sends X-MTLS-Proxy-Token, matched against PROXY_AUTH_TOKEN.
+ * Target env: the caller sends X-MTLS-Target-Env: "live" | "test" (default live).
  *
  * Setup:
- *   1. Upload PEM cert/key:
- *        wrangler mtls-certificate upload --cert cert.pem --key key.pem --name hotelbeds-mtls
- *   2. Copy the returned certificate_id into wrangler.toml
- *   3. Set the shared auth token:
- *        wrangler secret put PROXY_AUTH_TOKEN
- *   4. Deploy:
- *        wrangler deploy
+ *   1. wrangler mtls-certificate upload --cert cert.pem --key key.pem --name hotelbeds-mtls
+ *   2. Put the returned certificate_id in wrangler.toml
+ *   3. wrangler secret put PROXY_AUTH_TOKEN
+ *   4. wrangler deploy
  */
 
 export interface Env {
-  HOTELBEDS_CERT: Fetcher;          // mTLS certificate binding
-  PROXY_AUTH_TOKEN: string;          // Shared secret for Edge Function auth
-  HOTELBEDS_BOOKING_API: string;     // https://api.hotelbeds.com/hotel-api/1.0
-  HOTELBEDS_CONTENT_API: string;     // https://api.hotelbeds.com/hotel-content-api/1.0
+  HOTELBEDS_CERT: Fetcher;        // mTLS certificate binding
+  PROXY_AUTH_TOKEN: string;       // Shared secret for Edge Function auth
+  HOTELBEDS_LIVE_ORIGIN: string;  // https://api-mtls.hotelbeds.com
+  HOTELBEDS_TEST_ORIGIN: string;  // https://api-mtls.test.hotelbeds.com
 }
+
+const HOP_BY_HOP = new Set([
+  "host",
+  "connection",
+  "content-length",
+  "x-mtls-proxy-token",
+  "x-mtls-target-env",
+  "cf-connecting-ip",
+  "cf-ray",
+  "cf-ipcountry",
+  "cf-visitor",
+]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "content-type, x-proxy-token",
+          "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers":
+            "content-type, api-key, x-signature, accept, x-mtls-proxy-token, x-mtls-target-env",
         },
       });
     }
 
-    // Authenticate the caller (Edge Function)
-    const proxyToken = request.headers.get("x-proxy-token");
-    if (!proxyToken || proxyToken !== env.PROXY_AUTH_TOKEN) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const token = request.headers.get("x-mtls-proxy-token");
+    if (!token || token !== env.PROXY_AUTH_TOKEN) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     try {
-      const body = await request.json() as {
-        targetUrl: string;   // Full Hotelbeds URL path, e.g. "/hotels"
-        method: string;      // "GET" | "POST" | "DELETE"
-        apiBase: "booking" | "content";
-        headers: Record<string, string>;  // Api-key, X-Signature, etc.
-        body?: any;
-      };
+      const incoming = new URL(request.url);
+      const targetEnv = (request.headers.get("x-mtls-target-env") || "live").toLowerCase();
+      const origin =
+        targetEnv === "test"
+          ? env.HOTELBEDS_TEST_ORIGIN || "https://api-mtls.test.hotelbeds.com"
+          : env.HOTELBEDS_LIVE_ORIGIN || "https://api-mtls.hotelbeds.com";
 
-      const baseUrl = body.apiBase === "content"
-        ? env.HOTELBEDS_CONTENT_API
-        : env.HOTELBEDS_BOOKING_API;
+      const targetUrl = `${origin}${incoming.pathname}${incoming.search}`;
 
-      const targetUrl = `${baseUrl}${body.targetUrl}`;
-
-      const fetchOptions: RequestInit = {
-        method: body.method,
-        headers: {
-          ...body.headers,
-          "Accept-Encoding": "gzip",
-        },
-        // @ts-ignore — Cloudflare-specific mTLS binding
-        cf: {
-          // Attach the client certificate for mTLS
-          clientCertificate: env.HOTELBEDS_CERT,
-        },
-      };
-
-      if (body.body && body.method !== "GET") {
-        fetchOptions.body = JSON.stringify(body.body);
+      const headers = new Headers();
+      for (const [k, v] of request.headers) {
+        if (!HOP_BY_HOP.has(k.toLowerCase())) headers.set(k, v);
       }
+      headers.set("Accept-Encoding", "gzip");
 
-      const response = await fetch(targetUrl, fetchOptions);
-      const responseData = await response.text();
+      const upstream = await fetch(targetUrl, {
+        method: request.method,
+        headers,
+        body: request.method === "GET" || request.method === "HEAD"
+          ? undefined
+          : await request.text(),
+        // @ts-ignore — Cloudflare-specific mTLS binding
+        cf: { clientCertificate: env.HOTELBEDS_CERT },
+      });
 
-      return new Response(responseData, {
-        status: response.status,
+      const text = await upstream.text();
+      return new Response(text, {
+        status: upstream.status,
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": upstream.headers.get("content-type") || "application/json",
           "Access-Control-Allow-Origin": "*",
+          "x-proxied-by": "cts-hotel-mtls-proxy",
+          "x-proxy-mtls": "on",
+          "x-proxy-target": targetUrl,
         },
       });
     } catch (err: any) {
       console.error("mTLS proxy error:", err);
-      return Response.json(
-        { error: err.message || "Proxy error" },
-        { status: 502 }
-      );
+      return Response.json({ error: err?.message || "Proxy error" }, { status: 502 });
     }
   },
 };
