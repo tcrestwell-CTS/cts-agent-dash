@@ -259,15 +259,21 @@ Deno.serve(async (req) => {
         }
         const apiKey = Deno.env.get("HOTELBEDS_API_KEY") ?? "";
         const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET") ?? "";
-        const probe = async (origin: string) => {
+        const probe = async (origin: string, opts?: { mtls?: boolean; auth?: boolean }) => {
           try {
-            const r = await fetch(`${origin}/hotel-content-api/1.0/types/boards?fields=all&language=ENG&from=1&to=1`, {
+            const init: any = {
               headers: {
                 "Api-key": apiKey,
                 "X-Signature": await generateSignature(apiKey, apiSecret),
                 Accept: "application/json",
+                ...(opts?.auth ? { Authorization: apiKey } : {}),
               },
-            });
+            };
+            if (opts?.mtls && mtlsClient) init.client = mtlsClient;
+            const r = await fetch(
+              `${origin}/hotel-content-api/1.0/types/boards?fields=all&language=ENG&from=1&to=1`,
+              init,
+            );
             const t = await r.text();
             return { status: r.status, body: t.slice(0, 200) };
           } catch (e) {
@@ -277,10 +283,16 @@ Deno.serve(async (req) => {
         result = {
           env: HB_ENV,
           usingProxy: USE_PROXY,
+          hasCert: HAS_CERT,
+          mtlsClientReady: mtlsClient !== null,
+          activeOrigin: HB_ORIGIN,
           keyFingerprint: apiKey ? `${apiKey.slice(0, 5)}…${apiKey.slice(-5)} (len ${apiKey.length})` : null,
           secretLength: apiSecret.length,
           testEndpointDirect: await probe("https://api.test.hotelbeds.com"),
           liveEndpointDirect: await probe("https://api.hotelbeds.com"),
+          testMtlsNoAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true }),
+          testMtlsWithAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true, auth: true }),
+          liveMtlsNoAuth: await probe("https://api-mtls.hotelbeds.com", { mtls: true }),
         };
         break;
       }
