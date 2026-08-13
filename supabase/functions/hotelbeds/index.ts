@@ -148,7 +148,12 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
     "Content-Type": "application/json",
     // The api-mtls gateway (Tyk) reads the API key from the Authorization header.
     ...(HAS_CERT && !USE_PROXY ? { Authorization: apiKey } : {}),
-    ...(USE_PROXY ? { "X-MTLS-Proxy-Token": HB_PROXY_TOKEN } : {}),
+    ...(USE_PROXY
+      ? {
+          "X-MTLS-Proxy-Token": HB_PROXY_TOKEN,
+          "X-MTLS-Target-Env": HB_ENV === "live" ? "live" : "test",
+        }
+      : {}),
   };
 
   // Build URL against the active origin (proxy or direct). Paths are identical
