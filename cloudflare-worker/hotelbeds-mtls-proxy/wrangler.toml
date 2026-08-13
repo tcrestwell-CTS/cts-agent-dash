@@ -1,11 +1,16 @@
-name = "hotelbeds-mtls-proxy"
+# MUST match the Worker that HOTELBEDS_MTLS_PROXY_URL points to in production
+# (https://cts-hotel-mtls-proxy.tcrestwell.workers.dev), otherwise `wrangler deploy`
+# creates a second Worker and the live one keeps serving the old build.
+name = "cts-hotel-mtls-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
 # mTLS certificate binding — upload via:
 #   wrangler mtls-certificate upload --cert cert.pem --key key.pem --name hotelbeds-mtls
-[mtls_certificates]
-HOTELBEDS_CERT = { binding = "MY_CERT", certificate_id = "<CERT_ID_AFTER_UPLOAD>" }
+# The binding name must be HOTELBEDS_CERT — src/index.ts reads env.HOTELBEDS_CERT.
+[[mtls_certificates]]
+binding = "HOTELBEDS_CERT"
+certificate_id = "<CERT_ID_AFTER_UPLOAD>"
 
 [vars]
 # mTLS-registered API keys MUST use the api-mtls hosts. The plain
