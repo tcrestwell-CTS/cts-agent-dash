@@ -30,6 +30,14 @@ Copy the returned `certificate_id` — you'll need it next.
 ### 3. Update wrangler.toml
 Replace `<CERT_ID_AFTER_UPLOAD>` with the certificate ID from step 2.
 
+The Worker `name` is `cts-hotel-mtls-proxy` — this must stay in sync with the
+`HOTELBEDS_MTLS_PROXY_URL` secret (`https://cts-hotel-mtls-proxy.tcrestwell.workers.dev`).
+Renaming it would deploy a brand-new Worker and leave the live one on the old build.
+
+Origins (in `[vars]`) must be the mTLS gateway hosts `api-mtls.hotelbeds.com` /
+`api-mtls.test.hotelbeds.com`. The plain `api[.test].hotelbeds.com` hosts reject
+mTLS-registered API keys with 403 / 401.
+
 ### 4. Set the Proxy Auth Token
 Generate a strong random token and set it as a secret:
 ```bash
