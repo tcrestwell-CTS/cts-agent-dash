@@ -310,10 +310,13 @@ export function useAdminPortalPayments(clientId: string | undefined) {
     queryFn: async () => {
       if (!clientId) throw new Error("No client ID");
 
-      const { trips } = await getAccessibleTrips(clientId, "id, trip_name");
+      const { trips } = await getAccessibleTrips(
+        clientId,
+        "id, trip_name, total_gross_sales, departure_date, itinerary_approved_at, budget_confirmed"
+      );
       const tripIds = trips.map((trip: any) => trip.id);
 
-      if (tripIds.length === 0) return { payments: [] };
+      if (tripIds.length === 0) return { payments: [], balances: [] };
 
       const { data: paymentsData, error: paymentsError } = await supabase
         .from("trip_payments" as any)
@@ -327,11 +330,35 @@ export function useAdminPortalPayments(clientId: string | undefined) {
         trips.map((trip: any) => [trip.id, trip.trip_name])
       );
 
+      const payments = (paymentsData as any[]) || [];
+      const balances = trips.map((trip: any) => {
+        const tripPayments = payments.filter((payment: any) => payment.trip_id === trip.id);
+        const paid = tripPayments
+          .filter((payment: any) => payment.status === "paid")
+          .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
+        const scheduled = tripPayments
+          .filter((payment: any) => ["pending", "authorized"].includes(payment.status))
+          .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
+        const total = Number(trip.total_gross_sales || 0);
+
+        return {
+          trip_id: trip.id,
+          trip_name: trip.trip_name || "Trip",
+          total,
+          paid,
+          scheduled,
+          outstanding: Math.max(0, Math.round((total - paid - scheduled) * 100) / 100),
+          departure_date: trip.departure_date,
+          unlocked: !!trip.itinerary_approved_at || !!trip.budget_confirmed,
+        };
+      }).filter((balance: any) => balance.outstanding > 0);
+
       return {
-        payments: ((paymentsData as any[]) || []).map((payment: any) => ({
+        payments: payments.map((payment: any) => ({
           ...payment,
           trip_name: tripNameMap[payment.trip_id] || "",
         })),
+        balances,
       };
     },
     enabled: !!clientId,
