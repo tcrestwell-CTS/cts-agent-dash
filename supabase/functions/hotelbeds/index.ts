@@ -150,12 +150,7 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
     // Required for both direct mTLS calls and calls forwarded by the Worker,
     // since both land on api-mtls[.test].hotelbeds.com.
     ...(HAS_CERT || USE_PROXY ? { Authorization: apiKey } : {}),
-    ...(USE_PROXY
-      ? {
-          "X-MTLS-Proxy-Token": HB_PROXY_TOKEN,
-          "X-MTLS-Target-Env": HB_ENV === "live" ? "live" : "test",
-        }
-      : {}),
+    ...(USE_PROXY ? { "X-MTLS-Proxy-Token": HB_PROXY_TOKEN, "X-MTLS-Target-Env": HB_ENV } : {}),
   };
 
   // Build URL against the active origin (proxy or direct). Paths are identical
