@@ -10,7 +10,7 @@ compatibility_date = "2024-12-01"
 # The binding name must be HOTELBEDS_CERT — src/index.ts reads env.HOTELBEDS_CERT.
 [[mtls_certificates]]
 binding = "HOTELBEDS_CERT"
-certificate_id = "<CERT_ID_AFTER_UPLOAD>"
+certificate_id = "01b53224-26a8-43b1-b885-12a94402bb67"
 
 [vars]
 # mTLS-registered API keys MUST use the api-mtls hosts. The plain

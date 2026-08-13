@@ -24,7 +24,8 @@
 
 export interface Env {
   HOTELBEDS_CERT: Fetcher;        // mTLS certificate binding
-  PROXY_AUTH_TOKEN: string;       // Shared secret for Edge Function auth
+  PROXY_AUTH_TOKEN?: string;      // Shared secret for Edge Function auth (canonical name)
+  HOTELBEDS_MTLS_PROXY_TOKEN?: string; // Legacy secret name, still set on the live Worker
   HOTELBEDS_LIVE_ORIGIN: string;  // https://api-mtls.hotelbeds.com
   HOTELBEDS_TEST_ORIGIN: string;  // https://api-mtls.test.hotelbeds.com
 }
@@ -55,7 +56,8 @@ export default {
     }
 
     const token = request.headers.get("x-mtls-proxy-token");
-    if (!token || token !== env.PROXY_AUTH_TOKEN) {
+    const expected = env.PROXY_AUTH_TOKEN || env.HOTELBEDS_MTLS_PROXY_TOKEN;
+    if (!token || !expected || token !== expected) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
