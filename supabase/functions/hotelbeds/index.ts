@@ -25,9 +25,10 @@ const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
 const isPem = (v?: string) => !!v && v.includes("-----BEGIN");
 const HAS_CERT = isPem(HB_CLIENT_CERT) && isPem(HB_CLIENT_KEY);
 
-// Prefer direct mTLS when the cert/key are available; otherwise fall back to the
-// Cloudflare Worker proxy (live only — the Worker forwards to the production host).
-const USE_PROXY = !HAS_CERT && HB_ENV === "live" && HB_PROXY_URL.length > 0;
+// Prefer direct mTLS when real PEM cert/key secrets are available; otherwise use
+// the Cloudflare Worker proxy, which holds the registered client certificate and
+// forwards to api-mtls[.test].hotelbeds.com based on X-MTLS-Target-Env.
+const USE_PROXY = !HAS_CERT && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
