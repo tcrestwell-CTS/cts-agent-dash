@@ -17,10 +17,14 @@ const HB_ENV = Deno.env.get("HOTELBEDS_ENV") || "test"; // "test" or "live"
 // for mTLS. Auth is done with the X-MTLS-Proxy-Token header.
 const HB_PROXY_URL = (Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
 const HB_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
-// The Worker forwards to api.hotelbeds.com (production) and attaches the mTLS
-// cert, so it must only be used in live mode. In test mode we call
-// api.test.hotelbeds.com directly (no mTLS required).
-const USE_PROXY = HB_ENV === "live" && HB_PROXY_URL.length > 0;
+// Client certificate for direct mTLS from the edge runtime.
+const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
+const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
+const HAS_CERT = !!(HB_CLIENT_CERT && HB_CLIENT_KEY);
+
+// Prefer direct mTLS when the cert/key are available; otherwise fall back to the
+// Cloudflare Worker proxy (live only — the Worker forwards to the production host).
+const USE_PROXY = !HAS_CERT && HB_ENV === "live" && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
@@ -28,8 +32,12 @@ if (USE_PROXY && !HB_PROXY_TOKEN) {
   );
 }
 
-const HB_DIRECT_ORIGIN =
-  HB_ENV === "live" ? "https://api.hotelbeds.com" : "https://api.test.hotelbeds.com";
+// Hotelbeds registers each API key as either mTLS or non-mTLS, and each mode has
+// its own hostname. An mTLS key on api[.test].hotelbeds.com returns
+// 401 "You cannot access a non-mTLS endpoint with an apikey for mTLS."
+const HB_DIRECT_ORIGIN = HAS_CERT
+  ? (HB_ENV === "live" ? "https://api-mtls.hotelbeds.com" : "https://api-mtls.test.hotelbeds.com")
+  : (HB_ENV === "live" ? "https://api.hotelbeds.com" : "https://api.test.hotelbeds.com");
 const HB_ORIGIN = USE_PROXY ? HB_PROXY_URL : HB_DIRECT_ORIGIN;
 
 const HB_BASE = `${HB_ORIGIN}/hotel-api/1.0`;
