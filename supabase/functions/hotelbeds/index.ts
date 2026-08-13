@@ -147,7 +147,9 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
     "Accept-Encoding": "gzip",
     "Content-Type": "application/json",
     // The api-mtls gateway (Tyk) reads the API key from the Authorization header.
-    ...(HAS_CERT && !USE_PROXY ? { Authorization: apiKey } : {}),
+    // Required for both direct mTLS calls and calls forwarded by the Worker,
+    // since both land on api-mtls[.test].hotelbeds.com.
+    ...(HAS_CERT || USE_PROXY ? { Authorization: apiKey } : {}),
     ...(USE_PROXY
       ? {
           "X-MTLS-Proxy-Token": HB_PROXY_TOKEN,
