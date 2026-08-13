@@ -18,9 +18,12 @@ const HB_ENV = Deno.env.get("HOTELBEDS_ENV") || "test"; // "test" or "live"
 const HB_PROXY_URL = (Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
 const HB_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
 // Client certificate for direct mTLS from the edge runtime.
+// Placeholder values ("nocert"/"nokey") must not count as a certificate — an
+// mTLS host with no client cert fails with 401 "Authorization field missing".
 const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
 const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
-const HAS_CERT = !!(HB_CLIENT_CERT && HB_CLIENT_KEY);
+const isPem = (v?: string) => !!v && v.includes("-----BEGIN");
+const HAS_CERT = isPem(HB_CLIENT_CERT) && isPem(HB_CLIENT_KEY);
 
 // Prefer direct mTLS when the cert/key are available; otherwise fall back to the
 // Cloudflare Worker proxy (live only — the Worker forwards to the production host).
