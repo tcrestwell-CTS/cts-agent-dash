@@ -17,7 +17,10 @@ const HB_ENV = Deno.env.get("HOTELBEDS_ENV") || "test"; // "test" or "live"
 // for mTLS. Auth is done with the X-MTLS-Proxy-Token header.
 const HB_PROXY_URL = (Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
 const HB_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
-const USE_PROXY = HB_PROXY_URL.length > 0;
+// The Worker forwards to api.hotelbeds.com (production) and attaches the mTLS
+// cert, so it must only be used in live mode. In test mode we call
+// api.test.hotelbeds.com directly (no mTLS required).
+const USE_PROXY = HB_ENV === "live" && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
