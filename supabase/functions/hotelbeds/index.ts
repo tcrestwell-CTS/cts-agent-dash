@@ -322,7 +322,14 @@ Deno.serve(async (req) => {
         const ip = getClientIP(req);
         const limited = checkRateLimit(`hb-search:${ip}`, SEARCH_RATE_LIMIT_PER_MIN, 60);
         if (limited) {
-          return rateLimitResponse(limited.retryAfter, corsHeaders);
+          return new Response(
+            JSON.stringify({
+              fallback: true,
+              error: `Too many searches — please wait ${limited.retryAfter}s and try again.`,
+              code: "HOTELBEDS_RATE_LIMITED",
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
         }
 
         // 3) Hard-stop before we blow the supplier's daily allowance.
@@ -335,10 +342,11 @@ Deno.serve(async (req) => {
         } else if (usage === -1) {
           return new Response(
             JSON.stringify({
+              fallback: true,
               error: "Hotel search is temporarily unavailable — daily supplier limit reached. Please try again tomorrow.",
               code: "HOTELBEDS_QUOTA_EXCEEDED",
             }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
