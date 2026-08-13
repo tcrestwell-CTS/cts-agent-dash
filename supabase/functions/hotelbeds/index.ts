@@ -29,11 +29,13 @@ const HAS_CERT = isPem(HB_CLIENT_CERT) && isPem(HB_CLIENT_KEY);
 // the Cloudflare Worker proxy, which holds the registered client certificate and
 // forwards to api-mtls[.test].hotelbeds.com based on X-MTLS-Target-Env.
 //
-// NOTE: the current test credentials are NOT mTLS-registered — api-mtls[.test]
-// rejects them with 401 "Authorization field missing", while the plain
-// api.test.hotelbeds.com host returns 200. So the proxy is only used for "live";
-// test traffic goes direct. The proxy/cert setup stays intact for the live key.
-const USE_PROXY = !HAS_CERT && HB_PROXY_URL.length > 0 && HB_ENV === "live";
+// NOTE: the current test credentials are NOT mTLS-registered, so calls through
+// the proxy to api-mtls.test.hotelbeds.com will fail with 401 until a test-tier
+// mTLS cert is issued or live credentials land. However, the API key itself is
+// mTLS-registered for live, so routing through the proxy is the architecturally
+// correct state; bypassing to the plain api.test.hotelbeds.com host returns 401
+// "You cannot access a non-mTLS endpoint with an apikey for mTLS."
+const USE_PROXY = !HAS_CERT && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
