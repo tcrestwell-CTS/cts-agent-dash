@@ -68,10 +68,8 @@ const SEARCH_CACHE_TTL_SECONDS = parseInt(
   Deno.env.get("HOTELBEDS_SEARCH_CACHE_TTL_SECONDS") || "1800",
   10,
 );
-const DAILY_SEARCH_CAP = parseInt(
-  Deno.env.get("HOTELBEDS_DAILY_SEARCH_CAP") || (HB_ENV === "live" ? "100000" : "45"),
-  10,
-);
+// Test-tier credentials allow ~50 searches/day; raise via secret once live keys are active.
+const DAILY_SEARCH_CAP = parseInt(Deno.env.get("HOTELBEDS_DAILY_SEARCH_CAP") || "45", 10);
 const SEARCH_RATE_LIMIT_PER_MIN = parseInt(
   Deno.env.get("HOTELBEDS_SEARCH_RATE_LIMIT_PER_MIN") || "6",
   10,
