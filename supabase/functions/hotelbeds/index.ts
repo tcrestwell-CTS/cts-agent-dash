@@ -280,43 +280,61 @@ Deno.serve(async (req) => {
             return { status: 0, body: e instanceof Error ? e.message : String(e) };
           }
         };
-        // Probe the mTLS gateway's hotel-api /status endpoint with different key headers
-        const probeMtlsStatus = async (extra: Record<string, string>) => {
+        // Probe an mTLS gateway hotel-api endpoint, optionally without the client cert,
+        // so we can tell "cert not accepted" from "cert not presented at all".
+        const probeMtlsStatus = async (
+          opts: { origin?: string; path?: string; cert?: boolean; extra?: Record<string, string> } = {},
+        ) => {
           try {
             const init: any = {
               headers: {
                 "Api-key": apiKey,
                 "X-Signature": await generateSignature(apiKey, apiSecret),
                 Accept: "application/json",
-                ...extra,
+                ...(opts.extra ?? {}),
               },
             };
-            if (mtlsClient) init.client = mtlsClient;
-            const r = await fetch("https://api-mtls.test.hotelbeds.com/hotel-api/1.0/status", init);
+            if (opts.cert !== false && mtlsClient) init.client = mtlsClient;
+            const origin = opts.origin ?? "https://api-mtls.test.hotelbeds.com";
+            const path = opts.path ?? "/hotel-api/1.0/status";
+            const r = await fetch(`${origin}${path}`, init);
             const t = await r.text();
             return { status: r.status, body: t.slice(0, 160) };
           } catch (e) {
             return { status: 0, body: e instanceof Error ? e.message : String(e) };
           }
         };
+        const certShape = (pem?: string) => {
+          if (!pem) return null;
+          return {
+            length: pem.length,
+            firstLine: pem.split("\n")[0]?.slice(0, 40) ?? "",
+            lastLine: pem.trimEnd().split("\n").slice(-1)[0]?.slice(0, 40) ?? "",
+            lineCount: pem.split("\n").length,
+            hasLiteralBackslashN: pem.includes("\\n"),
+            certBlocks: (pem.match(/BEGIN CERTIFICATE/g) || []).length,
+          };
+        };
         result = {
           env: HB_ENV,
           usingProxy: USE_PROXY,
           hasCert: HAS_CERT,
           mtlsClientReady: mtlsClient !== null,
+          certShape: certShape(HB_CLIENT_CERT),
+          keyShape: certShape(HB_CLIENT_KEY),
           activeOrigin: HB_ORIGIN,
           keyFingerprint: apiKey ? `${apiKey.slice(0, 5)}…${apiKey.slice(-5)} (len ${apiKey.length})` : null,
           secretLength: apiSecret.length,
           testEndpointDirect: await probe("https://api.test.hotelbeds.com"),
           liveEndpointDirect: await probe("https://api.hotelbeds.com"),
-          testMtlsNoAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true }),
-          testMtlsWithAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true, auth: true }),
-          liveMtlsNoAuth: await probe("https://api-mtls.hotelbeds.com", { mtls: true }),
-          statusPlain: await probeMtlsStatus({}),
-          statusAuthKey: await probeMtlsStatus({ Authorization: apiKey }),
-          statusAuthBearer: await probeMtlsStatus({ Authorization: `Bearer ${apiKey}` }),
-          statusXApiKey: await probeMtlsStatus({ "x-api-key": apiKey }),
-          statusApikeyLower: await probeMtlsStatus({ apikey: apiKey }),
+          testStatusWithCert: await probeMtlsStatus({}),
+          testStatusNoCert: await probeMtlsStatus({ cert: false }),
+          liveStatusWithCert: await probeMtlsStatus({ origin: "https://api-mtls.hotelbeds.com" }),
+          liveStatusNoCert: await probeMtlsStatus({ origin: "https://api-mtls.hotelbeds.com", cert: false }),
+          liveHotelsWithCert: await probeMtlsStatus({
+            origin: "https://api-mtls.hotelbeds.com",
+            path: "/hotel-content-api/1.0/types/boards?fields=all&language=ENG&from=1&to=1",
+          }),
         };
         break;
       }
