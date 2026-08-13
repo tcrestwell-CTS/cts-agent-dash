@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +62,46 @@ if (!USE_PROXY && HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
 
 // Cert 3.x — Recommended Selling Price markup (B2C resale)
 const RSP_MARKUP_PCT = parseFloat(Deno.env.get("HOTELBEDS_RSP_MARKUP_PCT") || "18");
+
+// ── Search quota protection (test credentials cap out at ~50 calls/day) ──
+const SEARCH_CACHE_TTL_SECONDS = parseInt(
+  Deno.env.get("HOTELBEDS_SEARCH_CACHE_TTL_SECONDS") || "1800",
+  10,
+);
+const DAILY_SEARCH_CAP = parseInt(
+  Deno.env.get("HOTELBEDS_DAILY_SEARCH_CAP") || (HB_ENV === "live" ? "100000" : "45"),
+  10,
+);
+const SEARCH_RATE_LIMIT_PER_MIN = parseInt(
+  Deno.env.get("HOTELBEDS_SEARCH_RATE_LIMIT_PER_MIN") || "6",
+  10,
+);
+
+function adminClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+}
+
+// Stable cache key for an availability search (same criteria → same key)
+async function searchCacheKey(body: unknown): Promise<string> {
+  const canonical = (v: any): any => {
+    if (Array.isArray(v)) return v.map(canonical);
+    if (v && typeof v === "object") {
+      return Object.keys(v).sort().reduce((acc: any, k) => {
+        if (v[k] !== undefined && v[k] !== null) acc[k] = canonical(v[k]);
+        return acc;
+      }, {});
+    }
+    return v;
+  };
+  const raw = `${HB_ENV}|${JSON.stringify(canonical(body))}`;
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 function decorateRsp(result: any) {
   const hotels = result?.hotels?.hotels;
