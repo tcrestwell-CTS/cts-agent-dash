@@ -675,10 +675,12 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
   if (isLoading) return <TabSkeleton />;
 
   const payments = data?.payments || [];
+  const balances = data?.balances || [];
   const paidPayments = payments.filter((p: any) => p.status === "paid");
   const pendingPayments = payments.filter((p: any) => p.status === "pending");
   const totalPaid = paidPayments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
-  const totalPending = pendingPayments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+  const totalPending = pendingPayments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+    + balances.reduce((sum: number, balance: any) => sum + Number(balance.outstanding), 0);
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
@@ -727,6 +729,39 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
         </Card>
       </div>
 
+      {balances.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" /> Balance Due
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {balances.map((balance: any) => (
+              <div
+                key={balance.trip_id}
+                className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="space-y-1">
+                  <p className="font-semibold">{balance.trip_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Trip total {formatCurrency(balance.total)}
+                    {balance.paid > 0 && <> · Paid {formatCurrency(balance.paid)}</>}
+                    {balance.scheduled > 0 && <> · Scheduled {formatCurrency(balance.scheduled)}</>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-lg font-bold">{formatCurrency(balance.outstanding)}</p>
+                  <Button size="sm" disabled className="opacity-50">
+                    <CreditCard className="h-4 w-4 mr-1" /> Pay Balance
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {payments.length > 0 ? (
         <Card>
           <CardContent className="pt-6 space-y-3">
@@ -768,9 +803,9 @@ function PaymentsTab({ clientId }: { clientId?: string }) {
             })}
           </CardContent>
         </Card>
-      ) : (
+      ) : balances.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">No payments found.</CardContent></Card>
-      )}
+      ) : null}
     </div>
   );
 }
