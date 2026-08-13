@@ -25,9 +25,10 @@ const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
 const isPem = (v?: string) => !!v && v.includes("-----BEGIN");
 const HAS_CERT = isPem(HB_CLIENT_CERT) && isPem(HB_CLIENT_KEY);
 
-// Prefer direct mTLS when the cert/key are available; otherwise fall back to the
-// Cloudflare Worker proxy (live only — the Worker forwards to the production host).
-const USE_PROXY = !HAS_CERT && HB_ENV === "live" && HB_PROXY_URL.length > 0;
+// Prefer direct mTLS when real PEM cert/key secrets are available; otherwise use
+// the Cloudflare Worker proxy, which holds the registered client certificate and
+// forwards to api-mtls[.test].hotelbeds.com based on X-MTLS-Target-Env.
+const USE_PROXY = !HAS_CERT && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
@@ -147,7 +148,12 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
     "Content-Type": "application/json",
     // The api-mtls gateway (Tyk) reads the API key from the Authorization header.
     ...(HAS_CERT && !USE_PROXY ? { Authorization: apiKey } : {}),
-    ...(USE_PROXY ? { "X-MTLS-Proxy-Token": HB_PROXY_TOKEN } : {}),
+    ...(USE_PROXY
+      ? {
+          "X-MTLS-Proxy-Token": HB_PROXY_TOKEN,
+          "X-MTLS-Target-Env": HB_ENV === "live" ? "live" : "test",
+        }
+      : {}),
   };
 
   // Build URL against the active origin (proxy or direct). Paths are identical
