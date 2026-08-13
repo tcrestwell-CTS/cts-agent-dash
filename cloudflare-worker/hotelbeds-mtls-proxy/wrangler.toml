@@ -8,7 +8,9 @@ compatibility_date = "2024-12-01"
 HOTELBEDS_CERT = { binding = "MY_CERT", certificate_id = "<CERT_ID_AFTER_UPLOAD>" }
 
 [vars]
-HOTELBEDS_BOOKING_API = "https://api.hotelbeds.com/hotel-api/1.0"
+# mTLS-enabled API keys MUST use the api-mtls host. The plain api.hotelbeds.com
+# host rejects mTLS keys with 403 "Access to this API has been disallowed".
+HOTELBEDS_BOOKING_API = "https://api-mtls.hotelbeds.com/hotel-api/1.0"
 HOTELBEDS_CONTENT_API = "https://api.hotelbeds.com/hotel-content-api/1.0"
 
 # Set this secret via: wrangler secret put PROXY_AUTH_TOKEN

@@ -17,10 +17,14 @@ const HB_ENV = Deno.env.get("HOTELBEDS_ENV") || "test"; // "test" or "live"
 // for mTLS. Auth is done with the X-MTLS-Proxy-Token header.
 const HB_PROXY_URL = (Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
 const HB_PROXY_TOKEN = Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
-// The Worker forwards to api.hotelbeds.com (production) and attaches the mTLS
-// cert, so it must only be used in live mode. In test mode we call
-// api.test.hotelbeds.com directly (no mTLS required).
-const USE_PROXY = HB_ENV === "live" && HB_PROXY_URL.length > 0;
+// Client certificate for direct mTLS from the edge runtime.
+const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
+const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
+const HAS_CERT = !!(HB_CLIENT_CERT && HB_CLIENT_KEY);
+
+// Prefer direct mTLS when the cert/key are available; otherwise fall back to the
+// Cloudflare Worker proxy (live only — the Worker forwards to the production host).
+const USE_PROXY = !HAS_CERT && HB_ENV === "live" && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
@@ -28,8 +32,12 @@ if (USE_PROXY && !HB_PROXY_TOKEN) {
   );
 }
 
-const HB_DIRECT_ORIGIN =
-  HB_ENV === "live" ? "https://api.hotelbeds.com" : "https://api.test.hotelbeds.com";
+// Hotelbeds registers each API key as either mTLS or non-mTLS, and each mode has
+// its own hostname. An mTLS key on api[.test].hotelbeds.com returns
+// 401 "You cannot access a non-mTLS endpoint with an apikey for mTLS."
+const HB_DIRECT_ORIGIN = HAS_CERT
+  ? (HB_ENV === "live" ? "https://api-mtls.hotelbeds.com" : "https://api-mtls.test.hotelbeds.com")
+  : (HB_ENV === "live" ? "https://api.hotelbeds.com" : "https://api.test.hotelbeds.com");
 const HB_ORIGIN = USE_PROXY ? HB_PROXY_URL : HB_DIRECT_ORIGIN;
 
 const HB_BASE = `${HB_ORIGIN}/hotel-api/1.0`;
@@ -46,12 +54,9 @@ async function generateSignature(apiKey: string, secret: string): Promise<string
     .join("");
 }
 
-// Optional direct mTLS (used only in live env when both cert + key are set,
-// and the Worker proxy is NOT configured).
-const HB_CLIENT_CERT = Deno.env.get("HOTELBEDS_CLIENT_CERT");
-const HB_CLIENT_KEY = Deno.env.get("HOTELBEDS_CLIENT_KEY");
+// Direct mTLS client (used against the api-mtls hosts when the proxy is off).
 let mtlsClient: Deno.HttpClient | null = null;
-if (!USE_PROXY && HB_ENV === "live" && HB_CLIENT_CERT && HB_CLIENT_KEY) {
+if (!USE_PROXY && HAS_CERT) {
   try {
     // @ts-ignore — createHttpClient is available in Deno Deploy runtime
     mtlsClient = Deno.createHttpClient({
@@ -137,6 +142,8 @@ async function hbFetch(basePath: string, path: string, method: string, body?: an
     Accept: "application/json",
     "Accept-Encoding": "gzip",
     "Content-Type": "application/json",
+    // The api-mtls gateway (Tyk) reads the API key from the Authorization header.
+    ...(HAS_CERT && !USE_PROXY ? { Authorization: apiKey } : {}),
     ...(USE_PROXY ? { "X-MTLS-Proxy-Token": HB_PROXY_TOKEN } : {}),
   };
 
@@ -252,17 +259,42 @@ Deno.serve(async (req) => {
         }
         const apiKey = Deno.env.get("HOTELBEDS_API_KEY") ?? "";
         const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET") ?? "";
-        const probe = async (origin: string) => {
+        const probe = async (origin: string, opts?: { mtls?: boolean; auth?: boolean }) => {
           try {
-            const r = await fetch(`${origin}/hotel-content-api/1.0/types/boards?fields=all&language=ENG&from=1&to=1`, {
+            const init: any = {
               headers: {
                 "Api-key": apiKey,
                 "X-Signature": await generateSignature(apiKey, apiSecret),
                 Accept: "application/json",
+                ...(opts?.auth ? { Authorization: apiKey } : {}),
               },
-            });
+            };
+            if (opts?.mtls && mtlsClient) init.client = mtlsClient;
+            const r = await fetch(
+              `${origin}/hotel-content-api/1.0/types/boards?fields=all&language=ENG&from=1&to=1`,
+              init,
+            );
             const t = await r.text();
             return { status: r.status, body: t.slice(0, 200) };
+          } catch (e) {
+            return { status: 0, body: e instanceof Error ? e.message : String(e) };
+          }
+        };
+        // Probe the mTLS gateway's hotel-api /status endpoint with different key headers
+        const probeMtlsStatus = async (extra: Record<string, string>) => {
+          try {
+            const init: any = {
+              headers: {
+                "Api-key": apiKey,
+                "X-Signature": await generateSignature(apiKey, apiSecret),
+                Accept: "application/json",
+                ...extra,
+              },
+            };
+            if (mtlsClient) init.client = mtlsClient;
+            const r = await fetch("https://api-mtls.test.hotelbeds.com/hotel-api/1.0/status", init);
+            const t = await r.text();
+            return { status: r.status, body: t.slice(0, 160) };
           } catch (e) {
             return { status: 0, body: e instanceof Error ? e.message : String(e) };
           }
@@ -270,10 +302,21 @@ Deno.serve(async (req) => {
         result = {
           env: HB_ENV,
           usingProxy: USE_PROXY,
+          hasCert: HAS_CERT,
+          mtlsClientReady: mtlsClient !== null,
+          activeOrigin: HB_ORIGIN,
           keyFingerprint: apiKey ? `${apiKey.slice(0, 5)}…${apiKey.slice(-5)} (len ${apiKey.length})` : null,
           secretLength: apiSecret.length,
           testEndpointDirect: await probe("https://api.test.hotelbeds.com"),
           liveEndpointDirect: await probe("https://api.hotelbeds.com"),
+          testMtlsNoAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true }),
+          testMtlsWithAuth: await probe("https://api-mtls.test.hotelbeds.com", { mtls: true, auth: true }),
+          liveMtlsNoAuth: await probe("https://api-mtls.hotelbeds.com", { mtls: true }),
+          statusPlain: await probeMtlsStatus({}),
+          statusAuthKey: await probeMtlsStatus({ Authorization: apiKey }),
+          statusAuthBearer: await probeMtlsStatus({ Authorization: `Bearer ${apiKey}` }),
+          statusXApiKey: await probeMtlsStatus({ "x-api-key": apiKey }),
+          statusApikeyLower: await probeMtlsStatus({ apikey: apiKey }),
         };
         break;
       }
