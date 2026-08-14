@@ -1280,7 +1280,15 @@ const TripDetail = () => {
                   />
                 </TabsContent>
 
-                <TabsContent value="payments" className="mt-6">
+                <TabsContent value="payments" className="mt-6 space-y-6">
+                  <TripPaymentOptions
+                    tripId={trip.id}
+                    settings={tripSettings}
+                    tripTotal={trip.total_gross_sales}
+                    departDate={trip.depart_date || undefined}
+                    onSettingsChange={fetchTrip}
+                    layout="horizontal"
+                  />
                   <TripPayments
                     tripId={tripId!}
                     clientId={trip.client_id}
