@@ -1332,8 +1332,6 @@ const TripDetail = () => {
                   tripId={trip.id}
                   settings={tripSettings}
                   agencyName={profile?.agency_name || undefined}
-                  tripTotal={trip.total_gross_sales}
-                  departDate={trip.depart_date || undefined}
                   tripType={trip.trip_type || undefined}
                   shareToken={(trip as any).share_token || undefined}
                   onSettingsChange={fetchTrip}
