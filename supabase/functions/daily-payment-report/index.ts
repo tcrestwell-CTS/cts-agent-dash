@@ -328,6 +328,7 @@ serve(async (req) => {
         flagged.push({ charge: p, reason: "error", detail: msg });
       }
     }
+    }
 
     // Persist flagged items to exception_queue (idempotent by source_record_id)
     for (const f of flagged) {
