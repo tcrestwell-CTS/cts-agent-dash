@@ -33,10 +33,13 @@ serve(async (req) => {
     );
 
     // Parse body (optional)
-    let body: { date?: string; sendEmail?: boolean } = {};
+    let body: { date?: string; sendEmail?: boolean; clientEmail?: string } = {};
     try {
       body = await req.json();
     } catch (_) { /* no body */ }
+
+    const clientFilter = (body.clientEmail || "").toLowerCase().trim();
+    const isFiltered = !!clientFilter;
 
     // Default: yesterday in America/New_York (Eastern reporting day)
     const nowEasternParts = new Intl.DateTimeFormat("en-CA", {
