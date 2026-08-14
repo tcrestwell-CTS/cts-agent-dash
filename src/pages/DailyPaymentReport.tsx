@@ -132,13 +132,19 @@ export default function DailyPaymentReport() {
       const startStr = formatLocalDate(start);
       const endStr = formatLocalDate(end);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("trip_payments")
-        .select("amount, stripe_fee, payment_date, status")
+        .select("amount, stripe_fee, payment_date, status, trips!inner(client_id, clients!inner(id, name, email))")
         .eq("status", "paid")
         .not("stripe_payment_intent_id", "is", null)
         .gte("payment_date", startStr)
         .lte("payment_date", endStr);
+
+      if (clientEmail) {
+        query = query.eq("trips.clients.email", clientEmail);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const dayMap = new Map<string, MonthDayRow>();
