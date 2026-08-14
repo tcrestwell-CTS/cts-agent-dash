@@ -393,7 +393,8 @@ export default function DailyPaymentReport() {
                   <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
                 ) : !monthReport || monthReport.paymentCount === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">
-                    No Stripe payments recorded in this month.
+                    No Stripe payments recorded in this month
+                    {clientEmail ? " for the selected client" : ""}.
                   </div>
                 ) : (
                   <>
