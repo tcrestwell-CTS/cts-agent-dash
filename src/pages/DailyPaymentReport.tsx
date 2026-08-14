@@ -110,7 +110,7 @@ export default function DailyPaymentReport() {
     try {
       const { data, error } = await supabase.functions.invoke(
         "daily-payment-report",
-        { body: { date: d, sendEmail: false } },
+        { body: { date: d, sendEmail: false, clientEmail: clientEmail || undefined } },
       );
       if (error) throw error;
       setReport(data as Report);
