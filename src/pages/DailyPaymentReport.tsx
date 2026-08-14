@@ -222,12 +222,12 @@ export default function DailyPaymentReport() {
           <div className="flex items-end gap-2">
             <div>
               <label className="text-xs text-muted-foreground">Client</label>
-              <Select value={clientEmail} onValueChange={setClientEmail} disabled={clientsLoading}>
+              <Select value={clientEmail || "__all__"} onValueChange={(v) => setClientEmail(v === "__all__" ? "" : v)} disabled={clientsLoading}>
                 <SelectTrigger className="w-56">
                   <SelectValue placeholder="All clients" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All clients</SelectItem>
+                  <SelectItem value="__all__">All clients</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.email || c.id}>
                       {c.name || c.email || "Unnamed client"}
@@ -259,12 +259,12 @@ export default function DailyPaymentReport() {
             <div className="flex items-end gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">Client</label>
-                <Select value={clientEmail} onValueChange={setClientEmail} disabled={clientsLoading}>
+                <Select value={clientEmail || "__all__"} onValueChange={(v) => setClientEmail(v === "__all__" ? "" : v)} disabled={clientsLoading}>
                   <SelectTrigger className="w-56">
                     <SelectValue placeholder="All clients" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All clients</SelectItem>
+                    <SelectItem value="__all__">All clients</SelectItem>
                     {clients.map((c) => (
                       <SelectItem key={c.id} value={c.email || c.id}>
                         {c.name || c.email || "Unnamed client"}
