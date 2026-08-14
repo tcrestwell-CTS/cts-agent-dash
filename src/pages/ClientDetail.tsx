@@ -1425,11 +1425,24 @@ function BookingHistoryItem({
     }
   };
 
+  const safeFormat = (value: string | null | undefined, pattern: string) => {
+    if (!value) return null;
+    const d = parseLocalDate(value);
+    return isNaN(d.getTime()) ? null : format(d, pattern);
+  };
+
+  const departLabel = safeFormat(booking.depart_date, "MMM d");
+  const returnLabel = safeFormat(booking.return_date, "MMM d, yyyy");
+  const dateLabel =
+    departLabel && returnLabel
+      ? `${departLabel} - ${returnLabel}`
+      : departLabel || returnLabel || "Dates TBD";
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(amount);
+    }).format(amount ?? 0);
   };
 
   return (
@@ -1450,7 +1463,7 @@ function BookingHistoryItem({
           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {format(new Date(booking.depart_date), "MMM d")} - {format(new Date(booking.return_date), "MMM d, yyyy")}
+              {dateLabel}
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
