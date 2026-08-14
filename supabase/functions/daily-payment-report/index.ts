@@ -33,10 +33,13 @@ serve(async (req) => {
     );
 
     // Parse body (optional)
-    let body: { date?: string; sendEmail?: boolean } = {};
+    let body: { date?: string; sendEmail?: boolean; clientEmail?: string } = {};
     try {
       body = await req.json();
     } catch (_) { /* no body */ }
+
+    const clientFilter = (body.clientEmail || "").toLowerCase().trim();
+    const isFiltered = !!clientFilter;
 
     // Default: yesterday in America/New_York (Eastern reporting day)
     const nowEasternParts = new Intl.DateTimeFormat("en-CA", {
@@ -147,6 +150,7 @@ serve(async (req) => {
     const flagged: FlagRow[] = [];
 
     for (const p of rawPayments) {
+      if (isFiltered) continue;
       try {
         // Skip if this Stripe charge was already applied
         const { data: existing } = await supabase
@@ -397,10 +401,14 @@ serve(async (req) => {
         receiptUrl: string | null;
       }>;
     };
+    const reportPayments = isFiltered
+      ? rawPayments.filter((p) => p.email && p.email.toLowerCase() === clientFilter)
+      : rawPayments;
+
     const groups = new Map<string, Row>();
     let grandTotal = 0;
 
-    for (const p of rawPayments) {
+    for (const p of reportPayments) {
       const matched = p.email ? clientMap.get(p.email) : null;
       const name = matched?.name || (p.email ? p.email : "Unknown client");
       const email = p.email;
@@ -432,7 +440,7 @@ serve(async (req) => {
     const summary = {
       date: target,
       grandTotal,
-      paymentCount: rawPayments.length,
+      paymentCount: reportPayments.length,
       clientCount: clients.length,
       clients,
       appliedCount: applied.length,

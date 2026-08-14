@@ -4,7 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Mail, RefreshCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Mail, RefreshCw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -75,13 +82,35 @@ export default function DailyPaymentReport() {
   const [month, setMonth] = useState<string>(currentMonth());
   const [monthLoading, setMonthLoading] = useState(false);
   const [monthReport, setMonthReport] = useState<MonthReport | null>(null);
+  const [clients, setClients] = useState<Array<{ id: string; name: string | null; email: string | null }>>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clientEmail, setClientEmail] = useState<string>("");
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      setClientsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, name, email")
+          .order("name", { ascending: true });
+        if (error) throw error;
+        setClients(data || []);
+      } catch (e) {
+        console.error("Failed to load clients", e);
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+    fetchClients();
+  }, []);
 
   const load = async (d: string) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke(
         "daily-payment-report",
-        { body: { date: d, sendEmail: false } },
+        { body: { date: d, sendEmail: false, clientEmail: clientEmail || undefined } },
       );
       if (error) throw error;
       setReport(data as Report);
@@ -92,7 +121,7 @@ export default function DailyPaymentReport() {
     }
   };
 
-  useEffect(() => { load(date); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load(date); /* eslint-disable-next-line */ }, [clientEmail]);
 
   const loadMonth = async (m: string) => {
     setMonthLoading(true);
@@ -103,13 +132,19 @@ export default function DailyPaymentReport() {
       const startStr = formatLocalDate(start);
       const endStr = formatLocalDate(end);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("trip_payments")
-        .select("amount, stripe_fee, payment_date, status")
+        .select("amount, stripe_fee, payment_date, status, trips!inner(client_id, clients!inner(id, name, email))")
         .eq("status", "paid")
         .not("stripe_payment_intent_id", "is", null)
         .gte("payment_date", startStr)
         .lte("payment_date", endStr);
+
+      if (clientEmail) {
+        query = query.eq("trips.clients.email", clientEmail);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
 
       const dayMap = new Map<string, MonthDayRow>();
@@ -151,9 +186,9 @@ export default function DailyPaymentReport() {
   };
 
   useEffect(() => {
-    if (tab === "month" && !monthReport) loadMonth(month);
+    if (tab === "month") loadMonth(month);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, clientEmail]);
 
   const sendEmail = async () => {
     setSending(true);
@@ -186,6 +221,22 @@ export default function DailyPaymentReport() {
           {tab === "day" && (
           <div className="flex items-end gap-2">
             <div>
+              <label className="text-xs text-muted-foreground">Client</label>
+              <Select value={clientEmail} onValueChange={setClientEmail} disabled={clientsLoading}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="All clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All clients</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.email || c.id}>
+                      {c.name || c.email || "Unnamed client"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground">Date</label>
               <Input
                 type="date"
@@ -198,7 +249,7 @@ export default function DailyPaymentReport() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               <span className="ml-2">Refresh</span>
             </Button>
-            <Button onClick={sendEmail} disabled={sending || !report}>
+            <Button onClick={sendEmail} disabled={sending || !report || !!clientEmail} title={clientEmail ? "Clear client filter to email the full report" : undefined}>
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
               <span className="ml-2">Email this report</span>
             </Button>
@@ -206,6 +257,22 @@ export default function DailyPaymentReport() {
           )}
           {tab === "month" && (
             <div className="flex items-end gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">Client</label>
+                <Select value={clientEmail} onValueChange={setClientEmail} disabled={clientsLoading}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="All clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All clients</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.email || c.id}>
+                        {c.name || c.email || "Unnamed client"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <label className="text-xs text-muted-foreground">Month</label>
                 <Input
@@ -254,7 +321,8 @@ export default function DailyPaymentReport() {
               <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
             ) : !report || report.clients.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
-                No Stripe payments received on {date}.
+                No Stripe payments received on {date}
+                {clientEmail ? " for the selected client" : ""}.
               </div>
             ) : (
               <div className="divide-y">
@@ -325,7 +393,8 @@ export default function DailyPaymentReport() {
                   <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
                 ) : !monthReport || monthReport.paymentCount === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">
-                    No Stripe payments recorded in this month.
+                    No Stripe payments recorded in this month
+                    {clientEmail ? " for the selected client" : ""}.
                   </div>
                 ) : (
                   <>
