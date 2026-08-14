@@ -74,15 +74,6 @@ export function TripSettingsSidebar({
 
   return (
     <div className="space-y-4">
-      <TripPaymentOptions
-        tripId={tripId}
-        settings={settings}
-        tripTotal={tripTotal}
-        departDate={departDate}
-        onSettingsChange={onSettingsChange}
-        layout="vertical"
-      />
-
       {/* Trip Settings */}
       <Card>
         <CardHeader className="pb-3">
