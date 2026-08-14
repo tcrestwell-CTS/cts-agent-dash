@@ -82,6 +82,28 @@ export default function DailyPaymentReport() {
   const [month, setMonth] = useState<string>(currentMonth());
   const [monthLoading, setMonthLoading] = useState(false);
   const [monthReport, setMonthReport] = useState<MonthReport | null>(null);
+  const [clients, setClients] = useState<Array<{ id: string; name: string | null; email: string | null }>>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [clientEmail, setClientEmail] = useState<string>("");
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      setClientsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, name, email")
+          .order("name", { ascending: true });
+        if (error) throw error;
+        setClients(data || []);
+      } catch (e) {
+        console.error("Failed to load clients", e);
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+    fetchClients();
+  }, []);
 
   const load = async (d: string) => {
     setLoading(true);
