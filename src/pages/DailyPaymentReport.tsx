@@ -136,7 +136,6 @@ export default function DailyPaymentReport() {
         .from("trip_payments")
         .select("amount, stripe_fee, payment_date, status, trips!inner(client_id, client:clients!trips_client_id_fkey!inner(id, name, email))")
         .eq("status", "paid")
-        .not("stripe_payment_intent_id", "is", null)
         .gte("payment_date", startStr)
         .lte("payment_date", endStr);
 
