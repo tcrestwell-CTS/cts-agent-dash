@@ -441,7 +441,7 @@ serve(async (req) => {
     const summary = {
       date: target,
       grandTotal,
-      paymentCount: rawPayments.length,
+      paymentCount: reportPayments.length,
       clientCount: clients.length,
       clients,
       appliedCount: applied.length,
