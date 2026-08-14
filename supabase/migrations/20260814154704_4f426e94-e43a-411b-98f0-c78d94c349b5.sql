@@ -1,0 +1,1 @@
+UPDATE public.profiles SET avatar_url = NULL WHERE id = 'a66b96e4-b24c-4e80-9167-f1105bc94728' AND avatar_url = storefront_logo_url;
