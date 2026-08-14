@@ -201,8 +201,11 @@ export default function DailyPaymentReport() {
         .gte("payment_date", startStr)
         .lte("payment_date", endStr);
 
-      if (clientEmail) {
-        query = query.eq("trips.client.email", clientEmail);
+      if (selectedClient) {
+        // Filter by email when present (catches sibling client records sharing
+        // an email); fall back to client_id for clients with no email on file.
+        if (selectedClient.email) query = query.eq("trips.client.email", selectedClient.email);
+        else query = query.eq("trips.client_id", selectedClient.id);
       }
 
       const { data, error } = await query;
@@ -249,7 +252,7 @@ export default function DailyPaymentReport() {
   useEffect(() => {
     if (tab === "month") loadMonth(month);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, clientEmail]);
+  }, [tab, selectedClient?.id]);
 
   const sendEmail = async () => {
     setSending(true);
@@ -283,19 +286,12 @@ export default function DailyPaymentReport() {
           <div className="flex items-end gap-2">
             <div>
               <label className="text-xs text-muted-foreground">Client</label>
-              <Select value={clientEmail || "__all__"} onValueChange={(v) => setClientEmail(v === "__all__" ? "" : v)} disabled={clientsLoading}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="All clients" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All clients</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.email || c.id}>
-                      {c.name || c.email || "Unnamed client"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientCombobox
+                clients={clients}
+                loading={clientsLoading}
+                value={selectedClient}
+                onChange={setSelectedClient}
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Date</label>
@@ -320,19 +316,12 @@ export default function DailyPaymentReport() {
             <div className="flex items-end gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">Client</label>
-                <Select value={clientEmail || "__all__"} onValueChange={(v) => setClientEmail(v === "__all__" ? "" : v)} disabled={clientsLoading}>
-                  <SelectTrigger className="w-56">
-                    <SelectValue placeholder="All clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All clients</SelectItem>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.email || c.id}>
-                        {c.name || c.email || "Unnamed client"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ClientCombobox
+                  clients={clients}
+                  loading={clientsLoading}
+                  value={selectedClient}
+                  onChange={setSelectedClient}
+                />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Month</label>
