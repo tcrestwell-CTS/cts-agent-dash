@@ -121,7 +121,7 @@ export default function DailyPaymentReport() {
     }
   };
 
-  useEffect(() => { load(date); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load(date); /* eslint-disable-next-line */ }, [clientEmail]);
 
   const loadMonth = async (m: string) => {
     setMonthLoading(true);
