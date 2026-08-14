@@ -16,14 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Lock, Shield, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TripPaymentOptions, type TripPaymentOptionsSettings } from "./TripPaymentOptions";
+import { type TripPaymentOptionsSettings } from "./TripPaymentOptions";
 
 interface TripSettingsSidebarProps {
   tripId: string;
   settings: TripPaymentOptionsSettings;
   agencyName?: string;
-  tripTotal?: number;
-  departDate?: string;
   tripType?: string;
   shareToken?: string;
   onSettingsChange: () => void;
@@ -34,8 +32,6 @@ export function TripSettingsSidebar({
   tripId,
   settings,
   agencyName,
-  tripTotal = 0,
-  departDate,
   tripType,
   onSettingsChange,
   onNavigateToLandingPage,
