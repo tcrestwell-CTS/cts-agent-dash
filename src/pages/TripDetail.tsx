@@ -59,6 +59,7 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { CabinOptionsManager } from "@/components/trips/CabinOptionsManager";
 import { BalconyCabinsSection } from "@/components/trips/BalconyCabinsSection";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
+import { TripPaymentOptions } from "@/components/trips/TripPaymentOptions";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
