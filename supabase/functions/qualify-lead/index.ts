@@ -46,7 +46,7 @@ A new travel inquiry has come in. Analyze it and return a JSON object with these
   "score": <integer 1-100, lead quality score>,
   "stage": <"Qualified" | "Quote Needed" | "Call Needed" | "Unqualified">,
   "summary": <one sentence describing the lead for Tim's dashboard>,
-  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "out-of-service-area", "cruise", "all-inclusive", "resort", "vacation-rental", "domestic-travel", "hotel-stay", "vacation-home", "destination-package", "vacations-by-rail", "disney-theme-park", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
+  "tags": <array of strings from: ["financing", "group", "luxury", "family", "honeymoon", "flexible", "urgent", "vague-budget", "repeat-client", "church", "corporate", "short-trip", "international", "multi-city", "rail", "europe", "cruise", "all-inclusive", "resort", "vacation-rental", "domestic-travel", "hotel-stay", "vacation-home", "destination-package", "vacations-by-rail", "disney-theme-park", "mexico", "alaska", "bahamas", "bermuda", "hawaii", "new-england", "caribbean", "transatlantic", "central-america", "north-america"]>,
   "next_action": <one specific sentence telling Tim exactly what to do next>,
   "wants_financing": <boolean>
 }
