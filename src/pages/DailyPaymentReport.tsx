@@ -75,6 +75,64 @@ interface MonthReport {
   days: MonthDayRow[];
 }
 
+interface ClientRow { id: string; name: string | null; email: string | null }
+
+function ClientCombobox({
+  clients,
+  loading,
+  value,
+  onChange,
+}: {
+  clients: ClientRow[];
+  loading: boolean;
+  value: ClientRow | null;
+  onChange: (c: ClientRow | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-64 justify-between font-normal" disabled={loading}>
+          <span className="truncate">
+            {value ? value.name || value.email || "Unnamed client" : "All clients"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search name or email..." />
+          <CommandList>
+            <CommandEmpty>No client found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="All clients"
+                onSelect={() => { onChange(null); setOpen(false); }}
+              >
+                <Check className={`mr-2 h-4 w-4 ${!value ? "opacity-100" : "opacity-0"}`} />
+                All clients
+              </CommandItem>
+              {clients.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`${c.name ?? ""} ${c.email ?? ""} ${c.id}`}
+                  onSelect={() => { onChange(c); setOpen(false); }}
+                >
+                  <Check className={`mr-2 h-4 w-4 ${value?.id === c.id ? "opacity-100" : "opacity-0"}`} />
+                  <span className="truncate">
+                    {c.name || c.email || "Unnamed client"}
+                    {!c.email && <span className="text-muted-foreground"> · no email</span>}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function DailyPaymentReport() {
   const [date, setDate] = useState<string>(yesterday());
   const [loading, setLoading] = useState(false);
@@ -84,9 +142,10 @@ export default function DailyPaymentReport() {
   const [month, setMonth] = useState<string>(currentMonth());
   const [monthLoading, setMonthLoading] = useState(false);
   const [monthReport, setMonthReport] = useState<MonthReport | null>(null);
-  const [clients, setClients] = useState<Array<{ id: string; name: string | null; email: string | null }>>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
-  const [clientEmail, setClientEmail] = useState<string>("");
+  const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null);
+  const clientEmail = selectedClient?.email ?? "";
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -95,7 +154,8 @@ export default function DailyPaymentReport() {
         const { data, error } = await supabase
           .from("clients")
           .select("id, name, email")
-          .order("name", { ascending: true });
+          .order("name", { ascending: true })
+          .limit(2000);
         if (error) throw error;
         setClients(data || []);
       } catch (e) {
