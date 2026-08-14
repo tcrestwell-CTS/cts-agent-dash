@@ -4,14 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2, Mail, RefreshCw, X } from "lucide-react";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Loader2, Mail, RefreshCw, Check, ChevronsUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -73,6 +75,64 @@ interface MonthReport {
   days: MonthDayRow[];
 }
 
+interface ClientRow { id: string; name: string | null; email: string | null }
+
+function ClientCombobox({
+  clients,
+  loading,
+  value,
+  onChange,
+}: {
+  clients: ClientRow[];
+  loading: boolean;
+  value: ClientRow | null;
+  onChange: (c: ClientRow | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-64 justify-between font-normal" disabled={loading}>
+          <span className="truncate">
+            {value ? value.name || value.email || "Unnamed client" : "All clients"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search name or email..." />
+          <CommandList>
+            <CommandEmpty>No client found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="All clients"
+                onSelect={() => { onChange(null); setOpen(false); }}
+              >
+                <Check className={`mr-2 h-4 w-4 ${!value ? "opacity-100" : "opacity-0"}`} />
+                All clients
+              </CommandItem>
+              {clients.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`${c.name ?? ""} ${c.email ?? ""} ${c.id}`}
+                  onSelect={() => { onChange(c); setOpen(false); }}
+                >
+                  <Check className={`mr-2 h-4 w-4 ${value?.id === c.id ? "opacity-100" : "opacity-0"}`} />
+                  <span className="truncate">
+                    {c.name || c.email || "Unnamed client"}
+                    {!c.email && <span className="text-muted-foreground"> · no email</span>}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function DailyPaymentReport() {
   const [date, setDate] = useState<string>(yesterday());
   const [loading, setLoading] = useState(false);
@@ -82,9 +142,10 @@ export default function DailyPaymentReport() {
   const [month, setMonth] = useState<string>(currentMonth());
   const [monthLoading, setMonthLoading] = useState(false);
   const [monthReport, setMonthReport] = useState<MonthReport | null>(null);
-  const [clients, setClients] = useState<Array<{ id: string; name: string | null; email: string | null }>>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
-  const [clientEmail, setClientEmail] = useState<string>("");
+  const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null);
+  const clientEmail = selectedClient?.email ?? "";
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -93,7 +154,8 @@ export default function DailyPaymentReport() {
         const { data, error } = await supabase
           .from("clients")
           .select("id, name, email")
-          .order("name", { ascending: true });
+          .order("name", { ascending: true })
+          .limit(2000);
         if (error) throw error;
         setClients(data || []);
       } catch (e) {
@@ -106,6 +168,11 @@ export default function DailyPaymentReport() {
   }, []);
 
   const load = async (d: string) => {
+    if (selectedClient && !selectedClient.email) {
+      // Stripe charges are matched by email; no email on file means nothing to match.
+      setReport({ date: d, grandTotal: 0, paymentCount: 0, clientCount: 0, clients: [] });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -121,7 +188,7 @@ export default function DailyPaymentReport() {
     }
   };
 
-  useEffect(() => { load(date); /* eslint-disable-next-line */ }, [clientEmail]);
+  useEffect(() => { load(date); /* eslint-disable-next-line */ }, [selectedClient?.id]);
 
   const loadMonth = async (m: string) => {
     setMonthLoading(true);
@@ -139,8 +206,11 @@ export default function DailyPaymentReport() {
         .gte("payment_date", startStr)
         .lte("payment_date", endStr);
 
-      if (clientEmail) {
-        query = query.eq("trips.client.email", clientEmail);
+      if (selectedClient) {
+        // Filter by email when present (catches sibling client records sharing
+        // an email); fall back to client_id for clients with no email on file.
+        if (selectedClient.email) query = query.eq("trips.client.email", selectedClient.email);
+        else query = query.eq("trips.client_id", selectedClient.id);
       }
 
       const { data, error } = await query;
@@ -187,7 +257,7 @@ export default function DailyPaymentReport() {
   useEffect(() => {
     if (tab === "month") loadMonth(month);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, clientEmail]);
+  }, [tab, selectedClient?.id]);
 
   const sendEmail = async () => {
     setSending(true);
@@ -221,19 +291,12 @@ export default function DailyPaymentReport() {
           <div className="flex items-end gap-2">
             <div>
               <label className="text-xs text-muted-foreground">Client</label>
-              <Select value={clientEmail || "__all__"} onValueChange={(v) => setClientEmail(v === "__all__" ? "" : v)} disabled={clientsLoading}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="All clients" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All clients</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.email || c.id}>
-                      {c.name || c.email || "Unnamed client"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientCombobox
+                clients={clients}
+                loading={clientsLoading}
+                value={selectedClient}
+                onChange={setSelectedClient}
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Date</label>
@@ -258,19 +321,12 @@ export default function DailyPaymentReport() {
             <div className="flex items-end gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">Client</label>
-                <Select value={clientEmail || "__all__"} onValueChange={(v) => setClientEmail(v === "__all__" ? "" : v)} disabled={clientsLoading}>
-                  <SelectTrigger className="w-56">
-                    <SelectValue placeholder="All clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All clients</SelectItem>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.email || c.id}>
-                        {c.name || c.email || "Unnamed client"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ClientCombobox
+                  clients={clients}
+                  loading={clientsLoading}
+                  value={selectedClient}
+                  onChange={setSelectedClient}
+                />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Month</label>
