@@ -149,6 +149,7 @@ serve(async (req) => {
     const applied: Array<{ charge: Payment; tripPaymentId: string; clientName: string }> = [];
     const flagged: FlagRow[] = [];
 
+    if (!isFiltered) {
     for (const p of rawPayments) {
       try {
         // Skip if this Stripe charge was already applied
