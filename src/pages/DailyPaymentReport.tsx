@@ -168,6 +168,11 @@ export default function DailyPaymentReport() {
   }, []);
 
   const load = async (d: string) => {
+    if (selectedClient && !selectedClient.email) {
+      // Stripe charges are matched by email; no email on file means nothing to match.
+      setReport({ date: d, grandTotal: 0, paymentCount: 0, clientCount: 0, clients: [] });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -183,7 +188,7 @@ export default function DailyPaymentReport() {
     }
   };
 
-  useEffect(() => { load(date); /* eslint-disable-next-line */ }, [clientEmail]);
+  useEffect(() => { load(date); /* eslint-disable-next-line */ }, [selectedClient?.id]);
 
   const loadMonth = async (m: string) => {
     setMonthLoading(true);
