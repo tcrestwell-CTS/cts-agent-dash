@@ -221,6 +221,22 @@ export default function DailyPaymentReport() {
           {tab === "day" && (
           <div className="flex items-end gap-2">
             <div>
+              <label className="text-xs text-muted-foreground">Client</label>
+              <Select value={clientEmail} onValueChange={setClientEmail} disabled={clientsLoading}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="All clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All clients</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.email || c.id}>
+                      {c.name || c.email || "Unnamed client"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="text-xs text-muted-foreground">Date</label>
               <Input
                 type="date"
