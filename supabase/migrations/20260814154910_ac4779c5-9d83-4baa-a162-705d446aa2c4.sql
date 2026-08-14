@@ -1,0 +1,1 @@
+UPDATE public.profiles SET avatar_url = 'https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/logos/avatars/kim-womble.webp' WHERE id = 'a66b96e4-b24c-4e80-9167-f1105bc94728';
