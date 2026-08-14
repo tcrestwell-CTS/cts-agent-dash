@@ -402,10 +402,14 @@ serve(async (req) => {
         receiptUrl: string | null;
       }>;
     };
+    const reportPayments = isFiltered
+      ? rawPayments.filter((p) => p.email && p.email.toLowerCase() === clientFilter)
+      : rawPayments;
+
     const groups = new Map<string, Row>();
     let grandTotal = 0;
 
-    for (const p of rawPayments) {
+    for (const p of reportPayments) {
       const matched = p.email ? clientMap.get(p.email) : null;
       const name = matched?.name || (p.email ? p.email : "Unknown client");
       const email = p.email;
