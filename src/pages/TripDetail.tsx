@@ -59,6 +59,7 @@ import { SubTrips } from "@/components/trips/SubTrips";
 import { CabinOptionsManager } from "@/components/trips/CabinOptionsManager";
 import { BalconyCabinsSection } from "@/components/trips/BalconyCabinsSection";
 import { TripSettingsSidebar } from "@/components/trips/TripSettingsSidebar";
+import { TripPaymentOptions } from "@/components/trips/TripPaymentOptions";
 import { TripTravelersCard } from "@/components/trips/TripTravelersCard";
 import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge";
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
@@ -1279,7 +1280,15 @@ const TripDetail = () => {
                   />
                 </TabsContent>
 
-                <TabsContent value="payments" className="mt-6">
+                <TabsContent value="payments" className="mt-6 space-y-6">
+                  <TripPaymentOptions
+                    tripId={trip.id}
+                    settings={tripSettings}
+                    tripTotal={trip.total_gross_sales}
+                    departDate={trip.depart_date || undefined}
+                    onSettingsChange={fetchTrip}
+                    layout="horizontal"
+                  />
                   <TripPayments
                     tripId={tripId!}
                     clientId={trip.client_id}
@@ -1323,8 +1332,6 @@ const TripDetail = () => {
                   tripId={trip.id}
                   settings={tripSettings}
                   agencyName={profile?.agency_name || undefined}
-                  tripTotal={trip.total_gross_sales}
-                  departDate={trip.depart_date || undefined}
                   tripType={trip.trip_type || undefined}
                   shareToken={(trip as any).share_token || undefined}
                   onSettingsChange={fetchTrip}
