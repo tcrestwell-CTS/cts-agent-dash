@@ -193,60 +193,19 @@ export default function DailyPaymentReport() {
   const loadMonth = async (m: string) => {
     setMonthLoading(true);
     try {
-      const first = parseLocalDate(`${m}-01`);
-      const start = startOfMonth(first);
-      const end = endOfMonth(first);
-      const startStr = formatLocalDate(start);
-      const endStr = formatLocalDate(end);
-
-      let query = supabase
-        .from("trip_payments")
-        .select("amount, stripe_fee, payment_date, status, trips!inner(client_id, client:clients!trips_client_id_fkey!inner(id, name, email))")
-        .eq("status", "paid")
-        .gte("payment_date", startStr)
-        .lte("payment_date", endStr);
-
-      if (selectedClient) {
-        // Filter by email when present (catches sibling client records sharing
-        // an email); fall back to client_id for clients with no email on file.
-        if (selectedClient.email) query = query.eq("trips.client.email", selectedClient.email);
-        else query = query.eq("trips.client_id", selectedClient.id);
+      if (selectedClient && !selectedClient.email) {
+        setMonthReport({ month: m, grandTotal: 0, paymentCount: 0, totalFees: 0, netTotal: 0, days: [] });
+        return;
       }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const dayMap = new Map<string, MonthDayRow>();
-      for (const d of eachDayOfInterval({ start, end })) {
-        const k = formatLocalDate(d);
-        dayMap.set(k, { date: k, total: 0, count: 0 });
-      }
-      let grandTotal = 0;
-      let totalFees = 0;
-      let paymentCount = 0;
-      for (const row of data ?? []) {
-        const key = (row.payment_date as string) ?? "";
-        const bucket = dayMap.get(key);
-        const gross = Number(row.amount) || 0;
-        const fee = Number(row.stripe_fee) || 0;
-        // amount stored is net; report gross by adding fee back for consistency w/ daily view
-        const grossReported = gross + fee;
-        if (bucket) {
-          bucket.total += grossReported;
-          bucket.count += 1;
-        }
-        grandTotal += grossReported;
-        totalFees += fee;
-        paymentCount += 1;
-      }
-      setMonthReport({
-        month: m,
-        grandTotal,
-        paymentCount,
-        totalFees,
-        netTotal: grandTotal - totalFees,
-        days: Array.from(dayMap.values()),
+      const { data, error } = await supabase.functions.invoke("daily-payment-report", {
+        body: {
+          month: m,
+          sendEmail: false,
+          clientEmail: selectedClient?.email || undefined,
+        },
       });
+      if (error) throw error;
+      setMonthReport(data as MonthReport);
     } catch (e: any) {
       toast.error(e.message || "Failed to load monthly report");
     } finally {

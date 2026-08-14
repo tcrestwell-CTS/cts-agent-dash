@@ -33,7 +33,7 @@ serve(async (req) => {
     );
 
     // Parse body (optional)
-    let body: { date?: string; sendEmail?: boolean; clientEmail?: string } = {};
+    let body: { date?: string; month?: string; sendEmail?: boolean; clientEmail?: string } = {};
     try {
       body = await req.json();
     } catch (_) { /* no body */ }
@@ -47,8 +47,11 @@ serve(async (req) => {
       year: "numeric", month: "2-digit", day: "2-digit",
     }).formatToParts(new Date());
     const easternToday = `${nowEasternParts.find((p) => p.type === "year")!.value}-${nowEasternParts.find((p) => p.type === "month")!.value}-${nowEasternParts.find((p) => p.type === "day")!.value}`;
+    const isMonth = /^\d{4}-\d{2}$/.test(body.month ?? "");
     const target = body.date
       ? body.date
+      : isMonth
+      ? `${body.month}-01`
       : new Date(new Date(easternToday + "T12:00:00Z").getTime() - 24 * 60 * 60 * 1000)
           .toISOString()
           .split("T")[0];
@@ -72,7 +75,12 @@ serve(async (req) => {
     const noonUtc = new Date(target + "T12:00:00Z");
     const offset = easternOffsetHours(noonUtc); // -5 or -4
     const dayStart = Math.floor(new Date(target + "T00:00:00Z").getTime() / 1000) - offset * 3600;
-    const dayEnd = dayStart + 24 * 60 * 60;
+    const monthEnd = isMonth
+      ? new Date(Date.UTC(noonUtc.getUTCFullYear(), noonUtc.getUTCMonth() + 1, 1))
+      : null;
+    const dayEnd = monthEnd
+      ? Math.floor(monthEnd.getTime() / 1000) - easternOffsetHours(monthEnd) * 3600
+      : dayStart + 24 * 60 * 60;
 
     const charges: Stripe.Charge[] = [];
     let startingAfter: string | undefined = undefined;
@@ -100,6 +108,7 @@ serve(async (req) => {
       description: string;
       receiptUrl: string | null;
       chargeId: string;
+      paymentDate: string;
     };
     const rawPayments: Payment[] = charges.map((c) => {
       const gross = (c.amount ?? 0) / 100;
@@ -113,6 +122,12 @@ serve(async (req) => {
         description: c.description || c.statement_descriptor || "Stripe payment",
         receiptUrl: c.receipt_url ?? null,
         chargeId: c.id,
+        paymentDate: new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/New_York",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(c.created * 1000)),
       };
     });
 
@@ -150,7 +165,7 @@ serve(async (req) => {
     const flagged: FlagRow[] = [];
 
     for (const p of rawPayments) {
-      if (isFiltered) continue;
+      if (isFiltered || isMonth) continue;
       try {
         // Skip if this Stripe charge was already applied
         const { data: existing } = await supabase
@@ -436,6 +451,38 @@ serve(async (req) => {
     const clients = Array.from(groups.values()).sort(
       (a, b) => b.total - a.total,
     );
+
+    if (isMonth) {
+      const dayTotals = new Map<string, { date: string; total: number; count: number }>();
+      const monthStart = new Date(`${body.month}-01T12:00:00Z`);
+      const nextMonth = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1, 12));
+      for (let cursor = new Date(monthStart); cursor < nextMonth; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+        const date = cursor.toISOString().slice(0, 10);
+        dayTotals.set(date, { date, total: 0, count: 0 });
+      }
+      let totalFees = 0;
+      let netTotal = 0;
+      for (const payment of reportPayments) {
+        const day = dayTotals.get(payment.paymentDate);
+        if (day) {
+          day.total += payment.amount;
+          day.count += 1;
+        }
+        totalFees += payment.fee;
+        netTotal += payment.net;
+      }
+      return new Response(JSON.stringify({
+        month: body.month,
+        grandTotal,
+        paymentCount: reportPayments.length,
+        totalFees,
+        netTotal,
+        days: Array.from(dayTotals.values()),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     const summary = {
       date: target,
