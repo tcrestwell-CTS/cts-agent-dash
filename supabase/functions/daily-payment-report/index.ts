@@ -149,8 +149,8 @@ serve(async (req) => {
     const applied: Array<{ charge: Payment; tripPaymentId: string; clientName: string }> = [];
     const flagged: FlagRow[] = [];
 
-    if (!isFiltered) {
     for (const p of rawPayments) {
+      if (isFiltered) continue;
       try {
         // Skip if this Stripe charge was already applied
         const { data: existing } = await supabase
