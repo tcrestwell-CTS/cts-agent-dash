@@ -321,7 +321,8 @@ export default function DailyPaymentReport() {
               <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
             ) : !report || report.clients.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
-                No Stripe payments received on {date}.
+                No Stripe payments received on {date}
+                {clientEmail ? " for the selected client" : ""}.
               </div>
             ) : (
               <div className="divide-y">
