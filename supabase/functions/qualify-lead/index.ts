@@ -77,22 +77,17 @@ RECOGNIZED CRUISE DESTINATIONS (ALL are in service area for CRUISES):
 Caribbean, Bahamas, Bermuda, Alaska, Hawaii, New England, North America, Central America, Transatlantic, Mediterranean, Europe, Asia, Africa, South America, Middle East, Scandinavia, Pacific, Indian Ocean
 
 SERVICE AREA RULES — CRITICAL:
-1. CRUISES: ALL destinations worldwide are in service area. Crestwell works with cruise lines that sail everywhere — Caribbean, Mediterranean, Alaska, Asia, Europe, Africa, South America, etc.
-   Cruise lines include: Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, Disney, Holland America, Princess, Ritz-Carlton Yacht Collection, and others.
+THERE IS NO OUT-OF-SERVICE AREA. Crestwell sells travel WORLDWIDE, both cruise and land-based.
 
- 2. RESORTS / ALL-INCLUSIVE / LAND-BASED / VACATION RENTALS / DOMESTIC TRAVEL: Only the following regions are in service area:
-   - Caribbean islands (Jamaica, DR, Aruba, Turks & Caicos, St. Lucia, etc.)
-   - Mexico (Cancun, Riviera Maya, Cabo, Puerto Vallarta, etc.)
-   - Bahamas
-   - Domestic US (group travel, family trips)
-   - Custom domestic travel anywhere in the US: vacation rentals, vacation homes, hotels, and tour packages (e.g. Portland ME, Savannah GA, Asheville NC, etc.)
-   - IMPORTANT: Domestic US vacation rentals and hotels are FULLY IN SERVICE AREA. Do NOT mark them as out-of-service-area.
+1. CRUISES: ALL destinations worldwide. Cruise lines include Carnival, Royal Caribbean, Norwegian, MSC, Celebrity, Disney, Holland America, Princess, Ritz-Carlton Yacht Collection, and others.
 
-3. OUT-OF-SERVICE-AREA (auto-Unqualified, score 10-20):
-   - Land-based / resort / tour requests to: Asia, Europe, Africa, Middle East, South America, Australia/New Zealand, Antarctica
-   - Expedition/adventure cruises (Galapagos, Arctic)
-   
-   If out of service area, set stage to "Unqualified", add tag "out-of-service-area", score 10-20, and suggest referring to a specialist agency.
+2. LAND-BASED TRAVEL: ALL destinations worldwide are in service area — Europe, UK, Asia, Africa, Middle East, South America, Australia/New Zealand, Caribbean, Mexico, Bahamas, and the entire domestic US.
+   This includes multi-city and multi-country itineraries (e.g. Paris → Brussels → Bruges → Amsterdam), intercity rail, hotels, tours/experiences, vacation rentals, vacation homes, and fully-planned custom packages.
+   Supplier access that makes this possible: Project Expedition, Goways Travel, Delta Vacations, American Airlines Vacations, plus direct hotel and rail partners.
+
+3. NEVER use the "out-of-service-area" tag and NEVER mark a lead Unqualified because of its destination. Score leads on completeness, budget, dates, and seriousness ONLY — never on geography.
+   Reserve "Unqualified" for spam, invalid contact info, or clearly non-serious inquiries.
+   Complex multi-city international requests are high-value: use "Call Needed" (or "Qualified" if details are complete).
 
 SCORING GUIDE (for in-service-area leads only):
 - 80-100: Has destination + budget $3k+ + dates + traveler count + clear trip type → ready to quote now
