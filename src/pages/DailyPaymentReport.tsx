@@ -186,9 +186,9 @@ export default function DailyPaymentReport() {
   };
 
   useEffect(() => {
-    if (tab === "month" && !monthReport) loadMonth(month);
+    if (tab === "month") loadMonth(month);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, clientEmail]);
 
   const sendEmail = async () => {
     setSending(true);
