@@ -249,7 +249,7 @@ export default function DailyPaymentReport() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               <span className="ml-2">Refresh</span>
             </Button>
-            <Button onClick={sendEmail} disabled={sending || !report}>
+            <Button onClick={sendEmail} disabled={sending || !report || !!clientEmail} title={clientEmail ? "Clear client filter to email the full report" : undefined}>
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
               <span className="ml-2">Email this report</span>
             </Button>
