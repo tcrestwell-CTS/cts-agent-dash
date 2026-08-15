@@ -4,16 +4,28 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 const PE_KEY = Deno.env.get("PROJECT_EXPEDITION_API_KEY") ?? "";
 const PE_BASE = (Deno.env.get("PROJECT_EXPEDITION_BASE_URL") ?? "https://api.projectexpedition.com/v1").replace(/\/$/, "");
 
+// Optional fixed-IP egress: when PE_PROXY_URL is set (our Cloudflare Worker),
+// all Project Expedition traffic is routed through it so the supplier can
+// whitelist a stable IP range instead of dynamic edge IPs.
+const PE_PROXY_URL = (Deno.env.get("PE_PROXY_URL") ?? Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
+const PE_PROXY_TOKEN = Deno.env.get("PE_PROXY_TOKEN") ?? Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
+const USE_PE_PROXY = (Deno.env.get("PE_USE_PROXY") ?? "").toLowerCase() === "true" && PE_PROXY_URL.length > 0;
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 async function pe(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${PE_BASE}${path}`, {
+  const target = `${PE_BASE}${path}`;
+  const url = USE_PE_PROXY ? `${PE_PROXY_URL}/passthrough` : target;
+  const res = await fetch(url, {
     ...init,
     headers: {
       "X-API-Key": PE_KEY,
       "Accept": "application/json",
       "Content-Type": "application/json",
+      ...(USE_PE_PROXY
+        ? { "X-MTLS-Proxy-Token": PE_PROXY_TOKEN, "X-Proxy-Target-Url": target }
+        : {}),
       ...(init.headers ?? {}),
     },
   });
