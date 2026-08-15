@@ -50,7 +50,7 @@ export const FEATURE_REGISTRY: FeatureMeta[] = [
   { key: "business_contacts",  label: "Business Contacts",   group: "Sales",      defaultAllowed: true  },
   { key: "suppliers",          label: "Suppliers",           group: "Bookings",   defaultAllowed: true  },
   { key: "commissions",        label: "Commissions",         group: "Bookings",   defaultAllowed: true  },
-  { key: "email_branding",     label: "Email & Branding",    group: "Marketing",  defaultAllowed: false },
+  { key: "email_branding",     label: "Email & Branding",    group: "Marketing",  defaultAllowed: true  },
   { key: "publish_manager",    label: "Publish Manager",     group: "Marketing",  defaultAllowed: false },
   { key: "featured_trips",     label: "Featured Trips",      group: "Marketing",  defaultAllowed: false },
   { key: "flight_search",      label: "Flight Search",       group: "Tools",      defaultAllowed: true  },

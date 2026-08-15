@@ -1,0 +1,1 @@
+UPDATE public.user_feature_permissions SET allowed = true WHERE feature_key = 'email_branding' AND allowed = false;
