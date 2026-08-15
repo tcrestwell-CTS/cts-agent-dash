@@ -20,6 +20,20 @@ async function pe(path: string, init: RequestInit = {}) {
   const text = await res.text();
   let data: unknown;
   try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+  const msg = JSON.stringify(data ?? "");
+  if (!res.ok && /not whitelisted|whitelist/i.test(msg)) {
+    return {
+      ok: false,
+      status: 403,
+      data: {
+        error:
+          "Project Expedition rejected the request: this server's IP is not whitelisted on your API key. " +
+          "Ask Project Expedition to disable IP whitelisting for this key (server IPs are dynamic), or to whitelist the egress range we route through.",
+        supplier: data,
+      },
+      whitelisted: false,
+    };
+  }
   return { ok: res.ok, status: res.status, data };
 }
 
@@ -49,7 +63,7 @@ Deno.serve(async (req) => {
         if (body.date) params.set("date", String(body.date));
         params.set("limit", String(Math.min(Number(body.limit) || 20, 50)));
         const r = await pe(`/products?${params.toString()}`);
-        if (!r.ok) return json({ error: "Project Expedition search failed", status: r.status, details: r.data }, 502);
+        if (!r.ok) return json({ error: (r.data as any)?.error ?? "Project Expedition search failed", status: r.status, details: r.data }, r.status === 403 ? 403 : 502);
         const d = r.data as Record<string, unknown>;
         const products = (d?.data ?? d?.products ?? d?.results ?? d) as unknown;
         return json({ products: Array.isArray(products) ? products : [], total: (d as any)?.total ?? null });
@@ -58,7 +72,7 @@ Deno.serve(async (req) => {
       case "product": {
         if (!body.productId) return json({ error: "productId is required" }, 400);
         const r = await pe(`/products/${encodeURIComponent(String(body.productId))}`);
-        if (!r.ok) return json({ error: "Product lookup failed", status: r.status, details: r.data }, 502);
+        if (!r.ok) return json({ error: (r.data as any)?.error ?? "Product lookup failed", status: r.status, details: r.data }, r.status === 403 ? 403 : 502);
         return json({ product: (r.data as any)?.data ?? r.data });
       }
 
@@ -68,7 +82,7 @@ Deno.serve(async (req) => {
         if (body.date) params.set("date", String(body.date));
         if (body.travelers) params.set("travelers", String(body.travelers));
         const r = await pe(`/products/${encodeURIComponent(String(body.productId))}/availability?${params}`);
-        if (!r.ok) return json({ error: "Availability lookup failed", status: r.status, details: r.data }, 502);
+        if (!r.ok) return json({ error: (r.data as any)?.error ?? "Availability lookup failed", status: r.status, details: r.data }, r.status === 403 ? 403 : 502);
         return json({ availability: (r.data as any)?.data ?? r.data });
       }
 
@@ -123,7 +137,7 @@ Deno.serve(async (req) => {
       case "supplier-booking": {
         if (!body.reference) return json({ error: "reference is required" }, 400);
         const r = await pe(`/bookings/${encodeURIComponent(String(body.reference))}`);
-        if (!r.ok) return json({ error: "Booking lookup failed", status: r.status, details: r.data }, 502);
+        if (!r.ok) return json({ error: (r.data as any)?.error ?? "Booking lookup failed", status: r.status, details: r.data }, r.status === 403 ? 403 : 502);
         return json({ booking: (r.data as any)?.data ?? r.data });
       }
 
