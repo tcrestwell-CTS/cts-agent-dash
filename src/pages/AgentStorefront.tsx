@@ -118,7 +118,7 @@ const AgentStorefront = () => {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("quote_requests").insert(
+    const { data: inserted, error } = await supabase.from("quote_requests").insert(
       {
         first_name: form.first_name,
         last_name: form.last_name,
@@ -135,13 +135,17 @@ const AgentStorefront = () => {
         assigned_agent_id: agent.user_id,
         assigned_at: new Date().toISOString(),
       } as any,
-      { count: "none" } as any,
-    );
+    ).select("id").maybeSingle();
     setSubmitting(false);
     if (error) {
       console.error("Trip request failed:", error);
       toast.error("We couldn't send your request. Please try again.");
       return;
+    }
+    if (inserted?.id) {
+      supabase.functions
+        .invoke("notify-lead-assigned", { body: { lead_id: inserted.id } })
+        .catch((err) => console.error("Lead notification failed:", err));
     }
     setSubmitted(true);
   };
