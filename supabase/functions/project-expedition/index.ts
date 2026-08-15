@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         params.set("limit", String(Math.min(Number(body.limit) || 20, 50)));
         const r = await pe(`/products?${params.toString()}`);
         if (!r.ok) {
-          const blockedByWhitelist = r.status === 403 && (r.data as any)?.whitelisted === false;
+          const blockedByWhitelist = r.status === 403 && r.whitelisted === false;
           return json({
             error: (r.data as any)?.error ?? "Project Expedition search failed",
             code: blockedByWhitelist ? "PE_IP_NOT_WHITELISTED" : "PE_SEARCH_FAILED",
