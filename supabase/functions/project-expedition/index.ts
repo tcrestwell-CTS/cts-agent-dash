@@ -75,7 +75,15 @@ Deno.serve(async (req) => {
         if (body.date) params.set("date", String(body.date));
         params.set("limit", String(Math.min(Number(body.limit) || 20, 50)));
         const r = await pe(`/products?${params.toString()}`);
-        if (!r.ok) return json({ error: (r.data as any)?.error ?? "Project Expedition search failed", status: r.status, details: r.data }, r.status === 403 ? 403 : 502);
+        if (!r.ok) {
+          const blockedByWhitelist = r.status === 403 && (r.data as any)?.whitelisted === false;
+          return json({
+            error: (r.data as any)?.error ?? "Project Expedition search failed",
+            code: blockedByWhitelist ? "PE_IP_NOT_WHITELISTED" : "PE_SEARCH_FAILED",
+            status: r.status,
+            details: r.data,
+          }, blockedByWhitelist ? 200 : 502);
+        }
         const d = r.data as Record<string, unknown>;
         const products = (d?.data ?? d?.products ?? d?.results ?? d) as unknown;
         return json({ products: Array.isArray(products) ? products : [], total: (d as any)?.total ?? null });
