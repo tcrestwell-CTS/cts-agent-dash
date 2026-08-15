@@ -143,6 +143,10 @@ const AgentStorefront = () => {
       toast.error("We couldn't send your request. Please try again.");
       return;
     }
+    // Notify the advisor (and the agency owner) about the new storefront lead.
+    supabase.functions
+      .invoke("notify-lead-assigned", { body: { email: form.email } })
+      .catch((err) => console.error("Lead notification failed:", err));
     setSubmitted(true);
   };
 

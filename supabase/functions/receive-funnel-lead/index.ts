@@ -135,5 +135,19 @@ Deno.serve(async (req) => {
     console.error("Tiara dispatch error", e);
   }
 
+  // 4. Notify the agency owner. Funnel/website leads stay unassigned on purpose.
+  try {
+    fetch(`${SUPABASE_URL}/functions/v1/notify-lead-assigned`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ lead_id: inserted.id }),
+    }).catch((e) => console.error("Owner notification failed", e));
+  } catch (e) {
+    console.error("Owner notification dispatch error", e);
+  }
+
   return json({ id: inserted.id, duplicate: false }, 200, cors);
 });

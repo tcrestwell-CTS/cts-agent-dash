@@ -6,6 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { resolveAgentBranding } from '../_shared/agent-branding.ts';
 
 const SUPA_URL      = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPA_SVC      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -26,7 +27,7 @@ const STEPS = [
 const STOP_STATUSES = ['booked', 'declined', 'do_not_contact'];
 
 // ── Claude email generator ──────────────────────────────────────────────────
-async function claudeEmail(step: number, lead: any): Promise<{ subject: string; html: string }> {
+async function claudeEmail(step: number, lead: any, brand: any): Promise<{ subject: string; html: string }> {
   const stepContext = [
     `This is the FIRST email they will receive from you — they just submitted a quote request minutes ago.
 Your goal: warm welcome, acknowledge their specific trip, create confidence, give a clear next step.
@@ -49,14 +50,14 @@ Your goal: close gracefully. Thank them for their time. Leave the door open for 
 Mention Crestwell's specialties briefly. Under 80 words. Warm and human.`,
   ][step] ?? '';
 
-  const prompt = `You are Tim Crestwell, owner of Crestwell Travel Services — a Southeast US travel agency specializing in cruises, all-inclusive resorts, and group travel for families and friends in Georgia, Tennessee, and Alabama.
+  const prompt = `You are ${brand.advisorName}, travel advisor at ${brand.agencyName} — specializing in cruises, all-inclusive resorts, land trips worldwide, and group travel.
 
 Write a follow-up email to a qualified travel lead. Return ONLY valid JSON: {"subject": "...", "body": "..."}
 
 Rules:
 - body uses only HTML <p> tags
 - subject is specific to their trip (not generic)
-- Sign off as Tim Crestwell, 888.508.6893
+- Sign off as ${brand.advisorName}, ${brand.agencyName}, ${brand.phone}
 - Do NOT mention "AI", "automated", or "drip"
 - Do NOT use placeholders — use actual lead data
 
@@ -92,34 +93,38 @@ Wants financing: ${lead.wants_financing ? 'yes' : 'no'}`;
     const parsed = JSON.parse(raw);
     return {
       subject: parsed.subject ?? `Following up — ${lead.destination || 'your trip'}`,
-      html: wrapEmail(parsed.body ?? `<p>Hi ${lead.first_name}, just following up. Reply anytime — Tim</p>`),
+      html: wrapEmail(parsed.body ?? `<p>Hi ${lead.first_name}, just following up. Reply anytime — ${brand.advisorName}</p>`, brand),
     };
   } catch (e) {
     console.error('Claude email error:', e);
     return {
       subject: `Following up — ${lead.destination || 'your trip'}`,
-      html: wrapEmail(`<p>Hi ${lead.first_name}, just checking in on your ${lead.destination || 'travel'} inquiry. Reply whenever you're ready.</p><p>Tim Crestwell<br/>Crestwell Travel Services<br/>888.508.6893</p>`),
+      html: wrapEmail(`<p>Hi ${lead.first_name}, just checking in on your ${lead.destination || 'travel'} inquiry. Reply whenever you're ready.</p><p>${brand.advisorName}<br/>${brand.agencyName}<br/>${brand.phone}</p>`, brand),
     };
   }
 }
 
-function wrapEmail(body: string): string {
+function wrapEmail(body: string, brand?: { agencyName: string; logoUrl: string | null; phone: string; website: string | null }): string {
+  const agencyName = brand?.agencyName ?? 'Crestwell Travel Services';
+  const logo = brand?.logoUrl ?? 'https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/email-assets/cts-logo.png';
+  const phone = brand?.phone ?? '888.508.6893';
+  const site = brand?.website ?? 'https://crestwellgetaways.com';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#f7f7f7;font-family:Georgia,serif;">
   <div style="max-width:600px;margin:0 auto;background:#fff;padding:32px 28px;">
-    <img src="https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/email-assets/cts-logo.png" alt="Crestwell Travel Services" style="height:40px;margin-bottom:24px;">
+    <img src="${logo}" alt="${agencyName}" style="height:40px;margin-bottom:24px;">
     ${body}
   </div>
   <div style="max-width:600px;margin:0 auto;padding:16px 28px;text-align:center;">
     <p style="font-size:11px;color:#999;margin:0;">
-      You received this because you submitted a travel inquiry at crestwellgetaways.com.<br/>
+      You received this because you submitted a travel inquiry with ${agencyName}.<br/>
       To stop receiving follow-ups, reply with "stop".
     </p>
     <p style="font-size:11px;color:#999;margin:8px 0 0;">
-      Crestwell Travel Services · 888.508.6893 ·
-      <a href="https://crestwellgetaways.com" style="color:#999;">crestwellgetaways.com</a>
+      ${agencyName} · ${phone} ·
+      <a href="${site}" style="color:#999;">${site.replace(/^https?:\/\//, '')}</a>
     </p>
   </div>
 </body>
@@ -164,15 +169,16 @@ async function sendFollowup(db: any, followup: any, lead: any): Promise<boolean>
     return false;
   }
 
-  const { subject, html } = await claudeEmail(followup.step, lead);
+  const brand = await resolveAgentBranding(db, lead.assigned_agent_id);
+  const { subject, html } = await claudeEmail(followup.step, lead, brand);
 
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from:     'Tim at Crestwell <tim@crestwellgetaways.com>',
+      from:     lead.assigned_agent_id ? brand.from : 'Tim at Crestwell <tim@crestwellgetaways.com>',
       to:       lead.email,
-      reply_to: 'info@crestwellgetaways.com',
+      reply_to: brand.replyTo,
       subject,
       html,
     }),

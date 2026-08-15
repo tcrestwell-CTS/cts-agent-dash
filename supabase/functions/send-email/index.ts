@@ -23,6 +23,10 @@ interface EmailRequest {
   attachments?: Attachment[];
   metadata?: Record<string, unknown>;
   idempotencyKey?: string;
+  /** Send with this advisor's branding instead of the caller's (e.g. assigned agent on a lead). */
+  brandingUserId?: string;
+  /** Override the Reply-To address. */
+  replyTo?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -75,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
     const userId = claimsData.claims.sub;
 
     // Get branding settings
-    const { data: branding, error: brandingError } = await supabase
+    let { data: branding, error: brandingError } = await supabase
       .from("branding_settings")
       .select("*")
       .eq("user_id", userId)
@@ -87,13 +91,35 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fall back to the agent's own profile so emails carry the agent's brand,
     // never the parent agency's name.
-    const { data: senderProfile } = await supabase
+    let { data: senderProfile } = await supabase
       .from("profiles")
       .select("agency_name, full_name, phone")
       .eq("user_id", userId)
       .maybeSingle();
 
-    const { to, subject, template, data: templateData, customHtml, clientId, attachments, metadata, idempotencyKey }: EmailRequest = await req.json();
+    const { to, subject, template, data: templateData, customHtml, clientId, attachments, metadata, idempotencyKey, brandingUserId, replyTo }: EmailRequest = await req.json();
+
+    // When a lead/trip is owned by another advisor, send with THEIR branding.
+    if (brandingUserId && brandingUserId !== userId) {
+      const [{ data: ovBranding }, { data: ovProfile }] = await Promise.all([
+        supabaseAdmin.from("branding_settings").select("*").eq("user_id", brandingUserId).maybeSingle(),
+        supabaseAdmin
+          .from("profiles")
+          .select("agency_name, full_name, phone, storefront_email, storefront_logo_url")
+          .eq("user_id", brandingUserId)
+          .maybeSingle(),
+      ]);
+      if (ovBranding || ovProfile) {
+        branding = (ovBranding as typeof branding) ?? null;
+        senderProfile = (ovProfile as typeof senderProfile) ?? null;
+        if (!branding?.logo_url && ovProfile?.storefront_logo_url) {
+          branding = { ...(branding ?? {}), logo_url: ovProfile.storefront_logo_url } as typeof branding;
+        }
+        if (!branding?.email_address && ovProfile?.storefront_email) {
+          branding = { ...(branding ?? {}), email_address: ovProfile.storefront_email } as typeof branding;
+        }
+      }
+    }
 
     const logKey = idempotencyKey || crypto.randomUUID();
 
@@ -675,6 +701,13 @@ const handler = async (req: Request): Promise<Response> => {
         content: (att.content || "").replace(/^data:[^;]+;base64,/, ""),
       }));
       console.log(`Adding ${attachments.length} attachment(s) to email`);
+    }
+
+    // Client replies should land in the advisor's inbox, not the shared alias.
+    const effectiveReplyTo = replyTo || branding?.email_address || undefined;
+    if (effectiveReplyTo) {
+      (emailOptions as Record<string, unknown>).reply_to = effectiveReplyTo;
+      (emailOptions as Record<string, unknown>).replyTo = effectiveReplyTo;
     }
 
     // Send via Resend with retries (up to 3 attempts) and log every attempt.
