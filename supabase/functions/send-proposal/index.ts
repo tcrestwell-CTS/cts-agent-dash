@@ -10,6 +10,7 @@
 //       OR a logged-in Supabase user JWT for the portal button.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { resolveAgentBranding } from '../_shared/agent-branding.ts';
 
 const SITE_URL       = Deno.env.get('PUBLIC_SITE_URL') ?? Deno.env.get('PORTAL_BASE_URL') ?? 'https://crestwellgetaways.com';
 const AGENT_SECRET   = Deno.env.get('AGENT_SECRET') ?? Deno.env.get('CW_AGENT_SECRET') ?? '';
@@ -250,13 +251,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .from('quote_requests')
     .select(`
       id, first_name, email, destination, proposal_draft, proposal_status, proposal_token,
-      cover_image_url, depart_date, trip_summary,
-      profiles (
-        full_name, job_title, phone, avatar_url,
-        agency_branding (
-          agency_name, logo_url, primary_color, accent_color
-        )
-      )
+      cover_image_url, depart_date, trip_summary, assigned_agent_id
     `)
     .eq('id', leadId)
     .single();
@@ -282,8 +277,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const expiresAt = new Date(sentAt.getTime() + EXPIRY_DAYS * 86_400_000);
 
   // ---- Resolve advisor & branding (graceful fallbacks) ----
-  const profile  = (lead as any).profiles ?? {};
-  const branding = profile.agency_branding ?? {};
+  const brand = await resolveAgentBranding(admin, (lead as any).assigned_agent_id);
 
   const emailOpts: EmailOptions = {
     firstName:       esc(lead.first_name ?? 'there'),
@@ -293,14 +287,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     tripSummary:     (lead as any).trip_summary ?? null,
     link,
     expires:         expiresAt,
-    advisorName:     esc(profile.full_name ?? 'Tim Crestwell'),
-    advisorTitle:    esc(profile.job_title ?? 'Travel Advisor'),
-    advisorPhone:    esc(profile.phone ?? '888.508.6893'),
-    agencyName:      esc(branding.agency_name ?? 'Crestwell Travel Services'),
-    primaryColor:    branding.primary_color ?? '#0b2545',
-    accentColor:     branding.accent_color ?? '#c9a84c',
-    logoUrl:         branding.logo_url ?? null,
-    advisorAvatarUrl: profile.avatar_url ?? null,
+    advisorName:     esc(brand.advisorName),
+    advisorTitle:    esc(brand.advisorTitle),
+    advisorPhone:    esc(brand.phone),
+    agencyName:      esc(brand.agencyName),
+    primaryColor:    brand.primaryColor,
+    accentColor:     brand.accentColor,
+    logoUrl:         brand.logoUrl,
+    advisorAvatarUrl: brand.avatarUrl,
   };
 
   // ---- Send email FIRST (so a failure never marks the row sent) ----
@@ -308,9 +302,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: FROM,
+      from: (lead as any).assigned_agent_id ? brand.from : FROM,
       to:   [lead.email],
-      subject: `Your ${esc(lead.destination ?? 'travel')} proposal from ${esc(branding.agency_name ?? 'Crestwell Travel')}`,
+      reply_to: brand.replyTo,
+      subject: `Your ${esc(lead.destination ?? 'travel')} proposal from ${esc(brand.agencyName)}`,
       html: emailHtml(emailOpts),
     }),
   });
