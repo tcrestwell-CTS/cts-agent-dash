@@ -27,6 +27,7 @@ export interface Env {
   PROXY_AUTH_TOKEN: string;       // Shared secret for Edge Function auth
   HOTELBEDS_LIVE_ORIGIN: string;  // https://api-mtls.hotelbeds.com
   HOTELBEDS_TEST_ORIGIN: string;  // https://api-mtls.test.hotelbeds.com
+  PROJECT_EXPEDITION_ORIGIN?: string;
 }
 
 const HOP_BY_HOP = new Set([
@@ -61,6 +62,33 @@ export default {
 
     try {
       const incoming = new URL(request.url);
+      const isProjectExpedition = incoming.pathname === "/project-expedition" ||
+        incoming.pathname.startsWith("/project-expedition/");
+      if (isProjectExpedition) {
+        const origin = env.PROJECT_EXPEDITION_ORIGIN || "https://api.projectexpedition.com/v1";
+        const upstreamPath = incoming.pathname.replace(/^\/project-expedition/, "") || "/";
+        const targetUrl = `${origin.replace(/\/$/, "")}${upstreamPath}${incoming.search}`;
+        const headers = new Headers();
+        for (const [k, v] of request.headers) {
+          if (!HOP_BY_HOP.has(k.toLowerCase())) headers.set(k, v);
+        }
+        const upstream = await fetch(targetUrl, {
+          method: request.method,
+          headers,
+          body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.text(),
+        });
+        const text = await upstream.text();
+        return new Response(text, {
+          status: upstream.status,
+          headers: {
+            "Content-Type": upstream.headers.get("content-type") || "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "x-proxied-by": "cts-hotel-mtls-proxy",
+            "x-proxy-target-service": "project-expedition",
+          },
+        });
+      }
+
       const targetEnv = (request.headers.get("x-mtls-target-env") || "live").toLowerCase();
       const origin =
         targetEnv === "test"

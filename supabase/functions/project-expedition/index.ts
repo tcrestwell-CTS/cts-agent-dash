@@ -4,9 +4,9 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 const PE_KEY = Deno.env.get("PROJECT_EXPEDITION_API_KEY") ?? "";
 const PE_BASE = (Deno.env.get("PROJECT_EXPEDITION_BASE_URL") ?? "https://api.projectexpedition.com/v1").replace(/\/$/, "");
 
-// Optional fixed-IP egress: when PE_PROXY_URL is set (our Cloudflare Worker),
-// all Project Expedition traffic is routed through it so the supplier can
-// whitelist a stable IP range instead of dynamic edge IPs.
+// Optional supplier proxy. The proxy must explicitly support the
+// `/project-expedition` contract; the Hotelbeds-only paths are not a generic
+// forward proxy and must never receive a caller-controlled target URL.
 const PE_PROXY_URL = (Deno.env.get("PE_PROXY_URL") ?? Deno.env.get("HOTELBEDS_MTLS_PROXY_URL") ?? "").replace(/\/+$/, "");
 const PE_PROXY_TOKEN = Deno.env.get("PE_PROXY_TOKEN") ?? Deno.env.get("HOTELBEDS_MTLS_PROXY_TOKEN") ?? "";
 const USE_PE_PROXY = (Deno.env.get("PE_USE_PROXY") ?? "").toLowerCase() === "true" && PE_PROXY_URL.length > 0;
@@ -16,7 +16,7 @@ const json = (body: unknown, status = 200) =>
 
 async function pe(path: string, init: RequestInit = {}) {
   const target = `${PE_BASE}${path}`;
-  const url = USE_PE_PROXY ? `${PE_PROXY_URL}/passthrough` : target;
+  const url = USE_PE_PROXY ? `${PE_PROXY_URL}/project-expedition${path}` : target;
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -24,7 +24,7 @@ async function pe(path: string, init: RequestInit = {}) {
       "Accept": "application/json",
       "Content-Type": "application/json",
       ...(USE_PE_PROXY
-        ? { "X-MTLS-Proxy-Token": PE_PROXY_TOKEN, "X-Proxy-Target-Url": target }
+        ? { "X-MTLS-Proxy-Token": PE_PROXY_TOKEN }
         : {}),
       ...(init.headers ?? {}),
     },
@@ -40,7 +40,7 @@ async function pe(path: string, init: RequestInit = {}) {
       data: {
         error:
           "Project Expedition rejected the request: this server's IP is not whitelisted on your API key. " +
-          "Ask Project Expedition to disable IP whitelisting for this key (server IPs are dynamic), or to whitelist the egress range we route through.",
+          "Ask Project Expedition to disable IP whitelisting for this key or whitelist the proxy egress addresses assigned for this integration.",
         supplier: data,
       },
       whitelisted: false,

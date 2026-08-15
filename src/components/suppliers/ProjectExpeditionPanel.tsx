@@ -50,7 +50,14 @@ const pimg = (p: PeProduct) => p.image ?? p.image_url;
 
 async function callPe(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("project-expedition", { body });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const response = (error as { context?: Response }).context;
+    if (response) {
+      const payload = await response.clone().json().catch(() => null) as { error?: string } | null;
+      throw new Error(payload?.error ?? error.message);
+    }
+    throw new Error(error.message);
+  }
   if ((data as any)?.error) throw new Error((data as any).error);
   return data as any;
 }
