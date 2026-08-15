@@ -703,6 +703,13 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`Adding ${attachments.length} attachment(s) to email`);
     }
 
+    // Client replies should land in the advisor's inbox, not the shared alias.
+    const effectiveReplyTo = replyTo || branding?.email_address || undefined;
+    if (effectiveReplyTo) {
+      (emailOptions as Record<string, unknown>).reply_to = effectiveReplyTo;
+      (emailOptions as Record<string, unknown>).replyTo = effectiveReplyTo;
+    }
+
     // Send via Resend with retries (up to 3 attempts) and log every attempt.
     const MAX_ATTEMPTS = 3;
     const backoffMs = [0, 1000, 3000];
