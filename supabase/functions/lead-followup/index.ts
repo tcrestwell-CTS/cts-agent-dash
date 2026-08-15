@@ -6,6 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { resolveAgentBranding } from '../_shared/agent-branding.ts';
 
 const SUPA_URL      = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPA_SVC      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -103,23 +104,27 @@ Wants financing: ${lead.wants_financing ? 'yes' : 'no'}`;
   }
 }
 
-function wrapEmail(body: string): string {
+function wrapEmail(body: string, brand?: { agencyName: string; logoUrl: string | null; phone: string; website: string | null }): string {
+  const agencyName = brand?.agencyName ?? 'Crestwell Travel Services';
+  const logo = brand?.logoUrl ?? 'https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/email-assets/cts-logo.png';
+  const phone = brand?.phone ?? '888.508.6893';
+  const site = brand?.website ?? 'https://crestwellgetaways.com';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#f7f7f7;font-family:Georgia,serif;">
   <div style="max-width:600px;margin:0 auto;background:#fff;padding:32px 28px;">
-    <img src="https://zbtnulzvwreqzbmxulpv.supabase.co/storage/v1/object/public/email-assets/cts-logo.png" alt="Crestwell Travel Services" style="height:40px;margin-bottom:24px;">
+    <img src="${logo}" alt="${agencyName}" style="height:40px;margin-bottom:24px;">
     ${body}
   </div>
   <div style="max-width:600px;margin:0 auto;padding:16px 28px;text-align:center;">
     <p style="font-size:11px;color:#999;margin:0;">
-      You received this because you submitted a travel inquiry at crestwellgetaways.com.<br/>
+      You received this because you submitted a travel inquiry with ${agencyName}.<br/>
       To stop receiving follow-ups, reply with "stop".
     </p>
     <p style="font-size:11px;color:#999;margin:8px 0 0;">
-      Crestwell Travel Services · 888.508.6893 ·
-      <a href="https://crestwellgetaways.com" style="color:#999;">crestwellgetaways.com</a>
+      ${agencyName} · ${phone} ·
+      <a href="${site}" style="color:#999;">${site.replace(/^https?:\/\//, '')}</a>
     </p>
   </div>
 </body>
