@@ -17,6 +17,7 @@ certificate_id = "<CERT_ID_AFTER_UPLOAD>"
 # api[.test].hotelbeds.com hosts reject them (403 / 401 "non-mTLS endpoint").
 HOTELBEDS_LIVE_ORIGIN = "https://api-mtls.hotelbeds.com"
 HOTELBEDS_TEST_ORIGIN = "https://api-mtls.test.hotelbeds.com"
+PROJECT_EXPEDITION_ORIGIN = "https://api.projectexpedition.com/v1"
 
 # Set this secret via: wrangler secret put PROXY_AUTH_TOKEN
 # Your Edge Function will send this token to authenticate with the worker

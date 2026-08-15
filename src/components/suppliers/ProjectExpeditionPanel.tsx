@@ -50,7 +50,14 @@ const pimg = (p: PeProduct) => p.image ?? p.image_url;
 
 async function callPe(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("project-expedition", { body });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const response = (error as { context?: Response }).context;
+    if (response) {
+      const payload = await response.clone().json().catch(() => null) as { error?: string } | null;
+      throw new Error(payload?.error ?? error.message);
+    }
+    throw new Error(error.message);
+  }
   if ((data as any)?.error) throw new Error((data as any).error);
   return data as any;
 }
@@ -81,14 +88,18 @@ function SearchTab() {
   const [products, setProducts] = useState<PeProduct[]>([]);
   const [selected, setSelected] = useState<PeProduct | null>(null);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   const run = async () => {
     setLoading(true);
+    setSearchError("");
     try {
       const data = await callPe({ action: "search", query, date: date || undefined, limit: 24 });
       setProducts(data.products ?? []);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Search failed");
+      const message = e instanceof Error ? e.message : "Search failed";
+      setSearchError(message);
+      toast.error(message);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -116,7 +127,9 @@ function SearchTab() {
       </div>
 
       {searched && !loading && products.length === 0 && (
-        <p className="text-[13px] text-muted-foreground">No activities returned for that search.</p>
+        <p className={`text-[13px] ${searchError ? "text-destructive" : "text-muted-foreground"}`}>
+          {searchError || "No activities returned for that search."}
+        </p>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
