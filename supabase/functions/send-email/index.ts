@@ -23,6 +23,10 @@ interface EmailRequest {
   attachments?: Attachment[];
   metadata?: Record<string, unknown>;
   idempotencyKey?: string;
+  /** Send with this advisor's branding instead of the caller's (e.g. assigned agent on a lead). */
+  brandingUserId?: string;
+  /** Override the Reply-To address. */
+  replyTo?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
