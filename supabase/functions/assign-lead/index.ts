@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
   }
   if (!lead) return json({ error: "Lead not found" }, 404);
 
-  if (!agentId) return json({ ok: true, assigned: false, notified: false });
+  if (!agentId) return json({ ok: true, assigned: false, notified: false, adminNotified: false });
 
   const leadName = [lead.first_name, lead.last_name].filter(Boolean).join(" ") || "New lead";
 
@@ -87,9 +87,22 @@ Deno.serve(async (req) => {
   });
 
   let notified = false;
+  let adminNotified = false;
   if (notify) {
     const { data: agentUser } = await admin.auth.admin.getUserById(agentId);
     const agentEmail = agentUser?.user?.email;
+    const leadEmailData = {
+      agentName: agentProfile?.full_name || "there",
+      leadName,
+      leadEmail: lead.email || "—",
+      leadPhone: lead.phone || "—",
+      destination: lead.destination || "—",
+      tripType: lead.trip_type || "—",
+      departureDate: lead.departure_date || "—",
+      budget: lead.budget ? String(lead.budget) : "—",
+      leadScore: lead.ai_score != null ? String(lead.ai_score) : "—",
+      leadUrl: `https://app.crestwelltravels.com/leads?lead=${lead.id}`,
+    };
     if (agentEmail) {
       const { error: mailErr } = await admin.functions.invoke("send-email", {
         headers: { Authorization: authHeader },
@@ -97,24 +110,39 @@ Deno.serve(async (req) => {
           to: agentEmail,
           subject: `New lead assigned: ${leadName}`,
           template: "lead_assigned",
-          data: {
-            agentName: agentProfile?.full_name || "there",
-            leadName,
-            leadEmail: lead.email || "—",
-            leadPhone: lead.phone || "—",
-            destination: lead.destination || "—",
-            tripType: lead.trip_type || "—",
-            departureDate: lead.departure_date || "—",
-            budget: lead.budget ? String(lead.budget) : "—",
-            leadScore: lead.ai_score != null ? String(lead.ai_score) : "—",
-            leadUrl: `https://app.crestwelltravels.com/leads?lead=${lead.id}`,
-          },
+          data: leadEmailData,
+          idempotencyKey: `lead-assigned-agent:${lead.id}:${agentId}`,
         },
       });
       if (mailErr) console.error("assign-lead email error", mailErr);
       else notified = true;
     }
+
+    // Owner/admin copy so the agency always sees assignments.
+    const { data: adminBranding } = await admin
+      .from("branding_settings")
+      .select("email_address")
+      .not("email_address", "is", null)
+      .limit(1)
+      .maybeSingle();
+    const adminEmail =
+      Deno.env.get("AGENCY_ADMIN_EMAIL") || adminBranding?.email_address || null;
+
+    if (adminEmail && adminEmail.toLowerCase() !== (agentEmail || "").toLowerCase()) {
+      const { error: adminMailErr } = await admin.functions.invoke("send-email", {
+        headers: { Authorization: authHeader },
+        body: {
+          to: adminEmail,
+          subject: `Lead assigned to ${agentProfile?.full_name || "advisor"}: ${leadName}`,
+          template: "lead_assigned",
+          data: { ...leadEmailData, agentName: agentProfile?.full_name || "Advisor" },
+          idempotencyKey: `lead-assigned-admin:${lead.id}:${agentId}`,
+        },
+      });
+      if (adminMailErr) console.error("assign-lead admin email error", adminMailErr);
+      else adminNotified = true;
+    }
   }
 
-  return json({ ok: true, assigned: true, notified });
+  return json({ ok: true, assigned: true, notified, adminNotified });
 });
