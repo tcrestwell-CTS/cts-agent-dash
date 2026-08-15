@@ -34,26 +34,29 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  let body: { lead_id?: string };
+  let body: { lead_id?: string; email?: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid JSON" }, 400);
   }
-  if (!body.lead_id) return json({ error: "lead_id is required" }, 400);
+  if (!body.lead_id && !body.email) return json({ error: "lead_id or email is required" }, 400);
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  const { data: lead } = await admin
-    .from("quote_requests")
-    .select(
-      "id, first_name, last_name, email, phone, destination, trip_type, departure_date, budget, lead_source, assigned_agent_id",
-    )
-    .eq("id", body.lead_id)
-    .maybeSingle();
+  const columns =
+    "id, first_name, last_name, email, phone, destination, trip_type, departure_date, budget, lead_source, assigned_agent_id";
+  const query = admin.from("quote_requests").select(columns);
+  const { data: lead } = body.lead_id
+    ? await query.eq("id", body.lead_id).maybeSingle()
+    : await query
+        .ilike("email", body.email!)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
   if (!lead) return json({ error: "Lead not found" }, 404);
 
