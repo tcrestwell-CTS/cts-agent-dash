@@ -50,6 +50,7 @@ const Settings = () => {
     storefront_slug: "",
     storefront_headline: "Your Personal Cruise & Vacation Expert",
     storefront_logo_url: "",
+    storefront_email: "",
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -108,6 +109,7 @@ const Settings = () => {
         storefront_slug: profile.storefront_slug,
         storefront_headline: profile.storefront_headline,
         storefront_logo_url: profile.storefront_logo_url || "",
+        storefront_email: profile.storefront_email || "",
       });
     }
   }, [profile]);
@@ -255,7 +257,21 @@ const Settings = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="contactEmail">Contact Email</Label>
+                    <Input
+                      id="contactEmail"
+                      type="email"
+                      value={formData.storefront_email}
+                      onChange={(e) => handleInputChange("storefront_email", e.target.value)}
+                      placeholder="you@youragency.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown to clients on your profile card, storefront, and emails.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Sign-in Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -264,7 +280,7 @@ const Settings = () => {
                       className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Email is managed through your authentication provider
+                      Used only to log in — managed through your authentication provider.
                     </p>
                   </div>
 
