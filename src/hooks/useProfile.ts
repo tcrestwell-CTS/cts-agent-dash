@@ -41,6 +41,7 @@ const defaultProfile: ProfileData = {
   storefront_slug: "",
   storefront_headline: "Your Personal Cruise & Vacation Expert",
   storefront_logo_url: "",
+  storefront_email: "",
 };
 
 
@@ -93,6 +94,7 @@ export function useProfile() {
           storefront_slug: (data as any).storefront_slug || "",
           storefront_headline: (data as any).storefront_headline || "Your Personal Cruise & Vacation Expert",
           storefront_logo_url: (data as any).storefront_logo_url || "",
+          storefront_email: (data as any).storefront_email || "",
         });
       }
     } catch (error) {
@@ -130,6 +132,7 @@ export function useProfile() {
           storefront_slug: updatedProfile.storefront_slug || null,
           storefront_headline: updatedProfile.storefront_headline || null,
           storefront_logo_url: updatedProfile.storefront_logo_url || null,
+          storefront_email: updatedProfile.storefront_email || null,
         } as any, {
           onConflict: "user_id",
         });
