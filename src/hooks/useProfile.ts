@@ -21,6 +21,7 @@ export interface ProfileData {
   storefront_slug: string;
   storefront_headline: string;
   storefront_logo_url: string;
+  storefront_email: string;
 }
 
 
