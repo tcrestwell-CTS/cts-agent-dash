@@ -45,6 +45,7 @@ const defaultProfile: ProfileData = {
 
 
 
+
 export function useProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileData>(defaultProfile);
