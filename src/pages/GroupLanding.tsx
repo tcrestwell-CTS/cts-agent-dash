@@ -295,8 +295,8 @@ export default function GroupLanding() {
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
               <div className="max-w-6xl mx-auto">
                   <img
-                    src={crestwellLogo}
-                    alt={data.branding?.agency_name || "Crestwell Travel Services"}
+                    src={agentLogo}
+                    alt={agentLogoAlt}
                     className="h-16 mb-4 object-contain drop-shadow-lg"
                   />
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
@@ -329,8 +329,8 @@ export default function GroupLanding() {
             <div className="p-6 md:p-10 w-full">
               <div className="max-w-6xl mx-auto">
                   <img
-                    src={crestwellLogo}
-                    alt={data.branding?.agency_name || "Crestwell Travel Services"}
+                    src={agentLogo}
+                    alt={agentLogoAlt}
                     className="h-16 mb-4 object-contain drop-shadow-lg"
                   />
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
