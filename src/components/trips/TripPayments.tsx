@@ -451,9 +451,13 @@ export function TripPayments({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Expected Payments */}
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg">Expected Payments</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Log Payment
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
