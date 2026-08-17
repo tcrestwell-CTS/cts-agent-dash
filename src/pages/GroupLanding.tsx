@@ -97,6 +97,7 @@ interface GroupLandingData {
     agency_name: string | null;
     job_title: string | null;
     phone: string | null;
+    storefront_logo_url?: string | null;
     clia_number?: string | null;
     ccra_number?: string | null;
     asta_number?: string | null;
@@ -242,6 +243,10 @@ export default function GroupLanding() {
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
   const accentColor = data.branding?.accent_color || "#d97706";
+  const agentLogo =
+    data.branding?.logo_url || data.advisor?.storefront_logo_url || crestwellLogo;
+  const agentLogoAlt =
+    data.branding?.agency_name || data.advisor?.agency_name || "Crestwell Travel Services";
   const content = data.trip.group_landing_content || {};
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
@@ -290,8 +295,8 @@ export default function GroupLanding() {
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
               <div className="max-w-6xl mx-auto">
                   <img
-                    src={crestwellLogo}
-                    alt={data.branding?.agency_name || "Crestwell Travel Services"}
+                    src={agentLogo}
+                    alt={agentLogoAlt}
                     className="h-16 mb-4 object-contain drop-shadow-lg"
                   />
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
@@ -324,8 +329,8 @@ export default function GroupLanding() {
             <div className="p-6 md:p-10 w-full">
               <div className="max-w-6xl mx-auto">
                   <img
-                    src={crestwellLogo}
-                    alt={data.branding?.agency_name || "Crestwell Travel Services"}
+                    src={agentLogo}
+                    alt={agentLogoAlt}
                     className="h-16 mb-4 object-contain drop-shadow-lg"
                   />
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
