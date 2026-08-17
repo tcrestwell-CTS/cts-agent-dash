@@ -87,6 +87,11 @@ Deno.serve(async (req) => {
       trip_name: link.trip_name,
       amount: link.amount,
       expires_at: link.expires_at,
+      // Needed by the agent-branded pay page to correctly attribute the
+      // payment (Stripe metadata + real trip_payments row), not just the
+      // snapshot data above.
+      agent_user_id: link.agent_user_id ?? null,
+      trip_payment_id: link.trip_payment_id ?? null,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
