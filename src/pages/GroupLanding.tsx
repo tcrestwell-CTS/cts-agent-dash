@@ -97,6 +97,7 @@ interface GroupLandingData {
     agency_name: string | null;
     job_title: string | null;
     phone: string | null;
+    storefront_logo_url?: string | null;
     clia_number?: string | null;
     ccra_number?: string | null;
     asta_number?: string | null;
