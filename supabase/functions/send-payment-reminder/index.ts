@@ -203,6 +203,15 @@ serve(async (req) => {
       const tk = generateToken();
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       const ref = `TP-${tp.id.slice(0, 8).toUpperCase()}`;
+      // If this agent has an enabled storefront, send them to their own
+      // branded pay page instead of the generic crestwellgetaways.com one
+      // — same underlying token/validation, just a different front door.
+      const { data: agentProfile } = await supabase
+        .from("profiles")
+        .select("storefront_slug, storefront_enabled")
+        .eq("user_id", userId)
+        .single();
+
       const { error: linkErr } = await supabase.from("secure_links").insert({
         token: tk,
         link_type: "payment",
@@ -215,9 +224,15 @@ serve(async (req) => {
         expires_at: expiresAt,
         single_use: false,
         active: true,
+        agent_user_id: userId,
+        trip_payment_id: tp.id,
       });
       if (!linkErr) {
-        payUrl = `${SITE_URL}${PAY_PATH}?d=${encodePayload({
+        const useAgentBranded = agentProfile?.storefront_enabled && agentProfile?.storefront_slug;
+        const base = useAgentBranded
+          ? `https://${agentProfile.storefront_slug}.crestwelltravels.com/pay`
+          : `${SITE_URL}${PAY_PATH}`;
+        payUrl = `${base}?d=${encodePayload({
           token: tk, ref, name: client.name, email: client.email,
         })}`;
       }
