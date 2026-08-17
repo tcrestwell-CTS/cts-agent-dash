@@ -6690,6 +6690,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_city: string | null
+          address_line1: string | null
+          address_state: string | null
+          address_zip: string | null
           agency_name: string | null
           asta_number: string | null
           avatar_url: string | null
@@ -6718,6 +6722,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address_city?: string | null
+          address_line1?: string | null
+          address_state?: string | null
+          address_zip?: string | null
           agency_name?: string | null
           asta_number?: string | null
           avatar_url?: string | null
@@ -6748,6 +6756,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address_city?: string | null
+          address_line1?: string | null
+          address_state?: string | null
+          address_zip?: string | null
           agency_name?: string | null
           asta_number?: string | null
           avatar_url?: string | null
