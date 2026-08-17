@@ -6712,6 +6712,8 @@ export type Database = {
           full_name: string | null
           id: string
           job_title: string | null
+          legal_first_name: string | null
+          legal_last_name: string | null
           phone: string | null
           storefront_bio: string | null
           storefront_email: string | null
@@ -6747,6 +6749,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           job_title?: string | null
+          legal_first_name?: string | null
+          legal_last_name?: string | null
           phone?: string | null
           storefront_bio?: string | null
           storefront_email?: string | null
@@ -6782,6 +6786,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           job_title?: string | null
+          legal_first_name?: string | null
+          legal_last_name?: string | null
           phone?: string | null
           storefront_bio?: string | null
           storefront_email?: string | null
