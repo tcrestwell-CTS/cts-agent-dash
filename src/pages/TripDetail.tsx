@@ -642,7 +642,7 @@ const TripDetail = () => {
 
         {/* Main content with left sidebar */}
         <div className={showRightSidebar
-          ? "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_320px] items-start"
+          ? "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_360px] items-start"
           : "grid gap-6 lg:grid-cols-[200px_1fr] items-start"
         }>
           <TripSidebar
@@ -1304,7 +1304,7 @@ const TripDetail = () => {
           {/* Right sidebar */}
           {showRightSidebar && (
             <div className="space-y-4 lg:col-span-2 2xl:col-span-1">
-              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-1 2xl:sticky 2xl:top-6">
+              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-1 2xl:sticky 2xl:top-6 2xl:max-h-[calc(100vh-3rem)] 2xl:overflow-y-auto 2xl:overscroll-contain 2xl:pr-2">
                 <TripReadinessScore
                   tripId={trip.id}
                   departDate={trip.depart_date}
