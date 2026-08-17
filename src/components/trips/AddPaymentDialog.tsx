@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -188,6 +189,7 @@ export function AddPaymentDialog({
   clientEmail = "",
   tripName = "",
 }: AddPaymentDialogProps) {
+  const { user } = useAuth();
   const { createPayment, creating } = useTripPayments(tripId);
   const [mode, setMode] = useState<PaymentMode>(null);
   const [formData, setFormData] = useState({ ...defaultForm });
@@ -292,7 +294,21 @@ export function AddPaymentDialog({
         .replace(/\//g, "_")
         .replace(/=/g, "");
 
-      const deepLink = `https://crestwellgetaways.com/pay?d=${encoded}`;
+      // Send to the agent's own branded pay page if they have an enabled
+      // storefront — same underlying payload, different front door. Falls
+      // back to the generic page for agents without one.
+      let base = "https://crestwellgetaways.com/pay";
+      if (user?.id) {
+        const { data: agentProfile } = await supabase
+          .from("profiles")
+          .select("storefront_slug, storefront_enabled")
+          .eq("user_id", user.id)
+          .single();
+        if (agentProfile?.storefront_enabled && agentProfile?.storefront_slug) {
+          base = `https://${agentProfile.storefront_slug}.crestwelltravels.com/pay`;
+        }
+      }
+      const deepLink = `${base}?d=${encoded}`;
       setGeneratedLink(deepLink);
       onPaymentCreated?.();
     } catch (err) {
