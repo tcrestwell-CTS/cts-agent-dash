@@ -1,65 +1,45 @@
+# Agent Payment Processing Guide
 
-## What's shipping
+## Goal
+Make the recommended agent payment workflow obvious, documented, and discoverable so advisors stop using ad-hoc or error-prone paths.
 
-Turn each commission line into a reviewable "statement line" that supports multiple splits (agent, mentor, house, or custom), applies a mentor split automatically when the agent has one on file, and holds every change in a **draft** until an admin clicks **Confirm payout**.
+## Current state
+The dashboard already supports several payment paths, but they are scattered and not surfaced as a recommended workflow:
+- Client self-service portal payments (Stripe / Affirm) after itinerary approval.
+- Agent-initiated "Take Payment" via Stripe Checkout inside the trip detail.
+- "Send Payment Link" deep links to `crestwellgetaways.com/pay`.
+- Manual logging for cash/check/wire/Zelle.
+- Scheduled installments.
+- Virtual cards (Stripe Issuing / Affirm VCN) for supplier payments, not client payments.
 
-## Data model (one migration)
+Recent fixes added a 3-step client approval stepper and payment-agreement gating, but agents still need to know when to use each path.
 
-New table `public.commission_splits`:
-- `commission_id` (fk → commissions, cascade)
-- `recipient_user_id` (fk → auth.users, nullable — null = "house")
-- `role` text: `agent` | `mentor` | `house` | `custom`
-- `percent` numeric(5,2) nullable, `amount` numeric(12,2) nullable (one required)
-- `status` text: `draft` | `confirmed` | `paid` default `draft`
-- `confirmed_at`, `confirmed_by`, `paid_date`, `notes`, standard timestamps
-- Trigger: `updated_at`
-- RLS: admins/office_admins full; recipients SELECT their own rows; bookkeepers SELECT
-- GRANTs for `authenticated` + `service_role`
+## Proposed plan
 
-Extend `public.mentor_assignments`:
-- `split_percent` numeric(5,2) default 0 (0–100, percent of mentee's agent share that goes to the mentor)
-- `effective_from` date, `effective_to` date nullable
+1. **Add a "Payment Options" quick-help panel to the trip detail Payments tab**
+   - Surface the 4 recommended paths with one-sentence guidance and the primary CTA.
+   - Show which path is appropriate for which scenario (client on phone, async email, cash/check, financing).
+   - Keep the existing Add Payment dialog but make the recommended choice obvious.
 
-## UI
+2. **Document the agent SOP in project memory**
+   - Write `mem/features/financial/agent-payment-sop.md` with the decision tree and steps for each path.
+   - Include the net-of-fee bookkeeping rule and the QBO reconciliation impact.
 
-**1. `src/pages/TeamManagement.tsx` → "Team & billing" section**
-- Per-agent Mentor row: pick mentor + split % + effective dates. Uses existing `useMentorAssignment` hook, extended.
+3. **Improve the Add Payment dialog default experience**
+   - Pre-select the most common mode based on the payment context (e.g., "Take Payment" if a payment is due today, "Send Payment Link" if due later).
+   - Add short inline descriptions so the advisor understands each mode before selecting it.
+   - Confirm the generated payment link shows the expected amount and trip name before copying.
 
-**2. `src/components/reports/CommissionReportTable.tsx`**
-- Each row gets an expand chevron → inline **Splits** editor:
-  - Auto-seeds the agent's tier split + mentor split (if `mentor_assignments.split_percent` > 0 for that agent) + remainder to house.
-  - Add/remove split rows; each is recipient + %|$ + note.
-  - Live validation: splits must sum to 100% (or to commission amount).
-  - Row-level "Received" checkbox becomes staged; edits live in local draft state.
-- Sticky footer bar: "**X lines pending review · Y changes staged** · [Discard] [**Confirm payout**]". Confirm writes `commission_splits` rows (`status='confirmed'`), sets commissions `status='paid'` + `paid_date` for confirmed lines, and creates `commission_payments` entries per split.
+4. **(Optional) Add a payment-method preference note on the client record**
+   - Let advisors note whether a client prefers portal self-pay, phone pay, or manual methods.
+   - Display the note in the Add Payment dialog so the team follows the client's preference.
 
-**3. `src/pages/bookkeeper/BookkeeperPayouts.tsx`**
-- Rework aggregation to sum from **confirmed `commission_splits`** grouped by `recipient_user_id`, not raw `commissions.user_id`. Adds a "Mentor earnings" column (splits where role=`mentor`).
-- Same sticky **Confirm payout** bar for staged status/date changes.
+## Out of scope
+- Changing Stripe webhook or reconciliation logic (already working).
+- Adding new payment providers.
+- Modifying the client portal approval flow (already implemented).
 
-**4. New hook `src/hooks/useCommissionSplits.ts`**
-- `useCommissionSplits(commissionIds)` bulk fetch.
-- `useStagedPayoutDraft()` (Zustand-lite in-memory state) tracks staged edits until confirm.
-- `useConfirmPayout()` mutation that writes all staged rows in one RPC.
-
-**5. Server RPC `confirm_commission_payout(p_edits jsonb)`**
-- Admin/office_admin only.
-- For each edit: upsert splits, mark commissions paid, insert `commission_payments`, log to `bookkeeper_audit_log`.
-- Wrapped in a transaction so nothing partial-saves.
-
-## Notes / trade-offs
-
-- Reuses `commission_payments` for QBO — the existing `trigger_qbo_commission_received` still fires when commissions flip to paid.
-- Mentor splits show up in the mentee's earnings breakdown as an outflow so their reported agent share stays correct.
-- Non-admins keep read-only view of the report; the Confirm bar only renders for admin/office_admin.
-- Skipping payroll-run/statement PDF for now — can layer on later.
-
-## Files touched
-
-- Migration: `commission_splits` table, `mentor_assignments` extensions, `confirm_commission_payout` RPC
-- `src/hooks/useCommissionSplits.ts` (new), `src/hooks/useMentorAssignment.ts` (extend)
-- `src/components/reports/CommissionReportTable.tsx` (splits UI + staging)
-- `src/components/reports/CommissionConfirmPayoutBar.tsx` (new sticky bar)
-- `src/pages/CommissionReport.tsx` (wire staging provider)
-- `src/pages/bookkeeper/BookkeeperPayouts.tsx` (splits-aware rollup + confirm bar)
-- `src/pages/TeamManagement.tsx` (mentor split % field)
+## Success criteria
+- An advisor can open a trip and understand the recommended payment path within 10 seconds.
+- The project memory contains a durable SOP the team can reference and share.
+- No regression in existing payment reconciliation or QBO sync behavior.
