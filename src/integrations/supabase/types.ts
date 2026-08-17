@@ -8291,6 +8291,7 @@ export type Database = {
       secure_links: {
         Row: {
           active: boolean | null
+          agent_user_id: string | null
           amount: number | null
           booking_ref: string | null
           client_email: string
@@ -8305,11 +8306,13 @@ export type Database = {
           single_use: boolean | null
           token: string
           trip_name: string | null
+          trip_payment_id: string | null
           used_at: string | null
           used_ip: string | null
         }
         Insert: {
           active?: boolean | null
+          agent_user_id?: string | null
           amount?: number | null
           booking_ref?: string | null
           client_email: string
@@ -8324,11 +8327,13 @@ export type Database = {
           single_use?: boolean | null
           token: string
           trip_name?: string | null
+          trip_payment_id?: string | null
           used_at?: string | null
           used_ip?: string | null
         }
         Update: {
           active?: boolean | null
+          agent_user_id?: string | null
           amount?: number | null
           booking_ref?: string | null
           client_email?: string
@@ -8343,10 +8348,26 @@ export type Database = {
           single_use?: boolean | null
           token?: string
           trip_name?: string | null
+          trip_payment_id?: string | null
           used_at?: string | null
           used_ip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "secure_links_trip_payment_id_fkey"
+            columns: ["trip_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "secure_links_trip_payment_id_fkey"
+            columns: ["trip_payment_id"]
+            isOneToOne: false
+            referencedRelation: "trip_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       signup_verification_codes: {
         Row: {
