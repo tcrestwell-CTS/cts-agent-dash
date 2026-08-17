@@ -243,6 +243,10 @@ export default function GroupLanding() {
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
   const accentColor = data.branding?.accent_color || "#d97706";
+  const agentLogo =
+    data.branding?.logo_url || data.advisor?.storefront_logo_url || crestwellLogo;
+  const agentLogoAlt =
+    data.branding?.agency_name || data.advisor?.agency_name || "Crestwell Travel Services";
   const content = data.trip.group_landing_content || {};
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
