@@ -120,7 +120,7 @@ serve(async (req) => {
     // Tim's pre-existing one, which already had real address data).
     const { data: agentProfile } = await supabase
       .from("profiles")
-      .select("full_name, address_line1, address_city, address_state, address_zip")
+      .select("full_name, address_line1, address_city, address_state, address_zip, legal_first_name, legal_last_name, date_of_birth")
       .eq("user_id", agentUserId)
       .single();
 
@@ -160,10 +160,22 @@ serve(async (req) => {
           // by Stripe's own verification, same as before this fix.
           const hasRealAddress = agentProfile?.address_line1 && agentProfile?.address_city
             && agentProfile?.address_state && agentProfile?.address_zip;
+          // Stripe requires individual.first_name, individual.last_name,
+          // and individual.dob (structured, separate from the display
+          // "name") before it will activate any card at all — these were
+          // entirely missing before, a second gap beyond the address one.
+          const dobParts = agentProfile?.date_of_birth
+            ? agentProfile.date_of_birth.split("-").map(Number)
+            : null;
           const createParams: any = {
             name: agentProfile?.full_name || "Crestwell Travel Agent",
             email: agentEmail || undefined,
             type: "individual",
+            individual: (agentProfile?.legal_first_name && agentProfile?.legal_last_name && dobParts) ? {
+              first_name: agentProfile.legal_first_name,
+              last_name: agentProfile.legal_last_name,
+              dob: { year: dobParts[0], month: dobParts[1], day: dobParts[2] },
+            } : undefined,
             billing: {
               address: hasRealAddress ? {
                 line1: agentProfile.address_line1,
