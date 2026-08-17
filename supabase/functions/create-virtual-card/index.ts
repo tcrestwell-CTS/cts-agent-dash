@@ -114,10 +114,13 @@ serve(async (req) => {
       if (client?.name) clientName = client.name;
     }
 
-    // Get agent's email for notification
+    // Get agent's email for notification + real address for Stripe
+    // Issuing cardholder verification (placeholder "N/A"/"00000" data was
+    // causing Stripe to likely reject/restrict any cardholder other than
+    // Tim's pre-existing one, which already had real address data).
     const { data: agentProfile } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, address_line1, address_city, address_state, address_zip")
       .eq("user_id", agentUserId)
       .single();
 
@@ -151,12 +154,24 @@ serve(async (req) => {
         if (existingCardholders.data.length > 0) {
           cardholder = existingCardholders.data[0];
         } else {
+          // Use the agent's real address if we have it on file. Falls
+          // back to the old placeholder only if genuinely missing — worth
+          // knowing that fallback will likely still get flagged/restricted
+          // by Stripe's own verification, same as before this fix.
+          const hasRealAddress = agentProfile?.address_line1 && agentProfile?.address_city
+            && agentProfile?.address_state && agentProfile?.address_zip;
           const createParams: any = {
             name: agentProfile?.full_name || "Crestwell Travel Agent",
             email: agentEmail || undefined,
             type: "individual",
             billing: {
-              address: {
+              address: hasRealAddress ? {
+                line1: agentProfile.address_line1,
+                city: agentProfile.address_city,
+                state: agentProfile.address_state,
+                postal_code: agentProfile.address_zip,
+                country: "US",
+              } : {
                 line1: "N/A",
                 city: "N/A",
                 state: "CA",
