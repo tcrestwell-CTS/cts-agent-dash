@@ -114,6 +114,9 @@ function buildHtml(opts: {
       <div style="text-align:center;margin:28px 0;">
         <a href="${opts.payUrl}" style="background:${gold};color:${navy};padding:14px 36px;text-decoration:none;border-radius:6px;font-weight:700;display:inline-block;letter-spacing:0.5px;">Pay Online</a>
         <div style="color:#6b7280;font-size:12px;margin-top:10px;">Secure single-use link</div>
+        <div style="color:#9ca3af;font-size:11px;line-height:1.5;margin-top:8px;max-width:440px;margin-left:auto;margin-right:auto;">
+          Payments are securely processed through Crestwell Travel Network, ${agencyName}'s host agency, so that name may appear on the checkout page and your statement.
+        </div>
       </div>
 
       <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:20px 0 0;">
