@@ -279,8 +279,28 @@ export default function GroupLanding() {
     return acc;
   }, {});
 
+  const pageTitle = `${headline} — ${data.branding?.agency_name || data.advisor?.agency_name || "Crestwell Travel Network"}`;
+  const pageDescription = data.trip.group_landing_description
+    ? data.trip.group_landing_description.replace(/<[^>]+>/g, "").slice(0, 160)
+    : data.trip.notes?.slice(0, 160) || `Join us for ${headline}`;
+  const pageImage = data.trip.cover_image_url || agentLogo;
+  const canonicalUrl = `${typeof window !== "undefined" ? window.location.origin : "https://app.crestwelltravels.com"}/group/${token}`;
+
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        {pageImage && <meta property="og:image" content={pageImage} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {pageImage && <meta name="twitter:image" content={pageImage} />}
+      </Helmet>
       {/* ─── HERO SECTION ─────────────────────────── */}
       <div className="relative w-full">
         {data.trip.cover_image_url ? (
