@@ -45,7 +45,11 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    // Accept both ?token=... and /group-meta/<token>
+    const pathToken = url.pathname.split("/").filter(Boolean).pop();
+    const token =
+      url.searchParams.get("token") ||
+      (pathToken && pathToken !== "group-meta" ? pathToken : null);
 
     if (!token) {
       return new Response(JSON.stringify({ error: "Missing token" }), {
