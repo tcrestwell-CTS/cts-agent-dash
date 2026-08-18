@@ -31,6 +31,7 @@ import {
   ClipboardPaste,
   ChevronRight,
   Save,
+  Facebook,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -407,6 +408,19 @@ const GroupLandingBuilder = () => {
     if (landingUrl) { navigator.clipboard.writeText(landingUrl); toast.success("Link copied!"); }
   };
 
+  const facebookShareUrl = trip?.share_token
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-meta?token=${trip.share_token}`
+    : null;
+  const copyFacebookUrl = () => {
+    if (facebookShareUrl) { navigator.clipboard.writeText(facebookShareUrl); toast.success("Facebook share link copied!"); }
+  };
+  const openFacebookShare = () => {
+    if (landingUrl) {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookShareUrl || landingUrl)}`;
+      window.open(fbUrl, "_blank", "width=620,height=430");
+    }
+  };
+
   // ─── Loading ──────────────────────────────────────
   if (loading) {
     return (
@@ -719,6 +733,25 @@ const GroupLandingBuilder = () => {
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {/* Facebook Share */}
+              {landingUrl && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Facebook Link</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Paste this link into a Facebook post for a rich preview with the trip title, description, and hero image.
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <Input readOnly value={facebookShareUrl || ""} className="text-xs font-mono h-8" onClick={(e) => (e.target as HTMLInputElement).select()} />
+                    <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={copyFacebookUrl}>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={openFacebookShare}>
+                    <Facebook className="h-3.5 w-3.5 mr-1.5" /> Share on Facebook
+                  </Button>
                 </div>
               )}
 

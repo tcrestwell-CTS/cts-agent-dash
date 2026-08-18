@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -33,7 +34,11 @@ if ("serviceWorker" in navigator && !isClientPortalRoute) {
   }
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <HelmetProvider>
+    <App />
+  </HelmetProvider>
+);
 
 // Auto-recover from stale dynamic import failures (common after deploys/HMR).
 // If a chunk fails to load, reload once to fetch fresh module URLs.
