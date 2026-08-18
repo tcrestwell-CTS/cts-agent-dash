@@ -32,7 +32,6 @@ import {
   ChevronRight,
   Save,
   Facebook,
-  Share2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
