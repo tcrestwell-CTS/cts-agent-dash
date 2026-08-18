@@ -409,6 +409,19 @@ const GroupLandingBuilder = () => {
     if (landingUrl) { navigator.clipboard.writeText(landingUrl); toast.success("Link copied!"); }
   };
 
+  const facebookShareUrl = trip?.share_token
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-meta?token=${trip.share_token}`
+    : null;
+  const copyFacebookUrl = () => {
+    if (facebookShareUrl) { navigator.clipboard.writeText(facebookShareUrl); toast.success("Facebook share link copied!"); }
+  };
+  const openFacebookShare = () => {
+    if (landingUrl) {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(facebookShareUrl || landingUrl)}`;
+      window.open(fbUrl, "_blank", "width=620,height=430");
+    }
+  };
+
   // ─── Loading ──────────────────────────────────────
   if (loading) {
     return (
