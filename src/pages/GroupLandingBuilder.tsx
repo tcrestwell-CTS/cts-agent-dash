@@ -409,7 +409,7 @@ const GroupLandingBuilder = () => {
   };
 
   const facebookShareUrl = trip?.share_token
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-meta?token=${trip.share_token}`
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-meta/${trip.share_token}`
     : null;
   const copyFacebookUrl = () => {
     if (facebookShareUrl) { navigator.clipboard.writeText(facebookShareUrl); toast.success("Facebook share link copied!"); }
