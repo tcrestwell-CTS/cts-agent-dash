@@ -228,12 +228,6 @@ Deno.serve(async (req) => {
   const sharedSecret = Deno.env.get("HOTELBEDS_FN_SHARED_SECRET") ?? "";
   const isServiceRole = sharedSecret.length > 0 && internalAuth === sharedSecret;
   let authedUserId: string | null = null;
-  if (!isServiceRole) {
-    try {
-      const payload = JSON.parse(atob(authHeader.replace("Bearer ", "").split(".")[1]));
-      isServiceRole = payload?.role === "service_role";
-    } catch { /* non-JWT token — fall through to user auth */ }
-  }
 
   if (!isServiceRole) {
     const supabase = createClient(
