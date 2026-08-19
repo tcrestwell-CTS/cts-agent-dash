@@ -222,13 +222,13 @@ Deno.serve(async (req) => {
   }
 
   // Allow service-role callers (e.g. stay.crestwelltravels.com Next.js backend)
-  // without requiring a user JWT. Service role keys have role="service_role" in payload.
-  let isServiceRole = false;
+  // without requiring a user JWT. SECURITY: this must be an exact match against
+  // the real service-role secret. Decoding the JWT payload and trusting
+  // role="service_role" is forgeable — an unsigned hand-crafted token would pass.
+  const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const bearerToken = authHeader.replace("Bearer ", "").trim();
+  const isServiceRole = SERVICE_ROLE_KEY.length > 0 && bearerToken === SERVICE_ROLE_KEY;
   let authedUserId: string | null = null;
-  try {
-    const payload = JSON.parse(atob(authHeader.replace("Bearer ", "").split(".")[1]));
-    isServiceRole = payload?.role === "service_role";
-  } catch { /* non-JWT token — fall through to user auth */ }
 
   if (!isServiceRole) {
     const supabase = createClient(
