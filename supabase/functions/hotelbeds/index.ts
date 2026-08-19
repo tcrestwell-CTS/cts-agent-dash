@@ -203,23 +203,6 @@ async function convertToUsd(result: any) {
   return result;
 }
 
-function decorateRspLegacy(result: any) {
-  const hotels = result?.hotels?.hotels;
-  if (!Array.isArray(hotels)) return result;
-  const factor = 1 + RSP_MARKUP_PCT / 100;
-  for (const h of hotels) {
-    for (const room of h?.rooms || []) {
-      for (const rate of room?.rates || []) {
-        const net = parseFloat(rate?.net ?? "0");
-        if (net > 0) {
-          rate.rsp = (net * factor).toFixed(2);
-          rate.rspMarkupPct = RSP_MARKUP_PCT;
-        }
-      }
-    }
-  }
-  return result;
-}
 
 async function hbFetch(basePath: string, path: string, method: string, body?: any) {
   const apiKey = Deno.env.get("HOTELBEDS_API_KEY");
