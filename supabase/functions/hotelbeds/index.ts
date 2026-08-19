@@ -53,6 +53,7 @@ const HB_ORIGIN = USE_PROXY ? HB_PROXY_URL : HB_DIRECT_ORIGIN;
 
 const HB_BASE = `${HB_ORIGIN}/hotel-api/1.0`;
 const HB_CONTENT_BASE = `${HB_ORIGIN}/hotel-content-api/1.0`;
+const HB_TRANSFER_BASE = `${HB_ORIGIN}/transfer-api/1.0`;
 
 async function generateSignature(apiKey: string, secret: string): Promise<string> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -202,6 +203,9 @@ const bookingApi = (path: string, method: string, body?: any) =>
 
 const contentApi = (path: string) =>
   hbFetch(HB_CONTENT_BASE, path, "GET");
+
+const transferApi = (path: string) =>
+  hbFetch(HB_TRANSFER_BASE, path, "GET");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -435,6 +439,19 @@ Deno.serve(async (req) => {
           .upsert({ cache_key: cacheKey, payload: result, expires_at: expiresAt }, { onConflict: "cache_key" });
         if (cacheError) console.error("Search cache write failed", cacheError);
         await admin.from("hotelbeds_search_cache").delete().lt("expires_at", nowIso);
+        break;
+      }
+
+      // ── Transfer Availability Search ───────────────────────
+      case "search_transfers": {
+        const {
+          language = "en",
+          fromType, fromCode, toType, toCode,
+          outbound, inbound = "",
+          adults, children = 0, infants = 0,
+        } = params;
+        const path = `/availability/${language}/from/${fromType}/${encodeURIComponent(fromCode)}/to/${toType}/${encodeURIComponent(toCode)}/${outbound}/${inbound}/${adults}/${children}/${infants}`;
+        result = await transferApi(path);
         break;
       }
 
