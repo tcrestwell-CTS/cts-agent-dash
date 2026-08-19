@@ -521,12 +521,12 @@ export function AgentChatWidget() {
             </div>
           </button>
 
-          {onlineAgents.length > 0 && (
+          {teammates.length > 0 && (
             <div className="pt-2">
               <p className="text-xs font-medium text-muted-foreground px-1 pb-2">
-                Online Now ({onlineAgents.length})
+                Advisors ({onlineAgents.length} online)
               </p>
-              {onlineAgents.map((agent) => (
+              {teammates.map((agent) => (
                 <button
                   key={agent.user_id}
                   onClick={() => openDm(agent.user_id, agent.full_name || "Agent")}
@@ -537,7 +537,9 @@ export function AgentChatWidget() {
                       <AvatarImage src={agent.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">{(agent.full_name || "A").charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-success text-success" />
+                    {agent.online && (
+                      <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-success text-success" />
+                    )}
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">
                     {agent.full_name || "Agent"}
@@ -547,9 +549,9 @@ export function AgentChatWidget() {
             </div>
           )}
 
-          {onlineAgents.length === 0 && (
+          {teammates.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-4">
-              No other agents online right now
+              No other advisors yet
             </p>
           )}
         </div>
