@@ -514,6 +514,7 @@ Deno.serve(async (req) => {
         }
 
         result = await bookingApi("/hotels", "POST", body);
+        await convertToUsd(result);
         decorateRsp(result);
 
         // 4) Cache the fresh result.
