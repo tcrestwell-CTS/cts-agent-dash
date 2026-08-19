@@ -146,6 +146,23 @@ export function AgentChatWidget() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const onlineAgents = useOnlineAgents();
+  const { data: teamProfiles = [] } = useTeamProfiles();
+  // Everyone on the team, online first — DM threads with offline agents were
+  // previously invisible because the menu only listed online sessions.
+  const onlineIds = new Set(onlineAgents.map((a) => a.user_id));
+  const teammates = teamProfiles
+    .filter((p) => p.user_id && p.user_id !== user?.id)
+    .map((p) => ({
+      user_id: p.user_id,
+      full_name: p.full_name,
+      avatar_url: p.avatar_url,
+      online: onlineIds.has(p.user_id),
+    }))
+    .sort((a, b) =>
+      a.online === b.online
+        ? (a.full_name || "").localeCompare(b.full_name || "")
+        : a.online ? -1 : 1
+    );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // AI state
