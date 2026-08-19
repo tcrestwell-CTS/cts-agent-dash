@@ -365,6 +365,9 @@ Deno.serve(async (req) => {
           occupancies: params.occupancies || [{ rooms: 1, adults: 2, children: 0 }],
           // Cert 2.5 — Source Market tag (ISO country code of selling market)
           sourceMarket: params.sourceMarket || "US",
+          // Crestwell sells in USD; force response currency so net/selling rates
+          // and cancellation amounts are quoted in USD instead of HotelBeds' EUR default.
+          currency: "USD",
         };
 
         if (params.destination) {
