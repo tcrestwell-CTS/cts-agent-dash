@@ -427,7 +427,11 @@ export function AgentChatWidget() {
           title="Team Chat"
         >
           <Users className="h-6 w-6" />
-          {onlineAgents.length > 0 && (
+          {unreadChat.length > 0 ? (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-destructive text-[10px] text-destructive-foreground font-bold flex items-center justify-center">
+              {unreadChat.length > 9 ? "9+" : unreadChat.length}
+            </span>
+          ) : onlineAgents.length > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-success text-[10px] text-white font-bold flex items-center justify-center">
               {onlineAgents.length}
             </span>
