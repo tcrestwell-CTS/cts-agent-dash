@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAgentMessages, useOnlineAgents } from "@/hooks/useAgentMessages";
+import { useTeamProfiles } from "@/hooks/useTeamProfiles";
 import { useAgentNotifications } from "@/hooks/useAgentNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -145,6 +146,23 @@ export function AgentChatWidget() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const onlineAgents = useOnlineAgents();
+  const { data: teamProfiles = [] } = useTeamProfiles();
+  // Everyone on the team, online first — DM threads with offline agents were
+  // previously invisible because the menu only listed online sessions.
+  const onlineIds = new Set(onlineAgents.map((a) => a.user_id));
+  const teammates = teamProfiles
+    .filter((p) => p.user_id && p.user_id !== user?.id)
+    .map((p) => ({
+      user_id: p.user_id,
+      full_name: p.full_name,
+      avatar_url: p.avatar_url,
+      online: onlineIds.has(p.user_id),
+    }))
+    .sort((a, b) =>
+      a.online === b.online
+        ? (a.full_name || "").localeCompare(b.full_name || "")
+        : a.online ? -1 : 1
+    );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // AI state
@@ -421,7 +439,7 @@ export function AgentChatWidget() {
 
         {/* Team Chat FAB */}
         <button
-          onClick={() => setView("menu")}
+          onClick={() => setView("team")}
           className="group relative h-14 w-14 rounded-full bg-card border border-border text-foreground shadow-lg hover:bg-muted flex items-center justify-center transition-all hover:scale-105"
           data-testid="button-chat-fab"
           title="Team Chat"
@@ -503,12 +521,12 @@ export function AgentChatWidget() {
             </div>
           </button>
 
-          {onlineAgents.length > 0 && (
+          {teammates.length > 0 && (
             <div className="pt-2">
               <p className="text-xs font-medium text-muted-foreground px-1 pb-2">
-                Online Now ({onlineAgents.length})
+                Advisors ({onlineAgents.length} online)
               </p>
-              {onlineAgents.map((agent) => (
+              {teammates.map((agent) => (
                 <button
                   key={agent.user_id}
                   onClick={() => openDm(agent.user_id, agent.full_name || "Agent")}
@@ -519,7 +537,9 @@ export function AgentChatWidget() {
                       <AvatarImage src={agent.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">{(agent.full_name || "A").charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-success text-success" />
+                    {agent.online && (
+                      <Circle className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 fill-success text-success" />
+                    )}
                   </div>
                   <span className="text-sm font-medium text-foreground truncate">
                     {agent.full_name || "Agent"}
@@ -529,9 +549,9 @@ export function AgentChatWidget() {
             </div>
           )}
 
-          {onlineAgents.length === 0 && (
+          {teammates.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-4">
-              No other agents online right now
+              No other advisors yet
             </p>
           )}
         </div>
