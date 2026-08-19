@@ -35,7 +35,7 @@ const HAS_CERT = isPem(HB_CLIENT_CERT) && isPem(HB_CLIENT_KEY);
 // mTLS-registered for live, so routing through the proxy is the architecturally
 // correct state; bypassing to the plain api.test.hotelbeds.com host returns 401
 // "You cannot access a non-mTLS endpoint with an apikey for mTLS."
-const USE_PROXY = !HAS_CERT && HB_PROXY_URL.length > 0;
+const USE_PROXY = !HAS_CERT && HB_ENV === "live" && HB_PROXY_URL.length > 0;
 
 if (USE_PROXY && !HB_PROXY_TOKEN) {
   console.warn(
