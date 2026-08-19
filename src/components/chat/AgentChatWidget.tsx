@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAgentMessages, useOnlineAgents } from "@/hooks/useAgentMessages";
+import { useAgentNotifications } from "@/hooks/useAgentNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -166,6 +167,17 @@ export function AgentChatWidget() {
     channel as "team" | "dm",
     dmPartnerId
   );
+
+  // Unread chat notifications persist even when the widget is closed / the
+  // agent was offline when the message arrived.
+  const { notifications, markAsRead } = useAgentNotifications();
+  const unreadChat = notifications.filter((n) => n.type === "agent_message" && !n.is_read);
+
+  useEffect(() => {
+    if (view !== "team" && view !== "dm") return;
+    unreadChat.forEach((n) => markAsRead.mutate(n.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, unreadChat.length]);
 
   // ── Popup notifications for new agent chat messages ──────────────────────────
   // Subscribe globally so agents get toast pop-ups regardless of which page
