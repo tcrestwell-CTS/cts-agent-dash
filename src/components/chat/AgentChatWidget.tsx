@@ -39,25 +39,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
-
-// Lightweight beep so users hear new messages even if the tab is in the background.
-const playPing = () => {
-  try {
-    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.26);
-  } catch { /* ignore */ }
-};
+import { playMessageChime } from "@/lib/notificationSound";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -232,7 +214,7 @@ export function AgentChatWidget() {
               ? `${(m.message as string).slice(0, 117)}…`
               : (m.message as string);
 
-          playPing();
+          playMessageChime();
           toast(isDmToMe ? `New message from ${senderName}` : `${senderName} · Team Chat`, {
             description: preview,
             duration: 8000,

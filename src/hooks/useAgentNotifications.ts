@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { toast } from "sonner";
+import { playMessageChime, playPing } from "@/lib/notificationSound";
 
 export interface AgentNotification {
   id: string;
@@ -50,8 +52,23 @@ export function useAgentNotifications() {
           table: "agent_notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
           queryClient.invalidateQueries({ queryKey: ["agent-notifications", user.id] });
+
+          const n = payload.new as AgentNotification | undefined;
+          if (!n) return;
+          // Team chat / DMs are announced by AgentChatWidget (it can suppress
+          // toasts for the conversation already open) — don't double-notify.
+          if (n.type === "agent_message") return;
+
+          const isClientMessage = n.type === "client_message";
+          if (isClientMessage) playMessageChime();
+          else playPing(720);
+
+          toast(n.title || "New notification", {
+            description: n.message,
+            duration: 8000,
+          });
         },
       )
       .subscribe();
