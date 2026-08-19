@@ -228,6 +228,10 @@ Deno.serve(async (req) => {
     serviceKeyHash: await sha256hex(serviceKey),
     bearerLooksLikeJwt: bearerToken.split(".").length === 3,
   });
+  const internalAuth = req.headers.get("X-Internal-Auth");
+  const sharedSecret = Deno.env.get("HOTELBEDS_FN_SHARED_SECRET") ?? "";
+  const isInternalAuth = sharedSecret.length > 0 && internalAuth === sharedSecret;
+  console.log("[auth-diag] internal-header-check", { internalAuthPresent: internalAuth !== null, isInternalAuth });
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -239,12 +243,14 @@ Deno.serve(async (req) => {
   // without requiring a user JWT. SECURITY NOTE: this decodes the JWT payload
   // and trusts role="service_role"; this is forgeable and will be hardened in
   // a follow-up change. Reverted temporarily to unblock production traffic.
-  let isServiceRole = false;
+  let isServiceRole = isInternalAuth;
   let authedUserId: string | null = null;
-  try {
-    const payload = JSON.parse(atob(authHeader.replace("Bearer ", "").split(".")[1]));
-    isServiceRole = payload?.role === "service_role";
-  } catch { /* non-JWT token — fall through to user auth */ }
+  if (!isServiceRole) {
+    try {
+      const payload = JSON.parse(atob(authHeader.replace("Bearer ", "").split(".")[1]));
+      isServiceRole = payload?.role === "service_role";
+    } catch { /* non-JWT token — fall through to user auth */ }
+  }
 
   if (!isServiceRole) {
     const supabase = createClient(
