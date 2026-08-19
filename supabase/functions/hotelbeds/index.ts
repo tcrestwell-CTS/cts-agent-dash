@@ -139,6 +139,71 @@ function decorateRsp(result: any) {
   return result;
 }
 
+// ── Currency: HotelBeds contracts quote in EUR for some credentials even when
+// USD is requested. Convert everything to USD so agents never see EUR. ──
+let fxCache: { rate: number; at: number; base: string } | null = null;
+
+async function usdRate(base: string): Promise<number> {
+  if (base === "USD") return 1;
+  if (fxCache && fxCache.base === base && Date.now() - fxCache.at < 6 * 60 * 60 * 1000) {
+    return fxCache.rate;
+  }
+  try {
+    const res = await fetch(`https://api.frankfurter.app/latest?from=${base}&to=USD`);
+    const json = await res.json();
+    const rate = Number(json?.rates?.USD);
+    if (rate > 0) {
+      fxCache = { rate, at: Date.now(), base };
+      return rate;
+    }
+  } catch (e) {
+    console.error("FX lookup failed", e);
+  }
+  // Conservative fallback so pricing never renders in EUR.
+  return base === "EUR" ? 1.09 : 1;
+}
+
+async function convertToUsd(result: any) {
+  const hotels = result?.hotels?.hotels;
+  if (!Array.isArray(hotels) || hotels.length === 0) return result;
+
+  const source = String(hotels[0]?.currency || "").toUpperCase();
+  if (!source || source === "USD") return result;
+
+  const rate = await usdRate(source);
+  if (!(rate > 0) || rate === 1) return result;
+
+  const conv = (v: any) =>
+    v === null || v === undefined || v === "" || isNaN(parseFloat(v))
+      ? v
+      : (parseFloat(v) * rate).toFixed(2);
+
+  for (const h of hotels) {
+    h.currency = "USD";
+    h.originalCurrency = source;
+    h.fxRateToUsd = rate;
+    h.minRate = conv(h.minRate);
+    h.maxRate = conv(h.maxRate);
+    for (const room of h?.rooms || []) {
+      for (const r of room?.rates || []) {
+        r.net = conv(r.net);
+        r.sellingRate = conv(r.sellingRate);
+        r.discount = conv(r.discount);
+        r.hotelMandatory = r.hotelMandatory;
+        for (const cp of r?.cancellationPolicies || []) {
+          cp.amount = conv(cp.amount);
+        }
+        for (const t of r?.taxes?.taxes || []) {
+          t.amount = conv(t.amount);
+          t.clientAmount = conv(t.clientAmount);
+        }
+      }
+    }
+  }
+  return result;
+}
+
+
 async function hbFetch(basePath: string, path: string, method: string, body?: any) {
   const apiKey = Deno.env.get("HOTELBEDS_API_KEY");
   const apiSecret = Deno.env.get("HOTELBEDS_API_SECRET");
@@ -432,6 +497,7 @@ Deno.serve(async (req) => {
         }
 
         result = await bookingApi("/hotels", "POST", body);
+        await convertToUsd(result);
         decorateRsp(result);
 
         // 4) Cache the fresh result.
