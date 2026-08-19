@@ -421,7 +421,7 @@ export function AgentChatWidget() {
 
         {/* Team Chat FAB */}
         <button
-          onClick={() => setView("menu")}
+          onClick={() => setView("team")}
           className="group relative h-14 w-14 rounded-full bg-card border border-border text-foreground shadow-lg hover:bg-muted flex items-center justify-center transition-all hover:scale-105"
           data-testid="button-chat-fab"
           title="Team Chat"
