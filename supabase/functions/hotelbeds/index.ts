@@ -214,6 +214,20 @@ Deno.serve(async (req) => {
 
   // Auth check
   const authHeader = req.headers.get("Authorization");
+  async function sha256hex(s: string): Promise<string> {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+  }
+  const bearerToken = (authHeader ?? "").replace("Bearer ", "").trim();
+  const serviceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim();
+  console.log("[auth-diag]", {
+    bearerLen: bearerToken.length,
+    serviceKeyLen: serviceKey.length,
+    exactMatch: bearerToken === serviceKey,
+    bearerHash: await sha256hex(bearerToken),
+    serviceKeyHash: await sha256hex(serviceKey),
+    bearerLooksLikeJwt: bearerToken.split(".").length === 3,
+  });
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
