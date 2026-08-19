@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.notify_agent_chat_message() FROM PUBLIC, anon, authenticated;
