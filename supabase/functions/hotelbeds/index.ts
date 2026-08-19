@@ -214,24 +214,6 @@ Deno.serve(async (req) => {
 
   // Auth check
   const authHeader = req.headers.get("Authorization");
-  async function sha256hex(s: string): Promise<string> {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
-  }
-  const bearerToken = (authHeader ?? "").replace("Bearer ", "").trim();
-  const serviceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim();
-  console.log("[auth-diag]", {
-    bearerLen: bearerToken.length,
-    serviceKeyLen: serviceKey.length,
-    exactMatch: bearerToken === serviceKey,
-    bearerHash: await sha256hex(bearerToken),
-    serviceKeyHash: await sha256hex(serviceKey),
-    bearerLooksLikeJwt: bearerToken.split(".").length === 3,
-  });
-  const internalAuth = req.headers.get("X-Internal-Auth");
-  const sharedSecret = Deno.env.get("HOTELBEDS_FN_SHARED_SECRET") ?? "";
-  const isInternalAuth = sharedSecret.length > 0 && internalAuth === sharedSecret;
-  console.log("[auth-diag] internal-header-check", { internalAuthPresent: internalAuth !== null, isInternalAuth });
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -239,11 +221,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Allow service-role callers (e.g. stay.crestwelltravels.com Next.js backend)
-  // without requiring a user JWT. SECURITY NOTE: this decodes the JWT payload
-  // and trusts role="service_role"; this is forgeable and will be hardened in
-  // a follow-up change. Reverted temporarily to unblock production traffic.
-  let isServiceRole = isInternalAuth;
+  // Internal service callers (e.g. stay.crestwellgetaways.com Next.js backend)
+  // authenticate with a shared secret. End-user session tokens fall through to
+  // the Supabase auth check below.
+  const internalAuth = req.headers.get("X-Internal-Auth");
+  const sharedSecret = Deno.env.get("HOTELBEDS_FN_SHARED_SECRET") ?? "";
+  const isServiceRole = sharedSecret.length > 0 && internalAuth === sharedSecret;
   let authedUserId: string | null = null;
   if (!isServiceRole) {
     try {
