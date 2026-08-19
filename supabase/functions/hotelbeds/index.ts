@@ -523,6 +523,19 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // ── Read cached hotel content via function's service-role client ──
+      case "get_cached_hotels": {
+        const codes: number[] = (params.codes || []).map((c: any) => Number(c));
+        const admin = adminClient();
+        const { data, error } = await admin
+          .from("hotelbeds_hotels")
+          .select("code, description, images, accommodation_type_code, address, phones, facilities, raw")
+          .in("code", codes);
+        if (error) throw new Error(`Cache lookup failed: ${error.message}`);
+        result = { hotels: data ?? [] };
+        break;
+      }
+
       // ── Check Rate (pre-booking verification) ────────────────
       case "checkrate": {
         // Cert 2.5 — one rateKey per checkRate request. If multiple are
