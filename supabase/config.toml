@@ -27,6 +27,8 @@ project_id = "zbtnulzvwreqzbmxulpv"
     verify_jwt = false
   [functions.receive-lead]
     verify_jwt = false
+  [functions.notify-lead-assigned]
+    verify_jwt = false
   [functions.retrieve-virtual-card]
     verify_jwt = false
   [functions.send-email]
