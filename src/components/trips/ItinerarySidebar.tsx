@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { ParseConfirmationDialog } from "./ParseConfirmationDialog";
+import { ImportItineraryDocDialog } from "./ImportItineraryDocDialog";
 import { ItineraryTemplateDialog } from "./ItineraryTemplateDialog";
 import { TripBooking } from "@/hooks/useTrips";
 
@@ -198,6 +199,17 @@ export function ItinerarySidebar({
               variant="sidebar"
               bookings={bookings as any}
               existingItems={items as any}
+            />
+          )}
+
+          {onAddParsedItem && (
+            <ImportItineraryDocDialog
+              tripId={tripId}
+              departDate={departDate}
+              returnDate={returnDate}
+              totalDays={totalDays}
+              onAdd={onAddParsedItem}
+              variant="sidebar"
             />
           )}
 
