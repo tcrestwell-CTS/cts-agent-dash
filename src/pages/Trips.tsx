@@ -658,6 +658,21 @@ const Trips = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={advisorFilter} onValueChange={setAdvisorFilter}>
+                <SelectTrigger className="w-[190px] rounded-[8px] text-[13.5px]">
+                  <SelectValue placeholder="Filter by advisor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All advisors</SelectItem>
+                  {advisorOptions.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="flex overflow-hidden rounded-[8px] border border-border">
                 <Button
                   variant={viewMode === "kanban" ? "default" : "ghost"}
