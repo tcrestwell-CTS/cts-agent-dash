@@ -528,6 +528,8 @@ const TripDetail = () => {
                   </span>
                 )}
                 <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
+                <AdvisorTag advisorId={(trip as any).advisor_id} userId={(trip as any).user_id} />
+
               </div>
             </div>
           </div>
