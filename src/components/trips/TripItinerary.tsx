@@ -24,6 +24,7 @@ import { ItineraryItemEditor } from "./ItineraryItemEditor";
 import { OptionBlockCard } from "./OptionBlockCard";
 import { WidgetyCruiseImportDialog } from "./WidgetyCruiseImportDialog";
 import { ParseConfirmationDialog } from "./ParseConfirmationDialog";
+import { ImportItineraryDocDialog } from "./ImportItineraryDocDialog";
 import { ItineraryTemplateDialog } from "./ItineraryTemplateDialog";
 import { ItineraryPricingSummary } from "./ItineraryPricingSummary";
 import { TripBooking } from "@/hooks/useTrips";
@@ -388,6 +389,14 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
           onAdd={addItem}
           bookings={bookings as any}
           existingItems={items}
+        />
+
+        <ImportItineraryDocDialog
+          tripId={tripId}
+          departDate={departDate}
+          returnDate={returnDate}
+          totalDays={totalDays}
+          onAdd={addItem}
         />
 
         <ItineraryTemplateDialog
