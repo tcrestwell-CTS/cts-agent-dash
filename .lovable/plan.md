@@ -1,45 +1,20 @@
-# Agent Payment Processing Guide
+# Agent tags on trips
 
-## Goal
-Make the recommended agent payment workflow obvious, documented, and discoverable so advisors stop using ad-hoc or error-prone paths.
+Make it obvious at a glance which advisor owns each trip, and let you filter the trip list by advisor.
 
-## Current state
-The dashboard already supports several payment paths, but they are scattered and not surfaced as a recommended workflow:
-- Client self-service portal payments (Stripe / Affirm) after itinerary approval.
-- Agent-initiated "Take Payment" via Stripe Checkout inside the trip detail.
-- "Send Payment Link" deep links to `crestwellgetaways.com/pay`.
-- Manual logging for cash/check/wire/Zelle.
-- Scheduled installments.
-- Virtual cards (Stripe Issuing / Affirm VCN) for supplier payments, not client payments.
+## What you'll see
 
-Recent fixes added a 3-step client approval stepper and payment-agreement gating, but agents still need to know when to use each path.
+1. **Advisor tag on every trip row** — a small badge (avatar initials + advisor name, e.g. "Janay Harris") in a new "Advisor" column of the Trips table, and on each card in the Kanban board view.
+2. **"Filter by advisor" dropdown** next to the existing status filter — All advisors, plus one entry per team member. Combines with search and status filters.
+3. **Advisor tag on the Trip Detail header** so the owner is visible when you open a trip.
+4. **Unassigned handling** — trips with no advisor show a muted "Unassigned" tag, and the filter has an "Unassigned" option so gaps are easy to find.
 
-## Proposed plan
+Admins and office admins see all advisors; a regular advisor only sees their own trips as today (no access changes).
 
-1. **Add a "Payment Options" quick-help panel to the trip detail Payments tab**
-   - Surface the 4 recommended paths with one-sentence guidance and the primary CTA.
-   - Show which path is appropriate for which scenario (client on phone, async email, cash/check, financing).
-   - Keep the existing Add Payment dialog but make the recommended choice obvious.
+## Technical notes
 
-2. **Document the agent SOP in project memory**
-   - Write `mem/features/financial/agent-payment-sop.md` with the decision tree and steps for each path.
-   - Include the net-of-fee bookkeeping rule and the QBO reconciliation impact.
-
-3. **Improve the Add Payment dialog default experience**
-   - Pre-select the most common mode based on the payment context (e.g., "Take Payment" if a payment is due today, "Send Payment Link" if due later).
-   - Add short inline descriptions so the advisor understands each mode before selecting it.
-   - Confirm the generated payment link shows the expected amount and trip name before copying.
-
-4. **(Optional) Add a payment-method preference note on the client record**
-   - Let advisors note whether a client prefers portal self-pay, phone pay, or manual methods.
-   - Display the note in the Add Payment dialog so the team follows the client's preference.
-
-## Out of scope
-- Changing Stripe webhook or reconciliation logic (already working).
-- Adding new payment providers.
-- Modifying the client portal approval flow (already implemented).
-
-## Success criteria
-- An advisor can open a trip and understand the recommended payment path within 10 seconds.
-- The project memory contains a durable SOP the team can reference and share.
-- No regression in existing payment reconciliation or QBO sync behavior.
+- No schema change needed: `trips.advisor_id` (falling back to `trips.user_id`) already carries ownership. Names come from the existing `useTeamProfiles` hook (which already merges the bookkeeper-safe profiles view), so no new query per row.
+- New presentational component `src/components/trips/AdvisorTag.tsx` — takes a user id, resolves name/avatar from a memoized map, renders a compact badge using existing semantic tokens (no hardcoded colors).
+- `src/pages/Trips.tsx`: add `advisorFilter` state, extend the `filteredTrips` predicate, add the Select next to the status filter, add the "Advisor" column header/cell.
+- `src/components/trips/TripsKanban.tsx`: render `AdvisorTag` in the card footer; pass the advisor id through the existing `trips.map(...)` projection in Trips.tsx.
+- `src/pages/TripDetail.tsx`: render `AdvisorTag` in the header meta row.
