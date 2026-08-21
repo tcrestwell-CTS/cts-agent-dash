@@ -302,9 +302,13 @@ export function ImportItineraryDocDialog({
               </Button>
               {tripTitle && <Badge variant="secondary">{tripTitle}</Badge>}
               <span>
-                {items.length} item{items.length === 1 ? "" : "s"} found · {selectedCount} selected
+                {items.length} item{items.length === 1 ? "" : "s"} across{" "}
+                {new Set(items.map((_, i) => days[i] ?? 1)).size} day
+                {new Set(items.map((_, i) => days[i] ?? 1)).size === 1 ? "" : "s"} ·{" "}
+                {selectedCount} selected
               </span>
             </div>
+
 
             <ScrollArea className="h-[400px] pr-3">
               <div className="space-y-2">
