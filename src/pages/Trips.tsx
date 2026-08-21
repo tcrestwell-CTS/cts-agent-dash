@@ -30,6 +30,8 @@ import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import { AdvisorTag, useAdvisorNames } from "@/components/trips/AdvisorTag";
+
 import {
   DataTable,
   DataTableHead,
