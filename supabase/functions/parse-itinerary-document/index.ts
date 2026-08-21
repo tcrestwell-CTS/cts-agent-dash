@@ -147,6 +147,33 @@ Deno.serve(async (req) => {
       return json({ error: "No itinerary items were found in that document." }, 422);
     }
 
+    // ── Day recovery ──────────────────────────────────────────────────────────
+    // If the model lumped everything onto one day but the items carry calendar
+    // dates, derive day_number from the dates instead.
+    const distinctDays = new Set(cleaned.map((i) => i.day_number));
+    const dated = cleaned.filter((i) => i.date);
+    if (distinctDays.size === 1 && dated.length > 1) {
+      const toDay = (d: string) => Date.parse(`${d}T00:00:00Z`);
+      const baseline = departDate && /^\d{4}-\d{2}-\d{2}$/.test(departDate)
+        ? toDay(departDate)
+        : Math.min(...dated.map((i) => toDay(i.date!)));
+      if (Number.isFinite(baseline)) {
+        for (const item of cleaned) {
+          if (!item.date) continue;
+          const diff = Math.round((toDay(item.date) - baseline) / 86400000) + 1;
+          if (Number.isFinite(diff)) {
+            item.day_number = Math.min(Math.max(diff, 1), maxDay);
+          }
+        }
+      }
+    }
+
+    cleaned.sort((a, b) => {
+      if (a.day_number !== b.day_number) return a.day_number - b.day_number;
+      return (a.start_time || "").localeCompare(b.start_time || "");
+    });
+
+
     return json({
       trip_title: parsed.trip_title ? String(parsed.trip_title).slice(0, 200) : null,
       destination: parsed.destination ? String(parsed.destination).slice(0, 200) : null,
