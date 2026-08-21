@@ -786,7 +786,14 @@ const Trips = () => {
                             }
                             sub={trip.clients?.name || "Unassigned client"}
                           />
+                          <DataTableCell>
+                            <AdvisorTag
+                              advisorId={(trip as any).advisor_id}
+                              userId={(trip as any).user_id}
+                            />
+                          </DataTableCell>
                           <DataTableCell secondary>
+
                             {trip.destination ? (
                               <span className="text-[13.5px] text-muted-foreground">{trip.destination}</span>
                             ) : (
