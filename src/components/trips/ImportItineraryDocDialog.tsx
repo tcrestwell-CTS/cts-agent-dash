@@ -51,10 +51,36 @@ async function extractText(file: File): Promise<string> {
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
       const content = await page.getTextContent();
-      pages.push(content.items.map((i: any) => i.str ?? "").join(" "));
+      // Rebuild visual lines by grouping text items on the same vertical position.
+      // Without this, "Day 1"/"Day 2" headings collapse into one long line and
+      // the parser can't tell days apart.
+      const lines: { y: number; parts: { x: number; str: string }[] }[] = [];
+      for (const item of content.items as any[]) {
+        const str = item?.str ?? "";
+        if (!str.trim()) continue;
+        const x = item.transform?.[4] ?? 0;
+        const y = item.transform?.[5] ?? 0;
+        const line = lines.find((l) => Math.abs(l.y - y) < 3);
+        if (line) line.parts.push({ x, str });
+        else lines.push({ y, parts: [{ x, str }] });
+      }
+      const text = lines
+        .sort((a, b) => b.y - a.y)
+        .map((l) =>
+          l.parts
+            .sort((a, b) => a.x - b.x)
+            .map((p) => p.str)
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim(),
+        )
+        .filter(Boolean)
+        .join("\n");
+      pages.push(text);
     }
     return pages.join("\n\n");
   }
+
 
   if (name.endsWith(".docx")) {
     const mammoth: any = await import("mammoth/mammoth.browser");
