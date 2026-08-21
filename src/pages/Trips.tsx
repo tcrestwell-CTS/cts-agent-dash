@@ -756,7 +756,9 @@ const Trips = () => {
                   <DataTableHead>
                     <DataTableHeaderRow>
                       <DataTableHeaderCell>Trip / Client</DataTableHeaderCell>
+                      <DataTableHeaderCell>Advisor</DataTableHeaderCell>
                       <DataTableHeaderCell secondary>Destination</DataTableHeaderCell>
+
                       <DataTableHeaderCell>Departure</DataTableHeaderCell>
                       <DataTableHeaderCell align="right" secondary>Guests</DataTableHeaderCell>
                       <DataTableHeaderCell align="right">Value</DataTableHeaderCell>
