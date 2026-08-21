@@ -489,6 +489,8 @@ const Trips = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [advisorFilter, setAdvisorFilter] = useState<string>("all");
+
 
   const handleTripCreated = () => {
     setIsAddDialogOpen(false);
