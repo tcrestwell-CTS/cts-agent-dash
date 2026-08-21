@@ -507,6 +507,16 @@ const Trips = () => {
   const [quickBookDialogOpen, setQuickBookDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
+  const advisorNames = useAdvisorNames();
+  const advisorOptions = Array.from(
+    new Map(
+      trips
+        .map((t) => (t as any).advisor_id || (t as any).user_id)
+        .filter((id): id is string => !!id)
+        .map((id) => [id, advisorNames.get(id)?.name || "Advisor"] as const)
+    )
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
   const filteredTrips = trips.filter((trip) => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
@@ -514,8 +524,13 @@ const Trips = () => {
       trip.destination?.toLowerCase().includes(searchLower) ||
       trip.clients?.name.toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const advisorId = (trip as any).advisor_id || (trip as any).user_id || null;
+    const matchesAdvisor =
+      advisorFilter === "all" ||
+      (advisorFilter === "unassigned" ? !advisorId : advisorId === advisorFilter);
+    return matchesSearch && matchesStatus && matchesAdvisor;
   });
+
 
   const filteredPortalSuppliers = selectedCategory === "all" 
     ? portalSuppliers 
