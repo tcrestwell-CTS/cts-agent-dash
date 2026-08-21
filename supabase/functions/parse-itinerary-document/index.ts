@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "openai/gpt-5.6-sol",
-        reasoning_effort: "none",
+        reasoning_effort: "low",
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
