@@ -31,7 +31,7 @@ Rules:
 - Use ONLY facts present in the document. Never invent flights, hotels, times, prices or confirmation numbers.
 - One item per discrete component or scheduled activity (each flight segment, hotel check-in/out, port day, excursion, transfer, meal, free time block).
 - Keep the document's chronological order.
-- day_number is the 1-based trip day the item belongs to. Derive it from headings like "Day 3" or from dates relative to the trip departure date when given. Default to 1 only when nothing indicates a day.
+- day_number is the 1-based trip day the item belongs to. This matters a lot: read day headings ("Day 3", "Day 3 – Nassau", "DAY THREE"), weekday/date headings ("Mon, Jan 12"), or "at sea"/port-day rows and assign each item to the correct day. Two items belong to the same day ONLY if the document places them under the same day heading or same calendar date. When calendar dates are present, compute day_number as (item date − trip departure date) + 1. Never put every item on day 1 — if the document clearly spans multiple days, day_number must increase accordingly. Default to 1 only when nothing whatsoever indicates a day.
 - category must be exactly one of: ${CATEGORIES.join(", ")}.
 - date must be YYYY-MM-DD when the document states or implies a calendar date, otherwise null.
 - start_time / end_time must be 24h HH:MM, otherwise null.
