@@ -31,7 +31,7 @@ Rules:
 - Use ONLY facts present in the document. Never invent flights, hotels, times, prices or confirmation numbers.
 - One item per discrete component or scheduled activity (each flight segment, hotel check-in/out, port day, excursion, transfer, meal, free time block).
 - Keep the document's chronological order.
-- day_number is the 1-based trip day the item belongs to. Derive it from headings like "Day 3" or from dates relative to the trip departure date when given. Default to 1 only when nothing indicates a day.
+- day_number is the 1-based trip day the item belongs to. This matters a lot: read day headings ("Day 3", "Day 3 – Nassau", "DAY THREE"), weekday/date headings ("Mon, Jan 12"), or "at sea"/port-day rows and assign each item to the correct day. Two items belong to the same day ONLY if the document places them under the same day heading or same calendar date. When calendar dates are present, compute day_number as (item date − trip departure date) + 1. Never put every item on day 1 — if the document clearly spans multiple days, day_number must increase accordingly. Default to 1 only when nothing whatsoever indicates a day.
 - category must be exactly one of: ${CATEGORIES.join(", ")}.
 - date must be YYYY-MM-DD when the document states or implies a calendar date, otherwise null.
 - start_time / end_time must be 24h HH:MM, otherwise null.
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "openai/gpt-5.6-sol",
-        reasoning_effort: "none",
+        reasoning_effort: "low",
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -146,6 +146,33 @@ Deno.serve(async (req) => {
     if (cleaned.length === 0) {
       return json({ error: "No itinerary items were found in that document." }, 422);
     }
+
+    // ── Day recovery ──────────────────────────────────────────────────────────
+    // If the model lumped everything onto one day but the items carry calendar
+    // dates, derive day_number from the dates instead.
+    const distinctDays = new Set(cleaned.map((i) => i.day_number));
+    const dated = cleaned.filter((i) => i.date);
+    if (distinctDays.size === 1 && dated.length > 1) {
+      const toDay = (d: string) => Date.parse(`${d}T00:00:00Z`);
+      const baseline = departDate && /^\d{4}-\d{2}-\d{2}$/.test(departDate)
+        ? toDay(departDate)
+        : Math.min(...dated.map((i) => toDay(i.date!)));
+      if (Number.isFinite(baseline)) {
+        for (const item of cleaned) {
+          if (!item.date) continue;
+          const diff = Math.round((toDay(item.date) - baseline) / 86400000) + 1;
+          if (Number.isFinite(diff)) {
+            item.day_number = Math.min(Math.max(diff, 1), maxDay);
+          }
+        }
+      }
+    }
+
+    cleaned.sort((a, b) => {
+      if (a.day_number !== b.day_number) return a.day_number - b.day_number;
+      return (a.start_time || "").localeCompare(b.start_time || "");
+    });
+
 
     return json({
       trip_title: parsed.trip_title ? String(parsed.trip_title).slice(0, 200) : null,
