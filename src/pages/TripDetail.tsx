@@ -64,6 +64,8 @@ import { DepartureUrgencyBadge } from "@/components/shared/DepartureUrgencyBadge
 import { WorkflowTasks } from "@/components/trips/WorkflowTasks";
 
 import { WidgetyCruiseImportDialog } from "@/components/trips/WidgetyCruiseImportDialog";
+import { AdvisorTag } from "@/components/trips/AdvisorTag";
+
 import { EditTripDialog } from "@/components/trips/EditTripDialog";
 import { TripSidebar } from "@/components/trips/TripSidebar";
 import { TripItinerary, type ItinerarySidebarCallbacks } from "@/components/trips/TripItinerary";
@@ -528,6 +530,8 @@ const TripDetail = () => {
                   </span>
                 )}
                 <DepartureUrgencyBadge departDate={trip.depart_date} showIcon={true} />
+                <AdvisorTag advisorId={(trip as any).advisor_id} userId={(trip as any).user_id} />
+
               </div>
             </div>
           </div>

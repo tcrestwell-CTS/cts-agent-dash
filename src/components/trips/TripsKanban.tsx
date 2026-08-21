@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AdvisorTag } from "@/components/trips/AdvisorTag";
 import type { Trip } from "@/hooks/useTrips";
 import type { CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 
@@ -271,6 +272,9 @@ function KanbanTripCard({ trip }: { trip: Trip }) {
             <DaysOutBadge days={days} />
           </div>
         )}
+        <div className="pt-1">
+          <AdvisorTag advisorId={(trip as any).advisor_id} userId={(trip as any).user_id} />
+        </div>
         <div className="flex items-center justify-between pt-1">
           {guests ? (
             <span className="inline-flex items-center gap-1 text-[12px] text-muted-foreground [font-variant-numeric:tabular-nums]">

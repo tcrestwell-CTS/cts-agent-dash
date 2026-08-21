@@ -30,6 +30,8 @@ import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
 import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
+import { AdvisorTag, useAdvisorNames } from "@/components/trips/AdvisorTag";
+
 import {
   DataTable,
   DataTableHead,
@@ -489,6 +491,8 @@ const Trips = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [advisorFilter, setAdvisorFilter] = useState<string>("all");
+
 
   const handleTripCreated = () => {
     setIsAddDialogOpen(false);
@@ -507,6 +511,16 @@ const Trips = () => {
   const [quickBookDialogOpen, setQuickBookDialogOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
+  const advisorNames = useAdvisorNames();
+  const advisorOptions = Array.from(
+    new Map(
+      trips
+        .map((t) => (t as any).advisor_id || (t as any).user_id)
+        .filter((id): id is string => !!id)
+        .map((id) => [id, advisorNames.get(id)?.name || "Advisor"] as const)
+    )
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
   const filteredTrips = trips.filter((trip) => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
@@ -514,8 +528,13 @@ const Trips = () => {
       trip.destination?.toLowerCase().includes(searchLower) ||
       trip.clients?.name.toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const advisorId = (trip as any).advisor_id || (trip as any).user_id || null;
+    const matchesAdvisor =
+      advisorFilter === "all" ||
+      (advisorFilter === "unassigned" ? !advisorId : advisorId === advisorFilter);
+    return matchesSearch && matchesStatus && matchesAdvisor;
   });
+
 
   const filteredPortalSuppliers = selectedCategory === "all" 
     ? portalSuppliers 
@@ -639,6 +658,21 @@ const Trips = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={advisorFilter} onValueChange={setAdvisorFilter}>
+                <SelectTrigger className="w-[190px] rounded-[8px] text-[13.5px]">
+                  <SelectValue placeholder="Filter by advisor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All advisors</SelectItem>
+                  {advisorOptions.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="flex overflow-hidden rounded-[8px] border border-border">
                 <Button
                   variant={viewMode === "kanban" ? "default" : "ghost"}
@@ -722,7 +756,9 @@ const Trips = () => {
                   <DataTableHead>
                     <DataTableHeaderRow>
                       <DataTableHeaderCell>Trip / Client</DataTableHeaderCell>
+                      <DataTableHeaderCell>Advisor</DataTableHeaderCell>
                       <DataTableHeaderCell secondary>Destination</DataTableHeaderCell>
+
                       <DataTableHeaderCell>Departure</DataTableHeaderCell>
                       <DataTableHeaderCell align="right" secondary>Guests</DataTableHeaderCell>
                       <DataTableHeaderCell align="right">Value</DataTableHeaderCell>
@@ -750,7 +786,14 @@ const Trips = () => {
                             }
                             sub={trip.clients?.name || "Unassigned client"}
                           />
+                          <DataTableCell>
+                            <AdvisorTag
+                              advisorId={(trip as any).advisor_id}
+                              userId={(trip as any).user_id}
+                            />
+                          </DataTableCell>
                           <DataTableCell secondary>
+
                             {trip.destination ? (
                               <span className="text-[13.5px] text-muted-foreground">{trip.destination}</span>
                             ) : (
