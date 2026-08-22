@@ -342,6 +342,27 @@ const handler = async (req: Request): Promise<Response> => {
         const recipient = body.test_recipient || client.email;
         const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
 
+        // Everyone assigned to this trip gets a copy: split payers and
+        // additional travelers on the trip (deduped, primary client first).
+        const coRecipients: string[] = [];
+        if (!body.test_recipient) {
+          const seen = new Set([recipient.toLowerCase()]);
+          const [{ data: payerShares }, { data: tripTravelers }] = await Promise.all([
+            supabase.from("booking_payer_shares").select("payer_email").eq("trip_id", trip.id),
+            supabase.from("trip_travelers").select("email").eq("trip_id", trip.id),
+          ]);
+          for (const row of [...(payerShares || []), ...(tripTravelers || [])] as any[]) {
+            const email = (row.payer_email || row.email || "").trim();
+            if (!email || !email.includes("@")) continue;
+            const lower = email.toLowerCase();
+            if (seen.has(lower)) continue;
+            seen.add(lower);
+            coRecipients.push(email);
+          }
+        }
+        const allRecipients = [recipient, ...coRecipients];
+
+
         // Mint a tokenized secure payment link for this recipient
         let payUrl = GENERIC_PAY_URL;
         try {
