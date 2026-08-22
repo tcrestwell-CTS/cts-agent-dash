@@ -777,7 +777,9 @@ export function TripPayments({
                           </div>
                         </td>
                         <td className="py-3 text-sm">
-                          {format(parseLocalDate(payment.payment_date), "MMM d, yyyy")}
+                          {payment.payment_date
+                            ? format(parseLocalDate(payment.payment_date), "MMM d, yyyy")
+                            : "—"}
                         </td>
                         <td className="py-3 text-sm text-primary">
                           {payment.details || "-"}
