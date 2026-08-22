@@ -145,6 +145,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: "Campaigns",  href: "/campaigns",       icon: Megaphone, feature: "campaigns" },
       { name: "Training",   href: "/training",         icon: GraduationCap, feature: "training" },
+      { name: "User Guide", href: "/user-guide",       icon: BookOpen },
       { name: "Analytics",  href: "/analytics",        icon: BarChart3, feature: "analytics" },
       { name: "The Circle ✦", href: "/circle-members", icon: Star },
     ],

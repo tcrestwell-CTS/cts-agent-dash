@@ -26,6 +26,7 @@ const ClientDetail        = lazy(() => import("./pages/ClientDetail"));
 const Bookings            = lazy(() => import("./pages/Bookings"));
 const BookingDetail       = lazy(() => import("./pages/BookingDetail"));
 const Training            = lazy(() => import("./pages/Training"));
+const UserGuide           = lazy(() => import("./pages/UserGuide"));
 const TrainingLibrary     = lazy(() => import("./pages/TrainingLibrary"));
 const TrainingPhaseDetail = lazy(() => import("./pages/TrainingPhaseDetail"));
 const TrainingModuleDetail = lazy(() => import("./pages/TrainingModuleDetail"));
@@ -203,6 +204,7 @@ const App = () => (
                 <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
                 <Route path="/bookings/:bookingId" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
+                <Route path="/user-guide" element={<ProtectedRoute><UserGuide /></ProtectedRoute>} />
                 <Route path="/training/library" element={<ProtectedRoute><TrainingLibrary /></ProtectedRoute>} />
                 <Route path="/training/phase/:phaseId" element={<ProtectedRoute><TrainingPhaseDetail /></ProtectedRoute>} />
                 <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
