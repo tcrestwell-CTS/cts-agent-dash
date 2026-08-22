@@ -31,6 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { isInvoiceCashPayment } from "@/hooks/useTripPayments";
 
 interface SplitPaymentDialogProps {
   open: boolean;
@@ -80,7 +81,38 @@ export function SplitPaymentDialog({
   const [saving, setSaving] = useState(false);
 
   const booking = payableBookings.find((b) => b.id === bookingId);
-  const bookingTotal = Number(booking?.gross_sales || (booking as any)?.total_price || 0);
+  const bookingGross = Number(booking?.gross_sales || (booking as any)?.total_price || 0);
+  const [alreadyPaid, setAlreadyPaid] = useState(0);
+
+  // Only the unpaid balance can be split — payments already logged stay put.
+  useEffect(() => {
+    if (!open || !bookingId) {
+      setAlreadyPaid(0);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("trip_payments")
+        .select("amount, status, due_date, payment_date, payment_method, stripe_session_id, stripe_receipt_url, payment_type, details")
+        .eq("booking_id", bookingId);
+      if (cancelled) return;
+      if (error) {
+        console.error("SplitPaymentDialog: failed to load payments", error);
+        setAlreadyPaid(0);
+        return;
+      }
+      const paid = (data || [])
+        .filter((p: any) => isInvoiceCashPayment(p))
+        .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      setAlreadyPaid(Math.round(paid * 100) / 100);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, bookingId]);
+
+  const bookingTotal = Math.max(0, Math.round((bookingGross - alreadyPaid) * 100) / 100);
 
   // Seed the editor: existing shares when present, otherwise an equal split.
   useEffect(() => {
@@ -259,8 +291,15 @@ export function SplitPaymentDialog({
 
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
             <div>
-              <p className="text-sm text-muted-foreground">Booking total</p>
+              <p className="text-sm text-muted-foreground">
+                {alreadyPaid > 0 ? "Unpaid balance to split" : "Booking total"}
+              </p>
               <p className="text-lg font-semibold">{currency(bookingTotal)}</p>
+              {alreadyPaid > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {currency(bookingGross)} total − {currency(alreadyPaid)} already paid
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Unallocated</p>
