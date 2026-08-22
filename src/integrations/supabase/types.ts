@@ -678,6 +678,69 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_subscription_payments: {
+        Row: {
+          agent_user_id: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          period_end: string | null
+          period_start: string | null
+          plan_name: string | null
+          qbo_deposit_id: string | null
+          qbo_synced_at: string | null
+          status: string
+          stripe_fee: number
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_user_id: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          period_end?: string | null
+          period_start?: string | null
+          plan_name?: string | null
+          qbo_deposit_id?: string | null
+          qbo_synced_at?: string | null
+          status?: string
+          stripe_fee?: number
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_user_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          period_end?: string | null
+          period_start?: string | null
+          plan_name?: string | null
+          qbo_deposit_id?: string | null
+          qbo_synced_at?: string | null
+          status?: string
+          stripe_fee?: number
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_training_progress: {
         Row: {
           completed_at: string | null
