@@ -19,6 +19,7 @@ import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
+import { EmailInvoiceDialog, InvoiceEmailSendPayload } from "./EmailInvoiceDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
