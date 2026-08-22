@@ -139,6 +139,7 @@ const BookkeeperDashboard    = lazy(() => import("./pages/bookkeeper/BookkeeperD
 const BookkeeperPL           = lazy(() => import("./pages/bookkeeper/BookkeeperPL"));
 const BookkeeperBalanceSheet = lazy(() => import("./pages/bookkeeper/BookkeeperBalanceSheet"));
 const BookkeeperIncome       = lazy(() => import("./pages/bookkeeper/BookkeeperIncome"));
+const AgencyOtherIncome      = lazy(() => import("./pages/bookkeeper/AgencyOtherIncome"));
 const BookkeeperExpenses     = lazy(() => import("./pages/bookkeeper/BookkeeperExpenses"));
 const BookkeeperUnattributed = lazy(() => import("./pages/bookkeeper/BookkeeperUnattributed"));
 const BookkeeperBankRecon    = lazy(() => import("./pages/bookkeeper/BookkeeperBankRecon"));
