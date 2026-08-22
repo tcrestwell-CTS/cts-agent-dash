@@ -562,9 +562,9 @@ export function TripPayments({
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={handleEmailInvoice}
-                disabled={sendingEmail || !clientEmail}
-                title={!clientEmail ? "Client email required" : "Email invoice to client"}
+                onClick={() => setEmailInvoiceOpen(true)}
+                disabled={sendingEmail}
+                title="Preview and email the invoice"
               >
                 {sendingEmail ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
