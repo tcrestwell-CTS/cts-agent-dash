@@ -441,7 +441,7 @@ const handler = async (req: Request): Promise<Response> => {
           resend_id: (sendResp as any)?.data?.id || null,
           due_date: inv.due_date,
           amount: Number(inv.balance || 0),
-          meta: { invoice_number: invoiceNumber, subject },
+          meta: { invoice_number: invoiceNumber, subject, copied_to: coRecipients },
         });
 
         // Mirror into email_logs so this send appears in the Email Activity dashboard
