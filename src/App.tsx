@@ -204,6 +204,7 @@ const App = () => (
                 <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
                 <Route path="/bookings/:bookingId" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
                 <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
+                <Route path="/user-guide" element={<ProtectedRoute><UserGuide /></ProtectedRoute>} />
                 <Route path="/training/library" element={<ProtectedRoute><TrainingLibrary /></ProtectedRoute>} />
                 <Route path="/training/phase/:phaseId" element={<ProtectedRoute><TrainingPhaseDetail /></ProtectedRoute>} />
                 <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
