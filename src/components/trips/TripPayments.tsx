@@ -853,6 +853,61 @@ export function TripPayments({
         </CardContent>
       </Card>
 
+      {payerSummary.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5" /> Split Payers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {payerSummary.map((s) => (
+              <div
+                key={s.id}
+                className="flex flex-col gap-1 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-medium">{s.payer_name}</p>
+                  {s.payer_email && (
+                    <p className="text-xs text-muted-foreground">{s.payer_email}</p>
+                  )}
+                </div>
+                <div className="flex gap-6 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Share</p>
+                    <p className="font-medium">{formatCurrency(Number(s.share_amount))}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Paid</p>
+                    <p className="font-medium text-success">{formatCurrency(s.paid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Remaining</p>
+                    <p className="font-medium">{formatCurrency(s.remaining)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => setSplitDialogOpen(true)}>
+              <Users className="h-4 w-4 mr-2" /> Edit split
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <SplitPaymentDialog
+        open={splitDialogOpen}
+        onOpenChange={setSplitDialogOpen}
+        tripId={tripId}
+        bookings={bookings}
+        onSaved={() => {
+          fetchPayments();
+          onDataChange?.();
+        }}
+      />
+
+
+
       <AddPaymentDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
