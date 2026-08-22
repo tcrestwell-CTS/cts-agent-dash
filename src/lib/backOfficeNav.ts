@@ -67,6 +67,7 @@ export const backOfficeSections: BackOfficeSection[] = [
     label: "Transactions",
     items: [
       { name: "Income", href: "/bookkeeper/income", icon: DollarSign, description: "Revenue transactions" },
+      { name: "Other Income", href: "/bookkeeper/other-income", icon: DollarSign, description: "Advisor subscriptions & loan interest" },
       { name: "Expenses", href: "/bookkeeper/expenses", icon: Banknote, description: "Supplier and operating spend" },
       { name: "Unattributed", href: "/bookkeeper/unattributed", icon: FileWarning, description: "Payments needing attribution" },
       { name: "Daily Payment Report", href: "/reports/daily-payments", icon: FileText, description: "Daily & monthly payment activity" },
