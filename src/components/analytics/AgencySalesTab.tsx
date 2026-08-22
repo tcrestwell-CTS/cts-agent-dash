@@ -40,6 +40,7 @@ import {
 import { exportToCSV, formatCurrencyForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { getTierConfig, CommissionTier } from "@/lib/commissionTiers";
+import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
 
 interface AgencySalesTabProps {
   dateRange: DateRange;
