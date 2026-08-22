@@ -347,14 +347,14 @@ const handler = async (req: Request): Promise<Response> => {
         const recipient = body.test_recipient || client.email;
         const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
 
-        // Everyone assigned to this trip gets a copy: split payers and
-        // additional travelers on the trip (deduped, primary client first).
-        const coRecipients: string[] = [];
+        // Everyone assigned to this trip gets their own individually addressed
+        // copy: split payers and additional travelers (deduped, primary first).
+        const coRecipientRows: Array<{ email: string; name: string }> = [];
         if (!body.test_recipient) {
           const seen = new Set([recipient.toLowerCase()]);
           const [{ data: payerShares }, { data: tripTravelers }] = await Promise.all([
-            supabase.from("booking_payer_shares").select("payer_email").eq("trip_id", trip.id),
-            supabase.from("trip_travelers").select("email").eq("trip_id", trip.id),
+            supabase.from("booking_payer_shares").select("payer_email, payer_name").eq("trip_id", trip.id),
+            supabase.from("trip_travelers").select("email, first_name, last_name").eq("trip_id", trip.id),
           ]);
           for (const row of [...(payerShares || []), ...(tripTravelers || [])] as any[]) {
             const email = (row.payer_email || row.email || "").trim();
@@ -362,10 +362,14 @@ const handler = async (req: Request): Promise<Response> => {
             const lower = email.toLowerCase();
             if (seen.has(lower)) continue;
             seen.add(lower);
-            coRecipients.push(email);
+            const name =
+              (row.payer_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "").trim();
+            coRecipientRows.push({ email, name });
           }
         }
+        const coRecipients = coRecipientRows.map((r) => r.email);
         const allRecipients = [recipient, ...coRecipients];
+        const recipientRows = [{ email: recipient, name: client.name }, ...coRecipientRows];
 
 
         // Mint a tokenized secure payment link for this recipient
