@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Link2, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud } from "lucide-react";
+import { Plus, Link2, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud, Users } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
+import { SplitPaymentDialog } from "./SplitPaymentDialog";
+import { useTripPayerShares } from "@/hooks/useBookingPayerShares";
+
 import { SendFinancingLinkDialog } from "@/components/financing/SendFinancingLinkDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
@@ -93,7 +96,10 @@ export function TripPayments({
   } = useTripPayments(tripId);
   const { settings: brandingSettings } = useBrandingSettings();
   const { createInvoice, getNextInvoiceNumber } = useInvoices();
+  const { data: payerShares = [] } = useTripPayerShares(tripId);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
@@ -435,7 +441,25 @@ export function TripPayments({
   const expectedPayments = payments.filter((p) => p.status === "pending");
   const pastPayments = payments.filter((p) => p.status !== "pending");
 
+  // Per-payer share summary (Stripe split bookings only)
+  const payerSummary = payerShares.map((share) => {
+    const paid = payments
+      .filter(
+        (p) =>
+          p.status === "paid" &&
+          ((share.traveler_id && p.payer_traveler_id === share.traveler_id) ||
+            (!!p.payer_name && p.payer_name === share.payer_name))
+      )
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return {
+      ...share,
+      paid,
+      remaining: Math.max(Number(share.share_amount) - paid, 0),
+    };
+  });
+
   const progressPercentage = tripTotal > 0 ? Math.min((totalPaid / tripTotal) * 100, 100) : 0;
+
 
   if (loading) {
     return (
@@ -458,6 +482,17 @@ export function TripPayments({
                 <Plus className="h-4 w-4 mr-2" />
                 Log Payment
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSplitDialogOpen(true)}
+                disabled={bookings.length === 0}
+                title="Split one booking between multiple payers"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Split Payment
+              </Button>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -558,7 +593,14 @@ export function TripPayments({
                       <tr key={payment.id} className="hover:bg-muted/50">
                         <td className="py-3">
                           <p className="font-medium text-primary">{getPaymentLabel(payment)}</p>
+                          {payment.payer_name && (
+                            <Badge variant="outline" className="mt-1 text-[10px]">
+                              <Users className="h-3 w-3 mr-1" />
+                              {payment.payer_name}
+                            </Badge>
+                          )}
                         </td>
+
                         <td className="py-3 text-sm text-muted-foreground">
                           {payment.payment_type === "final_balance" ? "Final balance" : 
                            payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1)}
@@ -810,6 +852,61 @@ export function TripPayments({
           )}
         </CardContent>
       </Card>
+
+      {payerSummary.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5" /> Split Payers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {payerSummary.map((s) => (
+              <div
+                key={s.id}
+                className="flex flex-col gap-1 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-medium">{s.payer_name}</p>
+                  {s.payer_email && (
+                    <p className="text-xs text-muted-foreground">{s.payer_email}</p>
+                  )}
+                </div>
+                <div className="flex gap-6 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Share</p>
+                    <p className="font-medium">{formatCurrency(Number(s.share_amount))}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Paid</p>
+                    <p className="font-medium text-success">{formatCurrency(s.paid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Remaining</p>
+                    <p className="font-medium">{formatCurrency(s.remaining)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => setSplitDialogOpen(true)}>
+              <Users className="h-4 w-4 mr-2" /> Edit split
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <SplitPaymentDialog
+        open={splitDialogOpen}
+        onOpenChange={setSplitDialogOpen}
+        tripId={tripId}
+        bookings={bookings}
+        onSaved={() => {
+          fetchPayments();
+          onDataChange?.();
+        }}
+      />
+
+
 
       <AddPaymentDialog
         open={addDialogOpen}

@@ -346,6 +346,9 @@ export default function PortalPayments() {
                     {p.due_date ? `Due ${format(new Date(p.due_date), "MMM d, yyyy")}` : "Due date pending"}
                   </p>
                   {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
+                  {(p as any).payer_name && (
+                    <p className="text-xs text-muted-foreground">Payer: {(p as any).payer_name}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-lg font-bold">{formatCurrency(p.amount)}</p>
@@ -552,6 +555,9 @@ export default function PortalPayments() {
                         <td className="py-3">
                           <p className="font-medium text-sm">{formatPaymentType(p.payment_type)}</p>
                           {p.details && <p className="text-xs text-muted-foreground">{p.details}</p>}
+                          {(p as any).payer_name && (
+                            <p className="text-xs text-muted-foreground">Payer: {(p as any).payer_name}</p>
+                          )}
                         </td>
                         <td className="py-3 text-sm text-muted-foreground">{p.trip_name}</td>
                         <td className="py-3 text-sm text-muted-foreground capitalize">

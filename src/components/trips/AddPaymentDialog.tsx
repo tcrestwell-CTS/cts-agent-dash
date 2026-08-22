@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTripPayments } from "@/hooks/useTripPayments";
+import { useBookingPayerShares } from "@/hooks/useBookingPayerShares";
+
 import { TripBooking } from "@/hooks/useTrips";
 import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink, CalendarClock, Copy, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,6 +79,10 @@ const defaultForm = {
   status: "pending", // overridden per mode — manual defaults to "paid"
   details: "",
   notes: "",
+  payer_share_id: "none",
+  payer_traveler_id: "",
+  payer_name: "",
+  payer_email: "",
 };
 
 // Mode-specific defaults — manual recordings should default to paid
@@ -96,6 +102,10 @@ interface SharedFieldsProps {
 }
 
 function SharedPaymentFields({ formData, setFormData, bookings }: SharedFieldsProps) {
+  const { data: payerShares = [] } = useBookingPayerShares(
+    formData.booking_id !== "none" ? formData.booking_id : undefined
+  );
+
   const getBookingLabel = (b: TripBooking) => {
     const supplier = b.suppliers?.name || "";
     const dest = b.destination || "";
@@ -106,7 +116,38 @@ function SharedPaymentFields({ formData, setFormData, bookings }: SharedFieldsPr
   const handleBookingChange = (v: string) => {
     const booking = bookings.find((b) => b.id === v);
     const newAmount = booking ? String(booking.gross_sales || "") : formData.amount;
-    setFormData({ ...formData, booking_id: v, amount: newAmount });
+    setFormData({
+      ...formData,
+      booking_id: v,
+      amount: newAmount,
+      payer_share_id: "none",
+      payer_traveler_id: "",
+      payer_name: "",
+      payer_email: "",
+    });
+  };
+
+  const handlePayerChange = (v: string) => {
+    if (v === "none") {
+      setFormData({
+        ...formData,
+        payer_share_id: "none",
+        payer_traveler_id: "",
+        payer_name: "",
+        payer_email: "",
+      });
+      return;
+    }
+    const share = payerShares.find((s) => s.id === v);
+    if (!share) return;
+    setFormData({
+      ...formData,
+      payer_share_id: v,
+      payer_traveler_id: share.traveler_id || "",
+      payer_name: share.payer_name,
+      payer_email: share.payer_email || "",
+      amount: formData.amount || String(share.share_amount),
+    });
   };
 
   return (
@@ -126,6 +167,24 @@ function SharedPaymentFields({ formData, setFormData, bookings }: SharedFieldsPr
           </SelectContent>
         </Select>
       </div>
+
+      {payerShares.length > 0 && (
+        <div className="space-y-2">
+          <Label>Payer (split booking)</Label>
+          <Select value={formData.payer_share_id} onValueChange={handlePayerChange}>
+            <SelectTrigger><SelectValue placeholder="Whole booking" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Whole booking (no specific payer)</SelectItem>
+              {payerShares.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.payer_name} — ${Number(s.share_amount).toFixed(2)} share
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -234,6 +293,9 @@ export function AddPaymentDialog({
       status: "pending",
       details: formData.details || null,
       notes: formData.notes || null,
+      payer_traveler_id: formData.payer_traveler_id || null,
+      payer_name: formData.payer_name || null,
+      payer_email: formData.payer_email || null,
     });
   };
 
@@ -340,6 +402,9 @@ export function AddPaymentDialog({
       status: formData.status,
       details: formData.details || null,
       notes: formData.notes || null,
+      payer_traveler_id: formData.payer_traveler_id || null,
+      payer_name: formData.payer_name || null,
+      payer_email: formData.payer_email || null,
     });
     if (result) {
       // If this manually-logged payment is paid, auto-apply it against any

@@ -24,6 +24,9 @@ export interface TripPayment {
   payment_method_choice: string | null;
   virtual_card_status: string | null;
   virtual_card_id: string | null;
+  payer_traveler_id?: string | null;
+  payer_name?: string | null;
+  payer_email?: string | null;
   bookings?: {
     id: string;
     confirmation_number: string;
@@ -45,6 +48,9 @@ export interface CreatePaymentData {
   status?: string;
   details?: string | null;
   notes?: string | null;
+  payer_traveler_id?: string | null;
+  payer_name?: string | null;
+  payer_email?: string | null;
 }
 
 export interface UpdatePaymentData {
@@ -56,7 +62,11 @@ export interface UpdatePaymentData {
   status?: string;
   details?: string | null;
   notes?: string | null;
+  payer_traveler_id?: string | null;
+  payer_name?: string | null;
+  payer_email?: string | null;
 }
+
 
 export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_date" | "payment_method" | "stripe_session_id" | "stripe_receipt_url" | "payment_type" | "details" | "payment_date">) => {
   const details = (payment.details || "").toLowerCase();
@@ -138,7 +148,11 @@ export function useTripPayments(tripId: string | undefined) {
           status: data.status || "pending",
           details: data.details || null,
           notes: data.notes || null,
+          payer_traveler_id: data.payer_traveler_id || null,
+          payer_name: data.payer_name || null,
+          payer_email: data.payer_email || null,
         })
+
         .select()
         .single();
 

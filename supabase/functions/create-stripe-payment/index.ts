@@ -111,7 +111,7 @@ serve(async (req) => {
 
     const { data: payment, error: paymentError } = await supabase
       .from("trip_payments")
-      .select("id, amount, trip_id, status, details, payment_type")
+      .select("id, amount, trip_id, status, details, payment_type, payer_name, payer_email")
       .eq("id", paymentId)
       .single();
 
@@ -132,8 +132,9 @@ serve(async (req) => {
     }
 
     const actualClientId = trip?.client_id || clientId;
-    let customerEmail: string | null = null;
-    if (actualClientId) {
+    // Split payments: the specific payer's email wins over the primary client's.
+    let customerEmail: string | null = (payment as any).payer_email || null;
+    if (!customerEmail && actualClientId) {
       const { data: client } = await supabase
         .from("clients")
         .select("email, name")
@@ -141,6 +142,7 @@ serve(async (req) => {
         .single();
       customerEmail = client?.email || null;
     }
+
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 

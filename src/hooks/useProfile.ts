@@ -17,6 +17,8 @@ export interface ProfileData {
   ccra_number: string;
   asta_number: string;
   embarc_number: string;
+  default_split_payments: boolean;
+  default_split_payers: number;
   storefront_enabled: boolean;
   storefront_slug: string;
   storefront_headline: string;
@@ -37,6 +39,8 @@ const defaultProfile: ProfileData = {
   ccra_number: "",
   asta_number: "",
   embarc_number: "",
+  default_split_payments: false,
+  default_split_payers: 2,
   storefront_enabled: false,
   storefront_slug: "",
   storefront_headline: "Your Personal Cruise & Vacation Expert",
@@ -90,6 +94,8 @@ export function useProfile() {
           ccra_number: (data as any).ccra_number || "",
           asta_number: (data as any).asta_number || "",
           embarc_number: (data as any).embarc_number || "",
+          default_split_payments: (data as any).default_split_payments || false,
+          default_split_payers: (data as any).default_split_payers || 2,
           storefront_enabled: (data as any).storefront_enabled || false,
           storefront_slug: (data as any).storefront_slug || "",
           storefront_headline: (data as any).storefront_headline || "Your Personal Cruise & Vacation Expert",
@@ -128,6 +134,8 @@ export function useProfile() {
           ccra_number: updatedProfile.ccra_number || null,
           asta_number: updatedProfile.asta_number || null,
           embarc_number: updatedProfile.embarc_number || null,
+          default_split_payments: updatedProfile.default_split_payments,
+          default_split_payers: updatedProfile.default_split_payers || 2,
           storefront_enabled: updatedProfile.storefront_enabled,
           storefront_slug: updatedProfile.storefront_slug || null,
           storefront_headline: updatedProfile.storefront_headline || null,
