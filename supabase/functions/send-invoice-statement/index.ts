@@ -342,6 +342,27 @@ const handler = async (req: Request): Promise<Response> => {
         const recipient = body.test_recipient || client.email;
         const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
 
+        // Everyone assigned to this trip gets a copy: split payers and
+        // additional travelers on the trip (deduped, primary client first).
+        const coRecipients: string[] = [];
+        if (!body.test_recipient) {
+          const seen = new Set([recipient.toLowerCase()]);
+          const [{ data: payerShares }, { data: tripTravelers }] = await Promise.all([
+            supabase.from("booking_payer_shares").select("payer_email").eq("trip_id", trip.id),
+            supabase.from("trip_travelers").select("email").eq("trip_id", trip.id),
+          ]);
+          for (const row of [...(payerShares || []), ...(tripTravelers || [])] as any[]) {
+            const email = (row.payer_email || row.email || "").trim();
+            if (!email || !email.includes("@")) continue;
+            const lower = email.toLowerCase();
+            if (seen.has(lower)) continue;
+            seen.add(lower);
+            coRecipients.push(email);
+          }
+        }
+        const allRecipients = [recipient, ...coRecipients];
+
+
         // Mint a tokenized secure payment link for this recipient
         let payUrl = GENERIC_PAY_URL;
         try {
@@ -399,16 +420,17 @@ const handler = async (req: Request): Promise<Response> => {
             : `Invoice ${invoiceNumber} — ${trip.trip_name} (${fmt(Number(inv.balance))} due ${fmtDate(inv.due_date)})`;
 
         if (dryRun) {
-          results.push({ qbo_id: inv.qbo_id, kind, recipient, subject, dry_run: true });
+          results.push({ qbo_id: inv.qbo_id, kind, recipient, cc: coRecipients, subject, dry_run: true });
           continue;
         }
 
         const sendResp = await resend.emails.send({
           from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
-          to: [recipient],
+          to: allRecipients,
           subject,
           html,
         });
+
 
         await supabase.from("invoice_email_log").insert({
           qbo_invoice_id: inv.qbo_id,
@@ -419,7 +441,7 @@ const handler = async (req: Request): Promise<Response> => {
           resend_id: (sendResp as any)?.data?.id || null,
           due_date: inv.due_date,
           amount: Number(inv.balance || 0),
-          meta: { invoice_number: invoiceNumber, subject },
+          meta: { invoice_number: invoiceNumber, subject, copied_to: coRecipients },
         });
 
         // Mirror into email_logs so this send appears in the Email Activity dashboard
@@ -428,7 +450,7 @@ const handler = async (req: Request): Promise<Response> => {
         const mirrorTemplate = kind === "reminder_7d" ? "payment_reminder" : "invoice_statement";
         await supabase.from("email_logs").insert({
           client_id: client.id,
-          to_email: recipient,
+          to_email: allRecipients.join(", "),
           subject,
           template: mirrorTemplate,
           status: sendError ? "failed" : "sent",
@@ -447,7 +469,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         sentCount++;
-        results.push({ qbo_id: inv.qbo_id, kind, recipient, sent: true, resend_id: (sendResp as any)?.data?.id });
+        results.push({ qbo_id: inv.qbo_id, kind, recipient, copied_to: coRecipients, sent: true, resend_id: (sendResp as any)?.data?.id });
         if (isCronMode) clientsEmailedThisRun.add(client.id);
       } catch (e) {
         console.error("Failed for invoice", inv.qbo_id, e);
