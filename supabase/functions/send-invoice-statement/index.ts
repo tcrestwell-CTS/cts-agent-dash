@@ -420,16 +420,17 @@ const handler = async (req: Request): Promise<Response> => {
             : `Invoice ${invoiceNumber} — ${trip.trip_name} (${fmt(Number(inv.balance))} due ${fmtDate(inv.due_date)})`;
 
         if (dryRun) {
-          results.push({ qbo_id: inv.qbo_id, kind, recipient, subject, dry_run: true });
+          results.push({ qbo_id: inv.qbo_id, kind, recipient, cc: coRecipients, subject, dry_run: true });
           continue;
         }
 
         const sendResp = await resend.emails.send({
           from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
-          to: [recipient],
+          to: allRecipients,
           subject,
           html,
         });
+
 
         await supabase.from("invoice_email_log").insert({
           qbo_invoice_id: inv.qbo_id,
