@@ -31,6 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { isInvoiceCashPayment } from "@/hooks/useTripPayments";
 
 interface SplitPaymentDialogProps {
   open: boolean;
