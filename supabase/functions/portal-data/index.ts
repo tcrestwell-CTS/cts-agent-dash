@@ -242,11 +242,7 @@ const handler = async (req: Request): Promise<Response> => {
             .select("full_name, avatar_url, phone, job_title, clia_number, ccra_number, asta_number, embarc_number")
             .eq("user_id", clientRes.data.user_id)
             .single(),
-          supabase
-            .from("branding_settings")
-            .select("agency_name, primary_color, accent_color, logo_url, tagline")
-            .eq("user_id", clientRes.data.user_id)
-            .maybeSingle(),
+          resolveBrandRow(supabase, clientRes.data.user_id).then((data) => ({ data })),
           // Agent email lives in auth.users, not profiles — same lookup
           // pattern already used elsewhere in this file for agent emails
           // (e.g. approve-itinerary, notify-payment-method).
@@ -587,11 +583,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
 
           // Get branding for styled email
-          const { data: branding } = await supabase
-            .from("branding_settings")
-            .select("*")
-            .eq("user_id", tripCheck.user_id)
-            .maybeSingle();
+          const branding = await resolveBrandRow(supabase, tripCheck.user_id);
 
           // Get trip name
           const { data: tripData } = await supabase
@@ -717,11 +709,7 @@ const handler = async (req: Request): Promise<Response> => {
         .single();
 
       // Fetch branding from the agent who owns the invoice
-      const { data: branding } = await supabase
-        .from("branding_settings")
-        .select("agency_name, phone, email_address, address, website, logo_url")
-        .eq("user_id", invoice.user_id)
-        .maybeSingle();
+      const branding = await resolveBrandRow(supabase, invoice.user_id);
 
       // Fetch trip dates/destination if linked
       let tripInfo: any = null;
@@ -1621,11 +1609,7 @@ const handler = async (req: Request): Promise<Response> => {
           const { data: agentUser } = await supabase.auth.admin.getUserById(tripCheck.user_id);
           const agentEmail = agentUser?.user?.email;
 
-          const { data: branding } = await supabase
-            .from("branding_settings")
-            .select("agency_name, primary_color, logo_url, from_email, from_name")
-            .eq("user_id", tripCheck.user_id)
-            .maybeSingle();
+          const branding = await resolveBrandRow(supabase, tripCheck.user_id);
 
           const agencyName = branding?.agency_name || "Crestwell Travel Services";
           const primaryColor = branding?.primary_color || "#0D7377";
