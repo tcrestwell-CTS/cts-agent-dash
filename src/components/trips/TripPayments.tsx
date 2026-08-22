@@ -438,7 +438,25 @@ export function TripPayments({
   const expectedPayments = payments.filter((p) => p.status === "pending");
   const pastPayments = payments.filter((p) => p.status !== "pending");
 
+  // Per-payer share summary (Stripe split bookings only)
+  const payerSummary = payerShares.map((share) => {
+    const paid = payments
+      .filter(
+        (p) =>
+          p.status === "paid" &&
+          ((share.traveler_id && p.payer_traveler_id === share.traveler_id) ||
+            (!!p.payer_name && p.payer_name === share.payer_name))
+      )
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return {
+      ...share,
+      paid,
+      remaining: Math.max(Number(share.share_amount) - paid, 0),
+    };
+  });
+
   const progressPercentage = tripTotal > 0 ? Math.min((totalPaid / tripTotal) * 100, 100) : 0;
+
 
   if (loading) {
     return (
