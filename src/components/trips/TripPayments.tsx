@@ -102,6 +102,7 @@ export function TripPayments({
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
 
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailInvoiceOpen, setEmailInvoiceOpen] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
   const [repullingQBO, setRepullingQBO] = useState(false);
