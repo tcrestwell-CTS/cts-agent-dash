@@ -50,4 +50,12 @@ Backend:
 - `invoiceGenerator` / invoice edge function: render a per-payer share table on the single invoice.
 - `send-payment-reminder`: address the payer directly and only include that payer's outstanding rows.
 
+## Scope guardrails
+
+- **Stripe only.** Splitting applies to Stripe card/checkout payments. Affirm, Uplift FlexPay, virtual cards, ACH/check/cash logging, and loan/financing schedules keep their exact current behavior and are hidden from the split flow.
+- **Purely additive.** All new columns are nullable with defaults; every existing payment row keeps `payer_*` null and continues down today's code paths untouched.
+- **No changes to money math.** Margin engine, `calculate_booking_margin`, commissions, QBO sync, Stripe fee handling, and installment reconciliation (`applyPaymentToInstallments`) all keep reading the booking/trip totals — splitting only tags who owes which slice.
+- Reconciliation logic gains payer as an optional tiebreaker only; matching order and tolerances stay as documented.
+
+
 Financials are untouched: margin, commission, and gross sales continue to read the booking total, so splitting only changes who pays which slice.
