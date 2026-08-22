@@ -293,6 +293,9 @@ export function AddPaymentDialog({
       status: "pending",
       details: formData.details || null,
       notes: formData.notes || null,
+      payer_traveler_id: formData.payer_traveler_id || null,
+      payer_name: formData.payer_name || null,
+      payer_email: formData.payer_email || null,
     });
   };
 
@@ -399,6 +402,9 @@ export function AddPaymentDialog({
       status: formData.status,
       details: formData.details || null,
       notes: formData.notes || null,
+      payer_traveler_id: formData.payer_traveler_id || null,
+      payer_name: formData.payer_name || null,
+      payer_email: formData.payer_email || null,
     });
     if (result) {
       // If this manually-logged payment is paid, auto-apply it against any
