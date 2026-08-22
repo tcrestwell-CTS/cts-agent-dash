@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTripPayments } from "@/hooks/useTripPayments";
+import { useBookingPayerShares } from "@/hooks/useBookingPayerShares";
+
 import { TripBooking } from "@/hooks/useTrips";
 import { Loader2, CreditCard, Link, FileText, ArrowLeft, ExternalLink, CalendarClock, Copy, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
