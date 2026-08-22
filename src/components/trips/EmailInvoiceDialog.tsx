@@ -141,7 +141,9 @@ export function EmailInvoiceDialog({
     setExtraEmail("");
   };
 
-  const selected = recipients.filter((r) => r.selected).map((r) => r.email);
+  const selected = recipients
+    .filter((r) => r.selected)
+    .map((r) => ({ email: r.email, name: r.name }));
 
   const { subject, bodyHtml, previewHtml } = useMemo(() => {
     const agency = branding?.agency_name || "Crestwell Travel Services";
