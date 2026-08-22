@@ -168,6 +168,18 @@ serve(async (req) => {
     }
     loanInvoices.sort((a, b) => (a.created ?? 0) - (b.created ?? 0));
 
+    // Months already recorded as paid per loan, to avoid double-logging.
+    const { data: paidRows } = await supabase
+      .from("loan_payment_schedules")
+      .select("loan_application_id, paid_date")
+      .eq("status", "paid");
+    const paidMonths: Record<string, string[]> = {};
+    for (const r of paidRows ?? []) {
+      if (!r.paid_date) continue;
+      const key = r.loan_application_id as string;
+      (paidMonths[key] ??= []).push(String(r.paid_date).slice(0, 7));
+    }
+
     for (const inv of loanInvoices) {
       const email = (inv.customer_email ?? "").toLowerCase();
       const loan = (loans ?? []).find((l: any) => (l.email ?? "").toLowerCase() === email);
@@ -179,6 +191,19 @@ serve(async (req) => {
         ? inv.payment_intent
         : inv.payment_intent?.id ?? `invoice:${inv.id}`;
       if (knownPis.has(pi)) continue;
+      // Skip when a payment for that same month is already recorded (older
+      // rows were logged against the charge id, not the invoice id).
+      const paidDate = toDate(inv.status_transitions?.paid_at ?? inv.created);
+      const month = paidDate?.slice(0, 7);
+      const alreadyThatMonth = (schedules ?? []).some((s: any) =>
+        s.loan_application_id === loan.id && s.status === "paid" &&
+        (paidMonths[loan.id] ?? []).includes(month ?? "")
+      );
+      if (month && (paidMonths[loan.id] ?? []).includes(month)) {
+        log("Month already paid — skipping invoice", { invoice: inv.id, month });
+        continue;
+      }
+      if (alreadyThatMonth) continue;
       const gross = (inv.amount_paid ?? 0) / 100;
       const target = (schedules ?? []).find((s: any) =>
         s.loan_application_id === loan.id &&
@@ -192,7 +217,7 @@ serve(async (req) => {
         loan: `${loan.first_name} ${loan.last_name}`,
         payment_number: target.payment_number,
         pi,
-        date: toDate(inv.status_transitions?.paid_at ?? inv.created),
+        date: paidDate,
         amount: gross,
       });
       knownPis.add(pi);
