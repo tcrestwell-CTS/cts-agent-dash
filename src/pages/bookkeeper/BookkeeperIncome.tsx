@@ -23,6 +23,7 @@ import {
 } from "@/components/bookkeeper/shared";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { parseLocalDate } from "@/lib/utils";
+import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
