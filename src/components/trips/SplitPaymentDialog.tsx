@@ -308,12 +308,12 @@ export function SplitPaymentDialog({
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
             <div>
               <p className="text-sm text-muted-foreground">
-                {alreadyPaid > 0 ? "Unpaid balance to split" : "Booking total"}
+                {alreadyPaid > 0 || outstandingScheduled > 0 ? "Balance due to split" : "Booking total"}
               </p>
               <p className="text-lg font-semibold">{currency(bookingTotal)}</p>
               {alreadyPaid > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  {currency(bookingGross)} total − {currency(alreadyPaid)} already paid
+                  {currency(alreadyPaid)} already collected on {currency(bookingGross)} booking
                 </p>
               )}
             </div>
