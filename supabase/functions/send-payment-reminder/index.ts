@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveBrandRow } from "../_shared/agent-branding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -188,8 +189,9 @@ serve(async (req) => {
       .maybeSingle();
     if (!client?.email) throw new Error("Client has no email on file");
 
-    const { data: brandingRow } = await supabase
-      .from("branding_settings").select("*").limit(1).maybeSingle();
+    // Use the branding of the advisor who owns the trip/payment so the
+    // client sees THEIR logo, not the host agency's.
+    const brandingRow = await resolveBrandRow(supabase, tp.user_id || userId);
 
     const reminderType = reminderTypeLabel(tp.payment_type);
     const amount = Number(tp.amount || 0);

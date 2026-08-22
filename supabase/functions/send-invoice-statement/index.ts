@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveBrandRow } from "../_shared/agent-branding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -167,12 +168,14 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Branding (single agency)
-    const { data: brandingRow } = await supabase
-      .from("branding_settings")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
+    // Branding is resolved per-advisor inside the loop (each trip's owning
+    // advisor gets their own logo/colors on the client-facing email).
+    const brandCache = new Map<string, Record<string, any>>();
+    const getBrand = async (ownerId?: string | null) => {
+      const key = ownerId || "__agency__";
+      if (!brandCache.has(key)) brandCache.set(key, await resolveBrandRow(supabase, ownerId));
+      return brandCache.get(key)!;
+    };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -244,10 +247,12 @@ const handler = async (req: Request): Promise<Response> => {
 
         const { data: trip } = await supabase
           .from("trips")
-          .select("id, trip_name, destination, client_id, total_gross_sales")
+          .select("id, trip_name, destination, client_id, total_gross_sales, user_id")
           .eq("id", tripId)
           .maybeSingle();
         if (!trip) { results.push({ qbo_id: inv.qbo_id, skipped: "no_trip_row" }); continue; }
+
+        const brandingRow = await getBrand(trip.user_id);
 
         const { data: client } = await supabase
           .from("clients")
