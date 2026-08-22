@@ -1,0 +1,6 @@
+insert into public.agent_subscriptions (agent_user_id, plan_name, amount, billing_interval, status, next_billing_date, stripe_customer_id, stripe_subscription_id, payment_method_brand, payment_method_last4, payment_method_exp, notes)
+values
+ ('7f71ae85-2b94-4783-9d94-4cb19cd7f53c','Professional Monthly',49.00,'monthly','active','2026-09-20','cus_V4f7wQg6VJGkGD','sub_1U6E0kPJljF0WNcYRFGZBL2u','visa','7773','03/27','Backfilled from Stripe'),
+ ('28b6ea88-f54b-4723-a6d3-06f5e6f620de','Starter Monthly',29.00,'monthly','past_due','2026-09-05','cus_V1HAYCZgTBMQ5j','sub_1U1SCJPJljF0WNcYGc4ca7rQ',null,null,null,'Backfilled from Stripe - no card on file'),
+ ('853a12b9-976f-4b51-8dbe-1be82922ef6b','Starter Monthly',29.00,'monthly','active','2026-08-26','cus_Uxon7hBevlxf2i','sub_1TxtA9PJljF0WNcYOl6W1u3G','mastercard','7873','08/29','Backfilled from Stripe'),
+ ('0cf54eeb-3bff-4f40-99cb-ae7c2154927e','Starter Monthly',29.00,'monthly','active','2026-09-13','cus_UsjsOWBlI4rCo9','sub_1TsyPAPJljF0WNcYbg2HAnI9','visa','5268','12/31','Backfilled from Stripe');
