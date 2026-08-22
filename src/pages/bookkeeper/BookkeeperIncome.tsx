@@ -23,6 +23,7 @@ import {
 } from "@/components/bookkeeper/shared";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { parseLocalDate } from "@/lib/utils";
+import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -53,8 +54,27 @@ export default function BookkeeperIncome() {
     },
   });
 
-  const rows = (data ?? []) as any[];
+  const monthRange = useMemo(() => monthBounds(year, month), [year, month]);
+  const { data: otherIncome } = useAgencyOtherIncome(monthRange);
+
+  // Client payments + agency other income (advisor subscriptions, loan interest)
+  const rows = useMemo(() => {
+    const clientRows = ((data ?? []) as any[]).map((r) => ({ ...r, source: "client_payment" }));
+    const otherRows = (otherIncome?.rows ?? []).map((r) => ({
+      id: r.id,
+      amount: r.amount,
+      payment_date: r.date,
+      payment_method: r.source === "agent_subscription" ? "subscription" : "loan",
+      payment_type: r.source === "agent_subscription" ? "advisor subscription" : "loan interest",
+      stripe_payment_intent_id: r.reference,
+      trips: { trip_name: r.label },
+      source: r.source,
+    }));
+    return [...clientRows, ...otherRows.filter((r) => Number(r.amount) > 0)];
+  }, [data, otherIncome]);
+
   const total = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const otherTotal = otherIncome?.total ?? 0;
 
   const { sort, onSort } = useSort<SortKey>({ key: "payment_date", dir: "desc" });
   const sorted = useMemo(
@@ -90,7 +110,7 @@ export default function BookkeeperIncome() {
       <div className="space-y-[18px]">
         <BookkeeperHeader
           title="Income"
-          description="Paid client payments for the selected period."
+          description="Paid client payments, advisor subscriptions, and loan interest for the selected period."
           year={year}
           month={month}
           actions={
@@ -104,11 +124,12 @@ export default function BookkeeperIncome() {
         />
         <Panel>
           <PanelHeader
-            title="Paid payments"
+            title="Paid income"
             actions={
               !isLoading && (
                 <div className="text-[12.5px] text-muted-foreground">
-                  Total: <span className="text-[13px] font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+                  Other income: <span className="font-medium text-foreground tabular-nums">{fmt(otherTotal)}</span>
+                  {" · "}Total: <span className="text-[13px] font-semibold text-foreground tabular-nums">{fmt(total)}</span>
                 </div>
               )
             }

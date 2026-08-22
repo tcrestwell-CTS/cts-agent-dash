@@ -40,6 +40,7 @@ import {
 import { exportToCSV, formatCurrencyForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { getTierConfig, CommissionTier } from "@/lib/commissionTiers";
+import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
 
 interface AgencySalesTabProps {
   dateRange: DateRange;
@@ -50,6 +51,10 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
   const { data: commissions } = useCommissions();
   const { suppliers } = useSuppliers();
   const { data: teamProfiles } = useTeamProfiles();
+  const { data: otherIncome } = useAgencyOtherIncome({
+    start: format(dateRange.from, "yyyy-MM-dd"),
+    end: format(new Date(dateRange.to.getTime() + 86400000), "yyyy-MM-dd"),
+  });
 
   // Filters
   const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
@@ -403,8 +408,12 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
         <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Your Currency</p>
-              <p className="text-4xl font-bold">USD</p>
+              <p className="text-sm text-muted-foreground">Other Agency Income</p>
+              <p className="text-4xl font-bold">{formatCurrency(otherIncome?.total ?? 0)}</p>
+              <p className="text-xs text-muted-foreground">
+                Subscriptions {formatCurrency(otherIncome?.subscriptionTotal ?? 0)} · Loan interest{" "}
+                {formatCurrency(otherIncome?.loanInterestTotal ?? 0)}
+              </p>
             </div>
           </CardContent>
         </Card>

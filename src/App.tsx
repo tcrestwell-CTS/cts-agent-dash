@@ -139,6 +139,7 @@ const BookkeeperDashboard    = lazy(() => import("./pages/bookkeeper/BookkeeperD
 const BookkeeperPL           = lazy(() => import("./pages/bookkeeper/BookkeeperPL"));
 const BookkeeperBalanceSheet = lazy(() => import("./pages/bookkeeper/BookkeeperBalanceSheet"));
 const BookkeeperIncome       = lazy(() => import("./pages/bookkeeper/BookkeeperIncome"));
+const AgencyOtherIncome      = lazy(() => import("./pages/bookkeeper/AgencyOtherIncome"));
 const BookkeeperExpenses     = lazy(() => import("./pages/bookkeeper/BookkeeperExpenses"));
 const BookkeeperUnattributed = lazy(() => import("./pages/bookkeeper/BookkeeperUnattributed"));
 const BookkeeperBankRecon    = lazy(() => import("./pages/bookkeeper/BookkeeperBankRecon"));
@@ -290,6 +291,7 @@ const App = () => (
                 <Route path="/bookkeeper/pl"             element={<ProtectedRoute><BookkeeperRoute><BookkeeperPL /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/balance-sheet"  element={<ProtectedRoute><BookkeeperRoute><BookkeeperBalanceSheet /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/income"         element={<ProtectedRoute><BookkeeperRoute><BookkeeperIncome /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/other-income"   element={<ProtectedRoute><BookkeeperRoute><AgencyOtherIncome /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/expenses"       element={<ProtectedRoute><BookkeeperRoute><BookkeeperExpenses /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/unattributed"   element={<ProtectedRoute><BookkeeperRoute><BookkeeperUnattributed /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/bank-recon"     element={<ProtectedRoute><BookkeeperRoute><BookkeeperBankRecon /></BookkeeperRoute></ProtectedRoute>} />

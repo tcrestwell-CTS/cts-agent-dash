@@ -33,6 +33,7 @@ import { Building2, CheckCircle2 } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { Badge } from "@/components/ui/badge";
 import { OpsAlerts } from "@/components/dashboard/OpsAlerts";
+import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
 
 type DateRange = "mtd" | "ytd";
 
@@ -83,6 +84,17 @@ export function AgencyMetrics() {
     }
     return { start: startOfYear(now), end: endOfYear(now) };
   }, [range]);
+
+  // Advisor subscriptions + loan interest earned by the agency in the same window
+  const otherIncomeRange = useMemo(
+    () => ({
+      start: format(interval.start, "yyyy-MM-dd"),
+      end: format(new Date(interval.end.getTime() + 86400000), "yyyy-MM-dd"),
+    }),
+    [interval]
+  );
+  const { data: otherIncome } = useAgencyOtherIncome(otherIncomeRange);
+  const otherIncomeTotal = otherIncome?.total ?? 0;
 
   const filteredBookings = useMemo(() => {
     if (!bookings) return [];
@@ -261,7 +273,8 @@ export function AgencyMetrics() {
           { label: "Bookings", value: kpis.bookingCount.toString() },
           { label: "Sales volume", value: fmt(kpis.salesVolume) },
           { label: "Gross margin", value: fmt(kpis.grossMargin) },
-          { label: "Agency income", value: fmt(kpis.agencyIncome) },
+          { label: "Agency income", value: fmt(kpis.agencyIncome + otherIncomeTotal) },
+          { label: "Other income", value: fmt(otherIncomeTotal) },
         ].map((kpi) => (
           <KPITile key={kpi.label} label={kpi.label} value={kpi.value} />
         ))}
