@@ -403,8 +403,12 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
         <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Your Currency</p>
-              <p className="text-4xl font-bold">USD</p>
+              <p className="text-sm text-muted-foreground">Other Agency Income</p>
+              <p className="text-4xl font-bold">{formatCurrency(otherIncome?.total ?? 0)}</p>
+              <p className="text-xs text-muted-foreground">
+                Subscriptions {formatCurrency(otherIncome?.subscriptionTotal ?? 0)} · Loan interest{" "}
+                {formatCurrency(otherIncome?.loanInterestTotal ?? 0)}
+              </p>
             </div>
           </CardContent>
         </Card>
