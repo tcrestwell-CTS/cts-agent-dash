@@ -20,6 +20,7 @@ import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings
 import { BackfillPlanningTripsCard } from "@/components/admin/BackfillPlanningTripsCard";
 import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
 import { AgentPayoutSettings } from "@/components/settings/AgentPayoutSettings";
+import { AgentBillingSettings } from "@/components/settings/AgentBillingSettings";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useAuth } from "@/contexts/AuthContext";
