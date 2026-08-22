@@ -110,7 +110,7 @@ export default function BookkeeperIncome() {
       <div className="space-y-[18px]">
         <BookkeeperHeader
           title="Income"
-          description="Paid client payments for the selected period."
+          description="Paid client payments, advisor subscriptions, and loan interest for the selected period."
           year={year}
           month={month}
           actions={
@@ -124,11 +124,12 @@ export default function BookkeeperIncome() {
         />
         <Panel>
           <PanelHeader
-            title="Paid payments"
+            title="Paid income"
             actions={
               !isLoading && (
                 <div className="text-[12.5px] text-muted-foreground">
-                  Total: <span className="text-[13px] font-semibold text-foreground tabular-nums">{fmt(total)}</span>
+                  Other income: <span className="font-medium text-foreground tabular-nums">{fmt(otherTotal)}</span>
+                  {" · "}Total: <span className="text-[13px] font-semibold text-foreground tabular-nums">{fmt(total)}</span>
                 </div>
               )
             }
