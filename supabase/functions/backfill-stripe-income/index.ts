@@ -123,7 +123,10 @@ serve(async (req) => {
           onConflict: "stripe_payment_intent_id",
           ignoreDuplicates: true,
         });
-      if (error) throw error;
+      if (error) {
+        log("Subscription upsert failed", { message: error.message, details: error.details, hint: error.hint, code: error.code });
+        throw new Error(`Subscription upsert failed: ${error.message}`);
+      }
     }
     log("Subscription invoices", { count: subscriptionRows.length });
 
