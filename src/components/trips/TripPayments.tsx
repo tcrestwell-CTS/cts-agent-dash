@@ -96,7 +96,10 @@ export function TripPayments({
   } = useTripPayments(tripId);
   const { settings: brandingSettings } = useBrandingSettings();
   const { createInvoice, getNextInvoiceNumber } = useInvoices();
+  const { data: payerShares = [] } = useTripPayerShares(tripId);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+
   const [sendingEmail, setSendingEmail] = useState(false);
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [creatingPaymentLink, setCreatingPaymentLink] = useState<string | null>(null);
