@@ -36,6 +36,8 @@ Database (migration):
 - `trip_payments`: add `payer_traveler_id uuid` (FK `trip_travelers`, null allowed), `payer_name text`, `payer_email text`.
 - New `booking_payer_shares` table: `id`, `booking_id`, `trip_id`, `user_id`, `traveler_id` (nullable), `payer_name`, `payer_email`, `share_amount numeric`, `notes`, timestamps. GRANTs for `authenticated` + `service_role`; RLS scoped to the owning advisor plus existing admin/bookkeeper policies, matching the pattern used by `booking_travelers`.
 - Indexes on `booking_id` and `trip_payments.payer_traveler_id`.
+- Advisor preference stored on `profiles`: `default_split_payments boolean default false`, `default_split_payers int default 2`.
+
 
 Frontend:
 - New hook `useBookingPayerShares` (query + upsert + delete).
