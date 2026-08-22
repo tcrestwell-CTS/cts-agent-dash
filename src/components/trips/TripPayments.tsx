@@ -485,6 +485,17 @@ export function TripPayments({
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setSplitDialogOpen(true)}
+                disabled={bookings.length === 0}
+                title="Split one booking between multiple payers"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Split Payment
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleRefreshPayments}
                 disabled={refreshing}
                 title="Reload paid/remaining totals from the database"
