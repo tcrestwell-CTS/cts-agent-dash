@@ -26,6 +26,7 @@ const ClientDetail        = lazy(() => import("./pages/ClientDetail"));
 const Bookings            = lazy(() => import("./pages/Bookings"));
 const BookingDetail       = lazy(() => import("./pages/BookingDetail"));
 const Training            = lazy(() => import("./pages/Training"));
+const UserGuide           = lazy(() => import("./pages/UserGuide"));
 const TrainingLibrary     = lazy(() => import("./pages/TrainingLibrary"));
 const TrainingPhaseDetail = lazy(() => import("./pages/TrainingPhaseDetail"));
 const TrainingModuleDetail = lazy(() => import("./pages/TrainingModuleDetail"));
