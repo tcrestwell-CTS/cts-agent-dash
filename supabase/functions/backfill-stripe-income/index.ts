@@ -182,7 +182,6 @@ serve(async (req) => {
           .update({
             status: "paid",
             paid_date: u.date,
-            amount_paid: u.amount,
             stripe_payment_intent_id: u.pi,
           })
           .eq("id", u.id);
