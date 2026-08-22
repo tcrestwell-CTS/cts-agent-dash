@@ -9808,7 +9808,7 @@ export type Database = {
           payer_email: string | null
           payer_name: string | null
           payer_traveler_id: string | null
-          payment_date: string
+          payment_date: string | null
           payment_method: string | null
           payment_method_choice: string | null
           payment_type: string
@@ -9837,7 +9837,7 @@ export type Database = {
           payer_email?: string | null
           payer_name?: string | null
           payer_traveler_id?: string | null
-          payment_date?: string
+          payment_date?: string | null
           payment_method?: string | null
           payment_method_choice?: string | null
           payment_type?: string
@@ -9866,7 +9866,7 @@ export type Database = {
           payer_email?: string | null
           payer_name?: string | null
           payer_traveler_id?: string | null
-          payment_date?: string
+          payment_date?: string | null
           payment_method?: string | null
           payment_method_choice?: string | null
           payment_type?: string
