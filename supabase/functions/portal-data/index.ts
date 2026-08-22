@@ -322,7 +322,7 @@ const handler = async (req: Request): Promise<Response> => {
       const [tripRes, bookingsRes, paymentsRes, itineraryRes, itinerariesRes, optionBlocksRes, clientRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
         supabase.from("bookings").select("id, confirmation_number, status, total_price, gross_sales, supplier_id, client_selection_locked_at, suppliers(name, supplier_type)").eq("trip_id", tripId).neq("status", "cancelled").neq("status", "archived"),
-        supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url").eq("trip_id", tripId),
+        supabase.from("trip_payments").select("id, amount, payment_date, due_date, status, payment_type, details, notes, payment_method, stripe_receipt_url, payer_name, payer_email, payer_traveler_id").eq("trip_id", tripId),
         supabase.from("itinerary_items").select("id, day_number, title, description, category, start_time, end_time, location, item_date, notes, sort_order, itinerary_id, option_block_id, image_url, thumbnail_url, gallery_urls").eq("trip_id", tripId).order("day_number", { ascending: true }).order("sort_order", { ascending: true }),
         supabase.from("itineraries").select("id, name, overview, cover_image_url, depart_date, return_date, sort_order").eq("trip_id", tripId).order("sort_order", { ascending: true }),
         supabase.from("option_blocks").select("id, day_number, title, sort_order, itinerary_id").eq("trip_id", tripId).order("sort_order", { ascending: true }),
@@ -979,7 +979,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: payments } = await supabase
         .from("trip_payments")
-        .select("id, amount, payment_date, due_date, status, payment_type, payment_method, payment_method_choice, details, notes, trip_id, stripe_payment_url, stripe_receipt_url")
+        .select("id, amount, payment_date, due_date, status, payment_type, payment_method, payment_method_choice, details, notes, trip_id, stripe_payment_url, stripe_receipt_url, payer_name, payer_email, payer_traveler_id")
         .in("trip_id", allTripIds)
         .order("payment_date", { ascending: false });
 
