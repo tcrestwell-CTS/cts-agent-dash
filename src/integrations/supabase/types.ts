@@ -1231,6 +1231,70 @@ export type Database = {
           },
         ]
       }
+      booking_payer_shares: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          payer_email: string | null
+          payer_name: string
+          share_amount: number
+          traveler_id: string | null
+          trip_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payer_email?: string | null
+          payer_name: string
+          share_amount?: number
+          traveler_id?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payer_email?: string | null
+          payer_name?: string
+          share_amount?: number
+          traveler_id?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_payer_shares_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_payer_shares_traveler_id_fkey"
+            columns: ["traveler_id"]
+            isOneToOne: false
+            referencedRelation: "trip_travelers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_payer_shares_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_travelers: {
         Row: {
           booking_id: string
@@ -6708,6 +6772,8 @@ export type Database = {
           commission_tier: Database["public"]["Enums"]["commission_tier"] | null
           created_at: string
           date_of_birth: string | null
+          default_split_payers: number
+          default_split_payments: boolean
           embarc_number: string | null
           full_name: string | null
           id: string
@@ -6745,6 +6811,8 @@ export type Database = {
             | null
           created_at?: string
           date_of_birth?: string | null
+          default_split_payers?: number
+          default_split_payments?: boolean
           embarc_number?: string | null
           full_name?: string | null
           id?: string
@@ -6782,6 +6850,8 @@ export type Database = {
             | null
           created_at?: string
           date_of_birth?: string | null
+          default_split_payers?: number
+          default_split_payments?: boolean
           embarc_number?: string | null
           full_name?: string | null
           id?: string
@@ -9735,6 +9805,9 @@ export type Database = {
           due_date: string | null
           id: string
           notes: string | null
+          payer_email: string | null
+          payer_name: string | null
+          payer_traveler_id: string | null
           payment_date: string
           payment_method: string | null
           payment_method_choice: string | null
@@ -9761,6 +9834,9 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          payer_email?: string | null
+          payer_name?: string | null
+          payer_traveler_id?: string | null
           payment_date?: string
           payment_method?: string | null
           payment_method_choice?: string | null
@@ -9787,6 +9863,9 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          payer_email?: string | null
+          payer_name?: string | null
+          payer_traveler_id?: string | null
           payment_date?: string
           payment_method?: string | null
           payment_method_choice?: string | null
@@ -9810,6 +9889,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_payments_payer_traveler_id_fkey"
+            columns: ["payer_traveler_id"]
+            isOneToOne: false
+            referencedRelation: "trip_travelers"
             referencedColumns: ["id"]
           },
           {
