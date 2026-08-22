@@ -89,6 +89,11 @@ verify_jwt = false
 [functions.stripe-payout-webhook]
 verify_jwt = false
 
+[functions.agent-billing-webhook]
+verify_jwt = false
+
+
+
 [functions.receive-funnel-lead]
 verify_jwt = false
 
