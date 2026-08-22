@@ -1,0 +1,208 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/**
+ * backfill-stripe-income (admin-only, one-off maintenance)
+ *
+ * 1. Advisor subscriptions: pull every paid Stripe invoice for each linked
+ *    advisor subscription customer and upsert it into
+ *    public.agent_subscription_payments (agency Other Income).
+ * 2. Loan repayments: pull succeeded Stripe charges for each loan applicant's
+ *    email and mark matching pending loan_payment_schedules rows as paid.
+ *
+ * Idempotent: subscription rows key on stripe_payment_intent_id, loan rows are
+ * skipped when the payment intent is already recorded.
+ */
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const log = (s: string, d?: unknown) =>
+  console.log(`[backfill-stripe-income] ${s}${d ? ` - ${JSON.stringify(d)}` : ""}`);
+
+const toDate = (unix?: number | null) =>
+  unix ? new Date(unix * 1000).toISOString().slice(0, 10) : null;
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const respond = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  try {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    // ── auth: admin / office_admin / bookkeeper only ──────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return respond({ error: "Missing authorization" }, 401);
+    const { data: userData, error: userErr } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (userErr || !userData.user) return respond({ error: "Unauthorized" }, 401);
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const allowed = (roles ?? []).some((r: { role: string }) =>
+      ["admin", "office_admin", "bookkeeper"].includes(r.role)
+    );
+    if (!allowed) return respond({ error: "Forbidden" }, 403);
+
+    const dryRun = new URL(req.url).searchParams.get("dry_run") === "true";
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    const feeFor = async (chargeId?: string | null) => {
+      if (!chargeId) return 0;
+      try {
+        const charge = await stripe.charges.retrieve(chargeId, {
+          expand: ["balance_transaction"],
+        }) as any;
+        const bt = charge.balance_transaction;
+        return bt && typeof bt !== "string" && bt.fee != null ? bt.fee / 100 : 0;
+      } catch {
+        return 0;
+      }
+    };
+
+    // ── 1. Advisor subscription invoices ─────────────────────────────────
+    const { data: subs } = await supabase
+      .from("agent_subscriptions")
+      .select("id, agent_user_id, plan_name, stripe_customer_id, stripe_subscription_id");
+
+    const subscriptionRows: Record<string, unknown>[] = [];
+    for (const sub of subs ?? []) {
+      if (!sub.stripe_customer_id) continue;
+      const invoices = await stripe.invoices.list({
+        customer: sub.stripe_customer_id,
+        status: "paid",
+        limit: 100,
+      });
+      for (const inv of invoices.data as any[]) {
+        const amount = (inv.amount_paid ?? 0) / 100;
+        if (amount <= 0) continue;
+        const line = inv.lines?.data?.[0];
+        const chargeId = typeof inv.charge === "string" ? inv.charge : inv.charge?.id;
+        const pi = typeof inv.payment_intent === "string"
+          ? inv.payment_intent
+          : inv.payment_intent?.id ?? `invoice:${inv.id}`;
+        subscriptionRows.push({
+          agent_user_id: sub.agent_user_id,
+          plan_name: sub.plan_name ?? line?.description ?? null,
+          amount,
+          stripe_fee: await feeFor(chargeId),
+          payment_date: toDate(inv.status_transitions?.paid_at ?? inv.created),
+          period_start: toDate(line?.period?.start),
+          period_end: toDate(line?.period?.end),
+          payment_method: "stripe",
+          status: "paid",
+          stripe_payment_intent_id: pi,
+          stripe_subscription_id: inv.parent?.subscription_details?.subscription ??
+            inv.subscription ?? sub.stripe_subscription_id,
+          notes: "Backfilled from Stripe invoices",
+        });
+      }
+    }
+
+    if (subscriptionRows.length && !dryRun) {
+      const { error } = await supabase
+        .from("agent_subscription_payments")
+        .upsert(subscriptionRows, {
+          onConflict: "stripe_payment_intent_id",
+          ignoreDuplicates: true,
+        });
+      if (error) throw error;
+    }
+    log("Subscription invoices", { count: subscriptionRows.length });
+
+    // ── 2. Loan repayments ───────────────────────────────────────────────
+    const { data: loans } = await supabase
+      .from("loan_applications")
+      .select("id, email, first_name, last_name, status")
+      .in("status", ["approved", "active", "funded"]);
+
+    const { data: schedules } = await supabase
+      .from("loan_payment_schedules")
+      .select("id, loan_application_id, payment_number, total_payment, status, stripe_payment_intent_id")
+      .order("payment_number");
+
+    const knownPis = new Set(
+      (schedules ?? []).map((s: any) => s.stripe_payment_intent_id).filter(Boolean),
+    );
+
+    const loanUpdates: { id: string; pi: string; date: string | null; amount: number }[] = [];
+
+    for (const loan of loans ?? []) {
+      if (!loan.email) continue;
+      const search = await stripe.charges.search({
+        query: `status:'succeeded' AND billing_details.email:'${loan.email}'`,
+        limit: 100,
+      }).catch(() => null);
+      const charges = (search?.data ?? []) as any[];
+      const pending = (schedules ?? [])
+        .filter((s: any) => s.loan_application_id === loan.id && s.status !== "paid");
+
+      for (const charge of charges) {
+        const pi = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id;
+        if (!pi || knownPis.has(pi)) continue;
+        const gross = (charge.amount ?? 0) / 100;
+        const idx = pending.findIndex((s: any) =>
+          Math.abs(Number(s.total_payment) - gross) <= 0.02 &&
+          !loanUpdates.some((u) => u.id === s.id)
+        );
+        if (idx === -1) continue;
+        loanUpdates.push({
+          id: pending[idx].id,
+          pi,
+          date: toDate(charge.created),
+          amount: gross,
+        });
+        knownPis.add(pi);
+      }
+    }
+
+    if (!dryRun) {
+      for (const u of loanUpdates) {
+        const { error } = await supabase
+          .from("loan_payment_schedules")
+          .update({
+            status: "paid",
+            paid_date: u.date,
+            stripe_payment_intent_id: u.pi,
+          })
+          .eq("id", u.id);
+        if (error) log("Loan update failed", { id: u.id, message: error.message });
+      }
+    }
+    log("Loan repayments matched", { count: loanUpdates.length });
+
+    return respond({
+      dry_run: dryRun,
+      subscription_invoices: subscriptionRows.length,
+      subscription_total: subscriptionRows.reduce(
+        (s, r) => s + Number(r.amount ?? 0),
+        0,
+      ),
+      loan_payments_marked_paid: loanUpdates.length,
+      loan_details: loanUpdates,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log("ERROR", { message });
+    return respond({ error: message }, 500);
+  }
+});
