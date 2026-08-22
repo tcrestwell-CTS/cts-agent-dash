@@ -323,9 +323,14 @@ export function TripPayments({
     }
   };
 
-  const handleEmailInvoice = async () => {
-    if (!clientEmail) {
-      toast.error("Client email address is required to send invoice");
+  const handleEmailInvoice = async ({
+    templateKey,
+    subject,
+    bodyHtml,
+    recipients,
+  }: InvoiceEmailSendPayload) => {
+    if (recipients.length === 0) {
+      toast.error("Select at least one recipient");
       return;
     }
 
@@ -351,44 +356,52 @@ export function TripPayments({
 
       // Generate PDF as base64
       const pdfBase64 = await generateInvoicePDF(getInvoiceData(invoiceNumber), { returnBase64: true });
-      
+
       if (!pdfBase64) {
         throw new Error("Failed to generate PDF");
       }
 
-      const dateRange = departDate && returnDate
-        ? `${format(parseLocalDate(departDate), "MMM d, yyyy")} - ${format(parseLocalDate(returnDate), "MMM d, yyyy")}`
-        : departDate
-        ? format(parseLocalDate(departDate), "MMM d, yyyy")
-        : "";
-
-      const { error } = await supabase.functions.invoke("send-email", {
-        body: {
-          to: clientEmail,
-          subject: `Invoice ${invoiceNumber} for ${tripName || "Your Trip"}`,
-          template: "invoice",
-          data: {
-            clientName: clientName || "Valued Client",
-            tripName: tripName || "Your Trip",
-            destination: destination || "",
-            dates: dateRange,
-            tripTotal: formatCurrency(tripTotal),
-            totalPaid: formatCurrency(totalPaid),
-            totalRemaining: formatCurrency(Math.max((tripTotal || 0) - (totalPaid || 0), 0)),
-            invoiceNumber,
-          },
-          attachments: [
-            {
-              filename: `${invoiceNumber.replace(/-/g, "_")}_${(tripName || "Trip").replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
-              content: pdfBase64,
-            },
-          ],
+      const attachments = [
+        {
+          filename: `${invoiceNumber.replace(/-/g, "_")}_${(tripName || "Trip").replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
+          content: pdfBase64 as string,
         },
-      });
+      ];
 
-      if (error) throw error;
+      const fullSubject = `${subject} (${invoiceNumber})`;
+      let failures = 0;
 
-      toast.success(`Invoice ${invoiceNumber} sent to ${clientEmail}`);
+      for (const recipient of recipients) {
+        const { error } = await supabase.functions.invoke("send-email", {
+          body: {
+            to: recipient,
+            subject: fullSubject,
+            template: "custom",
+            customHtml: bodyHtml,
+            clientId,
+            attachments,
+            idempotencyKey: `invoice-${invoiceNumber}-${recipient.toLowerCase()}`,
+            metadata: {
+              source: "trip_payments_email_invoice",
+              invoice_template: templateKey,
+              invoice_number: invoiceNumber,
+              trip_id: tripId,
+            },
+          },
+        });
+        if (error) {
+          console.error("Invoice email failed for", recipient, error);
+          failures += 1;
+        }
+      }
+
+      if (failures === recipients.length) throw new Error("All sends failed");
+      if (failures > 0) {
+        toast.warning(`Invoice ${invoiceNumber} sent to ${recipients.length - failures} of ${recipients.length} recipients`);
+      } else {
+        toast.success(`Invoice ${invoiceNumber} sent to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`);
+      }
+      setEmailInvoiceOpen(false);
     } catch (error) {
       console.error("Error sending invoice:", error);
       toast.error("Failed to send invoice email");
@@ -396,6 +409,7 @@ export function TripPayments({
       setSendingEmail(false);
     }
   };
+
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
