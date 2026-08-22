@@ -446,7 +446,6 @@ const handler = async (req: Request): Promise<Response> => {
           if (!sendResp) sendResp = resp;
           if ((resp as any)?.error) console.error("invoice send failed for", row.email, (resp as any).error);
         }
-        });
 
 
         await supabase.from("invoice_email_log").insert({
