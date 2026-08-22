@@ -450,7 +450,7 @@ const handler = async (req: Request): Promise<Response> => {
         const mirrorTemplate = kind === "reminder_7d" ? "payment_reminder" : "invoice_statement";
         await supabase.from("email_logs").insert({
           client_id: client.id,
-          to_email: recipient,
+          to_email: allRecipients.join(", "),
           subject,
           template: mirrorTemplate,
           status: sendError ? "failed" : "sent",
