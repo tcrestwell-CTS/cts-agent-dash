@@ -24,6 +24,7 @@ import {
   type AgentSubscriptionPayment,
 } from "@/hooks/useAgencyOtherIncome";
 import { AgentSubscriptionDialog } from "@/components/bookkeeper/AgentSubscriptionDialog";
+import { AdvisorPlansPanel } from "@/components/bookkeeper/AdvisorPlansPanel";
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -141,6 +142,8 @@ export default function AgencyOtherIncome() {
             )}
           </PanelBody>
         </Panel>
+
+        <AdvisorPlansPanel />
 
         <Panel>
           <PanelHeader title="Advisor subscription payments" />
