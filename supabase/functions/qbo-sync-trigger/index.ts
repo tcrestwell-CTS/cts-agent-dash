@@ -135,6 +135,9 @@ serve(async (req) => {
       case "loan_repayment_posted":
         await handleLoanRepaymentPosted(supabase, qboBase, qboHeaders, userId, record);
         break;
+      case "agent_subscription_received":
+        await handleAgentSubscriptionReceived(supabase, qboBase, qboHeaders, userId, record);
+        break;
       case "apply_payment_to_invoice":
         await handleApplyPaymentToInvoice(supabase, qboBase, qboHeaders, userId, record);
         break;
