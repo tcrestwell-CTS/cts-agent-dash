@@ -33,10 +33,17 @@ export default function AgencyOtherIncome() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [scope, setScope] = useState<"month" | "ytd">("month");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AgentSubscriptionPayment | null>(null);
 
-  const range = useMemo(() => monthBounds(year, month), [year, month]);
+  const range = useMemo(() => {
+    if (scope === "ytd") {
+      const m = monthBounds(year, month);
+      return { start: `${year}-01-01`, end: m.end };
+    }
+    return monthBounds(year, month);
+  }, [year, month, scope]);
   const { data, isLoading } = useAgencyOtherIncome(range);
   const { data: subscriptions } = useAgentSubscriptionPayments(range);
   const { data: teamProfiles } = useTeamProfiles();
@@ -56,8 +63,11 @@ export default function AgencyOtherIncome() {
         principal_repaid: r.principal.toFixed(2),
         reference: r.reference ?? "",
       })),
-      `agency-other-income-${year}-${String(month).padStart(2, "0")}`,
+      scope === "ytd"
+        ? `agency-other-income-${year}-ytd`
+        : `agency-other-income-${year}-${String(month).padStart(2, "0")}`,
     );
+
 
   return (
     <DashboardLayout>
