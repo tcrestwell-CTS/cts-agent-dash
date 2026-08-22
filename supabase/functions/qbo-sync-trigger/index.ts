@@ -425,7 +425,7 @@ async function handleDepositPosted(
     ? Math.round(actualStripeFee * 100) / 100
     : Math.round((grossAmount * stripeFeeRate + stripeFixedFee) * 100) / 100;
   const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
-  console.log(\`[handleDepositPosted] gross=$\{grossAmount} stripeFee=$\{stripeFee} (actual=$\{actualStripeFee > 0}) net=$\{netAmount}\`);
+  console.log(`[handleDepositPosted] gross=${grossAmount} stripeFee=${stripeFee} (actual=${actualStripeFee > 0}) net=${netAmount}`);
   const txnDate = payment.payment_date || new Date().toISOString().split("T")[0];
   // Include PI id in memo so the Stripe ↔ QBO reconciler can match by reference.
   const piTag = payment.stripe_payment_intent_id ? ` [${payment.stripe_payment_intent_id}]` : "";
