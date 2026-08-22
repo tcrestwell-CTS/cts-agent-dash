@@ -56,12 +56,13 @@ export function useBrandingSettings() {
     try {
       const [{ data, error }, { data: profile }] = await Promise.all([
         supabase.from("branding_settings").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("agency_name, phone, full_name").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("agency_name, phone, full_name, storefront_logo_url").eq("user_id", user.id).maybeSingle(),
       ]);
 
       // Agent-specific fallbacks so branding never defaults to the parent agency name
       const fallbackAgency = profile?.agency_name || profile?.full_name || "";
       const fallbackPhone = profile?.phone || "";
+      const fallbackLogo = profile?.storefront_logo_url || "";
 
       if (error) {
         console.error("Error fetching branding settings:", error);
@@ -73,7 +74,7 @@ export function useBrandingSettings() {
           id: data.id,
           agency_name: data.agency_name || fallbackAgency,
           tagline: data.tagline || defaultSettings.tagline,
-          logo_url: data.logo_url || "",
+          logo_url: data.logo_url || fallbackLogo,
           primary_color: data.primary_color || defaultSettings.primary_color,
           accent_color: data.accent_color || defaultSettings.accent_color,
           email_address: data.email_address || "",
@@ -86,7 +87,7 @@ export function useBrandingSettings() {
           from_name: data.from_name || "",
         });
       } else {
-        setSettings({ ...defaultSettings, agency_name: fallbackAgency, phone: fallbackPhone });
+        setSettings({ ...defaultSettings, agency_name: fallbackAgency, phone: fallbackPhone, logo_url: fallbackLogo });
       }
     } catch (error) {
       console.error("Error fetching branding settings:", error);
