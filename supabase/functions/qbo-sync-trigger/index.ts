@@ -1724,7 +1724,7 @@ async function handleAgentSubscriptionReceived(
   try {
     bankAccountId = await getMappedAccountId(supabase, "operating_bank");
   } catch {
-    const acct = await resolvePaymentAccount(supabase, qboBase, qboHeaders, "Bank");
+    const acct = await resolvePaymentAccount(qboBase, qboHeaders, null, null, "Bank");
     bankAccountId = acct.id;
   }
 
