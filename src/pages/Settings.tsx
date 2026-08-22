@@ -20,6 +20,7 @@ import { MarginEngineSettings } from "@/components/settings/MarginEngineSettings
 import { BackfillPlanningTripsCard } from "@/components/admin/BackfillPlanningTripsCard";
 import { TripStatusesSettings } from "@/components/settings/TripStatusesSettings";
 import { AgentPayoutSettings } from "@/components/settings/AgentPayoutSettings";
+import { AgentBillingSettings } from "@/components/settings/AgentBillingSettings";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEarningsLabel } from "@/hooks/useEarningsLabel";
 import { useAuth } from "@/contexts/AuthContext";
@@ -588,100 +589,13 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="billing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Billing & Subscription</CardTitle>
-              <CardDescription>
-                Your current plan and how you get paid
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {loading ? (
-                <Skeleton className="h-24 w-full" />
-              ) : (
-                <>
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-card-foreground">
-                            {isAdmin
-                              ? "Owner / Agency Plan"
-                              : `${getTierConfig(profile.commission_tier).label} Plan`}
-                          </p>
-                          <Badge variant="outline" className="text-xs">Active</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {isAdmin
-                            ? "No subscription fee • 100% agency margin"
-                            : `No subscription fee • ${getTierConfig(profile.commission_tier).description}`}
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground max-w-xs">
-                        Plans are commission-based. Your split is set by an admin in Team
-                        Management.
-                      </p>
-                    </div>
-                  </div>
-
-                  {!isAdmin && (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="p-4 border border-border rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          Your {earnings.singularLower} split
-                        </p>
-                        <p className="text-xl font-semibold text-card-foreground">
-                          {getTierConfig(profile.commission_tier).agentSplit}%
-                        </p>
-                      </div>
-                      <div className="p-4 border border-border rounded-lg">
-                        <p className="text-sm text-muted-foreground">Agency share</p>
-                        <p className="text-xl font-semibold text-card-foreground">
-                          {getTierConfig(profile.commission_tier).agencySplit}%
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {!isAdmin && getNextTier(profile.commission_tier) && (
-                    <p className="text-sm text-muted-foreground">
-                      Next tier:{" "}
-                      <span className="text-card-foreground font-medium">
-                        {COMMISSION_TIERS[getNextTier(profile.commission_tier)!].label}
-                      </span>{" "}
-                      — {COMMISSION_TIERS[getNextTier(profile.commission_tier)!].description}
-                    </p>
-                  )}
-
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-card-foreground">Payout Method</h4>
-                    <div className="p-4 border border-border rounded-lg">
-                      <p className="font-medium text-card-foreground capitalize">
-                        {payoutAccount?.payout_method
-                          ? payoutAccount.payout_method === "ach"
-                            ? "ACH Direct Deposit"
-                            : payoutAccount.payout_method
-                          : "Not set up"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {payoutAccount?.account_number_last4
-                          ? `${payoutAccount.bank_name || "Bank account"} •••• ${payoutAccount.account_number_last4}`
-                          : payoutAccount?.zelle_handle ||
-                            payoutAccount?.paypal_email ||
-                            payoutAccount?.venmo_handle ||
-                            "Add your payout details in the Payout tab to receive payments"}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <AgentBillingSettings commissionTier={profile?.commission_tier} profileLoading={loading} />
         </TabsContent>
 
         <TabsContent value="payout">
           <AgentPayoutSettings />
         </TabsContent>
+
 
         <TabsContent value="integrations">
           <Card>

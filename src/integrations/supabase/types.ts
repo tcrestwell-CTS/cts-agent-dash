@@ -741,6 +741,66 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_subscriptions: {
+        Row: {
+          agent_user_id: string
+          amount: number
+          billing_interval: string
+          created_at: string
+          id: string
+          next_billing_date: string | null
+          notes: string | null
+          payment_method_brand: string | null
+          payment_method_exp: string | null
+          payment_method_last4: string | null
+          plan_description: string | null
+          plan_name: string
+          started_on: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_user_id: string
+          amount?: number
+          billing_interval?: string
+          created_at?: string
+          id?: string
+          next_billing_date?: string | null
+          notes?: string | null
+          payment_method_brand?: string | null
+          payment_method_exp?: string | null
+          payment_method_last4?: string | null
+          plan_description?: string | null
+          plan_name?: string
+          started_on?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_user_id?: string
+          amount?: number
+          billing_interval?: string
+          created_at?: string
+          id?: string
+          next_billing_date?: string | null
+          notes?: string | null
+          payment_method_brand?: string | null
+          payment_method_exp?: string | null
+          payment_method_last4?: string | null
+          plan_description?: string | null
+          plan_name?: string
+          started_on?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_training_progress: {
         Row: {
           completed_at: string | null
