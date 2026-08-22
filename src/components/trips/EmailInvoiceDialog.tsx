@@ -29,9 +29,12 @@ export interface InvoiceEmailRecipient {
 export interface InvoiceEmailSendPayload {
   templateKey: InvoiceEmailTemplateKey;
   subject: string;
+  /** Contains the {{RECIPIENT_NAME}} placeholder — replace per recipient before sending. */
   bodyHtml: string;
-  recipients: string[];
+  recipients: Array<{ email: string; name?: string }>;
 }
+
+export const RECIPIENT_NAME_TOKEN = "{{RECIPIENT_NAME}}";
 
 interface EmailInvoiceDialogProps {
   open: boolean;
