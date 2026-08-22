@@ -1,0 +1,3 @@
+UPDATE public.trip_payments SET amount = 315.26, details = 'August installment (adjusted)' WHERE id = '392a0064-b69d-4060-8eba-337883ceafe3';
+UPDATE public.trip_payments SET amount = 315.26, details = 'September installment (adjusted)' WHERE id = '48781bc1-f4fb-4911-95eb-f1420e9dc0f1';
+UPDATE public.trip_payments SET amount = 315.27, details = 'Final balance (adjusted — paid in full Oct 2026)' WHERE id = '74273fe9-2ada-497c-a6c5-60d1763e0bd7';
