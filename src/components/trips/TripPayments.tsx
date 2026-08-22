@@ -949,6 +949,28 @@ export function TripPayments({
         generating={generatingInvoice}
         error={invoicePreviewError}
       />
+
+      <EmailInvoiceDialog
+        open={emailInvoiceOpen}
+        onOpenChange={setEmailInvoiceOpen}
+        tripId={tripId}
+        tripName={tripName}
+        clientName={clientName}
+        clientEmail={clientEmail}
+        destination={destination}
+        dateRange={
+          departDate && returnDate
+            ? `${format(parseLocalDate(departDate), "MMM d, yyyy")} - ${format(parseLocalDate(returnDate), "MMM d, yyyy")}`
+            : departDate
+            ? format(parseLocalDate(departDate), "MMM d, yyyy")
+            : undefined
+        }
+        tripTotal={tripTotal}
+        totalPaid={totalPaid}
+        totalRemaining={Math.max((tripTotal || 0) - (totalPaid || 0), 0)}
+        sending={sendingEmail}
+        onSend={handleEmailInvoice}
+      />
     </div>
   );
 }
