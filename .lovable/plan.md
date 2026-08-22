@@ -14,6 +14,14 @@ Goal: two (or more) people sharing one cabin stay a **single booking**, but each
 
 No duplicate bookings, no duplicate cabins, no double-counted gross sales or commission.
 
+## Who can set it up
+
+Any advisor can turn splitting on and manage shares for their own trips and bookings — no admin approval needed. Admins and bookkeepers can do the same across all trips, as they can today.
+
+Advisors also get a preference in their own settings: **default new bookings to split payments** (off by default), plus a default number of payers, so agents who routinely book shared cabins don't have to set it up each time. Whatever the default, the split can always be toggled and edited per booking.
+
+
+
 ## What changes in the UI
 
 - **Booking card / Trip Payments**: new "Split payment" action, plus a per-payer summary (share, paid, balance).
@@ -28,6 +36,8 @@ Database (migration):
 - `trip_payments`: add `payer_traveler_id uuid` (FK `trip_travelers`, null allowed), `payer_name text`, `payer_email text`.
 - New `booking_payer_shares` table: `id`, `booking_id`, `trip_id`, `user_id`, `traveler_id` (nullable), `payer_name`, `payer_email`, `share_amount numeric`, `notes`, timestamps. GRANTs for `authenticated` + `service_role`; RLS scoped to the owning advisor plus existing admin/bookkeeper policies, matching the pattern used by `booking_travelers`.
 - Indexes on `booking_id` and `trip_payments.payer_traveler_id`.
+- Advisor preference stored on `profiles`: `default_split_payments boolean default false`, `default_split_payers int default 2`.
+
 
 Frontend:
 - New hook `useBookingPayerShares` (query + upsert + delete).
