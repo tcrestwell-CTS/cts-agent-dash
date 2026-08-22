@@ -64,6 +64,25 @@ serve(async (req) => {
     const dryRun = new URL(req.url).searchParams.get("dry_run") === "true";
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
+    /** Stripe processing fee for an invoice (charge or payment intent based). */
+    const feeForInvoice = async (inv: any) => {
+      let chargeId = typeof inv.charge === "string" ? inv.charge : inv.charge?.id ?? null;
+      if (!chargeId) {
+        const piId = typeof inv.payment_intent === "string"
+          ? inv.payment_intent
+          : inv.payment_intent?.id ?? null;
+        if (piId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(piId) as any;
+            chargeId = typeof pi.latest_charge === "string"
+              ? pi.latest_charge
+              : pi.latest_charge?.id ?? null;
+          } catch { /* ignore */ }
+        }
+      }
+      return await feeFor(chargeId);
+    };
+
     const feeFor = async (chargeId?: string | null) => {
       if (!chargeId) return 0;
       try {
@@ -94,7 +113,6 @@ serve(async (req) => {
         const amount = (inv.amount_paid ?? 0) / 100;
         if (amount <= 0) continue;
         const line = inv.lines?.data?.[0];
-        const chargeId = typeof inv.charge === "string" ? inv.charge : inv.charge?.id;
         const pi = typeof inv.payment_intent === "string"
           ? inv.payment_intent
           : inv.payment_intent?.id ?? `invoice:${inv.id}`;
@@ -102,7 +120,7 @@ serve(async (req) => {
           agent_user_id: sub.agent_user_id,
           plan_name: sub.plan_name ?? line?.description ?? null,
           amount,
-          stripe_fee: await feeFor(chargeId),
+          stripe_fee: await feeForInvoice(inv),
           payment_date: toDate(inv.status_transitions?.paid_at ?? inv.created),
           period_start: toDate(line?.period?.start),
           period_end: toDate(line?.period?.end),
@@ -121,7 +139,6 @@ serve(async (req) => {
         .from("agent_subscription_payments")
         .upsert(subscriptionRows, {
           onConflict: "stripe_payment_intent_id",
-          ignoreDuplicates: true,
         });
       if (error) {
         log("Subscription upsert failed", { message: error.message, details: error.details, hint: error.hint, code: error.code });
