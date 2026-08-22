@@ -51,6 +51,10 @@ export function AgencySalesTab({ dateRange }: AgencySalesTabProps) {
   const { data: commissions } = useCommissions();
   const { suppliers } = useSuppliers();
   const { data: teamProfiles } = useTeamProfiles();
+  const { data: otherIncome } = useAgencyOtherIncome({
+    start: format(dateRange.from, "yyyy-MM-dd"),
+    end: format(new Date(dateRange.to.getTime() + 86400000), "yyyy-MM-dd"),
+  });
 
   // Filters
   const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
