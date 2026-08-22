@@ -84,6 +84,17 @@ export function AgencyMetrics() {
     return { start: startOfYear(now), end: endOfYear(now) };
   }, [range]);
 
+  // Advisor subscriptions + loan interest earned by the agency in the same window
+  const otherIncomeRange = useMemo(
+    () => ({
+      start: format(interval.start, "yyyy-MM-dd"),
+      end: format(new Date(interval.end.getTime() + 86400000), "yyyy-MM-dd"),
+    }),
+    [interval]
+  );
+  const { data: otherIncome } = useAgencyOtherIncome(otherIncomeRange);
+  const otherIncomeTotal = otherIncome?.total ?? 0;
+
   const filteredBookings = useMemo(() => {
     if (!bookings) return [];
     return bookings.filter((b) => {
