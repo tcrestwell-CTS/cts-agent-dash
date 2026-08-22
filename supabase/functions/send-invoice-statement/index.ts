@@ -347,14 +347,14 @@ const handler = async (req: Request): Promise<Response> => {
         const recipient = body.test_recipient || client.email;
         const invoiceNumber = inv.doc_number || `QBO-${inv.qbo_id}`;
 
-        // Everyone assigned to this trip gets a copy: split payers and
-        // additional travelers on the trip (deduped, primary client first).
-        const coRecipients: string[] = [];
+        // Everyone assigned to this trip gets their own individually addressed
+        // copy: split payers and additional travelers (deduped, primary first).
+        const coRecipientRows: Array<{ email: string; name: string }> = [];
         if (!body.test_recipient) {
           const seen = new Set([recipient.toLowerCase()]);
           const [{ data: payerShares }, { data: tripTravelers }] = await Promise.all([
-            supabase.from("booking_payer_shares").select("payer_email").eq("trip_id", trip.id),
-            supabase.from("trip_travelers").select("email").eq("trip_id", trip.id),
+            supabase.from("booking_payer_shares").select("payer_email, payer_name").eq("trip_id", trip.id),
+            supabase.from("trip_travelers").select("email, first_name, last_name").eq("trip_id", trip.id),
           ]);
           for (const row of [...(payerShares || []), ...(tripTravelers || [])] as any[]) {
             const email = (row.payer_email || row.email || "").trim();
@@ -362,10 +362,14 @@ const handler = async (req: Request): Promise<Response> => {
             const lower = email.toLowerCase();
             if (seen.has(lower)) continue;
             seen.add(lower);
-            coRecipients.push(email);
+            const name =
+              (row.payer_name || [row.first_name, row.last_name].filter(Boolean).join(" ") || "").trim();
+            coRecipientRows.push({ email, name });
           }
         }
+        const coRecipients = coRecipientRows.map((r) => r.email);
         const allRecipients = [recipient, ...coRecipients];
+        const recipientRows = [{ email: recipient, name: client.name }, ...coRecipientRows];
 
 
         // Mint a tokenized secure payment link for this recipient
@@ -402,22 +406,23 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("secure_link mint error:", linkE);
         }
 
-        const html = buildHtml({
-          brand: brandingRow,
-          clientName: client.name,
-          tripName: trip.trip_name,
-          destination: trip.destination,
-          invoiceNumber,
-          qboInvoiceId: inv.qbo_id,
-          amountDue: Number(inv.balance || 0),
-          dueDate: inv.due_date,
-          openingBalance,
-          totalRemaining,
-          lastPaymentAmount: lastPay ? Number(lastPay.amount) : null,
-          lastPaymentDate: lastPay?.payment_date || null,
-          isReminder: kind === "reminder_7d",
-          payUrl,
-        });
+        const htmlFor = (name: string) =>
+          buildHtml({
+            brand: brandingRow,
+            clientName: name || "Valued Client",
+            tripName: trip.trip_name,
+            destination: trip.destination,
+            invoiceNumber,
+            qboInvoiceId: inv.qbo_id,
+            amountDue: Number(inv.balance || 0),
+            dueDate: inv.due_date,
+            openingBalance,
+            totalRemaining,
+            lastPaymentAmount: lastPay ? Number(lastPay.amount) : null,
+            lastPaymentDate: lastPay?.payment_date || null,
+            isReminder: kind === "reminder_7d",
+            payUrl,
+          });
 
         const subject =
           kind === "reminder_7d"
@@ -429,12 +434,18 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        const sendResp = await resend.emails.send({
-          from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
-          to: allRecipients,
-          subject,
-          html,
-        });
+        // One individually addressed email per person so each greeting uses their own name
+        let sendResp: any = null;
+        for (const row of recipientRows) {
+          const resp = await resend.emails.send({
+            from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
+            to: [row.email],
+            subject,
+            html: htmlFor(row.name),
+          });
+          if (!sendResp) sendResp = resp;
+          if ((resp as any)?.error) console.error("invoice send failed for", row.email, (resp as any).error);
+        }
 
 
         await supabase.from("invoice_email_log").insert({
