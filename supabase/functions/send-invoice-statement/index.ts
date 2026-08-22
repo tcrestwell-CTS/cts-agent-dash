@@ -469,7 +469,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         sentCount++;
-        results.push({ qbo_id: inv.qbo_id, kind, recipient, sent: true, resend_id: (sendResp as any)?.data?.id });
+        results.push({ qbo_id: inv.qbo_id, kind, recipient, copied_to: coRecipients, sent: true, resend_id: (sendResp as any)?.data?.id });
         if (isCronMode) clientsEmailedThisRun.add(client.id);
       } catch (e) {
         console.error("Failed for invoice", inv.qbo_id, e);
