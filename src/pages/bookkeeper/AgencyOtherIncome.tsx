@@ -79,7 +79,17 @@ export default function AgencyOtherIncome() {
           month={month}
           actions={
             <>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={scope}
+                onValueChange={(v) => v && setScope(v as "month" | "ytd")}
+              >
+                <ToggleGroupItem value="month" className="text-[13px]">Month</ToggleGroupItem>
+                <ToggleGroupItem value="ytd" className="text-[13px]">YTD</ToggleGroupItem>
+              </ToggleGroup>
               <PeriodPicker year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
+
               <Button variant="outline" size="sm" className="text-[13px]" onClick={exportCsv} disabled={rows.length === 0}>
                 <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
               </Button>
