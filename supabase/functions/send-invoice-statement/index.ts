@@ -406,22 +406,23 @@ const handler = async (req: Request): Promise<Response> => {
           console.error("secure_link mint error:", linkE);
         }
 
-        const html = buildHtml({
-          brand: brandingRow,
-          clientName: client.name,
-          tripName: trip.trip_name,
-          destination: trip.destination,
-          invoiceNumber,
-          qboInvoiceId: inv.qbo_id,
-          amountDue: Number(inv.balance || 0),
-          dueDate: inv.due_date,
-          openingBalance,
-          totalRemaining,
-          lastPaymentAmount: lastPay ? Number(lastPay.amount) : null,
-          lastPaymentDate: lastPay?.payment_date || null,
-          isReminder: kind === "reminder_7d",
-          payUrl,
-        });
+        const htmlFor = (name: string) =>
+          buildHtml({
+            brand: brandingRow,
+            clientName: name || "Valued Client",
+            tripName: trip.trip_name,
+            destination: trip.destination,
+            invoiceNumber,
+            qboInvoiceId: inv.qbo_id,
+            amountDue: Number(inv.balance || 0),
+            dueDate: inv.due_date,
+            openingBalance,
+            totalRemaining,
+            lastPaymentAmount: lastPay ? Number(lastPay.amount) : null,
+            lastPaymentDate: lastPay?.payment_date || null,
+            isReminder: kind === "reminder_7d",
+            payUrl,
+          });
 
         const subject =
           kind === "reminder_7d"
@@ -433,11 +434,18 @@ const handler = async (req: Request): Promise<Response> => {
           continue;
         }
 
-        const sendResp = await resend.emails.send({
-          from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
-          to: allRecipients,
-          subject,
-          html,
+        // One individually addressed email per person so each greeting uses their own name
+        let sendResp: any = null;
+        for (const row of recipientRows) {
+          const resp = await resend.emails.send({
+            from: `${brandingRow?.agency_name || "Crestwell Travel Services"} <noreply@crestwellgetaways.com>`,
+            to: [row.email],
+            subject,
+            html: htmlFor(row.name),
+          });
+          if (!sendResp) sendResp = resp;
+          if ((resp as any)?.error) console.error("invoice send failed for", row.email, (resp as any).error);
+        }
         });
 
 
