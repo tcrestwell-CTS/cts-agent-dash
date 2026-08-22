@@ -1692,3 +1692,86 @@ async function handleInvoiceUpdated(
     new_total: newTotal,
   });
 }
+
+/**
+ * Advisor subscription payment received → QBO Deposit into the operating bank,
+ * crediting an "Advisor Subscription Income" income account.
+ * record = agent_subscription_payments row
+ */
+async function handleAgentSubscriptionReceived(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, sub: any,
+) {
+  const amount = Number(sub.amount || 0);
+  if (amount <= 0) {
+    await logSync(supabase, userId, "auto-agent-subscription", "skipped", 0, "Zero amount");
+    return;
+  }
+
+  const idemKey = `agent_subscription:${sub.id}`;
+  const { data: prior } = await supabase
+    .from("qbo_sync_logs")
+    .select("id")
+    .eq("idempotency_key", idemKey)
+    .eq("status", "success")
+    .maybeSingle();
+  if (prior || sub.qbo_deposit_id) {
+    console.log(`[agent_subscription_received] already posted for ${sub.id}; skipping`);
+    return;
+  }
+
+  // Deposit target: mapped operating bank, else first active QBO Bank account.
+  let bankAccountId: string;
+  try {
+    bankAccountId = await getMappedAccountId(supabase, "operating_bank");
+  } catch {
+    const acct = await resolvePaymentAccount(supabase, qboBase, qboHeaders, "Bank");
+    bankAccountId = acct.id;
+  }
+
+  const incomeAccountId = await ensureQBOAccount(
+    qboBase, qboHeaders, "Advisor Subscription Income", "Income", "ServiceFeeIncome",
+  );
+
+  const txnDate = (sub.payment_date || new Date().toISOString()).split("T")[0];
+  const memo = `Advisor subscription – ${sub.plan_name || "monthly fee"}${
+    sub.stripe_payment_intent_id ? ` [${sub.stripe_payment_intent_id}]` : ""
+  }`;
+
+  const body = {
+    DepositToAccountRef: { value: bankAccountId },
+    TxnDate: txnDate,
+    PrivateNote: memo,
+    Line: [
+      {
+        Amount: Number(amount.toFixed(2)),
+        DetailType: "DepositLineDetail",
+        Description: memo,
+        DepositLineDetail: { AccountRef: { value: incomeAccountId } },
+      },
+    ],
+  };
+
+  const r = await qboFetch(`${qboBase}/deposit`, {
+    method: "POST",
+    headers: qboHeaders,
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`Advisor subscription Deposit failed: ${await r.text()}`);
+  const j = await r.json();
+  const depositId = j?.Deposit?.Id || null;
+
+  await supabase
+    .from("agent_subscription_payments")
+    .update({ qbo_deposit_id: depositId, qbo_synced_at: new Date().toISOString() })
+    .eq("id", sub.id);
+
+  await supabase.from("qbo_sync_logs").insert({
+    user_id: userId,
+    sync_type: "auto-agent-subscription",
+    direction: "push",
+    status: "success",
+    records_processed: 1,
+    idempotency_key: idemKey,
+    details: { agent_subscription_payment_id: sub.id, deposit_id: depositId, amount },
+  });
+}
