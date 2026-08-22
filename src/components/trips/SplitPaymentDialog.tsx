@@ -83,36 +83,52 @@ export function SplitPaymentDialog({
   const booking = payableBookings.find((b) => b.id === bookingId);
   const bookingGross = Number(booking?.gross_sales || (booking as any)?.total_price || 0);
   const [alreadyPaid, setAlreadyPaid] = useState(0);
+  const [outstandingScheduled, setOutstandingScheduled] = useState(0);
 
   // Only the unpaid balance can be split — payments already logged stay put.
+  // Payments may be logged at trip level (booking_id null) or on the booking.
   useEffect(() => {
-    if (!open || !bookingId) {
+    if (!open || !bookingId || !tripId) {
       setAlreadyPaid(0);
+      setOutstandingScheduled(0);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("trip_payments")
-        .select("amount, status, due_date, payment_date, payment_method, stripe_session_id, stripe_receipt_url, payment_type, details")
-        .eq("booking_id", bookingId);
+        .select("amount, status, booking_id, due_date, payment_date, payment_method, stripe_session_id, stripe_receipt_url, payment_type, details")
+        .eq("trip_id", tripId);
       if (cancelled) return;
       if (error) {
         console.error("SplitPaymentDialog: failed to load payments", error);
         setAlreadyPaid(0);
+        setOutstandingScheduled(0);
         return;
       }
-      const paid = (data || [])
+      const scoped = (data || []).filter(
+        (p: any) => !p.booking_id || p.booking_id === bookingId
+      );
+      const paid = scoped
         .filter((p: any) => isInvoiceCashPayment(p))
         .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+      const outstanding = scoped
+        .filter((p: any) => p.status === "pending" || p.status === "overdue")
+        .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
       setAlreadyPaid(Math.round(paid * 100) / 100);
+      setOutstandingScheduled(Math.round(outstanding * 100) / 100);
     })();
     return () => {
       cancelled = true;
     };
-  }, [open, bookingId]);
+  }, [open, bookingId, tripId]);
 
-  const bookingTotal = Math.max(0, Math.round((bookingGross - alreadyPaid) * 100) / 100);
+  // Prefer the actual outstanding scheduled balance when a schedule exists;
+  // otherwise fall back to booking gross minus what has been paid.
+  const bookingTotal =
+    outstandingScheduled > 0
+      ? outstandingScheduled
+      : Math.max(0, Math.round((bookingGross - alreadyPaid) * 100) / 100);
 
   // Seed the editor: existing shares when present, otherwise an equal split.
   useEffect(() => {
