@@ -30,6 +30,7 @@ import {
 } from "@/hooks/useBookingPayerShares";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 
 interface SplitPaymentDialogProps {
   open: boolean;
@@ -56,10 +57,12 @@ export function SplitPaymentDialog({
   tripId,
   bookings,
   defaultBookingId,
-  defaultPayers = 2,
+  defaultPayers,
   onSaved,
 }: SplitPaymentDialogProps) {
   const { user } = useAuth();
+  const { profile } = useProfile();
+  const payerDefault = defaultPayers || profile?.default_split_payers || 2;
   const payableBookings = useMemo(
     () => bookings.filter((b) => b.status !== "cancelled"),
     [bookings]
@@ -94,7 +97,7 @@ export function SplitPaymentDialog({
         }))
       );
     } else {
-      const count = Math.max(2, Math.min(defaultPayers || 2, 8));
+      const count = Math.max(2, Math.min(payerDefault, 8));
       const each = Math.round(((bookingTotal || 0) / count) * 100) / 100;
       setShares(
         Array.from({ length: count }).map((_, i) => {
@@ -111,7 +114,7 @@ export function SplitPaymentDialog({
     }
     setRemovedIds([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, bookingId, sharesLoading, existingShares.length, bookingTotal]);
+  }, [open, bookingId, sharesLoading, existingShares.length, bookingTotal, payerDefault]);
 
   const allocated = shares.reduce((sum, s) => sum + (Number(s.share_amount) || 0), 0);
   const remaining = Math.round((bookingTotal - allocated) * 100) / 100;
