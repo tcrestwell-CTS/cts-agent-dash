@@ -150,7 +150,8 @@ export function EmailInvoiceDialog({
     const primary = branding?.primary_color || "#0d1b2a";
     const accent = branding?.accent_color || "#c9a84c";
     const trip = tripName || "Your Trip";
-    const greeting = `Dear ${clientName || "Valued Client"},`;
+    const greeting = `Dear ${RECIPIENT_NAME_TOKEN},`;
+    const previewGreeting = `Dear ${clientName || "Valued Client"},`;
 
     const copyByTemplate: Record<InvoiceEmailTemplateKey, { subject: string; intro: string; closing: string }> = {
       standard: {
@@ -193,6 +194,7 @@ export function EmailInvoiceDialog({
       <p style="color:#6b7280;font-size:13px;">Payments are securely processed through Crestwell Travel Network, ${agency}'s host agency, so that name may appear at checkout and on your statement.</p>
     `;
 
+    const previewBody = body.split(greeting).join(previewGreeting);
     const preview = `
       <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111827;">
         <div style="background:${primary};padding:24px;text-align:center;">
@@ -200,7 +202,7 @@ export function EmailInvoiceDialog({
           <div style="color:${accent};font-family:Georgia,serif;font-size:20px;font-weight:600;">${agency}</div>
           <div style="color:#ffffff;opacity:0.75;font-size:12px;font-style:italic;margin-top:4px;">${copy.subject}</div>
         </div>
-        <div style="padding:24px;line-height:1.7;color:#374151;">${body}
+        <div style="padding:24px;line-height:1.7;color:#374151;">${previewBody}
           <div style="margin-top:20px;padding:12px;border:1px dashed #d1d5db;border-radius:6px;color:#6b7280;font-size:13px;">
             📎 Attachment: Invoice PDF (generated when sent)
           </div>

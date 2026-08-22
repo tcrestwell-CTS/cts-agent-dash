@@ -19,7 +19,7 @@ import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
-import { EmailInvoiceDialog, InvoiceEmailSendPayload } from "./EmailInvoiceDialog";
+import { EmailInvoiceDialog, InvoiceEmailSendPayload, RECIPIENT_NAME_TOKEN } from "./EmailInvoiceDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
@@ -374,15 +374,18 @@ export function TripPayments({
       let failures = 0;
 
       for (const recipient of recipients) {
+        const personalizedHtml = bodyHtml
+          .split(RECIPIENT_NAME_TOKEN)
+          .join(recipient.name?.trim() || "Valued Client");
         const { error } = await supabase.functions.invoke("send-email", {
           body: {
-            to: recipient,
+            to: recipient.email,
             subject: fullSubject,
             template: "custom",
-            customHtml: bodyHtml,
+            customHtml: personalizedHtml,
             clientId,
             attachments,
-            idempotencyKey: `invoice-${invoiceNumber}-${recipient.toLowerCase()}`,
+            idempotencyKey: `invoice-${invoiceNumber}-${recipient.email.toLowerCase()}`,
             metadata: {
               source: "trip_payments_email_invoice",
               invoice_template: templateKey,
@@ -392,7 +395,7 @@ export function TripPayments({
           },
         });
         if (error) {
-          console.error("Invoice email failed for", recipient, error);
+          console.error("Invoice email failed for", recipient.email, error);
           failures += 1;
         }
       }
