@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.trigger_qbo_agent_subscription_received() FROM anon, authenticated;
