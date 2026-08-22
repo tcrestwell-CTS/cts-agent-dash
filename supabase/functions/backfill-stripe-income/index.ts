@@ -195,15 +195,12 @@ serve(async (req) => {
       // rows were logged against the charge id, not the invoice id).
       const paidDate = toDate(inv.status_transitions?.paid_at ?? inv.created);
       const month = paidDate?.slice(0, 7);
-      const alreadyThatMonth = (schedules ?? []).some((s: any) =>
-        s.loan_application_id === loan.id && s.status === "paid" &&
-        (paidMonths[loan.id] ?? []).includes(month ?? "")
-      );
       if (month && (paidMonths[loan.id] ?? []).includes(month)) {
         log("Month already paid — skipping invoice", { invoice: inv.id, month });
         continue;
       }
-      if (alreadyThatMonth) continue;
+      if (month) (paidMonths[loan.id] ??= []).push(month);
+
       const gross = (inv.amount_paid ?? 0) / 100;
       const target = (schedules ?? []).find((s: any) =>
         s.loan_application_id === loan.id &&
