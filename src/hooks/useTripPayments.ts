@@ -148,7 +148,11 @@ export function useTripPayments(tripId: string | undefined) {
           status: data.status || "pending",
           details: data.details || null,
           notes: data.notes || null,
+          payer_traveler_id: data.payer_traveler_id || null,
+          payer_name: data.payer_name || null,
+          payer_email: data.payer_email || null,
         })
+
         .select()
         .single();
 
