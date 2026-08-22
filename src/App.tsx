@@ -291,6 +291,7 @@ const App = () => (
                 <Route path="/bookkeeper/pl"             element={<ProtectedRoute><BookkeeperRoute><BookkeeperPL /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/balance-sheet"  element={<ProtectedRoute><BookkeeperRoute><BookkeeperBalanceSheet /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/income"         element={<ProtectedRoute><BookkeeperRoute><BookkeeperIncome /></BookkeeperRoute></ProtectedRoute>} />
+                <Route path="/bookkeeper/other-income"   element={<ProtectedRoute><BookkeeperRoute><AgencyOtherIncome /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/expenses"       element={<ProtectedRoute><BookkeeperRoute><BookkeeperExpenses /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/unattributed"   element={<ProtectedRoute><BookkeeperRoute><BookkeeperUnattributed /></BookkeeperRoute></ProtectedRoute>} />
                 <Route path="/bookkeeper/bank-recon"     element={<ProtectedRoute><BookkeeperRoute><BookkeeperBankRecon /></BookkeeperRoute></ProtectedRoute>} />
