@@ -33,6 +33,7 @@ import { Building2, CheckCircle2 } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { Badge } from "@/components/ui/badge";
 import { OpsAlerts } from "@/components/dashboard/OpsAlerts";
+import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
 
 type DateRange = "mtd" | "ytd";
 
