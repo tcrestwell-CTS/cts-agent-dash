@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Link2, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud } from "lucide-react";
+import { Plus, Link2, CreditCard, DollarSign, Trash2, Check, Receipt, FileText, Mail, Loader2, ExternalLink, Copy, RefreshCw, CloudOff, Cloud, Users } from "lucide-react";
 import { useTripPayments, TripPayment } from "@/hooks/useTripPayments";
 import { TripBooking } from "@/hooks/useTrips";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
+import { SplitPaymentDialog } from "./SplitPaymentDialog";
+import { useTripPayerShares } from "@/hooks/useBookingPayerShares";
+
 import { SendFinancingLinkDialog } from "@/components/financing/SendFinancingLinkDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
