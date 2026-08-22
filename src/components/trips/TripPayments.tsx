@@ -593,7 +593,14 @@ export function TripPayments({
                       <tr key={payment.id} className="hover:bg-muted/50">
                         <td className="py-3">
                           <p className="font-medium text-primary">{getPaymentLabel(payment)}</p>
+                          {payment.payer_name && (
+                            <Badge variant="outline" className="mt-1 text-[10px]">
+                              <Users className="h-3 w-3 mr-1" />
+                              {payment.payer_name}
+                            </Badge>
+                          )}
                         </td>
+
                         <td className="py-3 text-sm text-muted-foreground">
                           {payment.payment_type === "final_balance" ? "Final balance" : 
                            payment.payment_type.charAt(0).toUpperCase() + payment.payment_type.slice(1)}
