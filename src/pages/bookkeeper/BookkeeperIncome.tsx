@@ -53,8 +53,27 @@ export default function BookkeeperIncome() {
     },
   });
 
-  const rows = (data ?? []) as any[];
+  const monthRange = useMemo(() => monthBounds(year, month), [year, month]);
+  const { data: otherIncome } = useAgencyOtherIncome(monthRange);
+
+  // Client payments + agency other income (advisor subscriptions, loan interest)
+  const rows = useMemo(() => {
+    const clientRows = ((data ?? []) as any[]).map((r) => ({ ...r, source: "client_payment" }));
+    const otherRows = (otherIncome?.rows ?? []).map((r) => ({
+      id: r.id,
+      amount: r.amount,
+      payment_date: r.date,
+      payment_method: r.source === "agent_subscription" ? "subscription" : "loan",
+      payment_type: r.source === "agent_subscription" ? "advisor subscription" : "loan interest",
+      stripe_payment_intent_id: r.reference,
+      trips: { trip_name: r.label },
+      source: r.source,
+    }));
+    return [...clientRows, ...otherRows.filter((r) => Number(r.amount) > 0)];
+  }, [data, otherIncome]);
+
   const total = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const otherTotal = otherIncome?.total ?? 0;
 
   const { sort, onSort } = useSort<SortKey>({ key: "payment_date", dir: "desc" });
   const sorted = useMemo(
