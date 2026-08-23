@@ -49,25 +49,33 @@ export function SendFinancingLinkDialog({
     }
     setGenerating(true);
     try {
-      // Create a portal token scoped to financing
+      // CRITICAL FIX: this was self-encoding the payload directly into
+      // the token (btoa(JSON.stringify(...))) with NO actual database
+      // record — but the receiving page (crestwellgetaways.com/financing)
+      // uses TokenGate, which validates against a REAL secure_links row
+      // via the validate-token function. With nothing ever stored,
+      // EVERY financing link generated this way was guaranteed to fail
+      // with "Application Link Not Valid", regardless of expiry or
+      // reuse. Now creates a real secure_links row, matching the exact
+      // same working pattern used by payment links.
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + TOKEN_EXPIRY_DAYS);
 
-      const tokenPayload = {
-        type:         "financing",
-        client_id:    clientId   || null,
-        trip_id:      tripId     || null,
-        client_name:  form.name,
-        client_email: form.email,
-        trip_name:    form.trip,
-        loan_amount:  form.amount ? parseFloat(form.amount) : null,
-        expires_at:   expiresAt.toISOString(),
-        created_at:   new Date().toISOString(),
-      };
+      const tokenStr = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
 
-      // Store token in portal_tokens table
-      const tokenStr = btoa(JSON.stringify(tokenPayload))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      const { error: linkErr } = await supabase.from("secure_links").insert({
+        token: tokenStr,
+        link_type: "financing",
+        client_name: form.name,
+        client_email: form.email,
+        trip_name: form.trip || null,
+        amount: form.amount ? Math.round(parseFloat(form.amount) * 100) : null,
+        expires_at: expiresAt.toISOString(),
+        single_use: false,
+        active: true,
+      });
+
+      if (linkErr) throw linkErr;
 
       const url = `${FINANCING_BASE}?token=${tokenStr}`;
       setGeneratedLink(url);
