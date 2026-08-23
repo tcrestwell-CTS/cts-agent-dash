@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Copy, Mail, ExternalLink, Loader2, Link2 } from "lucide-react";
 
 interface SendFinancingLinkDialogProps {
@@ -33,6 +34,7 @@ export function SendFinancingLinkDialog({
   tripName = "",
   loanAmount,
 }: SendFinancingLinkDialogProps) {
+  const { user } = useAuth();
   const [generating, setGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -63,6 +65,11 @@ export function SendFinancingLinkDialog({
 
       const tokenStr = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
 
+      // REQUIRED by RLS: "Staff manage secure links" policy checks
+      // auth.uid() = created_by for any non-admin agent — omitting this
+      // caused the insert to be silently rejected for every regular
+      // agent (admins/office_admins would have worked fine, which is
+      // why this bug wasn't caught immediately).
       const { error: linkErr } = await supabase.from("secure_links").insert({
         token: tokenStr,
         link_type: "financing",
@@ -73,6 +80,7 @@ export function SendFinancingLinkDialog({
         expires_at: expiresAt.toISOString(),
         single_use: false,
         active: true,
+        created_by: user?.id,
       });
 
       if (linkErr) throw linkErr;
