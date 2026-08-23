@@ -23,9 +23,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // secure_links is only readable by service_role (RLS has no anon/authenticated
+    // policy). Using the anon key here made EVERY token resolve to "Invalid link".
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
     const { data: link, error } = await supabase
