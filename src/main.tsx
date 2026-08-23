@@ -49,6 +49,25 @@ const isChunkLoadError = (msg: string) =>
   /error loading dynamically imported module/i.test(msg) ||
   /ChunkLoadError/i.test(msg);
 
+const purgeCaches = async () => {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => undefined)));
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k).catch(() => undefined)));
+    }
+  } catch {
+    /* ignore */
+  }
+};
+
 const tryReload = () => {
   try {
     const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
@@ -58,8 +77,20 @@ const tryReload = () => {
   } catch {
     /* ignore storage errors */
   }
-  window.location.reload();
+  // Stale chunk hashes come from a cached index.html / service worker.
+  // Clear both, then force a fresh document fetch (cache-busted).
+  void purgeCaches().finally(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("__r", String(Date.now()));
+    window.location.replace(url.toString());
+  });
 };
+
+// Vite emits this when a lazy route's preloaded chunk 404s after a deploy.
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  tryReload();
+});
 
 window.addEventListener("error", (event) => {
   const msg = event?.message || String(event?.error?.message || "");
