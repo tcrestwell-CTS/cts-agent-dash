@@ -88,11 +88,11 @@ Deno.serve(async (req) => {
     // Persist the result on this project's row (the public site can't reach it).
     const update: Record<string, unknown> = { equifax_checked_at: new Date().toISOString() };
     if (upstream.ok) {
-      update.equifax_score = payload.score ?? null;
+      update.equifax_score = payload.equifax_score ?? payload.score ?? null;
       update.equifax_decision = payload.decision ?? null;
       update.equifax_reasons = payload.reasons ?? null;
       update.equifax_client_message = payload.client_message ?? null;
-      update.equifax_error = null;
+      update.equifax_error = payload.error ? String(payload.error) : null;
     } else {
       update.equifax_error = String(payload.error ?? `Upstream ${upstream.status}`);
     }
