@@ -9532,6 +9532,7 @@ export type Database = {
           image_url: string | null
           price_per_person: number
           price_period: string
+          requires_double_occupancy: boolean
           sort_order: number
           trip_id: string
           updated_at: string
@@ -9546,6 +9547,7 @@ export type Database = {
           image_url?: string | null
           price_per_person?: number
           price_period?: string
+          requires_double_occupancy?: boolean
           sort_order?: number
           trip_id: string
           updated_at?: string
@@ -9560,6 +9562,7 @@ export type Database = {
           image_url?: string | null
           price_per_person?: number
           price_period?: string
+          requires_double_occupancy?: boolean
           sort_order?: number
           trip_id?: string
           updated_at?: string

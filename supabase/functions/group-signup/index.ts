@@ -197,6 +197,28 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Enforce double-occupancy minimum on the selected cabin category
+      if (selected_cabin_option_id) {
+        const { data: selectedCabin } = await supabaseAdmin
+          .from("trip_cabin_options")
+          .select("category_name, requires_double_occupancy")
+          .eq("id", selected_cabin_option_id)
+          .maybeSingle();
+
+        if (selectedCabin?.requires_double_occupancy && Number(number_of_travelers || 1) < 2) {
+          return new Response(
+            JSON.stringify({
+              error: `${selectedCabin.category_name} requires a minimum of 2 travelers (double occupancy).`,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+
+
       // Find or create the client in the agent's CRM
       const clientName = `${first_name.trim()}${last_name ? " " + last_name.trim() : ""}`;
       let clientId: string;
