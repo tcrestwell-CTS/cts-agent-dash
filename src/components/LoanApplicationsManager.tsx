@@ -510,10 +510,8 @@ export default function LoanApplicationsManager() {
   const rerunEquifax = async (app: LoanApplication) => {
     setRerunningId(app.id);
     try {
-      const resp = await fetch("https://crestwellgetaways.com/api/equifax-prequal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const { data: result, error: fnError } = await supabase.functions.invoke("equifax-prequal-proxy", {
+        body: {
           application_id: app.id,
           first_name: app.first_name,
           last_name: app.last_name,
@@ -524,10 +522,11 @@ export default function LoanApplicationsManager() {
           state: app.state,
           zip_code: app.zip_code,
           loan_amount_requested: app.loan_amount_requested,
-        }),
+        },
       });
-      const result = await resp.json();
-      if (!resp.ok) throw new Error(result.error || "Re-run failed");
+      if (fnError) throw new Error(fnError.message || "Re-run failed");
+      if (result?.error) throw new Error(result.error);
+
       toast.success(`Equifax: ${result.decision || "decision returned"}`);
       await fetchApplications();
       if (selected?.id === app.id) {
