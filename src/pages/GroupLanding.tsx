@@ -186,6 +186,11 @@ export default function GroupLanding() {
       toast.error("Please fill in the second traveler's first name.");
       return;
     }
+    const chosen = data?.cabinOptions?.find((c) => c.id === form.selected_cabin_option_id);
+    if (chosen?.requires_double_occupancy && form.number_of_travelers !== "2") {
+      toast.error(`${chosen.category_name} requires 2 travelers (double occupancy).`);
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(
