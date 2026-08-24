@@ -101,6 +101,7 @@ const navGroups: NavGroup[] = [
       { name: "My Payments", href: "/my-payments",       icon: CreditCard },
       { name: "LINE Inbox", href: "/line-inbox",         icon: MessageCircleMore },
       { name: "Notes Chat", href: "/notes-chat",        icon: MessageSquareText },
+      { name: "Financing / Loans", href: "/loan-applications", icon: CreditCard, feature: "loan_applications" },
     ],
   },
   {
@@ -123,7 +124,6 @@ const navGroups: NavGroup[] = [
       { name: "Flights",     href: "/flights",      icon: Plane,   feature: "flight_search" },
       { name: "Excursions",       href: "/excursions",        icon: Compass,    feature: "excursions" },
       { name: "Car Rentals",      href: "/car-rentals",       icon: Car },
-      { name: "Loan Applications",href: "/loan-applications", icon: CreditCard, feature: "loan_applications" },
     ],
   },
   {
