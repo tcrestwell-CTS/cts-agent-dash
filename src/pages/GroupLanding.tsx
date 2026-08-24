@@ -976,17 +976,28 @@ export default function GroupLanding() {
                         required
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         value={form.selected_cabin_option_id}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, selected_cabin_option_id: e.target.value }))
-                        }
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const opt = data.cabinOptions.find((c) => c.id === id);
+                          setForm((f) => ({
+                            ...f,
+                            selected_cabin_option_id: id,
+                            number_of_travelers: opt?.requires_double_occupancy ? "2" : f.number_of_travelers,
+                          }));
+                        }}
                       >
                         <option value="">Select a cabin type...</option>
                         {data.cabinOptions.map((cabin) => (
                           <option key={cabin.id} value={cabin.id}>
-                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person{(cabin as any).price_period === 'night' ? ' / night' : ''}
+                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person{cabin.price_period === 'night' ? ' / night' : ''}{cabin.requires_double_occupancy ? ' (2 travelers min)' : ''}
                           </option>
                         ))}
                       </select>
+                      {data.cabinOptions.find((c) => c.id === form.selected_cabin_option_id)?.requires_double_occupancy && (
+                        <p className="text-xs text-amber-600">
+                          This category requires 2 travelers (double occupancy).
+                        </p>
+                      )}
                     </div>
                   )}
 
