@@ -20,6 +20,7 @@ interface CabinOption {
   image_url: string | null;
   sort_order: number;
   price_period?: 'trip' | 'night';
+  requires_double_occupancy?: boolean;
 }
 
 interface CabinOptionsManagerProps {
@@ -41,6 +42,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     capacity: string;
     image_url: string;
     price_period: 'trip' | 'night';
+    requires_double_occupancy: boolean;
   } | null>(null);
 
   const [newOption, setNewOption] = useState({
@@ -51,6 +53,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     capacity: "",
     image_url: "",
     price_period: "trip" as 'trip' | 'night',
+    requires_double_occupancy: false,
   });
 
   const fetchOptions = async () => {
@@ -87,13 +90,14 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
       image_url: newOption.image_url.trim() || null,
       sort_order: options.length,
       price_period: newOption.price_period,
+      requires_double_occupancy: newOption.requires_double_occupancy,
     } as any);
 
     if (error) {
       toast.error("Failed to add cabin option");
     } else {
       toast.success("Cabin option added");
-      setNewOption({ category_name: "", description: "", price_per_person: "", deposit_amount: "", capacity: "", image_url: "", price_period: "trip" });
+      setNewOption({ category_name: "", description: "", price_per_person: "", deposit_amount: "", capacity: "", image_url: "", price_period: "trip", requires_double_occupancy: false });
       setShowAddForm(false);
       fetchOptions();
       onDataChange?.();
@@ -122,6 +126,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
       capacity: opt.capacity != null ? String(opt.capacity) : "",
       image_url: opt.image_url ?? "",
       price_period: (opt.price_period as 'trip' | 'night') ?? 'trip',
+      requires_double_occupancy: !!opt.requires_double_occupancy,
     });
   };
 
@@ -147,6 +152,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
         capacity: editDraft.capacity ? parseInt(editDraft.capacity) : null,
         image_url: editDraft.image_url.trim() || null,
         price_period: editDraft.price_period,
+        requires_double_occupancy: editDraft.requires_double_occupancy,
       } as any)
       .eq("id", editingId);
 
@@ -255,6 +261,16 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                       value={editDraft.capacity}
                       onChange={(e) => setEditDraft((p) => p && ({ ...p, capacity: e.target.value }))}
                     />
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                      <input
+                        type="checkbox"
+                        checked={editDraft.requires_double_occupancy}
+                        onChange={(e) =>
+                          setEditDraft((p) => p && ({ ...p, requires_double_occupancy: e.target.checked }))
+                        }
+                      />
+                      Require 2-traveler minimum (double occupancy)
+                    </label>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -302,6 +318,11 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                 <Badge variant="outline" className="text-xs">
                   {formatCurrency(opt.price_per_person)} / person{opt.price_period === 'night' ? ' / night' : ''}
                 </Badge>
+                {opt.requires_double_occupancy && (
+                  <Badge variant="secondary" className="text-xs">
+                    2-traveler min
+                  </Badge>
+                )}
                 {opt.deposit_amount > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {formatCurrency(opt.deposit_amount)} deposit
@@ -393,6 +414,14 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                   value={newOption.capacity}
                   onChange={(e) => setNewOption((p) => ({ ...p, capacity: e.target.value }))}
                 />
+                <label className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                  <input
+                    type="checkbox"
+                    checked={newOption.requires_double_occupancy}
+                    onChange={(e) => setNewOption((p) => ({ ...p, requires_double_occupancy: e.target.checked }))}
+                  />
+                  Require 2-traveler minimum (double occupancy)
+                </label>
               </div>
             </div>
             <div className="space-y-1.5">
