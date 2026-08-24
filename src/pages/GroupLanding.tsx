@@ -65,6 +65,8 @@ interface CabinOption {
   capacity: number | null;
   image_url: string | null;
   sort_order: number;
+  price_period?: string | null;
+  requires_double_occupancy?: boolean | null;
 }
 
 interface GroupLandingData {

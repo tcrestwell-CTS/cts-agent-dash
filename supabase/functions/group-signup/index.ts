@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       // Get cabin/category options
       const { data: cabinOptions } = await supabaseAdmin
         .from("trip_cabin_options")
-        .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url, sort_order")
+        .select("id, category_name, description, price_per_person, deposit_amount, capacity, image_url, sort_order, price_period, requires_double_occupancy")
         .eq("trip_id", trip.id)
         .order("sort_order", { ascending: true });
 
