@@ -888,15 +888,21 @@ export default function GroupLanding() {
                   <div className="space-y-1.5">
                     <Label className="text-sm">Occupancy</Label>
                     <div className="flex gap-2">
-                      {["1", "2"].map((val) => (
+                      {["1", "2"].map((val) => {
+                        const doubleRequired = !!data.cabinOptions?.find(
+                          (c) => c.id === form.selected_cabin_option_id
+                        )?.requires_double_occupancy;
+                        const disabled = val === "1" && doubleRequired;
+                        return (
                         <button
                           key={val}
                           type="button"
+                          disabled={disabled}
                           className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                             form.number_of_travelers === val
                               ? "border-2 shadow-sm"
                               : "border-gray-200 text-gray-600 hover:border-gray-300"
-                          }`}
+                          } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
                           style={
                             form.number_of_travelers === val
                               ? { borderColor: primaryColor, color: primaryColor, backgroundColor: `${primaryColor}08` }
