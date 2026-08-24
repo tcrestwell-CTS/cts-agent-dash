@@ -918,7 +918,8 @@ export default function GroupLanding() {
                         >
                           {val === "1" ? "1 Traveler" : "2 Travelers"}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
