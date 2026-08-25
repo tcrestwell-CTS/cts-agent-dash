@@ -251,7 +251,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .from('quote_requests')
     .select(`
       id, first_name, email, destination, proposal_draft, proposal_status, proposal_token,
-      cover_image_url, depart_date, trip_summary, assigned_agent_id
+      departure_date, assigned_agent_id
     `)
     .eq('id', leadId)
     .single();
@@ -282,9 +282,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const emailOpts: EmailOptions = {
     firstName:       esc(lead.first_name ?? 'there'),
     destination:     esc(lead.destination ?? 'your trip'),
-    departDate:      (lead as any).depart_date ?? null,
-    coverImageUrl:   (lead as any).cover_image_url ?? null,
-    tripSummary:     (lead as any).trip_summary ?? null,
+    departDate:      (lead as any).departure_date ?? null,
+    coverImageUrl:   null,
+    tripSummary:     null,
     link,
     expires:         expiresAt,
     advisorName:     esc(brand.advisorName),
