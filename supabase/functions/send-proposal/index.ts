@@ -251,7 +251,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .from('quote_requests')
     .select(`
       id, first_name, email, destination, proposal_draft, proposal_status, proposal_token,
-      cover_image_url, depart_date, trip_summary, assigned_agent_id
+      departure_date, assigned_agent_id
     `)
     .eq('id', leadId)
     .single();
