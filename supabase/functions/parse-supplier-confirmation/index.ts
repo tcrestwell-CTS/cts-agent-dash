@@ -38,6 +38,7 @@ Rules:
 - confirmation_number is the supplier reference tied to that component when present.
 - title is short and human-readable, e.g. "Delta 1423 ATL to MCO" or "Check-in: Hyatt Regency Orlando".
 - description holds the useful remaining detail (room type, cabin, fare, inclusions, cancellation notes).
+- ADX / Travel Edge / Ensemble confirmations may bundle several components (air + hotel + transfer) under one booking reference. Split each component into its own item, set supplier to "ADX (Travel Edge)", put the ADX booking reference in record_locator, and include the underlying vendor and any stated commission amount or rate in description.
 
 Return ONLY valid JSON of this shape:
 {"supplier": string | null, "record_locator": string | null, "items": [{"title": string, "category": string, "date": string | null, "start_time": string | null, "end_time": string | null, "location": string | null, "description": string | null, "flight_number": string | null, "departure_city_code": string | null, "arrival_city_code": string | null, "item_price": number | null, "confirmation_number": string | null}]}`;

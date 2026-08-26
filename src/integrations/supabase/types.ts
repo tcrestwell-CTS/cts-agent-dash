@@ -77,6 +77,116 @@ export type Database = {
         }
         Relationships: []
       }
+      adx_bookings: {
+        Row: {
+          adx_booking_ref: string | null
+          adx_product_id: string | null
+          agent_id: string
+          booking_id: string | null
+          client_id: string | null
+          commission: number | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          destination: string | null
+          id: string
+          net_price: number | null
+          notes: string | null
+          product_title: string
+          product_type: string | null
+          raw_response: Json | null
+          return_date: string | null
+          status: string
+          total_price: number
+          travel_date: string | null
+          travelers: number
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          adx_booking_ref?: string | null
+          adx_product_id?: string | null
+          agent_id: string
+          booking_id?: string | null
+          client_id?: string | null
+          commission?: number | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          destination?: string | null
+          id?: string
+          net_price?: number | null
+          notes?: string | null
+          product_title: string
+          product_type?: string | null
+          raw_response?: Json | null
+          return_date?: string | null
+          status?: string
+          total_price?: number
+          travel_date?: string | null
+          travelers?: number
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adx_booking_ref?: string | null
+          adx_product_id?: string | null
+          agent_id?: string
+          booking_id?: string | null
+          client_id?: string | null
+          commission?: number | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          destination?: string | null
+          id?: string
+          net_price?: number | null
+          notes?: string | null
+          product_title?: string
+          product_type?: string | null
+          raw_response?: Json | null
+          return_date?: string | null
+          status?: string
+          total_price?: number
+          travel_date?: string | null
+          travelers?: number
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adx_bookings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adx_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adx_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adx_bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agencies: {
         Row: {
           accent_color: string | null
