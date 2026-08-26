@@ -1,0 +1,102 @@
+# Project Memory
+
+## Core
+- **Stack**: VitePWA, Supabase (RLS, Edge Functions, pg_cron), Capacitor. Repos: `crestwell-public-site` & `cts-agent-dash`.
+- **Design**: Navy/Gold (`crestwellgetaways.com`). Playfair Display, Montserrat. Luxury aesthetic.
+- **Edge Functions**: Deno runtime (no `Buffer`, use `atob`). Use `npm:@supabase/supabase-js@2` (no esm.sh).
+- **Dates**: ALWAYS use `parseLocalDate` (appends `T00:00:00`) to prevent UTC shifts. Safe parse, use null guards.
+- **Data/APIs**: Direct Supabase client. 25-item pagination. `supabase/client.ts` is platform-managed—DO NOT modify.
+- **Financials**: `booking_margin_lines` is absolute truth. Always use `calculate_booking_margin` RPC for totals.
+- **Scope**: ALL destinations in scope — cruise AND land, worldwide (incl. Europe multi-city). Never "out-of-service-area".
+
+## Memories
+- [Email templates](mem://features/communication/email) — Resend/Supabase setup, HTML sanitization, branded templates
+- [RBAC Access](mem://security/access-control/rbac) — Roles (Admin, Office Admin, Travel Agent) and RLS constraints
+- [Team Management](mem://features/agency/team-management) — Token-based invite system, role assignment, admin RLS bypass
+- [System Security](mem://security/hardening/system) — Edge function security categories, `CW_AGENT_SECRET`
+- [Automated Tasks](mem://tech/infrastructure/extensions) — pg_cron tasks for automations, `AUTOMATION_SECRET_KEY`
+- [Commissions Reporting](mem://features/reporting/commissions) — Margin engine usage, `agency_gross_margin` KPI, CSV export
+- [Data Deletion](mem://constraints/lifecycle/data-deletion) — Deletion blocked if payments or CC auths are attached
+- [Uplift Flexpay](mem://features/integrations/uplift-flexpay) — Uplift Agent SDK integration and identifiers
+- [Widgety Cruise](mem://features/integrations/widgety-cruise) — Search API, UN/LOCODE ports, UTC date parsing
+- [Payment Security](mem://constraints/security/payment-data) — Encrypted CC data, 60s visibility, 30-day expiry
+- [QBO Config](mem://features/integrations/qbo-config) — QBO production API, `QBO_ALLOWED_ORIGINS` setup
+- [QBO Dashboard](mem://features/integrations/qbo-dashboard) — Entity sync monitoring, amortized schedules
+- [Monitoring](mem://tech/infrastructure/monitoring) — Agent Health Panel, `x-agent-secret`, wildcard CORS
+- [Affirm VCN](mem://features/integrations/affirm-vcn) — Affirm virtual cards, production mode, required metadata
+- [Stripe Issuing](mem://features/integrations/stripe-issuing) — Supplier payout cards, `spending_limits`, locks after use
+- [Card Retrieval](mem://security/compliance/card-retrieval) — Agent retrieval of Stripe PAN/CVC/Expiry via Edge Function
+- [Core Standards](mem://design/workflow/core-standards) — Crestwell Workflow lifecycle (Lead -> Trip -> Close)
+- [Access Rules](mem://features/portal/access-rules) — Aggregates records for 'sibling' client records linked to same email
+- [Governance](mem://features/agency/governance) — Approval thresholds ($10k), holdbacks (10%), `usePermissions` hook
+- [Workflow Optimization](mem://design/workflow/optimization) — Trip Readiness Scores, urgency banners, funding gates
+- [Itinerary Versioning](mem://features/itinerary/versioning) — JSONB `published_snapshot`, date sanitization and clamping
+- [Mobile Client](mem://tech/infrastructure/mobile-client) — Custom OTP session, iOS/Android via Capacitor
+- [Approvals](mem://features/portal/approvals) — Itinerary/budget e-signatures, unlocks 'Pay Now' options
+- [Lifecycle](mem://design/workflow/lifecycle) — Event-driven tasks, restricted archiving until clear
+- [Triggers](mem://design/workflow/triggers) — 'Proposal Ready' emails, 7-day follow-ups, Booked data enforcement
+- [Payment Plans](mem://features/financial/payment-plans) — Monthly installments, 5-day grace period, auto-cancel
+- [Flight Commissions](mem://features/financial/flight-commissions) — Flat-rate default ($25 per $500), percentage toggle
+- [System Architecture](mem://auth/core/system-architecture) — VitePWA scope `/client/`, sign-out purges storage/records
+- [Dev Standards](mem://tech/dev/standards) — Direct Supabase client, QueryClient setup, 25-item pagination
+- [Groups Hierarchy](mem://features/trip/groups-hierarchy) — Sub-trips linked via `parent_trip_id`, cascade deletion
+- [Supabase Config](mem://tech/infrastructure/supabase-config) — Project ID `zbtnulzvwreqzbmxulpv`, `SUPABASE_SERVICE_ROLE_KEY`
+- [Public Site](mem://features/marketing/public-site) — `crestwellgetaways.com`, anon INSERTs for leads, V3 search
+- [Duffel Flights](mem://features/integrations/duffel-flights) — Flight proxy, trip date syncing, offer price refreshing
+- [Hotelbeds](mem://features/integrations/hotelbeds) — 3-step workflow, Cloudflare Worker proxy, mTLS certs
+- [Insurance](mem://features/financial/insurance) — Per-trip quotes, coverage from gross sales, client acceptance
+- [Financing](mem://features/financial/financing) — DTI calculations, auto-pay setup, QBO sync, RLS on applications
+- [Database Schema](mem://tech/infrastructure/database-schema) — Core tables (leads, trips, bookings, margin_lines)
+- [Secure Links](mem://features/communication/secure-links) — 72-hour single-use tokens, metadata tracking
+- [Stripe Permissions](mem://constraints/security/stripe-api-permissions) — Requires 'Write' for Products/Prices (`rak_plan_write`)
+- [Qualification Agent](mem://features/leads/qualification-agent) — Agent 1 (Tiara) logic, 1-100 scoring, regional constraints
+- [Core Trip Types](mem://features/leads/domestic-travel-scope) — Full list of 13 in-scope trip types (cruise, resort, rail, domestic, Disney, etc.)
+- [Travel Scope](mem://features/leads/travel-scope) — Land trips worldwide are IN scope; suppliers: Project Expedition, Goways, Delta/AA Vacations
+- [Followup Agent](mem://features/leads/followup-agent) — Agent 2 (Richard) schedule, Claude Haiku, persona constraints
+- [Proposals Agent](mem://features/leads/proposals-agent) — Agent 3 (Terrance) Markdown proposals, Edge Function logic
+- [MCP Server Config](mem://features/integrations/mcp-server-config) — MCP server setup, JSON-RPC 2.0, CRM endpoints
+- [AI Access Permissions](mem://auth/core/ai-access-permissions) — AI agents require PAT with org/project permissions
+- [Profile Data](mem://identity/agency/profile-data) — Tim Crestwell contact and agency specialization
+- [Reconciliation Agent](mem://features/financial/reconciliation-agent) — Agent 5 (Kandi) rule-based mismatch monitoring
+- [Repositories Structure](mem://tech/dev/repositories-structure) — Repo split: public-site (Edge Functions) vs agent-dash
+- [Google Ads Secrets](mem://features/integrations/google-ads-secrets) — Required Google Ads Edge Function secrets
+- [AI Provider](mem://tech/infrastructure/ai-provider) — Claude (Anthropic) standard, Agent 5 is rule-based
+- [Bookings Logic](mem://features/trip/bookings-logic) — 'Booked' prerequisites, unlinked payment proration
+- [Portal Auth](mem://security/hardening/portal-auth) — Trust model, `auth.getUser()`, URL allowlists
+- [Rate Limiting](mem://security/hardening/rate-limiting) — IP-based limits for public endpoints (3-10 req/min)
+- [Margin Engine](mem://features/financial/margin-engine) — Line items source of truth, summary terminology, recalc RPC
+- [Commission Tiers](mem://features/financial/commission-tiers) — Agent revenue splits (70/30, etc.), 30-day availability
+- [Margin Compliance](mem://features/financial/margin-compliance) — Minimum margins, pass-through requirements, red warnings
+- [Hotelbeds mTLS](mem://constraints/integrations/hotelbeds-mtls) — Client certs in PEM format for Cloudflare proxy
+- [DNS Custom Domain](mem://tech/infrastructure/dns-custom-domain) — Cloudflare DNS proxy mode, CNAME-based verification
+- [Reconciliation Tools](mem://features/financial/reconciliation-tools) — PDF parsing via Claude for supplier confirmations
+- [Deployment Wrangler](mem://tech/infrastructure/deployment-wrangler) — SPA handling to bypass Vite 6 conflict
+- [Booking Mapping](mem://tech/data/booking-mapping) — `useBooking` flattens metadata and calculates totals
+- [Margin Line Addons](mem://features/financial/margin-line-addons) — Quick-add templates for 2026 cruise add-ons and splits
+- [Pricing Breakdown](mem://features/portal/pricing-breakdown) — Line-itemized view of costs, extended costs, pass-through masking
+- [Companions](mem://features/portal/companions) — `client_companions` sync to primary client/agent records
+- [Itinerary Dates](mem://features/itinerary/dates) — Itinerary-specific departure/return dates overriding trip globals
+- [Date Handling](mem://tech/data/date-handling) — `parseLocalDate` appends T00:00:00 to prevent UTC midnight errors
+- [Admin Preview](mem://features/portal/admin-preview) — Read-only `/portal-preview/:clientId` logic
+- [Proposal Management](mem://features/leads/proposal-management) — Proposal panel UI, preformatted text rendering
+- [Trip Rollup Logic](mem://features/financial/trip-rollup-logic) — Wait for RPC and triggers before UI updates
+- [Trip Notifications](mem://features/communication/trip-notifications) — Rich text composer, template library, URL parsing
+- [Status Mapping](mem://features/portal/status-mapping) — Internal status to portal label mapping
+- [Booking Categorization](mem://features/portal/booking-categorization) — Supplier types to portal tokens (airline->flight, etc.)
+- [Portal Social Auth](mem://auth/portal-social-auth-guidance) — Directs users with social errors to Google sign-in
+- [Invite Links](mem://features/communication/invite-links) — Base64 encoded payload via `window.history.replaceState`
+- [Processing Fees](mem://features/financial/stripe-processing-fees) — Gross-up calculation for processing fees
+- [Groups Cabin Management](mem://features/trip/groups-cabin-management) — `CabinOptionsManager`, occupancy drives companion fields
+- [Agency Branding](mem://features/agency/branding) — `app.crestwelltravels.com` for forms and portals
+- [Business Contacts](mem://features/crm/business-contacts) — B2B lead management, normalized CSV imports
+- [Invoice Generation](mem://features/financial/invoice-generation) — Single source of truth for invoice numbers, auto-generation
+- [Error Handling](mem://tech/dev/error-handling) — Date null guards, safe parsing before arithmetic
+- [Payment Acknowledgment](mem://features/financial/payment-acknowledgment) — Syncs statuses, notifies agents, triggers QBO bills
+- [Data Integrity](mem://features/crm/data-integrity) — Oldest `created_at` preserved on duplicate manual cleanup
+- [Stripe Reconciliation](mem://features/financial/stripe-reconciliation) — Mismatched/orphan processing via `stripe_payment_intent_id`
+- [QBO Automation](mem://features/integrations/qbo-automation) — 5-step accounting lifecycle, `qbo_supplier_mappings`
+- [Stripe Environments](mem://tech/infrastructure/stripe-environments) — Sandbox/Live env variables across frontend/backend
+- [Commission Overrides](mem://features/financial/commission-overrides) — Triggers admin approval if override > revenue
+- [Duffel Monitoring](mem://features/integrations/duffel-monitoring) — Real-time tracking of flight events via webhook
+- [MSC Cruises](mem://features/integrations/msc-cruises) — Flat-file cache for search, POX API for booking, GFT/service-charge price math
+- [ADX Booking Engine](mem://features/integrations/adx-booking-engine) — Travel Edge/Ensemble integration, `adx` function, credential-gated Phase 2
