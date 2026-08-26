@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Ship, Plane, Hotel, Car, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Ship, Plane, Hotel, Car, DollarSign, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useClients } from "@/hooks/useClients";
 import { useTripTravelers } from "@/hooks/useTripTravelers";
@@ -126,6 +126,8 @@ export function AddTripBookingDialog({
       transportation: ["transfer", "car_rental", "transportation"],
     };
     
+    // ADX sells air, hotel, cruise and more — always offer it regardless of booking type
+    if (supplier.name.toLowerCase().startsWith("adx")) return true;
     const matchingTypes = supplierTypeMatches[formData.booking_type] || [];
     return matchingTypes.includes(supplier.supplier_type.toLowerCase());
   });
@@ -454,6 +456,19 @@ export function AddTripBookingDialog({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* ADX deep-link: complete the booking in ADX, then log it here */}
+              {selectedSupplier?.name.toLowerCase().startsWith("adx") && (
+                <a
+                  href="https://adx.traveledge.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-muted/50 px-3 py-2 text-[12.5px] font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open ADX Dashboard to complete this booking
+                </a>
+              )}
 
               {/* Multi-line commission editor */}
               {isMultiLine ? (
