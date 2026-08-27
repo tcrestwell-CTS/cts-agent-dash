@@ -283,6 +283,7 @@ export default function SecurePay() {
                     step="0.01"
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
+                     readOnly={Boolean(link?.trip_payment_id)}
                   />
                 </div>
                 <div className="space-y-1.5">
