@@ -161,11 +161,17 @@ Deno.serve(async (req) => {
       currency,
       'automatic_payment_methods[enabled]':        'true',
       'automatic_payment_methods[allow_redirects]': 'never',
-      'receipt_email': customer_email || '',
       description: trip_name
         ? `Crestwell Travel – ${trip_name}${booking_ref ? ` (Ref: ${booking_ref})` : ''}`
         : `Crestwell Travel Payment${booking_ref ? ` – Ref: ${booking_ref}` : ''}`,
     });
+
+    // Stripe rejects an empty/invalid receipt_email — only send a real address
+    const cleanEmail = (customer_email || '').trim();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      piParams.append('receipt_email', cleanEmail);
+    }
+
 
     // Append metadata
     Object.entries(metadata).forEach(([k, v]) => {
