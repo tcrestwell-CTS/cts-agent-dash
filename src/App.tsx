@@ -119,6 +119,7 @@ const CampaignEditor     = lazy(() => import("./pages/CampaignEditor"));
 const CampaignAudiences  = lazy(() => import("./pages/CampaignAudiences"));
 const CampaignImages     = lazy(() => import("./pages/CampaignImages"));
 const DailyPaymentReport = lazy(() => import("./pages/DailyPaymentReport"));
+const SecurePay          = lazy(() => import("./pages/SecurePay"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
