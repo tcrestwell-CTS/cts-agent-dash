@@ -119,6 +119,7 @@ const CampaignEditor     = lazy(() => import("./pages/CampaignEditor"));
 const CampaignAudiences  = lazy(() => import("./pages/CampaignAudiences"));
 const CampaignImages     = lazy(() => import("./pages/CampaignImages"));
 const DailyPaymentReport = lazy(() => import("./pages/DailyPaymentReport"));
+const SecurePay          = lazy(() => import("./pages/SecurePay"));
 
 // ─── Lazy-loaded Client Portal Pages ─────────────────────────────────────────
 const PortalLogin         = lazy(() => import("./pages/client/PortalLogin"));
@@ -284,6 +285,10 @@ const App = () => (
                 <Route path="/group/:token" element={<GroupLanding />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
+                {/* Public token-gated pay page used by branded advisor payment links */}
+                <Route path="/pay" element={<SecurePay />} />
+                <Route path="/payment" element={<SecurePay />} />
+                <Route path="/checkout" element={<SecurePay />} />
                 <Route path="/update-info/:token" element={<ClientUpdateForm />} />
 
                 {/* Bookkeeper Routes */}
