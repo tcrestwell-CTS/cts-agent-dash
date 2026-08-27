@@ -15,6 +15,8 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { TodayPanel } from "@/components/dashboard/TodayPanel";
 import PipelineCards from "@/components/dashboard/PipelineCards";
 import { UpcomingTrips } from "@/components/dashboard/UpcomingTrips";
+import { LivePaymentActivity } from "@/components/dashboard/LivePaymentActivity";
+
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BusinessSnapshot } from "@/components/dashboard/BusinessSnapshot";
 import { TopBar } from "@/components/dashboard/TopBar";
@@ -292,10 +294,12 @@ export function DashboardContent() {
 
           {/* Main content grid */}
           <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-3">
-            {/* Left: Upcoming Trips (2 cols) */}
-            <div className="lg:col-span-2">
+            {/* Left: Upcoming Trips + Live payment status (2 cols) */}
+            <div className="lg:col-span-2 space-y-[18px]">
               <UpcomingTrips trips={computed.upcomingTrips} loading={loading} />
+              <LivePaymentActivity />
             </div>
+
 
             {/* Right: Next Actions + Activity + Assistant */}
             <div className="space-y-[18px]">
