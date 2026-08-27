@@ -284,6 +284,10 @@ const App = () => (
                 <Route path="/group/:token" element={<GroupLanding />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
+                {/* Public token-gated pay page used by branded advisor payment links */}
+                <Route path="/pay" element={<SecurePay />} />
+                <Route path="/payment" element={<SecurePay />} />
+                <Route path="/checkout" element={<SecurePay />} />
                 <Route path="/update-info/:token" element={<ClientUpdateForm />} />
 
                 {/* Bookkeeper Routes */}
