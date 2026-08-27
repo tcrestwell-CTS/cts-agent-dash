@@ -102,6 +102,3 @@ verify_jwt = false
 
 [functions.assign-lead]
 verify_jwt = false
-
-[functions.import-ensemble-suppliers]
-verify_jwt = false
