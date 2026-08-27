@@ -15,6 +15,8 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { TodayPanel } from "@/components/dashboard/TodayPanel";
 import PipelineCards from "@/components/dashboard/PipelineCards";
 import { UpcomingTrips } from "@/components/dashboard/UpcomingTrips";
+import { LivePaymentActivity } from "@/components/dashboard/LivePaymentActivity";
+
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { BusinessSnapshot } from "@/components/dashboard/BusinessSnapshot";
 import { TopBar } from "@/components/dashboard/TopBar";
