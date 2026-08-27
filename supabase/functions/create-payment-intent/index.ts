@@ -104,23 +104,23 @@ Deno.serve(async (req) => {
             .gte('amount', amountDollars - tolerance)
             .lte('amount', amountDollars + tolerance)
             .order('due_date', { ascending: true })
-            .limit(1)
+            .limit(1);
 
-          const data = exactMatch?.length > 0 ? exactMatch : null;
+          let resolved = exactMatch && exactMatch.length > 0 ? exactMatch[0] : null;
 
           // Fallback: any next pending installment if no amount match
-          const { data: fallbackData } = !data ? await supabase
-            .from('trip_payments')
-            .select('id, trip_id, booking_id, amount, status, due_date')
-            .eq('status', 'pending')
-            .in('trip_id', tripIds)
-            .order('due_date', { ascending: true })
-            .limit(1) : { data: null };
+          if (!resolved) {
+            const { data: fallbackData } = await supabase
+              .from('trip_payments')
+              .select('id, trip_id, booking_id, amount, status, due_date')
+              .eq('status', 'pending')
+              .in('trip_id', tripIds)
+              .order('due_date', { ascending: true })
+              .limit(1);
+            resolved = fallbackData && fallbackData.length > 0 ? fallbackData[0] : null;
+          }
 
-          const resolvedData = data || fallbackData;
-          const dataResult = resolvedData;
-            .maybeSingle();
-          tripPayment = data;
+          tripPayment = resolved;
         }
 
         if (tripPayment) {
