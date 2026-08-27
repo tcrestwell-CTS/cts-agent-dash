@@ -62,7 +62,7 @@ function slugFromHost() {
   return ["www", "app", "compass", "id-preview"].includes(sub) ? null : sub;
 }
 
-function PayForm({ onPaid }: { onPaid: () => void }) {
+function PayForm({ onPaid, amount }: { onPaid: () => void; amount: number }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -87,10 +87,14 @@ function PayForm({ onPaid }: { onPaid: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="rounded-lg border bg-card p-4 text-center">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">Deposit Amount</p>
+        <p className="text-3xl font-semibold">{currency(amount)}</p>
+      </div>
       <PaymentElement />
       <Button type="submit" className="w-full gap-2" disabled={submitting || !stripe}>
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {submitting ? "Processing…" : "Pay Securely"}
+        {submitting ? "Processing…" : `Pay ${currency(amount)} Securely`}
       </Button>
       <p className="text-xs text-muted-foreground text-center">
         Payments are processed securely by Stripe through Crestwell Travel Network, our host agency.
@@ -109,6 +113,7 @@ export default function SecurePay() {
   const [email, setEmail] = useState(payload.email || "");
   const [amountInput, setAmountInput] = useState("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [confirmedAmount, setConfirmedAmount] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
   const [paid, setPaid] = useState(false);
 
@@ -171,6 +176,11 @@ export default function SecurePay() {
       });
       if (error) throw error;
       if (!data?.clientSecret) throw new Error(data?.error || "Could not start checkout");
+      const amountCents = Number(data.amountCents);
+      if (!Number.isInteger(amountCents) || amountCents < 50) {
+        throw new Error("The payment amount could not be verified");
+      }
+      setConfirmedAmount(amountCents / 100);
       setClientSecret(data.clientSecret);
     } catch (err: any) {
       console.error("[SecurePay] intent failed", err);
@@ -273,6 +283,7 @@ export default function SecurePay() {
                     step="0.01"
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
+                     readOnly={Boolean(link?.trip_payment_id)}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -289,11 +300,11 @@ export default function SecurePay() {
                   Continue to Payment
                 </Button>
               </>
-            ) : (
+            ) : confirmedAmount !== null ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <PayForm onPaid={() => setPaid(true)} />
+                <PayForm amount={confirmedAmount} onPaid={() => setPaid(true)} />
               </Elements>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </div>

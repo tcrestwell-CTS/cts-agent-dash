@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
 
   try {
     const {
-      amount_cents,
+      amount_cents: requestedAmountCents,
       currency = 'usd',
       customer_name,
       customer_email,
@@ -29,6 +29,8 @@ Deno.serve(async (req) => {
       agent_user_id: passedAgentUserId,
       booking_id: passedBookingId,
     } = await req.json();
+
+    let amount_cents = Number(requestedAmountCents);
 
     // Fire-and-forget attempt audit
     logPaymentAttempt(req, {
@@ -61,6 +63,29 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // A payment link tied to an installment must always charge the authoritative
+    // database amount. This also protects older/cached clients from accidentally
+    // sending a dollar value where Stripe expects cents.
+    if (passedTripPaymentId) {
+      const { data: linkedPayment, error: linkedPaymentError } = await supabase
+        .from('trip_payments')
+        .select('amount')
+        .eq('id', passedTripPaymentId)
+        .maybeSingle();
+
+      if (linkedPaymentError) throw linkedPaymentError;
+      const linkedAmount = Number(linkedPayment?.amount);
+      if (Number.isFinite(linkedAmount) && linkedAmount > 0) {
+        amount_cents = Math.round(linkedAmount * 100);
+      }
+    }
+
+    if (!Number.isInteger(amount_cents) || amount_cents < 50) {
+      return new Response(JSON.stringify({ error: 'Minimum payment is $0.50' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // ── CRM lookup ────────────────────────────────────────────────────────────
     // Try to find trip_payment_id, trip_id, agent_user_id from CRM
@@ -223,7 +248,7 @@ Deno.serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ clientSecret: paymentIntent.client_secret }),
+      JSON.stringify({ clientSecret: paymentIntent.client_secret, amountCents: paymentIntent.amount }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
