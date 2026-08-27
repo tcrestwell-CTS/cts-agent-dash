@@ -595,7 +595,7 @@ serve(async (req) => {
       .insert({
         stripe_event_id: event.id,
         event_type: event.type,
-        payload: event as unknown as Record<string, unknown>,
+        raw_payload: event as unknown as Record<string, unknown>,
         processed: false,
       });
     if (dupErr && !String(dupErr.message).includes("duplicate")) {
