@@ -119,11 +119,44 @@ export default function SecurePay() {
 
   useEffect(() => {
     (async () => {
+      const applyBranding = async () => {
+        const slug = slugFromHost();
+        if (!slug) return;
+        const { data: agent } = await supabase
+          .from("profiles")
+          .select("full_name, agency_name, storefront_logo_url")
+          .eq("storefront_slug", slug)
+          .maybeSingle();
+        if (agent) setBranding(agent as Branding);
+      };
+
       if (!token) {
+        // Links minted from the advisor's "Send Payment Link" flow carry the
+        // CRM ids directly in the base64 payload instead of a secure_links
+        // token. The amount is still re-locked server-side from
+        // trip_payment_id inside create-payment-intent.
+        if (payload.trip_payment_id) {
+          const cents = Number(payload.amount);
+          setLink({
+            client_name: payload.client_name || null,
+            client_email: payload.client_email || null,
+            booking_ref: payload.booking_ref || null,
+            trip_name: payload.trip_name || null,
+            amount: Number.isFinite(cents) && cents > 0 ? cents / 100 : null,
+            agent_user_id: payload.agent_user_id || null,
+            trip_payment_id: payload.trip_payment_id,
+          });
+          setEmail((prev) => prev || payload.client_email || "");
+          if (Number.isFinite(cents) && cents > 0) setAmountInput(String(cents / 100));
+          await applyBranding();
+          setLoading(false);
+          return;
+        }
         setInvalidReason("This payment link is missing its secure token.");
         setLoading(false);
         return;
       }
+
       try {
         const { data, error } = await supabase.functions.invoke("validate-token", {
           body: { token, link_type: "payment" },
