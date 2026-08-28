@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -6110,7 +6110,10 @@ export type Database = {
           qbo_principal_deposit_id: string | null
           qbo_synced_at: string | null
           status: string
+          stripe_charge_id: string | null
+          stripe_fee: number | null
           stripe_payment_intent_id: string | null
+          stripe_receipt_url: string | null
           total_payment: number
           updated_at: string
           user_id: string
@@ -6129,7 +6132,10 @@ export type Database = {
           qbo_principal_deposit_id?: string | null
           qbo_synced_at?: string | null
           status?: string
+          stripe_charge_id?: string | null
+          stripe_fee?: number | null
           stripe_payment_intent_id?: string | null
+          stripe_receipt_url?: string | null
           total_payment?: number
           updated_at?: string
           user_id: string
@@ -6148,7 +6154,10 @@ export type Database = {
           qbo_principal_deposit_id?: string | null
           qbo_synced_at?: string | null
           status?: string
+          stripe_charge_id?: string | null
+          stripe_fee?: number | null
           stripe_payment_intent_id?: string | null
+          stripe_receipt_url?: string | null
           total_payment?: number
           updated_at?: string
           user_id?: string
