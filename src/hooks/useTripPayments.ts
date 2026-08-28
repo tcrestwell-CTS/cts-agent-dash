@@ -24,6 +24,9 @@ export interface TripPayment {
   payment_method_choice: string | null;
   virtual_card_status: string | null;
   virtual_card_id: string | null;
+  supplier_paid_at?: string | null;
+  supplier_payment_method?: string | null;
+  supplier_payment_ref?: string | null;
   payer_traveler_id?: string | null;
   payer_name?: string | null;
   payer_email?: string | null;
