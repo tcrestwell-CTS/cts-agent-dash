@@ -17,6 +17,7 @@ import { useTripPayerShares } from "@/hooks/useBookingPayerShares";
 import { SendFinancingLinkDialog } from "@/components/financing/SendFinancingLinkDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
 import { StripeVirtualCardButton } from "./StripeVirtualCardButton";
+import { MarkSupplierPaidButton } from "./MarkSupplierPaidButton";
 import { generateInvoicePDF, InvoiceData } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "./InvoicePreviewDialog";
 import { EmailInvoiceDialog, InvoiceEmailSendPayload, RECIPIENT_NAME_TOKEN } from "./EmailInvoiceDialog";
@@ -823,6 +824,21 @@ export function TripPayments({
                                 tripName={tripName}
                                 virtualCardId={payment.virtual_card_id}
                                 virtualCardStatus={payment.virtual_card_status}
+                              />
+                            )}
+                            {/* Manual supplier payment workaround (no Stripe Issuing) */}
+                            {payment.payment_method_choice !== "affirm" && (
+                              <MarkSupplierPaidButton
+                                paymentId={payment.id}
+                                paymentStatus={payment.status}
+                                amount={payment.amount}
+                                supplierName={paymentSupplier}
+                                virtualCardId={payment.virtual_card_id}
+                                virtualCardStatus={payment.virtual_card_status}
+                                supplierPaidAt={payment.supplier_paid_at}
+                                supplierPaymentMethod={payment.supplier_payment_method}
+                                supplierPaymentRef={payment.supplier_payment_ref}
+                                onUpdated={onDataChange}
                               />
                             )}
                             {/* Affirm VCN — only when payment_method_choice is explicitly affirm */}
