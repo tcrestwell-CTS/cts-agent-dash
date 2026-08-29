@@ -138,7 +138,7 @@ export function AgentChatWidget() {
   // previously invisible because the menu only listed online sessions.
   const onlineIds = new Set(onlineAgents.map((a) => a.user_id));
   const teammates = teamProfiles
-    .filter((p) => p.user_id && p.user_id !== user?.id)
+    .filter((p) => p.user_id && p.user_id !== user?.id && !BLOCKED_FROM_CHAT.includes(p.user_id))
     .map((p) => ({
       user_id: p.user_id,
       full_name: p.full_name,
