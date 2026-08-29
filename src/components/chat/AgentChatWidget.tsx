@@ -198,7 +198,7 @@ export function AgentChatWidget() {
         { event: "INSERT", schema: "public", table: "agent_messages" },
         async (payload) => {
           const m: any = payload.new;
-          if (!m || m.sender_id === user.id) return;
+          if (!m || m.sender_id === user.id || BLOCKED_FROM_CHAT.includes(m.sender_id)) return;
           // Only notify on team messages or DMs addressed to this user
           const isDmToMe = m.channel === "dm" && m.recipient_id === user.id;
           const isTeam = m.channel === "team";
