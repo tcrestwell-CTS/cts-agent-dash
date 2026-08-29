@@ -88,7 +88,14 @@ export const AgentStorefrontsManager = () => {
 
   return (
     <div className="space-y-4">
-      {rows.map((row) => {
+      {hiddenCount > 0 && (
+        <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+          <span>{hiddenCount} disabled storefront{hiddenCount === 1 ? "" : "s"} hidden</span>
+          <Switch checked={showDisabled} onCheckedChange={setShowDisabled} />
+          <span>{showDisabled ? "Showing all" : "Show all"}</span>
+        </div>
+      )}
+      {visibleRows.map((row) => {
         const storefrontName = row.agency_name?.trim() || row.full_name || "Unnamed agency";
         const url = row.storefront_slug ? `https://${slugify(row.storefront_slug)}.crestwelltravels.com` : null;
         return (
