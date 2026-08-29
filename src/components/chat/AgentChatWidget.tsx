@@ -45,6 +45,11 @@ import { playMessageChime } from "@/lib/notificationSound";
 
 type View = "closed" | "menu" | "team" | "dm" | "ai";
 
+// Users removed from the team chat UI and message streams.
+const BLOCKED_FROM_CHAT = [
+  "122757fd-e24a-459e-9f47-1c6e3238736e", // Robert Pleasant
+];
+
 interface FileAttachment {
   name: string;
   type: "pdf" | "image" | "csv" | "text";
