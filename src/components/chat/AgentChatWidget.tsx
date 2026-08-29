@@ -740,7 +740,9 @@ export function AgentChatWidget() {
               </p>
             ) : (
               <div className="space-y-3">
-                {messages.map((msg) => {
+                {messages
+                  .filter((msg) => !BLOCKED_FROM_CHAT.includes(msg.sender_id))
+                  .map((msg) => {
                   const isMine = msg.sender_id === user.id;
                   return (
                     <div key={msg.id} className={cn("flex gap-2", isMine && "flex-row-reverse")}>
