@@ -176,9 +176,7 @@ export function AgentChatWidget() {
   // Unread chat notifications persist even when the widget is closed / the
   // agent was offline when the message arrived.
   const { notifications, markAsRead } = useAgentNotifications();
-  const unreadChat = notifications.filter(
-    (n) => n.type === "agent_message" && !n.is_read && !BLOCKED_FROM_CHAT.includes(n.sender_id || "")
-  );
+  const unreadChat = notifications.filter((n) => n.type === "agent_message" && !n.is_read);
 
   useEffect(() => {
     if (view !== "team" && view !== "dm") return;
