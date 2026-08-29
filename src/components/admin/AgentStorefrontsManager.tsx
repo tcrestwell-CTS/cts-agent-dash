@@ -30,6 +30,10 @@ export const AgentStorefrontsManager = () => {
   const [rows, setRows] = useState<StorefrontRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [showDisabled, setShowDisabled] = useState(false);
+
+  const visibleRows = showDisabled ? rows : rows.filter((r) => !!r.storefront_enabled);
+  const hiddenCount = rows.length - rows.filter((r) => !!r.storefront_enabled).length;
 
   const load = async () => {
     const { data, error } = await supabase
