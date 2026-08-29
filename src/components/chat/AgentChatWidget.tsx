@@ -45,6 +45,11 @@ import { playMessageChime } from "@/lib/notificationSound";
 
 type View = "closed" | "menu" | "team" | "dm" | "ai";
 
+// Users removed from the team chat UI and message streams.
+const BLOCKED_FROM_CHAT = [
+  "122757fd-e24a-459e-9f47-1c6e3238736e", // Robert Pleasant
+];
+
 interface FileAttachment {
   name: string;
   type: "pdf" | "image" | "csv" | "text";
@@ -133,7 +138,7 @@ export function AgentChatWidget() {
   // previously invisible because the menu only listed online sessions.
   const onlineIds = new Set(onlineAgents.map((a) => a.user_id));
   const teammates = teamProfiles
-    .filter((p) => p.user_id && p.user_id !== user?.id)
+    .filter((p) => p.user_id && p.user_id !== user?.id && !BLOCKED_FROM_CHAT.includes(p.user_id))
     .map((p) => ({
       user_id: p.user_id,
       full_name: p.full_name,
@@ -193,7 +198,7 @@ export function AgentChatWidget() {
         { event: "INSERT", schema: "public", table: "agent_messages" },
         async (payload) => {
           const m: any = payload.new;
-          if (!m || m.sender_id === user.id) return;
+          if (!m || m.sender_id === user.id || BLOCKED_FROM_CHAT.includes(m.sender_id)) return;
           // Only notify on team messages or DMs addressed to this user
           const isDmToMe = m.channel === "dm" && m.recipient_id === user.id;
           const isTeam = m.channel === "team";
@@ -735,7 +740,9 @@ export function AgentChatWidget() {
               </p>
             ) : (
               <div className="space-y-3">
-                {messages.map((msg) => {
+                {messages
+                  .filter((msg) => !BLOCKED_FROM_CHAT.includes(msg.sender_id))
+                  .map((msg) => {
                   const isMine = msg.sender_id === user.id;
                   return (
                     <div key={msg.id} className={cn("flex gap-2", isMine && "flex-row-reverse")}>
