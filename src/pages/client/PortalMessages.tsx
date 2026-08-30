@@ -9,6 +9,9 @@ import { Send, Loader2, User } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
+import { toast } from "sonner";
+import { playMessageChime } from "@/lib/notificationSound";
+
 
 function dateLabel(dateStr: string): string {
   const d = new Date(dateStr);
@@ -36,6 +39,26 @@ export default function PortalMessages() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  // Pop-up notification when the advisor replies while you're on another view
+  const seenAgentIdsRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const agentMsgs = messages.filter((m: any) => m.sender_type === "agent");
+    if (seenAgentIdsRef.current === null) {
+      seenAgentIdsRef.current = new Set(agentMsgs.map((m: any) => m.id));
+      return;
+    }
+    const fresh = agentMsgs.filter((m: any) => !seenAgentIdsRef.current!.has(m.id));
+    fresh.forEach((m: any) => {
+      seenAgentIdsRef.current!.add(m.id);
+      playMessageChime();
+      toast(`New message from ${agent?.name || "your travel advisor"}`, {
+        description: String(m.message).slice(0, 140),
+        duration: 8000,
+      });
+    });
+  }, [messages, agent?.name]);
+
 
   const handleSend = async () => {
     if (!newMessage.trim() || sendMessage.isPending) return;
