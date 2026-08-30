@@ -9,6 +9,9 @@ import { Send, Loader2, User } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { usePortalAuth } from "@/contexts/PortalAuthContext";
+import { toast } from "sonner";
+import { playMessageChime } from "@/lib/notificationSound";
+
 
 function dateLabel(dateStr: string): string {
   const d = new Date(dateStr);
