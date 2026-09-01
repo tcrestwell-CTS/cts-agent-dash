@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllProfilesLite } from "@/lib/bookkeeperLookups";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommissionTier } from "@/lib/commissionTiers";
+import { isHiddenAgent } from "@/lib/hiddenAgents";
+
 
 export interface TeamProfile {
   id: string;
@@ -52,7 +54,8 @@ export function useTeamProfiles() {
             commission_tier: p.commission_tier,
           })),
       ];
-      return merged as TeamProfile[];
+      return (merged as TeamProfile[]).filter((p) => !isHiddenAgent(p.user_id));
+
     },
     enabled: !!user,
   });
