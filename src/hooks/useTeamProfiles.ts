@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllProfilesLite } from "@/lib/bookkeeperLookups";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommissionTier } from "@/lib/commissionTiers";
+import { isHiddenAgent } from "@/lib/hiddenAgents";
+
 
 export interface TeamProfile {
   id: string;
