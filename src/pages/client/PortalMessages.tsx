@@ -43,8 +43,11 @@ export default function PortalMessages() {
   // Pop-up notification when the advisor replies while you're on another view
   const seenAgentIdsRef = useRef<Set<string> | null>(null);
   useEffect(() => {
+    if (isLoading) return;
     const agentMsgs = messages.filter((m: any) => m.sender_type === "agent");
     if (seenAgentIdsRef.current === null) {
+      // First render after data is loaded: seed baseline with existing messages
+      // so a long chat history doesn't flood the client with stacked toasts.
       seenAgentIdsRef.current = new Set(agentMsgs.map((m: any) => m.id));
       return;
     }
@@ -57,7 +60,7 @@ export default function PortalMessages() {
         duration: 8000,
       });
     });
-  }, [messages, agent?.name]);
+  }, [messages, agent?.name, isLoading]);
 
 
   const handleSend = async () => {
