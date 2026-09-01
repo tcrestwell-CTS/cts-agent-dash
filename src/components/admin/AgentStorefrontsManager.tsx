@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Loader2, Store } from "lucide-react";
+import { isHiddenAgent } from "@/lib/hiddenAgents";
 import { toast } from "sonner";
 import { StorefrontLogoUpload } from "@/components/storefront/StorefrontLogoUpload";
 
@@ -44,7 +45,7 @@ export const AgentStorefrontsManager = () => {
       console.error("Failed to load storefronts:", error);
       toast.error("Unable to load agent storefronts");
     } else {
-      setRows((data ?? []) as StorefrontRow[]);
+      setRows(((data ?? []) as StorefrontRow[]).filter((r) => !isHiddenAgent(r.user_id)));
     }
     setLoading(false);
   };

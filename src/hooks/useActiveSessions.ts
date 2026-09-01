@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isHiddenAgent } from "@/lib/hiddenAgents";
 
 export interface ActiveSession {
   id: string;
@@ -46,7 +47,7 @@ export function useActiveSessions() {
         }
       }
 
-      const enriched: ActiveSession[] = (data || []).map((s: any) => ({
+      const enriched: ActiveSession[] = (data || []).filter((s: any) => !isHiddenAgent(s.user_id)).map((s: any) => ({
         ...s,
         profile: profileMap[s.user_id] || null,
       }));

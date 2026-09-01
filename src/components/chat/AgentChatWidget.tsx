@@ -43,12 +43,12 @@ import { playMessageChime } from "@/lib/notificationSound";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+import { HIDDEN_AGENT_USER_IDS } from "@/lib/hiddenAgents";
+
 type View = "closed" | "menu" | "team" | "dm" | "ai";
 
 // Users removed from the team chat UI and message streams.
-const BLOCKED_FROM_CHAT = [
-  "122757fd-e24a-459e-9f47-1c6e3238736e", // Robert Pleasant
-];
+const BLOCKED_FROM_CHAT = HIDDEN_AGENT_USER_IDS;
 
 interface FileAttachment {
   name: string;
