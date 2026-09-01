@@ -52,7 +52,8 @@ export function useTeamProfiles() {
             commission_tier: p.commission_tier,
           })),
       ];
-      return merged as TeamProfile[];
+      return (merged as TeamProfile[]).filter((p) => !isHiddenAgent(p.user_id));
+
     },
     enabled: !!user,
   });
