@@ -73,9 +73,13 @@ export interface UpdatePaymentData {
 
 export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_date" | "payment_method" | "stripe_session_id" | "stripe_receipt_url" | "payment_type" | "details" | "payment_date">) => {
   const details = (payment.details || "").toLowerCase();
+  // A scheduled installment/final row is part of the payment PLAN, never money
+  // received on its own. Actual money always arrives as a separate cash/Stripe
+  // row (payment_method / stripe ids set). Counting a schedule row as cash just
+  // because it was flagged paid double-counts the same dollars and understates
+  // the invoice balance.
   const isSchedulePlaceholder =
     !!payment.due_date &&
-    !payment.payment_date &&
     !payment.payment_method &&
     !payment.stripe_session_id &&
     !payment.stripe_receipt_url &&
@@ -85,6 +89,7 @@ export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_
 
   return payment.status === "paid" && !isSchedulePlaceholder;
 };
+
 
 export function useTripPayments(tripId: string | undefined) {
   const { user } = useAuth();
