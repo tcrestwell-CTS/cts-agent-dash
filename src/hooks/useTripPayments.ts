@@ -91,7 +91,7 @@ export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_
 };
 
 
-export function useTripPayments(tripId: string | undefined) {
+export function useTripPayments(tripId: string | undefined, tripTotal?: number) {
   const { user } = useAuth();
   const [payments, setPayments] = useState<TripPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -249,7 +249,13 @@ export function useTripPayments(tripId: string | undefined) {
   const totalAuthorized = payments
     .filter((p) => p.status === "authorized")
     .reduce((sum, p) => sum + Number(p.amount), 0);
-  const totalRemaining = totalExpected - totalPaid;
+  // Payment rows contain both the payment plan and actual receipts, so summing
+  // every row double-counts money received. When the trip total is available,
+  // it is the source of truth for the client balance.
+  const totalRemaining = Math.max(
+    (tripTotal ?? totalExpected) - totalPaid,
+    0,
+  );
 
   return {
     payments,
