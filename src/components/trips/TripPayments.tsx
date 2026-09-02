@@ -95,7 +95,7 @@ export function TripPayments({
     totalPaid,
     totalAuthorized,
     totalRemaining,
-  } = useTripPayments(tripId);
+  } = useTripPayments(tripId, tripTotal);
   const { settings: brandingSettings } = useBrandingSettings();
   const { createInvoice, getNextInvoiceNumber } = useInvoices();
   const { data: payerShares = [] } = useTripPayerShares(tripId);
