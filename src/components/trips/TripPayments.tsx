@@ -210,9 +210,17 @@ export function TripPayments({
       payment_date: paymentDate,
     });
 
-    // Auto-apply this payment against the trip's other pending installments
-    // (the source row is excluded by id inside the helper).
-    if (payment) {
+    // Only real money (a cash/Stripe payment row) can be allocated against the
+    // schedule. Marking a scheduled installment paid must NOT also consume other
+    // installments — that would apply the same dollars twice.
+    const isScheduleRow =
+      !!payment?.due_date &&
+      !payment?.payment_method &&
+      !payment?.stripe_session_id &&
+      !payment?.stripe_receipt_url &&
+      ["installment", "final", "final_balance"].includes(payment?.payment_type || "");
+
+    if (payment && !isScheduleRow) {
       const result = await applyPaymentToInstallments({
         tripId,
         sourcePaymentId: paymentId,
@@ -226,6 +234,7 @@ export function TripPayments({
         toast.success(`Payment applied — ${parts.join("; ")}`);
       }
     }
+
 
     onDataChange?.();
 
