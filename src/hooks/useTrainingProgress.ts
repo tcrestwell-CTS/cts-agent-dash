@@ -181,7 +181,10 @@ export function useAutoRollupProgress() {
             .select("id, is_required")
             .eq("phase_id", params.phase_id);
 
-          const requiredModules = (phaseModules || []).filter(m => m.is_required);
+          const allPhaseModules = phaseModules || [];
+          const requiredModules = allPhaseModules.filter(m => m.is_required).length > 0
+            ? allPhaseModules.filter(m => m.is_required)
+            : allPhaseModules;
           if (requiredModules.length > 0) {
             const { data: modProgress } = await supabase
               .from("training_user_progress")
