@@ -109,7 +109,12 @@ export function useAutoRollupProgress() {
         .select("id, is_required")
         .eq("module_id", params.module_id);
 
-      const requiredLessons = (moduleLessons || []).filter(l => l.is_required);
+      // Modules whose lessons are all optional would otherwise never complete,
+      // so fall back to counting every lesson in the module.
+      const allLessons = moduleLessons || [];
+      const requiredLessons = allLessons.filter(l => l.is_required).length > 0
+        ? allLessons.filter(l => l.is_required)
+        : allLessons;
       if (requiredLessons.length > 0) {
         const { data: lessonProgress } = await supabase
           .from("training_user_progress")
