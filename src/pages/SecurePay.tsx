@@ -403,7 +403,13 @@ export default function SecurePay() {
               </>
             ) : confirmedAmount !== null ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <PayForm amount={confirmedAmount} onPaid={() => setPaid(true)} />
+                <PayForm
+                  amount={confirmedAmount}
+                  name={link?.client_name}
+                  email={email}
+                  onPaid={() => setPaid(true)}
+                />
+
               </Elements>
             ) : null}
           </CardContent>
