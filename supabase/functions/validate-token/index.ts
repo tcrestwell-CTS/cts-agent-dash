@@ -60,6 +60,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Guard against double-payment: if this link is tied to a specific
+    // installment that has already been settled, refuse it even though the
+    // link itself is still active/unexpired. Old reminder emails were the
+    // main way a client could pay the same installment twice.
+    if (link.trip_payment_id) {
+      const { data: linkedPayment } = await supabase
+        .from('trip_payments')
+        .select('status')
+        .eq('id', link.trip_payment_id)
+        .maybeSingle();
+
+      if (linkedPayment && String(linkedPayment.status).toLowerCase() === 'paid') {
+        await supabase.from('secure_links').update({ active: false }).eq('token', token);
+        return new Response(JSON.stringify({
+          valid: false,
+          reason: 'This payment has already been received. No further payment is due on this link.',
+        }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     if (link_type) {
       const requestedType = normalizeLinkType(link_type);
       const storedType = normalizeLinkType(link.link_type);
