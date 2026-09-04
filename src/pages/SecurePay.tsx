@@ -62,10 +62,28 @@ function slugFromHost() {
   return ["www", "app", "compass", "id-preview"].includes(sub) ? null : sub;
 }
 
-function PayForm({ onPaid, amount }: { onPaid: () => void; amount: number }) {
+function PayForm({
+  onPaid,
+  amount,
+  name,
+  email,
+}: {
+  onPaid: () => void;
+  amount: number;
+  name?: string | null;
+  email?: string | null;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
+  const [cardReady, setCardReady] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [slowLoad, setSlowLoad] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSlowLoad(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -85,14 +103,63 @@ function PayForm({ onPaid, amount }: { onPaid: () => void; amount: number }) {
     }
   }
 
+  const blocked = cardError || (slowLoad && !cardReady);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="rounded-lg border bg-card p-4 text-center">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Deposit Amount</p>
         <p className="text-3xl font-semibold">{currency(amount)}</p>
       </div>
-      <PaymentElement />
-      <Button type="submit" className="w-full gap-2" disabled={submitting || !stripe}>
+      <PaymentElement
+        options={{
+          layout: "tabs",
+          fields: {
+            billingDetails: {
+              name: "auto",
+              email: "auto",
+              address: { country: "auto", postalCode: "auto" },
+            },
+          },
+          defaultValues: {
+            billingDetails: {
+              name: name || undefined,
+              email: email || undefined,
+              address: { country: "US" },
+            },
+          },
+        }}
+        onReady={() => {
+          setCardReady(true);
+          setCardError(null);
+        }}
+        onLoadError={(e) =>
+          setCardError(
+            e?.error?.message || "The secure card form could not be loaded."
+          )
+        }
+      />
+      {blocked ? (
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-muted-foreground space-y-2">
+          <p className="font-medium text-destructive">
+            Card fields didn’t load on this browser.
+          </p>
+          <p>
+            This usually happens inside an in-app browser (Gmail, Facebook,
+            Instagram) where cookies are blocked. Tap the “…” menu and choose
+            <span className="font-medium"> Open in Safari / Chrome</span>, or
+            copy this link into your browser:
+          </p>
+          <code className="block break-all rounded bg-muted p-2">
+            {window.location.href}
+          </code>
+        </div>
+      ) : null}
+      <Button
+        type="submit"
+        className="w-full gap-2"
+        disabled={submitting || !stripe || !cardReady}
+      >
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
         {submitting ? "Processing…" : `Pay ${currency(amount)} Securely`}
       </Button>
@@ -102,6 +169,7 @@ function PayForm({ onPaid, amount }: { onPaid: () => void; amount: number }) {
     </form>
   );
 }
+
 
 export default function SecurePay() {
   const payload = useMemo(() => decodePayload(window.location.search), []);
@@ -335,7 +403,13 @@ export default function SecurePay() {
               </>
             ) : confirmedAmount !== null ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <PayForm amount={confirmedAmount} onPaid={() => setPaid(true)} />
+                <PayForm
+                  amount={confirmedAmount}
+                  name={link?.client_name}
+                  email={email}
+                  onPaid={() => setPaid(true)}
+                />
+
               </Elements>
             ) : null}
           </CardContent>
