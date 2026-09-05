@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_agent_client_message() FROM anon, authenticated;
