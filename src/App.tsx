@@ -52,6 +52,7 @@ const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
 const GroupLanding        = lazy(() => import("./pages/GroupLanding"));
 const GroupLandingBuilder = lazy(() => import("./pages/GroupLandingBuilder"));
 const CCAuthorize         = lazy(() => import("./pages/CCAuthorize"));
+const ProposalView        = lazy(() => import("./pages/ProposalView"));
 const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
 const QBOHealth           = lazy(() => import("./pages/QBOHealth"));
 const QboPaymentSync      = lazy(() => import("./pages/QboPaymentSync"));
