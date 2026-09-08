@@ -284,6 +284,7 @@ const App = () => (
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
+                <Route path="/proposal/:token" element={<ProposalView />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 {/* Public token-gated pay page used by branded advisor payment links */}
                 <Route path="/pay" element={<SecurePay />} />
