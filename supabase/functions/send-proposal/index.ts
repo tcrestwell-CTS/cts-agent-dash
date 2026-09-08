@@ -12,7 +12,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { resolveAgentBranding } from '../_shared/agent-branding.ts';
 
-const SITE_URL       = Deno.env.get('PUBLIC_SITE_URL') ?? Deno.env.get('PORTAL_BASE_URL') ?? 'https://crestwellgetaways.com';
+// Proposals are viewed on the agency app, which hosts the /proposal/:token page.
+const SITE_URL       = Deno.env.get('PROPOSAL_BASE_URL') ?? 'https://app.crestwelltravels.com';
 const AGENT_SECRET   = Deno.env.get('AGENT_SECRET') ?? Deno.env.get('CW_AGENT_SECRET') ?? '';
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const FROM           = Deno.env.get('PROPOSAL_FROM_EMAIL') ?? 'Crestwell Travel <tim@crestwellgetaways.com>';

@@ -52,6 +52,7 @@ const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
 const GroupLanding        = lazy(() => import("./pages/GroupLanding"));
 const GroupLandingBuilder = lazy(() => import("./pages/GroupLandingBuilder"));
 const CCAuthorize         = lazy(() => import("./pages/CCAuthorize"));
+const ProposalView        = lazy(() => import("./pages/ProposalView"));
 const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
 const QBOHealth           = lazy(() => import("./pages/QBOHealth"));
 const QboPaymentSync      = lazy(() => import("./pages/QboPaymentSync"));
@@ -284,6 +285,7 @@ const App = () => (
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
+                <Route path="/proposal/:token" element={<ProposalView />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 {/* Public token-gated pay page used by branded advisor payment links */}
                 <Route path="/pay" element={<SecurePay />} />
