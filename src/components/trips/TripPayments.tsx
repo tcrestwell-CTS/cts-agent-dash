@@ -205,10 +205,6 @@ export function TripPayments({
   const handleMarkAsPaid = async (paymentId: string) => {
     const payment = payments.find((p) => p.id === paymentId);
     const paymentDate = new Date().toISOString().split("T")[0];
-    await updatePayment(paymentId, {
-      status: "paid",
-      payment_date: paymentDate,
-    });
 
     // Only real money (a cash/Stripe payment row) can be allocated against the
     // schedule. Marking a scheduled installment paid must NOT also consume other
@@ -219,6 +215,16 @@ export function TripPayments({
       !payment?.stripe_session_id &&
       !payment?.stripe_receipt_url &&
       ["installment", "final", "final_balance"].includes(payment?.payment_type || "");
+
+    await updatePayment(paymentId, {
+      status: "paid",
+      payment_date: paymentDate,
+      // Marking a scheduled row paid by hand means money actually arrived
+      // (cash/check/manual). Stamping a method turns it into a real receipt so
+      // Amount Paid, Balance Due and the invoice all reflect it.
+      ...(isScheduleRow ? { payment_method: "manual" } : {}),
+    });
+
 
     if (payment && !isScheduleRow) {
       const result = await applyPaymentToInstallments({
