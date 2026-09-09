@@ -31,13 +31,21 @@ export function useOnboarding() {
       if (error) throw error;
 
       if (!data) {
+        // Creating the record can fail transiently right after sign-in (token
+        // still refreshing). Don't fail the whole checklist over it.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return null;
+
         const { data: newProgress, error: insertError } = await supabase
           .from("agent_onboarding_progress")
           .insert({ user_id: user!.id })
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError || !newProgress) {
+          console.warn("Onboarding progress not created yet:", insertError?.message);
+          return null;
+        }
         data = newProgress;
 
         // First-time onboarding: send the Agent Setup Guide email (idempotent server-side)

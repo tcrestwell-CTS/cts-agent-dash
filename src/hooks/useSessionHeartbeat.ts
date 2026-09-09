@@ -38,6 +38,7 @@ export function useSessionHeartbeat() {
         } as any,
         { onConflict: "user_id" }
       );
+      if (error) console.warn("Session heartbeat skipped:", error.message);
     };
 
     // Fire immediately, then every 30 s
