@@ -24,7 +24,12 @@ export function useSessionHeartbeat() {
     if (!user) return;
 
     const upsert = async () => {
-      await supabase.from("active_sessions").upsert(
+      // Only write with a valid, non-expired session — otherwise auth.uid() is
+      // NULL server-side and the row-level policy rejects the insert.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id || session.user.id !== user.id) return;
+
+      const { error } = await supabase.from("active_sessions").upsert(
         {
           user_id: user.id,
           last_seen_at: new Date().toISOString(),
