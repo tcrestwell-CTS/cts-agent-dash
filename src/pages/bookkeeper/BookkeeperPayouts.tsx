@@ -52,9 +52,9 @@ export default function BookkeeperPayouts() {
   const agencyRetained = data?.agencyRetained ?? 0;
 
   const exportCsv = () => {
-    logAction("export_csv", "bookkeeper_payouts", { rows: data?.length ?? 0 });
+    logAction("export_csv", "bookkeeper_payouts", { rows: rows.length });
     exportToCSV(
-      (data ?? []).map((r) => ({
+      rows.map((r) => ({
         advisor: r.name,
         user_id: r.user_id,
         commissions: r.count,
@@ -75,9 +75,12 @@ export default function BookkeeperPayouts() {
               <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Agent Payouts</h1>
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
             </div>
-            <p className="text-[13.5px] text-muted-foreground">Commission paid and pending, by advisor.</p>
+            <p className="text-[13.5px] text-muted-foreground">
+              Commission paid and pending, by advisor. Owner commission is agency revenue and is
+              excluded{agencyRetained > 0 ? ` (${fmt(agencyRetained)} retained)` : ""}.
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !rows.length} className="text-[13px]">
             <Download className="h-4 w-4 mr-2" /> CSV
           </Button>
         </div>
