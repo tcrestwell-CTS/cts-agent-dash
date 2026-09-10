@@ -521,12 +521,31 @@ const Trips = () => {
     )
   ).sort((a, b) => a[1].localeCompare(b[1]));
 
+  // Normalize text so apostrophes, punctuation and letter swaps don't hide results
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u2018\u2019'`]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  const searchTerms = normalize(searchQuery).split(" ").filter(Boolean);
+
   const filteredTrips = trips.filter((trip) => {
-    const searchLower = searchQuery.toLowerCase();
+    const haystack = normalize(
+      [trip.trip_name, trip.destination, trip.clients?.name].filter(Boolean).join(" ")
+    );
+    // Fuzzy fallback for common misspellings (e.g. "claire" vs "clarie")
+    const sorted = (word: string) => word.split("").sort().join("");
+    const haystackWords = haystack.split(" ");
     const matchesSearch =
-      trip.trip_name.toLowerCase().includes(searchLower) ||
-      trip.destination?.toLowerCase().includes(searchLower) ||
-      trip.clients?.name.toLowerCase().includes(searchLower);
+      searchTerms.length === 0 ||
+      searchTerms.every(
+        (term) =>
+          haystack.includes(term) ||
+          (term.length > 3 && haystackWords.some((w) => w.length === term.length && sorted(w) === sorted(term)))
+      );
     const matchesStatus = statusFilter === "all" || trip.status === statusFilter;
     const advisorId = (trip as any).advisor_id || (trip as any).user_id || null;
     const matchesAdvisor =
