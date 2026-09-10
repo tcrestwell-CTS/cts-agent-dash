@@ -28,16 +28,28 @@ export default function BookkeeperPayouts() {
       const profiles = new Map<string, string>();
       for (const p of profRes.data ?? []) profiles.set(p.user_id, p.full_name || "Unknown");
       const map = new Map<string, { name: string; paid: number; pending: number; count: number }>();
+      let agencyRetained = 0;
       for (const c of commRes.data ?? []) {
+        // Owner commissions stay with the agency — never an advisor payout.
+        if (isAgencyOwnerAgent(c.user_id)) {
+          agencyRetained += Number(c.amount || 0);
+          continue;
+        }
         const e = map.get(c.user_id) || { name: profiles.get(c.user_id) || "Unknown", paid: 0, pending: 0, count: 0 };
         if (c.status === "paid") e.paid += Number(c.amount || 0);
         else e.pending += Number(c.amount || 0);
         e.count += 1;
         map.set(c.user_id, e);
       }
-      return Array.from(map.entries()).map(([user_id, v]) => ({ user_id, ...v })).sort((a, b) => b.paid + b.pending - (a.paid + a.pending));
+      const rows = Array.from(map.entries())
+        .map(([user_id, v]) => ({ user_id, ...v }))
+        .sort((a, b) => b.paid + b.pending - (a.paid + a.pending));
+      return { rows, agencyRetained };
     },
   });
+
+  const rows = data?.rows ?? [];
+  const agencyRetained = data?.agencyRetained ?? 0;
 
   const exportCsv = () => {
     logAction("export_csv", "bookkeeper_payouts", { rows: data?.length ?? 0 });
