@@ -1,5 +1,6 @@
 import { CommissionReportItem } from "@/hooks/useCommissionReport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
+import { agentPayoutShare } from "@/lib/agencyOwnerAgents";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { ExternalLink, CheckCircle2, Clock, Hourglass, Split as SplitIcon } from "lucide-react";
@@ -140,7 +141,7 @@ export function CommissionReportTable({ data, showAgentColumn, canEditSplits, ca
         <tbody className="divide-y divide-border">
           {data.map((item, idx) => {
             const tier = (item.agent?.commission_tier || "tier_1") as CommissionTier;
-            const agentShare = calculateAgentCommission(item.amount, tier);
+            const agentShare = agentPayoutShare(item.user_id, item.amount, tier);
             const tierConfig = getTierConfig(tier);
             const isPaid = item.status === "paid";
             const isExpected = item.status === "expected";
@@ -267,7 +268,7 @@ export function CommissionReportTable({ data, showAgentColumn, canEditSplits, ca
             </td>
             <td className="px-5 py-3 text-right tabular-nums font-bold">{fmt(data.reduce((s,i) => s+(i.booking?.gross_sales||i.booking?.total_amount||0),0))}</td>
             <td className="px-5 py-3 text-right tabular-nums font-bold text-primary">{fmt(data.reduce((s,i)=>s+i.amount,0))}</td>
-            <td className="px-5 py-3 text-right tabular-nums font-bold text-success">{fmt(data.reduce((s,i)=>s+calculateAgentCommission(i.amount,(i.agent?.commission_tier||"tier_1")as CommissionTier),0))}</td>
+            <td className="px-5 py-3 text-right tabular-nums font-bold text-success">{fmt(data.reduce((s,i)=>s+agentPayoutShare(i.user_id,i.amount,(i.agent?.commission_tier||"tier_1")as CommissionTier),0))}</td>
             <td className="px-5 py-3"/>
             <td className="px-5 py-3"/>
             <td className="px-5 py-3"/>

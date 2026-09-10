@@ -99,4 +99,5 @@
 - [Commission Overrides](mem://features/financial/commission-overrides) — Triggers admin approval if override > revenue
 - [Duffel Monitoring](mem://features/integrations/duffel-monitoring) — Real-time tracking of flight events via webhook
 - [MSC Cruises](mem://features/integrations/msc-cruises) — Flat-file cache for search, POX API for booking, GFT/service-charge price math
+- [Owner Commission](mem://features/financial/owner-commission-is-agency-revenue) — Tim's commissions are agency revenue: no payout, no 1099
 - [ADX Booking Engine](mem://features/integrations/adx-booking-engine) — Travel Edge/Ensemble integration, `adx` function, credential-gated Phase 2

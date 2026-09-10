@@ -12,6 +12,7 @@ import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { Wallet } from "lucide-react";
+import { isAgencyOwnerAgent } from "@/lib/agencyOwnerAgents";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -28,21 +29,33 @@ export default function BookkeeperPayouts() {
       const profiles = new Map<string, string>();
       for (const p of profRes.data ?? []) profiles.set(p.user_id, p.full_name || "Unknown");
       const map = new Map<string, { name: string; paid: number; pending: number; count: number }>();
+      let agencyRetained = 0;
       for (const c of commRes.data ?? []) {
+        // Owner commissions stay with the agency — never an advisor payout.
+        if (isAgencyOwnerAgent(c.user_id)) {
+          agencyRetained += Number(c.amount || 0);
+          continue;
+        }
         const e = map.get(c.user_id) || { name: profiles.get(c.user_id) || "Unknown", paid: 0, pending: 0, count: 0 };
         if (c.status === "paid") e.paid += Number(c.amount || 0);
         else e.pending += Number(c.amount || 0);
         e.count += 1;
         map.set(c.user_id, e);
       }
-      return Array.from(map.entries()).map(([user_id, v]) => ({ user_id, ...v })).sort((a, b) => b.paid + b.pending - (a.paid + a.pending));
+      const rows = Array.from(map.entries())
+        .map(([user_id, v]) => ({ user_id, ...v }))
+        .sort((a, b) => b.paid + b.pending - (a.paid + a.pending));
+      return { rows, agencyRetained };
     },
   });
 
+  const rows = data?.rows ?? [];
+  const agencyRetained = data?.agencyRetained ?? 0;
+
   const exportCsv = () => {
-    logAction("export_csv", "bookkeeper_payouts", { rows: data?.length ?? 0 });
+    logAction("export_csv", "bookkeeper_payouts", { rows: rows.length });
     exportToCSV(
-      (data ?? []).map((r) => ({
+      rows.map((r) => ({
         advisor: r.name,
         user_id: r.user_id,
         commissions: r.count,
@@ -63,16 +76,19 @@ export default function BookkeeperPayouts() {
               <h1 className="text-[18px] font-semibold tracking-[-0.025em] text-foreground">Agent Payouts</h1>
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
             </div>
-            <p className="text-[13.5px] text-muted-foreground">Commission paid and pending, by advisor.</p>
+            <p className="text-[13.5px] text-muted-foreground">
+              Commission paid and pending, by advisor. Owner commission is agency revenue and is
+              excluded{agencyRetained > 0 ? ` (${fmt(agencyRetained)} retained)` : ""}.
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !rows.length} className="text-[13px]">
             <Download className="h-4 w-4 mr-2" /> CSV
           </Button>
         </div>
         <Panel>
           <PanelHeader title="By advisor" />
           <PanelBody>
-            {isLoading ? <Skeleton className="h-48 w-full" /> : (data?.length ?? 0) === 0 ? (
+            {isLoading ? <Skeleton className="h-48 w-full" /> : rows.length === 0 ? (
               <EmptyState icon={Wallet} title="No agent commissions yet" />
             ) : (
               <Table>
@@ -85,7 +101,7 @@ export default function BookkeeperPayouts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(data ?? []).map((r) => (
+                  {rows.map((r) => (
                     <TableRow key={r.user_id}>
                       <TableCell className="text-[13.5px]">{r.name}</TableCell>
                       <TableCell className="text-right">

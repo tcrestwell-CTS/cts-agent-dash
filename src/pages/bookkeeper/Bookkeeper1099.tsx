@@ -11,6 +11,7 @@ import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { BookkeeperHeader, EmptyState, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { SemanticStatusPill } from "@/components/patterns/StatusPill";
+import { isAgencyOwnerAgent } from "@/lib/agencyOwnerAgents";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const THRESHOLD = 600;
@@ -33,6 +34,8 @@ export default function Bookkeeper1099() {
       for (const p of profRes.data ?? []) profiles.set(p.user_id, p.full_name || "Unknown");
       const map = new Map<string, { name: string; total: number }>();
       for (const c of commRes.data ?? []) {
+        // Owner commissions are agency revenue, not advisor payouts — no 1099.
+        if (isAgencyOwnerAgent(c.user_id)) continue;
         const e = map.get(c.user_id) || { name: profiles.get(c.user_id) || "Unknown", total: 0 };
         e.total += Number(c.amount || 0);
         map.set(c.user_id, e);

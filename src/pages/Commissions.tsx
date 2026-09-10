@@ -33,6 +33,7 @@ import { CommissionAgingReport } from "@/components/commissions/CommissionAgingR
 import { useMemo, useState } from "react";
 import { format, parseISO, startOfMonth, subMonths, subDays, isWithinInterval, isPast, differenceInDays } from "date-fns";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
+import { agentPayoutShare } from "@/lib/agencyOwnerAgents";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -104,7 +105,7 @@ const Commissions = () => {
           ...commission,
           booking,
           client,
-          agentShare: calculateAgentCommission(commission.amount, rowTier),
+          agentShare: agentPayoutShare(commission.user_id, commission.amount, rowTier),
           agentName: profileByUser.get(commission.user_id)?.full_name ?? null,
           splitPct: rowTierConfig.agentSplit,
           expectedCommissionDate,
@@ -233,7 +234,7 @@ const Commissions = () => {
 
         const totalCommission = agentCommissions.reduce((sum, c) => sum + c.amount, 0);
         const agentEarnings = agentCommissions.reduce(
-          (sum, c) => sum + calculateAgentCommission(c.amount, tier),
+          (sum, c) => sum + agentPayoutShare(agent.user_id, c.amount, tier),
           0
         );
         const pendingCount = agentCommissions.filter((c) => c.status === "pending").length;

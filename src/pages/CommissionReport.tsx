@@ -13,6 +13,7 @@ import { ConfirmPayoutBar } from "@/components/reports/ConfirmPayoutBar";
 import { CommissionPayoutDraftProvider } from "@/hooks/useCommissionSplits";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { calculateAgentCommission, getTierConfig, CommissionTier } from "@/lib/commissionTiers";
+import { agentPayoutShare } from "@/lib/agencyOwnerAgents";
 import { toast } from "sonner";
 import {
   format, parseISO, isWithinInterval, startOfDay, endOfDay,
@@ -92,7 +93,7 @@ export default function CommissionReport() {
     const totalCommission = filteredData.reduce((sum, item) => sum + item.amount, 0);
     const totalAgentShare = filteredData.reduce((sum, item) => {
       const tier = (item.agent?.commission_tier || "tier_1") as CommissionTier;
-      return sum + calculateAgentCommission(item.amount, tier);
+      return sum + agentPayoutShare(item.user_id, item.amount, tier);
     }, 0);
     const totalGrossSales = filteredData.reduce(
       (sum, item) => sum + (item.booking?.gross_sales || item.booking?.total_amount || 0),
@@ -173,7 +174,7 @@ export default function CommissionReport() {
       }
       acc[userId].grossSales += item.booking?.gross_sales || item.booking?.total_amount || 0;
       acc[userId].totalCommission += item.amount;
-      acc[userId].agentEarnings += calculateAgentCommission(item.amount, acc[userId].tier);
+      acc[userId].agentEarnings += agentPayoutShare(userId, item.amount, acc[userId].tier);
       if (item.booking?.trip_id) acc[userId].tripCount.add(item.booking.trip_id);
       return acc;
     }, {} as Record<string, any>);
@@ -207,7 +208,7 @@ export default function CommissionReport() {
 
     const exportData = filteredData.map((item) => {
       const tier = (item.agent?.commission_tier || "tier_1") as CommissionTier;
-      const agentShare = calculateAgentCommission(item.amount, tier);
+      const agentShare = agentPayoutShare(item.user_id, item.amount, tier);
       const tierConfig = getTierConfig(tier);
 
       return {
