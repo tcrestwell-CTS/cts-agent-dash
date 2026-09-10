@@ -12,6 +12,7 @@ import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
 import { EmptyState, BookkeeperBreadcrumb } from "@/components/bookkeeper/shared";
 import { Wallet } from "lucide-react";
+import { isAgencyOwnerAgent } from "@/lib/agencyOwnerAgents";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -87,7 +88,7 @@ export default function BookkeeperPayouts() {
         <Panel>
           <PanelHeader title="By advisor" />
           <PanelBody>
-            {isLoading ? <Skeleton className="h-48 w-full" /> : (data?.length ?? 0) === 0 ? (
+            {isLoading ? <Skeleton className="h-48 w-full" /> : rows.length === 0 ? (
               <EmptyState icon={Wallet} title="No agent commissions yet" />
             ) : (
               <Table>
@@ -100,7 +101,7 @@ export default function BookkeeperPayouts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(data ?? []).map((r) => (
+                  {rows.map((r) => (
                     <TableRow key={r.user_id}>
                       <TableCell className="text-[13.5px]">{r.name}</TableCell>
                       <TableCell className="text-right">
