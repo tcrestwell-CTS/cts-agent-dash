@@ -423,6 +423,44 @@ export default function GroupLanding() {
               </p>
             ) : null}
 
+            {/* ─── FEATURED PRE-STAY HOTEL ──────── */}
+            {prestayHotel && (
+              <div className="rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 pt-5 pb-3 flex items-center gap-2">
+                  <Hotel className="h-5 w-5" style={{ color: primaryColor }} />
+                  <h2 className="text-xl font-bold text-gray-900">Pre-Cruise Hotel Stay</h2>
+                </div>
+                <div className="px-5 pb-5 space-y-4">
+                  <ItineraryGallery
+                    images={getItemImages(prestayHotel)}
+                    alt={prestayHotel.title}
+                    aspectClassName="aspect-[16/9]"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-lg">{prestayHotel.title}</h3>
+                    {prestayHotel.location && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3.5 w-3.5" /> {prestayHotel.location}
+                      </p>
+                    )}
+                  </div>
+                  {prestayHotel.description && (
+                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                      {prestayHotel.description.replace(/<[^>]+>/g, "")}
+                    </p>
+                  )}
+                  {prestayHotel.item_price != null && (
+                    <p className="text-base font-bold" style={{ color: primaryColor }}>
+                      From {currency(prestayHotel.item_price)}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400">
+                    Optional add-on — you can request the pre-cruise hotel when you sign up below.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* ─── ITINERARY & CABINS TABS ──────── */}
             {(Object.keys(itineraryByDay).length > 0 || (data.cabinOptions && data.cabinOptions.length > 0)) && (
               <Tabs defaultValue={Object.keys(itineraryByDay).length > 0 ? "itinerary" : "cabins"} className="w-full">
