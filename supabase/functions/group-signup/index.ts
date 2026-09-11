@@ -140,6 +140,145 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
+    const subTripIdParam = url.searchParams.get("sub_trip_id");
+
+    // GET (with sub_trip_id): one traveler's own reservation + a live deposit pay link
+    if (req.method === "GET" && token && subTripIdParam) {
+      const { data: parentTrip } = await supabaseAdmin
+        .from("trips")
+        .select("id, trip_name, destination, depart_date, return_date, user_id")
+        .eq("share_token", token)
+        .eq("trip_type", "group")
+        .maybeSingle();
+
+      if (!parentTrip) {
+        return new Response(JSON.stringify({ error: "Group trip not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: subTrip } = await supabaseAdmin
+        .from("trips")
+        .select("id, trip_name, destination, depart_date, return_date, status, notes, selected_cabin_option_id, cover_image_url, client_id, user_id")
+        .eq("id", subTripIdParam)
+        .eq("parent_trip_id", parentTrip.id)
+        .maybeSingle();
+
+      if (!subTrip) {
+        return new Response(JSON.stringify({ error: "Reservation not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const [{ data: client }, { data: cabin }, { data: booking }, { data: branding }, { data: advisor }] =
+        await Promise.all([
+          supabaseAdmin.from("clients").select("name, email, phone").eq("id", subTrip.client_id).maybeSingle(),
+          subTrip.selected_cabin_option_id
+            ? supabaseAdmin
+                .from("trip_cabin_options")
+                .select("category_name, price_per_person, deposit_amount, description")
+                .eq("id", subTrip.selected_cabin_option_id)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabaseAdmin.from("bookings").select("id, confirmation_number, gross_sales, status").eq("trip_id", subTrip.id).maybeSingle(),
+          supabaseAdmin
+            .from("branding_settings")
+            .select("agency_name, logo_url, primary_color, accent_color, phone, email_address, website")
+            .eq("user_id", subTrip.user_id)
+            .maybeSingle(),
+          supabaseAdmin
+            .from("profiles")
+            .select("full_name, agency_name, job_title, phone, avatar_url")
+            .eq("user_id", subTrip.user_id)
+            .maybeSingle(),
+        ]);
+
+      const { data: payments } = await supabaseAdmin
+        .from("trip_payments")
+        .select("id, amount, status, due_date, payment_type, payment_date")
+        .eq("trip_id", subTrip.id)
+        .order("created_at", { ascending: false });
+
+      const allPayments = payments || [];
+      const depositPayment =
+        allPayments.find((p: any) => p.payment_type === "deposit") || null;
+      const totalPaid = allPayments
+        .filter((p: any) => p.status === "paid")
+        .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+
+      // Build a live pay link for the deposit, minting a secure link if needed.
+      let payUrl: string | null = null;
+      if (depositPayment && depositPayment.status !== "paid") {
+        const clientName = client?.name || "Traveler";
+        const clientEmail = (client?.email || "").toLowerCase().trim();
+        const ref = `TP-${depositPayment.id.slice(0, 8).toUpperCase()}`;
+
+        const { data: existing } = await supabaseAdmin
+          .from("secure_links")
+          .select("token, active, expires_at")
+          .eq("trip_payment_id", depositPayment.id)
+          .eq("link_type", "payment")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const usable =
+          existing?.token &&
+          existing.active !== false &&
+          (!existing.expires_at || new Date(existing.expires_at).getTime() > Date.now());
+
+        let linkToken: string | null = usable ? existing!.token : null;
+
+        if (!linkToken) {
+          const tk = generateToken();
+          const { error: mintErr } = await supabaseAdmin.from("secure_links").insert({
+            token: tk,
+            link_type: "payment",
+            client_name: clientName,
+            client_email: clientEmail,
+            booking_ref: ref,
+            trip_name: subTrip.trip_name,
+            amount: Number(depositPayment.amount || 0),
+            notes: "Group signup deposit",
+            expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+            single_use: false,
+            active: true,
+            agent_user_id: subTrip.user_id,
+            trip_payment_id: depositPayment.id,
+          });
+          if (mintErr) console.error("Failed to mint reservation pay link:", mintErr);
+          else linkToken = tk;
+        }
+
+        if (linkToken) {
+          payUrl = `${appOrigin(req)}${PAY_PATH}?d=${encodePayload({
+            token: linkToken,
+            ref,
+            name: clientName,
+            email: clientEmail,
+          })}`;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          parentTrip,
+          subTrip,
+          client: client || { name: "Traveler", email: "", phone: null },
+          cabin,
+          booking,
+          depositPayment,
+          payments: allPayments,
+          totalPaid,
+          payUrl,
+          branding,
+          advisor,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // GET: Return group trip landing page data (public)
     if (req.method === "GET") {
