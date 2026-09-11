@@ -134,6 +134,18 @@ const categoryIcons: Record<string, typeof Plane> = {
   transport: Compass,
 };
 
+// Pre-cruise hotel room choices (Hilton Hawaiian Village, 2 nights, double occupancy).
+// Rates are per night; a $66/night resort fee is paid at the hotel.
+const PRESTAY_ROOM_OPTIONS = [
+  { id: "resort-view-king-bb", name: "Resort View, 1 King — breakfast included", flexible: 409, prepaid: 347 },
+  { id: "resort-view-2-double", name: "Resort View, 2 Double Beds — room only", flexible: 398, prepaid: 338 },
+  { id: "ocean-view-king-ro", name: "Ocean View, 1 King — room only", flexible: 417, prepaid: 354 },
+  { id: "ocean-view-king-bb", name: "Ocean View, 1 King — breakfast included", flexible: 428, prepaid: 363 },
+];
+const PRESTAY_NIGHTS = 2;
+const PRESTAY_RESORT_FEE_PER_NIGHT = 66;
+
+
 export default function GroupLanding() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<GroupLandingData | null>(null);
