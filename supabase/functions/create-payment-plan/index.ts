@@ -128,6 +128,8 @@ Deno.serve(async (req) => {
       'cancel_at': String(cancelAt),
       collection_method: 'charge_automatically',
       'payment_settings[payment_method_types][0]': 'card',
+      // Link enables Instant Bank Payments for recurring charges
+      'payment_settings[payment_method_types][1]': 'link',
       'payment_settings[save_default_payment_method]': 'on_subscription',
       'metadata[loan_id]': booking_ref || '',
       'metadata[trip_name]': trip_name || '',

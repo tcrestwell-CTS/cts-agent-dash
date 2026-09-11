@@ -184,8 +184,9 @@ Deno.serve(async (req) => {
     const piParams = new URLSearchParams({
       amount:   String(amount_cents),
       currency,
+      // Allow redirect-capable methods so Link / Instant Bank Payments can appear.
       'automatic_payment_methods[enabled]':        'true',
-      'automatic_payment_methods[allow_redirects]': 'never',
+      'automatic_payment_methods[allow_redirects]': 'always',
       description: trip_name
         ? `Crestwell Travel – ${trip_name}${booking_ref ? ` (Ref: ${booking_ref})` : ''}`
         : `Crestwell Travel Payment${booking_ref ? ` – Ref: ${booking_ref}` : ''}`,

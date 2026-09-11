@@ -91,6 +91,7 @@ function PayForm({
     setSubmitting(true);
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
+      confirmParams: { return_url: window.location.href },
       redirect: "if_required",
     });
     setSubmitting(false);
