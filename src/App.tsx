@@ -285,6 +285,7 @@ const App = () => (
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
+                <Route path="/group/:token/reservation/:subTripId" element={<GroupReservation />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/proposal/:token" element={<ProposalView />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
