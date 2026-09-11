@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import crestwellLogo from "@/assets/CTN-Logo.png";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import DOMPurify from "dompurify";
 import { Skeleton } from "@/components/ui/skeleton";
