@@ -313,6 +313,9 @@ Deno.serve(async (req) => {
 
       // Create booking from cabin selection
       const travelerCount = Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1));
+      let bookingId: string | null = null;
+      let depositAmount = 0;
+      let cabinLabel = "";
       if (selected_cabin_option_id) {
         const { data: cabin } = await supabaseAdmin
           .from("trip_cabin_options")
@@ -330,8 +333,10 @@ Deno.serve(async (req) => {
           }
           const grossSales = (cabin.price_per_person || 0) * travelerCount * nights;
           const confirmNum = `GRP-${subTrip.id.substring(0, 8).toUpperCase()}`;
+          cabinLabel = cabin.category_name || "";
+          depositAmount = Number(cabin.deposit_amount || 0) * travelerCount;
 
-          const { error: bookingErr } = await supabaseAdmin
+          const { data: newBooking, error: bookingErr } = await supabaseAdmin
             .from("bookings")
             .insert({
               user_id: parentTrip.user_id,
@@ -343,13 +348,83 @@ Deno.serve(async (req) => {
               net_sales: grossSales,
               commissionable_amount: grossSales,
               pricing_mode: "commission",
-            });
+            })
+            .select("id")
+            .single();
 
           if (bookingErr) {
             console.error("Failed to create booking:", bookingErr);
+          } else {
+            bookingId = newBooking?.id ?? null;
           }
         }
       }
+
+      // Fall back to the parent trip's deposit if the cabin has none set
+      if (!depositAmount) {
+        const { data: depositRow } = await supabaseAdmin
+          .from("trips")
+          .select("deposit_amount")
+          .eq("id", parentTrip.id)
+          .maybeSingle();
+        depositAmount = Number(depositRow?.deposit_amount || 0) * travelerCount;
+      }
+
+      // Create the traveler's own deposit installment + secure pay link so they
+      // can pay for their individual reservation right after signing up.
+      let payUrl: string | null = null;
+      if (depositAmount > 0) {
+        const dueDate = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+        const { data: depositPayment, error: depErr } = await supabaseAdmin
+          .from("trip_payments")
+          .insert({
+            trip_id: subTrip.id,
+            booking_id: bookingId,
+            user_id: parentTrip.user_id,
+            amount: depositAmount,
+            due_date: dueDate,
+            payment_type: "deposit",
+            status: "pending",
+            payer_name: clientName,
+            payer_email: email.toLowerCase().trim(),
+            notes: `Group signup deposit${cabinLabel ? ` — ${cabinLabel}` : ""} (${travelerCount} traveler${travelerCount > 1 ? "s" : ""})`,
+          })
+          .select("id")
+          .single();
+
+        if (depErr) {
+          console.error("Failed to create deposit installment:", depErr);
+        } else {
+          const tk = generateToken();
+          const ref = `TP-${depositPayment.id.slice(0, 8).toUpperCase()}`;
+          const { error: linkErr } = await supabaseAdmin.from("secure_links").insert({
+            token: tk,
+            link_type: "payment",
+            client_name: clientName,
+            client_email: email.toLowerCase().trim(),
+            booking_ref: ref,
+            trip_name: subTrip_name(parentTrip.trip_name, clientName),
+            amount: depositAmount,
+            notes: "Group signup deposit",
+            expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+            single_use: false,
+            active: true,
+            agent_user_id: parentTrip.user_id,
+            trip_payment_id: depositPayment.id,
+          });
+          if (linkErr) {
+            console.error("Failed to mint pay link:", linkErr);
+          } else {
+            payUrl = `${SITE_URL}${PAY_PATH}?d=${encodePayload({
+              token: tk,
+              ref,
+              name: clientName,
+              email: email.toLowerCase().trim(),
+            })}`;
+          }
+        }
+      }
+
 
       // If 2 travelers, create a companion record linked to the client
       if (travelerCount === 2 && companion_first_name?.trim()) {
