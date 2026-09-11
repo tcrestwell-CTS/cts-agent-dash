@@ -7,6 +7,24 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const SITE_URL = "https://crestwellgetaways.com";
+const PAY_PATH = "/payment";
+
+function generateToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function encodePayload(payload: Record<string, string>): string {
+  return encodeURIComponent(btoa(JSON.stringify(payload)));
+}
+
+function subTrip_name(parentName: string, clientName: string): string {
+  return `${parentName} — ${clientName}`;
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
