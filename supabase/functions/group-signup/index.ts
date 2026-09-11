@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel, prestay_room_label } = body;
 
       // Validate required fields
       if (!signupToken || !first_name || !email) {
@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
           trip_type: "regular",
           status: "inbound",
           client_id: clientId,
-          notes: [notes?.trim(), add_prestay_hotel ? "Wants to add the pre-cruise hotel stay." : null].filter(Boolean).join("\n") || null,
+          notes: [notes?.trim(), add_prestay_hotel ? `Pre-cruise hotel stay requested: ${prestay_room_label || "room choice TBD"}` : null].filter(Boolean).join("\n") || null,
           selected_cabin_option_id: selected_cabin_option_id || null,
           cover_image_url: parentTrip.cover_image_url,
         })
@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
           email: email.toLowerCase().trim(),
           phone: phone?.trim() || null,
           number_of_travelers: Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1)),
-          notes: [notes?.trim()?.substring(0, 500), add_prestay_hotel ? "Pre-cruise hotel stay: YES" : null].filter(Boolean).join(" | ") || null,
+          notes: [notes?.trim()?.substring(0, 500), add_prestay_hotel ? `Pre-cruise hotel: ${String(prestay_room_label || "YES").substring(0, 200)}` : null].filter(Boolean).join(" | ") || null,
           status: "confirmed",
         });
 

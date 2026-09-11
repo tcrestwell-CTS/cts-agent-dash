@@ -134,6 +134,18 @@ const categoryIcons: Record<string, typeof Plane> = {
   transport: Compass,
 };
 
+// Pre-cruise hotel room choices (Hilton Hawaiian Village, 2 nights, double occupancy).
+// Rates are per night; a $66/night resort fee is paid at the hotel.
+const PRESTAY_ROOM_OPTIONS = [
+  { id: "resort-view-king-bb", name: "Resort View, 1 King — breakfast included", flexible: 409, prepaid: 347 },
+  { id: "resort-view-2-double", name: "Resort View, 2 Double Beds — room only", flexible: 398, prepaid: 338 },
+  { id: "ocean-view-king-ro", name: "Ocean View, 1 King — room only", flexible: 417, prepaid: 354 },
+  { id: "ocean-view-king-bb", name: "Ocean View, 1 King — breakfast included", flexible: 428, prepaid: 363 },
+];
+const PRESTAY_NIGHTS = 2;
+const PRESTAY_RESORT_FEE_PER_NIGHT = 66;
+
+
 export default function GroupLanding() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<GroupLandingData | null>(null);
@@ -156,6 +168,9 @@ export default function GroupLanding() {
     notes: "",
     selected_cabin_option_id: "",
     add_prestay_hotel: false,
+    prestay_room_type: "",
+    prestay_rate_type: "prepaid",
+
     companion_first_name: "",
     companion_last_name: "",
     companion_email: "",
@@ -203,6 +218,15 @@ export default function GroupLanding() {
       toast.error(`${chosen.category_name} requires 2 travelers (double occupancy).`);
       return;
     }
+    if (form.add_prestay_hotel && !form.prestay_room_type) {
+      toast.error("Please choose a room type for the pre-cruise hotel stay.");
+      return;
+    }
+    const room = PRESTAY_ROOM_OPTIONS.find((r) => r.id === form.prestay_room_type);
+    const nightly = room ? (form.prestay_rate_type === "flexible" ? room.flexible : room.prepaid) : 0;
+    const prestay_room_label = room
+      ? `${room.name} — ${form.prestay_rate_type === "flexible" ? "flexible" : "prepaid"} rate ${currency(nightly)}/night, ${PRESTAY_NIGHTS} nights = ${currency(nightly * PRESTAY_NIGHTS)} + ${currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} resort fee at hotel`
+      : null;
     setSubmitting(true);
     try {
       const res = await fetch(
@@ -213,8 +237,9 @@ export default function GroupLanding() {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ token, ...form }),
+          body: JSON.stringify({ token, ...form, prestay_room_label }),
         }
+
       );
       const result = await res.json();
       if (!res.ok) {
@@ -454,9 +479,31 @@ export default function GroupLanding() {
                       From {currency(prestayHotel.item_price)}
                     </p>
                   )}
+                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr className="text-left text-xs text-gray-500">
+                          <th className="px-3 py-2 font-medium">Room</th>
+                          <th className="px-3 py-2 font-medium text-right">Prepaid / night</th>
+                          <th className="px-3 py-2 font-medium text-right">Flexible / night</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRESTAY_ROOM_OPTIONS.map((r) => (
+                          <tr key={r.id} className="border-t border-gray-100">
+                            <td className="px-3 py-2 text-gray-800">{r.name}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{currency(r.prepaid)}</td>
+                            <td className="px-3 py-2 text-right">{currency(r.flexible)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   <p className="text-xs text-gray-400">
-                    Optional add-on — you can request the pre-cruise hotel when you sign up below.
+                    {PRESTAY_NIGHTS}-night stay, double occupancy. Plus a {currency(PRESTAY_RESORT_FEE_PER_NIGHT)}/night
+                    resort fee paid at the hotel. Optional add-on — pick your room when you sign up below.
                   </p>
+
                 </div>
               </div>
             )}
@@ -1073,22 +1120,69 @@ export default function GroupLanding() {
 
                   {/* Pre-stay hotel opt-in */}
                   {prestayHotel && (
-                    <label className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={form.add_prestay_hotel}
-                        onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked }))}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                        style={{ accentColor: primaryColor }}
-                      />
-                      <span className="text-sm">
-                        <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
-                        <span className="block text-xs text-gray-500 mt-0.5">
-                          {prestayHotel.title} — pricing per the options above; your advisor will confirm your room choice.
+                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.add_prestay_hotel}
+                          onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked, prestay_room_type: e.target.checked ? f.prestay_room_type : "" }))}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                          style={{ accentColor: primaryColor }}
+                        />
+                        <span className="text-sm">
+                          <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
+                          <span className="block text-xs text-gray-500 mt-0.5">
+                            {prestayHotel.title} — 2 nights, double occupancy. Choose your room below.
+                          </span>
                         </span>
-                      </span>
-                    </label>
+                      </label>
+
+                      {form.add_prestay_hotel && (
+                        <div className="space-y-2 pl-7">
+                          {PRESTAY_ROOM_OPTIONS.map((r) => {
+                            const nightly = form.prestay_rate_type === "flexible" ? r.flexible : r.prepaid;
+                            return (
+                              <label
+                                key={r.id}
+                                className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name="prestay_room_type"
+                                  checked={form.prestay_room_type === r.id}
+                                  onChange={() => setForm((f) => ({ ...f, prestay_room_type: r.id }))}
+                                  className="mt-0.5 h-4 w-4"
+                                  style={{ accentColor: primaryColor }}
+                                />
+                                <span className="text-sm">
+                                  <span className="font-medium text-gray-900">{r.name}</span>
+                                  <span className="block text-xs text-gray-500 mt-0.5">
+                                    {currency(nightly)}/night · {currency(nightly * PRESTAY_NIGHTS)} for {PRESTAY_NIGHTS} nights
+                                  </span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                          <div className="space-y-1.5 pt-1">
+                            <Label className="text-xs">Rate type</Label>
+                            <select
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              value={form.prestay_rate_type}
+                              onChange={(e) => setForm((f) => ({ ...f, prestay_rate_type: e.target.value }))}
+                            >
+                              <option value="prepaid">Prepaid (lowest rate, non-refundable)</option>
+                              <option value="flexible">Flexible (free cancellation)</option>
+                            </select>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            Plus a {currency(PRESTAY_RESORT_FEE_PER_NIGHT)}/night resort fee paid at the hotel
+                            ({currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} total). Taxes confirmed at booking.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
+
 
                   {/* Cabin Selection */}
                   {data.cabinOptions && data.cabinOptions.length > 0 && (
