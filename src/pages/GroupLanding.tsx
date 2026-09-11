@@ -248,6 +248,7 @@ export default function GroupLanding() {
         return;
       }
       setPayUrl(result.payUrl || null);
+      setReservationUrl(result.reservationUrl || null);
       setDepositDue(Number(result.depositAmount || 0));
       setSubmitted(true);
 
