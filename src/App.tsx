@@ -51,6 +51,7 @@ const NotFound            = lazy(() => import("./pages/NotFound"));
 const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
 const GroupLanding        = lazy(() => import("./pages/GroupLanding"));
 const GroupLandingBuilder = lazy(() => import("./pages/GroupLandingBuilder"));
+const GroupReservation    = lazy(() => import("./pages/GroupReservation"));
 const CCAuthorize         = lazy(() => import("./pages/CCAuthorize"));
 const ProposalView        = lazy(() => import("./pages/ProposalView"));
 const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
