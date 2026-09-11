@@ -184,7 +184,7 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                       style={{ minHeight: 220 }}
                     >
                       <img
-                        src={getItemImages(item)[0]}
+                        src={getItemImages(item)[0]?.url}
                         alt={item.title}
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
