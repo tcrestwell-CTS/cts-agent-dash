@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 
 interface FeatureImage {
   id: string;
@@ -291,8 +292,15 @@ export default function GroupLanding() {
     return returnStr ? `${depart} – ${returnStr}` : depart;
   };
 
-  // Group itinerary items by day
-  const itineraryByDay = data.itineraryHighlights.reduce<
+  // Featured pre-stay hotel: a hotel item with photos gets its own section
+  const prestayHotel = data.itineraryHighlights.find(
+    (i) => i.category === "hotel" && getItemImages(i).length > 0
+  ) || null;
+
+  // Group itinerary items by day (hotel with photos is featured separately)
+  const itineraryByDay = data.itineraryHighlights
+    .filter((i) => i !== prestayHotel)
+    .reduce<
     Record<number, typeof data.itineraryHighlights>
   >((acc, item) => {
     if (!acc[item.day_number]) acc[item.day_number] = [];
