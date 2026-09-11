@@ -74,7 +74,7 @@ interface ReservationData {
     website: string | null;
   } | null;
   advisor: {
-    name: string | null;
+    full_name: string | null;
     agency_name: string | null;
     job_title: string | null;
     phone: string | null;
