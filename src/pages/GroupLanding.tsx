@@ -513,51 +513,65 @@ export default function GroupLanding() {
                   </TabsContent>
                 )}
 
-                {/* ─── CABIN SELECTIONS TAB ────────── */}
+                {/* ─── CABIN SELECTIONS TAB: comparison table ────────── */}
                 {data.cabinOptions && data.cabinOptions.length > 0 && (
                   <TabsContent value="cabins" className="mt-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {data.cabinOptions.map((cabin) => (
-                        <div
-                          key={cabin.id}
-                          className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                        >
-                          {cabin.image_url && (
-                            <img
-                              src={cabin.image_url}
-                              alt={cabin.category_name}
-                              className="w-full h-36 object-cover"
-                              loading="lazy"
-                            />
-                          )}
-                          <div className="p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
-                              <span
-                                className="text-lg font-bold"
-                                style={{ color: primaryColor }}
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200 bg-gray-50">
+                              <th className="px-4 py-3 font-semibold">Option</th>
+                              <th className="px-4 py-3 font-semibold text-right">Per Person</th>
+                              {data.cabinOptions.some((c) => c.requires_double_occupancy) && (
+                                <th className="px-4 py-3 font-semibold text-right">Cabin Total (2)</th>
+                              )}
+                              <th className="px-4 py-3 font-semibold text-right">Deposit</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.cabinOptions.map((cabin, idx) => (
+                              <tr
+                                key={cabin.id}
+                                className={`border-b border-gray-100 last:border-0 ${idx % 2 === 1 ? "bg-gray-50/50" : ""}`}
                               >
-                                 ${cabin.price_per_person.toLocaleString()}
-                                 <span className="text-xs font-normal text-gray-500">
-                                   /person{(cabin as any).price_period === 'night' ? ' / night' : ''}
-                                 </span>
-                              </span>
-                            </div>
-                            {cabin.description && (
-                              <p className="text-sm text-gray-500">{cabin.description}</p>
-                            )}
-                            <div className="flex items-center gap-3 text-xs text-gray-400">
-                              {cabin.deposit_amount > 0 && (
-                                <span>${cabin.deposit_amount.toLocaleString()} deposit</span>
-                              )}
-                              {cabin.capacity && (
-                                <span>Max {cabin.capacity} travelers</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                                <td className="px-4 py-3.5">
+                                  <p className="font-semibold text-gray-900">{cabin.category_name}</p>
+                                  {cabin.description && (
+                                    <p className="text-xs text-gray-500 mt-0.5 max-w-[280px]">{cabin.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
+                                    {cabin.requires_double_occupancy && <span>2 travelers min</span>}
+                                    {cabin.capacity && <span>Max {cabin.capacity}</span>}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3.5 text-right">
+                                  <span className="text-base font-bold" style={{ color: primaryColor }}>
+                                    {currency(cabin.price_per_person)}
+                                  </span>
+                                  {cabin.price_period === "night" && (
+                                    <span className="block text-[11px] text-gray-400">per night</span>
+                                  )}
+                                </td>
+                                {data.cabinOptions.some((c) => c.requires_double_occupancy) && (
+                                  <td className="px-4 py-3.5 text-right font-semibold text-gray-700">
+                                    {cabin.requires_double_occupancy
+                                      ? currency(cabin.price_per_person * 2 * (cabin.price_period === "night" ? 1 : 1))
+                                      : "—"}
+                                  </td>
+                                )}
+                                <td className="px-4 py-3.5 text-right text-gray-600">
+                                  {cabin.deposit_amount > 0 ? `${currency(cabin.deposit_amount)}/person` : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Prices are per person based on double occupancy unless noted. Final taxes, fees, and availability are confirmed at booking.
+                    </p>
                   </TabsContent>
                 )}
               </Tabs>
