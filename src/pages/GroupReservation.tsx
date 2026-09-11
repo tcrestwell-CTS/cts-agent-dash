@@ -209,7 +209,7 @@ export default function GroupReservation() {
   const primaryColor = data.branding?.primary_color || "#0b2545";
   const accentColor = data.branding?.accent_color || "#c9a84c";
   const agencyName = data.branding?.agency_name || data.advisor?.agency_name || "Crestwell Travel Services";
-  const advisorName = data.advisor?.name || "Your Travel Advisor";
+  const advisorName = data.advisor?.full_name || "Your Travel Advisor";
   const advisorPhone = data.advisor?.phone || data.branding?.phone || null;
   const advisorEmail = data.branding?.email_address || null;
 
