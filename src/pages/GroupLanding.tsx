@@ -216,7 +216,10 @@ export default function GroupLanding() {
         toast.error(result.error || "Signup failed.");
         return;
       }
+      setPayUrl(result.payUrl || null);
+      setDepositDue(Number(result.depositAmount || 0));
       setSubmitted(true);
+
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
