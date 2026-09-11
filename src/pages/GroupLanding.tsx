@@ -168,6 +168,9 @@ export default function GroupLanding() {
     notes: "",
     selected_cabin_option_id: "",
     add_prestay_hotel: false,
+    prestay_room_type: "",
+    prestay_rate_type: "prepaid",
+
     companion_first_name: "",
     companion_last_name: "",
     companion_email: "",
