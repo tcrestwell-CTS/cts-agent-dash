@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import crestwellLogo from "@/assets/CTN-Logo.png";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import DOMPurify from "dompurify";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -154,6 +154,7 @@ export default function GroupLanding() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [payUrl, setPayUrl] = useState<string | null>(null);
+  const [reservationUrl, setReservationUrl] = useState<string | null>(null);
   const [depositDue, setDepositDue] = useState(0);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -247,6 +248,7 @@ export default function GroupLanding() {
         return;
       }
       setPayUrl(result.payUrl || null);
+      setReservationUrl(result.reservationUrl || null);
       setDepositDue(Number(result.depositAmount || 0));
       setSubmitted(true);
 
@@ -958,12 +960,22 @@ export default function GroupLanding() {
                       {depositDue ? ` — ${currency(depositDue)}` : ""}
                     </Button>
                   )}
+                  {reservationUrl && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => window.open(reservationUrl, "_blank", "noopener")}
+                    >
+                      View My Reservation
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowSignupForm(false);
                       setSubmitted(false);
                       setPayUrl(null);
+                      setReservationUrl(null);
                       setDepositDue(0);
                     }}
                   >

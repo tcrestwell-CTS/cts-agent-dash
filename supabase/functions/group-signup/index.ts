@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@4.0.0";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
+import { resolveAgentBranding } from "../_shared/agent-branding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +24,90 @@ function encodePayload(payload: Record<string, string>): string {
 
 function subTrip_name(parentName: string, clientName: string): string {
   return `${parentName} — ${clientName}`;
+}
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n || 0));
+const fmtDate = (d: string | null | undefined) =>
+  d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—";
+
+function buildConfirmationEmail(opts: {
+  brand: any;
+  clientName: string;
+  tripName: string;
+  destination: string | null;
+  departDate: string | null;
+  returnDate: string | null;
+  cabinName: string | null;
+  hotelChoice: string | null;
+  travelerCount: number;
+  depositAmount: number;
+  payUrl: string;
+  reservationUrl: string;
+  groupUrl: string;
+}) {
+  const b = opts.brand || {};
+  const navy = b.primaryColor || b.primary_color || "#0b2545";
+  const gold = b.accentColor || b.accent_color || "#c9a84c";
+  const agencyName = b.agencyName || b.agency_name || "Crestwell Travel Services";
+  const advisorName = b.advisorName || b.full_name || "Your Travel Advisor";
+  const phone = b.phone || "888.508.6893";
+  const logo = b.logoUrl || b.logo_url || "";
+  const replyTo = b.replyTo || b.email_address || "info@crestwellgetaways.com";
+
+  const details = [
+    { label: "Trip", value: opts.tripName },
+    opts.destination ? { label: "Destination", value: opts.destination } : null,
+    opts.departDate ? { label: "Departure", value: fmtDate(opts.departDate) } : null,
+    opts.returnDate ? { label: "Return", value: fmtDate(opts.returnDate) } : null,
+    { label: "Travelers", value: String(opts.travelerCount) },
+    opts.cabinName ? { label: "Cabin / category", value: opts.cabinName } : null,
+    opts.hotelChoice ? { label: "Pre-cruise hotel", value: opts.hotelChoice } : null,
+  ].filter(Boolean) as { label: string; value: string }[];
+
+  const rows = details
+    .map(
+      (d, i) =>
+        `<tr style="${i % 2 === 0 ? "background:#f9fafb;" : ""}"><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-top:1px solid #e5e7eb;">${d.label}</td><td style="padding:12px 16px;color:#111827;text-align:right;border-top:1px solid #e5e7eb;font-weight:600;">${d.value}</td></tr>`
+    )
+    .join("");
+
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
+    <div style="background:${navy};padding:28px 24px;text-align:center;border-radius:8px 8px 0 0;">
+      ${logo ? `<img src="${logo}" alt="${agencyName}" style="max-height:54px;margin-bottom:10px;"/>` : ""}
+      <div style="color:${gold};font-family:Georgia,serif;font-size:22px;font-weight:600;letter-spacing:0.5px;">${agencyName}</div>
+    </div>
+    <div style="padding:28px 28px 8px;">
+      <div style="display:inline-block;background:${gold};color:${navy};padding:6px 14px;border-radius:4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Group Trip Confirmation</div>
+      <h2 style="color:${navy};margin:18px 0 6px;font-family:Georgia,serif;">You're signed up, ${opts.clientName}!</h2>
+      <p style="color:#4b5563;line-height:1.6;margin:8px 0 18px;">Thank you for signing up for <strong>${opts.tripName}</strong>. Below is a summary of your reservation. You can return to your personal reservation page anytime to review details or make a payment.</p>
+
+      <table style="width:100%;border-collapse:collapse;margin:8px 0 20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        ${rows}
+      </table>
+
+      ${opts.depositAmount > 0 ? `
+      <div style="background:${navy};color:#ffffff;border-radius:8px;padding:20px;margin:18px 0;">
+        <div style="color:${gold};font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Deposit Due to Lock In Your Spot</div>
+        <div style="font-size:32px;font-weight:700;font-family:Georgia,serif;">${fmt(opts.depositAmount)}</div>
+      </div>
+      ` : ""}
+
+      <div style="text-align:center;margin:28px 0;">
+        ${opts.depositAmount > 0 ? `<a href="${opts.payUrl}" style="background:${gold};color:${navy};padding:14px 36px;text-decoration:none;border-radius:6px;font-weight:700;display:inline-block;letter-spacing:0.5px;">Pay Deposit Now</a>` : ""}
+        <a href="${opts.reservationUrl}" style="${opts.depositAmount > 0 ? "margin-top:12px;" : ""}color:${navy};text-decoration:underline;display:inline-block;font-weight:600;">View My Reservation</a>
+      </div>
+
+      <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:20px 0 0;">
+        Questions? Reply to this email or call ${advisorName} at <a href="tel:${phone.replace(/[^0-9]/g,'')}" style="color:${navy};">${phone}</a>.
+      </p>
+    </div>
+    <div style="background:#f9fafb;padding:18px 24px;text-align:center;color:#6b7280;font-size:12px;border-top:3px solid ${gold};border-radius:0 0 8px 8px;">
+      <div style="color:${navy};font-weight:600;margin-bottom:4px;">${agencyName}</div>
+      <div><a href="${opts.groupUrl}" style="color:${navy};text-decoration:none;">Return to the group trip page</a></div>
+    </div>
+  </div>`;
 }
 
 
@@ -505,6 +591,74 @@ Deno.serve(async (req) => {
         trip_id: parentTrip.id,
       });
 
+      // Build traveler-facing reservation and payment URLs.
+      const origin = req.headers.get("origin") || SITE_URL;
+      const reservationUrl = `${origin}/group/${encodeURIComponent(signupToken)}/reservation/${subTrip.id}`;
+      const groupUrl = `${origin}/group/${encodeURIComponent(signupToken)}`;
+
+      // Send a branded confirmation email with their personal reservation link.
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (RESEND_API_KEY) {
+          const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
+          const { data: cabinRow } = selected_cabin_option_id
+            ? await supabaseAdmin
+                .from("trip_cabin_options")
+                .select("category_name")
+                .eq("id", selected_cabin_option_id)
+                .maybeSingle()
+            : { data: null };
+
+          const html = buildConfirmationEmail({
+            brand,
+            clientName,
+            tripName: parentTrip.trip_name,
+            destination: parentTrip.destination,
+            departDate: parentTrip.depart_date,
+            returnDate: parentTrip.return_date,
+            cabinName: cabinRow?.category_name || cabinLabel || null,
+            hotelChoice: add_prestay_hotel ? prestay_room_label || "Yes — room choice TBD" : null,
+            travelerCount,
+            depositAmount,
+            payUrl: payUrl || groupUrl,
+            reservationUrl,
+            groupUrl,
+          });
+
+          const resend = new Resend(RESEND_API_KEY);
+          const sendResp = await resend.emails.send({
+            from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`,
+            to: [email.toLowerCase().trim()],
+            subject: `You're signed up for ${parentTrip.trip_name}`,
+            html,
+            replyTo: brand.replyTo || "info@crestwellgetaways.com",
+          });
+
+          if ((sendResp as any)?.error) {
+            console.error("Group signup confirmation email failed:", (sendResp as any).error);
+          } else {
+            // Mirror to email_logs for the Email Activity dashboard.
+            await supabaseAdmin.from("email_logs").insert({
+              client_id: clientId,
+              to_email: email.toLowerCase().trim(),
+              subject: `You're signed up for ${parentTrip.trip_name}`,
+              template: "group_signup_confirmation",
+              status: "sent",
+              provider_message_id: (sendResp as any)?.data?.id || null,
+              metadata: {
+                source: "group-signup",
+                trip_id: parentTrip.id,
+                sub_trip_id: subTrip.id,
+                pay_url: payUrl || null,
+                reservation_url: reservationUrl,
+              },
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error("Failed to send group signup confirmation:", emailErr);
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -513,6 +667,8 @@ Deno.serve(async (req) => {
             : "You're signed up! Your travel advisor will be in touch soon.",
           payUrl,
           depositAmount,
+          subTripId: subTrip.id,
+          reservationUrl,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
