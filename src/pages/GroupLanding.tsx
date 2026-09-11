@@ -114,6 +114,9 @@ interface GroupLandingData {
     category: string;
     day_number: number;
     location: string | null;
+    image_url?: string | null;
+    gallery_urls?: any[] | null;
+    item_price?: number | null;
   }[];
 }
 
@@ -151,6 +154,7 @@ export default function GroupLanding() {
     number_of_travelers: "1",
     notes: "",
     selected_cabin_option_id: "",
+    add_prestay_hotel: false,
     companion_first_name: "",
     companion_last_name: "",
     companion_email: "",
