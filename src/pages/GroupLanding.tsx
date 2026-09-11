@@ -1071,6 +1071,25 @@ export default function GroupLanding() {
                     </div>
                   )}
 
+                  {/* Pre-stay hotel opt-in */}
+                  {prestayHotel && (
+                    <label className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.add_prestay_hotel}
+                        onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked }))}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                        style={{ accentColor: primaryColor }}
+                      />
+                      <span className="text-sm">
+                        <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
+                        <span className="block text-xs text-gray-500 mt-0.5">
+                          {prestayHotel.title} — pricing per the options above; your advisor will confirm your room choice.
+                        </span>
+                      </span>
+                    </label>
+                  )}
+
                   {/* Cabin Selection */}
                   {data.cabinOptions && data.cabinOptions.length > 0 && (
                     <div className="space-y-1.5">
