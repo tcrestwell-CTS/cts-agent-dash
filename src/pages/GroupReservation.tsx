@@ -145,14 +145,24 @@ export default function GroupReservation() {
         // Build a fresh secure pay link from the latest deposit payment if one exists.
         let payUrl: string | null = null;
         if (depositPayment && depositPayment.status !== "paid") {
-          const ref = `TP-${depositPayment.id.slice(0, 8).toUpperCase()}`;
-          const payload = encodeURIComponent(btoa(JSON.stringify({
-            token: "", // SecurePay may mint its own; the token is not stored here.
-            ref,
-            name: client?.name || "",
-            email: client?.email || "",
-          })));
-          payUrl = `${window.location.origin}/pay?d=${payload}`;
+          const { data: secureLink } = await supabase
+            .from("secure_links")
+            .select("token")
+            .eq("trip_payment_id", depositPayment.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (secureLink?.token) {
+            const ref = `TP-${depositPayment.id.slice(0, 8).toUpperCase()}`;
+            const payload = encodeURIComponent(btoa(JSON.stringify({
+              token: secureLink.token,
+              ref,
+              name: client?.name || "",
+              email: client?.email || "",
+            })));
+            payUrl = `${window.location.origin}/pay?d=${payload}`;
+          }
         }
 
         setData({
