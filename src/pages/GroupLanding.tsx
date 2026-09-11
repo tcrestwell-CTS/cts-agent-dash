@@ -813,22 +813,44 @@ export default function GroupLanding() {
                     <p className="text-lg font-semibold text-gray-900">
                       Thank you, {form.first_name}!
                     </p>
-                    <p className="text-gray-500 mt-2">
-                      Your travel advisor will reach out shortly to finalize the
-                      details.
-                    </p>
+                    {payUrl ? (
+                      <p className="text-gray-500 mt-2">
+                        Your reservation is held. Pay your deposit
+                        {depositDue ? ` of ${currency(depositDue)}` : ""} now to
+                        confirm your cabin — you can also pay later from the
+                        link we emailed you.
+                      </p>
+                    ) : (
+                      <p className="text-gray-500 mt-2">
+                        Your travel advisor will reach out shortly to finalize
+                        the details.
+                      </p>
+                    )}
                   </div>
+                  {payUrl && (
+                    <Button
+                      className="w-full text-white"
+                      style={{ backgroundColor: primaryColor }}
+                      onClick={() => window.open(payUrl, "_blank", "noopener")}
+                    >
+                      Pay Deposit
+                      {depositDue ? ` — ${currency(depositDue)}` : ""}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowSignupForm(false);
                       setSubmitted(false);
+                      setPayUrl(null);
+                      setDepositDue(0);
                     }}
                   >
                     Close
                   </Button>
                 </div>
               ) : (
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
