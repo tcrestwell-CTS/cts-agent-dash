@@ -18,7 +18,7 @@ import {
   Phone,
 } from "lucide-react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+
 
 interface ReservationData {
   parentTrip: {
@@ -99,83 +99,19 @@ export default function GroupReservation() {
         return;
       }
       try {
-        const { data: parentTrip, error: tripErr } = await supabase
-          .from("trips")
-          .select("id, trip_name, destination, depart_date, return_date, share_token")
-          .eq("share_token", token)
-          .eq("trip_type", "group")
-          .single();
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-signup?token=${encodeURIComponent(token)}&sub_trip_id=${encodeURIComponent(subTripId)}`,
+          { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+        );
 
-        if (tripErr || !parentTrip) {
-          setError("This group trip could not be found.");
-          setLoading(false);
-          return;
-        }
-
-        const { data: subTrip, error: subErr } = await supabase
-          .from("trips")
-          .select("id, trip_name, destination, depart_date, return_date, status, notes, selected_cabin_option_id, cover_image_url, client_id, user_id")
-          .eq("id", subTripId)
-          .eq("parent_trip_id", parentTrip.id)
-          .single();
-
-        if (subErr || !subTrip) {
+        if (!res.ok) {
           setError("Your reservation could not be found for this group trip.");
           setLoading(false);
           return;
         }
 
-        const [{ data: client }, { data: cabin }, { data: booking }, { data: depositPayment }, { data: branding }, { data: advisor }] = await Promise.all([
-          supabase.from("clients").select("name, email, phone").eq("id", subTrip.client_id).single(),
-          subTrip.selected_cabin_option_id
-            ? supabase.from("trip_cabin_options").select("category_name, price_per_person, deposit_amount, description").eq("id", subTrip.selected_cabin_option_id).single()
-            : Promise.resolve({ data: null }),
-          supabase.from("bookings").select("id, confirmation_number, gross_sales, status").eq("trip_id", subTrip.id).maybeSingle(),
-          supabase.from("trip_payments")
-            .select("id, amount, status, due_date")
-            .eq("trip_id", subTrip.id)
-            .eq("payment_type", "deposit")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          supabase.from("branding_settings").select("agency_name, logo_url, primary_color, accent_color, phone, email_address, website").eq("user_id", subTrip.user_id).maybeSingle(),
-          supabase.from("profiles").select("full_name, agency_name, job_title, phone, avatar_url").eq("user_id", subTrip.user_id).maybeSingle(),
-        ]);
-
-        // Build a fresh secure pay link from the latest deposit payment if one exists.
-        let payUrl: string | null = null;
-        if (depositPayment && depositPayment.status !== "paid") {
-          const { data: secureLink } = await supabase
-            .from("secure_links")
-            .select("token")
-            .eq("trip_payment_id", depositPayment.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (secureLink?.token) {
-            const ref = `TP-${depositPayment.id.slice(0, 8).toUpperCase()}`;
-            const payload = encodeURIComponent(btoa(JSON.stringify({
-              token: secureLink.token,
-              ref,
-              name: client?.name || "",
-              email: client?.email || "",
-            })));
-            payUrl = `${window.location.origin}/pay?d=${payload}`;
-          }
-        }
-
-        setData({
-          parentTrip,
-          subTrip,
-          client: client || { name: "Traveler", email: "", phone: null },
-          cabin: cabin as any,
-          booking: booking as any,
-          depositPayment: depositPayment as any,
-          payUrl,
-          branding,
-          advisor,
-        });
+        const payload = await res.json();
+        setData(payload as ReservationData);
       } catch (e) {
         console.error("Group reservation load error:", e);
         setError("Something went wrong while loading your reservation.");
