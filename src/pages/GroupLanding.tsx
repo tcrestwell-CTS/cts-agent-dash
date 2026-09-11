@@ -117,7 +117,11 @@ interface GroupLandingData {
   }[];
 }
 
+const currency = (n: number) =>
+  `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 const categoryIcons: Record<string, typeof Plane> = {
+
   flight: Plane,
   hotel: Hotel,
   dining: Utensils,
@@ -133,8 +137,11 @@ export default function GroupLanding() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [payUrl, setPayUrl] = useState<string | null>(null);
+  const [depositDue, setDepositDue] = useState(0);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
 
   const [form, setForm] = useState({
     first_name: "",
