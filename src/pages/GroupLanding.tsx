@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
+import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 
 interface FeatureImage {
   id: string;
@@ -114,6 +115,9 @@ interface GroupLandingData {
     category: string;
     day_number: number;
     location: string | null;
+    image_url?: string | null;
+    gallery_urls?: any[] | null;
+    item_price?: number | null;
   }[];
 }
 
@@ -151,6 +155,7 @@ export default function GroupLanding() {
     number_of_travelers: "1",
     notes: "",
     selected_cabin_option_id: "",
+    add_prestay_hotel: false,
     companion_first_name: "",
     companion_last_name: "",
     companion_email: "",
@@ -287,8 +292,15 @@ export default function GroupLanding() {
     return returnStr ? `${depart} – ${returnStr}` : depart;
   };
 
-  // Group itinerary items by day
-  const itineraryByDay = data.itineraryHighlights.reduce<
+  // Featured pre-stay hotel: a hotel item with photos gets its own section
+  const prestayHotel = data.itineraryHighlights.find(
+    (i) => i.category === "hotel" && getItemImages(i).length > 0
+  ) || null;
+
+  // Group itinerary items by day (hotel with photos is featured separately)
+  const itineraryByDay = data.itineraryHighlights
+    .filter((i) => i !== prestayHotel)
+    .reduce<
     Record<number, typeof data.itineraryHighlights>
   >((acc, item) => {
     if (!acc[item.day_number]) acc[item.day_number] = [];
@@ -411,6 +423,44 @@ export default function GroupLanding() {
               </p>
             ) : null}
 
+            {/* ─── FEATURED PRE-STAY HOTEL ──────── */}
+            {prestayHotel && (
+              <div className="rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 pt-5 pb-3 flex items-center gap-2">
+                  <Hotel className="h-5 w-5" style={{ color: primaryColor }} />
+                  <h2 className="text-xl font-bold text-gray-900">Pre-Cruise Hotel Stay</h2>
+                </div>
+                <div className="px-5 pb-5 space-y-4">
+                  <ItineraryGallery
+                    images={getItemImages(prestayHotel)}
+                    alt={prestayHotel.title}
+                    aspectClassName="aspect-[16/9]"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-lg">{prestayHotel.title}</h3>
+                    {prestayHotel.location && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3.5 w-3.5" /> {prestayHotel.location}
+                      </p>
+                    )}
+                  </div>
+                  {prestayHotel.description && (
+                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                      {prestayHotel.description.replace(/<[^>]+>/g, "")}
+                    </p>
+                  )}
+                  {prestayHotel.item_price != null && (
+                    <p className="text-base font-bold" style={{ color: primaryColor }}>
+                      From {currency(prestayHotel.item_price)}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400">
+                    Optional add-on — you can request the pre-cruise hotel when you sign up below.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* ─── ITINERARY & CABINS TABS ──────── */}
             {(Object.keys(itineraryByDay).length > 0 || (data.cabinOptions && data.cabinOptions.length > 0)) && (
               <Tabs defaultValue={Object.keys(itineraryByDay).length > 0 ? "itinerary" : "cabins"} className="w-full">
@@ -501,51 +551,65 @@ export default function GroupLanding() {
                   </TabsContent>
                 )}
 
-                {/* ─── CABIN SELECTIONS TAB ────────── */}
+                {/* ─── CABIN SELECTIONS TAB: comparison table ────────── */}
                 {data.cabinOptions && data.cabinOptions.length > 0 && (
                   <TabsContent value="cabins" className="mt-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {data.cabinOptions.map((cabin) => (
-                        <div
-                          key={cabin.id}
-                          className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                        >
-                          {cabin.image_url && (
-                            <img
-                              src={cabin.image_url}
-                              alt={cabin.category_name}
-                              className="w-full h-36 object-cover"
-                              loading="lazy"
-                            />
-                          )}
-                          <div className="p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-gray-900">{cabin.category_name}</h3>
-                              <span
-                                className="text-lg font-bold"
-                                style={{ color: primaryColor }}
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200 bg-gray-50">
+                              <th className="px-4 py-3 font-semibold">Option</th>
+                              <th className="px-4 py-3 font-semibold text-right">Per Person</th>
+                              {data.cabinOptions.some((c) => c.requires_double_occupancy) && (
+                                <th className="px-4 py-3 font-semibold text-right">Cabin Total (2)</th>
+                              )}
+                              <th className="px-4 py-3 font-semibold text-right">Deposit</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.cabinOptions.map((cabin, idx) => (
+                              <tr
+                                key={cabin.id}
+                                className={`border-b border-gray-100 last:border-0 ${idx % 2 === 1 ? "bg-gray-50/50" : ""}`}
                               >
-                                 ${cabin.price_per_person.toLocaleString()}
-                                 <span className="text-xs font-normal text-gray-500">
-                                   /person{(cabin as any).price_period === 'night' ? ' / night' : ''}
-                                 </span>
-                              </span>
-                            </div>
-                            {cabin.description && (
-                              <p className="text-sm text-gray-500">{cabin.description}</p>
-                            )}
-                            <div className="flex items-center gap-3 text-xs text-gray-400">
-                              {cabin.deposit_amount > 0 && (
-                                <span>${cabin.deposit_amount.toLocaleString()} deposit</span>
-                              )}
-                              {cabin.capacity && (
-                                <span>Max {cabin.capacity} travelers</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                                <td className="px-4 py-3.5">
+                                  <p className="font-semibold text-gray-900">{cabin.category_name}</p>
+                                  {cabin.description && (
+                                    <p className="text-xs text-gray-500 mt-0.5 max-w-[280px]">{cabin.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
+                                    {cabin.requires_double_occupancy && <span>2 travelers min</span>}
+                                    {cabin.capacity && <span>Max {cabin.capacity}</span>}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3.5 text-right">
+                                  <span className="text-base font-bold" style={{ color: primaryColor }}>
+                                    {currency(cabin.price_per_person)}
+                                  </span>
+                                  {cabin.price_period === "night" && (
+                                    <span className="block text-[11px] text-gray-400">per night</span>
+                                  )}
+                                </td>
+                                {data.cabinOptions.some((c) => c.requires_double_occupancy) && (
+                                  <td className="px-4 py-3.5 text-right font-semibold text-gray-700">
+                                    {cabin.requires_double_occupancy
+                                      ? currency(cabin.price_per_person * 2 * (cabin.price_period === "night" ? 1 : 1))
+                                      : "—"}
+                                  </td>
+                                )}
+                                <td className="px-4 py-3.5 text-right text-gray-600">
+                                  {cabin.deposit_amount > 0 ? `${currency(cabin.deposit_amount)}/person` : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Prices are per person based on double occupancy unless noted. Final taxes, fees, and availability are confirmed at booking.
+                    </p>
                   </TabsContent>
                 )}
               </Tabs>
@@ -1005,6 +1069,25 @@ export default function GroupLanding() {
                         />
                       </div>
                     </div>
+                  )}
+
+                  {/* Pre-stay hotel opt-in */}
+                  {prestayHotel && (
+                    <label className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.add_prestay_hotel}
+                        onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked }))}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                        style={{ accentColor: primaryColor }}
+                      />
+                      <span className="text-sm">
+                        <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
+                        <span className="block text-xs text-gray-500 mt-0.5">
+                          {prestayHotel.title} — pricing per the options above; your advisor will confirm your room choice.
+                        </span>
+                      </span>
+                    </label>
                   )}
 
                   {/* Cabin Selection */}
