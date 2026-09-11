@@ -528,7 +528,7 @@ Deno.serve(async (req) => {
           if (linkErr) {
             console.error("Failed to mint pay link:", linkErr);
           } else {
-            payUrl = `${SITE_URL}${PAY_PATH}?d=${encodePayload({
+            payUrl = `${appOrigin(req)}${PAY_PATH}?d=${encodePayload({
               token: tk,
               ref,
               name: clientName,
@@ -601,7 +601,7 @@ Deno.serve(async (req) => {
       });
 
       // Build traveler-facing reservation and payment URLs.
-      const origin = req.headers.get("origin") || SITE_URL;
+      const origin = appOrigin(req);
       const reservationUrl = `${origin}/group/${encodeURIComponent(signupToken)}/reservation/${subTrip.id}`;
       const groupUrl = `${origin}/group/${encodeURIComponent(signupToken)}`;
 
