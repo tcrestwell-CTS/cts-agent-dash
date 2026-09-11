@@ -1098,22 +1098,69 @@ export default function GroupLanding() {
 
                   {/* Pre-stay hotel opt-in */}
                   {prestayHotel && (
-                    <label className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={form.add_prestay_hotel}
-                        onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked }))}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                        style={{ accentColor: primaryColor }}
-                      />
-                      <span className="text-sm">
-                        <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
-                        <span className="block text-xs text-gray-500 mt-0.5">
-                          {prestayHotel.title} — pricing per the options above; your advisor will confirm your room choice.
+                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.add_prestay_hotel}
+                          onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked, prestay_room_type: e.target.checked ? f.prestay_room_type : "" }))}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                          style={{ accentColor: primaryColor }}
+                        />
+                        <span className="text-sm">
+                          <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
+                          <span className="block text-xs text-gray-500 mt-0.5">
+                            {prestayHotel.title} — 2 nights, double occupancy. Choose your room below.
+                          </span>
                         </span>
-                      </span>
-                    </label>
+                      </label>
+
+                      {form.add_prestay_hotel && (
+                        <div className="space-y-2 pl-7">
+                          {PRESTAY_ROOM_OPTIONS.map((r) => {
+                            const nightly = form.prestay_rate_type === "flexible" ? r.flexible : r.prepaid;
+                            return (
+                              <label
+                                key={r.id}
+                                className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name="prestay_room_type"
+                                  checked={form.prestay_room_type === r.id}
+                                  onChange={() => setForm((f) => ({ ...f, prestay_room_type: r.id }))}
+                                  className="mt-0.5 h-4 w-4"
+                                  style={{ accentColor: primaryColor }}
+                                />
+                                <span className="text-sm">
+                                  <span className="font-medium text-gray-900">{r.name}</span>
+                                  <span className="block text-xs text-gray-500 mt-0.5">
+                                    {currency(nightly)}/night · {currency(nightly * PRESTAY_NIGHTS)} for {PRESTAY_NIGHTS} nights
+                                  </span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                          <div className="space-y-1.5 pt-1">
+                            <Label className="text-xs">Rate type</Label>
+                            <select
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                              value={form.prestay_rate_type}
+                              onChange={(e) => setForm((f) => ({ ...f, prestay_rate_type: e.target.value }))}
+                            >
+                              <option value="prepaid">Prepaid (lowest rate, non-refundable)</option>
+                              <option value="flexible">Flexible (free cancellation)</option>
+                            </select>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            Plus a {currency(PRESTAY_RESORT_FEE_PER_NIGHT)}/night resort fee paid at the hotel
+                            ({currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} total). Taxes confirmed at booking.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
+
 
                   {/* Cabin Selection */}
                   {data.cabinOptions && data.cabinOptions.length > 0 && (
