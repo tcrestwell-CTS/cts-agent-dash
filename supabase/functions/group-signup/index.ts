@@ -591,6 +591,74 @@ Deno.serve(async (req) => {
         trip_id: parentTrip.id,
       });
 
+      // Build traveler-facing reservation and payment URLs.
+      const origin = req.headers.get("origin") || SITE_URL;
+      const reservationUrl = `${origin}/group/${encodeURIComponent(signupToken)}/reservation/${subTrip.id}`;
+      const groupUrl = `${origin}/group/${encodeURIComponent(signupToken)}`;
+
+      // Send a branded confirmation email with their personal reservation link.
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (RESEND_API_KEY) {
+          const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
+          const { data: cabinRow } = selected_cabin_option_id
+            ? await supabaseAdmin
+                .from("trip_cabin_options")
+                .select("category_name")
+                .eq("id", selected_cabin_option_id)
+                .maybeSingle()
+            : { data: null };
+
+          const html = buildConfirmationEmail({
+            brand,
+            clientName,
+            tripName: parentTrip.trip_name,
+            destination: parentTrip.destination,
+            departDate: parentTrip.depart_date,
+            returnDate: parentTrip.return_date,
+            cabinName: cabinRow?.category_name || cabinLabel || null,
+            hotelChoice: add_prestay_hotel ? prestay_room_label || "Yes — room choice TBD" : null,
+            travelerCount,
+            depositAmount,
+            payUrl: payUrl || groupUrl,
+            reservationUrl,
+            groupUrl,
+          });
+
+          const resend = new Resend(RESEND_API_KEY);
+          const sendResp = await resend.emails.send({
+            from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`,
+            to: [email.toLowerCase().trim()],
+            subject: `You're signed up for ${parentTrip.trip_name}`,
+            html,
+            replyTo: brand.replyTo || replyTo,
+          });
+
+          if ((sendResp as any)?.error) {
+            console.error("Group signup confirmation email failed:", (sendResp as any).error);
+          } else {
+            // Mirror to email_logs for the Email Activity dashboard.
+            await supabaseAdmin.from("email_logs").insert({
+              client_id: clientId,
+              to_email: email.toLowerCase().trim(),
+              subject: `You're signed up for ${parentTrip.trip_name}`,
+              template: "group_signup_confirmation",
+              status: "sent",
+              provider_message_id: (sendResp as any)?.data?.id || null,
+              metadata: {
+                source: "group-signup",
+                trip_id: parentTrip.id,
+                sub_trip_id: subTrip.id,
+                pay_url: payUrl || null,
+                reservation_url: reservationUrl,
+              },
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error("Failed to send group signup confirmation:", emailErr);
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -599,6 +667,8 @@ Deno.serve(async (req) => {
             : "You're signed up! Your travel advisor will be in touch soon.",
           payUrl,
           depositAmount,
+          subTripId: subTrip.id,
+          reservationUrl,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
