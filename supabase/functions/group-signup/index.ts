@@ -508,12 +508,17 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "You're signed up! Your travel advisor will be in touch soon.",
+          message: payUrl
+            ? "You're signed up! Pay your deposit now to lock in your cabin."
+            : "You're signed up! Your travel advisor will be in touch soon.",
+          payUrl,
+          depositAmount,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+
     }
 
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
