@@ -9,8 +9,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE_URL = "https://crestwellgetaways.com";
-const PAY_PATH = "/payment";
+const APP_URL = "https://app.crestwelltravels.com";
+const SITE_URL = APP_URL;
+const PAY_PATH = "/pay";
+
+// Only trust the caller's origin when it is one of our own app hosts, so the
+// deposit link always points at a domain that actually serves the pay page.
+function appOrigin(req: Request): string {
+  const o = req.headers.get("origin") || "";
+  const ok = /^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?|[a-z0-9-]+\.lovable\.app|app\.crestwelltravels\.com)$/i.test(o);
+  return ok ? o : APP_URL;
+}
 
 function generateToken(): string {
   const bytes = new Uint8Array(16);
