@@ -631,7 +631,7 @@ Deno.serve(async (req) => {
             to: [email.toLowerCase().trim()],
             subject: `You're signed up for ${parentTrip.trip_name}`,
             html,
-            replyTo: brand.replyTo || replyTo,
+            replyTo: brand.replyTo || "info@crestwellgetaways.com",
           });
 
           if ((sendResp as any)?.error) {
