@@ -117,7 +117,11 @@ interface GroupLandingData {
   }[];
 }
 
+const currency = (n: number) =>
+  `$${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 const categoryIcons: Record<string, typeof Plane> = {
+
   flight: Plane,
   hotel: Hotel,
   dining: Utensils,
@@ -133,8 +137,11 @@ export default function GroupLanding() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [payUrl, setPayUrl] = useState<string | null>(null);
+  const [depositDue, setDepositDue] = useState(0);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
 
   const [form, setForm] = useState({
     first_name: "",
@@ -209,7 +216,10 @@ export default function GroupLanding() {
         toast.error(result.error || "Signup failed.");
         return;
       }
+      setPayUrl(result.payUrl || null);
+      setDepositDue(Number(result.depositAmount || 0));
       setSubmitted(true);
+
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -813,22 +823,44 @@ export default function GroupLanding() {
                     <p className="text-lg font-semibold text-gray-900">
                       Thank you, {form.first_name}!
                     </p>
-                    <p className="text-gray-500 mt-2">
-                      Your travel advisor will reach out shortly to finalize the
-                      details.
-                    </p>
+                    {payUrl ? (
+                      <p className="text-gray-500 mt-2">
+                        Your reservation is held. Pay your deposit
+                        {depositDue ? ` of ${currency(depositDue)}` : ""} now to
+                        confirm your cabin — you can also pay later from the
+                        link we emailed you.
+                      </p>
+                    ) : (
+                      <p className="text-gray-500 mt-2">
+                        Your travel advisor will reach out shortly to finalize
+                        the details.
+                      </p>
+                    )}
                   </div>
+                  {payUrl && (
+                    <Button
+                      className="w-full text-white"
+                      style={{ backgroundColor: primaryColor }}
+                      onClick={() => window.open(payUrl, "_blank", "noopener")}
+                    >
+                      Pay Deposit
+                      {depositDue ? ` — ${currency(depositDue)}` : ""}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowSignupForm(false);
                       setSubmitted(false);
+                      setPayUrl(null);
+                      setDepositDue(0);
                     }}
                   >
                     Close
                   </Button>
                 </div>
               ) : (
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
