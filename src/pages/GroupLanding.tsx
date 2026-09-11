@@ -479,9 +479,31 @@ export default function GroupLanding() {
                       From {currency(prestayHotel.item_price)}
                     </p>
                   )}
+                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr className="text-left text-xs text-gray-500">
+                          <th className="px-3 py-2 font-medium">Room</th>
+                          <th className="px-3 py-2 font-medium text-right">Prepaid / night</th>
+                          <th className="px-3 py-2 font-medium text-right">Flexible / night</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRESTAY_ROOM_OPTIONS.map((r) => (
+                          <tr key={r.id} className="border-t border-gray-100">
+                            <td className="px-3 py-2 text-gray-800">{r.name}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{currency(r.prepaid)}</td>
+                            <td className="px-3 py-2 text-right">{currency(r.flexible)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   <p className="text-xs text-gray-400">
-                    Optional add-on — you can request the pre-cruise hotel when you sign up below.
+                    {PRESTAY_NIGHTS}-night stay, double occupancy. Plus a {currency(PRESTAY_RESORT_FEE_PER_NIGHT)}/night
+                    resort fee paid at the hotel. Optional add-on — pick your room when you sign up below.
                   </p>
+
                 </div>
               </div>
             )}
