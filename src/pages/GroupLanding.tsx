@@ -154,6 +154,7 @@ export default function GroupLanding() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [payUrl, setPayUrl] = useState<string | null>(null);
+  const [reservationUrl, setReservationUrl] = useState<string | null>(null);
   const [depositDue, setDepositDue] = useState(0);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
