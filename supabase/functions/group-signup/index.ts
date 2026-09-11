@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel, prestay_room_label } = body;
 
       // Validate required fields
       if (!signupToken || !first_name || !email) {
