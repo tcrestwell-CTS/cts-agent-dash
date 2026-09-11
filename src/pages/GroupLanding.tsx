@@ -218,6 +218,15 @@ export default function GroupLanding() {
       toast.error(`${chosen.category_name} requires 2 travelers (double occupancy).`);
       return;
     }
+    if (form.add_prestay_hotel && !form.prestay_room_type) {
+      toast.error("Please choose a room type for the pre-cruise hotel stay.");
+      return;
+    }
+    const room = PRESTAY_ROOM_OPTIONS.find((r) => r.id === form.prestay_room_type);
+    const nightly = room ? (form.prestay_rate_type === "flexible" ? room.flexible : room.prepaid) : 0;
+    const prestay_room_label = room
+      ? `${room.name} — ${form.prestay_rate_type === "flexible" ? "flexible" : "prepaid"} rate ${currency(nightly)}/night, ${PRESTAY_NIGHTS} nights = ${currency(nightly * PRESTAY_NIGHTS)} + ${currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} resort fee at hotel`
+      : null;
     setSubmitting(true);
     try {
       const res = await fetch(
@@ -228,8 +237,9 @@ export default function GroupLanding() {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ token, ...form }),
+          body: JSON.stringify({ token, ...form, prestay_room_label }),
         }
+
       );
       const result = await res.json();
       if (!res.ok) {
