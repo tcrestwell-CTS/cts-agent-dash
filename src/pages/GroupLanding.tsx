@@ -960,12 +960,22 @@ export default function GroupLanding() {
                       {depositDue ? ` — ${currency(depositDue)}` : ""}
                     </Button>
                   )}
+                  {reservationUrl && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => window.open(reservationUrl, "_blank", "noopener")}
+                    >
+                      View My Reservation
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowSignupForm(false);
                       setSubmitted(false);
                       setPayUrl(null);
+                      setReservationUrl(null);
                       setDepositDue(0);
                     }}
                   >
