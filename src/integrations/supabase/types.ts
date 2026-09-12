@@ -4794,6 +4794,7 @@ export type Database = {
           seller_of_travel_states: string | null
           signature: string | null
           signature_date: string | null
+          signed_agreement_path: string | null
           specialties: string | null
           state: string | null
           status: string
@@ -4859,6 +4860,7 @@ export type Database = {
           seller_of_travel_states?: string | null
           signature?: string | null
           signature_date?: string | null
+          signed_agreement_path?: string | null
           specialties?: string | null
           state?: string | null
           status?: string
@@ -4924,6 +4926,7 @@ export type Database = {
           seller_of_travel_states?: string | null
           signature?: string | null
           signature_date?: string | null
+          signed_agreement_path?: string | null
           specialties?: string | null
           state?: string | null
           status?: string
@@ -8757,6 +8760,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      signed_documents: {
+        Row: {
+          agreements: Json
+          created_at: string
+          document_type: string
+          email: string
+          id: string
+          plan: string | null
+          signature: string | null
+          signature_date: string | null
+          storage_bucket: string
+          storage_path: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          agreements?: Json
+          created_at?: string
+          document_type?: string
+          email: string
+          id?: string
+          plan?: string | null
+          signature?: string | null
+          signature_date?: string | null
+          storage_bucket?: string
+          storage_path: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          agreements?: Json
+          created_at?: string
+          document_type?: string
+          email?: string
+          id?: string
+          plan?: string | null
+          signature?: string | null
+          signature_date?: string | null
+          storage_bucket?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       signup_verification_codes: {
         Row: {
