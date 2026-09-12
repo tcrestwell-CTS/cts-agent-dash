@@ -85,7 +85,11 @@ serve(async (req) => {
         type: "flight_payment",
       },
       description: description || "Flight booking payment",
-      automatic_payment_methods: { enabled: true },
+      // Bank/ACH explicitly excluded -- same reasoning as create-payment-intent:
+      // multi-day settlement isn't appropriate for real-time flight booking
+      // payments. Everything else dynamic (card, Klarna, Amazon Pay) stays.
+      automatic_payment_methods: { enabled: true, allow_redirects: "always" },
+      excluded_payment_method_types: ["us_bank_account"],
     });
 
     logPaymentAttempt(req, {
