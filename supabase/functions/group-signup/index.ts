@@ -49,6 +49,7 @@ function buildConfirmationEmail(opts: {
   returnDate: string | null;
   cabinName: string | null;
   hotelChoice: string | null;
+  travelNotes: string | null;
   travelerCount: number;
   depositAmount: number;
   payUrl: string;
@@ -71,6 +72,7 @@ function buildConfirmationEmail(opts: {
     opts.returnDate ? { label: "Return", value: fmtDate(opts.returnDate) } : null,
     { label: "Travelers", value: String(opts.travelerCount) },
     opts.cabinName ? { label: "Cabin / category", value: opts.cabinName } : null,
+    opts.travelNotes ? { label: "Departure / airfare", value: opts.travelNotes } : null,
     opts.hotelChoice ? { label: "Pre-cruise hotel", value: opts.hotelChoice } : null,
   ].filter(Boolean) as { label: string; value: string }[];
 
@@ -388,7 +390,29 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel, prestay_room_label } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel, prestay_room_label, departure_location, dc_airport, nevada_airport, airfare_preference } = body;
+
+      const DEPARTURE_LABELS: Record<string, string> = {
+        dc_maryland: "Washington, DC / Maryland area",
+        nevada: "Nevada",
+        hawaii: "Hawaii resident",
+        other: "Other (see notes)",
+      };
+      const AIRFARE_LABELS: Record<string, string> = {
+        agency: "Airfare quote requested via agency",
+        ncl: "Interested in NCL promotional airfare",
+        independent: "Will book airfare independently",
+      };
+      const travelNoteParts: string[] = [];
+      if (departure_location && DEPARTURE_LABELS[departure_location]) {
+        travelNoteParts.push(`Departing from: ${DEPARTURE_LABELS[departure_location]}`);
+        if (departure_location === "dc_maryland" && dc_airport) travelNoteParts.push(`Preferred airport: ${dc_airport}`);
+        if (departure_location === "nevada" && nevada_airport) travelNoteParts.push(`Nevada departure airport: ${String(nevada_airport).substring(0, 100)}`);
+        if (departure_location !== "hawaii" && airfare_preference && AIRFARE_LABELS[airfare_preference]) {
+          travelNoteParts.push(AIRFARE_LABELS[airfare_preference]);
+        }
+      }
+      const travelNotes = travelNoteParts.join(" | ") || null;
 
       // Validate required fields
       if (!signupToken || !first_name || !email) {
@@ -526,7 +550,7 @@ Deno.serve(async (req) => {
           trip_type: "regular",
           status: "inbound",
           client_id: clientId,
-          notes: [notes?.trim(), add_prestay_hotel ? `Pre-cruise hotel stay requested: ${prestay_room_label || "room choice TBD"}` : null].filter(Boolean).join("\n") || null,
+          notes: [notes?.trim(), travelNotes, add_prestay_hotel ? `Pre-cruise hotel stay requested: ${prestay_room_label || "room choice TBD"}` : null].filter(Boolean).join("\n") || null,
           selected_cabin_option_id: selected_cabin_option_id || null,
           cover_image_url: parentTrip.cover_image_url,
         })
@@ -555,7 +579,7 @@ Deno.serve(async (req) => {
           email: email.toLowerCase().trim(),
           phone: phone?.trim() || null,
           number_of_travelers: Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1)),
-          notes: [notes?.trim()?.substring(0, 500), add_prestay_hotel ? `Pre-cruise hotel: ${String(prestay_room_label || "YES").substring(0, 200)}` : null].filter(Boolean).join(" | ") || null,
+          notes: [travelNotes, notes?.trim()?.substring(0, 500), add_prestay_hotel ? `Pre-cruise hotel: ${String(prestay_room_label || "YES").substring(0, 200)}` : null].filter(Boolean).join(" | ") || null,
           status: "confirmed",
         });
 
@@ -766,6 +790,7 @@ Deno.serve(async (req) => {
             returnDate: parentTrip.return_date,
             cabinName: cabinRow?.category_name || cabinLabel || null,
             hotelChoice: add_prestay_hotel ? prestay_room_label || "Yes — room choice TBD" : null,
+            travelNotes,
             travelerCount,
             depositAmount,
             payUrl: payUrl || groupUrl,
