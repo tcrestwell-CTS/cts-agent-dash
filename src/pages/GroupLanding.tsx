@@ -251,7 +251,17 @@ export default function GroupLanding() {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ token, ...form, prestay_room_label }),
+          body: JSON.stringify({
+            token,
+            ...form,
+            add_prestay_hotel: effectivePrestay,
+            prestay_room_label,
+            ...(form.departure_location === "hawaii"
+              ? { airfare_preference: "", dc_airport: "", nevada_airport: "" }
+              : form.departure_location !== "nevada"
+                ? { nevada_airport: "" }
+                : { dc_airport: "" }),
+          }),
         }
 
       );
