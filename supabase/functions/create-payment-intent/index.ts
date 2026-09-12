@@ -191,6 +191,10 @@ Deno.serve(async (req) => {
         ? `Crestwell Travel – ${trip_name}${booking_ref ? ` (Ref: ${booking_ref})` : ''}`
         : `Crestwell Travel Payment${booking_ref ? ` – Ref: ${booking_ref}` : ''}`,
     });
+    // Bank/ACH explicitly excluded, per request -- multi-day settlement
+    // isn't appropriate here. Everything else dynamic (card, Klarna,
+    // Amazon Pay, etc.) still appears automatically.
+    piParams.append('excluded_payment_method_types[]', 'us_bank_account');
 
     // Stripe rejects an empty/invalid receipt_email — only send a real address
     const cleanEmail = (customer_email || '').trim();
