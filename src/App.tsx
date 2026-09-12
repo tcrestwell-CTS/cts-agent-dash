@@ -64,6 +64,7 @@ const PaymentSecurity     = lazy(() => import("./pages/PaymentSecurity"));
 const MonthlyReconciliation = lazy(() => import("./pages/MonthlyReconciliation"));
 const Kandi               = lazy(() => import("./pages/Kandi"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
+const AgentOnboarding     = lazy(() => import("./pages/AgentOnboarding"));
 const Approvals           = lazy(() => import("./pages/Approvals"));
 const InboxSync           = lazy(() => import("./pages/InboxSync"));
 const PaymentsDue         = lazy(() => import("./pages/PaymentsDue"));
