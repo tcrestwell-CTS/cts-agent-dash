@@ -265,7 +265,10 @@ serve(async (req) => {
   const authHeader = req.headers.get("authorization") || "";
   const bearerToken = authHeader.replace("Bearer ", "").trim();
 
-  const validSecrets = [Deno.env.get("CTN_APPROVE_SECRET")].filter(Boolean);
+  const validSecrets = [
+    Deno.env.get("CTN_APPROVE_SECRET"),
+    Deno.env.get("CW_AGENT_SECRET"),
+  ].filter(Boolean);
 
   const providedToken = agentSecret || bearerToken;
 
