@@ -3928,6 +3928,83 @@ export type Database = {
         }
         Relationships: []
       }
+      ctn_approval_log: {
+        Row: {
+          action_type: string
+          agent_user_id: string | null
+          application_id: string | null
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          details: Json
+          email: string
+          error: string | null
+          id: string
+          invitation_id: string | null
+          match_method: string | null
+          payment_status: string | null
+          source: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_event_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          agent_user_id?: string | null
+          application_id?: string | null
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          details?: Json
+          email: string
+          error?: string | null
+          id?: string
+          invitation_id?: string | null
+          match_method?: string | null
+          payment_status?: string | null
+          source?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_event_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          agent_user_id?: string | null
+          application_id?: string | null
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          details?: Json
+          email?: string
+          error?: string | null
+          id?: string
+          invitation_id?: string | null
+          match_method?: string | null
+          payment_status?: string | null
+          source?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_event_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ctn_approval_log_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destinations: {
         Row: {
           code: string
