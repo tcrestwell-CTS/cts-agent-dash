@@ -8,7 +8,8 @@
 // The service role key never leaves this environment
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders, createClient } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.23.8";
 
 const responseHeaders = {
@@ -434,6 +435,7 @@ serve(async (req) => {
         .eq("id", existing.id);
       if (extendError) throw new Error(`Invitation extension failed: ${extendError.message}`);
       inviteToken = existing.token;
+      await finishApprovalLog(supabase, approvalLogId, { invitation_id: existing.id });
       console.log(`[ctn-approve] Reusing existing invitation for ${email}`);
     } else {
       // Get admin user ID to satisfy invited_by FK constraint
