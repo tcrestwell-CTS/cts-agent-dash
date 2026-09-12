@@ -222,6 +222,16 @@ const AgentStorefront = () => {
             <p className="text-sm text-muted-foreground">
               {[agent.full_name, agent.job_title].filter(Boolean).join(" · ")}
             </p>
+            {agent.storefront_email && (
+              <p className="text-sm pt-1">
+                <a
+                  href={`mailto:${agent.storefront_email}`}
+                  className="text-primary hover:underline"
+                >
+                  {agent.storefront_email}
+                </a>
+              </p>
+            )}
             {agent.storefront_bio && (
               <p className="text-sm text-muted-foreground max-w-xl pt-2">{agent.storefront_bio}</p>
             )}
