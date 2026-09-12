@@ -68,34 +68,50 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    const userId = claimsData.claims.sub;
+    // System callers (other edge functions) authenticate with the service role
+    // key, which is not a user JWT — getClaims() rejects it. Treat that as a
+    // trusted system send with no per-user branding, otherwise system emails
+    // (agent invitations, onboarding docs) fail silently with 401.
+    const isSystemCaller = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    let userId: string | null = null;
+    if (!isSystemCaller) {
+      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = claimsData.claims.sub as string;
+    }
 
     // Get branding settings
-    let { data: branding, error: brandingError } = await supabase
-      .from("branding_settings")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    let branding: Record<string, unknown> | null = null;
+    let senderProfile: { agency_name?: string | null; full_name?: string | null; phone?: string | null; storefront_email?: string | null; storefront_logo_url?: string | null } | null = null;
 
-    if (brandingError && brandingError.code !== "PGRST116") {
-      console.error("Error fetching branding:", brandingError);
+    if (userId) {
+      const { data: brandingRow, error: brandingError } = await supabase
+        .from("branding_settings")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      branding = (brandingRow as typeof branding) ?? null;
+
+      if (brandingError && brandingError.code !== "PGRST116") {
+        console.error("Error fetching branding:", brandingError);
+      }
+
+      // Fall back to the agent's own profile so emails carry the agent's brand,
+      // never the parent agency's name.
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("agency_name, full_name, phone")
+        .eq("user_id", userId)
+        .maybeSingle();
+      senderProfile = (profileRow as typeof senderProfile) ?? null;
     }
-
-    // Fall back to the agent's own profile so emails carry the agent's brand,
-    // never the parent agency's name.
-    let { data: senderProfile } = await supabase
-      .from("profiles")
-      .select("agency_name, full_name, phone")
-      .eq("user_id", userId)
-      .maybeSingle();
 
     const { to, subject, template, data: templateData, customHtml, clientId, attachments, metadata, idempotencyKey, brandingUserId, replyTo }: EmailRequest = await req.json();
 
