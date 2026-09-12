@@ -66,6 +66,7 @@ export const AgentStorefrontsManager = () => {
         storefront_enabled: row.storefront_enabled ?? false,
         storefront_slug: row.storefront_slug ? slugify(row.storefront_slug) : null,
         storefront_headline: row.storefront_headline,
+        storefront_email: row.storefront_email,
         storefront_logo_url: row.storefront_logo_url,
         avatar_url: row.avatar_url,
       } as any)
