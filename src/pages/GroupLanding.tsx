@@ -218,12 +218,21 @@ export default function GroupLanding() {
       toast.error("Please fill in the second traveler's first name.");
       return;
     }
+    if (!form.departure_location) {
+      toast.error("Please select where you'll be traveling from.");
+      return;
+    }
+    if (form.departure_location === "nevada" && !form.nevada_airport.trim()) {
+      toast.error("Please enter your Nevada departure airport.");
+      return;
+    }
     const chosen = data?.cabinOptions?.find((c) => c.id === form.selected_cabin_option_id);
     if (chosen?.requires_double_occupancy && form.number_of_travelers !== "2") {
       toast.error(`${chosen.category_name} requires 2 travelers (double occupancy).`);
       return;
     }
-    if (form.add_prestay_hotel && !form.prestay_room_type) {
+    const effectivePrestay = form.departure_location !== "hawaii" && form.add_prestay_hotel;
+    if (effectivePrestay && !form.prestay_room_type) {
       toast.error("Please choose a room type for the pre-cruise hotel stay.");
       return;
     }
