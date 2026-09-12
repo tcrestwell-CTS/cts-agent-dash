@@ -16,6 +16,7 @@ interface Storefront {
   user_id: string;
   storefront_slug: string;
   storefront_headline: string | null;
+  storefront_email: string | null;
   full_name: string | null;
   avatar_url: string | null;
   job_title: string | null;
