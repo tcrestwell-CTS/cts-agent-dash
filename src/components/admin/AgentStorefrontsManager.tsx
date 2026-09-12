@@ -40,7 +40,7 @@ export const AgentStorefrontsManager = () => {
   const load = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, agency_name, storefront_enabled, storefront_slug, storefront_headline, storefront_logo_url, avatar_url")
+      .select("id, user_id, full_name, agency_name, storefront_enabled, storefront_slug, storefront_headline, storefront_email, storefront_logo_url, avatar_url")
       .order("agency_name", { ascending: true, nullsFirst: false });
     if (error) {
       console.error("Failed to load storefronts:", error);
