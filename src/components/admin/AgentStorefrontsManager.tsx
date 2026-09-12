@@ -164,6 +164,15 @@ export const AgentStorefrontsManager = () => {
                   />
                   {url && <p className="text-xs text-muted-foreground">{url}</p>}
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Contact email</Label>
+                  <Input
+                    type="email"
+                    value={row.storefront_email ?? ""}
+                    onChange={(e) => patchLocal(row.id, { storefront_email: e.target.value })}
+                    placeholder="agent@example.com"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Logo</Label>
                   <StorefrontLogoUpload
