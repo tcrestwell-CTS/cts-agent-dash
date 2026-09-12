@@ -49,6 +49,7 @@ function buildConfirmationEmail(opts: {
   returnDate: string | null;
   cabinName: string | null;
   hotelChoice: string | null;
+  travelNotes: string | null;
   travelerCount: number;
   depositAmount: number;
   payUrl: string;
@@ -71,6 +72,7 @@ function buildConfirmationEmail(opts: {
     opts.returnDate ? { label: "Return", value: fmtDate(opts.returnDate) } : null,
     { label: "Travelers", value: String(opts.travelerCount) },
     opts.cabinName ? { label: "Cabin / category", value: opts.cabinName } : null,
+    opts.travelNotes ? { label: "Departure / airfare", value: opts.travelNotes } : null,
     opts.hotelChoice ? { label: "Pre-cruise hotel", value: opts.hotelChoice } : null,
   ].filter(Boolean) as { label: string; value: string }[];
 
@@ -788,6 +790,7 @@ Deno.serve(async (req) => {
             returnDate: parentTrip.return_date,
             cabinName: cabinRow?.category_name || cabinLabel || null,
             hotelChoice: add_prestay_hotel ? prestay_room_label || "Yes — room choice TBD" : null,
+            travelNotes,
             travelerCount,
             depositAmount,
             payUrl: payUrl || groupUrl,
