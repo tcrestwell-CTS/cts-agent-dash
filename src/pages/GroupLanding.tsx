@@ -1153,8 +1153,92 @@ export default function GroupLanding() {
                     </div>
                   )}
 
-                  {/* Pre-stay hotel opt-in */}
-                  {prestayHotel && (
+                  {/* Departure location — drives airfare & pre-stay options */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Where will you be traveling from? *</Label>
+                    <select
+                      required
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={form.departure_location}
+                      onChange={(e) => {
+                        const loc = e.target.value;
+                        setForm((f) => ({
+                          ...f,
+                          departure_location: loc,
+                          ...(loc === "hawaii"
+                            ? { add_prestay_hotel: false, prestay_room_type: "", dc_airport: "", nevada_airport: "", airfare_preference: "agency" }
+                            : loc === "nevada"
+                              ? { dc_airport: "" }
+                              : { nevada_airport: "" }),
+                        }));
+                      }}
+                    >
+                      <option value="">Select your departure area</option>
+                      <option value="dc_maryland">Washington, DC / Maryland area</option>
+                      <option value="nevada">Nevada</option>
+                      <option value="hawaii">I already live in Hawaii</option>
+                      <option value="other">Somewhere else</option>
+                    </select>
+                  </div>
+
+                  {/* Airfare options — only for mainland departures */}
+                  {(form.departure_location === "dc_maryland" || form.departure_location === "nevada" || form.departure_location === "other") && (
+                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
+                      <p className="text-sm font-semibold text-gray-700">Airfare</p>
+                      {form.departure_location === "dc_maryland" && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Preferred airport</Label>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={form.dc_airport}
+                            onChange={(e) => setForm((f) => ({ ...f, dc_airport: e.target.value }))}
+                          >
+                            <option value="">Compare all three (BWI, DCA, IAD)</option>
+                            <option value="BWI">BWI — Baltimore/Washington</option>
+                            <option value="DCA">DCA — Reagan National</option>
+                            <option value="IAD">IAD — Dulles</option>
+                          </select>
+                        </div>
+                      )}
+                      {form.departure_location === "nevada" && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Your Nevada departure airport *</Label>
+                          <Input
+                            maxLength={100}
+                            placeholder="e.g., LAS (Las Vegas) or RNO (Reno)"
+                            value={form.nevada_airport}
+                            onChange={(e) => setForm((f) => ({ ...f, nevada_airport: e.target.value }))}
+                          />
+                        </div>
+                      )}
+                      {form.departure_location === "other" && (
+                        <p className="text-xs text-gray-500">
+                          Tell us your home airport in the notes below and we'll quote airfare from there.
+                        </p>
+                      )}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">How would you like to book airfare?</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={form.airfare_preference}
+                          onChange={(e) => setForm((f) => ({ ...f, airfare_preference: e.target.value }))}
+                        >
+                          <option value="agency">Quote airfare for me through Crestwell Travel</option>
+                          <option value="ncl">Interested in NCL promotional airfare (if available)</option>
+                          <option value="independent">I'll book my own airfare</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {form.departure_location === "hawaii" && (
+                    <p className="text-xs text-gray-500 rounded-lg bg-gray-50 border border-gray-100 p-3">
+                      As a Hawaii resident you don't need airfare, and the pre-cruise hotel stay is optional for locals — you can simply join the group at the port. If you'd still like the hotel, mention it in the notes below.
+                    </p>
+                  )}
+
+                  {/* Pre-stay hotel opt-in — hidden for Hawaii residents */}
+                  {prestayHotel && form.departure_location !== "hawaii" && (
                     <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
                       <label className="flex items-start gap-3 cursor-pointer">
                         <input
