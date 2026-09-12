@@ -397,7 +397,7 @@ export default function GroupLanding() {
                   <img
                     src={agentLogo}
                     alt={agentLogoAlt}
-                    className="h-16 mb-4 object-contain drop-shadow-lg"
+                    className="h-[5.2rem] mb-4 object-contain drop-shadow-lg"
                   />
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
                   {headline}
@@ -431,7 +431,7 @@ export default function GroupLanding() {
                   <img
                     src={agentLogo}
                     alt={agentLogoAlt}
-                    className="h-16 mb-4 object-contain drop-shadow-lg"
+                    className="h-[5.2rem] mb-4 object-contain drop-shadow-lg"
                   />
                 <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
                   {headline}
