@@ -20,6 +20,7 @@ interface StorefrontRow {
   storefront_enabled: boolean | null;
   storefront_slug: string | null;
   storefront_headline: string | null;
+  storefront_email: string | null;
   storefront_logo_url: string | null;
   avatar_url: string | null;
 }
