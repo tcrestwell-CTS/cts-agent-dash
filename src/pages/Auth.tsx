@@ -229,7 +229,7 @@ const Auth = () => {
         const isBookkeeperAfter =
           !!rolesAfter?.some((r) => r.role === "bookkeeper") &&
           !rolesAfter?.some((r) => r.role === "admin" || r.role === "office_admin");
-        const destAfter = isBookkeeperAfter ? "/bookkeeper" : "/";
+        const destAfter = isBookkeeperAfter ? "/bookkeeper" : "/onboarding";
         devLog("[Auth] Invitation accepted successfully, redirecting", { destAfter });
         window.location.href = window.location.origin + destAfter;
       } catch (err) {
