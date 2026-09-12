@@ -102,3 +102,12 @@ verify_jwt = false
 
 [functions.assign-lead]
 verify_jwt = false
+
+[functions.ctn-approve]
+verify_jwt = false
+
+[functions.ctn-reconcile-log]
+verify_jwt = false
+
+[functions.github-push]
+verify_jwt = false
