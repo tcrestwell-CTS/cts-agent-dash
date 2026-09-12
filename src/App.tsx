@@ -258,6 +258,7 @@ const App = () => (
                 <Route path="/trips/:tripId/insurance" element={<ProtectedRoute><TripInsurance /></ProtectedRoute>} />
                 <Route path="/trips/:tripId/landing-page" element={<ProtectedRoute><GroupLandingBuilder /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/onboarding" element={<ProtectedRoute><AgentOnboarding /></ProtectedRoute>} />
                 <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
                 <Route path="/inbox-sync" element={<ProtectedRoute><InboxSync /></ProtectedRoute>} />
                 <Route path="/payments-due" element={<ProtectedRoute><BackOfficeRoute><PaymentsDue /></BackOfficeRoute></ProtectedRoute>} />
