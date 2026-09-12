@@ -8,11 +8,14 @@
 // The service role key never leaves this environment
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const responseHeaders = {
+  ...corsHeaders,
   "Access-Control-Allow-Headers": "authorization, content-type, x-agent-secret",
+  "Content-Type": "application/json",
 };
 
 const PLAN_TO_TIER: Record<string, string> = {
@@ -21,6 +24,30 @@ const PLAN_TO_TIER: Record<string, string> = {
   elite:        "tier_3",
   unsure:       "tier_1",
 };
+
+const PLAN_DETAILS: Record<string, { name: string; amount: number }> = {
+  starter: { name: "Starter Monthly", amount: 29 },
+  professional: { name: "Professional Monthly", amount: 49 },
+  elite: { name: "Elite Monthly", amount: 99 },
+  unsure: { name: "Starter Monthly", amount: 29 },
+};
+
+const RequestSchema = z.object({
+  email: z.string().email().max(320).transform((value) => value.trim().toLowerCase()),
+  first_name: z.string().trim().min(1).max(100).optional(),
+  plan: z.enum(["starter", "professional", "elite", "unsure"]),
+  application_id: z.string().uuid().optional(),
+  stripe_event_id: z.string().trim().max(255).optional(),
+  stripe_customer_id: z.string().trim().max(255).optional(),
+  stripe_checkout_session_id: z.string().trim().max(255).optional(),
+  stripe_subscription_id: z.string().trim().max(255).optional(),
+  payment_status: z.string().trim().max(50).optional(),
+  match_method: z.string().trim().max(50).optional(),
+  skip_docs: z.boolean().optional().default(false),
+  docs_only: z.boolean().optional().default(false),
+});
+
+type ApprovalInput = z.infer<typeof RequestSchema>;
 
 function generateToken(): string {
   const array = new Uint8Array(32);
@@ -35,7 +62,7 @@ async function sendOnboardingDocs(
   supabase: ReturnType<typeof createClient>,
   email: string,
   firstName: string | undefined
-): Promise<void> {
+): Promise<boolean> {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -127,11 +154,14 @@ async function sendOnboardingDocs(
 
     if (!docsRes.ok) {
       console.error("[ctn-approve] Document email failed:", await docsRes.text());
+      return false;
     } else {
       console.log("[ctn-approve] ✓ Onboarding documents sent to", email);
+      return true;
     }
   } catch (docErr) {
     console.error("[ctn-approve] Document send error:", docErr);
+    return false;
   }
 }
 
@@ -171,13 +201,63 @@ async function notifyIcOnboardingSynced(email: string): Promise<void> {
   }
 }
 
+async function startApprovalLog(
+  supabase: ReturnType<typeof createClient>,
+  input: ApprovalInput,
+  actionType: "invite" | "existing_user" | "docs_only" | "payment_pending",
+) {
+  const lookup = input.stripe_event_id
+    ? supabase.from("ctn_approval_log").select("id, attempt_count").eq("stripe_event_id", input.stripe_event_id)
+    : input.application_id && input.stripe_subscription_id
+      ? supabase.from("ctn_approval_log").select("id, attempt_count")
+          .eq("application_id", input.application_id)
+          .eq("stripe_subscription_id", input.stripe_subscription_id)
+          .eq("action_type", actionType)
+      : null;
+
+  const { data: prior } = lookup ? await lookup.maybeSingle() : { data: null };
+  const record = {
+    application_id: input.application_id || null,
+    email: input.email,
+    action_type: actionType,
+    stripe_event_id: input.stripe_event_id || null,
+    stripe_customer_id: input.stripe_customer_id || null,
+    stripe_checkout_session_id: input.stripe_checkout_session_id || null,
+    stripe_subscription_id: input.stripe_subscription_id || null,
+    payment_status: input.payment_status || null,
+    match_method: input.match_method || (input.application_id ? "application_id" : "email"),
+    status: actionType === "payment_pending" ? "pending_payment" : "processing",
+    attempt_count: (prior?.attempt_count || 0) + 1,
+    error: null,
+  };
+
+  if (prior?.id) {
+    const { error } = await supabase.from("ctn_approval_log").update(record).eq("id", prior.id);
+    if (error) throw new Error(`Failed to update approval log: ${error.message}`);
+    return prior.id;
+  }
+
+  const { data, error } = await supabase.from("ctn_approval_log").insert(record).select("id").single();
+  if (error) throw new Error(`Failed to create approval log: ${error.message}`);
+  return data.id as string;
+}
+
+async function finishApprovalLog(
+  supabase: ReturnType<typeof createClient>,
+  logId: string,
+  values: Record<string, unknown>,
+) {
+  const { error } = await supabase.from("ctn_approval_log").update(values).eq("id", logId);
+  if (error) console.error("[ctn-approve] approval log update failed:", error.message);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: responseHeaders });
   }
 
   // Auth: accept either x-agent-secret OR Authorization Bearer with service role key
@@ -185,43 +265,53 @@ serve(async (req) => {
   const authHeader = req.headers.get("authorization") || "";
   const bearerToken = authHeader.replace("Bearer ", "").trim();
 
-  const validSecrets = [
-    Deno.env.get("CTN_APPROVE_SECRET"),
-    Deno.env.get("AGENT_SECRET"),
-    Deno.env.get("CW_AGENT_SECRET"),
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
-  ].filter(Boolean);
+  const validSecrets = [Deno.env.get("CTN_APPROVE_SECRET")].filter(Boolean);
 
   const providedToken = agentSecret || bearerToken;
 
   if (!providedToken || !validSecrets.includes(providedToken)) {
-    console.error("[ctn-approve] Auth failed. Provided:", providedToken?.slice(0, 10));
-    console.error("[ctn-approve] Available secrets configured:", validSecrets.map(s => s?.slice(0, 10)));
+    console.error("[ctn-approve] Authorization failed");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: responseHeaders,
     });
   }
 
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let approvalLogId: string | null = null;
   try {
-    const body = await req.json();
-    const { email, first_name, plan, application_id, skip_docs, docs_only } = body;
+    const parsed = RequestSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), {
+        status: 400,
+        headers: responseHeaders,
+      });
+    }
+    const input = parsed.data;
+    const { email, first_name, plan, skip_docs, docs_only } = input;
     // skip_docs: caller confirms payment not yet received — invite only, no docs.
     // docs_only: payment just confirmed for an already-approved applicant —
     //            send the onboarding docs email now, skip invite/role setup.
 
-    if (!email || !plan) {
-      return new Response(JSON.stringify({ error: "email and plan required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(
+    supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } }
     );
+
+    const normalizedPaymentStatus = input.payment_status?.toLowerCase();
+    const hasStripePaymentContext = Boolean(input.stripe_checkout_session_id || input.stripe_subscription_id || input.stripe_event_id);
+    if (hasStripePaymentContext && normalizedPaymentStatus && !["paid", "succeeded"].includes(normalizedPaymentStatus)) {
+      approvalLogId = await startApprovalLog(supabase, input, "payment_pending");
+      await finishApprovalLog(supabase, approvalLogId, {
+        status: "pending_payment",
+        error: `Payment is ${normalizedPaymentStatus}; account access was not activated`,
+      });
+      return new Response(JSON.stringify({ success: false, pending_payment: true, payment_status: normalizedPaymentStatus }), {
+        status: 202,
+        headers: responseHeaders,
+      });
+    }
 
     const commissionTier = PLAN_TO_TIER[plan] || "tier_1";
     const token = generateToken();
@@ -235,6 +325,7 @@ serve(async (req) => {
     );
 
     if (existingUser) {
+      approvalLogId = await startApprovalLog(supabase, input, "existing_user");
       console.log(`[ctn-approve] User ${email} already exists — ensuring agent role`);
       // Ensure profile exists (required for the user to show up on the team page)
       const fullName =
@@ -254,7 +345,7 @@ serve(async (req) => {
         },
         { onConflict: "user_id" }
       );
-      if (profileErr) console.error("[ctn-approve] profile upsert error:", profileErr);
+      if (profileErr) throw new Error(`Profile upsert failed: ${profileErr.message}`);
 
       // Assign 'user' role (the standard agent role in app_role enum). Don't overwrite admins.
       const { data: existingRole } = await supabase
@@ -267,38 +358,66 @@ serve(async (req) => {
         const { error: roleErr } = await supabase
           .from("user_roles")
           .insert({ user_id: existingUser.id, role: "user" });
-        if (roleErr) console.error("[ctn-approve] role insert error:", roleErr);
+        if (roleErr) throw new Error(`Role assignment failed: ${roleErr.message}`);
+      }
+
+      if (input.stripe_subscription_id || input.stripe_customer_id) {
+        const planDetails = PLAN_DETAILS[plan];
+        const { error: subscriptionError } = await supabase.from("agent_subscriptions").upsert({
+          agent_user_id: existingUser.id,
+          plan_name: planDetails.name,
+          amount: planDetails.amount,
+          billing_interval: "monthly",
+          status: "active",
+          started_on: new Date().toISOString().slice(0, 10),
+          stripe_customer_id: input.stripe_customer_id || null,
+          stripe_subscription_id: input.stripe_subscription_id || null,
+          notes: input.application_id ? `CTN application ${input.application_id}` : "CTN approval",
+        }, { onConflict: "agent_user_id" });
+        if (subscriptionError) throw new Error(`Subscription mapping failed: ${subscriptionError.message}`);
       }
 
       const inviteUrl = `https://app.crestwelltravels.com/auth`;
 
-      if (!skip_docs) {
-        await sendOnboardingDocs(supabase, email, first_name);
-      }
+      const docsSent = skip_docs ? false : await sendOnboardingDocs(supabase, email, first_name);
 
       await notifyIcOnboardingSynced(email);
+      await finishApprovalLog(supabase, approvalLogId, {
+        status: "succeeded",
+        agent_user_id: existingUser.id,
+        completed_at: new Date().toISOString(),
+        details: { docs_sent: docsSent, docs_skipped: skip_docs },
+      });
       return new Response(
         JSON.stringify({
           success: true, email, tier: commissionTier, invite_url: inviteUrl,
           note: "existing_user_role_updated",
-          docs_sent: !skip_docs,
+          docs_sent: docsSent,
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: responseHeaders }
       );
     }
 
     // ── docs_only mode: payment just confirmed for an already-approved
     //    applicant. Skip invite/role setup entirely, just send the docs. ────
     if (docs_only) {
-      await sendOnboardingDocs(supabase, email, first_name);
+      approvalLogId = await startApprovalLog(supabase, input, "docs_only");
+      const docsSent = await sendOnboardingDocs(supabase, email, first_name);
+      if (!docsSent) throw new Error("Onboarding email failed and is eligible for retry");
       await notifyIcOnboardingSynced(email);
+      await finishApprovalLog(supabase, approvalLogId, {
+        status: "succeeded",
+        completed_at: new Date().toISOString(),
+        details: { docs_sent: true },
+      });
       return new Response(
         JSON.stringify({ success: true, email, docs_sent: true, note: "docs_only" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: responseHeaders }
       );
     }
 
     // ── Check for existing pending invitation ─────────────────────────────
+    approvalLogId = await startApprovalLog(supabase, input, "invite");
     const { data: existing } = await supabase
       .from("invitations")
       .select("id, token")
@@ -310,11 +429,13 @@ serve(async (req) => {
 
     if (existing) {
       // Reuse existing token, extend expiry
-      await supabase
+      const { error: extendError } = await supabase
         .from("invitations")
         .update({ expires_at: expiresAt.toISOString() })
         .eq("id", existing.id);
+      if (extendError) throw new Error(`Invitation extension failed: ${extendError.message}`);
       inviteToken = existing.token;
+      await finishApprovalLog(supabase, approvalLogId, { invitation_id: existing.id });
       console.log(`[ctn-approve] Reusing existing invitation for ${email}`);
     } else {
       // Get admin user ID to satisfy invited_by FK constraint
@@ -341,16 +462,27 @@ serve(async (req) => {
       // Only set invited_by if we found a valid admin user ID
       if (invitedBy) insertData.invited_by = invitedBy;
 
-      const { error: insertError } = await supabase
+      const { data: insertedInvitation, error: insertError } = await supabase
         .from("invitations")
-        .insert(insertData);
+        .insert(insertData)
+        .select("id")
+        .single();
 
       if (insertError) {
-        console.error("[ctn-approve] Invitation insert error:", insertError);
-        return new Response(
-          JSON.stringify({ error: "Failed to create invitation", detail: insertError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (insertError.code === "23505") {
+          const { data: concurrentInvite, error: concurrentError } = await supabase
+            .from("invitations")
+            .select("id, token")
+            .eq("email", email)
+            .eq("status", "pending")
+            .single();
+          if (concurrentError || !concurrentInvite) throw new Error(`Invitation creation failed: ${insertError.message}`);
+          inviteToken = concurrentInvite.token;
+        } else {
+          throw new Error(`Invitation creation failed: ${insertError.message}`);
+        }
+      } else if (insertedInvitation) {
+        await finishApprovalLog(supabase, approvalLogId, { invitation_id: insertedInvitation.id });
       }
     }
 
@@ -383,18 +515,24 @@ serve(async (req) => {
 
     if (!emailRes.ok) {
       const errText = await emailRes.text();
-      console.error("[ctn-approve] send-email failed:", errText);
+      throw new Error(`Invitation email failed: ${errText}`);
     }
 
     // ── Send onboarding documents ──────────────────────────────────────────
+    let docsSent = false;
     if (!skip_docs) {
-      await sendOnboardingDocs(supabase, email, first_name);
+      docsSent = await sendOnboardingDocs(supabase, email, first_name);
     } else {
       console.log(`[ctn-approve] skip_docs=true for ${email} — docs will send once payment is confirmed`);
     }
 
     console.log(`[ctn-approve] ✓ ${email} invited as agent | tier: ${commissionTier}`);
     await notifyIcOnboardingSynced(email);
+    await finishApprovalLog(supabase, approvalLogId, {
+      status: "succeeded",
+      completed_at: new Date().toISOString(),
+      details: { docs_sent: docsSent, docs_skipped: skip_docs },
+    });
 
     return new Response(
       JSON.stringify({
@@ -403,14 +541,17 @@ serve(async (req) => {
         tier:       commissionTier,
         invite_url: inviteUrl,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: responseHeaders }
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[ctn-approve] Error:", msg);
+    if (supabase && approvalLogId) {
+      await finishApprovalLog(supabase, approvalLogId, { status: "failed", error: msg });
+    }
     return new Response(
       JSON.stringify({ error: "Internal server error", detail: msg }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: responseHeaders }
     );
   }
 });
