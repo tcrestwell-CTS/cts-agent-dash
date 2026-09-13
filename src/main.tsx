@@ -47,7 +47,11 @@ const isChunkLoadError = (msg: string) =>
   /Failed to fetch dynamically imported module/i.test(msg) ||
   /Importing a module script failed/i.test(msg) ||
   /error loading dynamically imported module/i.test(msg) ||
-  /ChunkLoadError/i.test(msg);
+  /ChunkLoadError/i.test(msg) ||
+  // A stale service worker / cached index.html can mix old and new chunks,
+  // leaving module namespaces undefined mid-render.
+  /Cannot read properties of undefined \(reading 'default'\)/i.test(msg) ||
+  /undefined is not an object \(evaluating '.*\.default'\)/i.test(msg);
 
 const purgeCaches = async () => {
   try {
