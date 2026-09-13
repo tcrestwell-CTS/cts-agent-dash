@@ -25,8 +25,12 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
-        navigateFallbackDenylist: [/^\/~oauth/],
+        // Only cache static assets, never index.html: precaching the app shell
+        // lets an outdated worker serve deleted JS chunks after a deploy, which
+        // breaks the agent dashboard with a blank screen.
+        globPatterns: ["**/*.{ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
+        navigateFallback: null,
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/(?!client\/)/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/v1\/portal-data/,
