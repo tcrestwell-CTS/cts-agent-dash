@@ -7,8 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreditCard, ChevronRight } from "lucide-react";
-import { format, parseISO, isPast, differenceInDays } from "date-fns";
-import { cn } from "@/lib/utils";
+import { format, isPast, differenceInDays } from "date-fns";
+import { cn, parseLocalDate } from "@/lib/utils";
+
 
 type PaymentRow = {
   id: string;
