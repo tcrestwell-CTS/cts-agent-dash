@@ -8,10 +8,10 @@ export interface FlightSlice {
   departure_date: string;
 }
 
-export interface FlightPassenger {
-  type: "adult" | "child" | "infant_without_seat";
-  age?: number;
-}
+// Duffel expects either `type` or `age` on a passenger, never both.
+export type FlightPassenger =
+  | { type: "adult" | "child" | "infant_without_seat"; age?: never }
+  | { age: number; type?: never };
 
 export interface FlightSearchParams {
   slices: FlightSlice[];

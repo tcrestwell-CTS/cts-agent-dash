@@ -67,13 +67,17 @@ serve(async (req) => {
     // ── Search offers ──
     if (action === "search") {
       const { slices, passengers, cabin_class, max_connections } = body;
+      // Duffel rejects passengers carrying both `type` and `age`; keep only one.
+      const normalizedPassengers = (passengers ?? []).map((p: { type?: string; age?: number }) =>
+        p?.type ? { type: p.type } : { age: p?.age ?? 0 }
+      );
       const response = await fetch(`${DUFFEL_BASE}/air/offer_requests`, {
         method: "POST",
         headers: duffelHeaders,
         body: JSON.stringify({
           data: {
             slices,
-            passengers,
+            passengers: normalizedPassengers,
             cabin_class: cabin_class || "economy",
             max_connections: max_connections ?? 1,
           },

@@ -182,10 +182,12 @@ export default function FlightSearch() {
       return;
     }
 
+    // Duffel accepts either `type` or `age` per passenger, never both.
+    // Children are sent by age; infants by type only.
     const passengers = [
       ...Array(adults).fill({ type: "adult" as const }),
-      ...childAges.map((age) => ({ type: "child" as const, age })),
-      ...Array(infants).fill({ type: "infant_without_seat" as const, age: 0 }),
+      ...childAges.map((age) => ({ age })),
+      ...Array(infants).fill({ type: "infant_without_seat" as const }),
     ];
 
     // Reset slice selection
