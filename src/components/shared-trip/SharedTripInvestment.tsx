@@ -139,6 +139,8 @@ function buildInclusionsList(supplierTypes: string[]): string[] {
     inclusions.push("Meals as specified in itinerary");
   if (types.some(t => ["airline", "flight", "air"].some(k => t.includes(k))))
     inclusions.push("Flights as listed");
+  if (types.some(t => ["insurance", "travel protection"].some(k => t.includes(k))))
+    inclusions.push("Travel protection");
 
   // Always include advisor support
   inclusions.push("Dedicated travel advisor support");
@@ -153,6 +155,24 @@ function buildInclusionsList(supplierTypes: string[]): string[] {
   }
 
   return inclusions;
+}
+
+function buildNotIncludedList(supplierTypes: string[]): string[] {
+  const types = supplierTypes.map(t => t.toLowerCase());
+  const hasTransportation = types.some(t =>
+    ["transportation", "transfer", "car rental", "rail", "train", "shuttle"].some(k => t.includes(k))
+  );
+  const hasTravelProtection = types.some(t =>
+    ["insurance", "travel protection"].some(k => t.includes(k))
+  );
+
+  return [
+    "International airfare (unless specified)",
+    ...(!hasTravelProtection ? ["Travel protection"] : []),
+    ...(!hasTransportation ? ["Transfers & transportation"] : []),
+    "Personal expenses & gratuities",
+    "Meals not specified in itinerary",
+  ];
 }
 
 export default function SharedTripInvestment({
@@ -345,7 +365,7 @@ export default function SharedTripInvestment({
         <div>
           <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Not Included</h3>
           <ul className="space-y-2 text-sm text-gray-600">
-            {["International airfare (unless specified)", "Travel insurance", "Personal expenses & gratuities", "Meals not specified in itinerary"].map((item) => (
+            {buildNotIncludedList(bookingSupplierTypes).map((item) => (
               <li key={item} className="flex items-start gap-2">
                 <span className="text-gray-300 mt-0.5">–</span>
                 {item}

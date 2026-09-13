@@ -975,7 +975,10 @@ export default function SharedTrip() {
                 shareToken={token || undefined}
                 onTermsAccepted={handleTermsAccepted}
                 bookingSupplierTypes={
-                  (data.bookings || []).map((b: any) => b.supplier_type).filter(Boolean)
+                  [
+                    ...(data.bookings || []).map((b: any) => b.supplier_type),
+                    ...((data as any).pricingLines || []).map((line: any) => line.line_type),
+                  ].filter(Boolean)
                 }
                 stripePublishableKey={import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}
                 itineraryApproved={Boolean(approvedItineraryId) || Boolean((data as any).trip?.itinerary_approved_at)}
