@@ -136,9 +136,11 @@ export function DashboardContent() {
 
     const paymentsDue = (pendingPayments || []).filter((p) => {
       if (!p.due_date) return false;
-      const d = parseISO(p.due_date);
+      if (p.trips?.status === "cancelled") return false;
+      const d = parseLocalDate(p.due_date);
       return isPast(d) || isWithinInterval(d, { start: now, end: sevenDays });
     }).length;
+
 
     const departuresSoon = (trips || []).filter((t) => {
       if (!t.depart_date || t.status === "cancelled") return false;
