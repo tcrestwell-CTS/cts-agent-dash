@@ -51,8 +51,10 @@ export default function PaymentsDue() {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
 
-  const overdue = (data || []).filter((p) => isPast(parseISO(p.due_date)));
-  const upcoming = (data || []).filter((p) => !isPast(parseISO(p.due_date)));
+  const active = (data || []).filter((p) => (p.trips as any)?.status !== "cancelled");
+  const overdue = active.filter((p) => isPast(parseLocalDate(p.due_date)));
+  const upcoming = active.filter((p) => !isPast(parseLocalDate(p.due_date)));
+
 
   const totalDue = (data || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
