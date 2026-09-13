@@ -77,7 +77,7 @@ serve(async (req) => {
         body: JSON.stringify({
           data: {
             slices,
-            passengers,
+            passengers: normalizedPassengers,
             cabin_class: cabin_class || "economy",
             max_connections: max_connections ?? 1,
           },
