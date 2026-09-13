@@ -197,6 +197,13 @@ Deno.serve(async (req) => {
             .maybeSingle(),
         ]);
 
+      const { data: signupRow } = await supabaseAdmin
+        .from("group_signups")
+        .select("number_of_travelers")
+        .eq("sub_trip_id", subTrip.id)
+        .maybeSingle();
+      const travelerCount = Math.max(1, Number(signupRow?.number_of_travelers) || 1);
+
       const { data: payments } = await supabaseAdmin
         .from("trip_payments")
         .select("id, amount, status, due_date, payment_type, payment_date")
@@ -271,6 +278,7 @@ Deno.serve(async (req) => {
           client: client || { name: "Traveler", email: "", phone: null },
           cabin,
           booking,
+          travelerCount,
           depositPayment,
           payments: allPayments,
           totalPaid,
