@@ -342,9 +342,14 @@ export default function GroupLanding() {
     return returnStr ? `${depart} – ${returnStr}` : depart;
   };
 
-  // Featured pre-stay hotel: a hotel item with photos gets its own section
+  // Featured pre-stay hotel: only the Hilton Hawaiian Village stay has saved
+  // room rates (PRESTAY_ROOM_OPTIONS), so other trips' hotels stay in the
+  // regular day-by-day itinerary instead of showing Hawaii pricing.
   const prestayHotel = data.itineraryHighlights.find(
-    (i) => i.category === "hotel" && getItemImages(i).length > 0
+    (i) =>
+      i.category === "hotel" &&
+      getItemImages(i).length > 0 &&
+      /hilton hawaiian village/i.test(`${i.title || ""} ${i.location || ""}`)
   ) || null;
 
   // Group itinerary items by day (hotel with photos is featured separately)
