@@ -129,8 +129,10 @@ function buildInclusionsList(supplierTypes: string[]): string[] {
 
   if (types.some(t => ["hotel", "lodge", "resort", "accommodation", "lodging", "villa"].some(k => t.includes(k))))
     inclusions.push("All accommodations as outlined");
-  if (types.some(t => ["cruise", "cruise line"].some(k => t.includes(k))))
+  if (types.some(t => ["cruise", "cruise line"].some(k => t.includes(k)))) {
     inclusions.push("Cruise stateroom & on-board amenities");
+    inclusions.push("Free at Sea package — all inclusive");
+  }
   if (types.some(t => ["transportation", "transfer", "car rental", "rail", "train", "shuttle"].some(k => t.includes(k))))
     inclusions.push("Transfers & ground transportation");
   if (types.some(t => ["tour", "activity", "excursion", "experience", "sightseeing"].some(k => t.includes(k))))
