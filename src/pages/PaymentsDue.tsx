@@ -7,8 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreditCard, ChevronRight } from "lucide-react";
-import { format, parseISO, isPast, differenceInDays } from "date-fns";
-import { cn } from "@/lib/utils";
+import { format, isPast, differenceInDays } from "date-fns";
+import { cn, parseLocalDate } from "@/lib/utils";
+
 
 type PaymentRow = {
   id: string;
@@ -35,7 +36,7 @@ export default function PaymentsDue() {
       const { data, error } = await supabase
         .from("trip_payments")
         .select(
-          "id, amount, due_date, payment_type, details, trip_id, trips(trip_name, destination, client_id, clients!trips_client_id_fkey(name))"
+          "id, amount, due_date, payment_type, details, trip_id, trips(trip_name, destination, status, client_id, clients!trips_client_id_fkey(name))"
         )
         .eq("status", "pending")
         .not("due_date", "is", null)
@@ -50,10 +51,12 @@ export default function PaymentsDue() {
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
 
-  const overdue = (data || []).filter((p) => isPast(parseISO(p.due_date)));
-  const upcoming = (data || []).filter((p) => !isPast(parseISO(p.due_date)));
+  const active = (data || []).filter((p) => (p.trips as any)?.status !== "cancelled");
+  const overdue = active.filter((p) => isPast(parseLocalDate(p.due_date)));
+  const upcoming = active.filter((p) => !isPast(parseLocalDate(p.due_date)));
 
-  const totalDue = (data || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+  const totalDue = active.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
   return (
     <DashboardLayout>
@@ -80,7 +83,7 @@ export default function PaymentsDue() {
               <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
-        ) : (data || []).length === 0 ? (
+        ) : active.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               No unpaid payments due.
@@ -88,9 +91,10 @@ export default function PaymentsDue() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {(data || []).map((p) => {
-              const due = parseISO(p.due_date);
+            {active.map((p) => {
+              const due = parseLocalDate(p.due_date);
               const daysOut = differenceInDays(due, new Date());
+
               const isOverdue = isPast(due);
               return (
                 <Card

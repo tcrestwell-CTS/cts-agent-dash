@@ -49,17 +49,25 @@ export function DashboardContent() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trip_payments")
-        .select("id, amount, due_date, status")
+        .select("id, amount, due_date, status, trip_id, trips(status)")
         .eq("status", "pending")
         .not("due_date", "is", null)
         .order("due_date", { ascending: true })
-        .limit(50);
+        .limit(1000);
       if (error) throw error;
-      return data || [];
+      return (data || []) as Array<{
+        id: string;
+        amount: number;
+        due_date: string | null;
+        status: string;
+        trip_id: string;
+        trips: { status: string | null } | null;
+      }>;
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5,
   });
+
 
   const { data: recentActivity } = useQuery({
     queryKey: ["dashboard-recent-activity", user?.id],
@@ -128,9 +136,11 @@ export function DashboardContent() {
 
     const paymentsDue = (pendingPayments || []).filter((p) => {
       if (!p.due_date) return false;
-      const d = parseISO(p.due_date);
+      if (p.trips?.status === "cancelled") return false;
+      const d = parseLocalDate(p.due_date);
       return isPast(d) || isWithinInterval(d, { start: now, end: sevenDays });
     }).length;
+
 
     const departuresSoon = (trips || []).filter((t) => {
       if (!t.depart_date || t.status === "cancelled") return false;
