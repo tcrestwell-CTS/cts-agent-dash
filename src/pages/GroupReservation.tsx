@@ -57,6 +57,7 @@ interface ReservationData {
     gross_sales: number;
     status: string;
   } | null;
+  travelerCount?: number | null;
   depositPayment: {
     id: string;
     amount: number;
@@ -221,7 +222,9 @@ export default function GroupReservation() {
                 <Users className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
                   <p className="text-sm text-gray-500">Travelers</p>
-                  <p className="font-medium text-gray-900">{data.subTrip.trip_name.includes("—") ? "2" : "1"} on record</p>
+                  <p className="font-medium text-gray-900">
+                    {Math.max(1, Number(data.travelerCount) || 1)} on record
+                  </p>
                 </div>
               </div>
 

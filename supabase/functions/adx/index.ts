@@ -13,7 +13,7 @@
 // =============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const ADX_KEY = Deno.env.get("ADX_API_KEY") ?? "";
 const ADX_BASE = (Deno.env.get("ADX_BASE_URL") ?? "https://api.traveledge.com/adx/v1").replace(/\/$/, "");
