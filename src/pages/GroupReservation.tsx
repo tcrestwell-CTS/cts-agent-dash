@@ -57,6 +57,7 @@ interface ReservationData {
     gross_sales: number;
     status: string;
   } | null;
+  travelerCount?: number | null;
   depositPayment: {
     id: string;
     amount: number;
