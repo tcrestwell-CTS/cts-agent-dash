@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const PE_KEY = Deno.env.get("PROJECT_EXPEDITION_API_KEY") ?? "";
 const PE_BASE = (Deno.env.get("PROJECT_EXPEDITION_BASE_URL") ?? "https://api.projectexpedition.com/v1").replace(/\/$/, "");
