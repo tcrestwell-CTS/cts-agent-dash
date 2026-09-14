@@ -18,8 +18,9 @@ export default function AcademyCurriculum() {
           Curriculum
         </h1>
         <p className="mt-2 max-w-[62ch] text-[14.5px]" style={{ color: "var(--academy-ink-soft)" }}>
-          Six modules take you from orientation to booking-ready. Module 7 is an elective cruise pathway that opens once
-          you finish research and quoting.
+          Orientation through Module 6 is the foundational core — roughly 60 to 70 hours — taking you from your first day
+          to booking-ready. Modules 7 to 13 are ongoing specialty education, open alongside the core rather than gated
+          behind it. Supervised bookings begin during the foundational track, not after it.
         </p>
       </header>
 

@@ -4,17 +4,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const ACADEMY_TRACK = "academy";
-export const FOUNDATION_MODULE_COUNT = 6;
+export const FOUNDATION_MODULE_COUNT = 7;
 
 /** Short names used under each waypoint on the route tracker. */
 export const MODULE_SHORT_NAMES: Record<number, string> = {
   1: "Orientation",
   2: "Industry",
-  3: "Discovery",
-  4: "Quoting",
-  5: "CRM",
-  6: "Payments",
-  7: "Cruise",
+  3: "Compliance",
+  4: "Sales",
+  5: "Quoting",
+  6: "CRM",
+  7: "Payments",
+  8: "Cruise",
+  9: "Resorts",
+  10: "Specialty",
+  11: "Groups",
+  12: "Marketing",
+  13: "Service",
+  14: "Growth",
+  15: "Capstone",
 };
 
 export interface AcademyLesson {
