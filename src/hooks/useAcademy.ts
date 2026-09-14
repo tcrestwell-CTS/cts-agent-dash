@@ -36,6 +36,7 @@ export interface AcademyLesson {
   sort_order: number;
   estimated_minutes: number | null;
   is_required: boolean;
+  quiz_id: string | null;
   content_source_name: string | null;
   content_source_updated_at: string | null;
 }
