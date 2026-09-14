@@ -1,0 +1,252 @@
+/* ── CTN Travel Academy ────────────────────────────────────────────────
+   Scoped visual identity for the Academy section only. Tokens live on
+   :root under academy-* names so they never collide with the dashboard
+   design system; every rule below is nested under .academy.
+*/
+
+:root {
+  --academy-pine: #2C5282;
+  --academy-pine-deep: #1A365D;
+  --academy-gold: #D69E2E;
+  --academy-gold-deep: #9C6B0C;
+  --academy-gold-hover: #B8860B;
+  --academy-parchment: #F0F4F3;
+  --academy-surface: #FFFFFF;
+  --academy-ink: #1A202C;
+  --academy-ink-soft: #4A5568;
+  --academy-line: rgba(44, 82, 130, 0.14);
+}
+
+.academy {
+  background: var(--academy-parchment);
+  color: var(--academy-ink);
+  font-family: "Inter", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.academy :is(h1, h2, h3, h4, .academy-display) {
+  font-family: "Lora", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--academy-ink);
+}
+
+.academy :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--academy-gold);
+  outline-offset: 2px;
+}
+
+/* Cards: flat surface, hairline border, no shadow */
+.academy-card {
+  background: var(--academy-surface);
+  border: 1px solid var(--academy-line);
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.academy-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--academy-ink-soft);
+}
+
+.academy-grid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .academy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Waypoint route tracker ───────────────────────────────────────────── */
+.academy-waypoints {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  padding-top: 4px;
+}
+
+.academy-waypoints-track,
+.academy-waypoints-fill {
+  position: absolute;
+  top: 21px; /* circle vertical centre: 4px pad + 34px/2 */
+  height: 0;
+  border-top-width: 2px;
+}
+
+.academy-waypoints-track {
+  left: 8.333%;
+  right: 8.333%;
+  border-top-style: dashed;
+  border-top-color: var(--academy-line);
+}
+
+.academy-waypoints-fill {
+  left: 8.333%;
+  border-top-style: solid;
+  border-top-color: var(--academy-pine);
+  transition: width 400ms ease;
+}
+
+.academy-waypoint {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.academy-waypoint-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--academy-parchment);
+}
+
+.academy-waypoint-dot[data-state="complete"] {
+  background: var(--academy-pine);
+  color: #fff;
+  border: 2px solid var(--academy-pine);
+}
+
+.academy-waypoint-dot[data-state="current"] {
+  background: var(--academy-gold);
+  color: #fff;
+  border: 2px solid var(--academy-gold);
+}
+
+.academy-waypoint-dot[data-state="upcoming"] {
+  background: var(--academy-surface);
+  color: var(--academy-ink-soft);
+  border: 1.5px solid var(--academy-line);
+}
+
+.academy-waypoint-dot[data-state="current"]::after {
+  content: "";
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 2px solid var(--academy-gold);
+  animation: academy-pulse 2.4s ease-out infinite;
+}
+
+@keyframes academy-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  70% { transform: scale(1.85); opacity: 0; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+
+.academy-waypoint-name {
+  font-size: 11.5px;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--academy-ink-soft);
+  padding: 0 4px;
+}
+
+.academy-waypoint-name[data-state="current"] {
+  color: var(--academy-ink);
+  font-weight: 500;
+}
+
+.academy-waypoint-here {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--academy-gold-deep);
+  text-align: center;
+}
+
+/* Mobile: vertical route with the track running down the left */
+@media (max-width: 640px) {
+  .academy-waypoints {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 18px;
+    padding-left: 6px;
+  }
+  .academy-waypoints-track,
+  .academy-waypoints-fill {
+    top: 21px;
+    bottom: 21px;
+    left: 23px;
+    right: auto;
+    height: auto;
+    width: 0;
+    border-top-width: 0;
+    border-left-width: 2px;
+  }
+  .academy-waypoints-track {
+    border-left-style: dashed;
+    border-left-color: var(--academy-line);
+  }
+  .academy-waypoints-fill {
+    border-left-style: solid;
+    border-left-color: var(--academy-pine);
+    bottom: auto;
+    transition: height 400ms ease;
+  }
+  .academy-waypoint {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .academy-waypoint-name,
+  .academy-waypoint-here {
+    text-align: left;
+  }
+  .academy-waypoint-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+/* ── Prose for lesson bodies ──────────────────────────────────────────── */
+.academy-prose {
+  max-width: 68ch;
+  font-size: 15.5px;
+  line-height: 1.72;
+  color: var(--academy-ink);
+}
+.academy-prose h2 {
+  font-size: 20px;
+  margin: 28px 0 10px;
+}
+.academy-prose h3 {
+  font-size: 16.5px;
+  margin: 22px 0 8px;
+}
+.academy-prose p { margin: 0 0 14px; }
+.academy-prose ul,
+.academy-prose ol { margin: 0 0 16px 20px; }
+.academy-prose li { margin-bottom: 6px; }
+.academy-prose ul { list-style: disc; }
+.academy-prose ol { list-style: decimal; }
+.academy-prose strong { font-weight: 600; }
+.academy-prose em { font-style: italic; }
+.academy-prose blockquote {
+  border-left: 2px solid var(--academy-gold);
+  background: rgba(214, 158, 46, 0.07);
+  padding: 12px 16px;
+  margin: 0 0 18px;
+  color: var(--academy-ink);
+  font-size: 14.5px;
+  border-radius: 0 8px 8px 0;
+}
+.academy-prose blockquote p:last-child { margin-bottom: 0; }
