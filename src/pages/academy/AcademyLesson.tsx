@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { AcademyLayout, AcademyCard, AcademyEyebrow } from "@/components/academy/AcademyLayout";
 import { useAcademyData, useCompleteAcademyLesson, useTouchAcademyLesson } from "@/hooks/useAcademy";
+import { TrainingQuiz } from "@/components/training/TrainingQuiz";
+import { useMyQuizAttempts } from "@/hooks/useTrainingQuizzes";
 import { toast } from "@/hooks/use-toast";
 
 export default function AcademyLesson() {
@@ -12,6 +14,7 @@ export default function AcademyLesson() {
   const academy = useAcademyData();
   const complete = useCompleteAcademyLesson();
   const touch = useTouchAcademyLesson();
+  const [quizPassed, setQuizPassed] = useState(false);
 
   const found = useMemo(() => {
     for (const m of academy.modules) {
