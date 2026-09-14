@@ -148,7 +148,7 @@ export default function AcademyLesson() {
 
       <div
         className="fixed bottom-0 left-0 right-0 z-20 flex flex-wrap items-center gap-3"
-        style={{ background: "var(--academy-surface)", borderTop: "1px solid var(--academy-line)", padding: "14px 40px" }}
+        style={{ background: "var(--academy-surface)", borderTop: "1px solid var(--academy-line)", padding: "14px 96px 14px 40px" }}
       >
         <button
           disabled={!previous}
