@@ -90,6 +90,15 @@ export default function AcademyLesson() {
             <ReactMarkdown>{lesson.content_body || lesson.description || "Content coming soon."}</ReactMarkdown>
           </div>
 
+          {lesson.content_source_name && (
+            <p className="mt-7 text-[11.5px]" style={{ color: "var(--academy-ink-soft)" }}>
+              CTN source: {lesson.content_source_name}
+              {lesson.content_source_updated_at
+                ? ` · Updated ${new Date(lesson.content_source_updated_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                : ""}
+            </p>
+          )}
+
           {lesson.external_url && (
             <a
               href={lesson.external_url}

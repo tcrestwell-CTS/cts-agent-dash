@@ -7,5 +7,5 @@
 - [ ] Update CTN-Hosting Payment Link metadata, webhook matching, async-payment events, administrator alerts, and daily retry job. Blocked: CTN-Hosting is not an accessible project/repository in this workspace.
 - [ ] Mark Elvira's external application paid and complete onboarding. Blocked: Stripe invoice `in_1UEqRvPJljF0WNcYMeapjRYt` currently shows $0 paid/$29 remaining, and the external `ctn_applications` database is not connected here.
 
-- [ ] Add staff-only Academy material upload and lesson-assignment workflow
+- [x] Add staff-only Academy material upload and lesson-assignment workflow
 - [ ] Process uploaded CTN training files and replace matching lesson drafts

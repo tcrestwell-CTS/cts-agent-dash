@@ -3,6 +3,7 @@ import "@/styles/academy.css";
 import ctnLogo from "@/assets/CTN-Logo.png";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanViewTeam } from "@/hooks/useAdmin";
 
 const NAV = [
   { label: "Dashboard", to: "/academy", end: true },
@@ -25,6 +26,7 @@ export function useAdvisorName(): { first: string; full: string; initials: strin
 
 export function AcademyLayout({ children }: { children: React.ReactNode }) {
   const { initials } = useAdvisorName();
+  const { canView } = useCanViewTeam();
 
   return (
     <div className="academy">
@@ -76,6 +78,19 @@ export function AcademyLayout({ children }: { children: React.ReactNode }) {
               {item.label}
             </NavLink>
           ))}
+          {canView && (
+            <NavLink
+              to="/academy/materials"
+              className="pb-1 text-[13.5px] transition-colors"
+              style={({ isActive }) => ({
+                color: isActive ? "#fff" : "rgba(255,255,255,0.75)",
+                fontWeight: isActive ? 500 : 400,
+                boxShadow: isActive ? "inset 0 -2px 0 0 var(--academy-gold)" : "none",
+              })}
+            >
+              Training Materials
+            </NavLink>
+          )}
         </nav>
 
         <div className="ml-auto">
