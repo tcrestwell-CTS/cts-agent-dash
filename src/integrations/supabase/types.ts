@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      academy_source_materials: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          extracted_text: string | null
+          file_name: string
+          file_size: number
+          generated_draft: string | null
+          id: string
+          lesson_ids: string[]
+          mime_type: string
+          published_lesson_id: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          extracted_text?: string | null
+          file_name: string
+          file_size?: number
+          generated_draft?: string | null
+          id?: string
+          lesson_ids?: string[]
+          mime_type: string
+          published_lesson_id?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          extracted_text?: string | null
+          file_name?: string
+          file_size?: number
+          generated_draft?: string | null
+          id?: string
+          lesson_ids?: string[]
+          mime_type?: string
+          published_lesson_id?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_source_materials_published_lesson_id_fkey"
+            columns: ["published_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "training_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_sessions: {
         Row: {
           created_at: string
