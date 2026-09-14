@@ -205,10 +205,22 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
           itineraries: [],
           optionBlocks: [],
           pricingLines: [],
+          insuranceSettings: null,
+          insuranceQuotes: [],
+          insuranceResponses: [],
         };
       }
 
-      const [bookingsRes, paymentsRes, itinerariesRes, itineraryRes, optionBlocksRes] = await Promise.all([
+      const [
+        bookingsRes,
+        paymentsRes,
+        itinerariesRes,
+        itineraryRes,
+        optionBlocksRes,
+        insuranceSettingsRes,
+        insuranceQuotesRes,
+        insuranceResponsesRes,
+      ] = await Promise.all([
         supabase
           .from("bookings")
           .select("id, confirmation_number, status, total_price, gross_sales, supplier_id, suppliers(name, supplier_type)")
@@ -237,6 +249,21 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
           .select("*")
           .eq("trip_id", tripId)
           .order("day_number", { ascending: true }),
+        supabase
+          .from("trip_insurance_settings")
+          .select("*")
+          .eq("trip_id", tripId)
+          .maybeSingle(),
+        supabase
+          .from("trip_insurance_quotes")
+          .select("*")
+          .eq("trip_id", tripId)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("trip_insurance_responses")
+          .select("*")
+          .eq("trip_id", tripId)
+          .order("responded_at", { ascending: false }),
       ]);
 
       if (bookingsRes.error) throw bookingsRes.error;
@@ -244,6 +271,9 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
       if (itinerariesRes.error) throw itinerariesRes.error;
       if (itineraryRes.error) throw itineraryRes.error;
       if (optionBlocksRes.error) throw optionBlocksRes.error;
+      if (insuranceSettingsRes.error) throw insuranceSettingsRes.error;
+      if (insuranceQuotesRes.error) throw insuranceQuotesRes.error;
+      if (insuranceResponsesRes.error) throw insuranceResponsesRes.error;
 
       // Transform bookings to portal shape (mirrors portal-data edge function)
       const supplierTypeToBookingType = (st: string | null): string => {
@@ -298,6 +328,9 @@ export function useAdminPortalTripDetail(clientId: string | undefined, tripId: s
         itineraries: itinerariesRes.data || [],
         optionBlocks: optionBlocksRes.data || [],
         pricingLines,
+        insuranceSettings: insuranceSettingsRes.data,
+        insuranceQuotes: insuranceQuotesRes.data || [],
+        insuranceResponses: insuranceResponsesRes.data || [],
       };
     },
     enabled: !!clientId && !!tripId,
