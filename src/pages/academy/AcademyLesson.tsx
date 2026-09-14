@@ -110,6 +110,20 @@ export default function AcademyLesson() {
               Open the linked resource →
             </a>
           )}
+
+          {lesson.quiz_id && (
+            <div className="mt-8">
+              <AcademyEyebrow>Knowledge check</AcademyEyebrow>
+              <div className="mt-3">
+                <TrainingQuiz quizId={lesson.quiz_id} onPass={() => setQuizPassed(true)} />
+              </div>
+              {!quizPassed && !quizAlreadyPassed && (
+                <p className="mt-3 text-[12px]" style={{ color: "var(--academy-ink-soft)" }}>
+                  Pass the knowledge check to complete this lesson.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <AcademyCard>
