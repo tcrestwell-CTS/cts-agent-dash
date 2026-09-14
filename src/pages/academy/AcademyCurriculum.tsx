@@ -27,16 +27,14 @@ export default function AcademyCurriculum() {
       <div className="academy-grid">
         <div className="space-y-6">
           {academy.modules.map((m) => {
-            const status = m.isElective
-              ? m.isLocked
-                ? "Unlocks after Module 4"
-                : "CLIA pathway"
-              : m.isComplete
-                ? "Complete"
-                : m.isStarted
-                  ? `${m.completedCount} of ${m.totalCount} lessons`
-                  : m.isLocked
-                    ? "Locked"
+            const status = m.isComplete
+              ? "Complete"
+              : m.isStarted
+                ? `${m.completedCount} of ${m.totalCount} lessons`
+                : m.isLocked
+                  ? "Locked"
+                  : m.isElective
+                    ? "Specialty · open now"
                     : "Not started";
 
             return (
