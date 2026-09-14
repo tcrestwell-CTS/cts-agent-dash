@@ -37,6 +37,7 @@ const AcademyCurriculum   = lazy(() => import("./pages/academy/AcademyCurriculum
 const AcademyLibrary      = lazy(() => import("./pages/academy/AcademyLibrary"));
 const AcademyCertificates = lazy(() => import("./pages/academy/AcademyCertificates"));
 const AcademyLesson       = lazy(() => import("./pages/academy/AcademyLesson"));
+const AcademyMaterials    = lazy(() => import("./pages/academy/AcademyMaterials"));
 const Commissions         = lazy(() => import("./pages/Commissions"));
 const CommissionReport    = lazy(() => import("./pages/CommissionReport"));
 const SupplierPaymentsDue = lazy(() => import("./pages/SupplierPaymentsDue"));
@@ -225,6 +226,7 @@ const App = () => (
                 <Route path="/academy/library" element={<ProtectedRoute><AcademyLibrary /></ProtectedRoute>} />
                 <Route path="/academy/certificates" element={<ProtectedRoute><AcademyCertificates /></ProtectedRoute>} />
                 <Route path="/academy/lesson/:lessonId" element={<ProtectedRoute><AcademyLesson /></ProtectedRoute>} />
+                <Route path="/academy/materials" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><AcademyMaterials /></AdminRoute></ProtectedRoute>} />
                 <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/back-office" element={<ProtectedRoute><BackOfficeRoute><BackOffice /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/commission-report" element={<ProtectedRoute><BackOfficeRoute><CommissionReport /></BackOfficeRoute></ProtectedRoute>} />
