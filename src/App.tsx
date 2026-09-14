@@ -215,6 +215,11 @@ const App = () => (
                 <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
                 <Route path="/training/lesson/:lessonId" element={<ProtectedRoute><TrainingLessonDetail /></ProtectedRoute>} />
                 <Route path="/training/admin" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><TrainingAdmin /></AdminRoute></ProtectedRoute>} />
+                <Route path="/academy" element={<ProtectedRoute><AcademyDashboard /></ProtectedRoute>} />
+                <Route path="/academy/curriculum" element={<ProtectedRoute><AcademyCurriculum /></ProtectedRoute>} />
+                <Route path="/academy/library" element={<ProtectedRoute><AcademyLibrary /></ProtectedRoute>} />
+                <Route path="/academy/certificates" element={<ProtectedRoute><AcademyCertificates /></ProtectedRoute>} />
+                <Route path="/academy/lesson/:lessonId" element={<ProtectedRoute><AcademyLesson /></ProtectedRoute>} />
                 <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/back-office" element={<ProtectedRoute><BackOfficeRoute><BackOffice /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/commission-report" element={<ProtectedRoute><BackOfficeRoute><CommissionReport /></BackOfficeRoute></ProtectedRoute>} />

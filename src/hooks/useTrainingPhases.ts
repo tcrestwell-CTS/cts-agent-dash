@@ -10,6 +10,7 @@ export function useTrainingPhases() {
       const { data, error } = await supabase
         .from("training_phases")
         .select("*")
+        .eq("track", "crm")
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return data;
