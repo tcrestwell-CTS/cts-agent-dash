@@ -4,6 +4,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { AcademyLayout, AcademyCard, AcademyEyebrow, useAdvisorName } from "@/components/academy/AcademyLayout";
 import { WaypointTracker } from "@/components/academy/WaypointTracker";
 import { MentorDrawer } from "@/components/academy/MentorDrawer";
+import { CliaProgressCard } from "@/components/academy/CliaProgressCard";
 import { useAcademyData } from "@/hooks/useAcademy";
 import {
   useAcademyBadges,
@@ -247,6 +248,9 @@ export default function AcademyDashboard() {
               </div>
             </TooltipProvider>
           </AcademyCard>
+
+          <CliaProgressCard />
+
 
           <AcademyCard>
             <AcademyEyebrow>Announcements</AcademyEyebrow>
