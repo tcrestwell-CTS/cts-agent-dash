@@ -212,7 +212,7 @@ export function useSendMentorMessage() {
           sender_id: user.id,
           recipient_id: mentorUserId,
           message: body,
-          channel: "academy",
+          channel: "dm",
         },
       ]);
       if (error) throw error;

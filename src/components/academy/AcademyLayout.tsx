@@ -13,7 +13,7 @@ const NAV = [
 
 export function useAdvisorName(): { first: string; full: string; initials: string } {
   const { user } = useAuth();
-  const { data: profile } = useProfile();
+  const { profile } = useProfile();
   const full = profile?.full_name || (user?.user_metadata?.full_name as string) || "Advisor";
   const parts = full.trim().split(/\s+/);
   return {
