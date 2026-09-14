@@ -99,6 +99,8 @@ export default function AcademyCertificates() {
   const inProgress = (catalogue || []).filter((c) => !held.has(c.id));
 
   const moduleTitle = (id: string) => academy.modules.find((m) => m.id === id)?.title || "Module";
+  const moduleOrder = (id: string) => academy.modules.find((m) => m.id === id)?.sortOrder ?? 99;
+  const orderedModules = (ids: string[]) => [...ids].sort((a, b) => moduleOrder(a) - moduleOrder(b));
 
   const share = async (credentialId: string) => {
     const url = `${window.location.origin}/academy/certificates?credential=${credentialId}`;
@@ -223,7 +225,7 @@ export default function AcademyCertificates() {
                             {remaining.length} module{remaining.length === 1 ? "" : "s"} left before this is issued.
                           </p>
                           <ul className="mt-3.5 space-y-2">
-                            {c.required_module_ids.map((id) => {
+                            {orderedModules(c.required_module_ids).map((id) => {
                               const met = completedModuleIds.includes(id);
                               return (
                                 <li key={id} className="flex items-center gap-2.5 text-[13.5px]">
