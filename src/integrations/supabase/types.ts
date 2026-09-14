@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      academy_material_lesson_drafts: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          generated_draft: string | null
+          id: string
+          lesson_id: string
+          material_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          generated_draft?: string | null
+          id?: string
+          lesson_id: string
+          material_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          generated_draft?: string | null
+          id?: string
+          lesson_id?: string
+          material_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_material_lesson_drafts_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "training_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_material_lesson_drafts_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "academy_source_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academy_source_materials: {
         Row: {
           created_at: string
@@ -9423,6 +9471,8 @@ export type Database = {
         Row: {
           checklist_items: Json | null
           content_body: string | null
+          content_source_name: string | null
+          content_source_updated_at: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -9443,6 +9493,8 @@ export type Database = {
         Insert: {
           checklist_items?: Json | null
           content_body?: string | null
+          content_source_name?: string | null
+          content_source_updated_at?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -9463,6 +9515,8 @@ export type Database = {
         Update: {
           checklist_items?: Json | null
           content_body?: string | null
+          content_source_name?: string | null
+          content_source_updated_at?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
