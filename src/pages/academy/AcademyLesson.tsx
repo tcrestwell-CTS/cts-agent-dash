@@ -198,7 +198,7 @@ export default function AcademyLesson() {
         </button>
         <button
           onClick={markComplete}
-          disabled={complete.isPending}
+          disabled={complete.isPending || (!!lesson.quiz_id && !isDone && !quizPassed && !quizAlreadyPassed)}
           className="ml-auto rounded-[10px] px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
           style={{ background: "var(--academy-gold)", color: "#fff" }}
         >
