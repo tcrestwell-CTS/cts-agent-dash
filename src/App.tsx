@@ -32,6 +32,11 @@ const TrainingPhaseDetail = lazy(() => import("./pages/TrainingPhaseDetail"));
 const TrainingModuleDetail = lazy(() => import("./pages/TrainingModuleDetail"));
 const TrainingLessonDetail = lazy(() => import("./pages/TrainingLessonDetail"));
 const TrainingAdmin       = lazy(() => import("./pages/TrainingAdmin"));
+const AcademyDashboard    = lazy(() => import("./pages/academy/AcademyDashboard"));
+const AcademyCurriculum   = lazy(() => import("./pages/academy/AcademyCurriculum"));
+const AcademyLibrary      = lazy(() => import("./pages/academy/AcademyLibrary"));
+const AcademyCertificates = lazy(() => import("./pages/academy/AcademyCertificates"));
+const AcademyLesson       = lazy(() => import("./pages/academy/AcademyLesson"));
 const Commissions         = lazy(() => import("./pages/Commissions"));
 const CommissionReport    = lazy(() => import("./pages/CommissionReport"));
 const SupplierPaymentsDue = lazy(() => import("./pages/SupplierPaymentsDue"));
@@ -215,6 +220,11 @@ const App = () => (
                 <Route path="/training/module/:moduleId" element={<ProtectedRoute><TrainingModuleDetail /></ProtectedRoute>} />
                 <Route path="/training/lesson/:lessonId" element={<ProtectedRoute><TrainingLessonDetail /></ProtectedRoute>} />
                 <Route path="/training/admin" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><TrainingAdmin /></AdminRoute></ProtectedRoute>} />
+                <Route path="/academy" element={<ProtectedRoute><AcademyDashboard /></ProtectedRoute>} />
+                <Route path="/academy/curriculum" element={<ProtectedRoute><AcademyCurriculum /></ProtectedRoute>} />
+                <Route path="/academy/library" element={<ProtectedRoute><AcademyLibrary /></ProtectedRoute>} />
+                <Route path="/academy/certificates" element={<ProtectedRoute><AcademyCertificates /></ProtectedRoute>} />
+                <Route path="/academy/lesson/:lessonId" element={<ProtectedRoute><AcademyLesson /></ProtectedRoute>} />
                 <Route path="/commissions" element={<ProtectedRoute><FeatureRoute feature="commissions"><Commissions /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/back-office" element={<ProtectedRoute><BackOfficeRoute><BackOffice /></BackOfficeRoute></ProtectedRoute>} />
                 <Route path="/commission-report" element={<ProtectedRoute><BackOfficeRoute><CommissionReport /></BackOfficeRoute></ProtectedRoute>} />
