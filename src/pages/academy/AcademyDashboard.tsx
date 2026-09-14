@@ -12,7 +12,7 @@ import {
   useIssueEarnedCertificates,
 } from "@/hooks/useAcademyExtras";
 import { useActiveAnnouncements } from "@/hooks/useTrainingAnnouncements";
-import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function relativeTime(iso: string | null): string {
@@ -28,7 +28,7 @@ function relativeTime(iso: string | null): string {
 export default function AcademyDashboard() {
   const navigate = useNavigate();
   const { first } = useAdvisorName();
-  const { profile } = useProfile();
+  const { user } = useAuth();
   const academy = useAcademyData();
   const { data: badges } = useAcademyBadges();
   const { data: announcements } = useActiveAnnouncements();
@@ -46,8 +46,8 @@ export default function AcademyDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [academy.isLoading, completedModuleIds.join(",")]);
 
-  const enrolled = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  const enrolled = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
 
   const earnedBadges = (badges || []).filter((b) => b.earnedAt);
@@ -234,11 +234,11 @@ export default function AcademyDashboard() {
                             fontFamily: "Lora, Georgia, serif",
                           }}
                         >
-                          {earned ? (b.icon || b.name?.[0] || "★") : "?"}
+                          {earned ? (b.icon || b.title?.[0] || "★") : "?"}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        <p className="text-[12.5px] font-medium">{b.name}</p>
+                        <p className="text-[12.5px] font-medium">{b.title}</p>
                         <p className="text-[11.5px] opacity-80">{b.description || "Complete the module to earn this."}</p>
                       </TooltipContent>
                     </Tooltip>
