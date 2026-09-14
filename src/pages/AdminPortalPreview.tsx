@@ -21,7 +21,7 @@ import {
   ArrowLeft, Home, Map, CreditCard, MessageSquare, FileText,
   MapPin, Calendar, DollarSign, User, Clock, CheckCircle2,
   Plane, ClipboardList, ChevronDown, ChevronUp, Hash, Lock,
-  Eye, MapPinned, Layers, FolderOpen, Download,
+  Eye, MapPinned, Layers, FolderOpen, Download, ShieldCheck, Star,
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -334,7 +334,18 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
   if (isLoading) return <TabSkeleton />;
   if (!data?.trip) return <p className="text-center text-muted-foreground py-12">Trip not found.</p>;
 
-  const { trip, bookings = [], payments = [], itinerary = [], itineraries = [], pricingLines = [] } = data;
+  const {
+    trip,
+    bookings = [],
+    payments = [],
+    itinerary = [],
+    itineraries = [],
+    pricingLines = [],
+    insuranceSettings,
+    insuranceQuotes = [],
+    insuranceResponses = [],
+  } = data;
+  const latestInsuranceResponse = insuranceResponses[0];
   const handleSelectionChange = (bookingId: string, picks: Record<string, boolean>) => {
     setPicksByBooking((prev) => {
       const existing = prev[bookingId] || {};
@@ -427,6 +438,83 @@ function TripDetailTab({ clientId, tripId, onBack }: { clientId?: string; tripId
           )}
 
           {itinerary.length > 0 && <ItineraryLocationTimeline items={itinerary} />}
+
+          {insuranceSettings?.ready_for_client_review && insuranceQuotes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" /> Travel Protection Options
+                    </CardTitle>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Choose the coverage that best fits your trip.
+                    </p>
+                  </div>
+                  {latestInsuranceResponse && (
+                    <Badge variant="outline" className="shrink-0">
+                      {latestInsuranceResponse.response_type === "accepted"
+                        ? "Coverage selected"
+                        : latestInsuranceResponse.response_type === "declined_buying_elsewhere"
+                          ? "Buying elsewhere"
+                          : "Coverage declined"}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {insuranceQuotes.map((quote: any) => {
+                  const isSelected = latestInsuranceResponse?.selected_quote_id === quote.id;
+                  return (
+                    <div
+                      key={quote.id}
+                      className={cn(
+                        "flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between",
+                        isSelected ? "border-primary bg-primary/5" : "border-border",
+                      )}
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">{quote.provider_name}</p>
+                          {quote.plan_name && <span className="text-sm text-muted-foreground">{quote.plan_name}</span>}
+                          {quote.is_recommended && (
+                            <Badge variant="outline" className="gap-1 border-warning/30 bg-warning/10 text-warning">
+                              <Star className="h-3 w-3" /> Recommended
+                            </Badge>
+                          )}
+                          {isSelected && <Badge>Selected</Badge>}
+                        </div>
+                        {quote.coverage_details && (
+                          <p className="text-sm text-muted-foreground">{quote.coverage_details}</p>
+                        )}
+                        {Number(quote.coverage_amount) > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Covers up to {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(quote.coverage_amount))}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3 sm:text-right">
+                        <div>
+                          <p className="text-lg font-bold">
+                            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(quote.premium_amount || 0))}
+                          </p>
+                          <p className="text-xs text-muted-foreground">policy premium</p>
+                        </div>
+                        <Button size="sm" disabled className="opacity-50">
+                          {isSelected ? "Selected" : "Select Plan"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {insuranceSettings.allow_skip_selection && !latestInsuranceResponse && (
+                  <p className="text-xs text-muted-foreground">
+                    The client may also decline coverage or indicate that they are purchasing it elsewhere.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Bookings */}
           <Card>
