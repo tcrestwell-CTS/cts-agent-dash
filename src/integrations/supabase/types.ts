@@ -9321,6 +9321,45 @@ export type Database = {
         }
         Relationships: []
       }
+      training_certificates: {
+        Row: {
+          created_at: string
+          credential_prefix: string
+          description: string | null
+          id: string
+          name: string
+          required_module_ids: string[]
+          requirement_notes: Json
+          sort_order: number
+          track: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credential_prefix: string
+          description?: string | null
+          id?: string
+          name: string
+          required_module_ids?: string[]
+          requirement_notes?: Json
+          sort_order?: number
+          track?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credential_prefix?: string
+          description?: string | null
+          id?: string
+          name?: string
+          required_module_ids?: string[]
+          requirement_notes?: Json
+          sort_order?: number
+          track?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_lessons: {
         Row: {
           checklist_items: Json | null
@@ -9455,6 +9494,7 @@ export type Database = {
           sort_order: number
           status: string
           title: string
+          unlock_after_module_id: string | null
           unlock_rule: string
           updated_at: string
         }
@@ -9471,6 +9511,7 @@ export type Database = {
           sort_order?: number
           status?: string
           title: string
+          unlock_after_module_id?: string | null
           unlock_rule?: string
           updated_at?: string
         }
@@ -9487,6 +9528,7 @@ export type Database = {
           sort_order?: number
           status?: string
           title?: string
+          unlock_after_module_id?: string | null
           unlock_rule?: string
           updated_at?: string
         }
@@ -9505,6 +9547,13 @@ export type Database = {
             referencedRelation: "training_phases"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "training_modules_v2_unlock_after_module_id_fkey"
+            columns: ["unlock_after_module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules_v2"
+            referencedColumns: ["id"]
+          },
         ]
       }
       training_phases: {
@@ -9519,6 +9568,7 @@ export type Database = {
           sort_order: number
           status: string
           title: string
+          track: string
           updated_at: string
         }
         Insert: {
@@ -9532,6 +9582,7 @@ export type Database = {
           sort_order?: number
           status?: string
           title: string
+          track?: string
           updated_at?: string
         }
         Update: {
@@ -9545,6 +9596,7 @@ export type Database = {
           sort_order?: number
           status?: string
           title?: string
+          track?: string
           updated_at?: string
         }
         Relationships: [
@@ -9666,6 +9718,54 @@ export type Database = {
         }
         Relationships: []
       }
+      training_resources: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_url: string | null
+          id: string
+          kind: string
+          size_label: string | null
+          sort_order: number
+          title: string
+          track: string
+          updated_at: string
+          updated_on: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          kind?: string
+          size_label?: string | null
+          sort_order?: number
+          title: string
+          track?: string
+          updated_at?: string
+          updated_on?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          kind?: string
+          size_label?: string | null
+          sort_order?: number
+          title?: string
+          track?: string
+          updated_at?: string
+          updated_on?: string
+        }
+        Relationships: []
+      }
       training_user_badges: {
         Row: {
           badge_id: string
@@ -9694,6 +9794,41 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "training_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_user_certificates: {
+        Row: {
+          certificate_id: string
+          created_at: string
+          credential_id: string
+          id: string
+          issued_on: string
+          user_id: string
+        }
+        Insert: {
+          certificate_id: string
+          created_at?: string
+          credential_id: string
+          id?: string
+          issued_on?: string
+          user_id: string
+        }
+        Update: {
+          certificate_id?: string
+          created_at?: string
+          credential_id?: string
+          id?: string
+          issued_on?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_user_certificates_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "training_certificates"
             referencedColumns: ["id"]
           },
         ]
