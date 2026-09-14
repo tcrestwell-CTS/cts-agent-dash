@@ -480,7 +480,7 @@ export default function TripInsurance() {
                     <div className="flex items-start gap-1.5 text-xs text-destructive">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                       <span>
-                        Client is missing: {missingClientFields.join(", ")}. 
+                        Client is missing: {missingClientFields.join(", ")}.
                         {clientId && (
                           <Link to={`/contacts/${clientId}`} className="underline ml-1 font-medium">
                             Update client profile →
@@ -488,6 +488,17 @@ export default function TripInsurance() {
                         )}
                       </span>
                     </div>
+                  )}
+                  {!canToggleReady && !(settings?.ready_for_client_review) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => upsertSettings.mutate({ ready_for_client_review: true })}
+                      disabled={upsertSettings.isPending || !clientId}
+                    >
+                      Override and mark ready anyway
+                    </Button>
                   )}
                 </div>
                 <div className="flex items-center justify-between">
