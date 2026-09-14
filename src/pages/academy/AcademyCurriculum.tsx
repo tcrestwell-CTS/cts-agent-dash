@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { AcademyLayout, AcademyCard, AcademyEyebrow } from "@/components/academy/AcademyLayout";
-import { useAcademyData, formatHours } from "@/hooks/useAcademy";
+import { useAcademyData, formatHours, FOUNDATION_MODULE_COUNT } from "@/hooks/useAcademy";
 
 export default function AcademyCurriculum() {
   const navigate = useNavigate();
@@ -120,7 +120,7 @@ export default function AcademyCurriculum() {
               Track summary
             </p>
             <h2 className="mt-2 text-[26px]" style={{ color: "#fff", fontFamily: "Lora, Georgia, serif" }}>
-              {academy.completedFoundationCount} of 6 complete
+              {academy.completedFoundationCount} of {academy.foundations.length || FOUNDATION_MODULE_COUNT} complete
             </h2>
             <div
               className="mt-4"
@@ -128,7 +128,7 @@ export default function AcademyCurriculum() {
             >
               <div
                 style={{
-                  width: `${(academy.completedFoundationCount / 6) * 100}%`,
+                  width: `${(academy.completedFoundationCount / (academy.foundations.length || FOUNDATION_MODULE_COUNT)) * 100}%`,
                   height: "100%",
                   background: "var(--academy-gold)",
                 }}
@@ -143,16 +143,17 @@ export default function AcademyCurriculum() {
 
           {academy.electives.map((e) => (
             <AcademyCard key={e.id}>
-              <AcademyEyebrow>Elective pathway</AcademyEyebrow>
+              <AcademyEyebrow>Specialty pathway</AcademyEyebrow>
               <h3 className="mt-1.5 text-[17px]">{e.title}</h3>
               <p className="mt-2 text-[13px]" style={{ color: "var(--academy-ink-soft)" }}>
                 {e.isLocked
-                  ? "Opens once Module 4 is complete. Builds toward CLIA cruise selling credentials."
-                  : "Open now. Builds toward CLIA cruise selling credentials."}
+                  ? "Opens once its prerequisite module is complete."
+                  : e.description ||
+                    `${e.totalCount} lessons · about ${formatHours(e.minutes)}. Open now, alongside the foundational track.`}
               </p>
               <button
                 onClick={() => e.lessons[0] && navigate(`/academy/lesson/${e.lessons[0].id}`)}
-                disabled={e.isLocked}
+                disabled={e.isLocked || e.lessons.length === 0}
                 className="mt-4 w-full rounded-[10px] px-4 py-2.5 text-[13px] font-medium disabled:opacity-50"
                 style={{ border: "1px solid var(--academy-line)", color: "var(--academy-pine)" }}
               >
