@@ -120,12 +120,12 @@ export default function AcademyDashboard() {
             <div>
               {academy.modules.map((m, i) => {
                 const isCurrent = m.id === academy.currentModule?.id;
-                const status = m.isElective
-                  ? "CLIA pathway"
-                  : m.isComplete
-                    ? "Complete"
-                    : m.isStarted
-                      ? `${m.completedCount} of ${m.totalCount} lessons`
+                const status = m.isComplete
+                  ? "Complete"
+                  : m.isStarted
+                    ? `${m.completedCount} of ${m.totalCount} lessons`
+                    : m.isElective
+                      ? "Elective · open"
                       : "Not started";
                 return (
                   <Link
