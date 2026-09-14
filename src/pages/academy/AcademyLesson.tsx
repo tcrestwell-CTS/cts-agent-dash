@@ -24,6 +24,10 @@ export default function AcademyLesson() {
     return null;
   }, [academy.modules, lessonId]);
 
+  const { data: quizAttempts } = useMyQuizAttempts(found?.lesson.quiz_id);
+  const quizAlreadyPassed = (quizAttempts || []).some((a) => a.passed);
+
+
   useEffect(() => {
     if (found && academy.phaseId) {
       touch.mutate({ lessonId: found.lesson.id, moduleId: found.module.id, phaseId: academy.phaseId });
