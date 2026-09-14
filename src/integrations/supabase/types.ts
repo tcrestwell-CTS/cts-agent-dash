@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      academy_clia_activity: {
+        Row: {
+          created_at: string
+          credits: number
+          cruise_line: string | null
+          id: string
+          kind: string
+          nights: number | null
+          notes: string | null
+          occurred_on: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          cruise_line?: string | null
+          id?: string
+          kind: string
+          nights?: number | null
+          notes?: string | null
+          occurred_on?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          cruise_line?: string | null
+          id?: string
+          kind?: string
+          nights?: number | null
+          notes?: string | null
+          occurred_on?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       academy_material_lesson_drafts: {
         Row: {
           created_at: string

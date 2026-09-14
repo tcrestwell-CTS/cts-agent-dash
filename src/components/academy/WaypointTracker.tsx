@@ -2,19 +2,27 @@ import { Check } from "lucide-react";
 import { MODULE_SHORT_NAMES, type AcademyModuleState } from "@/hooks/useAcademy";
 
 /**
- * Six-stop route tracker. The track is inset by half a column on each side and
- * the filled portion terminates exactly on the current stop's centre.
+ * Route tracker with one stop per required module. The track is inset by half a
+ * column on each side and the filled portion terminates on the current stop's centre.
  */
 export function WaypointTracker({ modules }: { modules: AcademyModuleState[] }) {
-  const stops = modules.slice(0, 6);
+  const stops = modules;
+  const count = Math.max(stops.length, 1);
+  const inset = 50 / count;
+  const span = 100 - 2 * inset;
   const completed = stops.filter((m) => m.isComplete).length;
   const currentIndex = Math.min(completed, stops.length - 1);
-  const fill = `${(Math.min(completed, 5) / 5) * 83.334}%`;
+  const fill = `${count > 1 ? (Math.min(completed, count - 1) / (count - 1)) * span : 0}%`;
 
   return (
-    <div className="academy-waypoints" role="list" aria-label="Foundational track progress">
-      <span className="academy-waypoints-track" aria-hidden="true" />
-      <span className="academy-waypoints-fill" aria-hidden="true" style={{ width: fill, height: fill }} />
+    <div
+      className="academy-waypoints"
+      role="list"
+      aria-label="Foundational track progress"
+      style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
+    >
+      <span className="academy-waypoints-track" aria-hidden="true" style={{ left: `${inset}%`, right: `${inset}%` }} />
+      <span className="academy-waypoints-fill" aria-hidden="true" style={{ width: fill, left: `${inset}%` }} />
 
       {stops.map((m, i) => {
         const state = m.isComplete ? "complete" : i === currentIndex ? "current" : "upcoming";

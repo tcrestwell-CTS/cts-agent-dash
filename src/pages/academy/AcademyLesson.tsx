@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { AcademyLayout, AcademyCard, AcademyEyebrow } from "@/components/academy/AcademyLayout";
 import { useAcademyData, useCompleteAcademyLesson, useTouchAcademyLesson } from "@/hooks/useAcademy";
+import { TrainingQuiz } from "@/components/training/TrainingQuiz";
+import { useMyQuizAttempts } from "@/hooks/useTrainingQuizzes";
 import { toast } from "@/hooks/use-toast";
 
 export default function AcademyLesson() {
@@ -12,6 +14,7 @@ export default function AcademyLesson() {
   const academy = useAcademyData();
   const complete = useCompleteAcademyLesson();
   const touch = useTouchAcademyLesson();
+  const [quizPassed, setQuizPassed] = useState(false);
 
   const found = useMemo(() => {
     for (const m of academy.modules) {
@@ -20,6 +23,10 @@ export default function AcademyLesson() {
     }
     return null;
   }, [academy.modules, lessonId]);
+
+  const { data: quizAttempts } = useMyQuizAttempts(found?.lesson.quiz_id);
+  const quizAlreadyPassed = (quizAttempts || []).some((a) => a.passed);
+
 
   useEffect(() => {
     if (found && academy.phaseId) {
@@ -110,6 +117,20 @@ export default function AcademyLesson() {
               Open the linked resource →
             </a>
           )}
+
+          {lesson.quiz_id && (
+            <div className="mt-8">
+              <AcademyEyebrow>Knowledge check</AcademyEyebrow>
+              <div className="mt-3">
+                <TrainingQuiz quizId={lesson.quiz_id} onPass={() => setQuizPassed(true)} />
+              </div>
+              {!quizPassed && !quizAlreadyPassed && (
+                <p className="mt-3 text-[12px]" style={{ color: "var(--academy-ink-soft)" }}>
+                  Pass the knowledge check to complete this lesson.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <AcademyCard>
@@ -177,7 +198,7 @@ export default function AcademyLesson() {
         </button>
         <button
           onClick={markComplete}
-          disabled={complete.isPending}
+          disabled={complete.isPending || (!!lesson.quiz_id && !isDone && !quizPassed && !quizAlreadyPassed)}
           className="ml-auto rounded-[10px] px-5 py-2.5 text-[13.5px] font-medium disabled:opacity-60"
           style={{ background: "var(--academy-gold)", color: "#fff" }}
         >
