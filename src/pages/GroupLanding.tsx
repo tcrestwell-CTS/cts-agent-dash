@@ -393,6 +393,10 @@ export default function GroupLanding() {
               <img
                 src={data.trip.cover_image_url}
                 alt={headline}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                sizes="100vw"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

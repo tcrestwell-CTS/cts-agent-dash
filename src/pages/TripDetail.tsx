@@ -857,6 +857,8 @@ const TripDetail = () => {
                     <img
                       src={activeItinerary.cover_image_url}
                       alt={`${activeItinerary.name} cover`}
+                      decoding="async"
+                      sizes="(max-width: 1024px) 100vw, 960px"
                       className="w-full h-48 object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

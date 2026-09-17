@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { CoverPhotoPicker } from "./CoverPhotoPicker";
 import type { Itinerary } from "@/hooks/useItineraries";
+import { validateHeroImage } from "@/lib/heroImageQuality";
 
 interface ItineraryFormData {
   name: string;
@@ -74,9 +75,10 @@ export function CreateItinerarySheet({
     }
   }, [open, editingItinerary, tripDepartDate, tripReturnDate]);
 
-  const handleFileSelected = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+  const handleFileSelected = async (file: File) => {
+    const validation = await validateHeroImage(file);
+    if ("message" in validation) {
+      toast.error(validation.message);
       return;
     }
     setCoverFile(file);
@@ -100,7 +102,7 @@ export function CreateItinerarySheet({
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("itinerary-covers")
-        .upload(path, coverFile);
+        .upload(path, coverFile, { cacheControl: "31536000" });
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage
         .from("itinerary-covers")

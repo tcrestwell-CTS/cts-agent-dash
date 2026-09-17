@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ImagePlus, X, Library, Search, Link, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateHeroImage } from "@/lib/heroImageQuality";
 
 interface CoverPhotoPickerProps {
   coverPreview: string | null;
@@ -27,21 +28,27 @@ export function CoverPhotoPicker({
   const [libraryImages, setLibraryImages] = useState<string[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+  const selectFile = async (file: File) => {
+    const validation = await validateHeroImage(file);
+    if ("message" in validation) {
+      toast.error(validation.message);
       return;
     }
     onFileSelected(file);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await selectFile(file);
+    e.target.value = "";
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    onFileSelected(file);
+    if (!file) return;
+    await selectFile(file);
   };
 
   const handlePaste = useCallback(
@@ -52,7 +59,7 @@ export function CoverPhotoPicker({
         if (item.type.startsWith("image/")) {
           e.preventDefault();
           const file = item.getAsFile();
-          if (file) onFileSelected(file);
+          if (file) void selectFile(file);
           return;
         }
       }
@@ -112,7 +119,7 @@ export function CoverPhotoPicker({
     <div className="space-y-2">
       <Label>Cover Photo</Label>
       <p className="text-xs text-muted-foreground">
-        Add an image to bring this trip to life.
+        Use a landscape image at least 1600 × 900 pixels for a sharp preview.
       </p>
 
       {coverPreview ? (

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { validateHeroImage } from "@/lib/heroImageQuality";
 
 interface TripCoverImageProps {
   tripId: string;
@@ -16,12 +17,9 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5MB");
+    const validation = await validateHeroImage(file);
+    if ("message" in validation) {
+      toast.error(validation.message);
       return;
     }
 
@@ -32,7 +30,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
 
       const { error: uploadError } = await supabase.storage
         .from("trip-covers")
-        .upload(path, file, { upsert: true });
+        .upload(path, file, { upsert: true, cacheControl: "31536000" });
 
       if (uploadError) throw uploadError;
 
@@ -149,7 +147,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
             <>
               <ImagePlus className="h-6 w-6" />
               <span className="text-sm font-medium">Add Cover Image</span>
-              <span className="text-xs">Paste, drop, or click to upload</span>
+              <span className="text-xs">Landscape, 1600 × 900 pixels or larger</span>
             </>
           )}
         </button>
