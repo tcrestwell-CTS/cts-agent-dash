@@ -386,6 +386,10 @@ export default function PortalTripDetail() {
           <img
             src={trip.cover_image_url}
             alt={trip.trip_name}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            sizes="100vw"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
