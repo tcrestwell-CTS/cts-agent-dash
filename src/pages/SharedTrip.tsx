@@ -94,6 +94,7 @@ export interface SharedTripData {
     asta_number: string | null;
     embarc_number: string | null;
   } | null;
+  selectedCabinOptionId?: string | null;
   approvedItineraryId?: string | null;
   itineraryApprovedAt?: string | null;
 }
@@ -485,6 +486,47 @@ export default function SharedTrip() {
       toast.error("We couldn't save your choice. Please try again.");
     } finally {
       setSubmittingChoice(false);
+    }
+  };
+
+  // Confirm cabin / category choice
+  const chooseCabin = async (cabinId: string, cabinName: string) => {
+    if (!token) return;
+    setSubmittingCabinId(cabinId);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shared-trip`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            token,
+            action: "select_cabin",
+            cabin_option_id: cabinId,
+            user_agent: navigator.userAgent,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to save cabin selection");
+
+      const refresh = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shared-trip?token=${token}`,
+        { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      if (refresh.ok) setData(await refresh.json());
+
+      setConfirmationMessage("Cabin reserved for you!");
+      setConfirmationSubMessage(
+        `You've chosen the ${cabinName} category. Your travel advisor has been notified and will send you a secure payment link to confirm it.`
+      );
+      setShowConfirmation(true);
+    } catch {
+      toast.error("We couldn't save your cabin choice. Please try again.");
+    } finally {
+      setSubmittingCabinId(null);
     }
   };
 
