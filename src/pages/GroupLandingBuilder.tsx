@@ -211,7 +211,7 @@ const GroupLandingBuilder = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const validation = await validateHeroImage(file);
-    if (!validation.valid) { toast.error(validation.message); return; }
+    if ("message" in validation) { toast.error(validation.message); return; }
     setUploadingHero(true);
     try {
       const ext = file.name.split(".").pop();
@@ -249,7 +249,7 @@ const GroupLandingBuilder = () => {
         if (file) {
           e.preventDefault();
           const validation = await validateHeroImage(file);
-          if (!validation.valid) { toast.error(validation.message); return; }
+          if ("message" in validation) { toast.error(validation.message); return; }
           setUploadingHero(true);
           try {
             const ext = file.type.split("/")[1] || "png";

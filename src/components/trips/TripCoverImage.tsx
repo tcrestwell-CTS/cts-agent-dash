@@ -18,7 +18,7 @@ export function TripCoverImage({ tripId, coverImageUrl, onUpdated }: TripCoverIm
 
   const uploadFile = async (file: File) => {
     const validation = await validateHeroImage(file);
-    if (!validation.valid) {
+    if ("message" in validation) {
       toast.error(validation.message);
       return;
     }
