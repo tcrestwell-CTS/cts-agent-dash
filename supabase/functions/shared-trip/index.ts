@@ -140,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       const { data: trip } = await supabase
         .from("trips")
-        .select("id, user_id, trip_name, total_gross_sales, client_id, budget_range, approved_itinerary_id")
+        .select("id, user_id, trip_name, total_gross_sales, client_id, budget_range, approved_itinerary_id, parent_trip_id, selected_cabin_option_id")
         .eq("share_token", token)
         .not("published_at", "is", null)
         .single();
@@ -160,6 +160,106 @@ const handler = async (req: Request): Promise<Response> => {
           .eq("id", trip.client_id)
           .single();
         if (client) clientName = client.name;
+      }
+
+      // === Client selects a cabin / category ===
+      if (action === "select_cabin") {
+        const { cabin_option_id, ip_address, user_agent, note } = body;
+        if (!cabin_option_id) {
+          return new Response(JSON.stringify({ error: "cabin_option_id required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const allowedTripIds = [trip.id];
+        if ((trip as any).parent_trip_id) allowedTripIds.push((trip as any).parent_trip_id);
+
+        const { data: cabin } = await supabase
+          .from("trip_cabin_options")
+          .select("id, trip_id, category_name, price_per_person, price_period, deposit_amount")
+          .eq("id", cabin_option_id)
+          .in("trip_id", allowedTripIds)
+          .maybeSingle();
+
+        if (!cabin) {
+          return new Response(JSON.stringify({ error: "Cabin option not found for this trip" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        await supabase
+          .from("trips")
+          .update({ selected_cabin_option_id: cabin.id })
+          .eq("id", trip.id);
+
+        await supabase.from("compliance_audit_log").insert({
+          user_id: trip.user_id,
+          event_type: "cabin_selected",
+          entity_type: "trip",
+          entity_id: trip.id,
+          client_name: clientName,
+          ip_address: ip_address || null,
+          user_agent: user_agent || null,
+          metadata: {
+            trip_name: trip.trip_name,
+            cabin_option_id: cabin.id,
+            cabin_name: cabin.category_name,
+            price_per_person: cabin.price_per_person,
+            note: note || null,
+          },
+        });
+
+        await supabase.from("agent_notifications").insert({
+          user_id: trip.user_id,
+          type: "cabin_selected",
+          title: `Cabin Chosen: ${clientName}`,
+          message: `${clientName} selected "${cabin.category_name}" ($${Number(cabin.price_per_person || 0).toLocaleString()} per person) for "${trip.trip_name}". Send them a payment link to lock it in.`,
+          trip_id: trip.id,
+        });
+
+        if (trip.client_id) {
+          await supabase.from("portal_messages").insert({
+            client_id: trip.client_id,
+            agent_user_id: trip.user_id,
+            sender_type: "client",
+            message: `✅ ${clientName} chose the "${cabin.category_name}" category for "${trip.trip_name}".${note ? ` Note: ${note}` : ""}`,
+          });
+        }
+
+        try {
+          const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+          if (RESEND_API_KEY) {
+            const { data: agentUser } = await supabase.auth.admin.getUserById(trip.user_id);
+            const agentEmail = agentUser?.user?.email as string | undefined;
+            if (agentEmail) {
+              await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${RESEND_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  from: "Crestwell Travels <notifications@crestwelltravels.com>",
+                  to: [agentEmail],
+                  subject: `Cabin chosen: ${clientName} — ${trip.trip_name}`,
+                  html: `<p><strong>${clientName}</strong> selected <strong>${cabin.category_name}</strong> for <strong>${trip.trip_name}</strong>.</p>
+<p>Price per person: $${Number(cabin.price_per_person || 0).toLocaleString()}${cabin.deposit_amount ? ` &middot; Deposit: $${Number(cabin.deposit_amount).toLocaleString()} per person` : ""}</p>
+${note ? `<p>Client note: ${note}</p>` : ""}
+<p>Next step: send them a payment link for the deposit.</p>`,
+                }),
+              });
+            }
+          }
+        } catch (e) {
+          console.error("cabin selection email failed", e);
+        }
+
+        return new Response(JSON.stringify({ success: true, cabin_option_id: cabin.id }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // === Client selects an itinerary option from the proposal ===
