@@ -9,3 +9,5 @@
 
 - [x] Add staff-only Academy material upload and lesson-assignment workflow
 - [ ] Process uploaded CTN training files and replace matching lesson drafts
+
+- [x] Enforce sharp, high-resolution images across trip, itinerary, and group hero uploads

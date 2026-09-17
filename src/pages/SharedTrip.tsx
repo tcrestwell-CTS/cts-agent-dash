@@ -573,6 +573,10 @@ export default function SharedTrip() {
           <img
             src={coverImageUrl}
             alt={data.trip.trip_name}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            sizes="100vw"
             className="absolute inset-0 w-full h-full object-cover"
           />
           {/* Bottom-weighted gradient for text legibility */}
@@ -620,6 +624,10 @@ export default function SharedTrip() {
             <img
               src={coverImageUrl}
               alt={data.trip.trip_name}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              sizes="100vw"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30" />
@@ -648,6 +656,10 @@ export default function SharedTrip() {
           <img
             src={coverImageUrl}
             alt={data.trip.trip_name}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            sizes="100vw"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/50" />

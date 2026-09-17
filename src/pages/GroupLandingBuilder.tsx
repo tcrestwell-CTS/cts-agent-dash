@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateHeroImage } from "@/lib/heroImageQuality";
 import {
   ArrowLeft,
   Eye,
@@ -209,13 +210,13 @@ const GroupLandingBuilder = () => {
   const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    const validation = await validateHeroImage(file);
+    if (!validation.valid) { toast.error(validation.message); return; }
     setUploadingHero(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `${tripId}/landing-hero.${ext}`;
-      const { error } = await supabase.storage.from("trip-covers").upload(path, file, { upsert: true });
+      const { error } = await supabase.storage.from("trip-covers").upload(path, file, { upsert: true, cacheControl: "31536000" });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("trip-covers").getPublicUrl(path);
       setHeroImageUrl(publicUrl);
@@ -247,11 +248,13 @@ const GroupLandingBuilder = () => {
         const file = item.getAsFile();
         if (file) {
           e.preventDefault();
+          const validation = await validateHeroImage(file);
+          if (!validation.valid) { toast.error(validation.message); return; }
           setUploadingHero(true);
           try {
             const ext = file.type.split("/")[1] || "png";
             const path = `${tripId}/hero-${Date.now()}.${ext}`;
-            const { error } = await supabase.storage.from("trip-covers").upload(path, file, { upsert: true });
+            const { error } = await supabase.storage.from("trip-covers").upload(path, file, { upsert: true, cacheControl: "31536000" });
             if (error) throw error;
             const { data: { publicUrl } } = supabase.storage.from("trip-covers").getPublicUrl(path);
             setHeroImageUrl(publicUrl);
