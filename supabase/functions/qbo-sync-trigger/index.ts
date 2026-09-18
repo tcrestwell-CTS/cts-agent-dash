@@ -1151,15 +1151,47 @@ async function ensureQBOVendor(
   if (supplier.contact_phone) vendorData.PrimaryPhone = { FreeFormNumber: supplier.contact_phone };
   if (supplier.website) vendorData.WebAddr = { URI: supplier.website };
 
-  const createResp = await qboFetch(`${qboBase}/vendor`, {
+  let createResp = await qboFetch(`${qboBase}/vendor`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(vendorData),
   });
 
+  // QBO shares one name list across customers/vendors/employees. If a customer
+  // already uses this name (error 6240), retry with a "(Supplier)" suffix so the
+  // payable still posts instead of failing outright.
   if (!createResp.ok) {
-    const errBody = await createResp.text();
-    throw new Error(`Failed to create QBO Vendor: ${errBody}`);
+    const firstErr = await createResp.text();
+    if (/6240|Duplicate Name/i.test(firstErr)) {
+      const altName = `${displayName.substring(0, 88)} (Supplier)`;
+      const altQuery = await fetch(
+        `${qboBase}/query?query=${encodeURIComponent(
+          `SELECT * FROM Vendor WHERE DisplayName = '${altName.replace(/'/g, "\\'")}'`
+        )}`,
+        { headers: qboHeaders }
+      );
+      if (altQuery.ok) {
+        const altExisting = (await altQuery.json())?.QueryResponse?.Vendor?.[0];
+        if (altExisting) {
+          await supabase.from("qbo_supplier_mappings").insert({
+            user_id: userId,
+            supplier_id: supplier.id,
+            qbo_vendor_id: altExisting.Id,
+          });
+          return altExisting.Id;
+        }
+      }
+      createResp = await qboFetch(`${qboBase}/vendor`, {
+        method: "POST",
+        headers: qboHeaders,
+        body: JSON.stringify({ ...vendorData, DisplayName: altName, CompanyName: altName }),
+      });
+      if (!createResp.ok) {
+        throw new Error(`Failed to create QBO Vendor: ${await createResp.text()}`);
+      }
+    } else {
+      throw new Error(`Failed to create QBO Vendor: ${firstErr}`);
+    }
   }
 
   const created = await createResp.json();
