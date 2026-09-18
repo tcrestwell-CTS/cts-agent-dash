@@ -304,6 +304,7 @@ export default function SharedTrip() {
   const [selectedItineraryId, setSelectedItineraryId] = useState<string | null>(null);
   const [pendingChoiceId, setPendingChoiceId] = useState<string | null>(null);
   const [submittingChoice, setSubmittingChoice] = useState(false);
+  const [submittingCabinId, setSubmittingCabinId] = useState<string | null>(null);
 
   // Confirmation overlay state
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -946,6 +947,25 @@ export default function SharedTrip() {
                         )}
                         {cabin.capacity ? <span>Max {cabin.capacity} travelers</span> : null}
                       </div>
+                      {token && (
+                        data.selectedCabinOptionId === cabin.id ? (
+                          <div
+                            className="mt-3 rounded-xl px-4 py-2.5 text-sm font-semibold text-center"
+                            style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
+                          >
+                            Selected — your advisor will send your payment link
+                          </div>
+                        ) : (
+                          <Button
+                            className="mt-3 w-full rounded-xl font-semibold"
+                            style={{ backgroundColor: primaryColor, color: "white" }}
+                            disabled={!!submittingCabinId || !!data.selectedCabinOptionId}
+                            onClick={() => chooseCabin(cabin.id, cabin.category_name)}
+                          >
+                            {submittingCabinId === cabin.id ? "Reserving…" : "Choose this category"}
+                          </Button>
+                        )
+                      )}
                     </div>
                   </div>
                 ))}
