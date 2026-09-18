@@ -80,6 +80,64 @@ serve(async (req) => {
     ? String(body.query_customer_id)
     : undefined;
 
+  // Move invoices billed to the wrong QBO customer onto the right one.
+  // body.repoint = [{ invoice_id, customer_id }]
+  if (Array.isArray(body.repoint) && body.repoint.length) {
+    const { accessToken, realmId } = await getValidToken();
+    const H = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    const out: any[] = [];
+    for (const item of body.repoint) {
+      const invId = String(item.invoice_id);
+      try {
+        const g = await fetch(
+          `${QBO_BASE}/${realmId}/invoice/${invId}?minorversion=65`,
+          { headers: H },
+        );
+        const gj = await g.json();
+        if (!g.ok) throw new Error(gj?.Fault?.Error?.[0]?.Message || g.status);
+        const inv = gj.Invoice;
+        const u = await fetch(
+          `${QBO_BASE}/${realmId}/invoice?minorversion=65`,
+          {
+            method: "POST",
+            headers: H,
+            body: JSON.stringify({
+              Id: invId,
+              SyncToken: inv.SyncToken,
+              sparse: true,
+              CustomerRef: { value: String(item.customer_id) },
+            }),
+          },
+        );
+        const uj = await u.json();
+        if (!u.ok) {
+          out.push({
+            invId,
+            error: uj?.Fault?.Error?.[0]?.Message,
+            detail: uj?.Fault?.Error?.[0]?.Detail,
+          });
+          continue;
+        }
+        out.push({
+          invId,
+          docNumber: uj.Invoice?.DocNumber,
+          customer: uj.Invoice?.CustomerRef?.name,
+          repointed: true,
+        });
+      } catch (e) {
+        out.push({ invId, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    return new Response(JSON.stringify({ repoint: out }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (deleteIds.length) {
     const { accessToken, realmId } = await getValidToken();
     const out: any[] = [];
