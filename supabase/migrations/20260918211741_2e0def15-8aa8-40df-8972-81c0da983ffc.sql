@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_invoice_from_trip_payments() FROM anon, authenticated;
