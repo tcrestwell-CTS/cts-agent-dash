@@ -190,6 +190,71 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, updated: updates }), { headers: jsonHeaders });
     }
 
+    // ── POST ?action=ensure-finance-accounts ────────────────────────
+    // Creates (idempotently) the QBO accounts the CRM posting logic needs
+    // for loan installments and card-paid supplier bills, then stores the
+    // role mappings + default credit card so postings stop failing.
+    if (urlPath === "ensure-finance-accounts" && req.method === "POST") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
+      const findAccount = async (name: string) => {
+        const r = await fetch(
+          `${qboBase}/query?query=${encodeURIComponent(
+            `SELECT Id, Name, AccountType FROM Account WHERE Name = '${name.replace(/'/g, "\\'")}' MAXRESULTS 1`
+          )}`,
+          { headers: qboHeaders }
+        );
+        if (!r.ok) return null;
+        const j = await r.json();
+        return j?.QueryResponse?.Account?.[0] ?? null;
+      };
+
+      const ensureAccount = async (name: string, type: string, subType: string) => {
+        const existing = await findAccount(name);
+        if (existing) return { id: existing.Id as string, name: existing.Name as string, created: false };
+        const r = await fetch(`${qboBase}/account`, {
+          method: "POST",
+          headers: qboHeaders,
+          body: JSON.stringify({ Name: name, AccountType: type, AccountSubType: subType }),
+        });
+        if (!r.ok) throw new Error(`Create account "${name}" failed: ${await r.text()}`);
+        const j = await r.json();
+        return { id: j.Account.Id as string, name: j.Account.Name as string, created: true };
+      };
+
+      const wanted: { role: string; name: string; type: string; subType: string }[] = [
+        { role: "loan_receivable", name: "Loan Receivable", type: "Other Current Asset", subType: "OtherCurrentAssets" },
+        { role: "loan_principal_clearing", name: "Loan Principal Clearing", type: "Bank", subType: "Checking" },
+        { role: "loan_interest_clearing", name: "Loan Interest Clearing", type: "Bank", subType: "Checking" },
+      ];
+
+      const results: Record<string, unknown> = {};
+      for (const w of wanted) {
+        const acct = await ensureAccount(w.name, w.type, w.subType);
+        await supabaseAdmin.from("qbo_account_mappings").upsert(
+          {
+            role: w.role,
+            qbo_account_id: acct.id,
+            qbo_account_name: acct.name,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "role" }
+        );
+        results[w.role] = acct;
+      }
+
+      // Supplier card payments need a Credit Card account to post against.
+      const card = await ensureAccount("Supplier Payment Card", "Credit Card", "CreditCard");
+      await supabaseAdmin
+        .from("qbo_connections")
+        .update({ default_cc_account_id: card.id, default_cc_account_name: card.name })
+        .eq("id", connection.id);
+      results.default_credit_card = card;
+
+      return new Response(JSON.stringify({ success: true, accounts: results }), { headers: jsonHeaders });
+    }
+
+
     // ── POST ?action=sync-clients ────────────────────────────────────
     if (urlPath === "sync-clients" && req.method === "POST") {
       const { client_ids } = await req.json();

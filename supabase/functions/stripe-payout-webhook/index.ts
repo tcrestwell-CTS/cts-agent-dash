@@ -418,9 +418,9 @@ async function processPayoutPaid(payout: Stripe.Payout) {
   };
 
   // Resolve only the mappings we'll actually need.
-  const needTrip = buckets.trip > 0;
-  const needPrincipal = buckets.loan_principal > 0;
-  const needInterest = buckets.loan_interest > 0;
+  let needTrip = buckets.trip > 0;
+  let needPrincipal = buckets.loan_principal > 0;
+  let needInterest = buckets.loan_interest > 0;
 
   // ── Safety net: if nothing classified but unclassified bucket has funds,
   // treat the whole payout as trip installments rather than skipping entirely.
@@ -439,6 +439,12 @@ async function processPayoutPaid(payout: Stripe.Payout) {
       d.type === "unclassified" ? { ...d, type: "trip_installment", promoted: true } : d
     );
   }
+
+  // Re-evaluate after the promotion above, otherwise a promoted payout looks
+  // empty to the skip check and never posts.
+  needTrip = buckets.trip > 0;
+  needPrincipal = buckets.loan_principal > 0;
+  needInterest = buckets.loan_interest > 0;
 
   // Hard skip only if there is truly nothing — no charges at all
   if (!needTrip && !needPrincipal && !needInterest && buckets.unclassified === 0) {
