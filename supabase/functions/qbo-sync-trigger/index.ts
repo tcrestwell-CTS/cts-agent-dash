@@ -816,6 +816,7 @@ async function handleClientPaymentReceived(
   // 2. Resolve QBO invoice for this trip
   let qboInvoiceId: string | null = null;
   let localInvoiceId: string | null = null;
+  let invoiceNumber: string | null = null;
 
   if (payment.trip_id) {
     const { data: localInvoices } = await supabase
@@ -830,6 +831,7 @@ async function handleClientPaymentReceived(
       const target = localInvoices.find((i: any) => Number(i.amount_remaining || 0) > 0)
         || localInvoices[0];
       localInvoiceId = target.id;
+      invoiceNumber = target.invoice_number ? String(target.invoice_number) : null;
 
       const { data: mapping } = await supabase
         .from("qbo_invoice_mappings")
@@ -867,6 +869,30 @@ async function handleClientPaymentReceived(
     }
   }
 
+  // 2b. Payment plans are billed in QBO as one invoice per installment
+  // (INV-2026-00055-01, -02, …). A single payment — especially an early payoff —
+  // must be spread across those open installment invoices oldest-first, or they
+  // stay open and turn overdue while the money sits as an unapplied credit.
+  const openInstallments: Array<{ id: string; balance: number }> = [];
+  if (invoiceNumber) {
+    const prefix = invoiceNumber.replace(/'/g, "\\'");
+    const iq = await fetch(
+      `${qboBase}/query?query=${encodeURIComponent(
+        `SELECT Id, DocNumber, DueDate, Balance FROM Invoice WHERE CustomerRef = '${qboCustomerId}' AND DocNumber LIKE '${prefix}-%' AND Balance > '0'`
+      )}`,
+      { headers: qboHeaders }
+    );
+    if (iq.ok) {
+      const ij = await iq.json();
+      const rows = (ij?.QueryResponse?.Invoice ?? []).sort((a: any, b: any) =>
+        String(a.DueDate ?? "").localeCompare(String(b.DueDate ?? ""))
+      );
+      for (const r of rows) {
+        openInstallments.push({ id: String(r.Id), balance: Number(r.Balance || 0) });
+      }
+    }
+  }
+
   // 3. Resolve deposit account
   const depositAccount = await resolvePaymentAccount(
     qboBase, qboHeaders,
@@ -887,7 +913,24 @@ async function handleClientPaymentReceived(
     PrivateNote: memo,
   };
 
-  if (qboInvoiceId) {
+  if (openInstallments.length > 0) {
+    let remaining = amount;
+    const lines: any[] = [];
+    for (const inv of openInstallments) {
+      if (remaining <= 0.005) break;
+      const alloc = Math.min(remaining, inv.balance);
+      if (alloc <= 0.005) continue;
+      lines.push({
+        Amount: Number(alloc.toFixed(2)),
+        LinkedTxn: [{ TxnId: inv.id, TxnType: "Invoice" }],
+      });
+      remaining -= alloc;
+    }
+    if (lines.length > 0) {
+      paymentData.Line = lines;
+      qboInvoiceId = lines[0].LinkedTxn[0].TxnId;
+    }
+  } else if (qboInvoiceId) {
     paymentData.Line = [
       {
         Amount: amount,
