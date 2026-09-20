@@ -15,13 +15,19 @@ export function AdminReporting() {
   const { data: profiles } = useTeamProfiles();
   const [filter, setFilter] = useState<"all" | "completed" | "in_progress" | "not_started">("all");
 
+  // Only count modules that belong to the phases shown here (the CRM track);
+  // Academy modules live on their own track and must not inflate these totals.
+  const phaseIds = new Set((phases || []).map(p => p.id));
+  const trackModules = (modules || []).filter(m => phaseIds.has(m.phase_id));
+  const trackModuleIds = new Set(trackModules.map(m => m.id));
+
   // Build agent progress summary
   const agents = (profiles || []).map(profile => {
     const userId = profile.user_id;
     const userProgress = (allProgress || []).filter(p => p.user_id === userId);
-    const modProgress = userProgress.filter(p => p.module_id && !p.lesson_id);
+    const modProgress = userProgress.filter(p => p.module_id && !p.lesson_id && trackModuleIds.has(p.module_id));
     const completedModules = modProgress.filter(p => p.status === "completed").length;
-    const totalModules = modules?.length || 0;
+    const totalModules = trackModules.length;
     const pct = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
     const lastActive = userProgress.reduce((latest, p) => {
       const d = p.last_viewed_at || p.created_at;
@@ -30,10 +36,12 @@ export function AdminReporting() {
 
     // Determine current phase
     let currentPhase = "Not started";
-    if (completedModules > 0 && phases && modules) {
+    if (completedModules > 0 && phases) {
       for (const phase of phases) {
-        const phaseModules = modules.filter(m => m.phase_id === phase.id);
-        const done = phaseModules.every(m => modProgress.some(p => p.module_id === m.id && p.status === "completed"));
+        const phaseModules = trackModules.filter(m => m.phase_id === phase.id);
+        const done =
+          phaseModules.length > 0 &&
+          phaseModules.every(m => modProgress.some(p => p.module_id === m.id && p.status === "completed"));
         if (!done) { currentPhase = phase.title; break; }
         currentPhase = "All complete";
       }
