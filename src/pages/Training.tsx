@@ -36,18 +36,23 @@ const Training = () => {
 
   const userName = user?.user_metadata?.full_name?.split(" ")[0] || "Agent";
 
+  // Only modules on the phases shown here (CRM track) count towards these numbers.
+  const phaseIds = new Set((phases || []).map(p => p.id));
+  const trackModules = (modules || []).filter(m => phaseIds.has(m.phase_id));
+  const trackModuleIds = new Set(trackModules.map(m => m.id));
+
   // Calculate overall progress
-  const lessonProgress = (progress || []).filter(p => p.lesson_id);
+  const lessonProgress = (progress || []).filter(p => p.lesson_id && p.module_id && trackModuleIds.has(p.module_id));
   const completedLessons = lessonProgress.filter(p => p.status === "completed").length;
   const inProgressLessons = lessonProgress.filter(p => p.status === "in_progress").length;
-  const totalModules = modules?.length || 0;
-  const moduleProgress = (progress || []).filter(p => p.module_id && !p.lesson_id);
+  const totalModules = trackModules.length;
+  const moduleProgress = (progress || []).filter(p => p.module_id && !p.lesson_id && trackModuleIds.has(p.module_id));
   const completedModules = moduleProgress.filter(p => p.status === "completed").length;
   const overallPct = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
 
   // Find current phase (first non-completed)
   const currentPhase = (phases || []).find(phase => {
-    const phaseModules = (modules || []).filter(m => m.phase_id === phase.id);
+    const phaseModules = trackModules.filter(m => m.phase_id === phase.id);
     const allCompleted = phaseModules.length > 0 && phaseModules.every(m => {
       const mp = moduleProgress.find(p => p.module_id === m.id);
       return mp?.status === "completed";
