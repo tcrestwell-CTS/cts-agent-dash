@@ -139,7 +139,6 @@ export const AREA_CODES: Record<string, string> = {
   "345": "Cayman Islands", "441": "Bermuda", "473": "Grenada",
   "649": "Turks & Caicos", "664": "Montserrat", "670": "Northern Mariana Islands",
   "671": "Guam", "721": "Sint Maarten", "767": "Dominica",
-  "809/829": "Dominican Republic",
 };
 
 const TOLL_FREE = new Set(["800", "833", "844", "855", "866", "877", "888"]);
