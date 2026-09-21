@@ -25,6 +25,7 @@ import { Search, Phone, Mail, RefreshCw, Brain, Users, DollarSign, Calendar, Map
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
+import { PhoneRegionBadge } from "@/components/leads/PhoneRegionBadge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type QuoteRequest = {
@@ -557,7 +558,10 @@ function LeadProposalSheet({
               {lead.phone && (
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs">Phone</p>
-                  <a href={`tel:${lead.phone}`} className="text-primary hover:underline text-sm">{lead.phone}</a>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <a href={`tel:${lead.phone}`} className="text-primary hover:underline text-sm">{lead.phone}</a>
+                    <PhoneRegionBadge phone={lead.phone} />
+                  </div>
                 </div>
               )}
               {lead.destination && (
@@ -1036,7 +1040,12 @@ export default function Leads() {
                           <div>
                             <p className="font-medium">{lead.first_name} {lead.last_name}</p>
                             <p className="text-xs text-muted-foreground">{lead.email}</p>
-                            {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                            {lead.phone && (
+                              <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                                <span>{lead.phone}</span>
+                                <PhoneRegionBadge phone={lead.phone} />
+                              </p>
+                            )}
                             {/* funnel_name was being stored correctly all along (e.g. "Agent
                                 Storefront: crownledgertravel") but never actually rendered
                                 anywhere in this table — added here as a small tag. */}
