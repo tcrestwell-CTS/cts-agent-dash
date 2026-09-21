@@ -1036,7 +1036,12 @@ export default function Leads() {
                           <div>
                             <p className="font-medium">{lead.first_name} {lead.last_name}</p>
                             <p className="text-xs text-muted-foreground">{lead.email}</p>
-                            {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                            {lead.phone && (
+                              <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                                <span>{lead.phone}</span>
+                                <PhoneRegionBadge phone={lead.phone} />
+                              </p>
+                            )}
                             {/* funnel_name was being stored correctly all along (e.g. "Agent
                                 Storefront: crownledgertravel") but never actually rendered
                                 anywhere in this table — added here as a small tag. */}
