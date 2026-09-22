@@ -644,9 +644,9 @@ Deno.serve(async (req) => {
       }
 
       // Even-split pricing: when the group trip has no cabin pricing, divide the
-      // parent trip's total evenly across all confirmed travelers. Each sub-trip's
-      // total = per-person share x its traveler count, recalculated on every signup
-      // (1 traveler joins -> full price for 1; 2 join -> split evenly, etc.).
+      // parent trip's total evenly across the trip's planned traveler count
+      // (group_landing_content.split_travelers, falling back to confirmed signups).
+      // Each sub-trip's total = per-person share x its own traveler count.
       if (Number(parentTrip.total_gross_sales || 0) > 0 && !bookingId) {
         const { data: signups } = await supabaseAdmin
           .from("group_signups")
@@ -655,14 +655,18 @@ Deno.serve(async (req) => {
           .eq("status", "confirmed");
 
         const splitRows = (signups || []).filter((s) => s.sub_trip_id);
-        const totalTravelers = splitRows.reduce(
+        const confirmedTravelers = splitRows.reduce(
           (sum, s) => sum + Math.max(1, Number(s.number_of_travelers) || 1),
           0
         );
+        const plannedTravelers = Number(
+          parentTrip.group_landing_content?.split_travelers || 0
+        );
+        const divisor = plannedTravelers > 0 ? plannedTravelers : confirmedTravelers;
 
-        if (totalTravelers > 0) {
+        if (divisor > 0) {
           const perPerson =
-            Math.round((Number(parentTrip.total_gross_sales) / totalTravelers) * 100) / 100;
+            Math.round((Number(parentTrip.total_gross_sales) / divisor) * 100) / 100;
 
           for (const s of splitRows) {
             const subTravelers = Math.max(1, Number(s.number_of_travelers) || 1);
