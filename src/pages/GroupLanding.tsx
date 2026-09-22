@@ -163,6 +163,7 @@ export default function GroupLanding() {
   const [depositDue, setDepositDue] = useState(0);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
 
   const [form, setForm] = useState({
