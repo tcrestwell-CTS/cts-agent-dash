@@ -277,12 +277,8 @@ export default function GroupLanding() {
       toast.error("Please fill in the second traveler's first name.");
       return;
     }
-    if (!form.departure_location) {
-      toast.error("Please select where you'll be traveling from.");
-      return;
-    }
-    if (form.departure_location === "nevada" && !form.nevada_airport.trim()) {
-      toast.error("Please enter your Nevada departure airport.");
+    if (!form.departure_state || !form.departure_city) {
+      toast.error("Please select your city and state.");
       return;
     }
     const chosen = data?.cabinOptions?.find((c) => c.id === form.selected_cabin_option_id);
@@ -290,16 +286,6 @@ export default function GroupLanding() {
       toast.error(`${chosen.category_name} requires 2 travelers (double occupancy).`);
       return;
     }
-    const effectivePrestay = form.departure_location !== "hawaii" && form.add_prestay_hotel;
-    if (effectivePrestay && !form.prestay_room_type) {
-      toast.error("Please choose a room type for the pre-cruise hotel stay.");
-      return;
-    }
-    const room = PRESTAY_ROOM_OPTIONS.find((r) => r.id === form.prestay_room_type);
-    const nightly = room ? (form.prestay_rate_type === "flexible" ? room.flexible : room.prepaid) : 0;
-    const prestay_room_label = room
-      ? `${room.name} — ${form.prestay_rate_type === "flexible" ? "flexible" : "prepaid"} rate ${currency(nightly)}/night, ${PRESTAY_NIGHTS} nights = ${currency(nightly * PRESTAY_NIGHTS)} + ${currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} resort fee at hotel`
-      : null;
     setSubmitting(true);
     try {
       const res = await fetch(
