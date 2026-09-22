@@ -1,5 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
 import { resolveAgentBranding } from "../_shared/agent-branding.ts";
 
@@ -806,6 +805,7 @@ Deno.serve(async (req) => {
             groupUrl,
           });
 
+          const { Resend } = await import("npm:resend@4.0.0");
           const resend = new Resend(RESEND_API_KEY);
           const sendResp = await resend.emails.send({
             from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`,
