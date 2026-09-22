@@ -643,6 +643,70 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Even-split pricing: when the group trip has no cabin pricing, divide the
+      // parent trip's total evenly across all confirmed travelers. Each sub-trip's
+      // total = per-person share x its traveler count, recalculated on every signup
+      // (1 traveler joins -> full price for 1; 2 join -> split evenly, etc.).
+      if (Number(parentTrip.total_gross_sales || 0) > 0 && !bookingId) {
+        const { data: signups } = await supabaseAdmin
+          .from("group_signups")
+          .select("sub_trip_id, number_of_travelers")
+          .eq("trip_id", parentTrip.id)
+          .eq("status", "confirmed");
+
+        const splitRows = (signups || []).filter((s) => s.sub_trip_id);
+        const totalTravelers = splitRows.reduce(
+          (sum, s) => sum + Math.max(1, Number(s.number_of_travelers) || 1),
+          0
+        );
+
+        if (totalTravelers > 0) {
+          const perPerson =
+            Math.round((Number(parentTrip.total_gross_sales) / totalTravelers) * 100) / 100;
+
+          for (const s of splitRows) {
+            const subTravelers = Math.max(1, Number(s.number_of_travelers) || 1);
+            const subTotal = Math.round(perPerson * subTravelers * 100) / 100;
+
+            await supabaseAdmin
+              .from("trips")
+              .update({ total_gross_sales: subTotal })
+              .eq("id", s.sub_trip_id);
+
+            const { data: existingSplitBooking } = await supabaseAdmin
+              .from("bookings")
+              .select("id")
+              .eq("trip_id", s.sub_trip_id)
+              .like("confirmation_number", "GRP-%")
+              .maybeSingle();
+
+            if (existingSplitBooking) {
+              await supabaseAdmin
+                .from("bookings")
+                .update({
+                  gross_sales: subTotal,
+                  total_price: subTotal,
+                  net_sales: subTotal,
+                  commissionable_amount: subTotal,
+                })
+                .eq("id", existingSplitBooking.id);
+            } else {
+              await supabaseAdmin.from("bookings").insert({
+                user_id: parentTrip.user_id,
+                trip_id: s.sub_trip_id,
+                confirmation_number: `GRP-${String(s.sub_trip_id).substring(0, 8).toUpperCase()}`,
+                status: "pending",
+                gross_sales: subTotal,
+                total_price: subTotal,
+                net_sales: subTotal,
+                commissionable_amount: subTotal,
+                pricing_mode: "commission",
+              });
+            }
+          }
+        }
+      }
+
       // Fall back to the parent trip's deposit if the cabin has none set
       if (!depositAmount) {
         const { data: depositRow } = await supabaseAdmin
