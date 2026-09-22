@@ -805,6 +805,7 @@ Deno.serve(async (req) => {
             groupUrl,
           });
 
+          const { Resend } = await import("npm:resend@4.0.0");
           const resend = new Resend(RESEND_API_KEY);
           const sendResp = await resend.emails.send({
             from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`,
