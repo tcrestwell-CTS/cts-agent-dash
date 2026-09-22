@@ -580,99 +580,39 @@ export default function GroupLanding() {
               </div>
             )}
 
-            {/* ─── ITINERARY & CABINS TABS ──────── */}
-            {(Object.keys(itineraryByDay).length > 0 || (data.cabinOptions && data.cabinOptions.length > 0)) && (
-              <Tabs defaultValue={Object.keys(itineraryByDay).length > 0 ? "itinerary" : "cabins"} className="w-full">
-                <TabsList className="w-full grid grid-cols-2 h-12 rounded-xl bg-gray-100">
-                  {Object.keys(itineraryByDay).length > 0 && (
-                    <TabsTrigger value="itinerary" className="rounded-lg text-sm font-semibold data-[state=active]:shadow-sm">
-                      <Compass className="h-4 w-4 mr-2" />
-                      Trip Itinerary
-                    </TabsTrigger>
-                  )}
-                  {data.cabinOptions && data.cabinOptions.length > 0 && (
-                    <TabsTrigger value="cabins" className="rounded-lg text-sm font-semibold data-[state=active]:shadow-sm">
-                      <BedDouble className="h-4 w-4 mr-2" />
-                      Cabin Selections
-                    </TabsTrigger>
-                  )}
-                </TabsList>
+            {/* ─── ITINERARY LINK ───────────────── */}
+            {Object.keys(itineraryByDay).length > 0 && (
+              <a
+                href={`/shared/${token}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 hover:border-gray-300 hover:bg-gray-100 transition-colors group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="p-2 rounded-lg shrink-0"
+                    style={{ backgroundColor: `${primaryColor}10` }}
+                  >
+                    <Compass className="h-5 w-5" style={{ color: primaryColor }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900">View the full trip itinerary</p>
+                    <p className="text-sm text-gray-500">
+                      Day-by-day details for this trip
+                    </p>
+                  </div>
+                </div>
+                <ExternalLink className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors" />
+              </a>
+            )}
 
-                {/* ─── ITINERARY TAB ──────────────── */}
-                {Object.keys(itineraryByDay).length > 0 && (
-                  <TabsContent value="itinerary" className="mt-6">
-                    <div className="relative">
-                      {/* Timeline line */}
-                      <div
-                        className="absolute left-[18px] top-6 bottom-6 w-[2px] hidden md:block"
-                        style={{ backgroundColor: `${primaryColor}20` }}
-                      />
-
-                      <div className="space-y-6">
-                        {Object.entries(itineraryByDay)
-                          .sort(([a], [b]) => Number(a) - Number(b))
-                          .map(([day, items]) => (
-                            <div key={day} className="relative">
-                              <div className="flex items-start gap-4">
-                                <div
-                                  className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md z-10"
-                                  style={{ backgroundColor: primaryColor }}
-                                >
-                                  {day}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p
-                                    className="text-xs font-semibold uppercase tracking-wider mb-2"
-                                    style={{ color: primaryColor }}
-                                  >
-                                    Day {day}
-                                  </p>
-                                  <div className="space-y-2">
-                                    {items.map((item, i) => {
-                                      const Icon = categoryIcons[item.category] || Camera;
-                                      return (
-                                        <div
-                                          key={i}
-                                          className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors"
-                                        >
-                                          <div
-                                            className="p-1.5 rounded-lg shrink-0 mt-0.5"
-                                            style={{ backgroundColor: `${primaryColor}10` }}
-                                          >
-                                            <Icon className="h-4 w-4" style={{ color: primaryColor }} />
-                                          </div>
-                                          <div className="min-w-0">
-                                            <p className="font-semibold text-gray-900 text-[15px]">
-                                              {item.title}
-                                            </p>
-                                            {item.description && (
-                                              <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
-                                                {item.description}
-                                              </p>
-                                            )}
-                                            {item.location && (
-                                              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                                                <MapPin className="h-3 w-3" />
-                                                {item.location}
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </TabsContent>
-                )}
-
-                {/* ─── CABIN SELECTIONS TAB: comparison table ────────── */}
-                {data.cabinOptions && data.cabinOptions.length > 0 && (
-                  <TabsContent value="cabins" className="mt-6">
+            {/* ─── CABIN SELECTIONS: comparison table ────────── */}
+            {data.cabinOptions && data.cabinOptions.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <BedDouble className="h-6 w-6" style={{ color: primaryColor }} />
+                  Cabin Selections
+                </h2>
                     <div className="rounded-xl border border-gray-200 overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
