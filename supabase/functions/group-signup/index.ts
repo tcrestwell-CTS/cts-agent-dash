@@ -571,7 +571,7 @@ Deno.serve(async (req) => {
           email: email.toLowerCase().trim(),
           phone: phone?.trim() || null,
           number_of_travelers: Math.max(1, Math.min(2, parseInt(number_of_travelers) || 1)),
-          notes: [travelNotes, notes?.trim()?.substring(0, 500), add_prestay_hotel ? `Pre-cruise hotel: ${String(prestay_room_label || "YES").substring(0, 200)}` : null].filter(Boolean).join(" | ") || null,
+          notes: [travelNotes, notes?.trim()?.substring(0, 500)].filter(Boolean).join(" | ") || null,
           status: "confirmed",
         });
 
