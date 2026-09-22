@@ -30,10 +30,11 @@ export function CoverPhotoPicker({
 
   const selectFile = async (file: File) => {
     const validation = await validateHeroImage(file);
-    if ("message" in validation) {
+    if (!validation.valid) {
       toast.error(validation.message);
       return;
     }
+    if (validation.warning) toast.warning(validation.warning);
     onFileSelected(file);
   };
 
