@@ -114,6 +114,25 @@ export function AgentChatWidget() {
   // returns values when rendered inside a matching <Route> — since this widget
   // is at the root level of BrowserRouter, useParams always returns {}.
   const location = useLocation();
+
+  // Hide the agent-only chat widget on public/client-facing routes.
+  const isPublicRoute = (() => {
+    const path = location.pathname;
+    return (
+      path.startsWith("/group/") ||
+      path.startsWith("/shared/") ||
+      path.startsWith("/proposal/") ||
+      path.startsWith("/authorize/") ||
+      path.startsWith("/pay") ||
+      path.startsWith("/payment") ||
+      path.startsWith("/checkout") ||
+      path.startsWith("/update-info/") ||
+      path.startsWith("/client/") ||
+      path === "/payment-success"
+    );
+  })();
+  if (!user || isPublicRoute) return null;
+
   const pageContext = (() => {
     const path = location.pathname;
     // /trips/:tripId  or  /trips/:tripId/anything
