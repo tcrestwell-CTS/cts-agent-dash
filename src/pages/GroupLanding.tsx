@@ -747,6 +747,71 @@ export default function GroupLanding() {
               </div>
             )}
 
+            {/* ─── GALLERY LIGHTBOX ───────────────── */}
+            <Dialog
+              open={lightboxIndex !== null}
+              onOpenChange={(open) => !open && setLightboxIndex(null)}
+            >
+              <DialogContent className="max-w-5xl w-[95vw] p-0 bg-black/95 border-none overflow-hidden [&>button]:hidden">
+                <DialogTitle className="sr-only">
+                  {lightboxIndex !== null
+                    ? featureImages[lightboxIndex]?.caption || "Trip photo"
+                    : "Trip photo"}
+                </DialogTitle>
+                {lightboxIndex !== null && featureImages[lightboxIndex] && (
+                  <div className="relative flex flex-col">
+                    <button
+                      onClick={() => setLightboxIndex(null)}
+                      aria-label="Close"
+                      className="absolute top-3 right-3 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                    {featureImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={() =>
+                            setLightboxIndex(
+                              (lightboxIndex - 1 + featureImages.length) %
+                                featureImages.length
+                            )
+                          }
+                          aria-label="Previous photo"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition-colors"
+                        >
+                          <ChevronLeft className="h-6 w-6" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setLightboxIndex(
+                              (lightboxIndex + 1) % featureImages.length
+                            )
+                          }
+                          aria-label="Next photo"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition-colors"
+                        >
+                          <ChevronRight className="h-6 w-6" />
+                        </button>
+                      </>
+                    )}
+                    <img
+                      src={featureImages[lightboxIndex].url}
+                      alt={featureImages[lightboxIndex].caption || "Trip photo"}
+                      className="w-full max-h-[78vh] object-contain"
+                    />
+                    <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-200">
+                      <span>
+                        {featureImages[lightboxIndex].caption || ""}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        {lightboxIndex + 1} / {featureImages.length}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
             {/* ─── ADDITIONAL SECTIONS (accordion) ── */}
             {additionalSections.length > 0 && (
               <div className="space-y-3">
