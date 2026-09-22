@@ -912,8 +912,25 @@ export default function SharedTrip() {
                 primaryColor={primaryColor}
                 optionBlocks={publishedOptionBlocks}
               />
+              {data.trip.trip_type === "group" && token && (approvedItineraryId || (data as any).trip?.itinerary_approved_at) && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50">
+                  <div>
+                    <p className="font-semibold text-gray-900">Ready to join this group trip?</p>
+                    <p className="text-sm text-gray-500">Head to the trip page to reserve your spot and set up your personal trip.</p>
+                  </div>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="rounded-xl font-semibold"
+                    style={{ backgroundColor: primaryColor, color: "white" }}
+                  >
+                    <a href={`/group/${token}`}>Join This Trip</a>
+                  </Button>
+                </div>
+              )}
             </div>
           ) : null}
+
 
           {/* ─ Cabin / Category options ─ */}
           {data.cabinOptions && data.cabinOptions.length > 0 && (
