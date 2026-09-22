@@ -451,20 +451,47 @@ Deno.serve(async (req) => {
     // Build attachment content if file was attached
     let attachmentMessage: ChatMessage | null = null;
     if (attachment) {
-      if (attachment.type === "pdf" || attachment.type === "text" || attachment.type === "csv") {
-        // For text-based files, include base64 content as a user message context
+      if (attachment.type === "pdf") {
+        // PDFs go to the model as a real document attachment so it reads the
+        // actual page contents (text, tables, totals) instead of raw base64.
+        const mime = attachment.mimeType || "application/pdf";
         attachmentMessage = {
           role: "user",
-          content: `[File attached: ${attachment.name} (${attachment.type.toUpperCase()})]\nThe file content (base64-encoded) is provided below for your analysis:\n${attachment.base64.substring(0, 8000)}${attachment.base64.length > 8000 ? "\n...[truncated]" : ""}`,
+          content: [
+            {
+              type: "text",
+              text: `[Document attached: ${attachment.name}]\nRead this document directly and use its contents to answer. If it is a supplier or booking confirmation, extract the confirmation/reservation number, supplier or cruise line, ship, travel dates, guest names, stateroom/room, gross charges, taxes and fees, commission amount and rate, and net due to supplier. Report any figure you cannot find as unknown instead of guessing.`,
+            },
+            {
+              type: "file",
+              file: { filename: attachment.name, file_data: `data:${mime};base64,${attachment.base64}` },
+            },
+          ] as any,
+        };
+      } else if (attachment.type === "text" || attachment.type === "csv") {
+        // Decode text-based files so the model sees the real text.
+        let decoded = "";
+        try {
+          decoded = new TextDecoder().decode(
+            Uint8Array.from(atob(attachment.base64), (c) => c.charCodeAt(0)),
+          );
+        } catch {
+          decoded = "";
+        }
+        attachmentMessage = {
+          role: "user",
+          content: decoded
+            ? `[File attached: ${attachment.name} (${attachment.type.toUpperCase()})]\n\n${decoded.slice(0, 120000)}${decoded.length > 120000 ? "\n...[truncated]" : ""}`
+            : `[File attached: ${attachment.name}] The file could not be read as text.`,
         };
       } else if (attachment.type === "image") {
         // Images are passed as vision content
         attachmentMessage = {
           role: "user",
-          content: JSON.stringify([
+          content: [
             { type: "text", text: `[Image attached: ${attachment.name}]` },
             { type: "image_url", image_url: { url: `data:${attachment.mimeType};base64,${attachment.base64}` } },
-          ]),
+          ] as any,
         };
       }
     }
