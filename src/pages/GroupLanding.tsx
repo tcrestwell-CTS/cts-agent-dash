@@ -715,7 +715,17 @@ export default function GroupLanding() {
                   {featureImages.map((img, idx) => (
                     <div
                       key={img.id}
-                      className={`rounded-xl overflow-hidden group ${
+                      role="button"
+                      tabIndex={0}
+                      aria-label={img.caption ? `View photo: ${img.caption}` : "View photo"}
+                      onClick={() => setLightboxIndex(idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setLightboxIndex(idx);
+                        }
+                      }}
+                      className={`rounded-xl overflow-hidden group cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                         idx === 0 && featureImages.length >= 3
                           ? "col-span-2 row-span-2"
                           : ""
