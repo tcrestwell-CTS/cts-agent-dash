@@ -153,6 +153,61 @@ const PRESTAY_ROOM_OPTIONS = [
 const PRESTAY_NIGHTS = 2;
 const PRESTAY_RESORT_FEE_PER_NIGHT = 66;
 
+// Curated city options for the "traveling from" city/state dropdowns.
+const US_CITIES: Record<string, string[]> = {
+  "Alabama": ["Birmingham", "Huntsville", "Mobile", "Montgomery"],
+  "Alaska": ["Anchorage", "Fairbanks", "Juneau"],
+  "Arizona": ["Phoenix", "Tucson", "Scottsdale", "Mesa", "Flagstaff"],
+  "Arkansas": ["Little Rock", "Fayetteville", "Fort Smith"],
+  "California": ["Los Angeles", "San Francisco", "San Diego", "Sacramento", "Oakland", "San Jose", "Fresno"],
+  "Colorado": ["Denver", "Colorado Springs", "Boulder", "Aurora"],
+  "Connecticut": ["Hartford", "New Haven", "Stamford", "Bridgeport"],
+  "Delaware": ["Wilmington", "Dover", "Newark"],
+  "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville", "Fort Lauderdale", "Naples", "Tallahassee", "Pensacola"],
+  "Georgia": ["Atlanta", "Savannah", "Augusta", "Macon"],
+  "Hawaii": ["Honolulu", "Kahului", "Kona", "Lihue", "Hilo"],
+  "Idaho": ["Boise", "Idaho Falls", "Coeur d'Alene"],
+  "Illinois": ["Chicago", "Springfield", "Peoria", "Rockford"],
+  "Indiana": ["Indianapolis", "Fort Wayne", "Bloomington", "South Bend"],
+  "Iowa": ["Des Moines", "Cedar Rapids", "Iowa City"],
+  "Kansas": ["Wichita", "Kansas City", "Overland Park"],
+  "Kentucky": ["Louisville", "Lexington", "Bowling Green"],
+  "Louisiana": ["New Orleans", "Baton Rouge", "Shreveport", "Lafayette"],
+  "Maine": ["Portland", "Bangor", "Augusta"],
+  "Maryland": ["Baltimore", "Bethesda", "Annapolis", "Silver Spring"],
+  "Massachusetts": ["Boston", "Cambridge", "Springfield", "Worcester"],
+  "Michigan": ["Detroit", "Grand Rapids", "Ann Arbor", "Lansing"],
+  "Minnesota": ["Minneapolis", "Saint Paul", "Duluth", "Rochester"],
+  "Mississippi": ["Jackson", "Gulfport", "Biloxi"],
+  "Missouri": ["Kansas City", "St. Louis", "Springfield", "Columbia"],
+  "Montana": ["Billings", "Missoula", "Bozeman"],
+  "Nebraska": ["Omaha", "Lincoln", "Grand Island"],
+  "Nevada": ["Las Vegas", "Reno", "Henderson"],
+  "New Hampshire": ["Manchester", "Nashua", "Concord"],
+  "New Jersey": ["Newark", "Jersey City", "Trenton", "Atlantic City"],
+  "New Mexico": ["Albuquerque", "Santa Fe", "Las Cruces"],
+  "New York": ["New York City", "Buffalo", "Rochester", "Syracuse", "Albany"],
+  "North Carolina": ["Charlotte", "Raleigh", "Greensboro", "Wilmington", "Asheville"],
+  "North Dakota": ["Fargo", "Bismarck", "Grand Forks"],
+  "Ohio": ["Cleveland", "Columbus", "Cincinnati", "Dayton", "Toledo"],
+  "Oklahoma": ["Oklahoma City", "Tulsa", "Norman"],
+  "Oregon": ["Portland", "Eugene", "Salem", "Bend"],
+  "Pennsylvania": ["Philadelphia", "Pittsburgh", "Harrisburg", "Allentown"],
+  "Rhode Island": ["Providence", "Newport", "Warwick"],
+  "South Carolina": ["Charleston", "Columbia", "Greenville", "Myrtle Beach"],
+  "South Dakota": ["Sioux Falls", "Rapid City", "Pierre"],
+  "Tennessee": ["Nashville", "Memphis", "Knoxville", "Chattanooga"],
+  "Texas": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth", "El Paso"],
+  "Utah": ["Salt Lake City", "Park City", "Provo"],
+  "Vermont": ["Burlington", "Montpelier", "Rutland"],
+  "Virginia": ["Virginia Beach", "Richmond", "Norfolk", "Arlington", "Alexandria"],
+  "Washington": ["Seattle", "Spokane", "Tacoma", "Bellevue"],
+  "Washington, D.C.": ["Washington"],
+  "West Virginia": ["Charleston", "Huntington", "Morgantown"],
+  "Wisconsin": ["Milwaukee", "Madison", "Green Bay"],
+  "Wyoming": ["Cheyenne", "Casper", "Jackson"],
+};
+
 
 export default function GroupLanding() {
   const { token } = useParams<{ token: string }>();
@@ -177,13 +232,8 @@ export default function GroupLanding() {
     number_of_travelers: "1",
     notes: "",
     selected_cabin_option_id: "",
-    departure_location: "",
-    dc_airport: "",
-    nevada_airport: "",
-    airfare_preference: "agency",
-    add_prestay_hotel: false,
-    prestay_room_type: "",
-    prestay_rate_type: "prepaid",
+    departure_state: "",
+    departure_city: "",
 
     companion_first_name: "",
     companion_last_name: "",
@@ -227,12 +277,8 @@ export default function GroupLanding() {
       toast.error("Please fill in the second traveler's first name.");
       return;
     }
-    if (!form.departure_location) {
-      toast.error("Please select where you'll be traveling from.");
-      return;
-    }
-    if (form.departure_location === "nevada" && !form.nevada_airport.trim()) {
-      toast.error("Please enter your Nevada departure airport.");
+    if (!form.departure_state || !form.departure_city) {
+      toast.error("Please select your city and state.");
       return;
     }
     const chosen = data?.cabinOptions?.find((c) => c.id === form.selected_cabin_option_id);
@@ -240,16 +286,6 @@ export default function GroupLanding() {
       toast.error(`${chosen.category_name} requires 2 travelers (double occupancy).`);
       return;
     }
-    const effectivePrestay = form.departure_location !== "hawaii" && form.add_prestay_hotel;
-    if (effectivePrestay && !form.prestay_room_type) {
-      toast.error("Please choose a room type for the pre-cruise hotel stay.");
-      return;
-    }
-    const room = PRESTAY_ROOM_OPTIONS.find((r) => r.id === form.prestay_room_type);
-    const nightly = room ? (form.prestay_rate_type === "flexible" ? room.flexible : room.prepaid) : 0;
-    const prestay_room_label = room
-      ? `${room.name} — ${form.prestay_rate_type === "flexible" ? "flexible" : "prepaid"} rate ${currency(nightly)}/night, ${PRESTAY_NIGHTS} nights = ${currency(nightly * PRESTAY_NIGHTS)} + ${currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} resort fee at hotel`
-      : null;
     setSubmitting(true);
     try {
       const res = await fetch(
@@ -263,13 +299,6 @@ export default function GroupLanding() {
           body: JSON.stringify({
             token,
             ...form,
-            add_prestay_hotel: effectivePrestay,
-            prestay_room_label,
-            ...(form.departure_location === "hawaii"
-              ? { airfare_preference: "", dc_airport: "", nevada_airport: "" }
-              : form.departure_location !== "nevada"
-                ? { nevada_airport: "" }
-                : { dc_airport: "" }),
           }),
         }
 
@@ -1246,152 +1275,52 @@ export default function GroupLanding() {
                     </div>
                   )}
 
-                  {/* Departure location — drives airfare & pre-stay options */}
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Where will you be traveling from? *</Label>
-                    <select
-                      required
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      value={form.departure_location}
-                      onChange={(e) => {
-                        const loc = e.target.value;
-                        setForm((f) => ({
-                          ...f,
-                          departure_location: loc,
-                          ...(loc === "hawaii"
-                            ? { add_prestay_hotel: false, prestay_room_type: "", dc_airport: "", nevada_airport: "", airfare_preference: "agency" }
-                            : loc === "nevada"
-                              ? { dc_airport: "" }
-                              : { nevada_airport: "" }),
-                        }));
-                      }}
-                    >
-                      <option value="">Select your departure area</option>
-                      <option value="dc_maryland">Washington, DC / Maryland area</option>
-                      <option value="nevada">Nevada</option>
-                      <option value="hawaii">I already live in Hawaii</option>
-                      <option value="other">Somewhere else</option>
-                    </select>
-                  </div>
-
-                  {/* Airfare options — only for mainland departures */}
-                  {(form.departure_location === "dc_maryland" || form.departure_location === "nevada" || form.departure_location === "other") && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
-                      <p className="text-sm font-semibold text-gray-700">Airfare</p>
-                      {form.departure_location === "dc_maryland" && (
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Preferred airport</Label>
-                          <select
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={form.dc_airport}
-                            onChange={(e) => setForm((f) => ({ ...f, dc_airport: e.target.value }))}
-                          >
-                            <option value="">Compare all three (BWI, DCA, IAD)</option>
-                            <option value="BWI">BWI — Baltimore/Washington</option>
-                            <option value="DCA">DCA — Reagan National</option>
-                            <option value="IAD">IAD — Dulles</option>
-                          </select>
-                        </div>
-                      )}
-                      {form.departure_location === "nevada" && (
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Your Nevada departure airport *</Label>
-                          <Input
-                            maxLength={100}
-                            placeholder="e.g., LAS (Las Vegas) or RNO (Reno)"
-                            value={form.nevada_airport}
-                            onChange={(e) => setForm((f) => ({ ...f, nevada_airport: e.target.value }))}
-                          />
-                        </div>
-                      )}
-                      {form.departure_location === "other" && (
-                        <p className="text-xs text-gray-500">
-                          Tell us your home airport in the notes below and we'll quote airfare from there.
-                        </p>
-                      )}
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">How would you like to book airfare?</Label>
-                        <select
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          value={form.airfare_preference}
-                          onChange={(e) => setForm((f) => ({ ...f, airfare_preference: e.target.value }))}
-                        >
-                          <option value="agency">Quote airfare for me through Crestwell Travel</option>
-                          <option value="ncl">Interested in NCL promotional airfare (if available)</option>
-                          <option value="independent">I'll book my own airfare</option>
-                        </select>
-                      </div>
+                  {/* Departure location — city and state dropdowns */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">State *</Label>
+                      <select
+                        required
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={form.departure_state}
+                        onChange={(e) => {
+                          const state = e.target.value;
+                          setForm((f) => ({ ...f, departure_state: state, departure_city: "" }));
+                        }}
+                      >
+                        <option value="">Select state</option>
+                        {Object.keys(US_CITIES).sort().map((state) => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-
-                  {form.departure_location === "hawaii" && (
-                    <p className="text-xs text-gray-500 rounded-lg bg-gray-50 border border-gray-100 p-3">
-                      As a Hawaii resident you don't need airfare, and the pre-cruise hotel stay is optional for locals — you can simply join the group at the port. If you'd still like the hotel, mention it in the notes below.
-                    </p>
-                  )}
-
-                  {/* Pre-stay hotel opt-in — hidden for Hawaii residents */}
-                  {prestayHotel && form.departure_location !== "hawaii" && (
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-3">
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={form.add_prestay_hotel}
-                          onChange={(e) => setForm((f) => ({ ...f, add_prestay_hotel: e.target.checked, prestay_room_type: e.target.checked ? f.prestay_room_type : "" }))}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                          style={{ accentColor: primaryColor }}
-                        />
-                        <span className="text-sm">
-                          <span className="font-semibold text-gray-900">Add the pre-cruise hotel stay</span>
-                          <span className="block text-xs text-gray-500 mt-0.5">
-                            {prestayHotel.title} — 2 nights, double occupancy. Choose your room below.
-                          </span>
-                        </span>
-                      </label>
-
-                      {form.add_prestay_hotel && (
-                        <div className="space-y-2 pl-7">
-                          {PRESTAY_ROOM_OPTIONS.map((r) => {
-                            const nightly = form.prestay_rate_type === "flexible" ? r.flexible : r.prepaid;
-                            return (
-                              <label
-                                key={r.id}
-                                className="flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 cursor-pointer"
-                              >
-                                <input
-                                  type="radio"
-                                  name="prestay_room_type"
-                                  checked={form.prestay_room_type === r.id}
-                                  onChange={() => setForm((f) => ({ ...f, prestay_room_type: r.id }))}
-                                  className="mt-0.5 h-4 w-4"
-                                  style={{ accentColor: primaryColor }}
-                                />
-                                <span className="text-sm">
-                                  <span className="font-medium text-gray-900">{r.name}</span>
-                                  <span className="block text-xs text-gray-500 mt-0.5">
-                                    {currency(nightly)}/night · {currency(nightly * PRESTAY_NIGHTS)} for {PRESTAY_NIGHTS} nights
-                                  </span>
-                                </span>
-                              </label>
-                            );
-                          })}
-                          <div className="space-y-1.5 pt-1">
-                            <Label className="text-xs">Rate type</Label>
-                            <select
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                              value={form.prestay_rate_type}
-                              onChange={(e) => setForm((f) => ({ ...f, prestay_rate_type: e.target.value }))}
-                            >
-                              <option value="prepaid">Prepaid (lowest rate, non-refundable)</option>
-                              <option value="flexible">Flexible (free cancellation)</option>
-                            </select>
-                          </div>
-                          <p className="text-xs text-gray-400">
-                            Plus a {currency(PRESTAY_RESORT_FEE_PER_NIGHT)}/night resort fee paid at the hotel
-                            ({currency(PRESTAY_RESORT_FEE_PER_NIGHT * PRESTAY_NIGHTS)} total). Taxes confirmed at booking.
-                          </p>
-                        </div>
-                      )}
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">City *</Label>
+                      <select
+                        required
+                        disabled={!form.departure_state}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                        value={form.departure_city}
+                        onChange={(e) => setForm((f) => ({ ...f, departure_city: e.target.value }))}
+                      >
+                        <option value="">{form.departure_state ? "Select city" : "Choose state first"}</option>
+                        {form.departure_state &&
+                          US_CITIES[form.departure_state]?.map((city) => (
+                            <option key={city} value={city}>{city}</option>
+                          ))}
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  {form.departure_city === "Other" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Your city</Label>
+                      <Input
+                        maxLength={100}
+                        placeholder="Enter your city"
+                        value=""
+                        onChange={(e) => setForm((f) => ({ ...f, departure_city: e.target.value || "Other" }))}
+                      />
                     </div>
                   )}
 
