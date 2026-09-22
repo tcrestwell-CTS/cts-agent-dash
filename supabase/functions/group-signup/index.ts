@@ -542,7 +542,7 @@ Deno.serve(async (req) => {
           trip_type: "regular",
           status: "inbound",
           client_id: clientId,
-          notes: [notes?.trim(), travelNotes, add_prestay_hotel ? `Pre-cruise hotel stay requested: ${prestay_room_label || "room choice TBD"}` : null].filter(Boolean).join("\n") || null,
+          notes: [notes?.trim(), travelNotes].filter(Boolean).join("\n") || null,
           selected_cabin_option_id: selected_cabin_option_id || null,
           cover_image_url: parentTrip.cover_image_url,
         })
