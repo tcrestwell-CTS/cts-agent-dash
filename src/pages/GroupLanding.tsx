@@ -299,13 +299,6 @@ export default function GroupLanding() {
           body: JSON.stringify({
             token,
             ...form,
-            add_prestay_hotel: effectivePrestay,
-            prestay_room_label,
-            ...(form.departure_location === "hawaii"
-              ? { airfare_preference: "", dc_airport: "", nevada_airport: "" }
-              : form.departure_location !== "nevada"
-                ? { nevada_airport: "" }
-                : { dc_airport: "" }),
           }),
         }
 
