@@ -19,7 +19,7 @@ const SYSTEM_PROMPT = `You are Donna, Crestwell's in-app AI assistant for travel
 
 Always confirm important details (dates, destination, number of sub-trips, task due dates) before calling tools when ambiguous. Be concise. Introduce yourself as Donna on the first turn only. After calling tools, summarize what you did in one or two sentences.`;
 
-type ChatMessage = { role: "system" | "user" | "assistant" | "tool"; content: string; tool_calls?: any; tool_call_id?: string; name?: string };
+type ChatMessage = { role: "system" | "user" | "assistant" | "tool"; content: string | any[]; tool_calls?: any; tool_call_id?: string; name?: string };
 
 const tools = [
   {
