@@ -2,9 +2,15 @@ export const HERO_IMAGE_MIN_WIDTH = 1600;
 export const HERO_IMAGE_MIN_HEIGHT = 900;
 export const HERO_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
-export type HeroImageValidation =
-  | { valid: true; width: number; height: number; warning?: string }
-  | { valid: false; message: string };
+export type HeroImageValidation = {
+  valid: boolean;
+  width?: number;
+  height?: number;
+  /** Set when the image is unusable and must be rejected. */
+  message?: string;
+  /** Set when the image is usable but lower resolution than ideal. */
+  warning?: string;
+};
 
 function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
