@@ -397,27 +397,12 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, add_prestay_hotel, prestay_room_label, departure_location, dc_airport, nevada_airport, airfare_preference } = body;
+      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, departure_state, departure_city } = body;
 
-      const DEPARTURE_LABELS: Record<string, string> = {
-        dc_maryland: "Washington, DC / Maryland area",
-        nevada: "Nevada",
-        hawaii: "Hawaii resident",
-        other: "Other (see notes)",
-      };
-      const AIRFARE_LABELS: Record<string, string> = {
-        agency: "Airfare quote requested via agency",
-        ncl: "Interested in NCL promotional airfare",
-        independent: "Will book airfare independently",
-      };
       const travelNoteParts: string[] = [];
-      if (departure_location && DEPARTURE_LABELS[departure_location]) {
-        travelNoteParts.push(`Departing from: ${DEPARTURE_LABELS[departure_location]}`);
-        if (departure_location === "dc_maryland" && dc_airport) travelNoteParts.push(`Preferred airport: ${dc_airport}`);
-        if (departure_location === "nevada" && nevada_airport) travelNoteParts.push(`Nevada departure airport: ${String(nevada_airport).substring(0, 100)}`);
-        if (departure_location !== "hawaii" && airfare_preference && AIRFARE_LABELS[airfare_preference]) {
-          travelNoteParts.push(AIRFARE_LABELS[airfare_preference]);
-        }
+      if (departure_state) {
+        const cityLabel = departure_city && departure_city !== "Other" ? departure_city : "(city not listed)";
+        travelNoteParts.push(`Departing from: ${cityLabel}, ${departure_state}`);
       }
       const travelNotes = travelNoteParts.join(" | ") || null;
 
