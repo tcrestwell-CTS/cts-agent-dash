@@ -395,21 +395,7 @@ const GroupLandingBuilder = () => {
   };
 
   // ─── URL ──────────────────────────────────────────
-  const getPublicBaseUrl = () => {
-    if (trip?.trip_page_url) {
-      try {
-        return new URL(trip.trip_page_url).origin;
-      } catch {
-        // fall through to default
-      }
-    }
-    // Prefer the current origin when we're on the public custom domain,
-    // otherwise default to it (never the internal lovable.app preview host).
-    if (typeof window !== "undefined" && !window.location.hostname.endsWith("lovable.app")) {
-      return window.location.origin;
-    }
-    return "https://app.crestwelltravels.com";
-  };
+  const getPublicBaseUrl = () => "https://app.crestwelltravels.com";
 
   const landingUrl = trip?.share_token ? `${getPublicBaseUrl()}/group/${trip.share_token}` : null;
   const copyUrl = () => {
