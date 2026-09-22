@@ -16,10 +16,11 @@ const SYSTEM_PROMPT = `You are Donna, Crestwell's in-app AI assistant for travel
 1. Creating group trips (parent trip + optional sub-trips for each cabin/room/family). Group trips use trip_type='group' and sub-trips link via parent_trip_id.
 2. Managing workflow tasks (list, create, complete) tied to trips. Tasks have task_type (follow_up, payment_due, document_request, supplier_followup, internal_review) and status (pending, in_progress, completed).
 3. Converting approved lead proposals into CRM clients. When the advisor approves a lead (a quote_requests row with proposal_status='approved' or status='approved') and asks you to add them as a client, call create_client_from_lead with the quote_request_id. It copies name, email, phone, location, and lead_source into public.clients and links the quote request via converted_trip_id if a trip is created later.
+4. Reading attached documents. You can read attached PDFs directly (supplier and booking confirmations, invoices, itineraries). When a confirmation is attached, extract the confirmation/reservation number, supplier or cruise line, ship, travel dates, guest names, stateroom/room, gross charges, taxes and fees, commission amount and rate, and net due to supplier. State clearly when a value is not present in the document rather than estimating it.
 
 Always confirm important details (dates, destination, number of sub-trips, task due dates) before calling tools when ambiguous. Be concise. Introduce yourself as Donna on the first turn only. After calling tools, summarize what you did in one or two sentences.`;
 
-type ChatMessage = { role: "system" | "user" | "assistant" | "tool"; content: string; tool_calls?: any; tool_call_id?: string; name?: string };
+type ChatMessage = { role: "system" | "user" | "assistant" | "tool"; content: string | any[]; tool_calls?: any; tool_call_id?: string; name?: string };
 
 const tools = [
   {
@@ -451,20 +452,47 @@ Deno.serve(async (req) => {
     // Build attachment content if file was attached
     let attachmentMessage: ChatMessage | null = null;
     if (attachment) {
-      if (attachment.type === "pdf" || attachment.type === "text" || attachment.type === "csv") {
-        // For text-based files, include base64 content as a user message context
+      if (attachment.type === "pdf") {
+        // PDFs go to the model as a real document attachment so it reads the
+        // actual page contents (text, tables, totals) instead of raw base64.
+        const mime = attachment.mimeType || "application/pdf";
         attachmentMessage = {
           role: "user",
-          content: `[File attached: ${attachment.name} (${attachment.type.toUpperCase()})]\nThe file content (base64-encoded) is provided below for your analysis:\n${attachment.base64.substring(0, 8000)}${attachment.base64.length > 8000 ? "\n...[truncated]" : ""}`,
+          content: [
+            {
+              type: "text",
+              text: `[Document attached: ${attachment.name}]\nRead this document directly and use its contents to answer. If it is a supplier or booking confirmation, extract the confirmation/reservation number, supplier or cruise line, ship, travel dates, guest names, stateroom/room, gross charges, taxes and fees, commission amount and rate, and net due to supplier. Report any figure you cannot find as unknown instead of guessing.`,
+            },
+            {
+              type: "file",
+              file: { filename: attachment.name, file_data: `data:${mime};base64,${attachment.base64}` },
+            },
+          ] as any,
+        };
+      } else if (attachment.type === "text" || attachment.type === "csv") {
+        // Decode text-based files so the model sees the real text.
+        let decoded = "";
+        try {
+          decoded = new TextDecoder().decode(
+            Uint8Array.from(atob(attachment.base64), (c) => c.charCodeAt(0)),
+          );
+        } catch {
+          decoded = "";
+        }
+        attachmentMessage = {
+          role: "user",
+          content: decoded
+            ? `[File attached: ${attachment.name} (${attachment.type.toUpperCase()})]\n\n${decoded.slice(0, 120000)}${decoded.length > 120000 ? "\n...[truncated]" : ""}`
+            : `[File attached: ${attachment.name}] The file could not be read as text.`,
         };
       } else if (attachment.type === "image") {
         // Images are passed as vision content
         attachmentMessage = {
           role: "user",
-          content: JSON.stringify([
+          content: [
             { type: "text", text: `[Image attached: ${attachment.name}]` },
             { type: "image_url", image_url: { url: `data:${attachment.mimeType};base64,${attachment.base64}` } },
-          ]),
+          ] as any,
         };
       }
     }
