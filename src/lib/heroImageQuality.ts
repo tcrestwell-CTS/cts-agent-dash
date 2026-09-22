@@ -3,7 +3,7 @@ export const HERO_IMAGE_MIN_HEIGHT = 900;
 export const HERO_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
 export type HeroImageValidation =
-  | { valid: true; width: number; height: number }
+  | { valid: true; width: number; height: number; warning?: string }
   | { valid: false; message: string };
 
 function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
@@ -37,12 +37,15 @@ export async function validateHeroImage(file: File): Promise<HeroImageValidation
     const { width, height } = await readImageDimensions(file);
     if (width < HERO_IMAGE_MIN_WIDTH || height < HERO_IMAGE_MIN_HEIGHT) {
       return {
-        valid: false,
-        message: `For a clear trip preview, choose an image at least ${HERO_IMAGE_MIN_WIDTH} × ${HERO_IMAGE_MIN_HEIGHT} pixels. This image is ${width} × ${height}.`,
+        valid: true,
+        width,
+        height,
+        warning: `This image is ${width} × ${height}. For the sharpest preview, use one at least ${HERO_IMAGE_MIN_WIDTH} × ${HERO_IMAGE_MIN_HEIGHT} pixels.`,
       };
     }
     return { valid: true, width, height };
   } catch {
-    return { valid: false, message: "This image could not be read. Please choose another file." };
+    // Dimensions could not be read (e.g. unusual format) — allow the upload.
+    return { valid: true, width: 0, height: 0 };
   }
 }
