@@ -669,9 +669,7 @@ export default function GroupLanding() {
                     <p className="text-xs text-gray-400 mt-2">
                       Prices are per person based on double occupancy unless noted. Final taxes, fees, and availability are confirmed at booking.
                     </p>
-                  </TabsContent>
-                )}
-              </Tabs>
+              </div>
             )}
 
             {/* ─── GALLERY ────────────────────────── */}
