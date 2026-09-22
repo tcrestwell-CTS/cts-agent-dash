@@ -912,7 +912,7 @@ export default function SharedTrip() {
                 primaryColor={primaryColor}
                 optionBlocks={publishedOptionBlocks}
               />
-              {data.trip.trip_type === "group" && token && (approvedItineraryId || (data as any).trip?.itinerary_approved_at) && (
+              {data.trip.trip_type === "group" && token && publishedItinerary.length > 0 && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50">
                   <div>
                     <p className="font-semibold text-gray-900">Ready to join this group trip?</p>
