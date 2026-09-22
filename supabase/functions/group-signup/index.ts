@@ -432,7 +432,7 @@ Deno.serve(async (req) => {
       // Find the parent trip
       const { data: parentTrip, error: tripErr } = await supabaseAdmin
         .from("trips")
-        .select("id, user_id, trip_name, destination, depart_date, return_date, trip_type, group_landing_enabled, cover_image_url")
+        .select("id, user_id, trip_name, destination, depart_date, return_date, trip_type, group_landing_enabled, cover_image_url, total_gross_sales, group_landing_content")
         .eq("share_token", signupToken)
         .eq("trip_type", "group")
         .single();
