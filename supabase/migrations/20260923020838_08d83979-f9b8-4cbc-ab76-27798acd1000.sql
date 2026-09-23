@@ -1,0 +1,10 @@
+REVOKE ALL ON FUNCTION public.trg_recalc_trip_payment_rollup() FROM anon, authenticated, PUBLIC;
+REVOKE ALL ON FUNCTION public.trg_recalc_trip_payment_rollup_del() FROM anon, authenticated, PUBLIC;
+REVOKE ALL ON FUNCTION public.trg_recalc_trip_balance_on_total() FROM anon, authenticated, PUBLIC;
+REVOKE ALL ON FUNCTION public.trg_recalc_booking_from_lines() FROM anon, authenticated, PUBLIC;
+REVOKE ALL ON FUNCTION public.recalc_trip_payment_rollup(uuid) FROM anon, PUBLIC;
+REVOKE ALL ON FUNCTION public.audit_account_integrity() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.repair_account_integrity() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.recalc_trip_payment_rollup(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.audit_account_integrity() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.repair_account_integrity() TO authenticated;
