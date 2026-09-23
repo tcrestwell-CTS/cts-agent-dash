@@ -42,7 +42,7 @@ const Training = () => {
   const trackModuleIds = new Set(trackModules.map(m => m.id));
 
   // Calculate overall progress
-  const lessonProgress = (progress || []).filter(p => p.lesson_id && p.module_id && trackModuleIds.has(p.module_id));
+  const lessonProgress = (progress || []).filter(p => p.lesson_id && (!p.module_id || trackModuleIds.has(p.module_id)));
   const completedLessons = lessonProgress.filter(p => p.status === "completed").length;
   const inProgressLessons = lessonProgress.filter(p => p.status === "in_progress").length;
   const totalModules = trackModules.length;

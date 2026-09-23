@@ -493,7 +493,7 @@ Deno.serve(async (req) => {
         }
 
         const cabinTotal = Number(cabin.cabinTotal);
-        const hotelBaseTotal = Number(room.prepaidTotal ?? (Number(room.nightlyRate) * Number(room.nights)));
+        const hotelBaseTotal = Number(room.prepaidTotal ?? (Number(room.nightlyRate) * Number(room.nights) + Number(room.estimatedTaxes ?? 0)));
         const hotelKnownFees = Number(room.knownPayAtProperty || 0);
         const hotelPostCheckoutRefund = Number(room.postCheckoutRefund || 0);
         const quotedTotal = cabinTotal + hotelBaseTotal + hotelKnownFees - hotelPostCheckoutRefund;
