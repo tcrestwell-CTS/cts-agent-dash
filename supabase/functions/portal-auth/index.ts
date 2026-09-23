@@ -97,6 +97,63 @@ const handler = async (req: Request): Promise<Response> => {
     const body = await req.json();
     const { action } = body;
 
+    // ── Staff: read / reset portal sessions for clients the caller can see ──
+    // Sessions are locked down at the table level; authorization is derived from
+    // whether the caller's own token can read the client row (clients RLS).
+    if (action === "staff-session-status" || action === "staff-reset-sessions") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: { user: staffUser } } = await userClient.auth.getUser();
+      if (!staffUser) {
+        return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+          status: 401, headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+      const requested: string[] = Array.isArray(body.client_ids) ? body.client_ids.filter((x: unknown) => typeof x === "string").slice(0, 2000) : [];
+      if (requested.length === 0) {
+        return new Response(JSON.stringify({ sessions: [] }), {
+          status: 200, headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+      const allowed: string[] = [];
+      for (let i = 0; i < requested.length; i += 200) {
+        const { data: rows } = await userClient.from("clients").select("id").in("id", requested.slice(i, i + 200));
+        (rows || []).forEach((r: { id: string }) => allowed.push(r.id));
+      }
+      if (allowed.length === 0) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+      if (action === "staff-reset-sessions") {
+        const { error } = await supabaseAdmin.from("client_portal_sessions").delete().in("client_id", allowed);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200, headers: { ...headers, "Content-Type": "application/json" },
+        });
+      }
+      const sessions: unknown[] = [];
+      for (let i = 0; i < allowed.length; i += 200) {
+        const { data } = await supabaseAdmin
+          .from("client_portal_sessions")
+          .select("id, client_id, created_at, expires_at, verified_at")
+          .in("client_id", allowed.slice(i, i + 200));
+        sessions.push(...(data || []));
+      }
+      return new Response(JSON.stringify({ sessions }), {
+        status: 200, headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+
     // ── Check if a client record exists for an email ───────────────────────
     if (action === "check-client-email") {
       const emailLower = (body.email || "").toLowerCase().trim();

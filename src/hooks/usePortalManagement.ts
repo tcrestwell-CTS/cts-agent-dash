@@ -20,10 +20,12 @@ export function usePortalManagement() {
         .order("name");
       if (clientErr) throw clientErr;
 
-      // Get portal sessions
-      const { data: sessions } = await supabase
-        .from("client_portal_sessions")
-        .select("id, client_id, email, created_at, expires_at, verified_at");
+      // Get portal sessions (table is locked down; read via backend function)
+      const { data: sessionRes } = await supabase.functions.invoke("portal-auth", {
+        body: { action: "staff-session-status", client_ids: (clients || []).map((c) => c.id) },
+      });
+      const sessions: { id: string; client_id: string; created_at: string; expires_at: string; verified_at: string | null }[] =
+        sessionRes?.sessions || [];
 
       // Get portal settings
       const { data: settings } = await supabase
@@ -99,11 +101,11 @@ export function usePortalManagement() {
 
   const resetSession = useMutation({
     mutationFn: async (clientId: string) => {
-      const { error } = await supabase
-        .from("client_portal_sessions")
-        .delete()
-        .eq("client_id", clientId);
+      const { data, error } = await supabase.functions.invoke("portal-auth", {
+        body: { action: "staff-reset-sessions", client_ids: [clientId] },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portal-management"] });
