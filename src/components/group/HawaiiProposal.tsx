@@ -243,15 +243,15 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
           <h2 className="font-display text-4xl md:text-5xl mt-2">Submit your selections to Crestwell.</h2>
           <p className="text-primary-foreground/75 mt-4 max-w-2xl">This is a request for advisor review—not a booking or payment authorization.</p>
           <div className="grid md:grid-cols-2 gap-5 mt-10">
-            <Field label="Traveler name *"><Input required value={form.traveler_name} onChange={(e) => setField("traveler_name", e.target.value)} /></Field>
-            <Field label="Second traveler name"><Input value={form.second_traveler_name} onChange={(e) => setField("second_traveler_name", e.target.value)} /></Field>
-            <Field label="Email *"><Input type="email" required value={form.email} onChange={(e) => setField("email", e.target.value)} /></Field>
-            <Field label="Phone"><Input type="tel" value={form.phone} onChange={(e) => setField("phone", e.target.value)} /></Field>
+            <Field label="Traveler name *"><Input required value={form.traveler_name} onChange={(e) => setField("traveler_name", e.target.value)} className="bg-card text-foreground caret-foreground" /></Field>
+            <Field label="Second traveler name"><Input value={form.second_traveler_name} onChange={(e) => setField("second_traveler_name", e.target.value)} className="bg-card text-foreground caret-foreground" /></Field>
+            <Field label="Email *"><Input type="email" required value={form.email} onChange={(e) => setField("email", e.target.value)} className="bg-card text-foreground caret-foreground" /></Field>
+            <Field label="Phone"><Input type="tel" value={form.phone} onChange={(e) => setField("phone", e.target.value)} className="bg-card text-foreground caret-foreground" /></Field>
             <Field label="Party size"><select value={form.party_size} onChange={(e) => setField("party_size", e.target.value)} className="h-10 w-full rounded-md border border-input bg-background text-foreground px-3"><option value="1">1 traveler</option><option value="2">2 travelers</option></select></Field>
             <div className="rounded-md border border-primary-foreground/20 p-4 text-sm"><p className="font-semibold text-accent">Your selection</p><p className="mt-2">{sailing?.label || "Choose a sailing"}</p><p>{cabin?.name || "Choose a cabin"}</p><p>{hotel && room ? `${hotel.name} · ${room.name}` : "Choose a hotel room"}</p></div>
-            <Field label="Special requests"><Textarea value={form.special_requests} onChange={(e) => setField("special_requests", e.target.value)} rows={3} /></Field>
-            <Field label="Accessibility requirements"><Textarea value={form.accessibility_requirements} onChange={(e) => setField("accessibility_requirements", e.target.value)} rows={3} /></Field>
-            <div className="md:col-span-2"><Field label="Additional comments"><Textarea value={form.additional_comments} onChange={(e) => setField("additional_comments", e.target.value)} rows={3} /></Field></div>
+            <Field label="Special requests"><Textarea value={form.special_requests} onChange={(e) => setField("special_requests", e.target.value)} rows={3} className="bg-card text-foreground caret-foreground" /></Field>
+            <Field label="Accessibility requirements"><Textarea value={form.accessibility_requirements} onChange={(e) => setField("accessibility_requirements", e.target.value)} rows={3} className="bg-card text-foreground caret-foreground" /></Field>
+            <div className="md:col-span-2"><Field label="Additional comments"><Textarea value={form.additional_comments} onChange={(e) => setField("additional_comments", e.target.value)} rows={3} className="bg-card text-foreground caret-foreground" /></Field></div>
           </div>
 
           <div className="bg-primary-foreground/10 border border-primary-foreground/20 rounded-md p-5 mt-8">
