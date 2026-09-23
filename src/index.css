@@ -49,6 +49,7 @@
 
     --border: 213 20% 85%;
     --input: 213 20% 85%;
+    --landing-input-foreground: 213 53% 11%;
     --ring: 43 50% 54%;
 
     --radius: 0.5rem;
@@ -115,6 +116,7 @@
 
     --border: 213 35% 20%;
     --input: 213 35% 20%;
+    --landing-input-foreground: 213 53% 11%;
     --ring: 43 50% 54%;
 
     --tint: 43 50% 54% / 0.07;
@@ -301,6 +303,10 @@
 }
 
 @layer components {
+  .landing-page-editor :is(input:not([type="file"]), textarea, [contenteditable="true"]) {
+    color: hsl(var(--landing-input-foreground));
+  }
+
   .hawaii-proposal {
     --background: 40 32% 96%;
     --foreground: 210 48% 16%;
