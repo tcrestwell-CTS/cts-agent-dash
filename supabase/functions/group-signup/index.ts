@@ -679,7 +679,24 @@ Deno.serve(async (req) => {
                   commissionable_amount: subTotal,
                 })
                 .eq("id", existingSplitBooking.id);
+
+              // Keep the itemized pricing line in step with the new share so the
+              // client portal shows the same total and balance as the booking.
+              const { data: splitLines } = await supabaseAdmin
+                .from("booking_margin_lines")
+                .select("id, quantity, is_optional")
+                .eq("booking_id", existingSplitBooking.id)
+                .eq("is_optional", false);
+
+              if (splitLines && splitLines.length === 1) {
+                const qty = Math.max(1, Number(splitLines[0].quantity) || 1);
+                await supabaseAdmin
+                  .from("booking_margin_lines")
+                  .update({ unit_sell: Math.round((subTotal / qty) * 100) / 100 })
+                  .eq("id", splitLines[0].id);
+              }
             } else {
+
               await supabaseAdmin.from("bookings").insert({
                 user_id: parentTrip.user_id,
                 trip_id: s.sub_trip_id,
