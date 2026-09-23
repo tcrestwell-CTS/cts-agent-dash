@@ -485,6 +485,8 @@ Deno.serve(async (req) => {
         const allowedFas = ["standard", "plus", "need_assistance"];
         const allowedService = ["prepay", "review"];
         const allowedExcursions = ["interested", "not_interested", "need_assistance"];
+        const allowedPayment = ["planned_payments", "flexpay", "affirm", "undecided"];
+        const paymentPreference = allowedPayment.includes(body.payment_preference) ? body.payment_preference : "undecided";
 
         if (!travelerName || ![1, 2].includes(partySize) || !sailing || !cabin || !hotel || !room || body.disclosure_accepted !== true || !allowedFas.includes(body.free_at_sea_selection) || !allowedService.includes(body.service_charges_selection) || !allowedExcursions.includes(body.excursions_selection)) {
           return new Response(JSON.stringify({ error: "Please complete all required proposal selections" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -544,7 +546,7 @@ Deno.serve(async (req) => {
           quoted_total: quotedTotal,
           free_at_sea_selection: body.free_at_sea_selection,
           excursions_selection: body.excursions_selection,
-          optional_upgrades: { service_charges: body.service_charges_selection, free_at_sea_total: freeAtSeaEstimate, hotel_included_taxes: Number(room.includedTaxes || 0), hotel_post_checkout_refund: hotelPostCheckoutRefund, hotel_refund_label: room.refundLabel || null },
+          optional_upgrades: { service_charges: body.service_charges_selection, payment_preference: paymentPreference, free_at_sea_total: freeAtSeaEstimate, hotel_included_taxes: Number(room.includedTaxes || 0), hotel_post_checkout_refund: hotelPostCheckoutRefund, hotel_refund_label: room.refundLabel || null },
           group_benefits: config.groupBenefits || [],
           confirmation_items: HAWAII_CONFIRMATION_ITEMS,
           special_requests: clean(body.special_requests, 1500) || null,
