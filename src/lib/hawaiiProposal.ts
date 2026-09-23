@@ -112,7 +112,7 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "OUTRIGGER Waikiki Paradise Hotel",
       summary: "A modern Waikiki stay with room-only pricing and free Wi-Fi.",
       rooms: [
-        { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "[CONFIRM ACTUAL DATE/RATE-SPECIFIC TERMS]", paymentLabel: "Additional amount shown payable at property: $48" },
+        { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "Additional amount shown payable at property: $48" },
       ],
     },
     {
@@ -120,9 +120,9 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "Ramada Plaza by Wyndham Waikiki",
       summary: "Straightforward Waikiki accommodations with three room choices.",
       rooms: [
-        { id: "standard-king", name: "Standard Room — 1 King Bed", nightlyRate: 198, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "[CONFIRM]", paymentLabel: "[CONFIRM]" },
-        { id: "balcony-king", name: "Balcony Room — 1 King Bed", nightlyRate: 227, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "[CONFIRM]", paymentLabel: "[CONFIRM]" },
-        { id: "balcony-city-double", name: "Balcony + City View Room — 2 Double Beds", nightlyRate: 238, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "[CONFIRM]", paymentLabel: "[CONFIRM]" },
+        { id: "standard-king", name: "Standard Room — 1 King Bed", nightlyRate: 198, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[CONFIRM]" },
+        { id: "balcony-king", name: "Balcony Room — 1 King Bed", nightlyRate: 227, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[CONFIRM]" },
+        { id: "balcony-city-double", name: "Balcony + City View Room — 2 Double Beds", nightlyRate: 238, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[CONFIRM]" },
       ],
     },
   ],
