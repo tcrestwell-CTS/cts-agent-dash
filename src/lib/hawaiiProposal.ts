@@ -126,7 +126,7 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       ],
     },
   ],
-  groupBenefits: ["[CONFIRM WITH NCL GROUP DEPARTMENT]"],
+  groupBenefits: [],
 };
 
 export const money = (value: number) =>
