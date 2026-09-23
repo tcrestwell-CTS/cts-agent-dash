@@ -225,7 +225,7 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
             <div className="flex gap-3 items-start"><Checkbox id="disclosure" checked={accepted} onCheckedChange={(value) => setAccepted(value === true)} className="mt-1 border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground" /><Label htmlFor="disclosure" className="text-sm leading-relaxed text-primary-foreground cursor-pointer">I understand that prices and availability are subject to change until booked and confirmed. Hotel taxes, resort/destination fees, cruise taxes, port expenses, service charges, gratuities, optional upgrades, excursions, and other applicable charges are shown separately when not included. Final pricing will be confirmed before payment.</Label></div>
           </div>
           <p className="text-sm mt-5 text-primary-foreground/75">Your Crestwell Travel Services advisor will review the final booking details with you before the reservation is finalized.</p>
-          <Button type="submit" size="lg" disabled={!canReview || !accepted || submitting} className="mt-8 bg-accent text-accent-foreground hover:bg-accent/90 min-h-12 px-8 text-base">{submitting ? "Submitting…" : "Submit Your Hawaii Vacation Selections"}<ChevronRight className="ml-2 h-5 w-5" /></Button>
+          <Button type="submit" size="lg" disabled={!canReview || !accepted || submitting} className="mt-8 bg-accent text-accent-foreground hover:bg-accent/90 min-h-12 h-auto px-6 sm:px-8 py-3 text-sm sm:text-base whitespace-normal text-left">{submitting ? "Submitting…" : "Submit Your Hawaii Vacation Selections"}<ChevronRight className="ml-2 h-5 w-5 shrink-0" /></Button>
         </div>
       </section>
     </form>
