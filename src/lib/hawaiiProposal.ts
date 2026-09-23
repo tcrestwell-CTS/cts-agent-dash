@@ -114,6 +114,7 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       rooms: [
         { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, estimatedTaxes: 65.31, taxesFeesLabel: "Occupancy tax included: $65.31", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Payment total: $505.31 USD" },
         { id: "queen-waikiki-view", name: "Room — 1 Queen Bed (Waikiki View)", details: "Queen size bed · Non-smoking · Breakfast included", nightlyRate: 362.5, nights: 2, knownPayAtProperty: 95, prepaidTotal: 725, estimatedTaxes: 93.7, taxesFeesLabel: "Occupancy tax included: $93.70", cancellationLabel: "Free cancellation before March 18, 2027", paymentLabel: "Payment total: $725 USD" },
+        { id: "one-bedroom-king-suite-partial-ocean", name: "One Bedroom King Suite with Partial Ocean View", details: "1 Bedroom Suite · Partial Ocean View · 1 King Bed · Non-smoking · Room only", nightlyRate: 483, nights: 2, knownPayAtProperty: 95, prepaidTotal: 966, estimatedTaxes: 124.83, taxesFeesLabel: "Occupancy tax included: $124.83", cancellationLabel: "Free cancellation before March 16, 2027", paymentLabel: "Payment total: $966 USD" },
       ],
     },
     {
