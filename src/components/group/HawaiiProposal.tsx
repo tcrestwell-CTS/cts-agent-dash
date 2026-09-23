@@ -45,7 +45,7 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
     traveler_name: "", second_traveler_name: "", email: "", phone: "", party_size: "2",
     sailing_id: "", cabin_id: "", hotel_id: "", hotel_room_id: "",
     free_at_sea_selection: "need_assistance", service_charges_selection: "review",
-    excursions_selection: "need_assistance", special_requests: "", accessibility_requirements: "", additional_comments: "",
+    excursions_selection: "need_assistance", payment_preference: "undecided", special_requests: "", accessibility_requirements: "", additional_comments: "",
   });
 
   const sailing = config.sailings.find((item) => item.id === form.sailing_id);
@@ -181,7 +181,10 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
                 <ChoiceSelect label="Free at Sea" value={form.free_at_sea_selection} onChange={(value) => setField("free_at_sea_selection", value)} options={[["standard","Standard"],["plus","Free at Sea Plus"],["need_assistance","Need assistance deciding"]]} />
                 <ChoiceSelect label="Service charges" value={form.service_charges_selection} onChange={(value) => setField("service_charges_selection", value)} options={[["prepay","Prepay if available"],["review","Review with Crestwell"]]} />
                 <ChoiceSelect label="Excursions" value={form.excursions_selection} onChange={(value) => setField("excursions_selection", value)} options={[["interested","Interested"],["not_interested","Not interested"],["need_assistance","Need assistance selecting"]]} />
-              </div></fieldset>
+                <ChoiceSelect label="How would you like to pay?" value={form.payment_preference} onChange={(value) => setField("payment_preference", value)} options={[["planned_payments","Planned payments (scheduled installments)"],["flexpay","Uplift FlexPay (monthly financing)"],["affirm","Affirm (pay over time)"],["undecided","Not sure yet — discuss with my advisor"]]} />
+              </div>
+              <p className="text-sm text-muted-foreground mt-4">Choosing an option here is a preference only. Your advisor will send the matching payment link after final pricing is confirmed; financing options are subject to provider approval.</p></fieldset>
+
             </div>
 
             <aside className="lg:sticky lg:top-20 border border-border bg-background rounded-lg p-6">
