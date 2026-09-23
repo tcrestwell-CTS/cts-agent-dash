@@ -26,12 +26,13 @@ const HAWAII_CONFIRMATION_ITEMS = [
 const clean = (value: unknown, max = 1000) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 
-function buildProposalReviewEmail(opts: { brand: any; travelerName: string; tripName: string; sailing: string; cabin: string; hotel: string; total: number }) {
+function buildProposalReviewEmail(opts: { brand: any; travelerName: string; tripName: string; sailing: string; cabin: string; hotel: string; total: number; serviceCharges: number; freeAtSeaEstimate: number }) {
   const b = opts.brand || {};
   const navy = b.primaryColor || b.primary_color || "#0b2545";
   const gold = b.accentColor || b.accent_color || "#c9a84c";
   const agencyName = b.agencyName || b.agency_name || "Crestwell Travel Services";
-  return `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033"><div style="background:${navy};color:#fff;padding:28px;border-top:5px solid ${gold}"><h1 style="font-family:Georgia,serif;margin:0">Hawaii selections received</h1></div><div style="padding:28px;border:1px solid #d9dde3"><p>Hello ${opts.travelerName},</p><p>Thank you for submitting your Hawaii vacation selections. Your Crestwell advisor will verify availability, promotions, taxes, service charges, group benefits, and cancellation terms before anything is booked or charged.</p><table style="width:100%;border-collapse:collapse;margin:20px 0"><tr><td style="padding:10px;border-bottom:1px solid #ddd">Sailing</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.sailing}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Cabin</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.cabin}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Hotel</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.hotel}</strong></td></tr><tr><td style="padding:10px">Known-cost estimate</td><td style="padding:10px;text-align:right"><strong>${fmt(opts.total)}</strong></td></tr></table><p style="font-size:13px;color:#64748b">This is an advisor-review request, not a confirmed reservation or payment authorization.</p></div><div style="padding:18px;text-align:center;color:#64748b;font-size:12px">${agencyName}</div></div>`;
+  const prepaidTotal = opts.serviceCharges + opts.freeAtSeaEstimate;
+  return `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033"><div style="background:${navy};color:#fff;padding:28px;border-top:5px solid ${gold}"><h1 style="font-family:Georgia,serif;margin:0">Hawaii selections received</h1></div><div style="padding:28px;border:1px solid #d9dde3"><p>Hello ${opts.travelerName},</p><p>Thank you for submitting your Hawaii vacation selections. Your Crestwell advisor will verify availability, promotions, taxes, service charges, group benefits, and cancellation terms before anything is booked or charged.</p><table style="width:100%;border-collapse:collapse;margin:20px 0"><tr><td style="padding:10px;border-bottom:1px solid #ddd">Sailing</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.sailing}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Cabin</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.cabin}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Hotel</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.hotel}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Known-cost estimate</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${fmt(opts.total)}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Estimated daily service charges</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${fmt(opts.serviceCharges)}</strong></td></tr><tr><td style="padding:10px">Estimated Free at Sea package</td><td style="padding:10px;text-align:right"><strong>${fmt(opts.freeAtSeaEstimate)}</strong></td></tr><tr><td style="padding:10px;border-top:2px solid #ddd"><strong>Estimated prepaid charges before sailing</strong></td><td style="padding:10px;border-top:2px solid #ddd;text-align:right"><strong>${fmt(prepaidTotal)}</strong></td></tr></table><p style="font-size:13px;color:#64748b">This is an advisor-review request, not a confirmed reservation or payment authorization. All taxes, fees, and promotions are subject to final verification.</p></div><div style="padding:18px;text-align:center;color:#64748b;font-size:12px">${agencyName}</div></div>`;
 }
 
 // Only trust the caller's origin when it is one of our own app hosts, so the
@@ -493,7 +494,17 @@ Deno.serve(async (req) => {
         const hotelBaseTotal = Number(room.nightlyRate) * Number(room.nights);
         const hotelKnownFees = Number(room.knownPayAtProperty || 0);
         const quotedTotal = cabinTotal + hotelBaseTotal + hotelKnownFees;
-        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, quotedTotal].every(Number.isFinite)) {
+        const serviceChargePerPersonPerDay = Number(cabin.serviceChargePerPersonPerDay || 20);
+        const freeAtSeaStandardPerPersonPerDay = Number(config.freeAtSeaStandardPerPersonPerDay || 28.5);
+        const freeAtSeaPlusPerPersonPerDay = Number(config.freeAtSeaPlusPerPersonPerDay || 49.99);
+        const cruiseNights = Number(sailing.nights) || 7;
+        const serviceChargeEstimate = serviceChargePerPersonPerDay * partySize * cruiseNights;
+        const freeAtSeaEstimate = body.free_at_sea_selection === "plus"
+          ? freeAtSeaPlusPerPersonPerDay * partySize * cruiseNights
+          : body.free_at_sea_selection === "standard"
+          ? freeAtSeaStandardPerPersonPerDay * partySize * cruiseNights
+          : 0;
+        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, quotedTotal, serviceChargeEstimate, freeAtSeaEstimate].every(Number.isFinite)) {
           return new Response(JSON.stringify({ error: "Proposal pricing is not configured correctly" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
@@ -512,7 +523,7 @@ Deno.serve(async (req) => {
           sailing_label: sailing.label,
           cruise_start_date: sailing.startDate,
           cruise_end_date: sailing.endDate,
-          cruise_nights: Number(sailing.nights),
+          cruise_nights: cruiseNights,
           cabin_id: cabin.id,
           cabin_category: cabin.name,
           cabin_price_per_person: Number(cabin.perPerson),
@@ -527,11 +538,12 @@ Deno.serve(async (req) => {
           hotel_nightly_rate: Number(room.nightlyRate),
           hotel_base_total: hotelBaseTotal,
           hotel_known_fees: hotelKnownFees,
+          cruise_service_charges: serviceChargeEstimate,
           estimated_known_total: quotedTotal,
           quoted_total: quotedTotal,
           free_at_sea_selection: body.free_at_sea_selection,
           excursions_selection: body.excursions_selection,
-          optional_upgrades: { service_charges: body.service_charges_selection },
+          optional_upgrades: { service_charges: body.service_charges_selection, free_at_sea_total: freeAtSeaEstimate },
           group_benefits: config.groupBenefits || [],
           confirmation_items: HAWAII_CONFIRMATION_ITEMS,
           special_requests: clean(body.special_requests, 1500) || null,
@@ -553,7 +565,7 @@ Deno.serve(async (req) => {
           user_id: parentTrip.user_id,
           type: "group_proposal_review",
           title: `Hawaii proposal review: ${travelerName}`,
-          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}.`,
+          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}; estimated prepaid charges: ${fmt(serviceChargeEstimate + freeAtSeaEstimate)}.`,
           trip_id: parentTrip.id,
         });
 
@@ -564,7 +576,7 @@ Deno.serve(async (req) => {
             const { Resend } = await import("npm:resend@4.0.0");
             const resend = new Resend(RESEND_API_KEY);
             const subject = `We received your Hawaii 2027 selections`;
-            const sendResp = await resend.emails.send({ from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`, to: [normalizedEmail], subject, html: buildProposalReviewEmail({ brand, travelerName, tripName: parentTrip.trip_name, sailing: sailing.label, cabin: cabin.name, hotel: `${hotel.name} — ${room.name}`, total: quotedTotal }), replyTo: brand.replyTo || "info@crestwellgetaways.com" });
+            const sendResp = await resend.emails.send({ from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`, to: [normalizedEmail], subject, html: buildProposalReviewEmail({ brand, travelerName, tripName: parentTrip.trip_name, sailing: sailing.label, cabin: cabin.name, hotel: `${hotel.name} — ${room.name}`, total: quotedTotal, serviceCharges: serviceChargeEstimate, freeAtSeaEstimate }), replyTo: brand.replyTo || "info@crestwellgetaways.com" });
             if (!(sendResp as any)?.error) await supabaseAdmin.from("email_logs").insert({ to_email: normalizedEmail, subject, template: "hawaii_proposal_review", status: "sent", provider_message_id: (sendResp as any)?.data?.id || null, metadata: { source: "group-signup", trip_id: parentTrip.id, proposal_selection_id: proposal.id } });
           }
         } catch (emailError) {
