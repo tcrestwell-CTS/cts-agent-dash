@@ -42,6 +42,7 @@ import {
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
+import { HawaiiProposal } from "@/components/group/HawaiiProposal";
 
 interface FeatureImage {
   id: string;
@@ -350,6 +351,10 @@ export default function GroupLanding() {
         </Card>
       </div>
     );
+  }
+
+  if ((data.trip.group_landing_content as any)?.proposal_config?.proposal_type === "hawaii_2027" && token) {
+    return <HawaiiProposal token={token} data={data} />;
   }
 
   const primaryColor = data.branding?.primary_color || "#1a365d";

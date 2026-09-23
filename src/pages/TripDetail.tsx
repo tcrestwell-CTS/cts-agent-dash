@@ -109,6 +109,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { WorkspaceBreadcrumbs } from "@/components/layout/WorkspaceBreadcrumbs";
+import { GroupProposalSelections } from "@/components/trips/GroupProposalSelections";
 
 type OuterTab = "itinerary" | "details" | "bookings";
 
@@ -1187,6 +1188,10 @@ const TripDetail = () => {
 
                 {isGroupTrip && (
                   <CabinOptionsManager tripId={trip.id} onDataChange={fetchTrip} />
+                )}
+
+                {isGroupTrip && (trip as any).group_landing_content?.proposal_config?.proposal_type === "hawaii_2027" && (
+                  <GroupProposalSelections tripId={trip.id} />
                 )}
 
                 {!isGroupTrip && selectedCabin && (

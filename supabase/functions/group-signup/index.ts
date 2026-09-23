@@ -11,6 +11,28 @@ const corsHeaders = {
 const APP_URL = "https://app.crestwelltravels.com";
 const SITE_URL = APP_URL;
 const PAY_PATH = "/pay";
+const HAWAII_PROPOSAL_TYPE = "hawaii_2027";
+const HAWAII_CONFIRMATION_ITEMS = [
+  "Hotel taxes and other property charges",
+  "Rate-specific hotel payment and cancellation terms",
+  "Cruise taxes, port expenses, and any fare components not shown",
+  "NCL daily service charges and Hawaii GET tax",
+  "Free at Sea benefits, eligibility, package charges, and gratuities for this booking",
+  "Free at Sea Plus price and eligibility for this sailing",
+  "Group amenities, cabin minimums, combinability, and dollar values",
+  "Excursion availability and final prices",
+];
+
+const clean = (value: unknown, max = 1000) =>
+  typeof value === "string" ? value.trim().slice(0, max) : "";
+
+function buildProposalReviewEmail(opts: { brand: any; travelerName: string; tripName: string; sailing: string; cabin: string; hotel: string; total: number }) {
+  const b = opts.brand || {};
+  const navy = b.primaryColor || b.primary_color || "#0b2545";
+  const gold = b.accentColor || b.accent_color || "#c9a84c";
+  const agencyName = b.agencyName || b.agency_name || "Crestwell Travel Services";
+  return `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033"><div style="background:${navy};color:#fff;padding:28px;border-top:5px solid ${gold}"><h1 style="font-family:Georgia,serif;margin:0">Hawaii selections received</h1></div><div style="padding:28px;border:1px solid #d9dde3"><p>Hello ${opts.travelerName},</p><p>Thank you for submitting your Hawaii vacation selections. Your Crestwell advisor will verify availability, promotions, taxes, service charges, group benefits, and cancellation terms before anything is booked or charged.</p><table style="width:100%;border-collapse:collapse;margin:20px 0"><tr><td style="padding:10px;border-bottom:1px solid #ddd">Sailing</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.sailing}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Cabin</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.cabin}</strong></td></tr><tr><td style="padding:10px;border-bottom:1px solid #ddd">Hotel</td><td style="padding:10px;border-bottom:1px solid #ddd;text-align:right"><strong>${opts.hotel}</strong></td></tr><tr><td style="padding:10px">Known-cost estimate</td><td style="padding:10px;text-align:right"><strong>${fmt(opts.total)}</strong></td></tr></table><p style="font-size:13px;color:#64748b">This is an advisor-review request, not a confirmed reservation or payment authorization.</p></div><div style="padding:18px;text-align:center;color:#64748b;font-size:12px">${agencyName}</div></div>`;
+}
 
 // Only trust the caller's origin when it is one of our own app hosts, so the
 // deposit link always points at a domain that actually serves the pay page.
@@ -397,7 +419,7 @@ Deno.serve(async (req) => {
     // POST: Handle a new signup
     if (req.method === "POST") {
       const body = await req.json();
-      const { token: signupToken, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, departure_state, departure_city } = body;
+      const { token: signupToken, action, first_name, last_name, email, phone, number_of_travelers, notes, selected_cabin_option_id, companion_first_name, companion_last_name, companion_email, companion_phone, departure_state, departure_city } = body;
 
       const travelNoteParts: string[] = [];
       if (departure_state) {
@@ -406,8 +428,8 @@ Deno.serve(async (req) => {
       }
       const travelNotes = travelNoteParts.join(" | ") || null;
 
-      // Validate required fields
-      if (!signupToken || !first_name || !email) {
+      // Validate fields shared by both generic signups and proposal requests.
+      if (!signupToken || !email || (action !== "submit_proposal_selection" && !first_name)) {
         return new Response(
           JSON.stringify({ error: "Missing required fields: token, first_name, email" }),
           {
@@ -445,6 +467,111 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
+      }
+
+      if (action === "submit_proposal_selection") {
+        const config = parentTrip.group_landing_content?.proposal_config;
+        if (config?.proposal_type !== HAWAII_PROPOSAL_TYPE) {
+          return new Response(JSON.stringify({ error: "This proposal is not available" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const travelerName = clean(body.traveler_name, 120);
+        const partySize = Number(body.party_size);
+        const sailing = Array.isArray(config.sailings) ? config.sailings.find((item: any) => item.id === body.sailing_id) : null;
+        const cabin = sailing?.cabins?.find((item: any) => item.id === body.cabin_id);
+        const hotel = Array.isArray(config.hotels) ? config.hotels.find((item: any) => item.id === body.hotel_id) : null;
+        const room = hotel?.rooms?.find((item: any) => item.id === body.hotel_room_id);
+        const allowedFas = ["standard", "plus", "need_assistance"];
+        const allowedService = ["prepay", "review"];
+        const allowedExcursions = ["interested", "not_interested", "need_assistance"];
+
+        if (!travelerName || ![1, 2].includes(partySize) || !sailing || !cabin || !hotel || !room || body.disclosure_accepted !== true || !allowedFas.includes(body.free_at_sea_selection) || !allowedService.includes(body.service_charges_selection) || !allowedExcursions.includes(body.excursions_selection)) {
+          return new Response(JSON.stringify({ error: "Please complete all required proposal selections" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const cabinTotal = Number(cabin.cabinTotal);
+        const hotelBaseTotal = Number(room.nightlyRate) * Number(room.nights);
+        const hotelKnownFees = Number(room.knownPayAtProperty || 0);
+        const quotedTotal = cabinTotal + hotelBaseTotal + hotelKnownFees;
+        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, quotedTotal].every(Number.isFinite)) {
+          return new Response(JSON.stringify({ error: "Proposal pricing is not configured correctly" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        const { data: existingClient } = await supabaseAdmin.from("clients").select("id").eq("user_id", parentTrip.user_id).eq("email", normalizedEmail).maybeSingle();
+        const { data: proposal, error: proposalError } = await supabaseAdmin.from("group_proposal_selections").insert({
+          trip_id: parentTrip.id,
+          user_id: parentTrip.user_id,
+          client_id: existingClient?.id || null,
+          traveler_name: travelerName,
+          second_traveler_name: clean(body.second_traveler_name, 120) || null,
+          email: normalizedEmail,
+          phone: clean(phone, 40) || null,
+          party_size: partySize,
+          sailing_id: sailing.id,
+          sailing_label: sailing.label,
+          cruise_start_date: sailing.startDate,
+          cruise_end_date: sailing.endDate,
+          cruise_nights: Number(sailing.nights),
+          cabin_id: cabin.id,
+          cabin_category: cabin.name,
+          cabin_price_per_person: Number(cabin.perPerson),
+          cabin_total: cabinTotal,
+          hotel_id: hotel.id,
+          hotel_name: hotel.name,
+          hotel_room_id: room.id,
+          hotel_room_type: room.name,
+          hotel_check_in: sailing.hotelCheckIn,
+          hotel_check_out: sailing.hotelCheckOut,
+          hotel_nights: Number(room.nights),
+          hotel_nightly_rate: Number(room.nightlyRate),
+          hotel_base_total: hotelBaseTotal,
+          hotel_known_fees: hotelKnownFees,
+          estimated_known_total: quotedTotal,
+          quoted_total: quotedTotal,
+          free_at_sea_selection: body.free_at_sea_selection,
+          excursions_selection: body.excursions_selection,
+          optional_upgrades: { service_charges: body.service_charges_selection },
+          group_benefits: config.groupBenefits || [],
+          confirmation_items: HAWAII_CONFIRMATION_ITEMS,
+          special_requests: clean(body.special_requests, 1500) || null,
+          accessibility_requirements: clean(body.accessibility_requirements, 1500) || null,
+          additional_comments: clean(body.additional_comments, 1500) || null,
+          disclosure_version: config.version || "hawaii-2027-v1",
+          disclosure_accepted_at: new Date().toISOString(),
+          status: "advisor_review",
+          booking_status: "not_created",
+          payment_status: "not_requested",
+        }).select("id").single();
+
+        if (proposalError || !proposal) {
+          console.error("Failed to save proposal selection:", proposalError);
+          return new Response(JSON.stringify({ error: "Unable to save your selections" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        await supabaseAdmin.from("agent_notifications").insert({
+          user_id: parentTrip.user_id,
+          type: "group_proposal_review",
+          title: `Hawaii proposal review: ${travelerName}`,
+          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}.`,
+          trip_id: parentTrip.id,
+        });
+
+        try {
+          const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+          if (RESEND_API_KEY) {
+            const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
+            const { Resend } = await import("npm:resend@4.0.0");
+            const resend = new Resend(RESEND_API_KEY);
+            const subject = `We received your Hawaii 2027 selections`;
+            const sendResp = await resend.emails.send({ from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`, to: [normalizedEmail], subject, html: buildProposalReviewEmail({ brand, travelerName, tripName: parentTrip.trip_name, sailing: sailing.label, cabin: cabin.name, hotel: `${hotel.name} — ${room.name}`, total: quotedTotal }), replyTo: brand.replyTo || "info@crestwellgetaways.com" });
+            if (!(sendResp as any)?.error) await supabaseAdmin.from("email_logs").insert({ to_email: normalizedEmail, subject, template: "hawaii_proposal_review", status: "sent", provider_message_id: (sendResp as any)?.data?.id || null, metadata: { source: "group-signup", trip_id: parentTrip.id, proposal_selection_id: proposal.id } });
+          }
+        } catch (emailError) {
+          console.error("Proposal confirmation email failed:", emailError);
+        }
+
+        return new Response(JSON.stringify({ success: true, proposalSelectionId: proposal.id, status: "advisor_review" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       // Check for duplicate email on this trip

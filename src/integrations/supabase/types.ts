@@ -4668,6 +4668,190 @@ export type Database = {
           },
         ]
       }
+      group_proposal_selections: {
+        Row: {
+          accessibility_requirements: string | null
+          additional_comments: string | null
+          advisor_notes: string | null
+          booking_status: string
+          cabin_category: string
+          cabin_id: string
+          cabin_price_per_person: number
+          cabin_total: number
+          client_id: string | null
+          confirmation_items: Json
+          confirmed_total: number | null
+          created_at: string
+          cruise_end_date: string
+          cruise_nights: number
+          cruise_service_charges: number | null
+          cruise_start_date: string
+          disclosure_accepted_at: string
+          disclosure_version: string
+          email: string
+          estimated_known_total: number
+          excursion_total: number | null
+          excursions_selection: string
+          free_at_sea_selection: string
+          group_benefits: Json
+          hotel_base_total: number
+          hotel_check_in: string
+          hotel_check_out: string
+          hotel_id: string
+          hotel_known_fees: number
+          hotel_name: string
+          hotel_nightly_rate: number
+          hotel_nights: number
+          hotel_room_id: string
+          hotel_room_type: string
+          hotel_taxes_fees: number | null
+          id: string
+          optional_upgrades: Json
+          party_size: number
+          payment_status: string
+          phone: string | null
+          quoted_total: number
+          reviewed_at: string | null
+          sailing_id: string
+          sailing_label: string
+          second_traveler_name: string | null
+          special_requests: string | null
+          status: string
+          traveler_name: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accessibility_requirements?: string | null
+          additional_comments?: string | null
+          advisor_notes?: string | null
+          booking_status?: string
+          cabin_category: string
+          cabin_id: string
+          cabin_price_per_person: number
+          cabin_total: number
+          client_id?: string | null
+          confirmation_items?: Json
+          confirmed_total?: number | null
+          created_at?: string
+          cruise_end_date: string
+          cruise_nights?: number
+          cruise_service_charges?: number | null
+          cruise_start_date: string
+          disclosure_accepted_at?: string
+          disclosure_version?: string
+          email: string
+          estimated_known_total: number
+          excursion_total?: number | null
+          excursions_selection: string
+          free_at_sea_selection: string
+          group_benefits?: Json
+          hotel_base_total: number
+          hotel_check_in: string
+          hotel_check_out: string
+          hotel_id: string
+          hotel_known_fees?: number
+          hotel_name: string
+          hotel_nightly_rate: number
+          hotel_nights?: number
+          hotel_room_id: string
+          hotel_room_type: string
+          hotel_taxes_fees?: number | null
+          id?: string
+          optional_upgrades?: Json
+          party_size?: number
+          payment_status?: string
+          phone?: string | null
+          quoted_total: number
+          reviewed_at?: string | null
+          sailing_id: string
+          sailing_label: string
+          second_traveler_name?: string | null
+          special_requests?: string | null
+          status?: string
+          traveler_name: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accessibility_requirements?: string | null
+          additional_comments?: string | null
+          advisor_notes?: string | null
+          booking_status?: string
+          cabin_category?: string
+          cabin_id?: string
+          cabin_price_per_person?: number
+          cabin_total?: number
+          client_id?: string | null
+          confirmation_items?: Json
+          confirmed_total?: number | null
+          created_at?: string
+          cruise_end_date?: string
+          cruise_nights?: number
+          cruise_service_charges?: number | null
+          cruise_start_date?: string
+          disclosure_accepted_at?: string
+          disclosure_version?: string
+          email?: string
+          estimated_known_total?: number
+          excursion_total?: number | null
+          excursions_selection?: string
+          free_at_sea_selection?: string
+          group_benefits?: Json
+          hotel_base_total?: number
+          hotel_check_in?: string
+          hotel_check_out?: string
+          hotel_id?: string
+          hotel_known_fees?: number
+          hotel_name?: string
+          hotel_nightly_rate?: number
+          hotel_nights?: number
+          hotel_room_id?: string
+          hotel_room_type?: string
+          hotel_taxes_fees?: number | null
+          id?: string
+          optional_upgrades?: Json
+          party_size?: number
+          payment_status?: string
+          phone?: string | null
+          quoted_total?: number
+          reviewed_at?: string | null
+          sailing_id?: string
+          sailing_label?: string
+          second_traveler_name?: string | null
+          special_requests?: string | null
+          status?: string
+          traveler_name?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_proposal_selections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "bookkeeper_clients_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_proposal_selections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_proposal_selections_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_signups: {
         Row: {
           created_at: string
