@@ -42,7 +42,15 @@ export function GroupProposalSelections({ tripId }: { tripId: string }) {
   </Card>;
 }
 
+const PAYMENT_LABELS: Record<string, string> = {
+  planned_payments: "Planned payments",
+  flexpay: "Uplift FlexPay",
+  affirm: "Affirm",
+  undecided: "Undecided — needs a call",
+};
+
 function SelectionReview({ selection, saving, onSave }: { selection: any; saving: boolean; onSave: (id: string, status: string, total: string, notes: string) => void }) {
+
   const [status, setStatus] = useState(selection.status);
   const [total, setTotal] = useState(selection.confirmed_total?.toString() || "");
   const [notes, setNotes] = useState(selection.advisor_notes || "");
