@@ -494,7 +494,17 @@ Deno.serve(async (req) => {
         const hotelBaseTotal = Number(room.nightlyRate) * Number(room.nights);
         const hotelKnownFees = Number(room.knownPayAtProperty || 0);
         const quotedTotal = cabinTotal + hotelBaseTotal + hotelKnownFees;
-        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, quotedTotal].every(Number.isFinite)) {
+        const serviceChargePerPersonPerDay = Number(cabin.serviceChargePerPersonPerDay || 20);
+        const freeAtSeaStandardPerPersonPerDay = Number(config.freeAtSeaStandardPerPersonPerDay || 28.5);
+        const freeAtSeaPlusPerPersonPerDay = Number(config.freeAtSeaPlusPerPersonPerDay || 49.99);
+        const cruiseNights = Number(sailing.nights) || 7;
+        const serviceChargeEstimate = serviceChargePerPersonPerDay * partySize * cruiseNights;
+        const freeAtSeaEstimate = body.free_at_sea_selection === "plus"
+          ? freeAtSeaPlusPerPersonPerDay * partySize * cruiseNights
+          : body.free_at_sea_selection === "standard"
+          ? freeAtSeaStandardPerPersonPerDay * partySize * cruiseNights
+          : 0;
+        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, quotedTotal, serviceChargeEstimate, freeAtSeaEstimate].every(Number.isFinite)) {
           return new Response(JSON.stringify({ error: "Proposal pricing is not configured correctly" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
@@ -513,7 +523,7 @@ Deno.serve(async (req) => {
           sailing_label: sailing.label,
           cruise_start_date: sailing.startDate,
           cruise_end_date: sailing.endDate,
-          cruise_nights: Number(sailing.nights),
+          cruise_nights: cruiseNights,
           cabin_id: cabin.id,
           cabin_category: cabin.name,
           cabin_price_per_person: Number(cabin.perPerson),
@@ -528,11 +538,12 @@ Deno.serve(async (req) => {
           hotel_nightly_rate: Number(room.nightlyRate),
           hotel_base_total: hotelBaseTotal,
           hotel_known_fees: hotelKnownFees,
+          cruise_service_charges: serviceChargeEstimate,
           estimated_known_total: quotedTotal,
           quoted_total: quotedTotal,
           free_at_sea_selection: body.free_at_sea_selection,
           excursions_selection: body.excursions_selection,
-          optional_upgrades: { service_charges: body.service_charges_selection },
+          optional_upgrades: { service_charges: body.service_charges_selection, free_at_sea_total: freeAtSeaEstimate },
           group_benefits: config.groupBenefits || [],
           confirmation_items: HAWAII_CONFIRMATION_ITEMS,
           special_requests: clean(body.special_requests, 1500) || null,
@@ -554,7 +565,7 @@ Deno.serve(async (req) => {
           user_id: parentTrip.user_id,
           type: "group_proposal_review",
           title: `Hawaii proposal review: ${travelerName}`,
-          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}.`,
+          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}; estimated prepaid charges: ${fmt(serviceChargeEstimate + freeAtSeaEstimate)}.`,
           trip_id: parentTrip.id,
         });
 
