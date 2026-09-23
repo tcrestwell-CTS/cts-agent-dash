@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
             const { Resend } = await import("npm:resend@4.0.0");
             const resend = new Resend(RESEND_API_KEY);
             const subject = `We received your Hawaii 2027 selections`;
-            const sendResp = await resend.emails.send({ from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`, to: [normalizedEmail], subject, html: buildProposalReviewEmail({ brand, travelerName, tripName: parentTrip.trip_name, sailing: sailing.label, cabin: cabin.name, hotel: `${hotel.name} — ${room.name}`, total: quotedTotal }), replyTo: brand.replyTo || "info@crestwellgetaways.com" });
+            const sendResp = await resend.emails.send({ from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`, to: [normalizedEmail], subject, html: buildProposalReviewEmail({ brand, travelerName, tripName: parentTrip.trip_name, sailing: sailing.label, cabin: cabin.name, hotel: `${hotel.name} — ${room.name}`, total: quotedTotal, serviceCharges: serviceChargeEstimate, freeAtSeaEstimate }), replyTo: brand.replyTo || "info@crestwellgetaways.com" });
             if (!(sendResp as any)?.error) await supabaseAdmin.from("email_logs").insert({ to_email: normalizedEmail, subject, template: "hawaii_proposal_review", status: "sent", provider_message_id: (sendResp as any)?.data?.id || null, metadata: { source: "group-signup", trip_id: parentTrip.id, proposal_selection_id: proposal.id } });
           }
         } catch (emailError) {
