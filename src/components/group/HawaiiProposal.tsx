@@ -142,6 +142,14 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
       </div>
     </header>
 
+    <div className="bg-accent/10 border-b border-accent/20">
+      <div className="max-w-7xl mx-auto px-5 md:px-10 py-3 flex items-center gap-3 text-sm">
+        <CalendarDays className="h-4 w-4 text-accent shrink-0" />
+        <span className="font-semibold text-primary">Free cancellation before March 17, 2027</span>
+        <span className="text-muted-foreground hidden sm:inline">· Final terms confirmed before booking</span>
+      </div>
+    </div>
+
     <nav className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
         {["Compare", "Build", "Perks & costs", "Submit"].map((label, index) => <button key={label} type="button" onClick={() => { setStep(index + 1); document.getElementById(index === 0 ? "compare" : index === 1 ? "builder" : index === 2 ? "details" : "submit")?.scrollIntoView({ behavior: "smooth" }); }} className={`shrink-0 px-4 py-2 text-sm font-semibold border-b-2 ${step === index + 1 ? "border-accent text-primary" : "border-transparent text-muted-foreground"}`}>{index + 1}. {label}</button>)}
