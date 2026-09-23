@@ -15,6 +15,8 @@ export default function BackOffice() {
           </p>
         </header>
 
+        <AccountIntegrityPanel />
+
         {backOfficeSections
           .filter((s) => s.label !== "Overview")
           .map((section) => (
