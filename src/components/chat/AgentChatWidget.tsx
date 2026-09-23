@@ -105,33 +105,40 @@ const QUICK_ACTIONS = [
   { label: "Tasks this week",      icon: FileText,   prompt: "What tasks are due this week?" },
 ];
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// ── Route guard wrapper ───────────────────────────────────────────────────────
+// The guard MUST live in its own component. It used to sit between hook calls
+// inside the widget, so hooks ran conditionally and React's hook state got
+// corrupted ("Expected static flag was missing"), which broke re-renders and
+// made form inputs across the app appear unresponsive.
+
+const PUBLIC_ROUTE_PREFIXES = [
+  "/group/",
+  "/shared/",
+  "/proposal/",
+  "/authorize/",
+  "/pay",
+  "/payment",
+  "/checkout",
+  "/update-info/",
+  "/client/",
+];
 
 export function AgentChatWidget() {
   const { user } = useAuth();
-  // Auto page context: parse entity IDs from the current pathname.
-  // useLocation() works at any level of the router tree; useParams() only
-  // returns values when rendered inside a matching <Route> — since this widget
-  // is at the root level of BrowserRouter, useParams always returns {}.
+  const location = useLocation();
+  const path = location.pathname;
+  const isPublicRoute =
+    path === "/payment-success" || PUBLIC_ROUTE_PREFIXES.some((p) => path.startsWith(p));
+  if (!user || isPublicRoute) return null;
+  return <AgentChatWidgetInner />;
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
+function AgentChatWidgetInner() {
+  const { user } = useAuth();
   const location = useLocation();
 
-  // Hide the agent-only chat widget on public/client-facing routes.
-  const isPublicRoute = (() => {
-    const path = location.pathname;
-    return (
-      path.startsWith("/group/") ||
-      path.startsWith("/shared/") ||
-      path.startsWith("/proposal/") ||
-      path.startsWith("/authorize/") ||
-      path.startsWith("/pay") ||
-      path.startsWith("/payment") ||
-      path.startsWith("/checkout") ||
-      path.startsWith("/update-info/") ||
-      path.startsWith("/client/") ||
-      path === "/payment-success"
-    );
-  })();
-  if (!user || isPublicRoute) return null;
 
   const pageContext = (() => {
     const path = location.pathname;
