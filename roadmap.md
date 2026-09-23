@@ -12,4 +12,4 @@
 
 - [x] Enforce sharp, high-resolution images across trip, itinerary, and group hero uploads
 
-- [ ] Build Roger’s Hawaii 2027 interactive group proposal with sailing, cabin, hotel, upgrades, cost calculator, disclosures, and structured CRM submissions.
+- [x] Build Roger’s Hawaii 2027 interactive group proposal with sailing, cabin, hotel, upgrades, cost calculator, disclosures, and structured CRM submissions.
