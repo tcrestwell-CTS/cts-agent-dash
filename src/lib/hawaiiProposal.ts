@@ -120,9 +120,9 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "Ramada Plaza by Wyndham Waikiki",
       summary: "Straightforward Waikiki accommodations with three room choices.",
       rooms: [
-        { id: "standard-king", name: "Standard Room — 1 King Bed", nightlyRate: 198, nights: 2, knownPayAtProperty: 0, estimatedTaxes: 58.78, taxesFeesLabel: "Occupancy tax included: $58.78", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[CONFIRM]" },
-        { id: "balcony-king", name: "Balcony Room — 1 King Bed", nightlyRate: 227, nights: 2, knownPayAtProperty: 0, estimatedTaxes: 67.38, taxesFeesLabel: "Occupancy tax included: $67.38", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[CONFIRM]" },
-        { id: "balcony-city-double", name: "Balcony + City View Room — 2 Double Beds", nightlyRate: 238, nights: 2, knownPayAtProperty: 0, estimatedTaxes: 70.65, taxesFeesLabel: "Occupancy tax included: $70.65", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[CONFIRM]" },
+        { id: "standard-king", name: "Standard Room — 1 King Bed", nightlyRate: 198, nights: 2, knownPayAtProperty: 0, estimatedTaxes: 58.78, taxesFeesLabel: "Occupancy tax included: $58.78", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Payment total: $454.78 USD" },
+        { id: "balcony-king", name: "Balcony Room — 1 King Bed", nightlyRate: 227, nights: 2, knownPayAtProperty: 0, estimatedTaxes: 67.38, taxesFeesLabel: "Occupancy tax included: $67.38", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Payment total: $521.38 USD" },
+        { id: "balcony-city-double", name: "Balcony + City View Room — 2 Double Beds", nightlyRate: 238, nights: 2, knownPayAtProperty: 0, estimatedTaxes: 70.65, taxesFeesLabel: "Occupancy tax included: $70.65", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Payment total: $546.65 USD" },
       ],
     },
   ],
