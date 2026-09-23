@@ -101,13 +101,13 @@ const ClientDetail = () => {
   const { data: hasPortalAccount } = useQuery({
     queryKey: ["portal-session-status", clientId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("client_portal_sessions")
-        .select("id")
-        .eq("client_id", clientId!)
-        .gt("expires_at", new Date().toISOString())
-        .limit(1);
-      return (data && data.length > 0) || false;
+      const { data } = await supabase.functions.invoke("portal-auth", {
+        body: { action: "staff-session-status", client_ids: [clientId] },
+      });
+      const now = Date.now();
+      return ((data?.sessions || []) as { expires_at: string }[]).some(
+        (s) => new Date(s.expires_at).getTime() > now
+      );
     },
     enabled: !!clientId,
   });
