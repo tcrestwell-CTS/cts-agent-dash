@@ -568,7 +568,7 @@ Deno.serve(async (req) => {
           user_id: parentTrip.user_id,
           type: "group_proposal_review",
           title: `Hawaii proposal review: ${travelerName}`,
-          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}; estimated prepaid charges: ${fmt(serviceChargeEstimate + freeAtSeaEstimate)}.`,
+          message: `${travelerName} selected ${sailing.label}, ${cabin.name}, and ${hotel.name}. Known-cost estimate: ${fmt(quotedTotal)}; estimated prepaid charges: ${fmt(serviceChargeEstimate + freeAtSeaEstimate)}. Preferred payment method: ${paymentPreference.replaceAll("_", " ")}.`,
           trip_id: parentTrip.id,
         });
 
