@@ -112,7 +112,7 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "OUTRIGGER Waikiki Paradise Hotel",
       summary: "A modern Waikiki stay with room-only pricing and free Wi-Fi.",
       rooms: [
-        { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, estimatedTaxes: 65.31, taxesFeesLabel: "Occupancy tax included: $65.31", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Additional amount shown payable at property: $48" },
+        { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, estimatedTaxes: 65.31, taxesFeesLabel: "Occupancy tax included: $65.31", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Payment total: $505.31 USD" },
       ],
     },
     {
