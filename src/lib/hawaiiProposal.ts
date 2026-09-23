@@ -4,6 +4,7 @@ export interface HawaiiCabinPrice {
   primary?: boolean;
   perPerson: number;
   cabinTotal: number;
+  serviceChargePerPersonPerDay: number;
 }
 
 export interface HawaiiSailing {
@@ -40,6 +41,9 @@ export interface HawaiiHotel {
 export interface HawaiiProposalConfig {
   proposal_type: "hawaii_2027";
   version: string;
+  cruiseNights: number;
+  freeAtSeaStandardPerPersonPerDay: number;
+  freeAtSeaPlusPerPersonPerDay: number;
   sailings: HawaiiSailing[];
   hotels: HawaiiHotel[];
   groupBenefits: string[];
@@ -48,6 +52,9 @@ export interface HawaiiProposalConfig {
 export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
   proposal_type: "hawaii_2027",
   version: "hawaii-2027-v1",
+  cruiseNights: 7,
+  freeAtSeaStandardPerPersonPerDay: 28.5,
+  freeAtSeaPlusPerPersonPerDay: 49.99,
   sailings: [
     {
       id: "2027-03-20",
@@ -59,11 +66,11 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       hotelCheckOut: "2027-03-20",
       nights: 7,
       cabins: [
-        { id: "inside", name: "Inside Stateroom", primary: true, perPerson: 1886, cabinTotal: 3772 },
-        { id: "oceanview", name: "Oceanview Stateroom", primary: true, perPerson: 2170, cabinTotal: 4340 },
-        { id: "balcony", name: "Balcony Stateroom", primary: true, perPerson: 3043, cabinTotal: 6086 },
-        { id: "club-balcony", name: "Club Balcony Suite", perPerson: 5200, cabinTotal: 10400 },
-        { id: "suite", name: "Suite", perPerson: 5494, cabinTotal: 10988 },
+        { id: "inside", name: "Inside Stateroom", primary: true, perPerson: 1886, cabinTotal: 3772, serviceChargePerPersonPerDay: 20 },
+        { id: "oceanview", name: "Oceanview Stateroom", primary: true, perPerson: 2170, cabinTotal: 4340, serviceChargePerPersonPerDay: 20 },
+        { id: "balcony", name: "Balcony Stateroom", primary: true, perPerson: 3043, cabinTotal: 6086, serviceChargePerPersonPerDay: 20 },
+        { id: "club-balcony", name: "Club Balcony Suite", perPerson: 5200, cabinTotal: 10400, serviceChargePerPersonPerDay: 25 },
+        { id: "suite", name: "Suite", perPerson: 5494, cabinTotal: 10988, serviceChargePerPersonPerDay: 30 },
       ],
     },
     {
@@ -76,11 +83,11 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       hotelCheckOut: "2027-03-27",
       nights: 7,
       cabins: [
-        { id: "inside", name: "Inside Stateroom", primary: true, perPerson: 1939, cabinTotal: 3878 },
-        { id: "oceanview", name: "Oceanview Stateroom", primary: true, perPerson: 2202, cabinTotal: 4404 },
-        { id: "balcony", name: "Balcony Stateroom", primary: true, perPerson: 3043, cabinTotal: 6086 },
-        { id: "club-balcony", name: "Club Balcony Suite", perPerson: 5052, cabinTotal: 10104 },
-        { id: "suite", name: "Suite", perPerson: 5200, cabinTotal: 10400 },
+        { id: "inside", name: "Inside Stateroom", primary: true, perPerson: 1939, cabinTotal: 3878, serviceChargePerPersonPerDay: 20 },
+        { id: "oceanview", name: "Oceanview Stateroom", primary: true, perPerson: 2202, cabinTotal: 4404, serviceChargePerPersonPerDay: 20 },
+        { id: "balcony", name: "Balcony Stateroom", primary: true, perPerson: 3043, cabinTotal: 6086, serviceChargePerPersonPerDay: 20 },
+        { id: "club-balcony", name: "Club Balcony Suite", perPerson: 5052, cabinTotal: 10104, serviceChargePerPersonPerDay: 25 },
+        { id: "suite", name: "Suite", perPerson: 5200, cabinTotal: 10400, serviceChargePerPersonPerDay: 30 },
       ],
     },
   ],
