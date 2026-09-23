@@ -491,9 +491,10 @@ Deno.serve(async (req) => {
         }
 
         const cabinTotal = Number(cabin.cabinTotal);
-        const hotelBaseTotal = Number(room.nightlyRate) * Number(room.nights);
+        const hotelBaseTotal = Number(room.prepaidTotal ?? (Number(room.nightlyRate) * Number(room.nights)));
         const hotelKnownFees = Number(room.knownPayAtProperty || 0);
-        const quotedTotal = cabinTotal + hotelBaseTotal + hotelKnownFees;
+        const hotelPostCheckoutRefund = Number(room.postCheckoutRefund || 0);
+        const quotedTotal = cabinTotal + hotelBaseTotal + hotelKnownFees - hotelPostCheckoutRefund;
         const serviceChargePerPersonPerDay = Number(cabin.serviceChargePerPersonPerDay || 20);
         const freeAtSeaStandardPerPersonPerDay = Number(config.freeAtSeaStandardPerPersonPerDay || 28.5);
         const freeAtSeaPlusPerPersonPerDay = Number(config.freeAtSeaPlusPerPersonPerDay || 49.99);
@@ -504,7 +505,7 @@ Deno.serve(async (req) => {
           : body.free_at_sea_selection === "standard"
           ? freeAtSeaStandardPerPersonPerDay * partySize * cruiseNights
           : 0;
-        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, quotedTotal, serviceChargeEstimate, freeAtSeaEstimate].every(Number.isFinite)) {
+        if (![cabinTotal, hotelBaseTotal, hotelKnownFees, hotelPostCheckoutRefund, quotedTotal, serviceChargeEstimate, freeAtSeaEstimate].every(Number.isFinite)) {
           return new Response(JSON.stringify({ error: "Proposal pricing is not configured correctly" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
@@ -543,7 +544,7 @@ Deno.serve(async (req) => {
           quoted_total: quotedTotal,
           free_at_sea_selection: body.free_at_sea_selection,
           excursions_selection: body.excursions_selection,
-          optional_upgrades: { service_charges: body.service_charges_selection, free_at_sea_total: freeAtSeaEstimate },
+          optional_upgrades: { service_charges: body.service_charges_selection, free_at_sea_total: freeAtSeaEstimate, hotel_included_taxes: Number(room.includedTaxes || 0), hotel_post_checkout_refund: hotelPostCheckoutRefund, hotel_refund_label: room.refundLabel || null },
           group_benefits: config.groupBenefits || [],
           confirmation_items: HAWAII_CONFIRMATION_ITEMS,
           special_requests: clean(body.special_requests, 1500) || null,
