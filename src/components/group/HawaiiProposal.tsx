@@ -190,7 +190,26 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
               </div>
               <div className="border-t-2 border-accent mt-5 pt-5 flex justify-between gap-4"><span className="font-semibold">Estimated known total</span><strong className="font-display text-2xl text-primary tabular-nums">{money(knownTotal)}</strong></div>
               {knownTotal > 0 && <p className="text-right text-sm text-muted-foreground mt-1">{money(perPerson)} per person for {form.party_size}</p>}
-              <div className="bg-muted p-4 mt-5 rounded-md"><p className="text-xs font-bold uppercase text-muted-foreground">Requires confirmation</p><p className="text-xs mt-2 leading-relaxed">Taxes, cruise service charges, Free at Sea costs, group benefits, excursions, and rate-specific cancellation terms are not included above.</p></div>
+
+              {cabin && (
+                <>
+                  <div className="border-t border-border mt-5 pt-5">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Estimated prepaid charges before sailing</p>
+                    <div className="space-y-2 mt-3 text-sm">
+                      <CostLine label={`NCL daily service charge · ${money(cabin.serviceChargePerPersonPerDay)}/person/day`} value={serviceChargeEstimate} />
+                      {form.free_at_sea_selection === "plus" ? (
+                        <CostLine label={`Free at Sea Plus · ${money(config.freeAtSeaPlusPerPersonPerDay)}/person/day`} value={freeAtSeaPlusEstimate} />
+                      ) : form.free_at_sea_selection === "standard" ? (
+                        <CostLine label={`Standard Free at Sea · ${money(config.freeAtSeaStandardPerPersonPerDay)}/person/day`} value={freeAtSeaStandardEstimate} />
+                      ) : (
+                        <div className="flex justify-between gap-4 border-b border-border pb-3"><span className="text-muted-foreground">Free at Sea package</span><span className="tabular-nums text-muted-foreground">—</span></div>
+                      )}
+                    </div>
+                    <div className="flex justify-between gap-4 mt-4"><span className="font-semibold text-sm">Estimated prepaid total</span><strong className="font-display text-xl text-primary tabular-nums">{money(estimatedPrepaidTotal)}</strong></div>
+                  </div>
+                  <div className="bg-muted p-4 mt-5 rounded-md"><p className="text-xs font-bold uppercase text-muted-foreground">Requires confirmation</p><p className="text-xs mt-2 leading-relaxed">Hotel taxes, cruise taxes/port expenses, service charges, Free at Sea, group benefits, excursions, and cancellation terms are estimated and must be verified before booking.</p></div>
+                </>
+              )}
             </aside>
           </div>
         </div>
