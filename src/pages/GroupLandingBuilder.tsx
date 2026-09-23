@@ -451,7 +451,7 @@ const GroupLandingBuilder = () => {
       </div>
 
       {/* ─── Two-column layout ────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div className="landing-page-editor grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
         {/* ─── LEFT: Main Content ─────────────────── */}
         <Card>
           <CardHeader>
