@@ -52,8 +52,14 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
   const cabin = sailing?.cabins.find((item) => item.id === form.cabin_id);
   const hotel = config.hotels.find((item) => item.id === form.hotel_id);
   const room = hotel?.rooms.find((item) => item.id === form.hotel_room_id);
+  const partySize = Math.max(1, Number(form.party_size) || 2);
   const knownTotal = (cabin?.cabinTotal || 0) + (room ? room.nightlyRate * room.nights + room.knownPayAtProperty : 0);
-  const perPerson = knownTotal / Math.max(1, Number(form.party_size) || 2);
+  const perPerson = knownTotal / partySize;
+  const serviceChargeEstimate = cabin ? cabin.serviceChargePerPersonPerDay * partySize * config.cruiseNights : 0;
+  const freeAtSeaStandardEstimate = config.freeAtSeaStandardPerPersonPerDay * partySize * config.cruiseNights;
+  const freeAtSeaPlusEstimate = config.freeAtSeaPlusPerPersonPerDay * partySize * config.cruiseNights;
+  const selectedFreeAtSeaEstimate = form.free_at_sea_selection === "plus" ? freeAtSeaPlusEstimate : form.free_at_sea_selection === "standard" ? freeAtSeaStandardEstimate : 0;
+  const estimatedPrepaidTotal = serviceChargeEstimate + selectedFreeAtSeaEstimate;
   const canReview = !!sailing && !!cabin && !!hotel && !!room;
   const setField = (key: string, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
