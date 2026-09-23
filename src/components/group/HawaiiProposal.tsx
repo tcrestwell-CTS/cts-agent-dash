@@ -45,7 +45,7 @@ export function HawaiiProposal({ token, data }: HawaiiProposalProps) {
     traveler_name: "", second_traveler_name: "", email: "", phone: "", party_size: "2",
     sailing_id: "", cabin_id: "", hotel_id: "", hotel_room_id: "",
     free_at_sea_selection: "need_assistance", service_charges_selection: "review",
-    excursions_selection: "need_assistance", special_requests: "", accessibility_requirements: "", additional_comments: "",
+    excursions_selection: "need_assistance", payment_preference: "undecided", special_requests: "", accessibility_requirements: "", additional_comments: "",
   });
 
   const sailing = config.sailings.find((item) => item.id === form.sailing_id);
