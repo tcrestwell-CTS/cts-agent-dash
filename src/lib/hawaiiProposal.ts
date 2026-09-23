@@ -102,9 +102,9 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "Hilton Hawaiian Village Waikiki Beach Resort",
       summary: "A full-service Waikiki beachfront resort.",
       rooms: [
-        { id: "king-deluxe-ocean", name: "1 King Deluxe Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Estimated occupancy tax ≈ $87.85", cancellationLabel: "[CONFIRM ACTUAL RATE-SPECIFIC TERMS]", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
+        { id: "king-deluxe-ocean", name: "1 King Deluxe Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Occupancy tax included: $87.85", cancellationLabel: "[CONFIRM ACTUAL RATE-SPECIFIC TERMS]", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
         { id: "lanai-ocean-accessible", name: "Lanai Ocean View – Mobility Accessible", nightlyRate: 222.47, nights: 2, knownPayAtProperty: 106.16, prepaidTotal: 510.98, includedTaxes: 66.04, postCheckoutRefund: 91.98, refundLabel: "Commission 18%", taxesFeesLabel: "Occupancy tax included: $66.04", cancellationLabel: "[CONFIRM ACTUAL RATE-SPECIFIC TERMS]", paymentLabel: "Payment total: $510.98 USD" },
-        { id: "two-queens-ocean", name: "2 Queen Beds – Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Estimated occupancy tax ≈ $87.85", cancellationLabel: "[CONFIRM ACTUAL RATE-SPECIFIC TERMS]", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
+        { id: "two-queens-ocean", name: "2 Queen Beds – Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Occupancy tax included: $87.85", cancellationLabel: "[CONFIRM ACTUAL RATE-SPECIFIC TERMS]", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
       ],
     },
     {
