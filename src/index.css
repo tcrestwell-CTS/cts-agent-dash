@@ -300,6 +300,58 @@
   .mobile-stack { @apply flex flex-col sm:flex-row sm:items-center; }
 }
 
+@layer components {
+  .hawaii-proposal {
+    --background: 40 32% 96%;
+    --foreground: 210 48% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 48% 16%;
+    --primary: 210 100% 20%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 43 89% 38%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 199 42% 93%;
+    --muted-foreground: 210 18% 38%;
+    --border: 210 20% 82%;
+    --input: 210 20% 82%;
+    --ring: 43 89% 38%;
+    letter-spacing: 0;
+  }
+  .hawaii-proposal h1,
+  .hawaii-proposal h2,
+  .hawaii-proposal h3,
+  .hawaii-proposal p,
+  .hawaii-proposal button,
+  .hawaii-proposal label {
+    letter-spacing: 0;
+  }
+  .hawaii-proposal .section-kicker {
+    @apply text-xs uppercase font-bold text-accent;
+    letter-spacing: 0.16em;
+  }
+  .hawaii-proposal .proposal-step-title {
+    @apply flex items-center gap-3 text-lg font-semibold text-primary;
+  }
+  .hawaii-proposal .proposal-step-title > span {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm;
+  }
+  .hawaii-proposal .proposal-choice {
+    @apply w-full min-h-20 rounded-md border border-border bg-background p-4 text-left flex gap-3 transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  .hawaii-proposal .proposal-choice strong {
+    @apply block text-sm text-foreground;
+  }
+  .hawaii-proposal .proposal-choice small {
+    @apply block text-xs text-muted-foreground mt-1 leading-relaxed;
+  }
+  .hawaii-proposal .proposal-choice-active {
+    @apply border-accent bg-accent/10 ring-1 ring-accent;
+  }
+  .hawaii-proposal .proposal-empty {
+    @apply mt-4 rounded-md border border-dashed border-border bg-muted/50 p-5 text-sm text-muted-foreground;
+  }
+}
+
 /* Trips/Bookings table — responsive horizontal scroll */
 @layer base {
   .table-scroll-mobile {
