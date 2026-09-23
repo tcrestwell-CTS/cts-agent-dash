@@ -102,9 +102,9 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "Hilton Hawaiian Village Waikiki Beach Resort",
       summary: "A full-service Waikiki beachfront resort.",
       rooms: [
-        { id: "king-deluxe-ocean", name: "1 King Deluxe Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Occupancy tax included: $87.85", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
-        { id: "lanai-ocean-accessible", name: "Lanai Ocean View – Mobility Accessible", nightlyRate: 222.47, nights: 2, knownPayAtProperty: 106.16, prepaidTotal: 510.98, includedTaxes: 66.04, postCheckoutRefund: 91.98, refundLabel: "Commission 18%", taxesFeesLabel: "Occupancy tax included: $66.04", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "Payment total: $510.98 USD" },
-        { id: "two-queens-ocean", name: "2 Queen Beds – Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Occupancy tax included: $87.85", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
+        { id: "king-deluxe-ocean", name: "1 King Deluxe Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Occupancy tax included: $87.85", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
+        { id: "lanai-ocean-accessible", name: "Lanai Ocean View – Mobility Accessible", nightlyRate: 222.47, nights: 2, knownPayAtProperty: 106.16, prepaidTotal: 510.98, includedTaxes: 66.04, postCheckoutRefund: 91.98, refundLabel: "Commission 18%", taxesFeesLabel: "Occupancy tax included: $66.04", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Payment total: $510.98 USD" },
+        { id: "two-queens-ocean", name: "2 Queen Beds – Ocean View", nightlyRate: 296, nights: 2, knownPayAtProperty: 106.16, estimatedTaxes: 87.85, taxesFeesLabel: "Occupancy tax included: $87.85", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[PREPAID / FLEXIBLE / PAY AT PROPERTY – CONFIRM]" },
       ],
     },
     {
@@ -112,7 +112,7 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "OUTRIGGER Waikiki Paradise Hotel",
       summary: "A modern Waikiki stay with room-only pricing and free Wi-Fi.",
       rooms: [
-        { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "Additional amount shown payable at property: $48" },
+        { id: "standard-queen", name: "Standard Double Room — 1 Queen Bed", details: "237 sq. ft. · Non-smoking · Room only · Free Wi-Fi", nightlyRate: 220, nights: 2, knownPayAtProperty: 48, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "Additional amount shown payable at property: $48" },
       ],
     },
     {
@@ -120,9 +120,9 @@ export const HAWAII_PROPOSAL_CONFIG: HawaiiProposalConfig = {
       name: "Ramada Plaza by Wyndham Waikiki",
       summary: "Straightforward Waikiki accommodations with three room choices.",
       rooms: [
-        { id: "standard-king", name: "Standard Room — 1 King Bed", nightlyRate: 198, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[CONFIRM]" },
-        { id: "balcony-king", name: "Balcony Room — 1 King Bed", nightlyRate: 227, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[CONFIRM]" },
-        { id: "balcony-city-double", name: "Balcony + City View Room — 2 Double Beds", nightlyRate: 238, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027 [CONFIRM RATE-SPECIFIC TERMS]", paymentLabel: "[CONFIRM]" },
+        { id: "standard-king", name: "Standard Room — 1 King Bed", nightlyRate: 198, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[CONFIRM]" },
+        { id: "balcony-king", name: "Balcony Room — 1 King Bed", nightlyRate: 227, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[CONFIRM]" },
+        { id: "balcony-city-double", name: "Balcony + City View Room — 2 Double Beds", nightlyRate: 238, nights: 2, knownPayAtProperty: 0, taxesFeesLabel: "[CONFIRM]", cancellationLabel: "Free cancellation before March 17, 2027", paymentLabel: "[CONFIRM]" },
       ],
     },
   ],
