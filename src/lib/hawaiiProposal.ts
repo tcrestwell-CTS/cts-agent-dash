@@ -30,6 +30,7 @@ export interface HawaiiHotelRoom {
   includedTaxes?: number;
   postCheckoutRefund?: number;
   refundLabel?: string;
+  estimatedTaxes?: number;
   taxesFeesLabel: string;
   cancellationLabel: string;
   paymentLabel: string;
