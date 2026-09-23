@@ -10735,6 +10735,7 @@ export type Database = {
           advisor_id: string | null
           allow_pdf_downloads: boolean
           approved_itinerary_id: string | null
+          balance_due: number
           budget_change_request_message: string | null
           budget_change_requested: boolean | null
           budget_change_requested_at: string | null
@@ -10792,6 +10793,8 @@ export type Database = {
           total_commissionable_amount: number
           total_gross_sales: number
           total_net_sales: number
+          total_paid: number
+          total_scheduled: number
           total_supplier_payout: number
           trip_name: string
           trip_page_url: string | null
@@ -10805,6 +10808,7 @@ export type Database = {
           advisor_id?: string | null
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
+          balance_due?: number
           budget_change_request_message?: string | null
           budget_change_requested?: boolean | null
           budget_change_requested_at?: string | null
@@ -10862,6 +10866,8 @@ export type Database = {
           total_commissionable_amount?: number
           total_gross_sales?: number
           total_net_sales?: number
+          total_paid?: number
+          total_scheduled?: number
           total_supplier_payout?: number
           trip_name: string
           trip_page_url?: string | null
@@ -10875,6 +10881,7 @@ export type Database = {
           advisor_id?: string | null
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
+          balance_due?: number
           budget_change_request_message?: string | null
           budget_change_requested?: boolean | null
           budget_change_requested_at?: string | null
@@ -10932,6 +10939,8 @@ export type Database = {
           total_commissionable_amount?: number
           total_gross_sales?: number
           total_net_sales?: number
+          total_paid?: number
+          total_scheduled?: number
           total_supplier_payout?: number
           trip_name?: string
           trip_page_url?: string | null
@@ -11717,6 +11726,18 @@ export type Database = {
         Args: { p_option: string; p_token: string }
         Returns: string
       }
+      audit_account_integrity: {
+        Args: never
+        Returns: {
+          difference: number
+          expected_value: number
+          field: string
+          label: string
+          record_id: string
+          scope: string
+          stored_value: number
+        }[]
+      }
       calculate_booking_margin: {
         Args: {
           p_advisor_split?: number
@@ -11782,6 +11803,11 @@ export type Database = {
       }
       is_recon_admin: { Args: never; Returns: boolean }
       mark_proposal_viewed: { Args: { p_token: string }; Returns: undefined }
+      recalc_trip_payment_rollup: {
+        Args: { p_trip_id: string }
+        Returns: undefined
+      }
+      repair_account_integrity: { Args: never; Returns: Json }
       reveal_cw_agent_secret: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

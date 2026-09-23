@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { backOfficeSections } from "@/lib/backOfficeNav";
+import { AccountIntegrityPanel } from "@/components/backoffice/AccountIntegrityPanel";
 
 export default function BackOffice() {
   return (
@@ -13,6 +14,8 @@ export default function BackOffice() {
             Financial statements, reconciliation, payouts and accounting sync. Restricted to admins and bookkeepers.
           </p>
         </header>
+
+        <AccountIntegrityPanel />
 
         {backOfficeSections
           .filter((s) => s.label !== "Overview")
