@@ -140,7 +140,7 @@ serve(async (req) => {
 
     // ── STRIPE ISSUING FLOW ──────────────────────────────────────────
     if (method === "stripe") {
-      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY_CLIENT");
       if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });

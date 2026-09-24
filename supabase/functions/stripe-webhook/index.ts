@@ -11,9 +11,21 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logPaymentAttempt } from "../_shared/payment-ip-log.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2024-06-20",
+// Dual-account support: each request gets its own Stripe client, chosen by
+// whichever webhook secret verified the signature (NEW client account first,
+// then the legacy account). The `stripe` proxy below resolves to the
+// per-request client so existing helper functions stay unchanged.
+const STRIPE_API_VERSION = "2024-06-20" as const;
+const makeStripe = (key: string) => new Stripe(key, { apiVersion: STRIPE_API_VERSION });
+const requestStripe = new AsyncLocalStorage<Stripe>();
+const stripe = new Proxy({} as Stripe, {
+  get(_t, prop) {
+    const client = requestStripe.getStore();
+    if (!client) throw new Error("Stripe client not initialised for this request");
+    return (client as any)[prop];
+  },
 });
 
 const supabase = createClient(
@@ -22,6 +34,7 @@ const supabase = createClient(
 );
 
 const WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
+const WEBHOOK_SECRET_CLIENT = Deno.env.get("STRIPE_WEBHOOK_SECRET_CLIENT");
 
 const log = (step: string, data?: unknown) =>
   console.log(`[stripe-webhook] ${step}`, data ? JSON.stringify(data) : "");
@@ -878,12 +891,29 @@ serve(async (req) => {
   const sig = req.headers.get("stripe-signature");
 
   let event: Stripe.Event;
+  let requestClient: Stripe;
+  const clientKey = Deno.env.get("STRIPE_SECRET_KEY_CLIENT");
+  const legacyKey = Deno.env.get("STRIPE_SECRET_KEY")!;
   try {
-    event = await stripe.webhooks.constructEventAsync(body, sig!, WEBHOOK_SECRET);
-  } catch (err) {
-    log("webhook signature verification failed", err);
-    return new Response("Webhook signature invalid", { status: 400 });
+    if (!WEBHOOK_SECRET_CLIENT || !clientKey) throw new Error("client webhook secret not configured");
+    requestClient = makeStripe(clientKey);
+    event = await requestClient.webhooks.constructEventAsync(body, sig!, WEBHOOK_SECRET_CLIENT);
+    log("signature verified", { account: "client" });
+  } catch (_clientErr) {
+    try {
+      requestClient = makeStripe(legacyKey);
+      event = await requestClient.webhooks.constructEventAsync(body, sig!, WEBHOOK_SECRET);
+      log("signature verified", { account: "legacy" });
+    } catch (err) {
+      log("webhook signature verification failed", err);
+      return new Response("Webhook signature invalid", { status: 400 });
+    }
   }
+
+  return await requestStripe.run(requestClient, () => handleEvent(req, event));
+});
+
+async function handleEvent(req: Request, event: Stripe.Event): Promise<Response> {
 
   log("received event", { type: event.type, id: event.id });
 
@@ -1047,4 +1077,4 @@ serve(async (req) => {
       }
     );
   }
-});
+}

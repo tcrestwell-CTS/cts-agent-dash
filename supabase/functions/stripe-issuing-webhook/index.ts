@@ -25,11 +25,12 @@ serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const legacyKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const clientKey = Deno.env.get("STRIPE_SECRET_KEY_CLIENT");
     const webhookSecret = Deno.env.get("STRIPE_ISSUING_WEBHOOK_SECRET");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    const webhookSecretClient = Deno.env.get("STRIPE_ISSUING_WEBHOOK_SECRET_CLIENT");
+    if (!legacyKey && !clientKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -37,9 +38,11 @@ serve(async (req) => {
 
     const body = await req.text();
 
-    // Verify webhook signature if secret is configured
+    // Dual-account: try NEW client-account secret first, fall back to legacy.
+    // The secret that verifies determines the API key for this request.
     let event: Stripe.Event;
-    if (webhookSecret) {
+    let stripe: Stripe;
+    if (webhookSecret || webhookSecretClient) {
       const sig = req.headers.get("stripe-signature");
       if (!sig) {
         return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
@@ -47,9 +50,20 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
+      try {
+        if (!webhookSecretClient || !clientKey) throw new Error("client secret not configured");
+        stripe = new Stripe(clientKey, { apiVersion: "2025-08-27.basil" });
+        event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecretClient);
+        console.log("Signature verified: client account");
+      } catch (_clientErr) {
+        if (!webhookSecret || !legacyKey) throw _clientErr;
+        stripe = new Stripe(legacyKey, { apiVersion: "2025-08-27.basil" });
+        event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
+        console.log("Signature verified: legacy account");
+      }
     } else {
       // In development/testing without webhook secret
+      stripe = new Stripe((legacyKey || clientKey)!, { apiVersion: "2025-08-27.basil" });
       event = JSON.parse(body);
       console.warn("⚠️ No STRIPE_ISSUING_WEBHOOK_SECRET set — skipping signature verification");
     }
