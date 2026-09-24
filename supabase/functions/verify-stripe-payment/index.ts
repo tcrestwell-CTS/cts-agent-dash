@@ -189,8 +189,9 @@ serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    const clientKey = Deno.env.get("STRIPE_SECRET_KEY_CLIENT");
+    const legacyKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!clientKey && !legacyKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -206,8 +207,18 @@ serve(async (req) => {
       metadata: { sessionId },
     });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    // Dual-account: try NEW client account first; on "No such checkout session"
+    // retry on the legacy account. The winning client is used for the rest.
+    let stripe = new Stripe((clientKey || legacyKey)!, { apiVersion: "2025-08-27.basil" });
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+    } catch (err: any) {
+      const notFound = err?.code === "resource_missing" || /No such checkout/i.test(err?.message || "");
+      if (!clientKey || !legacyKey || !notFound) throw err;
+      stripe = new Stripe(legacyKey, { apiVersion: "2025-08-27.basil" });
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+    }
 
     let receiptUrl: string | null = null;
 
