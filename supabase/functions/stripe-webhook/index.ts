@@ -910,10 +910,10 @@ serve(async (req) => {
     }
   }
 
-  return await requestStripe.run(requestClient, () => handleEvent(event));
+  return await requestStripe.run(requestClient, () => handleEvent(req, event));
 });
 
-async function handleEvent(event: Stripe.Event): Promise<Response> {
+async function handleEvent(req: Request, event: Stripe.Event): Promise<Response> {
 
   log("received event", { type: event.type, id: event.id });
 
