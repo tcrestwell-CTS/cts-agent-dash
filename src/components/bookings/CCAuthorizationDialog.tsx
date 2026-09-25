@@ -222,16 +222,16 @@ export function CCAuthorizationDialog({
 
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
-          to: client.email,
+          to: toEmail,
           clientId,
           template: "custom",
           subject: `Credit Card Authorization — ${bookingReference}`,
           customHtml,
-          data: { clientName: client.name || clientName },
+          data: { clientName: toName || clientName },
         },
       });
       if (error) throw error;
-      toast.success("CC authorization link emailed to client");
+      toast.success(`CC authorization link emailed to ${toName || toEmail}`);
     } catch (err: any) {
       console.error("Failed to send CC auth email:", err);
       toast.error(err?.message || "Failed to send email");
