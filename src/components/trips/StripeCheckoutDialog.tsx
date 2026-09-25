@@ -10,7 +10,7 @@ import { toast } from "sonner";
 // Reads from VITE_STRIPE_PUBLISHABLE_KEY env var — swap test ↔ live key there
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ??
-    "pk_live_51RrgVIPJljF0WNcYMZK3XH5QGmffC4LsV0e8EdSglGdrD8SlY9akQwJhBO8N2d87i574E3ONKvbsabfgKc3SDSq500gJ96MghZ"
+    "pk_live_51RqmDcPN86ZkZBcRku28H4mlTEYLDF5pg6O3pDbhogoPYobO1vyiNTrzrmLDKloxwQYfnWNaBBiOGGlQg7MWAjJZ009MLOSUg0"
 );
 
 type ResultStatus = "success" | "failed" | "cancelled";
