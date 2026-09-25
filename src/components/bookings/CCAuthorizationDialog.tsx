@@ -15,6 +15,16 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useCCAuthorizations, CCAuthorization } from "@/hooks/useCCAuthorizations";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+
+interface Recipient {
+  id: string;
+  label: string;
+  name: string;
+  email: string;
+}
 
 interface CCAuthorizationDialogProps {
   open: boolean;
@@ -42,6 +52,11 @@ export function CCAuthorizationDialog({
   const [timeLeft, setTimeLeft] = useState(60);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Recipient selection
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipientId, setRecipientId] = useState<string>("primary");
+  const [customEmail, setCustomEmail] = useState("");
+
   useEffect(() => {
     if (open) {
       fetchAuthorizations();
@@ -49,6 +64,45 @@ export function CCAuthorizationDialog({
       setCcData(null);
       setPassword("");
       setTimeLeft(60);
+      setRecipientId("primary");
+      setCustomEmail("");
+
+      // Load possible recipients: primary client + companions with emails
+      (async () => {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const list: Recipient[] = [];
+          const { data: client } = await supabase
+            .from("clients")
+            .select("id, name, first_name, last_name, email")
+            .eq("id", clientId)
+            .maybeSingle();
+          const clientDisplayName =
+            client?.name ||
+            [client?.first_name, client?.last_name].filter(Boolean).join(" ") ||
+            clientName;
+          if (client?.email) {
+            list.push({
+              id: "primary",
+              label: `${clientDisplayName} (primary)`,
+              name: clientDisplayName,
+              email: client.email,
+            });
+          }
+          const { data: companions } = await supabase
+            .from("client_companions")
+            .select("id, first_name, last_name, email")
+            .eq("client_id", clientId);
+          (companions || []).forEach((c: any) => {
+            if (!c.email) return;
+            const cName = [c.first_name, c.last_name].filter(Boolean).join(" ") || "Companion";
+            list.push({ id: c.id, label: `${cName} (companion)`, name: cName, email: c.email });
+          });
+          setRecipients(list);
+        } catch (e) {
+          console.error("Failed to load CC auth recipients:", e);
+        }
+      })();
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -124,15 +178,27 @@ export function CCAuthorizationDialog({
     try {
       const { supabase } = await import("@/integrations/supabase/client");
 
-      // Look up client email
-      const { data: client, error: clientErr } = await supabase
-        .from("clients")
-        .select("email, name")
-        .eq("id", clientId)
-        .maybeSingle();
-      if (clientErr) throw clientErr;
-      if (!client?.email) {
-        toast.error("Client has no email on file");
+      // Resolve the selected recipient
+      let toEmail: string | null = null;
+      let toName = clientName;
+      if (recipientId === "custom") {
+        const trimmed = customEmail.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+          toast.error("Enter a valid email address for the custom recipient");
+          return;
+        }
+        toEmail = trimmed;
+      } else {
+        const selected = recipients.find((r) => r.id === recipientId);
+        if (!selected) {
+          toast.error("Choose who to send the authorization to");
+          return;
+        }
+        toEmail = selected.email;
+        toName = selected.name;
+      }
+      if (!toEmail) {
+        toast.error("Selected recipient has no email on file");
         return;
       }
 
@@ -143,7 +209,7 @@ export function CCAuthorizationDialog({
       const customHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #0D1B2A;">Credit Card Authorization Request</h2>
-          <p>Hi ${client.name || clientName || "there"},</p>
+          <p>Hi ${toName || "there"},</p>
           <p>Please complete your credit card authorization for booking <strong>${bookingReference}</strong> in the amount of <strong>${amountFmt}</strong>.</p>
           ${auth.authorization_description ? `<p style="color:#4b5563;">${auth.authorization_description}</p>` : ""}
           <p style="margin: 24px 0; text-align: center;">
@@ -156,16 +222,16 @@ export function CCAuthorizationDialog({
 
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
-          to: client.email,
+          to: toEmail,
           clientId,
           template: "custom",
           subject: `Credit Card Authorization — ${bookingReference}`,
           customHtml,
-          data: { clientName: client.name || clientName },
+          data: { clientName: toName || clientName },
         },
       });
       if (error) throw error;
-      toast.success("CC authorization link emailed to client");
+      toast.success(`CC authorization link emailed to ${toName || toEmail}`);
     } catch (err: any) {
       console.error("Failed to send CC auth email:", err);
       toast.error(err?.message || "Failed to send email");
@@ -193,6 +259,31 @@ export function CCAuthorizationDialog({
             <Button onClick={() => setView("create")} className="w-full gap-2">
               <Plus className="h-4 w-4" /> Request CC Authorization
             </Button>
+
+            <div className="space-y-2">
+              <Label>Send authorization to</Label>
+              <Select value={recipientId} onValueChange={setRecipientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose recipient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {recipients.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.label} — {r.email}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Someone else (enter email)</SelectItem>
+                </SelectContent>
+              </Select>
+              {recipientId === "custom" && (
+                <Input
+                  type="email"
+                  value={customEmail}
+                  onChange={(e) => setCustomEmail(e.target.value)}
+                  placeholder="recipient@example.com"
+                />
+              )}
+            </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-6">
