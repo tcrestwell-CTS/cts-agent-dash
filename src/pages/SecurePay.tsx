@@ -9,11 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ??
-    "pk_live_51RqmDcPN86ZkZBcRku28H4mlTEYLDF5pg6O3pDbhogoPYobO1vyiNTrzrmLDKloxwQYfnWNaBBiOGGlQg7MWAjJZ009MLOSUg0"
-);
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 interface LinkData {
   client_name: string | null;

@@ -6,12 +6,9 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
-// Reads from VITE_STRIPE_PUBLISHABLE_KEY env var — swap test ↔ live key there
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ??
-    "pk_live_51RqmDcPN86ZkZBcRku28H4mlTEYLDF5pg6O3pDbhogoPYobO1vyiNTrzrmLDKloxwQYfnWNaBBiOGGlQg7MWAjJZ009MLOSUg0"
-);
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 type ResultStatus = "success" | "failed" | "cancelled";
 

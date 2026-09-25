@@ -12,8 +12,9 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 interface StripePayBookingDialogProps {
   bookingId: string;
