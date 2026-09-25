@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
 export interface SharedTripData {
   trip: {
