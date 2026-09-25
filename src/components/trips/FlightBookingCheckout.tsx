@@ -13,8 +13,9 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { FlightOffer, OrderPassenger, SeatMap, AvailableService, ServiceSelection, SeatMapElement } from "@/hooks/useFlightSearch";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 interface Props {
   offer: FlightOffer;

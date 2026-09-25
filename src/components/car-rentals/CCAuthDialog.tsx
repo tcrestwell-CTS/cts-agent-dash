@@ -20,11 +20,9 @@ import { Label } from "@/components/ui/label";
 import { Loader2, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ??
-    "pk_live_51RrgVIPJljF0WNcYMZK3XH5QGmffC4LsV0e8EdSglGdrD8SlY9akQwJhBO8N2d87i574E3ONKvbsabfgKc3SDSq500gJ96MghZ"
-);
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 interface Props {
   open: boolean;

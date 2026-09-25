@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 
 export interface SharedTripData {
   trip: {
@@ -1071,7 +1072,7 @@ export default function SharedTrip() {
                     ...((data as any).pricingLines || []).map((line: any) => line.line_type),
                   ].filter(Boolean)
                 }
-                stripePublishableKey={import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY}
+                stripePublishableKey={STRIPE_PUBLISHABLE_KEY}
                 itineraryApproved={Boolean(approvedItineraryId) || Boolean((data as any).trip?.itinerary_approved_at)}
               />
             </div>
