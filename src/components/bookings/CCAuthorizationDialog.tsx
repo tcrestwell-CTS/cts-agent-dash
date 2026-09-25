@@ -260,6 +260,31 @@ export function CCAuthorizationDialog({
               <Plus className="h-4 w-4" /> Request CC Authorization
             </Button>
 
+            <div className="space-y-2">
+              <Label>Send authorization to</Label>
+              <Select value={recipientId} onValueChange={setRecipientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose recipient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {recipients.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.label} — {r.email}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Someone else (enter email)</SelectItem>
+                </SelectContent>
+              </Select>
+              {recipientId === "custom" && (
+                <Input
+                  type="email"
+                  value={customEmail}
+                  onChange={(e) => setCustomEmail(e.target.value)}
+                  placeholder="recipient@example.com"
+                />
+              )}
+            </div>
+
             {loading ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
