@@ -52,6 +52,11 @@ export function CCAuthorizationDialog({
   const [timeLeft, setTimeLeft] = useState(60);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Recipient selection
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipientId, setRecipientId] = useState<string>("primary");
+  const [customEmail, setCustomEmail] = useState("");
+
   useEffect(() => {
     if (open) {
       fetchAuthorizations();
@@ -59,6 +64,45 @@ export function CCAuthorizationDialog({
       setCcData(null);
       setPassword("");
       setTimeLeft(60);
+      setRecipientId("primary");
+      setCustomEmail("");
+
+      // Load possible recipients: primary client + companions with emails
+      (async () => {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const list: Recipient[] = [];
+          const { data: client } = await supabase
+            .from("clients")
+            .select("id, name, first_name, last_name, email")
+            .eq("id", clientId)
+            .maybeSingle();
+          const clientDisplayName =
+            client?.name ||
+            [client?.first_name, client?.last_name].filter(Boolean).join(" ") ||
+            clientName;
+          if (client?.email) {
+            list.push({
+              id: "primary",
+              label: `${clientDisplayName} (primary)`,
+              name: clientDisplayName,
+              email: client.email,
+            });
+          }
+          const { data: companions } = await supabase
+            .from("client_companions")
+            .select("id, first_name, last_name, email")
+            .eq("client_id", clientId);
+          (companions || []).forEach((c: any) => {
+            if (!c.email) return;
+            const cName = [c.first_name, c.last_name].filter(Boolean).join(" ") || "Companion";
+            list.push({ id: c.id, label: `${cName} (companion)`, name: cName, email: c.email });
+          });
+          setRecipients(list);
+        } catch (e) {
+          console.error("Failed to load CC auth recipients:", e);
+        }
+      })();
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
