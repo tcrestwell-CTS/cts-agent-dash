@@ -15,6 +15,16 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useCCAuthorizations, CCAuthorization } from "@/hooks/useCCAuthorizations";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+
+interface Recipient {
+  id: string;
+  label: string;
+  name: string;
+  email: string;
+}
 
 interface CCAuthorizationDialogProps {
   open: boolean;
