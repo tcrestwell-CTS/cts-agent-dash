@@ -178,15 +178,27 @@ export function CCAuthorizationDialog({
     try {
       const { supabase } = await import("@/integrations/supabase/client");
 
-      // Look up client email
-      const { data: client, error: clientErr } = await supabase
-        .from("clients")
-        .select("email, name")
-        .eq("id", clientId)
-        .maybeSingle();
-      if (clientErr) throw clientErr;
-      if (!client?.email) {
-        toast.error("Client has no email on file");
+      // Resolve the selected recipient
+      let toEmail: string | null = null;
+      let toName = clientName;
+      if (recipientId === "custom") {
+        const trimmed = customEmail.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+          toast.error("Enter a valid email address for the custom recipient");
+          return;
+        }
+        toEmail = trimmed;
+      } else {
+        const selected = recipients.find((r) => r.id === recipientId);
+        if (!selected) {
+          toast.error("Choose who to send the authorization to");
+          return;
+        }
+        toEmail = selected.email;
+        toName = selected.name;
+      }
+      if (!toEmail) {
+        toast.error("Selected recipient has no email on file");
         return;
       }
 
@@ -197,7 +209,7 @@ export function CCAuthorizationDialog({
       const customHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #0D1B2A;">Credit Card Authorization Request</h2>
-          <p>Hi ${client.name || clientName || "there"},</p>
+          <p>Hi ${toName || "there"},</p>
           <p>Please complete your credit card authorization for booking <strong>${bookingReference}</strong> in the amount of <strong>${amountFmt}</strong>.</p>
           ${auth.authorization_description ? `<p style="color:#4b5563;">${auth.authorization_description}</p>` : ""}
           <p style="margin: 24px 0; text-align: center;">
