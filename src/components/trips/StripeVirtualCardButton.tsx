@@ -23,16 +23,18 @@ interface StripeVirtualCardButtonProps {
   /** Existing card state from DB */
   virtualCardId?: string | null;
   virtualCardStatus?: string | null;
+  /** Card source — "affirm" reads from retrieve-affirm-card */
+  provider?: "stripe" | "affirm";
 }
 
 interface CardDetails {
   number: string | null;
   cvc: string | null;
-  exp_month: number;
-  exp_year: number;
+  exp_month: number | null;
+  exp_year: number | null;
   cardholder_name: string | null;
   brand: string;
-  last4: string;
+  last4: string | null;
   status: string;
   spending_limit: number | null;
 }
@@ -58,7 +60,11 @@ export function StripeVirtualCardButton({
   paymentStatus,
   virtualCardId,
   virtualCardStatus,
+  provider = "stripe",
 }: StripeVirtualCardButtonProps) {
+  const isAffirm = provider === "affirm";
+  const [status, setStatus] = useState(virtualCardStatus);
+  const [markingUsed, setMarkingUsed] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [retrieving, setRetrieving] = useState(false);
   const [showIssueDialog, setShowIssueDialog] = useState(false);
@@ -71,7 +77,35 @@ export function StripeVirtualCardButton({
   // Only show for paid payments
   if (paymentStatus !== "paid") return null;
 
-  const hasCard = !!virtualCardId && virtualCardStatus === "ready";
+  const hasCard = !!virtualCardId && status === "ready";
+
+  const handleMarkUsed = async () => {
+    if (!confirm("Mark this Affirm card as used? It will no longer be revealable here.")) return;
+    setMarkingUsed(true);
+    try {
+      const res = await supabase.functions.invoke("retrieve-affirm-card", {
+        body: { paymentId, action: "mark_used" },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      setStatus("used");
+      setShowCardDialog(false);
+      setCardDetails(null);
+      toast.success("Affirm card marked as used");
+    } catch (err: any) {
+      toast.error("Could not update card: " + err.message);
+    } finally {
+      setMarkingUsed(false);
+    }
+  };
+
+  if (isAffirm && !hasCard) {
+    return (
+      <Badge variant="outline" className="text-[10px]">
+        {status === "used" ? "Affirm card used" : "Affirm card pending"}
+      </Badge>
+    );
+  }
 
   // ── Issue a new card ────────────────────────────────────────────────
   const handleIssue = async () => {
@@ -106,7 +140,7 @@ export function StripeVirtualCardButton({
   const handleRetrieve = async () => {
     setRetrieving(true);
     try {
-      const res = await supabase.functions.invoke("retrieve-virtual-card", {
+      const res = await supabase.functions.invoke(isAffirm ? "retrieve-affirm-card" : "retrieve-virtual-card", {
         body: { paymentId },
       });
 
@@ -157,7 +191,7 @@ export function StripeVirtualCardButton({
             variant="outline"
             className="ml-1 text-[10px] px-1 py-0 border-success text-success"
           >
-            Stripe
+            {isAffirm ? "Affirm" : "Stripe"}
           </Badge>
         </Button>
       ) : (
@@ -232,12 +266,14 @@ export function StripeVirtualCardButton({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-success" />
-              Stripe Virtual Card
+              {isAffirm ? "Affirm Virtual Card" : "Stripe Virtual Card"}
             </DialogTitle>
             <DialogDescription>
               Use these details to pay{" "}
               {supplierName ? <strong>{supplierName}</strong> : "the supplier"}.
-              This card is single-use and locked to {formatCurrency(amount)}.
+              {isAffirm
+                ? "Affirm has no auto-lock — mark it as used once the purchase is processed."
+                : `This card is single-use and locked to ${formatCurrency(amount)}.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -346,22 +382,33 @@ export function StripeVirtualCardButton({
                 </div>
               )}
 
-              {/* Stripe dashboard link */}
-              <div className="text-center">
-                <a
-                  href={`https://dashboard.stripe.com/issuing/cards/${virtualCardId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              {isAffirm ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleMarkUsed}
+                  disabled={markingUsed}
+                  data-testid="button-mark-affirm-used"
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  View in Stripe Dashboard
-                </a>
-              </div>
+                  {markingUsed && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Mark as Used
+                </Button>
+              ) : (
+                <div className="text-center">
+                  <a
+                    href={`https://dashboard.stripe.com/issuing/cards/${virtualCardId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View in Stripe Dashboard
+                  </a>
+                </div>
+              )}
 
               <p className="text-[11px] text-muted-foreground text-center">
-                Card details auto-expire from this view when you close this dialog.
-                Use the Stripe Dashboard link above for persistent access.
+                Card details are cleared from this view when you close this dialog.
               </p>
             </div>
           )}
