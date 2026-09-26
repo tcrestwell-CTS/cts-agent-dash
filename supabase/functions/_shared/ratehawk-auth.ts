@@ -7,11 +7,14 @@ export const RATEHAWK_ENV: "sandbox" | "production" =
     ? "production"
     : "sandbox";
 
-// NOTE: RateHawk/ETG uses a SINGLE host (https://api.worldota.net) for all
-// environments — sandbox vs production is determined by which API key pair
-// (RATEHAWK_KEY_ID / RATEHAWK_KEY) you use, NOT by the hostname. Do NOT branch
-// the URL on RATEHAWK_ENV; hosts like "api-sandbox.ratehawk.com" do not exist.
-export const RATEHAWK_BASE_URL = "https://api.worldota.net";
+// NOTE: RateHawk's current hosts are api-sandbox.ratehawk.com (sandbox) and
+// api.ratehawk.com (test/production). The older api.worldota.net /
+// api-sandbox.worldota.net hosts are DEPRECATED per RateHawk's Authorization
+// docs. Environment is selected via RATEHAWK_ENV.
+export const RATEHAWK_BASE_URL =
+  RATEHAWK_ENV === "production"
+    ? "https://api.ratehawk.com"
+    : "https://api-sandbox.ratehawk.com";
 
 export function ratehawkConfigured(): boolean {
   return !!Deno.env.get("RATEHAWK_KEY_ID") && !!Deno.env.get("RATEHAWK_KEY");
