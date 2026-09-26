@@ -756,6 +756,7 @@ export default function HotelSearch() {
             })()}
           </div>
         )}
+        </>)}
 
         {/* Booking Dialog */}
         <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
