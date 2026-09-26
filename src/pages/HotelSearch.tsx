@@ -33,6 +33,14 @@ import {
   Gift,
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
+import { useRateHawkSearch } from "@/hooks/useRateHawkSearch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { HotelBookingVoucher } from "@/components/hotels/HotelBookingVoucher";
@@ -57,6 +65,51 @@ export default function HotelSearch() {
     getHotelDetails,
   } = useHotelSearch();
   const { user } = useAuth();
+
+  // Supplier toggle — Hotelbeds is the full booking flow; RateHawk is search-only this phase
+  const [supplier, setSupplier] = useState<"hotelbeds" | "ratehawk">("hotelbeds");
+  const {
+    hotels: rhHotels,
+    loading: rhLoading,
+    searchHotels: rhSearch,
+    certHotels,
+    certHotelsLoading,
+    listCertificationHotels,
+  } = useRateHawkSearch();
+  const [rhCertLoaded, setRhCertLoaded] = useState(false);
+  const [rhHotelId, setRhHotelId] = useState("");
+  const [rhCheckIn, setRhCheckIn] = useState("");
+  const [rhCheckOut, setRhCheckOut] = useState("");
+  const [rhAdults, setRhAdults] = useState(2);
+  const [rhChildAges, setRhChildAges] = useState("");
+
+  const handleSelectSupplier = (s: "hotelbeds" | "ratehawk") => {
+    setSupplier(s);
+    if (s === "ratehawk" && !rhCertLoaded) {
+      setRhCertLoaded(true);
+      listCertificationHotels();
+    }
+  };
+
+  const handleRhSearch = () => {
+    if (!rhHotelId) {
+      toast.error("Please select a test hotel.");
+      return;
+    }
+    if (!rhCheckIn || !rhCheckOut) {
+      toast.error("Please select check-in and check-out dates.");
+      return;
+    }
+    if (rhCheckOut <= rhCheckIn) {
+      toast.error("Check-out date must be after check-in date.");
+      return;
+    }
+    const childAges = rhChildAges
+      .split(",")
+      .map((a) => parseInt(a.trim()))
+      .filter((a) => !isNaN(a) && a >= 0 && a <= 17);
+    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, ids: [rhHotelId], adults: rhAdults, children: childAges });
+  };
 
   const [destination, setDestination] = useState("");
   const [destinationValid, setDestinationValid] = useState(false);
@@ -234,10 +287,169 @@ export default function HotelSearch() {
             Hotel Search
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Search and book hotels powered by HotelBeds
+            Search hotels powered by HotelBeds or RateHawk — booking available via HotelBeds
           </p>
         </div>
 
+        {/* Supplier toggle */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={supplier === "hotelbeds" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleSelectSupplier("hotelbeds")}
+          >
+            Hotelbeds
+          </Button>
+          <Button
+            variant={supplier === "ratehawk" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleSelectSupplier("ratehawk")}
+          >
+            RateHawk
+          </Button>
+          {supplier === "ratehawk" && (
+            <Badge variant="outline" className="text-xs ml-1">
+              Search only — booking coming in a later phase
+            </Badge>
+          )}
+        </div>
+
+        {supplier === "ratehawk" && (
+          <>
+            {/* RateHawk search form — certification test hotels only (region search deferred) */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="space-y-2 lg:col-span-2">
+                    <Label>Test Hotel</Label>
+                    <Select value={rhHotelId} onValueChange={setRhHotelId} disabled={certHotelsLoading}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={certHotelsLoading ? "Loading test hotels..." : "Select a certification test hotel"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {certHotels.map((h) => (
+                          <SelectItem key={h.id} value={h.id}>
+                            {h.name || `Hotel ${h.id}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Check-in</Label>
+                    <Input type="date" value={rhCheckIn} onChange={(e) => setRhCheckIn(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Check-out</Label>
+                    <Input type="date" value={rhCheckOut} onChange={(e) => setRhCheckOut(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Adults</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={6}
+                      value={rhAdults}
+                      onChange={(e) => setRhAdults(parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-end gap-4 mt-4">
+                  <div className="space-y-2 w-56">
+                    <Label>Child ages (comma-separated, optional)</Label>
+                    <Input
+                      value={rhChildAges}
+                      onChange={(e) => setRhChildAges(e.target.value)}
+                      placeholder="e.g. 7, 12"
+                    />
+                  </div>
+                  <div className="flex-1" />
+                  <Button onClick={handleRhSearch} disabled={rhLoading || !rhHotelId || !rhCheckIn || !rhCheckOut}>
+                    {rhLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Search
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* RateHawk results — read-only */}
+            {rhLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-3 text-muted-foreground">Searching RateHawk...</span>
+              </div>
+            )}
+
+            {!rhLoading && rhHotels.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {rhHotels.length} Hotel{rhHotels.length !== 1 ? "s" : ""} Found
+                  </h2>
+                  <Badge variant="secondary">
+                    {rhCheckIn} → {rhCheckOut}
+                  </Badge>
+                </div>
+                {rhHotels.map((hotel) => {
+                  const cert = certHotels.find((c) => c.id === hotel.id);
+                  const name = cert?.name || `Hotel ${hotel.id}`;
+                  return (
+                    <Card key={hotel.id}>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {name}
+                          <Badge variant="outline" className="text-xs">RateHawk</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {hotel.rates?.length ? (
+                          hotel.rates.map((rate, idx) => {
+                            const pt = rate.payment_options?.payment_types?.[0];
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between rounded-lg border p-3"
+                              >
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                                    <BedDouble className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium">{rate.room_name || "Room"}</span>
+                                    {rate.meal_data?.value && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {rate.meal_data.value}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  {pt?.show_amount ? (
+                                    <p className="text-base font-bold text-foreground">
+                                      {pt.show_currency_code} {pt.show_amount}
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">Price unavailable</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No rates available for these dates.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {supplier === "hotelbeds" && (<>
         {/* Search Form */}
         <Card>
           <CardContent className="pt-6">
@@ -544,6 +756,7 @@ export default function HotelSearch() {
             })()}
           </div>
         )}
+        </>)}
 
         {/* Booking Dialog */}
         <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
