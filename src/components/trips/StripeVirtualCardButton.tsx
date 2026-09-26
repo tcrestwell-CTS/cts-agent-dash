@@ -382,22 +382,33 @@ export function StripeVirtualCardButton({
                 </div>
               )}
 
-              {/* Stripe dashboard link */}
-              <div className="text-center">
-                <a
-                  href={`https://dashboard.stripe.com/issuing/cards/${virtualCardId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              {isAffirm ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleMarkUsed}
+                  disabled={markingUsed}
+                  data-testid="button-mark-affirm-used"
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  View in Stripe Dashboard
-                </a>
-              </div>
+                  {markingUsed && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Mark as Used
+                </Button>
+              ) : (
+                <div className="text-center">
+                  <a
+                    href={`https://dashboard.stripe.com/issuing/cards/${virtualCardId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View in Stripe Dashboard
+                  </a>
+                </div>
+              )}
 
               <p className="text-[11px] text-muted-foreground text-center">
-                Card details auto-expire from this view when you close this dialog.
-                Use the Stripe Dashboard link above for persistent access.
+                Card details are cleared from this view when you close this dialog.
               </p>
             </div>
           )}

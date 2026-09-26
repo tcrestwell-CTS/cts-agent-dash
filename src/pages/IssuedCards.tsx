@@ -220,6 +220,16 @@ export default function IssuedCards() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {card.payment_method_choice === "affirm" && (
+                            <StripeVirtualCardButton
+                              provider="affirm"
+                              paymentId={card.payment_id}
+                              paymentStatus="paid"
+                              amount={card.amount}
+                              virtualCardId={card.virtual_card_id}
+                              virtualCardStatus={card.virtual_card_status}
+                            />
+                          )}
                           {card.payment_method_choice === "stripe" && (
                             <>
                               <StripeVirtualCardButton
