@@ -33,6 +33,14 @@ import {
   Gift,
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
+import { useRateHawkSearch } from "@/hooks/useRateHawkSearch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput";
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { HotelBookingVoucher } from "@/components/hotels/HotelBookingVoucher";
@@ -57,6 +65,51 @@ export default function HotelSearch() {
     getHotelDetails,
   } = useHotelSearch();
   const { user } = useAuth();
+
+  // Supplier toggle — Hotelbeds is the full booking flow; RateHawk is search-only this phase
+  const [supplier, setSupplier] = useState<"hotelbeds" | "ratehawk">("hotelbeds");
+  const {
+    hotels: rhHotels,
+    loading: rhLoading,
+    searchHotels: rhSearch,
+    certHotels,
+    certHotelsLoading,
+    listCertificationHotels,
+  } = useRateHawkSearch();
+  const [rhCertLoaded, setRhCertLoaded] = useState(false);
+  const [rhHotelId, setRhHotelId] = useState("");
+  const [rhCheckIn, setRhCheckIn] = useState("");
+  const [rhCheckOut, setRhCheckOut] = useState("");
+  const [rhAdults, setRhAdults] = useState(2);
+  const [rhChildAges, setRhChildAges] = useState("");
+
+  const handleSelectSupplier = (s: "hotelbeds" | "ratehawk") => {
+    setSupplier(s);
+    if (s === "ratehawk" && !rhCertLoaded) {
+      setRhCertLoaded(true);
+      listCertificationHotels();
+    }
+  };
+
+  const handleRhSearch = () => {
+    if (!rhHotelId) {
+      toast.error("Please select a test hotel.");
+      return;
+    }
+    if (!rhCheckIn || !rhCheckOut) {
+      toast.error("Please select check-in and check-out dates.");
+      return;
+    }
+    if (rhCheckOut <= rhCheckIn) {
+      toast.error("Check-out date must be after check-in date.");
+      return;
+    }
+    const childAges = rhChildAges
+      .split(",")
+      .map((a) => parseInt(a.trim()))
+      .filter((a) => !isNaN(a) && a >= 0 && a <= 17);
+    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, ids: [rhHotelId], adults: rhAdults, children: childAges });
+  };
 
   const [destination, setDestination] = useState("");
   const [destinationValid, setDestinationValid] = useState(false);
