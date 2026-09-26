@@ -112,9 +112,10 @@ serve(async (req) => {
         status: "pending",
         payer_name: customer_name,
         payer_email: customer_email,
-        payer_phone: customer_phone || null,
-        booking_ref: booking_ref || null,
-        notes: booking_ref ? `Booking ref: ${booking_ref}` : null,
+        notes: [
+          booking_ref ? `Booking ref: ${booking_ref}` : null,
+          customer_phone ? `Phone: ${customer_phone}` : null,
+        ].filter(Boolean).join(" · ") || null,
       })
       .select("id, status, amount")
       .single();
