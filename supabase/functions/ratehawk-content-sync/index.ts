@@ -14,7 +14,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_IDS = ["10004834", "8819557"];
+const DEFAULT_HIDS = [10004834, 8819557];
 const BATCH_SIZE = 100;
 
 function mapHotel(h: any) {
@@ -77,9 +77,9 @@ Deno.serve(async (req) => {
   }
 
   const body = await req.json().catch(() => ({}));
-  const ids: string[] = Array.isArray(body.ids) && body.ids.length
-    ? body.ids.map((i: any) => String(i))
-    : DEFAULT_IDS;
+  const hids: number[] = Array.isArray(body.hids) && body.hids.length
+    ? body.hids.map((i: any) => Number(i)).filter((n: number) => Number.isFinite(n))
+    : DEFAULT_HIDS;
   const language = body.language || "en";
 
   const { data: run } = await supabase
@@ -93,9 +93,9 @@ Deno.serve(async (req) => {
   let pages = 0;
 
   try {
-    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-      const batch = ids.slice(i, i + BATCH_SIZE);
-      const resp = await ratehawkPost("/api/content/v1/hotel_content_by_ids", { ids: batch, language });
+    for (let i = 0; i < hids.length; i += BATCH_SIZE) {
+      const batch = hids.slice(i, i + BATCH_SIZE);
+      const resp = await ratehawkPost("/api/content/v1/hotel_content_by_ids", { hids: batch, language });
       const hotels: any[] = Array.isArray(resp?.data) ? resp.data : [];
       pages += 1;
       if (!hotels.length) continue;

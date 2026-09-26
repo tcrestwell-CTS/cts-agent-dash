@@ -37,8 +37,8 @@ export interface RateHawkCertHotel {
   [key: string]: any;
 }
 
-// Certification sandbox hotel IDs (see mem/features/integrations/ratehawk-etg.md)
-const CERT_HOTEL_IDS = ["10004834", "8819557"];
+// Certification sandbox hotel HIDs (see mem/features/integrations/ratehawk-etg.md)
+const CERT_HOTEL_HIDS = [10004834, 8819557];
 
 export function useRateHawkSearch() {
   const [hotels, setHotels] = useState<RateHawkHotel[]>([]);
@@ -61,7 +61,7 @@ export function useRateHawkSearch() {
   const searchHotels = async (params: {
     checkIn: string;
     checkOut: string;
-    ids: string[];
+    hids: number[];
     adults?: number;
     children?: number[];
   }) => {
@@ -72,7 +72,7 @@ export function useRateHawkSearch() {
         action: "search_by_hotel_ids",
         checkin: params.checkIn,
         checkout: params.checkOut,
-        ids: params.ids,
+        hids: params.hids,
         guests: [{ adults: params.adults ?? 2, children: params.children ?? [] }],
       });
       const found: RateHawkHotel[] = result?.hotels ?? [];
@@ -93,7 +93,7 @@ export function useRateHawkSearch() {
     try {
       const result = await invoke({
         action: "get_cached_hotels",
-        ids: CERT_HOTEL_IDS,
+        hids: CERT_HOTEL_HIDS,
       });
       setCertHotels(result?.hotels ?? result ?? []);
     } catch (err: any) {
