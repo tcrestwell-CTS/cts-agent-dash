@@ -25,3 +25,4 @@ type: feature
 
 ## Limitations
 - Region-based hotel-ID discovery (`/api/content/v1/filter_values`, `/api/content/v1/hotel_ids_by_filter`) is deferred — query params undocumented in the OpenAPI spec; confirm with ETG account manager. Content sync is driven by an explicit `ids` list for now.
+- The Hotel Search page's RateHawk tab is scoped to the certification test hotels via `search_by_hotel_ids` (no destination/region search UI) because of the region_id mapping gap; it is read-only — no booking, rate-check, or voucher flow.
