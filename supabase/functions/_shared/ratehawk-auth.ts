@@ -40,11 +40,38 @@ export async function ratehawkPost(path: string, body: unknown): Promise<any> {
   const text = await res.text();
   let json: any = null;
   try { json = JSON.parse(text); } catch { /* non-JSON */ }
+
+  // Never return a non-2xx (or unparseable) response as a value — upstream
+  // failures must throw so callers surface RATEHAWK_UPSTREAM_ERROR instead of
+  // treating the error as a false-empty success ({ hotels: [] }).
   if (!res.ok) {
-    throw new Error(`[${res.status}] RateHawk ${path}: ${json?.error || text.slice(0, 300)}`);
+    throw new Error(
+      `[${res.status}] RateHawk ${path}: ${describeUpstreamError(json, text)}`,
+    );
   }
-  if (json?.status && json.status !== "ok") {
-    throw new Error(`[502] RateHawk ${path}: ${json.error || "status=error"}`);
+  // Valid RateHawk responses are JSON. A 200 with a non-JSON body is an
+  // upstream failure (proxy/gateway page, HTML error, etc.) — never a result.
+  if (json === null) {
+    throw new Error(`[502] RateHawk ${path}: non-JSON response — ${text.slice(0, 300) || "(empty body)"}`);
+  }
+  // Envelope errors: ETG can return HTTP 200 with { status: "error", ... }
+  // or a bare { error: "incorrect_credentials", ... } without a status field.
+  const envelopeError =
+    (json.status && json.status !== "ok") ||
+    typeof json.error === "string" ||
+    (json.error && typeof json.error === "object");
+  if (envelopeError) {
+    throw new Error(`[502] RateHawk ${path}: ${describeUpstreamError(json, text)}`);
   }
   return json;
+}
+
+/** Best-effort human-readable message from a RateHawk error payload. */
+function describeUpstreamError(json: any, text: string): string {
+  if (json?.error != null) {
+    if (typeof json.error === "string") return json.error;
+    try { return JSON.stringify(json.error); } catch { /* fall through */ }
+  }
+  if (typeof json?.message === "string") return json.message;
+  return text.slice(0, 300) || "(empty response body)";
 }
