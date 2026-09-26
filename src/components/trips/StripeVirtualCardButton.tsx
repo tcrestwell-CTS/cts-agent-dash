@@ -30,11 +30,11 @@ interface StripeVirtualCardButtonProps {
 interface CardDetails {
   number: string | null;
   cvc: string | null;
-  exp_month: number;
-  exp_year: number;
+  exp_month: number | null;
+  exp_year: number | null;
   cardholder_name: string | null;
   brand: string;
-  last4: string;
+  last4: string | null;
   status: string;
   spending_limit: number | null;
 }

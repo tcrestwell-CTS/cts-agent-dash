@@ -830,6 +830,18 @@ export function TripPayments({
                         <td className="py-3">
                           <div className="flex items-center gap-1">
                             {/* Stripe Issuing virtual card — manual trigger */}
+                            {payment.payment_method_choice === "affirm" && payment.virtual_card_id && (
+                              <StripeVirtualCardButton
+                                provider="affirm"
+                                paymentId={payment.id}
+                                paymentStatus={payment.status}
+                                amount={payment.amount}
+                                supplierName={paymentSupplier}
+                                tripName={tripName}
+                                virtualCardId={payment.virtual_card_id}
+                                virtualCardStatus={payment.virtual_card_status}
+                              />
+                            )}
                             {payment.payment_method_choice !== "affirm" && (
                               <StripeVirtualCardButton
                                 paymentId={payment.id}
