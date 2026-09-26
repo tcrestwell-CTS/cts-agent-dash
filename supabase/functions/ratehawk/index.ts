@@ -188,11 +188,14 @@ Deno.serve(async (req) => {
 
       case "get_cached_hotels": {
         const ids: string[] = (params.ids || []).map((i: any) => String(i));
+        const hids: number[] = (params.hids || []).map((i: any) => Number(i)).filter((n: number) => Number.isFinite(n));
         const admin = adminClient();
-        const { data, error } = await admin
+        let query = admin
           .from("ratehawk_hotels")
-          .select("id, hid, name, address, region_name, country_code, star_rating, latitude, longitude, amenity_groups, images_ext, room_groups, check_in_time, check_out_time, phone, email")
-          .in("id", ids);
+          .select("id, hid, name, address, region_name, country_code, star_rating, latitude, longitude, amenity_groups, images_ext, room_groups, check_in_time, check_out_time, phone, email");
+        if (hids.length) query = query.in("hid", hids);
+        else if (ids.length) query = query.in("id", ids);
+        const { data, error } = await query;
         if (error) throw new Error(`Cache lookup failed: ${error.message}`);
         result = { hotels: data ?? [] };
         break;

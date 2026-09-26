@@ -108,7 +108,7 @@ export default function HotelSearch() {
       .split(",")
       .map((a) => parseInt(a.trim()))
       .filter((a) => !isNaN(a) && a >= 0 && a <= 17);
-    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, ids: [rhHotelId], adults: rhAdults, children: childAges });
+    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, hids: [Number(rhHotelId)], adults: rhAdults, children: childAges });
   };
 
   const [destination, setDestination] = useState("");
@@ -328,8 +328,8 @@ export default function HotelSearch() {
                       </SelectTrigger>
                       <SelectContent>
                         {certHotels.map((h) => (
-                          <SelectItem key={h.id} value={h.id}>
-                            {h.name || `Hotel ${h.id}`}
+                          <SelectItem key={h.id} value={String(h.hid)}>
+                            {h.name || `Hotel ${h.hid}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
