@@ -8579,6 +8579,162 @@ export type Database = {
           },
         ]
       }
+      ratehawk_api_usage: {
+        Row: {
+          day: string
+          search_calls: number
+          updated_at: string
+        }
+        Insert: {
+          day: string
+          search_calls?: number
+          updated_at?: string
+        }
+        Update: {
+          day?: string
+          search_calls?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ratehawk_hotels: {
+        Row: {
+          address: string | null
+          amenity_groups: Json | null
+          check_in_time: string | null
+          check_out_time: string | null
+          country_code: string | null
+          created_at: string
+          email: string | null
+          facts: Json | null
+          hid: number | null
+          id: string
+          images_ext: Json | null
+          last_synced_at: string
+          latitude: number | null
+          longitude: number | null
+          metapolicy_extra_info: string | null
+          metapolicy_struct: Json | null
+          name: string | null
+          phone: string | null
+          raw: Json | null
+          region_id: number | null
+          region_name: string | null
+          room_groups: Json | null
+          star_rating: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          amenity_groups?: Json | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          country_code?: string | null
+          created_at?: string
+          email?: string | null
+          facts?: Json | null
+          hid?: number | null
+          id: string
+          images_ext?: Json | null
+          last_synced_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          metapolicy_extra_info?: string | null
+          metapolicy_struct?: Json | null
+          name?: string | null
+          phone?: string | null
+          raw?: Json | null
+          region_id?: number | null
+          region_name?: string | null
+          room_groups?: Json | null
+          star_rating?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          amenity_groups?: Json | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          country_code?: string | null
+          created_at?: string
+          email?: string | null
+          facts?: Json | null
+          hid?: number | null
+          id?: string
+          images_ext?: Json | null
+          last_synced_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          metapolicy_extra_info?: string | null
+          metapolicy_struct?: Json | null
+          name?: string | null
+          phone?: string | null
+          raw?: Json | null
+          region_id?: number | null
+          region_name?: string | null
+          room_groups?: Json | null
+          star_rating?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ratehawk_search_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          payload: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at: string
+          payload: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
+      ratehawk_sync_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          hotels_processed: number
+          hotels_upserted: number
+          id: string
+          pages_fetched: number
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          hotels_processed?: number
+          hotels_upserted?: number
+          id?: string
+          pages_fetched?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          hotels_processed?: number
+          hotels_upserted?: number
+          id?: string
+          pages_fetched?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       recon_account_config: {
         Row: {
           allow_auto_post: boolean | null
@@ -11987,6 +12143,10 @@ export type Database = {
       }
       is_recon_admin: { Args: never; Returns: boolean }
       mark_proposal_viewed: { Args: { p_token: string }; Returns: undefined }
+      ratehawk_increment_search_usage: {
+        Args: { _cap: number }
+        Returns: number
+      }
       recalc_trip_payment_rollup: {
         Args: { p_trip_id: string }
         Returns: undefined
