@@ -221,6 +221,7 @@ async function handleShips(cruiseLine: string) {
       cruise_line: cruiseLine,
       limit: "200",
     });
+    console.log("ships raw keys:", Object.keys(data ?? {}), "sample:", JSON.stringify(data ?? null).slice(0, 600));
     const raw = data?.items ?? data?.ships ?? (Array.isArray(data) ? data : []);
     const ships = raw
       .map((s: any) => ({ title: s.name || s.title || s.ship_name || "", slug: s.name || s.title || s.ship_name || "" }))
