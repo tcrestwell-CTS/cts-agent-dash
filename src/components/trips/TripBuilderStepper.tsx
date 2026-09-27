@@ -88,11 +88,11 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
 
   return (
     <aside
-      className="w-full lg:w-60 shrink-0 rounded-[9px] border border-border bg-card p-4 space-y-4 lg:sticky lg:top-6 self-start"
+      className="w-full shrink-0 space-y-4 lg:sticky lg:top-6 self-start"
       aria-label="Guided trip builder"
     >
       {/* Step list */}
-      <ol className="space-y-0.5">
+      <ol className="divide-y divide-border border-b border-border">
         {steps.map((s) => {
           const isCurrent = s.key === current;
           return (
@@ -102,7 +102,7 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
                 onClick={() => go(s.key)}
                 aria-current={isCurrent ? "step" : undefined}
                 className={cn(
-                  "w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "w-full flex items-center gap-2.5 px-1.5 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isCurrent ? "bg-primary/10 text-foreground" : "hover:bg-muted/50",
                 )}
               >
