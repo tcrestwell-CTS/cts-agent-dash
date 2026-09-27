@@ -16,7 +16,9 @@ import { CruiseDetailsModal } from "@/components/cruise-search/CruiseDetailsModa
 import { MscCruiseSearch } from "@/components/cruise-search/msc/MscCruiseSearch";
 import {
   AVAILABLE_DESTINATIONS,
+  AVAILABLE_OPERATORS,
   DEFAULT_FILTERS,
+  REGION_BY_DESTINATION,
   type CruiseFilterState,
   type SortOption,
   type WidgetySailing,
@@ -37,6 +39,28 @@ const DEFAULT_SEARCH: SearchBarValues = {
   lengthPreset: "any",
   departurePort: "",
   travelers: "2",
+};
+
+const LINE_LABEL_BY_SLUG = new Map(AVAILABLE_OPERATORS.map((op) => [op.slug, op.label]));
+
+// "Miami, FL" -> "Miami"; "Rome (Civitavecchia), Italy" -> "Rome"
+const portSearchToken = (value: string): string => {
+  const entry = DEPARTURE_PORT_LABELS[value];
+  if (!entry) return value;
+  return entry.split(",")[0].replace(/\s*\(.*\)\s*/g, "").trim();
+};
+
+const DEPARTURE_PORT_LABELS: Record<string, string> = {
+  USMIA: "Miami, FL", USFLL: "Fort Lauderdale, FL", USPCV: "Port Canaveral, FL",
+  USTPA: "Tampa, FL", USJAX: "Jacksonville, FL", USNYC: "New York, NY",
+  FRBAY: "Bayonne, NJ", USBAL: "Baltimore, MD", USBOS: "Boston, MA",
+  USCHS: "Charleston, SC", USGLS: "Galveston, TX", USHOU: "Houston, TX",
+  USMSY: "New Orleans, LA", USLAX: "Los Angeles, CA", USSFO: "San Francisco, CA",
+  USSAN: "San Diego, CA", USSEA: "Seattle, WA", USHNL: "Honolulu, HI",
+  PRSJU: "San Juan, PR", ESBCN: "Barcelona, Spain", ITROM: "Rome (Civitavecchia), Italy",
+  ITVCE: "Venice, Italy", GRPIR: "Athens (Piraeus), Greece", GBSOU: "Southampton, UK",
+  NLAMS: "Amsterdam, Netherlands", DKCPH: "Copenhagen, Denmark", SGSIN: "Singapore",
+  AUSYD: "Sydney, Australia",
 };
 
 export default function CruiseSearch() {
@@ -88,21 +112,13 @@ export default function CruiseSearch() {
     let cancelled = false;
     setShipsLoading(true);
     supabase.functions
-      .invoke("widgety-cruise", { body: { action: "ships", operator: searchValues.cruiseLine } })
+      .invoke("cruisefeed-cruise", {
+        body: { action: "ships", cruise_line: LINE_LABEL_BY_SLUG.get(searchValues.cruiseLine) || "" },
+      })
       .then(({ data, error }) => {
         if (cancelled || error || data?.error) return;
-        const list = (data.ships || [])
-          .map((s: any) => {
-            const href = s?.href || s?.ship || s?.url || s?._links?.self?.href;
-            const slug =
-              typeof href === "string"
-                ? href.match(/\/ships\/([^.\/?]+)\.json/i)?.[1] || s.slug || ""
-                : s.slug || "";
-            return { title: s.title || s.name || "", slug };
-          })
-          .filter((s: any) => s.title && s.slug);
-        const unique = Array.from(new Map(list.map((s: any) => [s.slug, s])).values()) as { title: string; slug: string }[];
-        setAvailableShips(unique);
+        const list = (data.ships || []) as { title: string; slug: string }[];
+        setAvailableShips(list.filter((s) => s.title));
       })
       .catch(() => {})
       .finally(() => !cancelled && setShipsLoading(false));
@@ -119,120 +135,54 @@ export default function CruiseSearch() {
     setLoading(true);
     setHasSearched(true);
     try {
-      const params: Record<string, any> = {
-        action: "search",
-        market: "us",
-        limit: 100,
-        // Walk every Widgety page so repeat searches return the same complete set
-        // (the edge function only honors this when a date range is provided).
-        fetch_all: true,
-        // Backfill date_from/date_to from holiday detail when missing, so
-        // duration / month filters and sorting are deterministic.
-        resolve_departure_dates: true,
-      };
-      if (searchValues.cruiseLine && searchValues.cruiseLine !== "all") {
-        params.operators = searchValues.cruiseLine;
-      }
-      const dest = searchValues.destination?.trim().toLowerCase();
-      if (dest && dest !== "all" && AVAILABLE_DESTINATIONS.some((d) => d.value === dest)) {
-        params.regions = dest;
-      }
-      if (searchValues.departurePort && searchValues.departurePort !== "all") {
-        params.locations = searchValues.departurePort;
-      }
-      // Widgety rejects dates that are today or earlier ("Dates cannot be in the past"),
-      // so clamp the lower bound to tomorrow.
+      // Widgety-era pages sent today-or-earlier dates; CruiseFeed rejects past
+      // dates too, so clamp the lower bound to tomorrow.
       const tomorrowStr = (() => {
         const t = new Date();
         t.setDate(t.getDate() + 1);
         return t.toISOString().slice(0, 10);
       })();
-      if (dateFrom) {
-        params.date_from = dateFrom < tomorrowStr ? tomorrowStr : dateFrom;
+
+      const params: Record<string, any> = { action: "search" };
+      if (searchValues.cruiseLine && searchValues.cruiseLine !== "all") {
+        params.cruise_line = LINE_LABEL_BY_SLUG.get(searchValues.cruiseLine);
       }
+      const dest = searchValues.destination?.trim().toLowerCase();
+      if (dest && dest !== "all" && REGION_BY_DESTINATION[dest]) {
+        params.region = REGION_BY_DESTINATION[dest];
+      }
+      if (searchValues.departurePort && searchValues.departurePort !== "all") {
+        params.port = portSearchToken(searchValues.departurePort);
+      }
+      if (dateFrom) params.date_from = dateFrom < tomorrowStr ? tomorrowStr : dateFrom;
       if (dateTo) params.date_to = dateTo;
+      const [nightsMin, nightsMax] = LENGTH_RANGES[searchValues.lengthPreset] ?? [1, 30];
+      if (nightsMin > 1) params.nights_min = nightsMin;
+      if (nightsMax < 30) params.nights_max = nightsMax;
 
-      // fetch_all / resolve_departure_dates only activate server-side when a
-      // date range is present. If the user didn't pick dates, default to a
-      // wide window (today → +3 years) so we still get the full result set
-      // instead of an arbitrary first page.
-      if (!params.date_from && !params.date_to) {
-        const start = new Date();
-        start.setDate(start.getDate() + 1);
-        const end = new Date(start.getFullYear() + 3, start.getMonth(), start.getDate());
-        params.date_from = start.toISOString().slice(0, 10);
-        params.date_to = end.toISOString().slice(0, 10);
-      }
-
-      const { data, error } = await supabase.functions.invoke("widgety-cruise", { body: params });
+      const { data, error } = await supabase.functions.invoke("cruisefeed-cruise", { body: params });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      let results: WidgetySailing[] = data.holidays || [];
+      let results: WidgetySailing[] = data.sailings || [];
 
-      // Optional ship narrowing (server-side via per-holiday call)
+      // Optional ship narrowing (client-side; CruiseFeed rows carry ship_name)
       if (searchValues.ship && searchValues.ship !== "all" && results.length) {
-        const filtered = await Promise.all(
-          results.map(async (h) => {
-            try {
-              const { data: detail } = await supabase.functions.invoke("widgety-cruise", {
-                body: { action: "holiday", holiday_ref: h.holiday_ref, market: "us" },
-              });
-              const seasonDates = (detail?.operating_seasons || []).flatMap((s: any) => s.dates || []);
-              const matches = seasonDates.some(
-                (d: any) =>
-                  typeof d.ship === "string" && d.ship.includes(`/ships/${searchValues.ship}.json`),
-              );
-              return matches ? h : null;
-            } catch {
-              return null;
-            }
-          }),
-        );
-        results = filtered.filter((h): h is WidgetySailing => h !== null);
+        const shipToken = searchValues.ship.toLowerCase();
+        results = results.filter((s) => (s.ship_title || "").toLowerCase().includes(shipToken));
       }
 
       setSailings(results);
-      setTotalResults(
-        searchValues.ship && searchValues.ship !== "all" ? results.length : data.total || results.length,
-      );
+      setTotalResults(results.length);
       if (!results.length) toast.info("No cruises found. Try adjusting your search.");
 
-      // Pricing
-      if (results.length) {
-        try {
-          const refs = results.map((h) => h.holiday_ref).filter(Boolean);
-          const { data: priceData } = await supabase.functions.invoke("widgety-price-sync", {
-            body: { action: "get_prices", refs },
-          });
-          const cache: Record<string, number | null> = {};
-          for (const p of priceData?.prices || []) {
-            cache[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
-          }
-          setPriceCache(cache);
-
-          const missing = refs.filter((r) => !(r in cache));
-          if (missing.length) {
-            supabase.functions
-              .invoke("widgety-price-sync", { body: { action: "sync_prices", refs: missing.slice(0, 20) } })
-              .then(() =>
-                supabase.functions.invoke("widgety-price-sync", {
-                  body: { action: "get_prices", refs: missing.slice(0, 20) },
-                }),
-              )
-              .then(({ data: r2 }) => {
-                const next: Record<string, number | null> = {};
-                for (const p of r2?.prices || []) {
-                  next[p.holiday_ref] = p.price_from_double ? parseFloat(p.price_from_double) : null;
-                }
-                setPriceCache((prev) => ({ ...prev, ...next }));
-              })
-              .catch(() => {});
-          }
-        } catch {
-          // pricing failures are non-fatal
-        }
+      // Pricing: CruiseFeed returns price with each sailing.
+      const cache: Record<string, number | null> = {};
+      for (const s of results) {
+        cache[s.holiday_ref] =
+          typeof (s as any).price_amount === "number" ? (s as any).price_amount : null;
       }
+      setPriceCache(cache);
     } catch (err) {
       console.error("Cruise search error:", err);
       toast.error("Search failed: " + (err instanceof Error ? err.message : "Unknown error"));
@@ -429,7 +379,7 @@ export default function CruiseSearch() {
             <h2 className="text-lg font-semibold">Search the world's cruises</h2>
             <p className="text-sm text-muted-foreground max-w-md mt-1">
               Pick a destination, cruise line, or sail date and we'll find the best options from
-              20+ premium operators.
+              our preferred cruise partners.
             </p>
             <Button onClick={handleSearch} className="mt-6">
               Browse all cruises
