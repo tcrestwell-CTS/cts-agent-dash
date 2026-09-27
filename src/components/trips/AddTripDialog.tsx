@@ -1,3 +1,4 @@
+import { enableGuidedBuilder } from "@/components/trips/TripBuilderStepper";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -60,9 +61,11 @@ interface AddTripDialogProps {
   onOpenChange: (open: boolean) => void;
   onTripCreated?: () => void;
   parentTripId?: string;
+  /** Open the new trip in the step-by-step guided builder. */
+  guided?: boolean;
 }
 
-export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId }: AddTripDialogProps) {
+export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId, guided }: AddTripDialogProps) {
   const { createTrip, creating } = useTrips();
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const navigate = useNavigate();
@@ -223,6 +226,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId 
       onTripCreated?.();
       if (!parentTripId && tripId) {
         const ref = (result as any).trip_name || formData.trip_name;
+        if (guided) enableGuidedBuilder(tripId);
         toast.success(`Trip "${ref}" created — start building the itinerary`);
         navigate(`/trips/${tripId}/itinerary`);
       }
