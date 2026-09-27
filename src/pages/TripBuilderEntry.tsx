@@ -21,6 +21,7 @@ const TripBuilderEntry = () => {
   const { trips, loading: isLoading } = useTrips();
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [guidedCreate, setGuidedCreate] = useState(false);
 
   const openStatuses = ["draft", "quoted", "proposal_sent", "booked", "confirmed"];
 
@@ -65,9 +66,13 @@ const TripBuilderEntry = () => {
             <Button variant="outline" onClick={() => navigate("/trips")}>
               All trips
             </Button>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button variant="outline" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
               Create trip
+            </Button>
+            <Button onClick={() => { setGuidedCreate(true); setCreateOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              New trip (guided)
             </Button>
           </div>
         </div>
@@ -150,7 +155,7 @@ const TripBuilderEntry = () => {
         )}
       </div>
 
-      <AddTripDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <AddTripDialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) setGuidedCreate(false); }} guided={guidedCreate} />
     </DashboardLayout>
   );
 };
