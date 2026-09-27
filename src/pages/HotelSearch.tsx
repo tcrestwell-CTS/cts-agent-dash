@@ -440,6 +440,26 @@ export default function HotelSearch() {
                         ) : (
                           <p className="text-sm text-muted-foreground">No rates available for these dates.</p>
                         )}
+                        <div className="pt-2 border-t">
+                          <AddToTripSelector
+                            label="Add to Trip"
+                            items={[
+                              {
+                                day_number: 1,
+                                title: name,
+                                category: "hotel",
+                                item_date: rhCheckIn || undefined,
+                                notes: [
+                                  `RateHawk hotel (hid ${hotel.hid})`,
+                                  rhCheckIn && rhCheckOut ? `Check-in ${rhCheckIn} → check-out ${rhCheckOut}` : null,
+                                  hotel.rates?.[0]?.payment_options?.payment_types?.[0]?.show_amount
+                                    ? `Lead rate: ${hotel.rates[0].payment_options.payment_types[0].show_currency_code} ${hotel.rates[0].payment_options.payment_types[0].show_amount}`
+                                    : null,
+                                ].filter(Boolean).join(" • "),
+                              },
+                            ]}
+                          />
+                        </div>
                       </CardContent>
                     </Card>
                   );
