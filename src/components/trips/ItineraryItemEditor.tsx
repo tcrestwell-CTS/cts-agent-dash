@@ -27,6 +27,7 @@ import {
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, Target, Heart,
   ShoppingBag, Music, Loader2, CheckCircle2, AlertTriangle, XCircle,
   Clock, ExternalLink, ImageIcon, DollarSign, FileText, Info, EyeOff, Eye as EyeOn,
+  Sparkles,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { type ItineraryItem } from "@/hooks/useItinerary";
