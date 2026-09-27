@@ -44,6 +44,7 @@ import {
   Compass,
   ChevronsUpDown,
   Check,
+  Lightbulb,
 } from "lucide-react";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { TripPayments } from "@/components/trips/TripPayments";
@@ -401,6 +402,19 @@ const TripDetail = () => {
   }
 
   const isGroupTrip = trip.trip_type === "group";
+  const guidedStep: "basics" | "itinerary" | "pricing" | "payments" | "publish" =
+    activeTab === "itinerary" ? "itinerary"
+      : activeTab === "bookings" ? "pricing"
+        : location.hash === `#${PUBLISH_ANCHOR}` ? "publish"
+          : location.hash === `#${PAYMENT_SETTINGS_ANCHOR}` ? "payments"
+            : "basics";
+  const guidedTip = {
+    basics: { title: "Start with the basics", body: "Give the trip a clear name, set the dates and destination, and link the client. Click Trip Basics to edit these details." },
+    itinerary: { title: "Build the itinerary", body: "Add days and items. Drag to reorder, and use the AI actions on any item to write descriptions or suggest activities." },
+    pricing: { title: "Add pricing & packages", body: "Add bookings with prices so the trip has a total your client can pay against." },
+    payments: { title: "Set the payment plan", body: "Choose a deposit or payment schedule. Your client will see these dates and amounts in their portal." },
+    publish: { title: "Review & publish", body: "Everything required must be complete before publishing. Once live, your client can view the trip from their link." },
+  }[guidedStep];
   const showRightSidebar = activeTab !== "itinerary";
 
   const tripSettings = {
@@ -1378,6 +1392,7 @@ const TripDetail = () => {
                 </TabsContent>
               </Tabs>
             )}
+            </>)}
           </div>
 
           {/* Right sidebar */}
