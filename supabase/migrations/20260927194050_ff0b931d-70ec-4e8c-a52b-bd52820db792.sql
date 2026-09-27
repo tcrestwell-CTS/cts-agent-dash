@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.cancel_pending_payments_on_trip_cancel() FROM PUBLIC, anon, authenticated;
