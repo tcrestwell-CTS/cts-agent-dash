@@ -516,7 +516,15 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate, aiCont
   useEffect(() => {
     if (!item || !open || form.title === undefined) return;
     const vals = autoValues(form);
-    if (!lastSaved.current) { lastSaved.current = vals; return; }
+    if (!lastSaved.current) {
+      lastSaved.current = autoValues({
+        description: item.description || "",
+        notes: item.notes || "",
+        start_time: item.start_time || "",
+        end_time: item.end_time || "",
+        item_price: item.item_price != null ? String(item.item_price) : "",
+      });
+    }
     const changed = AUTOSAVE_FIELDS.filter((k) => vals[k] !== lastSaved.current![k]);
     if (!changed.length) return;
     if (vals.item_price !== null && isNaN(vals.item_price as number)) return;
