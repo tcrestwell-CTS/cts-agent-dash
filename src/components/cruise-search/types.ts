@@ -94,27 +94,19 @@ export const DEFAULT_FILTERS: CruiseFilterState = {
   audience: [],
 };
 
+// Cruise line universe — mirrors CTS_LINES in triton-cruise-search /
+// cruisefeed-cruise (names match CruiseFeed's /v1/cruise-lines exactly).
 export const AVAILABLE_OPERATORS = [
-  { slug: "american-cruise-lines", label: "American Cruise Lines" },
-  { slug: "amawaterways", label: "AmaWaterways" },
-  { slug: "avalon-waterways", label: "Avalon Waterways" },
-  { slug: "carnival-cruise-lines-operator", label: "Carnival Cruise Line" },
-  { slug: "celebrity-cruises", label: "Celebrity Cruises" },
-  { slug: "celebrity-river-cruises", label: "Celebrity River Cruises" },
-  { slug: "cunard-line", label: "Cunard Line" },
-  { slug: "disney-cruise-line", label: "Disney Cruise Line" },
-  { slug: "explora-journeys", label: "Explora Journeys" },
-  { slug: "holland-america-line", label: "Holland America Line" },
-  { slug: "msc-cruises", label: "MSC Cruises" },
+  { slug: "royal-caribbean", label: "Royal Caribbean" },
+  { slug: "carnival-cruise-line", label: "Carnival Cruise Line" },
   { slug: "norwegian-cruise-line", label: "Norwegian Cruise Line" },
+  { slug: "disney-cruise-line", label: "Disney Cruise Line" },
+  { slug: "msc-cruises", label: "MSC Cruises" },
   { slug: "princess-cruises", label: "Princess Cruises" },
-  { slug: "ritz-carlton-yacht-collection", label: "Ritz-Carlton Yacht Collection" },
-  { slug: "royal-caribbean-international", label: "Royal Caribbean International" },
-  { slug: "seabourn-cruise-line", label: "Seabourn Cruise Line" },
-  { slug: "silversea-cruises", label: "Silversea Cruises" },
-  { slug: "tauck", label: "Tauck" },
-  { slug: "uniworld-boutique-river-cruises", label: "Uniworld Boutique River Cruises" },
+  { slug: "celebrity-cruises", label: "Celebrity Cruises" },
+  { slug: "holland-america-line", label: "Holland America Line" },
   { slug: "virgin-voyages", label: "Virgin Voyages" },
+  { slug: "explora-journeys", label: "Explora Journeys" },
 ];
 
 export const AVAILABLE_DESTINATIONS = [
@@ -124,7 +116,6 @@ export const AVAILABLE_DESTINATIONS = [
   { value: "bahamas", label: "Bahamas" },
   { value: "bermuda", label: "Bermuda" },
   { value: "hawaii", label: "Hawaii" },
-  { value: "new-england", label: "New England" },
   { value: "europe", label: "Europe" },
   { value: "asia", label: "Asia" },
   { value: "africa", label: "Africa" },
@@ -137,6 +128,28 @@ export const AVAILABLE_DESTINATIONS = [
   { value: "transatlantic", label: "Transatlantic" },
   { value: "indian-ocean", label: "Indian Ocean" },
 ];
+
+// UI destination value -> CruiseFeed region filter value
+// (mirrors REGION_MAP in triton-cruise-search).
+export const REGION_BY_DESTINATION: Record<string, string> = {
+  caribbean: "Caribbean",
+  mediterranean: "Mediterranean",
+  alaska: "Alaska",
+  bahamas: "Bahamas",
+  bermuda: "Bermuda",
+  hawaii: "Hawaii",
+  europe: "Europe",
+  asia: "Asia",
+  africa: "Africa",
+  "south-america": "South America",
+  "central-america": "Central America",
+  pacific: "Pacific",
+  "north-america": "North America",
+  "middle-east": "Middle East",
+  scandinavia: "Scandinavia",
+  transatlantic: "Atlantic",
+  "indian-ocean": "Indian Ocean",
+};
 
 export const DEPARTURE_PORTS = [
   { value: "USMIA", label: "Miami, FL" },
@@ -169,28 +182,21 @@ export const DEPARTURE_PORTS = [
   { value: "AUSYD", label: "Sydney, Australia" },
 ];
 
-export const RIVER_OPERATORS = new Set([
-  "amawaterways",
-  "avalon-waterways",
-  "uniworld-boutique-river-cruises",
-  "tauck",
-  "celebrity-river-cruises",
-  "american-cruise-lines",
-]);
+export const RIVER_OPERATORS = new Set<string>([]);
 
 export const FAMILY_OPERATORS = new Set([
   "disney-cruise-line",
-  "carnival-cruise-lines-operator",
-  "royal-caribbean-international",
+  "carnival-cruise-line",
+  "royal-caribbean",
   "norwegian-cruise-line",
   "msc-cruises",
 ]);
 
 export const LUXURY_OPERATORS = new Set([
+  "explora-journeys",
   "seabourn-cruise-line",
   "silversea-cruises",
   "ritz-carlton-yacht-collection",
-  "explora-journeys",
   "cunard-line",
 ]);
 
