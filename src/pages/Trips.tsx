@@ -488,16 +488,11 @@ const Trips = () => {
   const { processStatusChange } = useWorkflowAutomation();
   const { statuses, kanbanColumns, getStatusLabel, getStatusColor, getKanbanStatus, statusToSlug, loading: statusesLoading } = useTripStatuses();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [advisorFilter, setAdvisorFilter] = useState<string>("all");
 
-
-  const handleTripCreated = () => {
-    setIsAddDialogOpen(false);
-    fetchTrips();
-  };
+  
   
   // Initialize tab from URL param
   const tabParam = searchParams.get("tab");
@@ -907,12 +902,6 @@ const Trips = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      <AddTripDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onTripCreated={fetchTrips}
-      />
 
       {/* Notes Dialog */}
       <SupplierNotesDialog
