@@ -31,9 +31,11 @@ export function usePaymentReminders() {
       const { data, error } = await supabase
         .from("trip_payments")
         .select(
-          "id, trip_id, user_id, amount, due_date, payment_type, status, details, trips(trip_name, destination, client_id, clients!trips_client_id_fkey(id, name, email))"
+          "id, trip_id, user_id, amount, due_date, payment_type, status, details, trips!inner(status, trip_name, destination, client_id, clients!trips_client_id_fkey(id, name, email))"
         )
         .neq("status", "paid")
+        .neq("status", "cancelled")
+        .neq("trips.status", "cancelled")
         .not("due_date", "is", null)
         .order("due_date", { ascending: true })
         .limit(500);
