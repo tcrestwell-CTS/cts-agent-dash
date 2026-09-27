@@ -162,7 +162,7 @@ function inferRegionsFromQuery(query: string): string[] {
 // against GET /v1/cruise-lines).
 
 const CRUISEFEED_BASE = "https://api.cruisefeed.io/v1";
-const PER_QUERY_LIMIT = 15;
+const PER_QUERY_LIMIT = 8; // trial key has a 300-result lifetime grant
 const MAX_CANDIDATES = 150;
 
 // Region vocabulary (lowercase) -> CruiseFeed region filter value (substring
