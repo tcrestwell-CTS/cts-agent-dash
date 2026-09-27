@@ -27,6 +27,7 @@ import { ItineraryLocationTimeline } from "@/components/client/ItineraryLocation
 import { buildAffirmVcnCheckoutData } from "@/lib/affirmCheckout";
 import { ApprovalStatePanel } from "@/components/client/ApprovalStatePanel";
 import { BookingOptionsCard } from "@/components/client/BookingOptionsCard";
+import { SafeHtml } from "@/components/ui/rich-text-editor";
 
 const categoryIcons: Record<string, string> = {
   flight: "✈️", lodging: "🏨", cruise: "🚢", transportation: "🚗",
@@ -1063,7 +1064,7 @@ export default function PortalTripDetail() {
         <Card>
           <CardHeader><CardTitle className="text-base">Trip Notes</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{trip.notes}</p>
+            <SafeHtml html={trip.notes} className="text-sm text-muted-foreground" />
           </CardContent>
         </Card>
       )}

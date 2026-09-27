@@ -51,6 +51,7 @@ import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
 import { TripPageEditor } from "@/components/trips/TripPageEditor";
+import { SafeHtml } from "@/components/ui/rich-text-editor";
 import { TripStatusWorkflow, CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist";
 import { TripReadinessScore } from "@/components/trips/TripReadinessScore";
@@ -1099,7 +1100,7 @@ const TripDetail = () => {
                       {trip.notes && (
                         <div className="pt-2 border-t">
                           <p className="text-[12.5px] text-muted-foreground mb-1">Trip Details Overview</p>
-                          <p className="text-[13.5px]">{trip.notes}</p>
+                          <SafeHtml html={trip.notes} className="text-[13.5px]" />
                         </div>
                       )}
                       {((trip as any).cabin_selection || ((trip as any).cabin_photos?.length ?? 0) > 0) && (

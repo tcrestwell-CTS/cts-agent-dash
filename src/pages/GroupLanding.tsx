@@ -43,6 +43,7 @@ import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { HawaiiProposal } from "@/components/group/HawaiiProposal";
+import { SafeHtml } from "@/components/ui/rich-text-editor";
 
 interface FeatureImage {
   id: string;
@@ -520,9 +521,7 @@ export default function GroupLanding() {
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(descriptionHtml) }}
               />
             ) : descriptionPlain ? (
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-[15px]">
-                {descriptionPlain}
-              </p>
+              <SafeHtml html={descriptionPlain} className="text-gray-700 leading-relaxed text-[15px]" />
             ) : null}
 
             {/* ─── FEATURED PRE-STAY HOTEL ──────── */}

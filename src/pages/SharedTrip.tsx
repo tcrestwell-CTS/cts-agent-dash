@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
+import { SafeHtml } from "@/components/ui/rich-text-editor";
 
 export interface SharedTripData {
   trip: {
@@ -899,7 +900,7 @@ export default function SharedTrip() {
           {data.trip.notes && (
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">Trip Details</h2>
-              <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{data.trip.notes}</p>
+              <SafeHtml html={data.trip.notes} className="text-gray-500 leading-relaxed" />
             </div>
           )}
 
