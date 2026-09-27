@@ -3984,6 +3984,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cruisefeed_search_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          id: string
+          payload: Json
+          result_count: number
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          id?: string
+          payload: Json
+          result_count?: number
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          result_count?: number
+        }
+        Relationships: []
+      }
       cruises: {
         Row: {
           active: boolean

@@ -112,6 +112,7 @@ export default function FlightSearch() {
   const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
   const [checkoutBaggage, setCheckoutBaggage] = useState<AvailableService[]>([]);
   const [stopFilters, setStopFilters] = useState<Set<number>>(new Set([0, 1, 2]));
+  const [airlineFilters, setAirlineFilters] = useState<Set<string>>(new Set());
 
   // ── Slice-based selection for round trips ──
   const [selectionStep, setSelectionStep] = useState<SelectionStep>("all");
@@ -131,11 +132,27 @@ export default function FlightSearch() {
   const getOfferMaxStops = (offer: FlightOffer) =>
     Math.max(...offer.slices.map((s) => s.segments.length - 1));
 
+  // Airlines present in the current results (owner airline of each offer)
+  const availableAirlines = Array.from(
+    new Set(offers.map((o) => o.owner?.name).filter((n): n is string => !!n)),
+  ).sort();
+
+  const toggleAirlineFilter = (name: string) => {
+    setAirlineFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   const filteredOffers = offers.filter((offer) => {
     const maxStops = getOfferMaxStops(offer);
-    if (stopFilters.size === 0) return true;
-    if (maxStops >= 2) return stopFilters.has(2);
-    return stopFilters.has(maxStops);
+    if (stopFilters.size > 0) {
+      if (maxStops >= 2 ? !stopFilters.has(2) : !stopFilters.has(maxStops)) return false;
+    }
+    if (airlineFilters.size > 0 && !airlineFilters.has(offer.owner?.name || "")) return false;
+    return true;
   });
 
   // Offers filtered by selected outbound
@@ -480,6 +497,32 @@ export default function FlightSearch() {
                 </label>
               ))}
             </div>
+
+            {/* Row 4: Airline filters (populated from results) */}
+            {availableAirlines.length > 0 && (
+              <div className="flex items-center gap-4 pt-1 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground">Airlines:</span>
+                {availableAirlines.map((name) => (
+                  <label key={name} className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={airlineFilters.has(name)}
+                      onCheckedChange={() => toggleAirlineFilter(name)}
+                    />
+                    <span className="text-sm text-foreground">{name}</span>
+                  </label>
+                ))}
+                {airlineFilters.size > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => setAirlineFilters(new Set())}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
