@@ -584,11 +584,17 @@ const TripDetail = () => {
                 return success;
               }}
             />
-            {!guided && (
-              <Button variant="outline" size="sm" className="text-[13px]" onClick={() => { enableGuidedBuilder(trip.id); setGuided(true); }}>
-                Guided builder
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-[13px]"
+              onClick={() => {
+                if (guided) { disableGuidedBuilder(trip.id); setGuided(false); }
+                else { enableGuidedBuilder(trip.id); setGuided(true); }
+              }}
+            >
+              {guided ? "Exit guided mode" : "Guided builder"}
+            </Button>
             <span id={PUBLISH_ANCHOR} className="contents" />
             <PublishTripButton
               tripId={trip.id}
