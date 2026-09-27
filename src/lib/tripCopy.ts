@@ -85,7 +85,8 @@ export async function copyItinerary(
   }
 
   const blockMap = new Map<string, string>();
-  const blocks = (obRes.data as any[]) || [];
+  // In "into" (sync) mode option blocks aren't recreated — matches the previous sync behaviour.
+  const blocks = into ? [] : ((obRes.data as any[]) || []);
   if (blocks.length) {
     const rows = blocks.map((b) => {
       const id = crypto.randomUUID();
@@ -110,7 +111,7 @@ export async function copyItinerary(
       trip_id: targetTripId,
       user_id: userId,
       itinerary_id: into ?? (i.itinerary_id ? itinMap.get(i.itinerary_id) ?? null : null),
-      option_block_id: i.option_block_id ? blockMap.get(i.option_block_id) ?? null : null,
+      option_block_id: i.option_block_id ? blockMap.get(i.option_block_id) ?? null : null, // null in sync mode
       day_number: i.day_number,
       item_date: shiftDate(i.item_date, shift),
       start_time: i.start_time,

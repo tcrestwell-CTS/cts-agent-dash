@@ -401,6 +401,7 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
         />
 
         <ItineraryTemplateDialog
+          onAddMany={addItems}
           tripId={tripId}
           tripName={tripName}
           destination={destination}
