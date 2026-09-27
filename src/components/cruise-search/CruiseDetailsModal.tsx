@@ -48,7 +48,7 @@ export function CruiseDetailsModal({
     typeof (sailing as any).price_amount === "number" ? (sailing as any).price_amount : null;
   const bookingUrl: string | null = (sailing as any).booking_url || null;
   const perNight = fromPrice && sailing.nights ? fromPrice / sailing.nights : null;
-  const portStops = getPortPreview(sailing前后);
+  const portStops = getPortPreview(sailing);
   const seaDays = itinerary.filter((d) => d.title === "At Sea").length;
 
   const cruiseCabinChoices: CruiseCabinChoice[] = fromPrice

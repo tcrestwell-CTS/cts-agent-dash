@@ -138,7 +138,7 @@ export const userGuideSections: GuideSection[] = [
       {
         title: "Search: cruise, hotel, air, excursions",
         body:
-          "Cruise search covers MSC (flat-file search, live booking API) and Widgety inventory. Hotel search runs on Hotelbeds and returns USD pricing with conversion applied to supplier responses. Flights run through Duffel with live monitoring of schedule changes. Excursions run through Viator, and land packages through Project Expedition.",
+          "Cruise search covers MSC (flat-file search, live booking API) plus a live cruise feed across our preferred lines — Royal Caribbean, Carnival, Norwegian, Disney, MSC, Princess, Celebrity, Holland America, Virgin Voyages, and Explora Journeys. Hotel search runs on Hotelbeds and returns USD pricing with conversion applied to supplier responses. Flights run through Duffel with live monitoring of schedule changes. Excursions run through Viator, and land packages through Project Expedition.",
         isNew: true,
         path: "/cruises",
       },
