@@ -15,15 +15,20 @@ interface TripPageEditorProps {
   };
   onUpdated: () => void;
   onOverviewFocusChange?: (focused: boolean) => void;
+  generatedOverview?: { html: string; requestId: number } | null;
 }
 
-export function TripPageEditor({ trip, onUpdated, onOverviewFocusChange }: TripPageEditorProps) {
+export function TripPageEditor({ trip, onUpdated, onOverviewFocusChange, generatedOverview }: TripPageEditorProps) {
   const [overview, setOverview] = useState(trip.notes || "");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setOverview(trip.notes || "");
   }, [trip.id, trip.notes]);
+
+  useEffect(() => {
+    if (generatedOverview) setOverview(generatedOverview.html);
+  }, [generatedOverview]);
 
   const save = async () => {
     setSaving(true);
