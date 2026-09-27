@@ -7,6 +7,7 @@ import { ImagePlus, X, Library, Search, Link, Upload, Loader2 } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateHeroImage } from "@/lib/heroImageQuality";
+import { UnsplashPicker } from "./UnsplashPicker";
 
 interface CoverPhotoPickerProps {
   coverPreview: string | null;
@@ -24,6 +25,7 @@ export function CoverPhotoPicker({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [urlInputOpen, setUrlInputOpen] = useState(false);
+  const [unsplashOpen, setUnsplashOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [libraryImages, setLibraryImages] = useState<string[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
@@ -183,10 +185,20 @@ export function CoverPhotoPicker({
           variant="outline"
           size="sm"
           className="text-xs gap-1.5"
-          onClick={() => setUrlInputOpen(!urlInputOpen)}
+          onClick={() => setUnsplashOpen(true)}
         >
           <Search className="h-3.5 w-3.5" />
-          Search free images
+          Search photos online
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="text-xs gap-1.5"
+          onClick={() => setUrlInputOpen(!urlInputOpen)}
+        >
+          <Link className="h-3.5 w-3.5" />
+          Paste image URL
         </Button>
         <Button
           type="button"
@@ -199,9 +211,15 @@ export function CoverPhotoPicker({
           }}
         >
           <Upload className="h-3.5 w-3.5" />
-          Choose file
+          Upload
         </Button>
       </div>
+
+      <UnsplashPicker
+        open={unsplashOpen}
+        onOpenChange={setUnsplashOpen}
+        onSelect={onUrlSelected}
+      />
 
       {/* URL input for pasting image links */}
       {urlInputOpen && (
