@@ -93,6 +93,23 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
+  /** Inserts several items in one request (used by AI day actions). */
+  const addItems = async (rows: CreateItineraryItemData[]) => {
+    if (!user || rows.length === 0) return false;
+    try {
+      const insertData = rows.map((d) => ({ ...d, user_id: user.id, itinerary_id: d.itinerary_id || itineraryId || null }));
+      const { error } = await supabase.from("itinerary_items").insert(insertData as any);
+      if (error) throw error;
+      toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"}`);
+      await fetchItems();
+      return true;
+    } catch (error) {
+      console.error("Error adding itinerary items:", error);
+      toast.error("Failed to add items");
+      return false;
+    }
+  };
+
   const updateItem = async (itemId: string, data: Partial<CreateItineraryItemData>) => {
     if (!user) return false;
     try {
@@ -306,7 +323,7 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
-  return { items, loading, generating, fetchItems, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent };
+  return { items, loading, generating, fetchItems, addItem, addItems, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent };
 }
 
 function mapSupplierType(type?: string): string {

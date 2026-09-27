@@ -1,3 +1,4 @@
+import { DayAIMenu } from "@/components/trips/DayAIMenu";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,7 +111,7 @@ function DayDropZone({ day, onDrop, children, className }: { day: number; onDrop
 }
 
 export function TripItinerary({ tripId, itineraryId, parentTripId, destination, departDate, returnDate, tripName, bookings, layout = "vertical", hideToolbar, onSidebarReady }: Props) {
-  const { items, loading, generating, addItem, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent, fetchItems } = useItinerary(tripId, itineraryId);
+  const { items, loading, generating, addItem, addItems, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent, fetchItems } = useItinerary(tripId, itineraryId);
   const [syncing, setSyncing] = useState(false);
   const { blocks, createBlock, updateBlock, deleteBlock, fetchBlocks } = useOptionBlocks(tripId, itineraryId);
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
@@ -513,7 +514,30 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                           </span>
                           Day {day}
                         </CardTitle>
-                        <AddItineraryItemDialog tripId={tripId} dayNumber={day} onAdd={addItem} />
+                        <div className="flex items-center gap-0.5">
+                          <DayAIMenu
+                            dayNumber={day}
+                            date={dateStr}
+                            destination={destination}
+                            tripName={tripName}
+                            dayItems={dayItems}
+                            onAddItems={(rows) => {
+                              const base = dayItems.reduce((m: number, it: any) => Math.max(m, it.sort_order ?? 0), -1) + 1;
+                              return addItems(rows.map((r, i) => ({
+                                trip_id: tripId,
+                                day_number: day,
+                                title: r.title,
+                                description: r.description || undefined,
+                                category: r.category,
+                                location: r.location || undefined,
+                                start_time: r.start_time || undefined,
+                                end_time: r.end_time || undefined,
+                                sort_order: base + i,
+                              })));
+                            }}
+                          />
+                          <AddItineraryItemDialog tripId={tripId} dayNumber={day} onAdd={addItem} />
+                        </div>
                       </div>
                       {dateStr && <p className="text-xs text-muted-foreground mt-1">{dateStr}</p>}
                     </CardHeader>
@@ -681,7 +705,30 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
                   Day {day}
                   {dateStr && <span className="text-muted-foreground font-normal text-sm">— {dateStr}</span>}
                 </CardTitle>
-                <AddItineraryItemDialog tripId={tripId} dayNumber={day} onAdd={addItem} />
+                <div className="flex items-center gap-0.5">
+                          <DayAIMenu
+                            dayNumber={day}
+                            date={dateStr}
+                            destination={destination}
+                            tripName={tripName}
+                            dayItems={dayItems}
+                            onAddItems={(rows) => {
+                              const base = dayItems.reduce((m: number, it: any) => Math.max(m, it.sort_order ?? 0), -1) + 1;
+                              return addItems(rows.map((r, i) => ({
+                                trip_id: tripId,
+                                day_number: day,
+                                title: r.title,
+                                description: r.description || undefined,
+                                category: r.category,
+                                location: r.location || undefined,
+                                start_time: r.start_time || undefined,
+                                end_time: r.end_time || undefined,
+                                sort_order: base + i,
+                              })));
+                            }}
+                          />
+                          <AddItineraryItemDialog tripId={tripId} dayNumber={day} onAdd={addItem} />
+                        </div>
               </div>
             </CardHeader>
             <CardContent>
