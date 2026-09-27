@@ -656,10 +656,22 @@ const TripDetail = () => {
 
         {/* Main content with left sidebar */}
         <div className={showRightSidebar
-          ? "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_360px] items-start"
-          : "grid gap-6 lg:grid-cols-[200px_1fr] items-start"
+          ? guided
+            ? "grid gap-6 lg:grid-cols-[240px_1fr] 2xl:grid-cols-[250px_minmax(0,1fr)_360px] items-start"
+            : "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_360px] items-start"
+          : guided
+            ? "grid gap-6 lg:grid-cols-[240px_1fr] items-start"
+            : "grid gap-6 lg:grid-cols-[200px_1fr] items-start"
         }>
-          <TripSidebar
+          <div className="space-y-4 lg:sticky lg:top-6 self-start">
+            {guided && (
+              <TripBuilderStepper
+                trip={trip}
+                onEditBasics={() => setEditDialogOpen(true)}
+                onExit={() => { disableGuidedBuilder(trip.id); setGuided(false); }}
+              />
+            )}
+            <TripSidebar
             tripId={tripId!}
             parentTripId={trip.parent_trip_id}
             clientId={trip.client_id}
