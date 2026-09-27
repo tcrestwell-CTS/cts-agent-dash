@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Compass,
-  Plus,
   Search,
   Users,
   ExternalLink,
@@ -28,7 +27,6 @@ import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { Panel, EmptyState } from "@/components/patterns/Panel";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
-import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
 import { AdvisorTag, useAdvisorNames } from "@/components/trips/AdvisorTag";
 
@@ -488,16 +486,11 @@ const Trips = () => {
   const { processStatusChange } = useWorkflowAutomation();
   const { statuses, kanbanColumns, getStatusLabel, getStatusColor, getKanbanStatus, statusToSlug, loading: statusesLoading } = useTripStatuses();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [advisorFilter, setAdvisorFilter] = useState<string>("all");
 
-
-  const handleTripCreated = () => {
-    setIsAddDialogOpen(false);
-    fetchTrips();
-  };
+  
   
   // Initialize tab from URL param
   const tabParam = searchParams.get("tab");
@@ -630,12 +623,6 @@ const Trips = () => {
               <FileDown className="h-4 w-4" />
               Booking Flow PDF
             </Button>
-            {activeTab === "trips" && (
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-1.5 rounded-[8px] text-[13px]">
-                <Plus className="h-4 w-4" />
-                New Trip
-              </Button>
-            )}
           </div>
         </div>
 
@@ -755,18 +742,7 @@ const Trips = () => {
               <Panel>
                 <EmptyState
                   title={searchQuery ? "No trips found" : "No trips yet"}
-                  message={searchQuery ? "Try adjusting your search" : "Create your first trip to get started"}
-                  action={
-                    !searchQuery && (
-                      <Button
-                        onClick={() => setIsAddDialogOpen(true)}
-                        className="gap-1.5 rounded-[8px] text-[13px]"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create Trip
-                      </Button>
-                    )
-                  }
+                  message={searchQuery ? "Try adjusting your search" : "Use the guided Trip Builder to create your first trip"}
                 />
               </Panel>
             ) : (
@@ -924,12 +900,6 @@ const Trips = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      <AddTripDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onTripCreated={fetchTrips}
-      />
 
       {/* Notes Dialog */}
       <SupplierNotesDialog
