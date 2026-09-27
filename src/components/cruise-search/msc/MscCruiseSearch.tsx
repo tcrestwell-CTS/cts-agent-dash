@@ -35,12 +35,13 @@ const fmtDate = (d?: string | null) => {
 export function MscCruiseSearch() {
   const [ships, setShips] = useState<{ ship_code: string; ship_name: string | null }[]>([]);
   const [ports, setPorts] = useState<{ port_code: string; port_name: string | null }[]>([]);
+  const [itineraries, setItineraries] = useState<string[]>([]);
   const [shipCode, setShipCode] = useState("all");
   const [portCode, setPortCode] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [nights, setNights] = useState("any");
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState("all");
 
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -51,15 +52,24 @@ export function MscCruiseSearch() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: s }, { data: p }, { count }] = await Promise.all([
+      const [{ data: s }, { data: p }, { count }, { data: it }] = await Promise.all([
         supabase.from("msc_ships").select("ship_code, ship_name").order("ship_name"),
         supabase.from("msc_ports").select("port_code, port_name").order("port_name").limit(500),
         supabase.from("msc_cruises").select("cruise_id", { count: "exact", head: true }),
+        supabase.from("msc_cruises").select("itinerary_name").eq("is_closed", false).limit(2000),
       ]);
       if (cancelled) return;
       setShips(s ?? []);
       setPorts(p ?? []);
       setCacheCount(count ?? 0);
+      const names = Array.from(
+        new Set(
+          (it ?? [])
+            .map((r) => (r.itinerary_name || "").trim())
+            .filter((n) => n.length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b));
+      setItineraries(names);
     })();
     return () => {
       cancelled = true;
@@ -92,7 +102,7 @@ export function MscCruiseSearch() {
       if (portCode !== "all") q = q.eq("embark_port_code", portCode);
       if (dateFrom) q = q.gte("sail_date", dateFrom);
       if (dateTo) q = q.lte("sail_date", dateTo);
-      if (keyword.trim()) q = q.ilike("itinerary_name", `%${keyword.trim()}%`);
+      if (keyword !== "all") q = q.eq("itinerary_name", keyword);
       if (nights !== "any") {
         const [min, max] = nights.split("-").map(Number);
         q = q.gte("nights", min).lte("nights", max || 99);
@@ -117,7 +127,7 @@ export function MscCruiseSearch() {
     setDateFrom("");
     setDateTo("");
     setNights("any");
-    setKeyword("");
+    setKeyword("all");
     setRows([]);
     setHasSearched(false);
   };
@@ -139,12 +149,20 @@ export function MscCruiseSearch() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
             <div className="space-y-1.5 xl:col-span-2">
-              <Label className="text-xs">Itinerary keyword</Label>
-              <Input
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Caribbean, Mediterranean…"
-              />
+              <Label className="text-xs">Itinerary</Label>
+              <Select value={keyword} onValueChange={setKeyword}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Any itinerary" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any itinerary</SelectItem>
+                  {itineraries.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Ship</Label>
