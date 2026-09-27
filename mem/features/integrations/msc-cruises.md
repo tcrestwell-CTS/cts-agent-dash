@@ -5,7 +5,7 @@ type: feature
 ---
 MSC API 3.0 is **stateless plain XML over HTTPS** (no SOAP/WSDL, no session, no mTLS). Auth is three headers on every call: `UserId`, `AgencyId`, `Password`. Test base `https://layer7test.msccruises.com/test`; production base `https://layer7prod.msccruises.com` (NO path prefix — `/prod`, `/prd`, `/live` all return Layer7 `Policy Falsified`). Stored in `MSC_BASE_URL`, with `MSC_ENV=production`.
 
-**Flat File 3.0 is DEPRECATED (MSC, Aug 2026)** — decommissioned during 2027, not for new implementations. The replacement source for the local cache is **MSC Cache REST**. Do not build new work against Flat File; `msc-flatfile-sync` is legacy and to be replaced by a Cache REST sync job.
+**Flat File 3.0 is DEPRECATED (MSC, Aug 2026)** — decommissioned during 2027, not for new implementations. The replacement source for the local cache is **MSC Cache REST**. Do not build new work against Flat File; `msc-flatfile-sync` is legacy and to be replaced by a Cache REST sync job. **Cache REST spec was never received** (as of Sep 27, 2026) — no public docs on the web; the spec lives only in MSC's partner-facing "Cache REST documentation" and must come from Tim before the sync can be built.
 
 **Architecture MSC prescribes (do not deviate):** browse/search runs ONLY off the local cache (`msc_*` tables, refreshed several times daily). The live API (`msc-cruise` edge function) is select-and-book only — `DtsSearchCruisesV1` is called with a `CruiseID` already held from the cache. Calling it to browse gets throttled by the Layer7 gateway.
 
