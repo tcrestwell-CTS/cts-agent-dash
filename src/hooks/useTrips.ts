@@ -1,3 +1,4 @@
+import { copyItinerary } from "@/lib/tripCopy";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -465,8 +466,16 @@ export function useTrips() {
         (newTrip as any).trip_page_url = tripPageUrl;
       }
 
+      let copied = { items: 0 } as { items: number };
+      try {
+        copied = await copyItinerary(sourceTripId, newTrip.id, user.id, { includePricing: true });
+      } catch (copyErr) {
+        console.error("Itinerary copy failed:", copyErr);
+        toast.warning("Trip cloned, but the itinerary could not be copied");
+      }
+
       setTrips((prev) => [newTrip as Trip, ...prev]);
-      toast.success("Trip cloned");
+      toast.success(copied.items ? `Trip cloned with ${copied.items} itinerary items` : "Trip cloned");
       return newTrip as Trip;
     } catch (error) {
       console.error("Error cloning trip:", error);
