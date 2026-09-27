@@ -34,7 +34,6 @@ import {
 } from "lucide-react";
 import { useHotelSearch, HotelResult, HotelRate } from "@/hooks/useHotelSearch";
 import { useRateHawkSearch } from "@/hooks/useRateHawkSearch";
-import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import {
   Select,
   SelectContent,
