@@ -79,12 +79,15 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     if (!user) return false;
     try {
       const insertData = { ...data, user_id: user.id, itinerary_id: data.itinerary_id || itineraryId || null };
-      const { error } = await supabase
+      const { data: row, error } = await supabase
         .from("itinerary_items")
-        .insert(insertData as any);
+        .insert(insertData as any)
+        .select("*")
+        .single();
       if (error) throw error;
       toast.success("Item added");
-      await fetchItems();
+      if (row) setItems((prev) => sortItems([...prev, row as unknown as ItineraryItem]));
+      else await fetchItems();
       return true;
     } catch (error) {
       console.error("Error adding itinerary item:", error);
@@ -110,35 +113,43 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
     }
   };
 
-  const updateItem = async (itemId: string, data: Partial<CreateItineraryItemData>) => {
+  /**
+   * Saves one item and patches local state — no full reload. Rolls back on failure.
+   * `opts.silent` suppresses the error toast (autosave shows its own status).
+   */
+  const updateItem = async (itemId: string, data: Partial<CreateItineraryItemData>, opts?: { silent?: boolean }) => {
     if (!user) return false;
+    const previous = items.find((i) => i.id === itemId);
+    setItems((prev) => sortItems(prev.map((i) => (i.id === itemId ? ({ ...i, ...(data as any) } as ItineraryItem) : i))));
     try {
       const { error } = await supabase
         .from("itinerary_items")
         .update(data as any)
         .eq("id", itemId);
       if (error) throw error;
-      await fetchItems();
       return true;
     } catch (error) {
       console.error("Error updating itinerary item:", error);
-      toast.error("Failed to update item");
+      if (previous) setItems((prev) => sortItems(prev.map((i) => (i.id === itemId ? previous : i))));
+      if (!opts?.silent) toast.error("Failed to update item");
       return false;
     }
   };
 
   const bulkUpdateItems = async (updates: Array<{ id: string; data: Partial<CreateItineraryItemData> }>) => {
     if (!user) return false;
+    const snapshot = items;
+    const byId = new Map(updates.map((u) => [u.id, u.data]));
+    setItems((prev) => sortItems(prev.map((i) => (byId.has(i.id) ? ({ ...i, ...(byId.get(i.id) as any) } as ItineraryItem) : i))));
     try {
-      await Promise.all(
-        updates.map(({ id, data }) =>
-          supabase.from("itinerary_items").update(data as any).eq("id", id)
-        )
-      );
-      await fetchItems();
+      const { error } = await supabase.rpc("reorder_itinerary_items" as any, {
+        p_updates: updates.map(({ id, data }) => ({ id, ...data })),
+      });
+      if (error) throw error;
       return true;
     } catch (error) {
       console.error("Error bulk updating itinerary items:", error);
+      setItems(snapshot);
       toast.error("Failed to reorder items");
       return false;
     }
@@ -153,7 +164,7 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
         .eq("id", itemId);
       if (error) throw error;
       toast.success("Item removed");
-      await fetchItems();
+      setItems((prev) => prev.filter((i) => i.id !== itemId));
       return true;
     } catch (error) {
       console.error("Error deleting itinerary item:", error);
@@ -324,6 +335,10 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
   };
 
   return { items, loading, generating, fetchItems, addItem, addItems, updateItem, bulkUpdateItems, deleteItem, generateWithAI, clearAll, importFromBookings, syncFromParent };
+}
+
+function sortItems(list: ItineraryItem[]) {
+  return [...list].sort((a, b) => a.day_number - b.day_number || (a.sort_order ?? 0) - (b.sort_order ?? 0));
 }
 
 function mapSupplierType(type?: string): string {
