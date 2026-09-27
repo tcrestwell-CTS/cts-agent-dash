@@ -7,5 +7,5 @@
 - [x] 2. Clone trip copies itinerary days/items
 - [x] 3. Step-by-step Trip Builder (alongside New Trip)
 - [x] 4. Per-item AI actions in itinerary builder
-- [ ] 5. Autosave itinerary edits + remove full refetch per edit
+- [x] 5. Autosave itinerary edits + remove full refetch per edit
 - [ ] 6. Unified copy engine (sub-trips + templates), tested on real group-trip copies before switch
