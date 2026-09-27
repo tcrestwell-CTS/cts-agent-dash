@@ -1,6 +1,7 @@
 // Per-item / per-day AI helpers for the itinerary builder.
-// Actions: "describe" (rewrite one item's description), "suggest" (3 activity ideas
-// for a day), "fill_day" (a full, paced day plan). Returns JSON; the client decides
+// Actions: "describe" (rewrite one item's description), "trip_overview" (create the
+// client-facing trip introduction), "suggest" (3 activity ideas for a day),
+// "fill_day" (a full, paced day plan). Returns JSON; the client decides
 // what to insert — nothing is written to the database here.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -78,8 +79,8 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "AI is not configured" }, 500);
 
-    const { action, destination, tripName, dayNumber, date, item, dayItems = [], instructions } = await req.json();
-    if (!["describe", "suggest", "fill_day"].includes(action)) return json({ error: "Unknown action" }, 400);
+    const { action, destination, tripName, departDate, returnDate, dayNumber, date, item, dayItems = [], instructions } = await req.json();
+    if (!["describe", "trip_overview", "suggest", "fill_day"].includes(action)) return json({ error: "Unknown action" }, 400);
 
     const ctx = [
       tripName && `Trip: ${tripName}`,
@@ -93,6 +94,11 @@ Deno.serve(async (req) => {
     let prompt: string;
     if (action === "describe") {
       prompt = `${ctx}\n\nItem: ${item?.title}${item?.location ? ` at ${item.location}` : ""} (${item?.category || "activity"}).\nCurrent description: ${item?.description || "(none)"}\n\nWrite a client-facing description of 2-3 sentences (max 70 words). Return JSON: {"description": "..."}`;
+    } else if (action === "trip_overview") {
+      const dates = departDate || returnDate
+        ? `Travel dates: ${departDate || "not set"} to ${returnDate || "not set"}`
+        : "Travel dates are not set.";
+      prompt = `${ctx}\n${dates}\n\nWrite a welcoming client-facing overview for the trip page. Start with an active verb and make the destination and experience feel specific. Use two short paragraphs totaling 90-140 words. Do not invent hotels, flights, inclusions, prices, amenities, activities, or guarantees. If details are limited, stay inviting but factual. Return JSON: {"overview": "..."}`;
     } else {
       const n = action === "suggest" ? "exactly 3 optional activity ideas that fit around what is already planned" : "a complete, well-paced plan of 4-6 items for the day, not duplicating what is already planned";
       prompt = `${ctx}\n\nSuggest ${n}. Return a JSON array; each element: {"title","description" (1-2 sentences),"category" (one of ${CATEGORIES.join(", ")}),"location","start_time" (HH:MM 24h),"end_time" (HH:MM 24h)}.`;
@@ -109,6 +115,11 @@ Deno.serve(async (req) => {
       const description = String(parsed?.description || "").trim();
       if (!description) return json({ error: "No description returned" }, 502);
       return json({ description });
+    }
+    if (action === "trip_overview") {
+      const overview = String(parsed?.overview || "").trim();
+      if (!overview) return json({ error: "No overview returned" }, 502);
+      return json({ overview });
     }
     const items = (Array.isArray(parsed) ? parsed : parsed?.items || [])
       .filter((i: any) => i?.title)

@@ -45,6 +45,7 @@ import {
   ChevronsUpDown,
   Check,
   Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { TripPayments } from "@/components/trips/TripPayments";
@@ -114,6 +115,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { WorkspaceBreadcrumbs } from "@/components/layout/WorkspaceBreadcrumbs";
 import { GroupProposalSelections } from "@/components/trips/GroupProposalSelections";
+import { Textarea } from "@/components/ui/textarea";
+import { aiWriteTripOverview } from "@/lib/itineraryAI";
 
 type OuterTab = "itinerary" | "details" | "bookings";
 
@@ -357,6 +360,9 @@ const TripDetail = () => {
 
   const [guided, setGuided] = useState(() => isGuidedBuilder(tripId));
   const [tripOverviewFocused, setTripOverviewFocused] = useState(false);
+  const [overviewInstructions, setOverviewInstructions] = useState("");
+  const [generatingOverview, setGeneratingOverview] = useState(false);
+  const [generatedOverview, setGeneratedOverview] = useState<{ html: string; requestId: number } | null>(null);
   useEffect(() => { setGuided(isGuidedBuilder(tripId)); }, [tripId]);
   const [cloneOpen, setCloneOpen] = useState(false);
   const [cloneClient, setCloneClient] = useState<SelectedClient | null>(null);

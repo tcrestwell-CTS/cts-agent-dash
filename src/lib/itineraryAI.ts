@@ -5,6 +5,12 @@ export interface AIContext {
   tripName?: string | null;
 }
 
+export interface TripOverviewContext extends AIContext {
+  departDate?: string | null;
+  returnDate?: string | null;
+  instructions?: string;
+}
+
 export interface AISuggestedItem {
   title: string;
   description: string | null;
@@ -33,6 +39,11 @@ export async function aiWriteDescription(ctx: AIContext, item: { title: string; 
   const plain = (item.description || "").replace(/<[^>]+>/g, " ").trim();
   const data = await call({ action: "describe", ...ctx, item: { ...item, description: plain } });
   return String(data.description || "");
+}
+
+export async function aiWriteTripOverview(ctx: TripOverviewContext) {
+  const data = await call({ action: "trip_overview", ...ctx });
+  return String(data.overview || "");
 }
 
 export async function aiDayItems(
