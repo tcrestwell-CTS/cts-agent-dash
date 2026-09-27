@@ -1448,38 +1448,58 @@ const TripDetail = () => {
 
           {/* Right sidebar */}
           {guided && guidedStep === "tripPage" ? (
-            <aside className="hidden lg:block lg:sticky lg:top-6 self-start rounded-[9px] border border-border bg-card p-5 space-y-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Trip overview AI</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Create a polished draft for the About this trip field.
-                  </p>
+            <aside className="hidden lg:block lg:sticky lg:top-6 self-start space-y-4">
+              <div className="rounded-[9px] border border-border bg-card p-5 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">{guidedTip.title}</h3>
+                  <Lightbulb className="h-5 w-5 text-primary shrink-0" />
                 </div>
-                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <p className="whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{guidedTip.body}</p>
               </div>
-              <div className="space-y-2">
-                <label htmlFor="overview-ai-notes" className="text-xs font-medium text-foreground">
-                  Details to emphasize
-                </label>
-                <Textarea
-                  id="overview-ai-notes"
-                  value={overviewInstructions}
-                  onChange={(event) => setOverviewInstructions(event.target.value)}
-                  placeholder="Celebration, travel style, special highlights..."
-                  rows={5}
-                  maxLength={500}
-                />
+
+              <div className="rounded-[9px] border border-border bg-card p-5 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">Preview your trip page</h3>
+                  <Compass className="h-5 w-5 text-primary shrink-0" />
+                </div>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  Use Preview to check the cover and overview exactly as your client will see them.
+                </p>
               </div>
-              <Button className="w-full" onClick={generateTripOverview} disabled={generatingOverview}>
-                {generatingOverview
-                  ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  : <Sparkles className="mr-2 h-4 w-4" />}
-                {generatedOverview ? "Create another draft" : "Create overview"}
-              </Button>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                The draft is inserted into the editor. Review it, then save the Trip Page.
-              </p>
+
+              <div className="rounded-[9px] border border-border bg-card p-5 space-y-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Trip overview AI</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Create a polished draft for the About this trip field.
+                    </p>
+                  </div>
+                  <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="overview-ai-notes" className="text-xs font-medium text-foreground">
+                    Details to emphasize
+                  </label>
+                  <Textarea
+                    id="overview-ai-notes"
+                    value={overviewInstructions}
+                    onChange={(event) => setOverviewInstructions(event.target.value)}
+                    placeholder="Celebration, travel style, special highlights..."
+                    rows={5}
+                    maxLength={500}
+                  />
+                </div>
+                <Button className="w-full" onClick={generateTripOverview} disabled={generatingOverview}>
+                  {generatingOverview
+                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    : <Sparkles className="mr-2 h-4 w-4" />}
+                  {generatedOverview ? "Create another draft" : "Create overview"}
+                </Button>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  The draft is inserted into the editor. Review it, then save the Trip Page.
+                </p>
+              </div>
             </aside>
           ) : guided ? (
             <aside className="hidden lg:block lg:sticky lg:top-6 self-start rounded-[9px] border border-border bg-card p-5 space-y-3">
