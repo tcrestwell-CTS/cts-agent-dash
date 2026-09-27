@@ -620,14 +620,6 @@ const TripDetail = () => {
           </div>
         </div>
 
-        {guided && (
-          <TripBuilderStepper
-            trip={trip}
-            onEditBasics={() => setEditDialogOpen(true)}
-            onExit={() => { disableGuidedBuilder(trip.id); setGuided(false); }}
-          />
-        )}
-
         {/* Workspace tabs */}
         <Tabs value={activeTab} onValueChange={(v) => goToTab(v as OuterTab)}>
           <TabsList>
