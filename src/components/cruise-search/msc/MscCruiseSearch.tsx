@@ -35,12 +35,13 @@ const fmtDate = (d?: string | null) => {
 export function MscCruiseSearch() {
   const [ships, setShips] = useState<{ ship_code: string; ship_name: string | null }[]>([]);
   const [ports, setPorts] = useState<{ port_code: string; port_name: string | null }[]>([]);
+  const [itineraries, setItineraries] = useState<string[]>([]);
   const [shipCode, setShipCode] = useState("all");
   const [portCode, setPortCode] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [nights, setNights] = useState("any");
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState("all");
 
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
