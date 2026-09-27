@@ -12185,6 +12185,7 @@ export type Database = {
         Args: { p_trip_id: string }
         Returns: undefined
       }
+      reorder_itinerary_items: { Args: { p_updates: Json }; Returns: number }
       repair_account_integrity: { Args: never; Returns: Json }
       reveal_cw_agent_secret: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
