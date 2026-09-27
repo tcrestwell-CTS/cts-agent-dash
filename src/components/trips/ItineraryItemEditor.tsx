@@ -11,7 +11,7 @@ import { aiWriteDescription, type AIContext } from "@/lib/itineraryAI";
  * This is rendered as a Sheet (slide-over) so it doesn't block the itinerary canvas.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -91,7 +91,7 @@ interface Props {
   item: ExtendedItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (itemId: string, data: Partial<ExtendedItem>) => Promise<boolean>;
+  onUpdate: (itemId: string, data: Partial<ExtendedItem>, opts?: { silent?: boolean }) => Promise<boolean>;
   aiContext?: AIContext;
 }
 
@@ -497,6 +497,40 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate, aiCont
     }
   }, [item]);
 
+  // ── Autosave: description, notes, times and price save ~1s after typing stops ──
+  const AUTOSAVE_FIELDS = ["description", "notes", "start_time", "end_time", "item_price"] as const;
+  const [autoStatus, setAutoStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const lastSaved = useRef<Record<string, any> | null>(null);
+  useEffect(() => {
+    if (!item) return;
+    lastSaved.current = null; // re-baselined on first form render for this item
+    setAutoStatus("idle");
+  }, [item?.id]);
+  const autoValues = (f: any) => ({
+    description: f.description || null,
+    notes: f.notes || null,
+    start_time: f.start_time || null,
+    end_time: f.end_time || null,
+    item_price: f.item_price ? parseFloat(f.item_price) : null,
+  });
+  useEffect(() => {
+    if (!item || !open || form.title === undefined) return;
+    const vals = autoValues(form);
+    if (!lastSaved.current) { lastSaved.current = vals; return; }
+    const changed = AUTOSAVE_FIELDS.filter((k) => vals[k] !== lastSaved.current![k]);
+    if (!changed.length) return;
+    if (vals.item_price !== null && isNaN(vals.item_price as number)) return;
+    const t = setTimeout(async () => {
+      const patch: Record<string, any> = {};
+      changed.forEach((k) => (patch[k] = vals[k]));
+      setAutoStatus("saving");
+      const ok = await onUpdate(item.id, patch as any, { silent: true });
+      if (ok) { lastSaved.current = { ...lastSaved.current!, ...patch }; setAutoStatus("saved"); }
+      else setAutoStatus("error");
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [form.description, form.notes, form.start_time, form.end_time, form.item_price, open, item?.id]);
+
   if (!item) return null;
 
   const isFlight = form.category === "flight";
@@ -610,9 +644,16 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate, aiCont
 
         {/* Footer */}
         <div className="px-6 py-4 border-t flex-shrink-0 flex items-center justify-between gap-3 bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+              Close
+            </Button>
+            <span className="text-xs text-muted-foreground" aria-live="polite">
+              {autoStatus === "saving" && "Saving…"}
+              {autoStatus === "saved" && "All changes saved"}
+              {autoStatus === "error" && <span className="text-destructive">Autosave failed — use Save Changes</span>}
+            </span>
+          </div>
           <Button onClick={handleSave} disabled={saving || !form.title?.trim()} className="min-w-[100px]">
             {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : "Save Changes"}
           </Button>
