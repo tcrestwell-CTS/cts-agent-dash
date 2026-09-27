@@ -14,9 +14,10 @@ interface TripPageEditorProps {
     cover_image_url?: string | null;
   };
   onUpdated: () => void;
+  onOverviewFocusChange?: (focused: boolean) => void;
 }
 
-export function TripPageEditor({ trip, onUpdated }: TripPageEditorProps) {
+export function TripPageEditor({ trip, onUpdated, onOverviewFocusChange }: TripPageEditorProps) {
   const [overview, setOverview] = useState(trip.notes || "");
   const [saving, setSaving] = useState(false);
 
@@ -63,6 +64,8 @@ export function TripPageEditor({ trip, onUpdated }: TripPageEditorProps) {
         <RichTextEditor
           value={overview}
           onChange={setOverview}
+          onFocus={() => onOverviewFocusChange?.(true)}
+          onBlur={() => onOverviewFocusChange?.(false)}
           placeholder="Enter a welcoming overview of the trip, key highlights, and what travelers can expect."
           minHeight={220}
         />

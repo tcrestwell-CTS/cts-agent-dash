@@ -214,6 +214,8 @@ function Toolbar({ editor }: { editor: Editor | null }) {
 interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   placeholder?: string;
   className?: string;
   minHeight?: number;
@@ -223,6 +225,8 @@ interface RichTextEditorProps {
 export function RichTextEditor({
   value,
   onChange,
+  onFocus,
+  onBlur,
   placeholder = "Add a description…",
   className,
   minHeight = 80,
@@ -263,6 +267,10 @@ export function RichTextEditor({
 
   return (
     <div
+      onFocusCapture={onFocus}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onBlur?.();
+      }}
       className={cn(
         "rounded-md border border-input bg-background text-sm shadow-sm",
         "focus-within:ring-1 focus-within:ring-ring",

@@ -356,6 +356,7 @@ const TripDetail = () => {
   };
 
   const [guided, setGuided] = useState(() => isGuidedBuilder(tripId));
+  const [tripOverviewFocused, setTripOverviewFocused] = useState(false);
   useEffect(() => { setGuided(isGuidedBuilder(tripId)); }, [tripId]);
   const [cloneOpen, setCloneOpen] = useState(false);
   const [cloneClient, setCloneClient] = useState<SelectedClient | null>(null);
@@ -411,14 +412,19 @@ const TripDetail = () => {
         : location.hash === `#${PUBLISH_ANCHOR}` ? "publish"
           : location.hash === `#${PAYMENT_SETTINGS_ANCHOR}` ? "payments"
             : "basics";
-  const guidedTip = {
+  const guidedTip = guidedStep === "tripPage" && tripOverviewFocused
+    ? {
+        title: "About this trip",
+        body: "Write a short summary.\n\nStart with a verb, so participants immediately understand what to expect (e.g., Relax on Goa's beaches; Hike Mount Everest).",
+      }
+    : ({
     basics: { title: "Start with the basics", body: "Give the trip a clear name, set the dates and destination, and link the client. Click Trip Basics to edit these details." },
     tripPage: { title: "Create the trip page", body: "Add the cover image and a polished overview clients will see before reviewing the itinerary and pricing." },
     itinerary: { title: "Build the itinerary", body: "Add days and items. Drag to reorder, and use the AI actions on any item to write descriptions or suggest activities." },
     pricing: { title: "Add pricing & packages", body: "Add bookings with prices so the trip has a total your client can pay against." },
     payments: { title: "Set the payment plan", body: "Choose a deposit or payment schedule. Your client will see these dates and amounts in their portal." },
     publish: { title: "Review & publish", body: "Everything required must be complete before publishing. Once live, your client can view the trip from their link." },
-  }[guidedStep];
+      }[guidedStep]);
   const showRightSidebar = activeTab !== "itinerary";
 
   const tripSettings = {
@@ -726,7 +732,11 @@ const TripDetail = () => {
           {/* Center / main content */}
           <div className={guided ? "space-y-6 rounded-[9px] border border-border bg-card p-6 min-w-0" : "space-y-6"}>
             {guided && guidedStep === "tripPage" && (
-              <TripPageEditor trip={trip as any} onUpdated={fetchTrip} />
+              <TripPageEditor
+                trip={trip as any}
+                onUpdated={fetchTrip}
+                onOverviewFocusChange={setTripOverviewFocused}
+              />
             )}
             {guided && guidedStep === "payments" && (
               <div className="space-y-4">
@@ -1408,10 +1418,12 @@ const TripDetail = () => {
                 <h3 className="text-sm font-semibold text-foreground">{guidedTip.title}</h3>
                 <Lightbulb className="h-5 w-5 text-primary shrink-0" />
               </div>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">{guidedTip.body}</p>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Use Preview to see what your client will see once the trip is published.
-              </p>
+              <p className="whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{guidedTip.body}</p>
+              {!tripOverviewFocused && (
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  Use Preview to see what your client will see once the trip is published.
+                </p>
+              )}
             </aside>
           )}
 
