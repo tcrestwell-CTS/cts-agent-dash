@@ -1,10 +1,14 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Globe, Loader2, Copy, Check, Eye, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Globe, Loader2, Copy, Check, Eye, CheckCircle2, Circle, AlertTriangle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Popover,
   PopoverContent,
@@ -22,11 +26,27 @@ interface PublishTripButtonProps {
   publishedAt: string | null;
   updatedAt: string;
   onPublished: () => void;
-  /** Readiness signals passed in from the trip detail page */
-  coverImageUrl?: string | null;
-  totalCost?: number | null;
-  hasItineraryItems?: boolean;
-  clientId?: string | null;
+}
+
+export interface ReadinessCheck {
+  key: string;
+  label: string;
+  detail: string;
+  required: boolean;
+  passed: boolean;
+}
+
+/** Server-computed readiness — same logic the database enforces on publish. */
+export function usePublishReadiness(tripId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["trip-publish-readiness", tripId],
+    enabled: enabled && !!tripId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_trip_publish_readiness" as any, { p_trip_id: tripId });
+      if (error) throw error;
+      return (data as unknown as ReadinessCheck[]) || [];
+    },
+  });
 }
 
 export function PublishTripButton({
@@ -35,37 +55,20 @@ export function PublishTripButton({
   publishedAt,
   updatedAt,
   onPublished,
-  coverImageUrl,
-  totalCost,
-  hasItineraryItems,
-  clientId,
 }: PublishTripButtonProps) {
-  // Readiness checklist items — evaluated before allowing publish
-  const readinessChecks = [
-    {
-      label: "Cover image set",
-      detail: "Add a cover photo so clients see a destination image at the top of their proposal",
-      passed: !!coverImageUrl,
-    },
-    {
-      label: "Total cost entered",
-      detail: "Set a trip total so clients can see the investment amount",
-      passed: !!totalCost && totalCost > 0,
-    },
-    {
-      label: "Itinerary has items",
-      detail: "Add at least one itinerary item so clients see their day-by-day plan",
-      passed: !!hasItineraryItems,
-    },
-    {
-      label: "Client linked",
-      detail: "Link a client contact so the proposal is personalised",
-      passed: !!clientId,
-    },
-  ];
+  const [open, setOpen] = useState(false);
+  const { isAdmin, isOfficeAdmin } = usePermissions();
+  const canOverride = isAdmin || isOfficeAdmin;
+  const { data: readinessChecks = [], refetch: refetchReadiness, isLoading: readinessLoading } =
+    usePublishReadiness(tripId, open);
+  const [overrideOn, setOverrideOn] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const passedCount = readinessChecks.filter(c => c.passed).length;
-  const allPassed = passedCount === readinessChecks.length;
-  const blockers = readinessChecks.filter(c => !c.passed);
+  const allPassed = readinessChecks.length > 0 && passedCount === readinessChecks.length;
+  const blockers = readinessChecks.filter(c => c.required && !c.passed);
+  const warnings = readinessChecks.filter(c => !c.required && !c.passed);
+  const overrideValid = overrideOn && overrideReason.trim().length >= 5;
+  const blocked = blockers.length > 0 && !overrideValid;
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
 
