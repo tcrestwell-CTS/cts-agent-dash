@@ -1,16 +1,3 @@
 # Roadmap
 
-- [x] Verify Elvira Cruz's Checkout Session, subscription, customer, and first invoice directly in Stripe.
-- [x] Add restricted, idempotent CTN approval reconciliation records to the CRM backend.
-- [x] Harden and deploy `ctn-approve` with strict input validation, payment-state gating, repeat-safe invitations, durable failure records, and subscription mapping.
-- [x] Record Elvira's case as payment pending without creating access or sending a paid welcome email.
-- [ ] Update CTN-Hosting Payment Link metadata, webhook matching, async-payment events, administrator alerts, and daily retry job. Blocked: CTN-Hosting is not an accessible project/repository in this workspace.
-- [ ] Mark Elvira's external application paid and complete onboarding. Blocked: Stripe invoice `in_1UEqRvPJljF0WNcYMeapjRYt` currently shows $0 paid/$29 remaining, and the external `ctn_applications` database is not connected here.
-
-- [x] Add staff-only Academy material upload and lesson-assignment workflow
-- [ ] Process uploaded CTN training files and replace matching lesson drafts
-
-- [x] Enforce sharp, high-resolution images across trip, itinerary, and group hero uploads
-
-- [x] Build Roger’s Hawaii 2027 interactive group proposal with sailing, cabin, hotel, upgrades, cost calculator, disclosures, and structured CRM submissions.
-- [x] Add the confirmed Lanai room payment, tax, arrival fee, and post-checkout refund breakdown to the Rogers proposal.
+- [ ] Build MSC Cache REST sync (replace deprecated `msc-flatfile-sync`), run first load, schedule ~8x/day — **blocked: awaiting MSC's Cache REST documentation from Tim** (partner-portal doc; never provided; no public spec on the web as of 2026-09-27).
