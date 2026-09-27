@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Circle, X, ArrowRight, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Circle, X, ArrowRight, ArrowLeft, Eye, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublishReadiness } from "@/components/trips/PublishTripButton";
@@ -64,11 +64,11 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
           : "basics";
 
   const steps: { key: StepKey; label: string; done: boolean; hint: string }[] = [
-    { key: "basics", label: "Basics", done: !!trip.trip_name && !!trip.depart_date && passed("client"), hint: "Name, dates, destination and client" },
+    { key: "basics", label: "Trip Basics", done: !!trip.trip_name && !!trip.depart_date && passed("client"), hint: "Name, dates, destination and client" },
     { key: "itinerary", label: "Itinerary", done: passed("itinerary"), hint: "Add days and items" },
-    { key: "pricing", label: "Pricing & packages", done: passed("pricing"), hint: "Add bookings or priced items" },
-    { key: "payments", label: "Payment plan", done: scheduledCount > 0, hint: "Choose deposit / schedule and create payments" },
-    { key: "publish", label: "Review & publish", done: !!trip.published_at && requiredOk, hint: "Resolve required items, then publish" },
+    { key: "pricing", label: "Pricing & Packages", done: passed("pricing"), hint: "Add bookings or priced items" },
+    { key: "payments", label: "Payment Plan", done: scheduledCount > 0, hint: "Choose deposit / schedule and create payments" },
+    { key: "publish", label: "Review & Publish", done: !!trip.published_at && requiredOk, hint: "Resolve required items, then publish" },
   ];
 
   const scrollTo = (id: string) => setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" }), 350);
@@ -82,50 +82,93 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
   };
 
   const idx = steps.findIndex((s) => s.key === current);
-  const active = steps[idx];
+  const stepsLeft = steps.filter((s) => !s.done && s.key !== "publish").length;
+  const isPublished = !!trip.published_at;
+  const shareUrl = trip.share_token ? `${window.location.origin}/shared/${trip.share_token}` : null;
 
   return (
-    <div className="rounded-[9px] border border-border bg-card p-3 space-y-3" aria-label="Guided trip builder">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Guided builder · Step {idx + 1} of {steps.length}
-        </p>
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onExit}>
-          <X className="h-3.5 w-3.5 mr-1" /> Exit guided mode
-        </Button>
-      </div>
-      <ol className="grid grid-cols-5 gap-2">
-        {steps.map((s, i) => (
-          <li key={s.key}>
-            <button
-              type="button"
-              onClick={() => go(s.key)}
-              aria-current={s.key === current ? "step" : undefined}
-              className={cn(
-                "w-full text-left rounded-md border px-2.5 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                s.key === current ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50",
-              )}
-            >
-              <div className="flex items-center gap-1.5">
+    <aside
+      className="w-full lg:w-60 shrink-0 rounded-[9px] border border-border bg-card p-4 space-y-4 lg:sticky lg:top-6 self-start"
+      aria-label="Guided trip builder"
+    >
+      {/* Step list */}
+      <ol className="space-y-0.5">
+        {steps.map((s) => {
+          const isCurrent = s.key === current;
+          return (
+            <li key={s.key}>
+              <button
+                type="button"
+                onClick={() => go(s.key)}
+                aria-current={isCurrent ? "step" : undefined}
+                className={cn(
+                  "w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isCurrent ? "bg-primary/10 text-foreground" : "hover:bg-muted/50",
+                )}
+              >
                 {s.done
                   ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                  : <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" />}
-                <span className="text-xs font-semibold truncate">{i + 1}. {s.label}</span>
-              </div>
-              <p className="text-[10.5px] text-muted-foreground mt-0.5 truncate hidden md:block">{s.hint}</p>
-            </button>
-          </li>
-        ))}
+                  : <Circle className={cn("h-4 w-4 shrink-0", isCurrent ? "text-primary" : "text-muted-foreground/50")} />}
+                <span className={cn("text-[13px] truncate", isCurrent ? "font-semibold" : "font-medium", s.done && !isCurrent && "text-muted-foreground")}>
+                  {s.label}
+                </span>
+                {isCurrent && <ArrowRight className="h-3.5 w-3.5 ml-auto text-primary shrink-0" />}
+              </button>
+            </li>
+          );
+        })}
       </ol>
-      <div className="flex items-center justify-between">
-        <Button variant="outline" size="sm" disabled={idx <= 0} onClick={() => go(steps[idx - 1].key)}>
+
+      {/* Preview / Publish */}
+      <div className="space-y-2 pt-1">
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={!isPublished || !shareUrl}
+          onClick={() => shareUrl && window.open(shareUrl, "_blank", "noopener")}
+        >
+          <Eye className="h-4 w-4 mr-1.5" />
+          Preview
+        </Button>
+        <Button
+          className="w-full"
+          variant={requiredOk ? "default" : "secondary"}
+          disabled={!requiredOk && current !== "publish"}
+          onClick={() => go("publish")}
+        >
+          Publish
+        </Button>
+      </div>
+
+      {/* Steps remaining hint */}
+      <div className="flex items-start gap-2 pt-1">
+        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground leading-snug">
+          {stepsLeft === 0
+            ? requiredOk
+              ? "All set — review and publish when ready"
+              : "Review the checklist before publishing"
+            : `${stepsLeft} step${stepsLeft === 1 ? "" : "s"} left before you can publish`}
+        </p>
+      </div>
+
+      {/* Back / Next */}
+      <div className="flex items-center justify-between border-t border-border pt-3">
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" disabled={idx <= 0} onClick={() => go(steps[idx - 1].key)}>
           <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
         </Button>
-        <span className="text-xs text-muted-foreground">{active?.done ? "Step complete" : active?.hint}</span>
-        <Button size="sm" disabled={idx >= steps.length - 1} onClick={() => go(steps[idx + 1].key)}>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" disabled={idx >= steps.length - 1} onClick={() => go(steps[idx + 1].key)}>
           Next <ArrowRight className="h-3.5 w-3.5 ml-1" />
         </Button>
       </div>
-    </div>
+
+      <button
+        type="button"
+        onClick={onExit}
+        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <X className="h-3 w-3" /> Exit guided mode
+      </button>
+    </aside>
   );
 }
