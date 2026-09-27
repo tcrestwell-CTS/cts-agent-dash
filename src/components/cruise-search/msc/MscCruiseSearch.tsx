@@ -102,7 +102,7 @@ export function MscCruiseSearch() {
       if (portCode !== "all") q = q.eq("embark_port_code", portCode);
       if (dateFrom) q = q.gte("sail_date", dateFrom);
       if (dateTo) q = q.lte("sail_date", dateTo);
-      if (keyword.trim()) q = q.ilike("itinerary_name", `%${keyword.trim()}%`);
+      if (keyword !== "all") q = q.eq("itinerary_name", keyword);
       if (nights !== "any") {
         const [min, max] = nights.split("-").map(Number);
         q = q.gte("nights", min).lte("nights", max || 99);
@@ -127,7 +127,7 @@ export function MscCruiseSearch() {
     setDateFrom("");
     setDateTo("");
     setNights("any");
-    setKeyword("");
+    setKeyword("all");
     setRows([]);
     setHasSearched(false);
   };
@@ -149,12 +149,20 @@ export function MscCruiseSearch() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
             <div className="space-y-1.5 xl:col-span-2">
-              <Label className="text-xs">Itinerary keyword</Label>
-              <Input
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Caribbean, Mediterranean…"
-              />
+              <Label className="text-xs">Itinerary</Label>
+              <Select value={keyword} onValueChange={setKeyword}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Any itinerary" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any itinerary</SelectItem>
+                  {itineraries.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Ship</Label>
