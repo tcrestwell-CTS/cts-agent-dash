@@ -52,15 +52,24 @@ export function MscCruiseSearch() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: s }, { data: p }, { count }] = await Promise.all([
+      const [{ data: s }, { data: p }, { count }, { data: it }] = await Promise.all([
         supabase.from("msc_ships").select("ship_code, ship_name").order("ship_name"),
         supabase.from("msc_ports").select("port_code, port_name").order("port_name").limit(500),
         supabase.from("msc_cruises").select("cruise_id", { count: "exact", head: true }),
+        supabase.from("msc_cruises").select("itinerary_name").eq("is_closed", false).limit(2000),
       ]);
       if (cancelled) return;
       setShips(s ?? []);
       setPorts(p ?? []);
       setCacheCount(count ?? 0);
+      const names = Array.from(
+        new Set(
+          (it ?? [])
+            .map((r) => (r.itinerary_name || "").trim())
+            .filter((n) => n.length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b));
+      setItineraries(names);
     })();
     return () => {
       cancelled = true;
