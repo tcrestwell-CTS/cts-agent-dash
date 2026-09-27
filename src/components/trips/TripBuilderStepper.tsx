@@ -23,7 +23,7 @@ export function disableGuidedBuilder(tripId: string) {
 export const PAYMENT_SETTINGS_ANCHOR = "trip-payment-settings";
 export const PUBLISH_ANCHOR = "trip-publish-button";
 
-type StepKey = "basics" | "itinerary" | "pricing" | "payments" | "publish";
+type StepKey = "basics" | "tripPage" | "itinerary" | "pricing" | "payments" | "publish";
 
 interface Props {
   trip: any;
@@ -53,7 +53,9 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
   const passed = (k: string) => checks.find((c) => c.key === k)?.passed ?? false;
   const requiredOk = checks.length > 0 && checks.filter((c) => c.required).every((c) => c.passed);
 
-  const current: StepKey = location.pathname.endsWith("/itinerary")
+  const current: StepKey = new URLSearchParams(location.search).get("builder") === "trip-page"
+    ? "tripPage"
+    : location.pathname.endsWith("/itinerary")
     ? "itinerary"
     : /tab=(bookings|payments)/.test(location.search)
       ? "pricing"
@@ -65,6 +67,7 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
 
   const steps: { key: StepKey; label: string; done: boolean; hint: string }[] = [
     { key: "basics", label: "Trip Basics", done: !!trip.trip_name && !!trip.depart_date && passed("client"), hint: "Name, dates, destination and client" },
+    { key: "tripPage", label: "Trip Page", done: !!trip.cover_image_url && !!trip.notes, hint: "Cover image and client-facing overview" },
     { key: "itinerary", label: "Itinerary", done: passed("itinerary"), hint: "Add days and items" },
     { key: "pricing", label: "Pricing & Packages", done: passed("pricing"), hint: "Add bookings or priced items" },
     { key: "payments", label: "Payment Plan", done: scheduledCount > 0, hint: "Choose deposit / schedule and create payments" },
@@ -75,6 +78,7 @@ export function TripBuilderStepper({ trip, onEditBasics, onExit }: Props) {
 
   const go = (k: StepKey) => {
     if (k === "basics") { navigate(`/trips/${tripId}`); onEditBasics(); }
+    else if (k === "tripPage") navigate(`/trips/${tripId}?builder=trip-page`);
     else if (k === "itinerary") navigate(`/trips/${tripId}/itinerary`);
     else if (k === "pricing") navigate(`/trips/${tripId}?tab=bookings`);
     else if (k === "payments") { navigate(`/trips/${tripId}#${PAYMENT_SETTINGS_ANCHOR}`); scrollTo(PAYMENT_SETTINGS_ANCHOR); }

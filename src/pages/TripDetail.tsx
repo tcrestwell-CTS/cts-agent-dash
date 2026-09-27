@@ -50,6 +50,7 @@ import { StatusPill } from "@/components/patterns/StatusPill";
 import { TripPayments } from "@/components/trips/TripPayments";
 import { TripBookings } from "@/components/trips/TripBookings";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
+import { TripPageEditor } from "@/components/trips/TripPageEditor";
 import { TripStatusWorkflow, CancellationOptions } from "@/components/trips/TripStatusWorkflow";
 import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist";
 import { TripReadinessScore } from "@/components/trips/TripReadinessScore";
@@ -402,14 +403,16 @@ const TripDetail = () => {
   }
 
   const isGroupTrip = trip.trip_type === "group";
-  const guidedStep: "basics" | "itinerary" | "pricing" | "payments" | "publish" =
-    activeTab === "itinerary" ? "itinerary"
+  const guidedStep: "basics" | "tripPage" | "itinerary" | "pricing" | "payments" | "publish" =
+    searchParams.get("builder") === "trip-page" ? "tripPage"
+      : activeTab === "itinerary" ? "itinerary"
       : activeTab === "bookings" ? "pricing"
         : location.hash === `#${PUBLISH_ANCHOR}` ? "publish"
           : location.hash === `#${PAYMENT_SETTINGS_ANCHOR}` ? "payments"
             : "basics";
   const guidedTip = {
     basics: { title: "Start with the basics", body: "Give the trip a clear name, set the dates and destination, and link the client. Click Trip Basics to edit these details." },
+    tripPage: { title: "Create the trip page", body: "Add the cover image and a polished overview clients will see before reviewing the itinerary and pricing." },
     itinerary: { title: "Build the itinerary", body: "Add days and items. Drag to reorder, and use the AI actions on any item to write descriptions or suggest activities." },
     pricing: { title: "Add pricing & packages", body: "Add bookings with prices so the trip has a total your client can pay against." },
     payments: { title: "Set the payment plan", body: "Choose a deposit or payment schedule. Your client will see these dates and amounts in their portal." },
@@ -721,6 +724,9 @@ const TripDetail = () => {
 
           {/* Center / main content */}
           <div className={guided ? "space-y-6 rounded-[9px] border border-border bg-card p-6 min-w-0" : "space-y-6"}>
+            {guided && guidedStep === "tripPage" && (
+              <TripPageEditor trip={trip as any} onUpdated={fetchTrip} />
+            )}
             {guided && guidedStep === "payments" && (
               <div className="space-y-4">
                 <div>
@@ -762,7 +768,7 @@ const TripDetail = () => {
                 />
               </div>
             )}
-            {(!guided || (guidedStep !== "payments" && guidedStep !== "publish")) && (<>
+            {(!guided || (guidedStep !== "tripPage" && guidedStep !== "payments" && guidedStep !== "publish")) && (<>
 
             {activeTab === "itinerary" && (
               <div className="space-y-4">
