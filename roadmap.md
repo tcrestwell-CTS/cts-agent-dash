@@ -4,8 +4,8 @@
 
 ## Guided trip flow (approved 2026-09-27)
 - [x] 1. Publish gate blocks (required vs recommended, admin override w/ reason, server trigger)
-- [ ] 2. Clone trip copies itinerary days/items
-- [ ] 3. Step-by-step Trip Builder (alongside New Trip)
+- [x] 2. Clone trip copies itinerary days/items
+- [x] 3. Step-by-step Trip Builder (alongside New Trip)
 - [ ] 4. Per-item AI actions in itinerary builder
 - [ ] 5. Autosave itinerary edits + remove full refetch per edit
 - [ ] 6. Unified copy engine (sub-trips + templates), tested on real group-trip copies before switch
