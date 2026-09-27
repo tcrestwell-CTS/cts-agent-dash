@@ -375,6 +375,12 @@ serve(async (req) => {
       candidates,
       Math.min(Math.max(1, max_results), 10),
     );
+    // Attach source-of-truth price/currency/url from CruiseFeed (never from the model).
+    const byId = new Map(candidates.map((c) => [c.id, c]));
+    results = results.map((r: any) => {
+      const c = byId.get(r?.id);
+      return c ? { ...r, price_from: c.price_from, currency: c.currency, url: c.url } : r;
+    });
 
     await logRun();
 
