@@ -3,7 +3,7 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { supabase } from "@/integrations/supabase/client";
 import { TripCoverImage } from "@/components/trips/TripCoverImage";
 
@@ -59,13 +59,12 @@ export function TripPageEditor({ trip, onUpdated }: TripPageEditorProps) {
       />
 
       <div className="space-y-2 border-t border-border pt-5">
-        <Label htmlFor="trip-page-overview">About this trip</Label>
-        <Textarea
-          id="trip-page-overview"
+        <Label>About this trip</Label>
+        <RichTextEditor
           value={overview}
-          onChange={(event) => setOverview(event.target.value)}
+          onChange={setOverview}
           placeholder="Enter a welcoming overview of the trip, key highlights, and what travelers can expect."
-          rows={10}
+          minHeight={220}
         />
         <p className="text-xs text-muted-foreground">
           This overview is shown to clients. Keep internal notes in the booking or itinerary item notes.
