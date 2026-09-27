@@ -11142,6 +11142,9 @@ export type Database = {
           post_trip_email_sent: boolean | null
           pricing_visibility: string
           proposal_sent_at: string | null
+          publish_override_at: string | null
+          publish_override_by: string | null
+          publish_override_reason: string | null
           published_at: string | null
           published_snapshot: Json | null
           readiness_score: Json | null
@@ -11215,6 +11218,9 @@ export type Database = {
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           proposal_sent_at?: string | null
+          publish_override_at?: string | null
+          publish_override_by?: string | null
+          publish_override_reason?: string | null
           published_at?: string | null
           published_snapshot?: Json | null
           readiness_score?: Json | null
@@ -11288,6 +11294,9 @@ export type Database = {
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
           proposal_sent_at?: string | null
+          publish_override_at?: string | null
+          publish_override_by?: string | null
+          publish_override_reason?: string | null
           published_at?: string | null
           published_snapshot?: Json | null
           readiness_score?: Json | null
@@ -12140,6 +12149,7 @@ export type Database = {
           trip_type: string
         }[]
       }
+      get_trip_publish_readiness: { Args: { p_trip_id: string }; Returns: Json }
       has_feature_permission: {
         Args: { _feature_key: string; _user_id: string }
         Returns: boolean
@@ -12175,6 +12185,7 @@ export type Database = {
         Args: { p_trip_id: string }
         Returns: undefined
       }
+      reorder_itinerary_items: { Args: { p_updates: Json }; Returns: number }
       repair_account_integrity: { Args: never; Returns: Json }
       reveal_cw_agent_secret: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }

@@ -1,10 +1,14 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Globe, Loader2, Copy, Check, Eye, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Globe, Loader2, Copy, Check, Eye, CheckCircle2, Circle, AlertTriangle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Popover,
   PopoverContent,
@@ -22,11 +26,27 @@ interface PublishTripButtonProps {
   publishedAt: string | null;
   updatedAt: string;
   onPublished: () => void;
-  /** Readiness signals passed in from the trip detail page */
-  coverImageUrl?: string | null;
-  totalCost?: number | null;
-  hasItineraryItems?: boolean;
-  clientId?: string | null;
+}
+
+export interface ReadinessCheck {
+  key: string;
+  label: string;
+  detail: string;
+  required: boolean;
+  passed: boolean;
+}
+
+/** Server-computed readiness — same logic the database enforces on publish. */
+export function usePublishReadiness(tripId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["trip-publish-readiness", tripId],
+    enabled: enabled && !!tripId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_trip_publish_readiness" as any, { p_trip_id: tripId });
+      if (error) throw error;
+      return (data as unknown as ReadinessCheck[]) || [];
+    },
+  });
 }
 
 export function PublishTripButton({
@@ -35,37 +55,20 @@ export function PublishTripButton({
   publishedAt,
   updatedAt,
   onPublished,
-  coverImageUrl,
-  totalCost,
-  hasItineraryItems,
-  clientId,
 }: PublishTripButtonProps) {
-  // Readiness checklist items — evaluated before allowing publish
-  const readinessChecks = [
-    {
-      label: "Cover image set",
-      detail: "Add a cover photo so clients see a destination image at the top of their proposal",
-      passed: !!coverImageUrl,
-    },
-    {
-      label: "Total cost entered",
-      detail: "Set a trip total so clients can see the investment amount",
-      passed: !!totalCost && totalCost > 0,
-    },
-    {
-      label: "Itinerary has items",
-      detail: "Add at least one itinerary item so clients see their day-by-day plan",
-      passed: !!hasItineraryItems,
-    },
-    {
-      label: "Client linked",
-      detail: "Link a client contact so the proposal is personalised",
-      passed: !!clientId,
-    },
-  ];
+  const [open, setOpen] = useState(false);
+  const { isAdmin, isOfficeAdmin } = usePermissions();
+  const canOverride = isAdmin || isOfficeAdmin;
+  const { data: readinessChecks = [], refetch: refetchReadiness, isLoading: readinessLoading } =
+    usePublishReadiness(tripId, open);
+  const [overrideOn, setOverrideOn] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const passedCount = readinessChecks.filter(c => c.passed).length;
-  const allPassed = passedCount === readinessChecks.length;
-  const blockers = readinessChecks.filter(c => !c.passed);
+  const allPassed = readinessChecks.length > 0 && passedCount === readinessChecks.length;
+  const blockers = readinessChecks.filter(c => c.required && !c.passed);
+  const warnings = readinessChecks.filter(c => !c.required && !c.passed);
+  const overrideValid = overrideOn && overrideReason.trim().length >= 5;
+  const blocked = blockers.length > 0 && !overrideValid;
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -143,17 +146,29 @@ export function PublishTripButton({
       };
 
       // 2. Update trip with snapshot and published_at timestamp
+      const { data: authData } = await supabase.auth.getUser();
+      const useOverride = blockers.length > 0 && overrideValid;
       const { error } = await supabase
         .from("trips")
         .update({
           published_at: new Date().toISOString(),
           published_snapshot: snapshot,
+          ...(useOverride
+            ? {
+                publish_override_by: authData.user?.id,
+                publish_override_reason: overrideReason.trim(),
+                publish_override_at: new Date().toISOString(),
+              }
+            : {}),
         } as any)
         .eq("id", tripId);
 
       if (error) throw error;
-      toast.success("Trip published successfully!");
+      toast.success(useOverride ? "Trip published with admin override" : "Trip published successfully!");
+      setOverrideOn(false);
+      setOverrideReason("");
       onPublished();
+      refetchReadiness();
     } catch (error: any) {
       console.error("Error publishing trip:", error);
       const msg = error?.message || error?.details || "Unknown error";
@@ -234,26 +249,56 @@ export function PublishTripButton({
                   {passedCount}/{readinessChecks.length}
                 </span>
               </div>
+              {readinessLoading && <p className="text-xs text-muted-foreground">Checking…</p>}
               {readinessChecks.map((check) => (
-                <div key={check.label} className="flex items-start gap-2">
+                <div key={check.key} className="flex items-start gap-2">
                   {check.passed
                     ? <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
-                    : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
+                    : check.required
+                      ? <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                      : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
                   }
                   <span className={`text-xs leading-tight ${
                     check.passed ? "text-foreground" : "text-muted-foreground"
                   }`}>
                     {check.passed ? check.label : check.detail}
+                    {!check.passed && (
+                      <span className={`ml-1 text-[10px] font-semibold uppercase ${check.required ? "text-destructive" : "text-muted-foreground"}`}>
+                        {check.required ? "Required" : "Recommended"}
+                      </span>
+                    )}
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Blocker warning if critical items missing */}
-            {!allPassed && !publishedAt && blockers.length > 0 && (
+            {blockers.length > 0 && (
+              <div className="flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2.5 py-2">
+                <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>Publishing is blocked until the required items are complete.</span>
+              </div>
+            )}
+            {blockers.length === 0 && warnings.length > 0 && (
               <div className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded px-2.5 py-2">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
-                <span>You can still publish, but completing the checklist gives clients a better experience.</span>
+                <span>Ready to publish. Recommended items improve the client experience.</span>
+              </div>
+            )}
+
+            {blockers.length > 0 && canOverride && (
+              <div className="space-y-2 rounded border px-2.5 py-2">
+                <label className="flex items-center gap-2 text-xs font-medium">
+                  <Checkbox checked={overrideOn} onCheckedChange={(v) => setOverrideOn(!!v)} />
+                  Admin override
+                </label>
+                {overrideOn && (
+                  <Textarea
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Reason for publishing anyway (recorded)"
+                    className="text-xs min-h-[60px]"
+                  />
+                )}
               </div>
             )}
 
@@ -266,7 +311,7 @@ export function PublishTripButton({
 
             <Button
               onClick={handlePublish}
-              disabled={publishing || (!hasUnpublishedChanges && !!publishedAt)}
+              disabled={publishing || readinessLoading || blocked || (!hasUnpublishedChanges && !!publishedAt)}
               className="w-full"
               size="sm"
             >

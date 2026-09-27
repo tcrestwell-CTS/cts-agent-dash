@@ -54,6 +54,7 @@ import { TripCloseoutChecklist } from "@/components/trips/TripCloseoutChecklist"
 import { TripReadinessScore } from "@/components/trips/TripReadinessScore";
 import { AgentTripDocuments } from "@/components/trips/AgentTripDocuments";
 import { SupplierPaymentStatus } from "@/components/trips/SupplierPaymentStatus";
+import { TripBuilderStepper, isGuidedBuilder, enableGuidedBuilder, disableGuidedBuilder, PAYMENT_SETTINGS_ANCHOR, PUBLISH_ANCHOR } from "@/components/trips/TripBuilderStepper";
 import { PublishTripButton } from "@/components/trips/PublishTripButton";
 import { SubTrips } from "@/components/trips/SubTrips";
 import { CabinOptionsManager } from "@/components/trips/CabinOptionsManager";
@@ -351,6 +352,8 @@ const TripDetail = () => {
     }
   };
 
+  const [guided, setGuided] = useState(() => isGuidedBuilder(tripId));
+  useEffect(() => { setGuided(isGuidedBuilder(tripId)); }, [tripId]);
   const [cloneOpen, setCloneOpen] = useState(false);
   const [cloneClient, setCloneClient] = useState<SelectedClient | null>(null);
 
@@ -567,6 +570,12 @@ const TripDetail = () => {
                 return success;
               }}
             />
+            {!guided && (
+              <Button variant="outline" size="sm" className="text-[13px]" onClick={() => { enableGuidedBuilder(trip.id); setGuided(true); }}>
+                Guided builder
+              </Button>
+            )}
+            <span id={PUBLISH_ANCHOR} className="contents" />
             <PublishTripButton
               tripId={trip.id}
               shareToken={(trip as any).share_token}
@@ -610,6 +619,14 @@ const TripDetail = () => {
             </Dialog>
           </div>
         </div>
+
+        {guided && (
+          <TripBuilderStepper
+            trip={trip}
+            onEditBasics={() => setEditDialogOpen(true)}
+            onExit={() => { disableGuidedBuilder(trip.id); setGuided(false); }}
+          />
+        )}
 
         {/* Workspace tabs */}
         <Tabs value={activeTab} onValueChange={(v) => goToTab(v as OuterTab)}>
@@ -1330,6 +1347,7 @@ const TripDetail = () => {
                     tripId={trip.id}
                   />
                 )}
+                <div id={PAYMENT_SETTINGS_ANCHOR} className="scroll-mt-24" />
                 <TripSettingsSidebar
                   tripId={trip.id}
                   settings={tripSettings}

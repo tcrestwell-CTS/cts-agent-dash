@@ -1,3 +1,4 @@
+import { aiWriteDescription, type AIContext } from "@/lib/itineraryAI";
 /**
  * ItineraryItemEditor — Advanced full-screen tabbed editor for itinerary items.
  *
@@ -10,7 +11,7 @@
  * This is rendered as a Sheet (slide-over) so it doesn't block the itinerary canvas.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -26,6 +27,7 @@ import {
   Plane, Hotel, Ship, Car, UtensilsCrossed, Camera, Target, Heart,
   ShoppingBag, Music, Loader2, CheckCircle2, AlertTriangle, XCircle,
   Clock, ExternalLink, ImageIcon, DollarSign, FileText, Info, EyeOff, Eye as EyeOn,
+  Sparkles,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { type ItineraryItem } from "@/hooks/useItinerary";
@@ -89,12 +91,26 @@ interface Props {
   item: ExtendedItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdate: (itemId: string, data: Partial<ExtendedItem>) => Promise<boolean>;
+  onUpdate: (itemId: string, data: Partial<ExtendedItem>, opts?: { silent?: boolean }) => Promise<boolean>;
+  aiContext?: AIContext;
 }
 
 // ── Tab: Details ──────────────────────────────────────────────────────────────
-function DetailsTab({ form, setForm }: { form: any; setForm: (f: any) => void }) {
+function DetailsTab({ form, setForm, aiContext }: { form: any; setForm: (f: any) => void; aiContext?: AIContext }) {
   const isFlight = form.category === "flight";
+  const [writing, setWriting] = useState(false);
+  const writeWithAI = async () => {
+    if (!form.title?.trim()) { toast.error("Add a title first"); return; }
+    setWriting(true);
+    try {
+      const text = await aiWriteDescription(aiContext || {}, form);
+      if (text) setForm({ ...form, description: `<p>${text.replace(/</g, "&lt;")}</p>` });
+    } catch (e: any) {
+      toast.error(e.message || "AI request failed");
+    } finally {
+      setWriting(false);
+    }
+  };
 
   return (
     <div className="space-y-4 py-4">
@@ -190,8 +206,15 @@ function DetailsTab({ form, setForm }: { form: any; setForm: (f: any) => void })
       <Separator />
 
       <div>
-        <Label>Client-Facing Description</Label>
+        <div className="flex items-center justify-between">
+          <Label>Client-Facing Description</Label>
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={writeWithAI} disabled={writing}>
+            {writing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+            Write with AI
+          </Button>
+        </div>
         <RichTextEditor
+          key={writing ? "w" : "r"}
           value={form.description}
           onChange={(html) => setForm({ ...form, description: html })}
           placeholder="Shown to the client in the trip proposal and portal — supports bold, italics, bullets, and links"
@@ -441,7 +464,7 @@ function FlightStatusTab({ item, form }: { item: ExtendedItem; form: any }) {
 }
 
 // ── Main Export ────────────────────────────────────────────────────────────────
-export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Props) {
+export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate, aiContext }: Props) {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -473,6 +496,48 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Prop
       });
     }
   }, [item]);
+
+  // ── Autosave: description, notes, times and price save ~1s after typing stops ──
+  const AUTOSAVE_FIELDS = ["description", "notes", "start_time", "end_time", "item_price"] as const;
+  const [autoStatus, setAutoStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const lastSaved = useRef<Record<string, any> | null>(null);
+  useEffect(() => {
+    if (!item) return;
+    lastSaved.current = null; // re-baselined on first form render for this item
+    setAutoStatus("idle");
+  }, [item?.id]);
+  const autoValues = (f: any) => ({
+    description: f.description || null,
+    notes: f.notes || null,
+    start_time: f.start_time || null,
+    end_time: f.end_time || null,
+    item_price: f.item_price ? parseFloat(f.item_price) : null,
+  });
+  useEffect(() => {
+    if (!item || !open || form.title === undefined) return;
+    const vals = autoValues(form);
+    if (!lastSaved.current) {
+      lastSaved.current = autoValues({
+        description: item.description || "",
+        notes: item.notes || "",
+        start_time: item.start_time || "",
+        end_time: item.end_time || "",
+        item_price: item.item_price != null ? String(item.item_price) : "",
+      });
+    }
+    const changed = AUTOSAVE_FIELDS.filter((k) => vals[k] !== lastSaved.current![k]);
+    if (!changed.length) return;
+    if (vals.item_price !== null && isNaN(vals.item_price as number)) return;
+    const t = setTimeout(async () => {
+      const patch: Record<string, any> = {};
+      changed.forEach((k) => (patch[k] = vals[k]));
+      setAutoStatus("saving");
+      const ok = await onUpdate(item.id, patch as any, { silent: true });
+      if (ok) { lastSaved.current = { ...lastSaved.current!, ...patch }; setAutoStatus("saved"); }
+      else setAutoStatus("error");
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [form.description, form.notes, form.start_time, form.end_time, form.item_price, open, item?.id]);
 
   if (!item) return null;
 
@@ -566,7 +631,7 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Prop
 
           <div className="flex-1 overflow-y-auto px-6">
             <TabsContent value="details" className="mt-0 border-0">
-              <DetailsTab form={form} setForm={setForm} />
+              <DetailsTab form={form} setForm={setForm} aiContext={aiContext} />
             </TabsContent>
 
             <TabsContent value="booking" className="mt-0 border-0">
@@ -587,9 +652,16 @@ export function ItineraryItemEditor({ item, open, onOpenChange, onUpdate }: Prop
 
         {/* Footer */}
         <div className="px-6 py-4 border-t flex-shrink-0 flex items-center justify-between gap-3 bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+              Close
+            </Button>
+            <span className="text-xs text-muted-foreground" aria-live="polite">
+              {autoStatus === "saving" && "Saving…"}
+              {autoStatus === "saved" && "All changes saved"}
+              {autoStatus === "error" && <span className="text-destructive">Autosave failed — use Save Changes</span>}
+            </span>
+          </div>
           <Button onClick={handleSave} disabled={saving || !form.title?.trim()} className="min-w-[100px]">
             {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : "Save Changes"}
           </Button>

@@ -20,6 +20,8 @@ interface Props {
   items: ItineraryItem[];
   totalDays: number;
   onAdd: (data: any) => Promise<boolean>;
+  /** Batch insert (one request). Preferred over onAdd when provided. */
+  onAddMany?: (rows: any[]) => Promise<boolean>;
   variant?: "button" | "sidebar";
 }
 
@@ -52,7 +54,7 @@ function templateItems(tpl: LibraryTemplate): TemplateItem[] {
 
 /** Save the current itinerary to the shared library, or apply a saved template to this trip. */
 export function ItineraryTemplateDialog({
-  tripId, tripName, destination, items, totalDays, onAdd, variant = "button",
+  tripId, tripName, destination, items, totalDays, onAdd, onAddMany, variant = "button",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"apply" | "save">("apply");
@@ -110,8 +112,7 @@ export function ItineraryTemplateDialog({
     }
     setApplyingId(tpl.id);
     let added = 0;
-    for (const item of tplItems) {
-      const ok = await onAdd({
+    const rows = tplItems.map((item) => ({
         trip_id: tripId,
         day_number: Math.max(1, item.day_number || 1),
         title: item.title,
@@ -123,8 +124,11 @@ export function ItineraryTemplateDialog({
         item_price: item.item_price ?? undefined,
         sort_order: item.sort_order ?? undefined,
         image_url: item.image_url || undefined,
-      });
-      if (ok) added++;
+    }));
+    if (onAddMany) {
+      if (await onAddMany(rows)) added = rows.length;
+    } else {
+      for (const row of rows) if (await onAdd(row)) added++;
     }
     setApplyingId(null);
     if (added > 0) {
