@@ -940,37 +940,51 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Copy parent trip itinerary items to sub-trip
-      const { data: parentItems } = await supabaseAdmin
-        .from("itinerary_items")
-        .select("*")
-        .eq("trip_id", parentTrip.id)
-        .order("day_number", { ascending: true })
-        .order("sort_order", { ascending: true });
-
-      if (parentItems && parentItems.length > 0) {
-        const itineraryInserts = parentItems.map((item: any, idx: number) => ({
-          trip_id: subTrip.id,
-          user_id: parentTrip.user_id,
-          day_number: item.day_number,
-          title: item.title,
-          description: item.description,
-          category: item.category,
-          location: item.location,
-          start_time: item.start_time,
-          end_time: item.end_time,
-          item_date: item.item_date,
-          notes: item.notes,
-          sort_order: item.sort_order ?? idx,
-        }));
-
-        const { error: itinErr } = await supabaseAdmin
-          .from("itinerary_items")
-          .insert(itineraryInserts);
-
-        if (itinErr) {
-          console.error("Failed to copy itinerary:", itinErr);
+      // Copy parent itinerary into the sub-trip — mirrors src/lib/tripCopy.ts
+      // (GROUP_SUBTRIP_COPY): itineraries + option blocks + items, no item prices
+      // (group equal-share pricing drives totals) and no booking links.
+      try {
+        const [itRes, obRes, itemRes] = await Promise.all([
+          supabaseAdmin.from("itineraries").select("*").eq("trip_id", parentTrip.id).order("sort_order"),
+          supabaseAdmin.from("option_blocks").select("*").eq("trip_id", parentTrip.id),
+          supabaseAdmin.from("itinerary_items").select("*").eq("trip_id", parentTrip.id),
+        ]);
+        const itinMap = new Map<string, string>();
+        for (const it of (itRes.data as any[]) || []) {
+          const { data } = await supabaseAdmin.from("itineraries").insert({
+            trip_id: subTrip.id, user_id: parentTrip.user_id, name: it.name, sort_order: it.sort_order,
+            cover_image_url: it.cover_image_url, overview: it.overview, depart_date: it.depart_date,
+            return_date: it.return_date, header_style: it.header_style, font_style: it.font_style,
+          }).select("id").single();
+          if (data) itinMap.set(it.id, data.id);
         }
+        const firstItin = itinMap.values().next().value ?? null;
+        const blockMap = new Map<string, string>();
+        const blocks = ((obRes.data as any[]) || []).map((b: any) => {
+          const id = crypto.randomUUID();
+          blockMap.set(b.id, id);
+          return { id, trip_id: subTrip.id, user_id: parentTrip.user_id,
+            itinerary_id: b.itinerary_id ? itinMap.get(b.itinerary_id) ?? firstItin : firstItin,
+            day_number: b.day_number, title: b.title, sort_order: b.sort_order };
+        });
+        if (blocks.length) await supabaseAdmin.from("option_blocks").insert(blocks);
+        const rows = ((itemRes.data as any[]) || []).map((i: any, idx: number) => ({
+          trip_id: subTrip.id, user_id: parentTrip.user_id,
+          itinerary_id: i.itinerary_id ? itinMap.get(i.itinerary_id) ?? firstItin : firstItin,
+          option_block_id: i.option_block_id ? blockMap.get(i.option_block_id) ?? null : null,
+          day_number: i.day_number, item_date: i.item_date, start_time: i.start_time, end_time: i.end_time,
+          title: i.title, description: i.description, category: i.category, location: i.location,
+          notes: i.notes, sort_order: i.sort_order ?? idx, flight_number: i.flight_number,
+          departure_city_code: i.departure_city_code, arrival_city_code: i.arrival_city_code,
+          is_hidden: i.is_hidden, image_url: i.image_url, thumbnail_url: i.thumbnail_url,
+          gallery_urls: i.gallery_urls ?? [], supplier_name: i.supplier_name,
+        }));
+        for (let k = 0; k < rows.length; k += 200) {
+          const { error } = await supabaseAdmin.from("itinerary_items").insert(rows.slice(k, k + 200));
+          if (error) console.error("Failed to copy itinerary:", error);
+        }
+      } catch (err) {
+        console.error("Failed to copy itinerary:", err);
       }
 
       // Create a notification for the agent
