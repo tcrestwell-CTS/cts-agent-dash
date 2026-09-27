@@ -411,6 +411,34 @@ const TripDetail = () => {
   }
 
   const isGroupTrip = trip.trip_type === "group";
+  const generateTripOverview = async () => {
+    setGeneratingOverview(true);
+    try {
+      const text = await aiWriteTripOverview({
+        tripName: trip.trip_name,
+        destination: trip.destination,
+        departDate: trip.depart_date,
+        returnDate: trip.return_date,
+        instructions: overviewInstructions.trim() || undefined,
+      });
+      const escapeHtml = (value: string) => value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+      const html = text
+        .split(/\n\s*\n/)
+        .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
+        .join("");
+      setGeneratedOverview({ html, requestId: Date.now() });
+      toast.success("Overview added to About this trip");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create the overview");
+    } finally {
+      setGeneratingOverview(false);
+    }
+  };
   const guidedStep: "basics" | "tripPage" | "itinerary" | "pricing" | "payments" | "publish" =
     searchParams.get("builder") === "trip-page" ? "tripPage"
       : activeTab === "itinerary" ? "itinerary"
@@ -742,6 +770,7 @@ const TripDetail = () => {
                 trip={trip as any}
                 onUpdated={fetchTrip}
                 onOverviewFocusChange={setTripOverviewFocused}
+                generatedOverview={generatedOverview}
               />
             )}
             {guided && guidedStep === "payments" && (
@@ -1418,7 +1447,39 @@ const TripDetail = () => {
           </div>
 
           {/* Right sidebar */}
-          {guided && (
+          {guided && guidedStep === "tripPage" ? (
+            <aside className="hidden lg:block lg:sticky lg:top-6 self-start rounded-[9px] border border-border bg-card p-5 space-y-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Trip overview AI</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    Create a polished draft for the About this trip field.
+                  </p>
+                </div>
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="overview-ai-notes" className="text-xs">Details to emphasize</Label>
+                <Textarea
+                  id="overview-ai-notes"
+                  value={overviewInstructions}
+                  onChange={(event) => setOverviewInstructions(event.target.value)}
+                  placeholder="Celebration, travel style, special highlights..."
+                  rows={5}
+                  maxLength={500}
+                />
+              </div>
+              <Button className="w-full" onClick={generateTripOverview} disabled={generatingOverview}>
+                {generatingOverview
+                  ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  : <Sparkles className="mr-2 h-4 w-4" />}
+                {generatedOverview ? "Create another draft" : "Create overview"}
+              </Button>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                The draft is inserted into the editor. Review it, then save the Trip Page.
+              </p>
+            </aside>
+          ) : guided ? (
             <aside className="hidden lg:block lg:sticky lg:top-6 self-start rounded-[9px] border border-border bg-card p-5 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-semibold text-foreground">{guidedTip.title}</h3>
@@ -1431,7 +1492,7 @@ const TripDetail = () => {
                 </p>
               )}
             </aside>
-          )}
+          ) : null}
 
           {showRightSidebar && !guided && (
             <div className="space-y-4 lg:col-span-2 2xl:col-span-1">
