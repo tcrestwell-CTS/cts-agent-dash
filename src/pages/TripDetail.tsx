@@ -701,6 +701,7 @@ const TripDetail = () => {
             onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}
             onDelete={handleDelete}
           />
+          </div>
 
           {/* Center / main content */}
           <div className="space-y-6">
