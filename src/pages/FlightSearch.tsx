@@ -497,6 +497,32 @@ export default function FlightSearch() {
                 </label>
               ))}
             </div>
+
+            {/* Row 4: Airline filters (populated from results) */}
+            {availableAirlines.length > 0 && (
+              <div className="flex items-center gap-4 pt-1 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground">Airlines:</span>
+                {availableAirlines.map((name) => (
+                  <label key={name} className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={airlineFilters.has(name)}
+                      onCheckedChange={() => toggleAirlineFilter(name)}
+                    />
+                    <span className="text-sm text-foreground">{name}</span>
+                  </label>
+                ))}
+                {airlineFilters.size > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => setAirlineFilters(new Set())}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
