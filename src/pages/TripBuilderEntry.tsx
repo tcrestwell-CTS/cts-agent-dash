@@ -66,13 +66,9 @@ const TripBuilderEntry = () => {
             <Button variant="outline" onClick={() => navigate("/trips")}>
               All trips
             </Button>
-            <Button variant="outline" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Create trip
-            </Button>
             <Button onClick={() => { setGuidedCreate(true); setCreateOpen(true); }}>
               <Plus className="h-4 w-4 mr-1.5" />
-              New trip (guided)
+              New trip
             </Button>
           </div>
         </div>
@@ -116,7 +112,7 @@ const TripBuilderEntry = () => {
         ) : visible.length === 0 ? (
           <Card className="p-8 text-center space-y-3">
             <p className="text-sm text-muted-foreground">No trips found.</p>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={() => { setGuidedCreate(true); setCreateOpen(true); }}>
               <Plus className="h-4 w-4 mr-1.5" />
               Create your first trip
             </Button>

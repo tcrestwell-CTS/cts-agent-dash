@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Compass,
-  Plus,
   Search,
   Users,
   ExternalLink,
@@ -28,7 +27,6 @@ import { generateBookingFlowPDF } from "@/lib/bookingFlowPDF";
 import { Panel, EmptyState } from "@/components/patterns/Panel";
 import { StatusPill } from "@/components/patterns/StatusPill";
 import { useTrips } from "@/hooks/useTrips";
-import { AddTripDialog } from "@/components/trips/AddTripDialog";
 import { TripsKanban } from "@/components/trips/TripsKanban";
 import { AdvisorTag, useAdvisorNames } from "@/components/trips/AdvisorTag";
 
