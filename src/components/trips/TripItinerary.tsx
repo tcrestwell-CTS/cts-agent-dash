@@ -883,6 +883,7 @@ export function TripItinerary({ tripId, itineraryId, parentTripId, destination, 
 
       {/* Advanced itinerary item editor (sheet) */}
       <ItineraryItemEditor
+        aiContext={{ destination, tripName }}
         item={editingItem as any}
         open={!!editingItem}
         onOpenChange={(open) => { if (!open) setEditingItem(null); }}
