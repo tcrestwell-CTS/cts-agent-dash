@@ -621,6 +621,7 @@ const TripDetail = () => {
         </div>
 
         {/* Workspace tabs */}
+        {!guided && (
         <Tabs value={activeTab} onValueChange={(v) => goToTab(v as OuterTab)}>
           <TabsList>
             <TabsTrigger value="itinerary" className="flex items-center gap-2 text-[13px]">
@@ -637,8 +638,10 @@ const TripDetail = () => {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        )}
 
         {/* Mobile Action Bar */}
+        {!guided && (
         <div className="lg:hidden flex flex-wrap items-center gap-2 rounded-[9px] border border-border bg-card p-3">
           {trip.client_id && (
             <Button variant="outline" size="sm" asChild>
@@ -653,24 +656,23 @@ const TripDetail = () => {
             Insurance
           </Button>
         </div>
+        )}
 
         {/* Main content with left sidebar */}
-        <div className={showRightSidebar
-          ? guided
-            ? "grid gap-6 lg:grid-cols-[240px_1fr] 2xl:grid-cols-[250px_minmax(0,1fr)_360px] items-start"
-            : "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_360px] items-start"
-          : guided
-            ? "grid gap-6 lg:grid-cols-[240px_1fr] items-start"
+        <div className={guided
+          ? "mx-auto w-full max-w-[1240px] grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[180px_minmax(0,1fr)_240px] items-start"
+          : showRightSidebar
+            ? "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_360px] items-start"
             : "grid gap-6 lg:grid-cols-[200px_1fr] items-start"
         }>
           <div className="space-y-4 lg:sticky lg:top-6 self-start">
-            {guided && (
+            {guided ? (
               <TripBuilderStepper
                 trip={trip}
                 onEditBasics={() => setEditDialogOpen(true)}
                 onExit={() => { disableGuidedBuilder(trip.id); setGuided(false); }}
               />
-            )}
+            ) : (
             <TripSidebar
             tripId={tripId!}
             parentTripId={trip.parent_trip_id}
@@ -701,10 +703,54 @@ const TripDetail = () => {
             onFlightSearch={() => navigate(`/flights?tripId=${tripId}`)}
             onDelete={handleDelete}
           />
+            )}
           </div>
 
           {/* Center / main content */}
-          <div className="space-y-6">
+          <div className={guided ? "space-y-6 rounded-[9px] border border-border bg-card p-6 min-w-0" : "space-y-6"}>
+            {guided && guidedStep === "payments" && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Payment Plan</h2>
+                  <p className="text-sm text-muted-foreground">Set the deposit and payment schedule your client will follow.</p>
+                </div>
+                <TripSettingsSidebar
+                  tripId={trip.id}
+                  settings={tripSettings}
+                  agencyName={profile?.agency_name || undefined}
+                  tripTotal={trip.total_gross_sales}
+                  departDate={trip.depart_date || undefined}
+                  tripType={trip.trip_type || undefined}
+                  shareToken={(trip as any).share_token || undefined}
+                  onSettingsChange={fetchTrip}
+                  onNavigateToLandingPage={() => navigate(`/trips/${tripId}/landing-page`)}
+                />
+              </div>
+            )}
+            {guided && guidedStep === "publish" && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Review & Publish</h2>
+                  <p className="text-sm text-muted-foreground">Check what's still needed, then publish so your client can see the trip.</p>
+                </div>
+                <TripReadinessScore
+                  tripId={trip.id}
+                  departDate={trip.depart_date}
+                  returnDate={trip.return_date}
+                  hasSupplierBooking={bookings.some((b: any) => b.supplier_id)}
+                  totalCommissionRevenue={trip.total_commission_revenue}
+                />
+                <PublishTripButton
+                  tripId={trip.id}
+                  shareToken={(trip as any).share_token}
+                  publishedAt={(trip as any).published_at}
+                  updatedAt={trip.updated_at}
+                  onPublished={fetchTrip}
+                />
+              </div>
+            )}
+            {(!guided || (guidedStep !== "payments" && guidedStep !== "publish")) && (<>
+
             {activeTab === "itinerary" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1335,7 +1381,20 @@ const TripDetail = () => {
           </div>
 
           {/* Right sidebar */}
-          {showRightSidebar && (
+          {guided && (
+            <aside className="hidden lg:block lg:sticky lg:top-6 self-start rounded-[9px] border border-border bg-card p-5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-sm font-semibold text-foreground">{guidedTip.title}</h3>
+                <Lightbulb className="h-5 w-5 text-primary shrink-0" />
+              </div>
+              <p className="text-[13px] leading-relaxed text-muted-foreground">{guidedTip.body}</p>
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                Use Preview to see what your client will see once the trip is published.
+              </p>
+            </aside>
+          )}
+
+          {showRightSidebar && !guided && (
             <div className="space-y-4 lg:col-span-2 2xl:col-span-1">
               <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-1 2xl:sticky 2xl:top-6 2xl:max-h-[calc(100vh-3rem)] 2xl:overflow-y-auto 2xl:overscroll-contain 2xl:pr-2">
                 <TripReadinessScore
