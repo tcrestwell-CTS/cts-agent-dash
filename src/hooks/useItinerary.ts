@@ -1,3 +1,4 @@
+import { copyItinerary, GROUP_SUBTRIP_COPY } from "@/lib/tripCopy";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -302,27 +303,8 @@ export function useItinerary(tripId: string | undefined, itineraryId?: string | 
       const { error: delError } = await deleteQuery;
       if (delError) throw delError;
 
-      // Copy parent items to this sub-trip
-      const inserts = parentItems.map((item: any, idx: number) => ({
-        trip_id: tripId,
-        user_id: user.id,
-        itinerary_id: itineraryId || null,
-        day_number: item.day_number,
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        location: item.location,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        item_date: item.item_date,
-        notes: item.notes,
-        sort_order: item.sort_order ?? idx,
-      }));
-
-      const { error: insertError } = await supabase
-        .from("itinerary_items")
-        .insert(inserts as any);
-      if (insertError) throw insertError;
+      // Copy parent items to this sub-trip via the shared copy engine
+      await copyItinerary(parentTripId, tripId, user.id, { ...GROUP_SUBTRIP_COPY, intoItineraryId: itineraryId || null });
 
       toast.success(`Synced ${parentItems.length} items from group itinerary`);
       await fetchItems();

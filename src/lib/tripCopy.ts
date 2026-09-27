@@ -9,6 +9,11 @@ export interface CopyItineraryOptions {
   includePricing?: boolean;
   /** Shift every date by this many days (e.g. new departure − old departure). Default 0. */
   dateShiftDays?: number;
+  /**
+   * Put every copied item into this existing itinerary instead of recreating the
+   * source's itineraries (used by "sync from group trip").
+   */
+  intoItineraryId?: string | null;
 }
 
 export interface CopyItineraryResult {
@@ -46,6 +51,7 @@ export async function copyItinerary(
 ): Promise<CopyItineraryResult> {
   const includePricing = opts.includePricing ?? true;
   const shift = opts.dateShiftDays ?? 0;
+  const into = opts.intoItineraryId ?? null;
 
   const [itRes, obRes, itemRes] = await Promise.all([
     supabase.from("itineraries").select("*").eq("trip_id", sourceTripId).order("sort_order"),
@@ -57,7 +63,7 @@ export async function copyItinerary(
   if (itemRes.error) throw itemRes.error;
 
   const itinMap = new Map<string, string>();
-  for (const it of (itRes.data as any[]) || []) {
+  for (const it of into ? [] : ((itRes.data as any[]) || [])) {
     const { data, error } = await supabase
       .from("itineraries")
       .insert({
@@ -88,7 +94,7 @@ export async function copyItinerary(
         id,
         trip_id: targetTripId,
         user_id: userId,
-        itinerary_id: b.itinerary_id ? itinMap.get(b.itinerary_id) ?? null : null,
+        itinerary_id: into ?? (b.itinerary_id ? itinMap.get(b.itinerary_id) ?? null : null),
         day_number: b.day_number,
         title: b.title,
         sort_order: b.sort_order,
@@ -103,7 +109,7 @@ export async function copyItinerary(
     const rows = items.map((i) => ({
       trip_id: targetTripId,
       user_id: userId,
-      itinerary_id: i.itinerary_id ? itinMap.get(i.itinerary_id) ?? null : null,
+      itinerary_id: into ?? (i.itinerary_id ? itinMap.get(i.itinerary_id) ?? null : null),
       option_block_id: i.option_block_id ? blockMap.get(i.option_block_id) ?? null : null,
       day_number: i.day_number,
       item_date: shiftDate(i.item_date, shift),
@@ -140,3 +146,6 @@ export async function copyItinerary(
 
   return { itineraries: itinMap.size, optionBlocks: blocks.length, items: items.length };
 }
+
+/** Group sub-trips: itinerary only, no item prices (pricing comes from the group's equal-share rules). */
+export const GROUP_SUBTRIP_COPY: CopyItineraryOptions = { includePricing: false };

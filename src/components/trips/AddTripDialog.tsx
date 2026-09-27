@@ -1,3 +1,4 @@
+import { copyItinerary, GROUP_SUBTRIP_COPY } from "@/lib/tripCopy";
 import { enableGuidedBuilder } from "@/components/trips/TripBuilderStepper";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -179,32 +180,7 @@ export function AddTripDialog({ open, onOpenChange, onTripCreated, parentTripId,
       // Copy the parent group itinerary into the new sub-trip
       if (parentTripId && tripId) {
         try {
-          const { data: parentItems } = await supabase
-            .from("itinerary_items")
-            .select("*")
-            .eq("trip_id", parentTripId)
-            .order("day_number", { ascending: true })
-            .order("sort_order", { ascending: true });
-          if (parentItems && parentItems.length > 0) {
-            const inserts = parentItems.map((item: any, idx: number) => ({
-              trip_id: tripId,
-              user_id: (result as any).user_id,
-              day_number: item.day_number,
-              title: item.title,
-              description: item.description,
-              category: item.category,
-              location: item.location,
-              start_time: item.start_time,
-              end_time: item.end_time,
-              item_date: item.item_date,
-              notes: item.notes,
-              image_url: item.image_url ?? null,
-              thumbnail_url: item.thumbnail_url ?? null,
-              gallery_urls: item.gallery_urls ?? [],
-              sort_order: item.sort_order ?? idx,
-            }));
-            await supabase.from("itinerary_items").insert(inserts as any);
-          }
+          await copyItinerary(parentTripId, tripId, (result as any).user_id, GROUP_SUBTRIP_COPY);
         } catch (err) {
           console.error("Failed to copy parent itinerary:", err);
         }
