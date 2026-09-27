@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
@@ -1460,7 +1459,9 @@ const TripDetail = () => {
                 <Sparkles className="h-5 w-5 text-primary shrink-0" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="overview-ai-notes" className="text-xs">Details to emphasize</Label>
+                <label htmlFor="overview-ai-notes" className="text-xs font-medium text-foreground">
+                  Details to emphasize
+                </label>
                 <Textarea
                   id="overview-ai-notes"
                   value={overviewInstructions}
