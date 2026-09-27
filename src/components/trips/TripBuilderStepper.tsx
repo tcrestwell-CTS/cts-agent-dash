@@ -10,14 +10,14 @@ import { cn } from "@/lib/utils";
 const KEY = (id: string) => `tripBuilderGuided:${id}`;
 
 export function enableGuidedBuilder(tripId: string) {
-  try { sessionStorage.setItem(KEY(tripId), "1"); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY(tripId), "1"); } catch { /* ignore */ }
 }
 export function isGuidedBuilder(tripId?: string) {
   if (!tripId) return false;
-  try { return sessionStorage.getItem(KEY(tripId)) === "1"; } catch { return false; }
+  try { return localStorage.getItem(KEY(tripId)) !== "0"; } catch { return true; }
 }
 export function disableGuidedBuilder(tripId: string) {
-  try { sessionStorage.removeItem(KEY(tripId)); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY(tripId), "0"); } catch { /* ignore */ }
 }
 
 export const PAYMENT_SETTINGS_ANCHOR = "trip-payment-settings";
