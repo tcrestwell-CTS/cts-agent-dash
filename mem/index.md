@@ -18,7 +18,7 @@
 - [Commissions Reporting](mem://features/reporting/commissions) — Margin engine usage, `agency_gross_margin` KPI, CSV export
 - [Data Deletion](mem://constraints/lifecycle/data-deletion) — Deletion blocked if payments or CC auths are attached
 - [Uplift Flexpay](mem://features/integrations/uplift-flexpay) — Uplift Agent SDK integration and identifiers
-- [Widgety Cruise](mem://features/integrations/widgety-cruise) — Search API, UN/LOCODE ports, UTC date parsing
+- [CruiseFeed Search](mem://features/integrations/cruisefeed) — Replaces Widgety; per-result billing, /v1/ships uses `operator` param, cache table, CTS line names
 - [Payment Security](mem://constraints/security/payment-data) — Encrypted CC data, 60s visibility, 30-day expiry
 - [QBO Config](mem://features/integrations/qbo-config) — QBO production API, `QBO_ALLOWED_ORIGINS` setup
 - [QBO Dashboard](mem://features/integrations/qbo-dashboard) — Entity sync monitoring, amortized schedules
