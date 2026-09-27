@@ -112,6 +112,7 @@ export default function FlightSearch() {
   const [checkoutSeatMaps, setCheckoutSeatMaps] = useState<SeatMap[]>([]);
   const [checkoutBaggage, setCheckoutBaggage] = useState<AvailableService[]>([]);
   const [stopFilters, setStopFilters] = useState<Set<number>>(new Set([0, 1, 2]));
+  const [airlineFilters, setAirlineFilters] = useState<Set<string>>(new Set());
 
   // ── Slice-based selection for round trips ──
   const [selectionStep, setSelectionStep] = useState<SelectionStep>("all");
