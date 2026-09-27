@@ -473,7 +473,7 @@ export function TripPayments({
     return "Trip Payment";
   };
 
-  const expectedPayments = payments.filter((p) => p.status === "pending");
+  const expectedPayments = tripStatus === "cancelled" ? [] : payments.filter((p) => p.status === "pending");
   const pastPayments = payments.filter((p) => p.status !== "pending");
 
   // Per-payer share summary (Stripe split bookings only)

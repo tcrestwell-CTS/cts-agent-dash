@@ -37,7 +37,8 @@ export function UpcomingPayments() {
           due_date,
           payment_type,
           status,
-          trips (
+          trips!inner (
+            status,
             trip_name,
             clients (
               name
@@ -45,6 +46,7 @@ export function UpcomingPayments() {
           )
         `)
         .eq("status", "pending")
+        .neq("trips.status", "cancelled")
         .not("due_date", "is", null)
         .order("due_date", { ascending: true });
 
