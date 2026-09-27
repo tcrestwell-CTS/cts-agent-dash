@@ -132,11 +132,27 @@ export default function FlightSearch() {
   const getOfferMaxStops = (offer: FlightOffer) =>
     Math.max(...offer.slices.map((s) => s.segments.length - 1));
 
+  // Airlines present in the current results (owner airline of each offer)
+  const availableAirlines = Array.from(
+    new Set(offers.map((o) => o.owner?.name).filter((n): n is string => !!n)),
+  ).sort();
+
+  const toggleAirlineFilter = (name: string) => {
+    setAirlineFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   const filteredOffers = offers.filter((offer) => {
     const maxStops = getOfferMaxStops(offer);
-    if (stopFilters.size === 0) return true;
-    if (maxStops >= 2) return stopFilters.has(2);
-    return stopFilters.has(maxStops);
+    if (stopFilters.size > 0) {
+      if (maxStops >= 2 ? !stopFilters.has(2) : !stopFilters.has(maxStops)) return false;
+    }
+    if (airlineFilters.size > 0 && !airlineFilters.has(offer.owner?.name || "")) return false;
+    return true;
   });
 
   // Offers filtered by selected outbound
