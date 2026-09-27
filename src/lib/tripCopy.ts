@@ -84,6 +84,8 @@ export async function copyItinerary(
     itinMap.set(it.id, (data as any).id);
   }
 
+  // Unscoped source items go into the first new itinerary so they aren't hidden in the builder.
+  const firstItin: string | null = itinMap.values().next().value ?? null;
   const blockMap = new Map<string, string>();
   // In "into" (sync) mode option blocks aren't recreated — matches the previous sync behaviour.
   const blocks = into ? [] : ((obRes.data as any[]) || []);
@@ -95,7 +97,7 @@ export async function copyItinerary(
         id,
         trip_id: targetTripId,
         user_id: userId,
-        itinerary_id: into ?? (b.itinerary_id ? itinMap.get(b.itinerary_id) ?? null : null),
+        itinerary_id: into ?? (b.itinerary_id ? itinMap.get(b.itinerary_id) ?? firstItin : firstItin),
         day_number: b.day_number,
         title: b.title,
         sort_order: b.sort_order,
@@ -110,7 +112,7 @@ export async function copyItinerary(
     const rows = items.map((i) => ({
       trip_id: targetTripId,
       user_id: userId,
-      itinerary_id: into ?? (i.itinerary_id ? itinMap.get(i.itinerary_id) ?? null : null),
+      itinerary_id: into ?? (i.itinerary_id ? itinMap.get(i.itinerary_id) ?? firstItin : firstItin),
       option_block_id: i.option_block_id ? blockMap.get(i.option_block_id) ?? null : null, // null in sync mode
       day_number: i.day_number,
       item_date: shiftDate(i.item_date, shift),
