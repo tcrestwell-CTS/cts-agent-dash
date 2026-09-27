@@ -146,17 +146,29 @@ export function PublishTripButton({
       };
 
       // 2. Update trip with snapshot and published_at timestamp
+      const { data: authData } = await supabase.auth.getUser();
+      const useOverride = blockers.length > 0 && overrideValid;
       const { error } = await supabase
         .from("trips")
         .update({
           published_at: new Date().toISOString(),
           published_snapshot: snapshot,
+          ...(useOverride
+            ? {
+                publish_override_by: authData.user?.id,
+                publish_override_reason: overrideReason.trim(),
+                publish_override_at: new Date().toISOString(),
+              }
+            : {}),
         } as any)
         .eq("id", tripId);
 
       if (error) throw error;
-      toast.success("Trip published successfully!");
+      toast.success(useOverride ? "Trip published with admin override" : "Trip published successfully!");
+      setOverrideOn(false);
+      setOverrideReason("");
       onPublished();
+      refetchReadiness();
     } catch (error: any) {
       console.error("Error publishing trip:", error);
       const msg = error?.message || error?.details || "Unknown error";
