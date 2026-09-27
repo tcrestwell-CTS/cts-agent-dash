@@ -630,12 +630,6 @@ const Trips = () => {
               <FileDown className="h-4 w-4" />
               Booking Flow PDF
             </Button>
-            {activeTab === "trips" && (
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-1.5 rounded-[8px] text-[13px]">
-                <Plus className="h-4 w-4" />
-                New Trip
-              </Button>
-            )}
           </div>
         </div>
 
@@ -755,18 +749,7 @@ const Trips = () => {
               <Panel>
                 <EmptyState
                   title={searchQuery ? "No trips found" : "No trips yet"}
-                  message={searchQuery ? "Try adjusting your search" : "Create your first trip to get started"}
-                  action={
-                    !searchQuery && (
-                      <Button
-                        onClick={() => setIsAddDialogOpen(true)}
-                        className="gap-1.5 rounded-[8px] text-[13px]"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create Trip
-                      </Button>
-                    )
-                  }
+                  message={searchQuery ? "Try adjusting your search" : "Use the guided Trip Builder to create your first trip"}
                 />
               </Panel>
             ) : (
