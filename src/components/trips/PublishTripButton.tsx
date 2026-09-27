@@ -237,26 +237,56 @@ export function PublishTripButton({
                   {passedCount}/{readinessChecks.length}
                 </span>
               </div>
+              {readinessLoading && <p className="text-xs text-muted-foreground">Checking…</p>}
               {readinessChecks.map((check) => (
-                <div key={check.label} className="flex items-start gap-2">
+                <div key={check.key} className="flex items-start gap-2">
                   {check.passed
                     ? <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0 mt-0.5" />
-                    : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
+                    : check.required
+                      ? <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                      : <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0 mt-0.5" />
                   }
                   <span className={`text-xs leading-tight ${
                     check.passed ? "text-foreground" : "text-muted-foreground"
                   }`}>
                     {check.passed ? check.label : check.detail}
+                    {!check.passed && (
+                      <span className={`ml-1 text-[10px] font-semibold uppercase ${check.required ? "text-destructive" : "text-muted-foreground"}`}>
+                        {check.required ? "Required" : "Recommended"}
+                      </span>
+                    )}
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Blocker warning if critical items missing */}
-            {!allPassed && !publishedAt && blockers.length > 0 && (
+            {blockers.length > 0 && (
+              <div className="flex items-start gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2.5 py-2">
+                <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>Publishing is blocked until the required items are complete.</span>
+              </div>
+            )}
+            {blockers.length === 0 && warnings.length > 0 && (
               <div className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded px-2.5 py-2">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-warning" />
-                <span>You can still publish, but completing the checklist gives clients a better experience.</span>
+                <span>Ready to publish. Recommended items improve the client experience.</span>
+              </div>
+            )}
+
+            {blockers.length > 0 && canOverride && (
+              <div className="space-y-2 rounded border px-2.5 py-2">
+                <label className="flex items-center gap-2 text-xs font-medium">
+                  <Checkbox checked={overrideOn} onCheckedChange={(v) => setOverrideOn(!!v)} />
+                  Admin override
+                </label>
+                {overrideOn && (
+                  <Textarea
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Reason for publishing anyway (recorded)"
+                    className="text-xs min-h-[60px]"
+                  />
+                )}
               </div>
             )}
 
@@ -269,7 +299,7 @@ export function PublishTripButton({
 
             <Button
               onClick={handlePublish}
-              disabled={publishing || (!hasUnpublishedChanges && !!publishedAt)}
+              disabled={publishing || readinessLoading || blocked || (!hasUnpublishedChanges && !!publishedAt)}
               className="w-full"
               size="sm"
             >
