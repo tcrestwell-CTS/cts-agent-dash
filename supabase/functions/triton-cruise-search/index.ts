@@ -2,7 +2,7 @@
 // Triton — cross-line cruise package recommendation agent
 // POST { query: string, max_results?: number, force_include_adult_lines?: boolean }
 // Auth: x-agent-secret header (401 without it), CORS locked to crestwellgetaways.com
-// Secrets required: AGENT_SECRET, ANTHROPIC_API_KEY, WIDGETY_APP_TOKEN, WIDGETY_APP_ID
+// Secrets required: AGENT_SECRET, ANTHROPIC_API_KEY, CRUISEFEED_API_KEY
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -140,7 +140,7 @@ async function parseQuery(query: string): Promise<Criteria> {
 
 // Deterministic fallback: if the parser leaves regions[] empty, scan the raw
 // query text against the same REGION_MAP vocabulary used downstream. Prevents
-// a Widgety search with no region filter (which typically returns zero
+// a CruiseFeed search with no region filter (which typically returns zero
 // candidates once port + date filters are also applied).
 function inferRegionsFromQuery(query: string): string[] {
   const q = query.toLowerCase();
@@ -151,154 +151,44 @@ function inferRegionsFromQuery(query: string): string[] {
   return Array.from(hits);
 }
 
-// ---------- Stage 2: retrieve (Widgety) ----------
-// Ported from crestwell-public-site's proven app/api/widgety/cruises/route.ts.
-// Same base URL, same auth (app_id/token as QUERY PARAMS, not headers), same
-// Accept: application/json header with NO api_version (adding api_version=2
-// drops results from 27,000+ V3 holidays down to 3 V2-only operators — the
-// load-bearing fix documented at the top of that route), same V2-only-operator
-// fallback, same region slug map, same two-step search -> per-holiday detail
-// enrichment pagination (list endpoint returns bare holiday_refs; nights/
-// dates/ship come from a second per-holiday fetch, batched 18 at a time).
-//
-// Known gap: the proven route has no verified embark-port filter param (its
-// POST handler accepts a `locations` param but no confirmed value format was
-// ever exercised) — not inventing one. Port filtering is left entirely to
-// this file's existing deterministic post-filter below, which already
-// handles it via embark_port substring match.
-//
-// Known gap: the proven route does not extract a price field anywhere (not
-// in V3 list, V2, or per-holiday detail responses) — price_from stays null,
-// matching the rest of this file's "pricing on request" handling.
+// ---------- Stage 2: retrieve (CruiseFeed) ----------
+// CruiseFeed REST API (https://api.cruisefeed.io, OpenAPI v1.14.0).
+// Auth: `Authorization: Bearer <CRUISEFEED_API_KEY>` (per their llms.txt/OpenAPI).
+// GET /v1/cruises returns full CruiseOut rows (itinerary, fares, price_amount,
+// price_currency, booking_url, detail_url), so no per-sailing detail call
+// (/v1/cruises/{id}) is needed for ranking.
+// Billing is per RESULT returned, so each per-line request is capped.
+// cruise_line names in CruiseFeed match CTS_LINES names exactly (verified
+// against GET /v1/cruise-lines).
 
-const WIDGETY_BASE = "https://www.widgety.co.uk/api";
-const WIDGETY_HEADERS = { Accept: "application/json" };
-const WIDGETY_V2_HEADERS = { Accept: "application/json;api_version=2" };
-
-// These operators only have inventory in V2 /cruises.json, not V3 /holidays.json.
-const V2_ONLY_OPERATORS = new Set([
-  "american-cruise-lines",
-  "cunard-line",
-  "princess-cruises",
-]);
-
-// CTS_LINES display name -> Widgety operator slug. Slugs are copied verbatim
-// from the proven route's ACTIVE_OPERATORS list (verified against the live
-// API); the name<->slug pairing itself is new but low-risk — it only
-// associates already-proven slugs with names already hardcoded in this file.
-const LINE_TO_OPERATOR: Record<string, string> = {
-  "Royal Caribbean": "royal-caribbean-international",
-  "Carnival Cruise Line": "carnival-cruise-lines-operator",
-  "Norwegian Cruise Line": "norwegian-cruise-line",
-  "Disney Cruise Line": "disney-cruise-line",
-  "MSC Cruises": "msc-cruises",
-  "Princess Cruises": "princess-cruises",
-  "Celebrity Cruises": "celebrity-cruises",
-  "Holland America Line": "holland-america-line",
-  "Virgin Voyages": "virgin-voyages",
-  "Explora Journeys": "explora-journeys",
-};
-const OPERATOR_TO_LINE: Record<string, string> = Object.fromEntries(
-  Object.entries(LINE_TO_OPERATOR).map(([name, slug]) => [slug, name]),
-);
-
-// Region keyword (lowercase) -> Widgety region slug. Copied verbatim from the
-// proven route's REGION_MAP — verified valid against the live API.
-const REGION_MAP: Record<string, string> = {
-  caribbean: "caribbean", mediterranean: "mediterranean", alaska: "alaska",
-  bahamas: "bahamas", bermuda: "bermuda", hawaii: "hawaii", europe: "europe",
-  "northern europe": "northern-europe", "southern europe": "southern-europe",
-  scandinavia: "scandinavia", asia: "asia", pacific: "pacific",
-  "south america": "south-america", "north america": "north-america",
-  "central america": "central-america", americas: "americas",
-  "middle east": "middle-east", "indian ocean": "indian-ocean",
-  mississippi: "mississippi", amazon: "amazon", atlantic: "atlantic",
-};
-
+const CRUISEFEED_BASE = "https://api.cruisefeed.io/v1";
+const PER_QUERY_LIMIT = 8; // trial key has a 300-result lifetime grant
 const MAX_CANDIDATES = 150;
 
-function widgetyAuth(): Record<string, string> {
-  return {
-    app_id: Deno.env.get("WIDGETY_APP_ID") ?? "",
-    token: Deno.env.get("WIDGETY_APP_TOKEN") ?? "",
-  };
+// Region vocabulary (lowercase) -> CruiseFeed region filter value (substring
+// match, canonicalized server-side). Also used by inferRegionsFromQuery.
+const REGION_MAP: Record<string, string> = {
+  caribbean: "Caribbean", mediterranean: "Mediterranean", alaska: "Alaska",
+  bahamas: "Bahamas", bermuda: "Bermuda", hawaii: "Hawaii", europe: "Europe",
+  "northern europe": "Northern Europe", "southern europe": "Mediterranean",
+  scandinavia: "Scandinavia", asia: "Asia", pacific: "Pacific",
+  "south america": "South America", "north america": "North America",
+  "central america": "Central America", americas: "America",
+  "middle east": "Middle East", "indian ocean": "Indian Ocean",
+  mississippi: "Mississippi", amazon: "Amazon", atlantic: "Atlantic",
+};
+
+async function cruiseFeedGet(path: string, params: Record<string, string>) {
+  const key = Deno.env.get("CRUISEFEED_API_KEY");
+  if (!key) throw new Error("CRUISEFEED_API_KEY missing");
+  const res = await fetch(`${CRUISEFEED_BASE}${path}?${new URLSearchParams(params)}`, {
+    headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`cruisefeed ${res.status}: ${await res.text()}`);
+  return await res.json();
 }
 
-async function searchHolidays(params: Record<string, string>) {
-  try {
-    const res = await fetch(
-      `${WIDGETY_BASE}/holidays.json?${new URLSearchParams({ ...widgetyAuth(), market: "us", ...params })}`,
-      { headers: WIDGETY_HEADERS },
-    );
-    if (!res.ok) return null;
-    const d = await res.json();
-    return { holidays: d.holidays ?? [], total: d.total ?? 0 };
-  } catch {
-    return null;
-  }
-}
-
-async function searchCruisesV2(params: Record<string, string>) {
-  try {
-    const res = await fetch(
-      `${WIDGETY_BASE}/cruises.json?${new URLSearchParams({ ...widgetyAuth(), ...params })}`,
-      { headers: WIDGETY_V2_HEADERS },
-    );
-    if (!res.ok) return null;
-    const d = await res.json();
-    const holidays = (d.cruises ?? []).map((c: any) => ({
-      holiday_ref: c.ref,
-      operator: c.operator,
-      operator_title: c.operator_title,
-      cruise_nights: c.cruise_nights ? parseInt(c.cruise_nights) : null,
-      starts_at: { name: c.starts_at },
-      date_from: c.starts_on,
-      ship_title: c.ship_title,
-    }));
-    return { holidays, total: d.total ?? 0 };
-  } catch {
-    return null;
-  }
-}
-
-async function enrichWithDetail(h: any) {
-  if (h.date_from && h.cruise_nights) return h; // V2 results already carry these
-  try {
-    const detRes = await fetch(
-      `${WIDGETY_BASE}/holidays/${encodeURIComponent(h.holiday_ref)}.json?${new URLSearchParams({ ...widgetyAuth(), market: "us" })}`,
-      { headers: WIDGETY_HEADERS },
-    );
-    if (!detRes.ok) return h;
-    const det = await detRes.json();
-    let date_from: string | null = null;
-    let ship_title: string | null = null;
-    for (const s of det.operating_seasons ?? []) {
-      for (const d of s.dates ?? []) {
-        if (d.date_from) {
-          date_from = d.date_from;
-          ship_title = d.ship_title ?? null;
-          break;
-        }
-      }
-      if (date_from) break;
-    }
-    return {
-      ...h,
-      cruise_nights: det.cruise_nights ?? (det.duration_days ? det.duration_days - 1 : null),
-      starts_at: det.starts_at ?? h.starts_at ?? null,
-      date_from,
-      ship_title,
-    };
-  } catch {
-    return h;
-  }
-}
-
-async function searchWidgety(criteria: Criteria): Promise<Candidate[]> {
-  const token = Deno.env.get("WIDGETY_APP_TOKEN");
-  const appId = Deno.env.get("WIDGETY_APP_ID");
-  if (!token || !appId) throw new Error("widgety credentials missing");
-
+async function searchCruiseFeed(criteria: Criteria): Promise<Candidate[]> {
   const allowedLines = CTS_LINES
     .filter((l) => !criteria.lines_excluded.includes(l.name))
     .filter((l) =>
@@ -306,61 +196,67 @@ async function searchWidgety(criteria: Criteria): Promise<Candidate[]> {
       criteria.lines_preferred.includes(l.name)
     )
     .map((l) => l.name);
+  if (allowedLines.length === 0) return [];
 
-  const operatorPool = allowedLines
-    .map((name) => LINE_TO_OPERATOR[name])
-    .filter((slug): slug is string => Boolean(slug));
+  const base: Record<string, string> = {
+    limit: String(PER_QUERY_LIMIT),
+    dedupe: "true",
+    currency: "USD",
+    sort: "price",
+  };
+  if (criteria.date_from) base.departure_from = criteria.date_from;
+  if (criteria.date_to) base.departure_to = criteria.date_to;
+  if (criteria.nights_min != null) base.min_nights = String(criteria.nights_min);
+  if (criteria.nights_max != null) base.max_nights = String(criteria.nights_max);
+  if (criteria.budget_per_person_max != null) base.max_price = String(criteria.budget_per_person_max);
 
-  if (operatorPool.length === 0) return [];
+  const regions = Array.from(new Set(
+    (criteria.regions ?? []).map((r) => REGION_MAP[r.toLowerCase()] ?? r).filter(Boolean),
+  ));
+  const regionList: (string | null)[] = regions.length ? regions : [null];
 
-  const baseParams: Record<string, string> = { limit: "25" };
-  if (criteria.date_from) baseParams.date_from = criteria.date_from;
-  if (criteria.date_to) baseParams.date_to = criteria.date_to;
-
-  const mappedRegions = criteria.regions
-    .map((r) => REGION_MAP[r.toLowerCase()])
-    .filter((s): s is string => Boolean(s));
-  if (mappedRegions.length) baseParams.regions = mappedRegions.join(",");
-
-  const fetchOp = (op: string) =>
-    V2_ONLY_OPERATORS.has(op)
-      ? searchCruisesV2({ ...baseParams, operators: op })
-      : searchHolidays({ ...baseParams, operators: op });
-
-  const perOperator = await Promise.all(operatorPool.map(fetchOp));
-  const rawHolidays = perOperator.flatMap((r) => r?.holidays ?? []).slice(0, MAX_CANDIDATES);
-
-  const enriched: any[] = [];
-  const BATCH = 18;
-  for (let i = 0; i < rawHolidays.length; i += BATCH) {
-    const batch = await Promise.all(rawHolidays.slice(i, i + BATCH).map(enrichWithDetail));
-    enriched.push(...batch);
+  const jobs: Record<string, string>[] = [];
+  for (const line of allowedLines) {
+    for (const region of regionList) {
+      jobs.push({ ...base, cruise_line: line, ...(region ? { region } : {}) });
+    }
   }
 
-  const results: Candidate[] = enriched
-    .filter((h) => h.holiday_ref && h.date_from)
-    .map((h) => {
-      const operatorSlug = (h.operator ?? "").match(/operators\/([^.]+)\.json/)?.[1] ?? h.operator;
-      return {
-        id: h.holiday_ref,
-        line: OPERATOR_TO_LINE[operatorSlug] ?? h.operator_title ?? "",
-        ship: h.ship_title ?? "",
-        embark_date: h.date_from,
-        embark_port: h.starts_at?.name ?? "",
-        nights: h.cruise_nights ?? 0,
-        itinerary: [],
-        price_from: null, // no price field exists anywhere in the Widgety integration
-        currency: null,
-        url: null, // no deep links to cruise-line sites — advisor CTA is the only forward path
-      };
-    });
+  const settled = await Promise.allSettled(jobs.map((p) => cruiseFeedGet("/cruises", p)));
+  const failures = settled.filter((s) => s.status === "rejected") as PromiseRejectedResult[];
+  if (failures.length === settled.length) throw failures[0].reason;
+  failures.forEach((f) => console.error("cruisefeed query failed:", f.reason));
+
+  const seen = new Set<string>();
+  const results: Candidate[] = [];
+  for (const s of settled) {
+    if (s.status !== "fulfilled") continue;
+    for (const c of s.value?.items ?? []) {
+      const key = c.sailing_id ?? c.id;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      results.push({
+        id: c.id,
+        line: c.cruise_line ?? "",
+        ship: c.ship_name ?? "",
+        embark_date: c.departure_date ?? "",
+        embark_port: c.embark_port ?? "",
+        nights: c.nights ?? 0,
+        itinerary: (c.itinerary ?? [])
+          .map((d: any) => (d.is_sea_day ? "At Sea" : d.port))
+          .filter(Boolean),
+        price_from: typeof c.price_amount === "number" ? c.price_amount : null,
+        currency: c.price_currency ?? null,
+        url: c.booking_url ?? c.detail_url ?? null,
+      });
+    }
+  }
 
   // Deterministic post-filter (belt and suspenders regardless of API filters):
   return results.filter((c) => {
     if (!allowedLines.includes(c.line)) return false;
-    if (c.embark_date < criteria.date_from || c.embark_date > criteria.date_to) {
-      return false;
-    }
+    if (!c.embark_date) return false;
+    if (c.embark_date < criteria.date_from || c.embark_date > criteria.date_to) return false;
     if (
       criteria.embark_ports.length > 0 &&
       !criteria.embark_ports.some((p) =>
@@ -370,7 +266,7 @@ async function searchWidgety(criteria: Criteria): Promise<Candidate[]> {
     if (criteria.nights_min !== null && c.nights < criteria.nights_min) return false;
     if (criteria.nights_max !== null && c.nights > criteria.nights_max) return false;
     return true;
-  });
+  }).slice(0, MAX_CANDIDATES);
 }
 
 // ---------- Stage 3: rank ----------
@@ -472,13 +368,19 @@ serve(async (req) => {
     if (!criteria.regions || criteria.regions.length === 0) {
       criteria.regions = inferRegionsFromQuery(query);
     }
-    candidates = await searchWidgety(criteria);
+    candidates = await searchCruiseFeed(criteria);
     results = await rankCandidates(
       query,
       criteria,
       candidates,
       Math.min(Math.max(1, max_results), 10),
     );
+    // Attach source-of-truth price/currency/url from CruiseFeed (never from the model).
+    const byId = new Map(candidates.map((c) => [c.id, c]));
+    results = results.map((r: any) => {
+      const c = byId.get(r?.id);
+      return c ? { ...r, price_from: c.price_from, currency: c.currency, url: c.url } : r;
+    });
 
     await logRun();
 
@@ -491,7 +393,7 @@ serve(async (req) => {
         meta: {
           candidates_considered: candidates.length,
           duration_ms: Date.now() - started,
-          source: "widgety",
+          source: "cruisefeed",
         },
       }),
       { headers: { ...CORS_HEADERS, "content-type": "application/json" } },
