@@ -12,7 +12,7 @@ import {
   type CruiseFilterState,
   DEFAULT_FILTERS,
 } from "./types";
-import { promotionLabel } from "./utils";
+import { promotionLabel, formatPrice } from "./utils";
 import { RotateCcw } from "lucide-react";
 
 interface FilterSidebarProps {
@@ -21,6 +21,7 @@ interface FilterSidebarProps {
   availableMonths?: string[];
   availableShips?: { title: string; slug: string }[];
   availablePromotions?: string[];
+  priceBounds?: [number, number];
 }
 
 export function FilterSidebar({
@@ -29,6 +30,7 @@ export function FilterSidebar({
   availableMonths = [],
   availableShips = [],
   availablePromotions = [],
+  priceBounds = [0, 20000],
 }: FilterSidebarProps) {
   const toggle = <K extends keyof CruiseFilterState>(
     key: K,
@@ -39,7 +41,7 @@ export function FilterSidebar({
     onChange({ ...filters, [key]: next as CruiseFilterState[K] });
   };
 
-  const reset = () => onChange({ ...DEFAULT_FILTERS });
+  const reset = () => onChange({ ...DEFAULT_FILTERS, priceRange: priceBounds });
 
   const activeCount =
     filters.destinations.length +
@@ -65,7 +67,7 @@ export function FilterSidebar({
       <ScrollArea className="h-[calc(100vh-180px)] min-h-[600px] pr-3">
         <Accordion
           type="multiple"
-          defaultValue={["destination", "line", "duration"]}
+          defaultValue={["destination", "line", "duration", "price"]}
           className="w-full"
         >
           <AccordionItem value="destination">
@@ -197,6 +199,25 @@ export function FilterSidebar({
                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
                   <span>{filters.durationRange[0]} nights</span>
                   <span>{filters.durationRange[1]}+ nights</span>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="price">
+            <AccordionTrigger className="text-sm py-2">Price Range (pp)</AccordionTrigger>
+            <AccordionContent>
+              <div className="px-1 pt-2">
+                <Slider
+                  value={filters.priceRange}
+                  min={priceBounds[0]}
+                  max={priceBounds[1]}
+                  step={100}
+                  onValueChange={(v) => onChange({ ...filters, priceRange: [v[0], v[1]] as [number, number] })}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span>{formatPrice(filters.priceRange[0])}</span>
+                  <span>{formatPrice(filters.priceRange[1])}+</span>
                 </div>
               </div>
             </AccordionContent>
