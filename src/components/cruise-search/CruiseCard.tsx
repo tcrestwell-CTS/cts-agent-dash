@@ -3,27 +3,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Ship, Calendar, MapPin, ChevronDown, ChevronUp, Eye, Plus } from "lucide-react";
+import { Ship, Calendar, MapPin, ChevronDown, ChevronUp, Eye, MessageSquareQuote } from "lucide-react";
 import type { WidgetySailing } from "./types";
-import { formatShortDate, formatPrice, getPortPreview, getAudienceTags, getCruiseType, operatorSlugFromTitle, getShipTitle } from "./utils";
+import { formatShortDate, getPortPreview, getAudienceTags, getCruiseType, operatorSlugFromTitle, getShipTitle } from "./utils";
 import { cn } from "@/lib/utils";
 
 interface CruiseCardProps {
   sailing: WidgetySailing;
-  price?: number | null;
   isComparing?: boolean;
   onToggleCompare?: (ref: string) => void;
   onViewDetails?: (s: WidgetySailing) => void;
-  onSelect?: (s: WidgetySailing) => void;
+  onRequestQuote?: (s: WidgetySailing) => void;
 }
 
+// Quote-only search: no fares are rendered. Clients see "pricing on request"
+// and every result leads to a quote request that returns live pricing.
 export function CruiseCard({
   sailing,
-  price,
   isComparing,
   onToggleCompare,
   onViewDetails,
-  onSelect,
+  onRequestQuote,
 }: CruiseCardProps) {
   const [expanded, setExpanded] = useState(false);
   const operatorSlug = operatorSlugFromTitle(sailing.operator_title);
@@ -115,20 +115,13 @@ export function CruiseCard({
           {/* Footer row */}
           <div className="flex items-end justify-between mt-auto gap-3 flex-wrap">
             <div>
-              {price != null ? (
-                <>
-                  <p className="text-xs text-muted-foreground">From</p>
-                  <p className="text-2xl font-bold text-primary leading-none">
-                    {formatPrice(price)}
-                    <span className="text-sm font-normal text-muted-foreground ml-1">/ pp</span>
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Taxes &amp; fees additional
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">Pricing on request</p>
-              )}
+              <p className="text-xs text-muted-foreground">Pricing</p>
+              <p className="text-sm font-semibold text-primary leading-none">
+                Available on request
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Live pricing returned with your quote
+              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -151,10 +144,10 @@ export function CruiseCard({
               </Button>
               <Button
                 size="sm"
-                onClick={() => onSelect?.(sailing)}
+                onClick={() => onRequestQuote?.(sailing)}
               >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Select
+                <MessageSquareQuote className="h-3.5 w-3.5 mr-1.5" />
+                Request Quote
               </Button>
             </div>
           </div>

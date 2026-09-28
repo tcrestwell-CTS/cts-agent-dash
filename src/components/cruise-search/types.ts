@@ -66,7 +66,7 @@ export interface WidgetyItineraryItem {
   notes: string | null;
 }
 
-export type SortOption = "recommended" | "price_asc" | "date_asc" | "duration_asc";
+export type SortOption = "recommended" | "date_asc" | "duration_asc";
 
 export interface CruiseFilterState {
   destinations: string[];
