@@ -329,7 +329,7 @@ export function TripBookings({
             <p className="text-xl font-semibold">{formatCurrency(unpaid > 0 ? unpaid : 0)}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Advisor commission (after split)</p>
+            <p className="text-sm text-muted-foreground mb-1">Commission (after split)</p>
             <p className="text-xl font-semibold">{formatCurrency(totalCommission)}</p>
           </div>
         </div>
