@@ -17,6 +17,7 @@ interface CruiseDetailsModalProps {
   onSelectAlternateSailing?: (sailing: WidgetySailing) => void;
   alternateSailings?: WidgetySailing[];
   priceCache?: Record<string, number | null>;
+  defaultTripId?: string;
 }
 
 // CruiseFeed rows carry the full sailing record (itinerary, fare, booking
@@ -29,6 +30,7 @@ export function CruiseDetailsModal({
   onSelectAlternateSailing,
   alternateSailings = [],
   priceCache = {},
+  defaultTripId,
 }: CruiseDetailsModalProps) {
   const [tab, setTab] = useState("summary");
 
@@ -337,6 +339,7 @@ export function CruiseDetailsModal({
               </Button>
               <AddToTripSelector
                 label="Add to Trip"
+                defaultTripId={defaultTripId}
                 items={itinerary.map((item) => ({
                   day_number: item.day_number,
                   title: item.title,

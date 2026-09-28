@@ -602,6 +602,10 @@ const TripDetail = () => {
               <Plane className="h-4 w-4 mr-2" />
               Search Flights
             </Button>
+            <Button variant="outline" size="sm" className="text-[13px]" onClick={() => navigate(`/cruises?tripId=${trip.id}`)}>
+              <Ship className="h-4 w-4 mr-2" />
+              Search Cruises
+            </Button>
             <WidgetyCruiseImportDialog
               tripId={trip.id}
               departDate={trip.depart_date}
