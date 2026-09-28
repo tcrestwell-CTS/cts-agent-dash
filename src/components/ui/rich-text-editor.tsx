@@ -265,6 +265,17 @@ export function RichTextEditor({
     },
   });
 
+  // Sync external value changes (e.g. AI-generated content) into the editor.
+  // Skip when the change came from the editor itself (HTML round-trips identically).
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.isEmpty ? "" : editor.getHTML();
+    const next = normalisePlainText(value);
+    if (next !== current) {
+      editor.commands.setContent(next, false);
+    }
+  }, [editor, value]);
+
   return (
     <div
       onFocusCapture={onFocus}
