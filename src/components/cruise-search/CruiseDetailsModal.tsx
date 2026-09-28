@@ -51,7 +51,25 @@ export function CruiseDetailsModal({
   const portStops = getPortPreview(sailing);
   const seaDays = itinerary.filter((d) => d.title === "At Sea").length;
 
-  const cruiseCabinChoices: CruiseCabinChoice[] = fromPrice
+  const fares: { cabin_class: string; price_amount: number | null; available: boolean }[] =
+    Array.isArray((sailing as any).fares) ? (sailing as any).fares : [];
+  const pricedFares = fares.filter((f) => f.available && typeof f.price_amount === "number");
+  const taxes: number | null = (sailing as any).taxes_and_fees ?? null;
+  const obc: number | null = (sailing as any).obc_amount ?? null;
+
+  const cruiseCabinChoices: CruiseCabinChoice[] = pricedFares.length
+    ? pricedFares.map((f) => ({
+        category_name: f.cabin_class,
+        description: [
+          sailing.ship_title ? `Ship: ${sailing.ship_title}` : null,
+          sailing.nights ? `${sailing.nights} nights` : null,
+          taxes != null ? `Taxes & fees $${taxes.toLocaleString()}` : null,
+        ].filter(Boolean).join(" • ") || null,
+        price_per_person: f.price_amount as number,
+        deposit_amount: 0,
+        capacity: null,
+      }))
+    : fromPrice
     ? [{
         category_name: "Lead rate — best available cabin",
         description: [
@@ -182,6 +200,31 @@ export function CruiseDetailsModal({
                               {perNight ? formatPrice(perNight) : "—"}
                             </span>
                           </div>
+                          {fares.length > 0 && (
+                            <div className="pt-2 space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">BY CABIN (PER PERSON)</p>
+                              {fares.map((f, i) => (
+                                <div key={i} className="flex items-center justify-between py-0.5">
+                                  <span className="text-xs text-foreground">{f.cabin_class}</span>
+                                  <span className="text-xs font-semibold text-primary">
+                                    {f.available && typeof f.price_amount === "number" ? formatPrice(f.price_amount) : "Not available"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {taxes != null && (
+                            <div className="flex items-center justify-between border-t pt-1">
+                              <span className="text-xs text-muted-foreground">Taxes & fees</span>
+                              <span className="text-xs text-foreground">{formatPrice(taxes)}</span>
+                            </div>
+                          )}
+                          {obc != null && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Onboard credit</span>
+                              <span className="text-xs text-foreground">{formatPrice(obc)}</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground py-3">

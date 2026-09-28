@@ -20,7 +20,7 @@ const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
 
 const CRUISEFEED_BASE = "https://api.cruisefeed.io/v1";
 // Trial key has a 300-result lifetime grant — keep per-query limits tight.
-const PER_QUERY_LIMIT = 6;
+const PER_QUERY_LIMIT = 10;
 const SEARCH_TTL_HOURS = 24;
 const SHIPS_TTL_DAYS = 7;
 
@@ -46,14 +46,47 @@ function supabaseAdmin() {
   );
 }
 
-async function cruiseFeedGet(path: string, params: Record<string, string>) {
+// CruiseFeed MCP (streamable HTTP, JSON-RPC 2.0). One session per invocation.
+const CRUISEFEED_MCP = "https://mcp.cruisefeed.io/mcp";
+let mcpSession: string | null = null;
+let rpcId = 0;
+
+async function mcpPost(payload: unknown) {
   const key = Deno.env.get("CRUISEFEED_API_KEY");
   if (!key) throw new Error("CRUISEFEED_API_KEY missing");
-  const res = await fetch(`${CRUISEFEED_BASE}${path}?${new URLSearchParams(params)}`, {
-    headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${key}`,
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+  if (mcpSession) headers["Mcp-Session-Id"] = mcpSession;
+  const res = await fetch(CRUISEFEED_MCP, { method: "POST", headers, body: JSON.stringify(payload) });
+  const sid = res.headers.get("mcp-session-id");
+  if (sid) mcpSession = sid;
+  const text = await res.text();
+  if (!res.ok) throw new Error(`cruisefeed mcp ${res.status}: ${text}`);
+  if (!text) return null;
+  const dataLines = text.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim());
+  const raw = dataLines.length ? dataLines[dataLines.length - 1] : text;
+  return JSON.parse(raw);
+}
+
+async function ensureMcp() {
+  if (mcpSession) return;
+  await mcpPost({
+    jsonrpc: "2.0", id: ++rpcId, method: "initialize",
+    params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "cts-agent-dash", version: "1" } },
   });
-  if (!res.ok) throw new Error(`cruisefeed ${res.status}: ${await res.text()}`);
-  return await res.json();
+  await mcpPost({ jsonrpc: "2.0", method: "notifications/initialized" });
+}
+
+async function mcpTool(name: string, args: Record<string, unknown>) {
+  await ensureMcp();
+  const r = await mcpPost({ jsonrpc: "2.0", id: ++rpcId, method: "tools/call", params: { name, arguments: args } });
+  if (r?.error) throw new Error(`cruisefeed ${name}: ${JSON.stringify(r.error)}`);
+  const txt = r?.result?.content?.find((c: any) => c.type === "text")?.text ?? "";
+  if (r?.result?.isError) throw new Error(`cruisefeed ${name}: ${txt}`);
+  try { return JSON.parse(txt); } catch { throw new Error(`cruisefeed ${name}: ${txt.slice(0, 300)}`); }
 }
 
 function addDays(iso: string, days: number): string {
@@ -95,9 +128,23 @@ function toSailing(c: any) {
     price_amount: typeof c.price_amount === "number" ? c.price_amount : null,
     price_currency: c.price_currency ?? "USD",
     booking_url: c.booking_url ?? c.detail_url ?? null,
+    detail_url: c.detail_url ?? null,
+    taxes_and_fees: typeof c.taxes_and_fees === "number" ? c.taxes_and_fees : null,
+    obc_amount: typeof c.obc_amount === "number" ? c.obc_amount : null,
+    sold_out: !!c.sold_out,
+    fares: (Array.isArray(c.fares) ? c.fares : []).map((f: any) => ({
+      cabin_class: f.cabin_class ?? f.cabin_category ?? "Cabin",
+      cabin_category: f.cabin_category ?? null,
+      price_amount: typeof f.price_amount === "number" ? f.price_amount : null,
+      price_currency: f.price_currency ?? c.price_currency ?? "USD",
+      available: f.available !== false,
+    })),
     itinerary: itinerary.map((d: any, i: number) => ({
       day_number: d.day_number ?? i + 1,
       title: d.is_sea_day ? "At Sea" : d.port || "—",
+      date: d.date ?? null,
+      arrive: d.arrive ?? null,
+      depart: d.depart ?? null,
       location: d.is_sea_day ? null : d.port || null,
       description: d.description ?? null,
     })),
@@ -156,28 +203,27 @@ async function handleSearch(body: any) {
   const nightsMax = typeof body.nights_max === "number" ? body.nights_max : null;
 
   const cacheKey = JSON.stringify({
-    k: "search", lines, region, port, dateFrom, dateTo, nightsMin, nightsMax, v: 1,
+    k: "search", lines, region, port, dateFrom, dateTo, nightsMin, nightsMax, v: 2,
   });
   const cached = await readCache(cacheKey, SEARCH_TTL_HOURS * 3600 * 1000);
   if (cached) return { ...cached, cached: true };
 
-  const base: Record<string, string> = {
-    limit: String(PER_QUERY_LIMIT),
-    dedupe: "true",
-    currency: "USD",
+  const base: Record<string, unknown> = {
+    limit: PER_QUERY_LIMIT,
     sort: "price",
     departure_from: dateFrom,
     departure_to: dateTo,
   };
-  if (nightsMin != null) base.min_nights = String(nightsMin);
-  if (nightsMax != null) base.max_nights = String(nightsMax);
+  if (nightsMin != null) base.min_nights = nightsMin;
+  if (nightsMax != null) base.max_nights = nightsMax;
 
-  const jobs: Record<string, string>[] = [];
+  const jobs: Record<string, unknown>[] = [];
   for (const line of lines) {
     jobs.push({ ...base, cruise_line: line, ...(region ? { region } : {}) });
   }
 
-  const settled = await Promise.allSettled(jobs.map((p) => cruiseFeedGet("/cruises", p)));
+  await ensureMcp();
+  const settled = await Promise.allSettled(jobs.map((p) => mcpTool("search_cruises", p)));
   const failures = settled.filter((s) => s.status === "rejected") as PromiseRejectedResult[];
   if (failures.length === settled.length) throw failures[0].reason;
 
@@ -218,10 +264,7 @@ async function handleShips(cruiseLine: string) {
 
   try {
     // /v1/ships valid params: flag_state, limit, offset, operator, q
-    const data = await cruiseFeedGet("/ships", {
-      operator: cruiseLine,
-      limit: "200",
-    });
+    const data = await mcpTool("search_ships", { operator: cruiseLine, limit: 200 });
     const raw = data?.items ?? data?.ships ?? (Array.isArray(data) ? data : []);
     const ships = raw
       .map((s: any) => ({ title: s.name || s.title || s.ship_name || "", slug: s.name || s.title || s.ship_name || "" }))
@@ -253,6 +296,7 @@ serve(async (req) => {
     });
   }
 
+  mcpSession = null;
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "search";
