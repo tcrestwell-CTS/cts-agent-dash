@@ -3,16 +3,16 @@ import { Ship, X, Scale } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import type { WidgetySailing } from "./types";
-import { formatShortDate, getPortPreview } from "./utils";
+import { formatShortDate, formatPrice, getPortPreview } from "./utils";
 
 interface CompareDrawerProps {
   sailings: WidgetySailing[];
+  priceCache: Record<string, number | null>;
   onRemove: (ref: string) => void;
   onClear: () => void;
 }
 
-// Quote-only: the comparison shows itinerary facts, never fares.
-export function CompareDrawer({ sailings, onRemove, onClear }: CompareDrawerProps) {
+export function CompareDrawer({ sailings, priceCache, onRemove, onClear }: CompareDrawerProps) {
   const [open, setOpen] = useState(false);
   if (sailings.length === 0) return null;
 
@@ -64,6 +64,7 @@ export function CompareDrawer({ sailings, onRemove, onClear }: CompareDrawerProp
                   <th className="text-left py-2 pr-3 font-medium">Departs</th>
                   <th className="text-left py-2 pr-3 font-medium">Nights</th>
                   <th className="text-left py-2 pr-3 font-medium">Route</th>
+                  <th className="text-right py-2 pl-3 font-medium">From / pp</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,15 +78,14 @@ export function CompareDrawer({ sailings, onRemove, onClear }: CompareDrawerProp
                     <td className="py-3 pr-3">{formatShortDate(s.date_from)}</td>
                     <td className="py-3 pr-3">{s.nights || "—"}</td>
                     <td className="py-3 pr-3 text-muted-foreground">{getPortPreview(s) || "—"}</td>
+                    <td className="py-3 pl-3 text-right font-semibold text-primary">
+                      {formatPrice(priceCache[s.holiday_ref])}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Pricing is available on request — each cruise can be quoted with live fares from the
-            Request Quote action.
-          </p>
         </DialogContent>
       </Dialog>
     </>
