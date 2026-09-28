@@ -264,7 +264,6 @@ export default function CruiseSearch() {
       onChange={setFilters}
       availableMonths={availableMonths}
       availableShips={availableShips}
-      priceBounds={priceBounds}
     />
   );
 
@@ -324,18 +323,14 @@ export default function CruiseSearch() {
               loading={loading}
               sort={sort}
               onSortChange={setSort}
-              priceCache={priceCache}
               comparingRefs={comparingRefs}
               onToggleCompare={toggleCompare}
               onViewDetails={(s) => {
                 setDetailsSailing(s);
                 setDetailsOpen(true);
               }}
-              onSelect={(s) => {
-                setDetailsSailing(s);
-                setDetailsOpen(true);
-              }}
-              onResetFilters={() => setFilters({ ...DEFAULT_FILTERS, priceRange: priceBounds })}
+              onRequestQuote={handleRequestQuote}
+              onResetFilters={() => setFilters(DEFAULT_FILTERS)}
             />
           </div>
         ) : (
@@ -362,7 +357,6 @@ export default function CruiseSearch() {
 
         <CompareDrawer
           sailings={comparingSailings}
-          priceCache={priceCache}
           onRemove={(ref) => setComparingRefs((p) => p.filter((r) => r !== ref))}
           onClear={() => setComparingRefs([])}
         />
@@ -373,13 +367,19 @@ export default function CruiseSearch() {
           onOpenChange={setDetailsOpen}
           dateFrom={dateFrom}
           dateTo={dateTo}
-          priceCache={priceCache}
+          onRequestQuote={handleRequestQuote}
           alternateSailings={
             detailsSailing
               ? filteredSailings.filter((s) => s.holiday_ref !== detailsSailing.holiday_ref)
               : []
           }
           onSelectAlternateSailing={(s) => setDetailsSailing(s)}
+        />
+
+        <RequestQuoteDialog
+          sailing={quoteSailing}
+          open={quoteOpen}
+          onOpenChange={setQuoteOpen}
         />
       </div>
     </DashboardLayout>
