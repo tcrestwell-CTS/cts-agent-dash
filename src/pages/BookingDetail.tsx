@@ -338,7 +338,7 @@ const BookingDetail = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/bookings")}
+            onClick={() => navigate(booking.trip_id ? `/trips/${booking.trip_id}` : "/bookings")}
             className="mt-1"
           >
             <ArrowLeft className="h-5 w-5" />
