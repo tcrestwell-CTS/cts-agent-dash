@@ -212,9 +212,25 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
   }, [open]);
 
   const callWidgety = async (body: Record<string, any>) => {
-    const { data, error } = await supabase.functions.invoke("widgety-cruise", { body });
-    if (error) throw new Error(error.message || "Failed to call Widgety");
-    if (data?.error) throw new Error(data.error);
+    let data: any = null;
+    let details = "";
+    try {
+      const res = await supabase.functions.invoke("widgety-cruise", { body });
+      data = res.data;
+      if (res.error) {
+        const ctx: any = (res.error as any).context;
+        details = ctx?.text ? await ctx.text().catch(() => "") : res.error.message;
+      }
+    } catch (e: any) {
+      details = e?.message || "";
+    }
+    const msg = details || data?.error || "";
+    if (/401|permission/i.test(msg)) {
+      const friendly = "The old cruise catalog (Widgety) is no longer available. Use Cruise Search to find sailings and add them to this trip.";
+      toast.error(friendly);
+      throw new Error(friendly);
+    }
+    if (msg) throw new Error(msg);
     return data;
   };
 
