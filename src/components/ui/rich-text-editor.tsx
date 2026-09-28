@@ -17,7 +17,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Bold, Italic, Underline as UnderlineIcon,
@@ -264,6 +264,17 @@ export function RichTextEditor({
       onChange(html);
     },
   });
+
+  // Sync external value changes (e.g. AI-generated content) into the editor.
+  // Skip when the change came from the editor itself (HTML round-trips identically).
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.isEmpty ? "" : editor.getHTML();
+    const next = normalisePlainText(value);
+    if (next !== current) {
+      editor.commands.setContent(next);
+    }
+  }, [editor, value]);
 
   return (
     <div
