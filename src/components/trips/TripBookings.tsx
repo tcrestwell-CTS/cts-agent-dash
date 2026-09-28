@@ -329,7 +329,7 @@ export function TripBookings({
             <p className="text-xl font-semibold">{formatCurrency(unpaid > 0 ? unpaid : 0)}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Advisor commission (after split)</p>
+            <p className="text-sm text-muted-foreground mb-1">Commission (after split)</p>
             <p className="text-xl font-semibold">{formatCurrency(totalCommission)}</p>
           </div>
         </div>
@@ -364,18 +364,18 @@ export function TripBookings({
               <p className="text-sm mt-1">Add bookings to track hotels, flights, and more</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-6 px-6">
+              <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b text-left">
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Item</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Cost</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Confirmation #</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier Conf #</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Payment</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Commission</th>
-                     <th className="pb-3 font-medium text-sm text-muted-foreground">Supplier Paid</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Item</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Cost</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Supplier</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Conf #</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Supplier Conf #</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Payment</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Commission</th>
+                     <th className="pb-3 pr-4 font-medium text-sm text-muted-foreground whitespace-nowrap">Supplier Paid</th>
                      <th className="pb-3 font-medium text-sm text-muted-foreground w-10"></th>
                   </tr>
                 </thead>
@@ -386,28 +386,28 @@ export function TripBookings({
                       className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => navigate(`/bookings/${booking.id}`)}
                     >
-                      <td className="py-3">
+                      <td className="py-3 pr-4">
                         <div className="flex items-center gap-3">
                           {getSupplierIcon(booking.suppliers?.supplier_type)}
-                          <span className="font-medium text-primary">
+                          <span className="font-medium text-primary whitespace-nowrap">
                             {booking.trip_name || booking.destination}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3">{formatCurrency(booking.gross_sales)}</td>
-                      <td className="py-3">
-                        <span className="text-primary hover:underline">
+                      <td className="py-3 pr-4 whitespace-nowrap">{formatCurrency(booking.gross_sales)}</td>
+                      <td className="py-3 pr-4">
+                        <span className="text-primary hover:underline whitespace-nowrap">
                           {booking.suppliers?.name || "-"}
                         </span>
                       </td>
-                      <td className="py-3 font-mono text-sm text-primary">
+                      <td className="py-3 pr-4 font-mono text-sm text-primary whitespace-nowrap">
                         {booking.confirmation_number || booking.booking_reference || "-"}
                       </td>
-                      <td className="py-3 font-mono text-sm text-muted-foreground">
+                      <td className="py-3 pr-4 font-mono text-sm text-muted-foreground whitespace-nowrap">
                         {booking.supplier_confirmation_number || "-"}
                       </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
                           {getPaymentStatus(booking)}
                           {isDuffelBooking(booking.id) && booking.status !== "cancelled" && (
                             <>
@@ -445,8 +445,8 @@ export function TripBookings({
                           )}
                         </div>
                       </td>
-                      <td className="py-3">{getCommissionStatus(booking)}</td>
-                      <td className="py-3">
+                      <td className="py-3 pr-4 whitespace-nowrap">{getCommissionStatus(booking)}</td>
+                      <td className="py-3 pr-4 whitespace-nowrap">
                         <InlinePaymentStatus
                           status={booking.supplier_paid_status}
                           type="supplier"
