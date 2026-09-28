@@ -20,7 +20,7 @@ const JSON_HEADERS = { ...corsHeaders, "Content-Type": "application/json" };
 
 const CRUISEFEED_BASE = "https://api.cruisefeed.io/v1";
 // Trial key has a 300-result lifetime grant — keep per-query limits tight.
-const PER_QUERY_LIMIT = 10;
+const PER_QUERY_LIMIT = 25; // pay-as-you-go plan — no trial result cap
 const SEARCH_TTL_HOURS = 24;
 const SHIPS_TTL_DAYS = 7;
 
