@@ -222,7 +222,18 @@ async function searchCruiseFeed(criteria: Criteria): Promise<Candidate[]> {
     }
   }
 
-  const settled = await Promise.allSettled(jobs.map((p) => cruiseFeedGet("/cruises", p)));
+  // CruiseFeed returns 500s under bursts — cap concurrency and retry once.
+  const fetchWithRetry = async (p: Record<string, string>) => {
+    try { return await cruiseFeedGet("/cruises", p); }
+    catch (_e) {
+      await new Promise((r) => setTimeout(r, 600));
+      return await cruiseFeedGet("/cruises", p);
+    }
+  };
+  const settled: PromiseSettledResult<any>[] = [];
+  for (let i = 0; i < jobs.length; i += 3) {
+    settled.push(...await Promise.allSettled(jobs.slice(i, i + 3).map(fetchWithRetry)));
+  }
   const failures = settled.filter((s) => s.status === "rejected") as PromiseRejectedResult[];
   if (failures.length === settled.length) throw failures[0].reason;
   failures.forEach((f) => console.error("cruisefeed query failed:", f.reason));
