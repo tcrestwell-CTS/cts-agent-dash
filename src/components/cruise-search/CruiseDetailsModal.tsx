@@ -51,7 +51,25 @@ export function CruiseDetailsModal({
   const portStops = getPortPreview(sailing);
   const seaDays = itinerary.filter((d) => d.title === "At Sea").length;
 
-  const cruiseCabinChoices: CruiseCabinChoice[] = fromPrice
+  const fares: { cabin_class: string; price_amount: number | null; available: boolean }[] =
+    Array.isArray((sailing as any).fares) ? (sailing as any).fares : [];
+  const pricedFares = fares.filter((f) => f.available && typeof f.price_amount === "number");
+  const taxes: number | null = (sailing as any).taxes_and_fees ?? null;
+  const obc: number | null = (sailing as any).obc_amount ?? null;
+
+  const cruiseCabinChoices: CruiseCabinChoice[] = pricedFares.length
+    ? pricedFares.map((f) => ({
+        category_name: f.cabin_class,
+        description: [
+          sailing.ship_title ? `Ship: ${sailing.ship_title}` : null,
+          sailing.nights ? `${sailing.nights} nights` : null,
+          taxes != null ? `Taxes & fees $${taxes.toLocaleString()}` : null,
+        ].filter(Boolean).join(" • ") || null,
+        price_per_person: f.price_amount as number,
+        deposit_amount: 0,
+        capacity: null,
+      }))
+    : fromPrice
     ? [{
         category_name: "Lead rate — best available cabin",
         description: [
