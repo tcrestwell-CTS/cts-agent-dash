@@ -203,7 +203,7 @@ async function handleSearch(body: any) {
   const nightsMax = typeof body.nights_max === "number" ? body.nights_max : null;
 
   const cacheKey = JSON.stringify({
-    k: "search", lines, region, port, dateFrom, dateTo, nightsMin, nightsMax, v: 2,
+    k: "search", lines, region, port, dateFrom, dateTo, nightsMin, nightsMax, v: 3,
   });
   const cached = await readCache(cacheKey, SEARCH_TTL_HOURS * 3600 * 1000);
   if (cached) return { ...cached, cached: true };

@@ -11,6 +11,17 @@ export interface WidgetySailing {
   starts_at?: { name?: string; country?: string };
   ends_at?: { name?: string; country?: string };
   description?: string;
+  price_amount?: number | null;
+  price_currency?: string;
+  fares?: CruiseFeedFare[];
+}
+
+export interface CruiseFeedFare {
+  cabin_class: string;
+  cabin_category?: string | null;
+  price_amount: number | null;
+  price_currency?: string;
+  available: boolean;
 }
 
 export interface WidgetyCabinPrice {
