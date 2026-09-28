@@ -200,6 +200,31 @@ export function CruiseDetailsModal({
                               {perNight ? formatPrice(perNight) : "—"}
                             </span>
                           </div>
+                          {fares.length > 0 && (
+                            <div className="pt-2 space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">BY CABIN (PER PERSON)</p>
+                              {fares.map((f, i) => (
+                                <div key={i} className="flex items-center justify-between py-0.5">
+                                  <span className="text-xs text-foreground">{f.cabin_class}</span>
+                                  <span className="text-xs font-semibold text-primary">
+                                    {f.available && typeof f.price_amount === "number" ? formatPrice(f.price_amount) : "Not available"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {taxes != null && (
+                            <div className="flex items-center justify-between border-t pt-1">
+                              <span className="text-xs text-muted-foreground">Taxes & fees</span>
+                              <span className="text-xs text-foreground">{formatPrice(taxes)}</span>
+                            </div>
+                          )}
+                          {obc != null && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Onboard credit</span>
+                              <span className="text-xs text-foreground">{formatPrice(obc)}</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground py-3">
