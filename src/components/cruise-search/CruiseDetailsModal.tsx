@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Ship, Calendar, MapPin, Anchor, Clock, X, ExternalLink } from "lucide-react";
+import { Ship, Calendar, MapPin, Anchor, Clock, X, MessageSquareQuote } from "lucide-react";
 import { AddToTripSelector, type CruiseCabinChoice } from "@/components/search/AddToTripSelector";
 import type { WidgetySailing } from "./types";
 import { formatShortDate, formatPrice, getPortPreview } from "./utils";
@@ -16,19 +16,20 @@ interface CruiseDetailsModalProps {
   dateTo?: string;
   onSelectAlternateSailing?: (sailing: WidgetySailing) => void;
   alternateSailings?: WidgetySailing[];
-  priceCache?: Record<string, number | null>;
+  onRequestQuote?: (sailing: WidgetySailing) => void;
 }
 
-// CruiseFeed rows carry the full sailing record (itinerary, fare, booking
-// link), so this modal renders entirely from the selected sailing — no
-// supplier detail calls needed.
+// Quote-only details view: fares are never displayed. The pricing panel is
+// replaced with a Request Exact Quote action; live cabin pricing travels with
+// the generated quote instead. Add to Trip remains an internal booking tool
+// and keeps carrying fare data for the trip record.
 export function CruiseDetailsModal({
   sailing,
   open,
   onOpenChange,
   onSelectAlternateSailing,
   alternateSailings = [],
-  priceCache = {},
+  onRequestQuote,
 }: CruiseDetailsModalProps) {
   const [tab, setTab] = useState("summary");
 
@@ -46,8 +47,6 @@ export function CruiseDetailsModal({
 
   const fromPrice: number | null =
     typeof (sailing as any).price_amount === "number" ? (sailing as any).price_amount : null;
-  const bookingUrl: string | null = (sailing as any).booking_url || null;
-  const perNight = fromPrice && sailing.nights ? fromPrice / sailing.nights : null;
   const portStops = getPortPreview(sailing);
   const seaDays = itinerary.filter((d) => d.title === "At Sea").length;
 
@@ -55,7 +54,6 @@ export function CruiseDetailsModal({
     Array.isArray((sailing as any).fares) ? (sailing as any).fares : [];
   const pricedFares = fares.filter((f) => f.available && typeof f.price_amount === "number");
   const taxes: number | null = (sailing as any).taxes_and_fees ?? null;
-  const obc: number | null = (sailing as any).obc_amount ?? null;
 
   const cruiseCabinChoices: CruiseCabinChoice[] = pricedFares.length
     ? pricedFares.map((f) => ({
@@ -182,71 +180,24 @@ export function CruiseDetailsModal({
                     </p>
                   </div>
 
-                  {/* From price — right */}
+                  {/* Pricing panel — quote-only */}
                   <div className="col-span-12 md:col-span-4 space-y-3">
                     <div className="border rounded-lg p-4 space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Lead Fare</p>
-                      {fromPrice != null ? (
-                        <div className="space-y-1.5 text-sm">
-                          <div className="flex items-center justify-between border-b py-1">
-                            <span className="text-xs font-medium text-muted-foreground">FROM (PER PERSON)</span>
-                            <span className="text-sm font-semibold text-primary">
-                              {formatPrice(fromPrice)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between border-b py-1">
-                            <span className="text-xs font-medium text-muted-foreground">PER NIGHT</span>
-                            <span className="text-sm font-semibold text-primary">
-                              {perNight ? formatPrice(perNight) : "—"}
-                            </span>
-                          </div>
-                          {fares.length > 0 && (
-                            <div className="pt-2 space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">BY CABIN (PER PERSON)</p>
-                              {fares.map((f, i) => (
-                                <div key={i} className="flex items-center justify-between py-0.5">
-                                  <span className="text-xs text-foreground">{f.cabin_class}</span>
-                                  <span className="text-xs font-semibold text-primary">
-                                    {f.available && typeof f.price_amount === "number" ? formatPrice(f.price_amount) : "Not available"}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {taxes != null && (
-                            <div className="flex items-center justify-between border-t pt-1">
-                              <span className="text-xs text-muted-foreground">Taxes & fees</span>
-                              <span className="text-xs text-foreground">{formatPrice(taxes)}</span>
-                            </div>
-                          )}
-                          {obc != null && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">Onboard credit</span>
-                              <span className="text-xs text-foreground">{formatPrice(obc)}</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground py-3">
-                          Pricing not published for this sailing. Request a quote from the supplier.
-                        </p>
-                      )}
+                      <p className="text-xs font-medium text-muted-foreground">Pricing</p>
+                      <p className="text-sm font-semibold text-primary">Available on request</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Fares move with promotions and cabin availability, so pricing isn't shown
+                        here. Request an exact quote and current cabin-by-cabin fares, taxes, and
+                        offers are returned with it.
+                      </p>
                     </div>
-                    {bookingUrl && (
-                      <a
-                        href={bookingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-center gap-2 w-full border rounded-md px-3 py-2 text-sm text-primary hover:bg-accent/50 transition-colors"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View live offer
-                      </a>
-                    )}
-                    <p className="text-[10px] text-muted-foreground">
-                      Fare shown is a live feed estimate per person, double occupancy. Taxes, fees,
-                      and promotions are confirmed by the cruise line at booking.
-                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={() => onRequestQuote?.(sailing)}
+                    >
+                      <MessageSquareQuote className="h-4 w-4 mr-2" />
+                      Request Exact Quote
+                    </Button>
                   </div>
                 </div>
 
@@ -294,46 +245,37 @@ export function CruiseDetailsModal({
           {alternateSailings.length > 0 && (
             <div className="border-t bg-muted/20 px-4 py-3 shrink-0">
               <div className="flex items-center gap-3 overflow-x-auto">
-                {alternateSailings.slice(0, 6).map((alt) => {
-                  const altPrice = priceCache[alt.holiday_ref];
-                  return (
-                    <button
-                      key={alt.holiday_ref}
-                      onClick={() => onSelectAlternateSailing?.(alt)}
-                      className="group relative shrink-0 text-left bg-card border rounded-md px-3 py-2 hover:border-primary transition-colors min-w-52"
-                    >
-                      <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-foreground/80 text-background flex items-center justify-center">
-                        <X className="h-2.5 w-2.5" />
-                      </span>
-                      <p className="text-xs font-medium truncate">
-                        {alt.operator_title}: {alt.ship_title || alt.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {alt.date_from ? formatShortDate(alt.date_from) : ""}
-                      </p>
-                      {altPrice != null && (
-                        <p className="text-sm font-semibold text-primary mt-0.5">
-                          {formatPrice(altPrice)}
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
+                {alternateSailings.slice(0, 6).map((alt) => (
+                  <button
+                    key={alt.holiday_ref}
+                    onClick={() => onSelectAlternateSailing?.(alt)}
+                    className="group relative shrink-0 text-left bg-card border rounded-md px-3 py-2 hover:border-primary transition-colors min-w-52"
+                  >
+                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-foreground/80 text-background flex items-center justify-center">
+                      <X className="h-2.5 w-2.5" />
+                    </span>
+                    <p className="text-xs font-medium truncate">
+                      {alt.operator_title}: {alt.ship_title || alt.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {alt.date_from ? formatShortDate(alt.date_from) : ""}
+                    </p>
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
           <div className="border-t p-4 flex items-center justify-between gap-3 flex-wrap bg-card shrink-0">
-            <div className="text-sm">
-              {fromPrice != null && (
-                <span className="text-primary font-medium">
-                  From {formatPrice(fromPrice)} pp (double occupancy)
-                </span>
-              )}
+            <div className="text-sm text-muted-foreground">
+              Pricing on request — exact live fares included with your quote
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                 <X className="h-3.5 w-3.5 mr-1" /> Clear
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onRequestQuote?.(sailing)}>
+                <MessageSquareQuote className="h-3.5 w-3.5 mr-1" /> Request Quote
               </Button>
               <AddToTripSelector
                 label="Add to Trip"

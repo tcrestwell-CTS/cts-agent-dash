@@ -11,11 +11,10 @@ interface CruiseResultsProps {
   loading: boolean;
   sort: SortOption;
   onSortChange: (s: SortOption) => void;
-  priceCache: Record<string, number | null>;
   comparingRefs: string[];
   onToggleCompare: (ref: string) => void;
   onViewDetails: (s: WidgetySailing) => void;
-  onSelect: (s: WidgetySailing) => void;
+  onRequestQuote: (s: WidgetySailing) => void;
   onResetFilters?: () => void;
 }
 
@@ -25,11 +24,10 @@ export function CruiseResults({
   loading,
   sort,
   onSortChange,
-  priceCache,
   comparingRefs,
   onToggleCompare,
   onViewDetails,
-  onSelect,
+  onRequestQuote,
   onResetFilters,
 }: CruiseResultsProps) {
   return (
@@ -47,7 +45,6 @@ export function CruiseResults({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="recommended">Recommended</SelectItem>
-              <SelectItem value="price_asc">Price: Low to High</SelectItem>
               <SelectItem value="date_asc">Departure Date</SelectItem>
               <SelectItem value="duration_asc">Duration</SelectItem>
             </SelectContent>
@@ -78,11 +75,10 @@ export function CruiseResults({
             <CruiseCard
               key={s.holiday_ref}
               sailing={s}
-              price={priceCache[s.holiday_ref]}
               isComparing={comparingRefs.includes(s.holiday_ref)}
               onToggleCompare={onToggleCompare}
               onViewDetails={onViewDetails}
-              onSelect={onSelect}
+              onRequestQuote={onRequestQuote}
             />
           ))}
         </div>
