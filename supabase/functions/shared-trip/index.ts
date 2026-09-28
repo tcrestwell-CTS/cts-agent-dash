@@ -802,6 +802,8 @@ ${note ? `<p>Client note: ${note}</p>` : ""}
             depart_date: it.depart_date ?? null,
             return_date: it.return_date ?? null,
             sort_order: it.sort_order ?? 0,
+            header_style: it.header_style ?? null,
+            font_style: it.font_style ?? null,
             items: sanitizeItinerary(
               snapshotItems.filter((x: any) => x?.itinerary_id === it.id),
               itDays
@@ -944,6 +946,8 @@ ${note ? `<p>Client note: ${note}</p>` : ""}
           depart_date: it.depart_date ?? null,
           return_date: it.return_date ?? null,
           sort_order: it.sort_order ?? 0,
+          header_style: it.header_style ?? null,
+          font_style: it.font_style ?? null,
           items: sanitizeItinerary(
             allItems.filter((x: any) => x?.itinerary_id === it.id),
             itDays
@@ -954,6 +958,32 @@ ${note ? `<p>Client note: ${note}</p>` : ""}
           ),
         };
       });
+    }
+
+    // Presentation settings are intentionally live so an advisor can compare
+    // proposal styles immediately without republishing itinerary content.
+    if (itinerariesList.length > 0) {
+      const itineraryIds = itinerariesList.map((it: any) => it.id).filter(Boolean);
+      const { data: liveStyles, error: liveStylesError } = await supabase
+        .from("itineraries")
+        .select("id, header_style, font_style")
+        .in("id", itineraryIds);
+
+      if (liveStylesError) {
+        console.error("shared-trip: live proposal styles query failed", liveStylesError);
+      } else {
+        const styleById = new Map((liveStyles || []).map((it: any) => [it.id, it]));
+        itinerariesList = itinerariesList.map((it: any) => {
+          const liveStyle = styleById.get(it.id) as any;
+          return liveStyle
+            ? {
+                ...it,
+                header_style: liveStyle.header_style ?? null,
+                font_style: liveStyle.font_style ?? null,
+              }
+            : it;
+        });
+      }
     }
 
     // Fetch pricing lines (client-facing sell prices only)
