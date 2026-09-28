@@ -272,7 +272,7 @@ export function RichTextEditor({
     const current = editor.isEmpty ? "" : editor.getHTML();
     const next = normalisePlainText(value);
     if (next !== current) {
-      editor.commands.setContent(next, false);
+      editor.commands.setContent(next);
     }
   }, [editor, value]);
 
