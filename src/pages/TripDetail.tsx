@@ -721,7 +721,7 @@ const TripDetail = () => {
 
         {/* Main content with left sidebar */}
         <div className={guided
-          ? "mx-auto w-full max-w-[1240px] grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[180px_minmax(0,1fr)_240px] items-start"
+          ? "mx-auto w-full max-w-[1720px] grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_280px] items-start"
           : showRightSidebar
             ? "grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[210px_minmax(0,1fr)_360px] items-start"
             : "grid gap-6 lg:grid-cols-[200px_1fr] items-start"
