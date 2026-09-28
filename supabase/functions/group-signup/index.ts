@@ -834,18 +834,88 @@ Deno.serve(async (req) => {
                   .eq("id", splitLines[0].id);
               }
             } else {
+              // Mirror the parent's bookings into this sub-trip, each line split
+              // by the divisor (cost AND sell), so the advisor sees this
+              // sub-trip's share of the commission. Falls back to one lump
+              // booking when the parent has no itemized bookings.
+              const { count: subBookingCount } = await supabaseAdmin
+                .from("bookings")
+                .select("id", { count: "exact", head: true })
+                .eq("trip_id", s.sub_trip_id);
+              if ((subBookingCount || 0) > 0) continue;
 
-              await supabaseAdmin.from("bookings").insert({
-                user_id: parentTrip.user_id,
-                trip_id: s.sub_trip_id,
-                confirmation_number: `GRP-${String(s.sub_trip_id).substring(0, 8).toUpperCase()}`,
-                status: "pending",
-                gross_sales: subTotal,
-                total_price: subTotal,
-                net_sales: subTotal,
-                commissionable_amount: subTotal,
-                pricing_mode: "commission",
-              });
+              const { data: parentBookings } = await supabaseAdmin
+                .from("bookings")
+                .select("id, supplier_id, status, pricing_mode, commission_estimate, advisor_split_pct, agency_split_pct")
+                .eq("trip_id", parentTrip.id)
+                .neq("status", "cancelled");
+
+              let mirrored = 0;
+              for (const pb of parentBookings || []) {
+                const { data: plines } = await supabaseAdmin
+                  .from("booking_margin_lines")
+                  .select("line_type, total_cost, total_sell, sort_order, description, is_internal, is_optional, is_pass_through, source")
+                  .eq("booking_id", pb.id);
+                if (!plines || plines.length === 0) continue;
+                const r2 = (n: number) => Math.round(n * 100) / 100;
+                const lines = plines.map((l) => ({
+                  ...l,
+                  unit_cost: r2(Number(l.total_cost || 0) / divisor),
+                  unit_sell: r2(Number(l.total_sell || 0) / divisor),
+                }));
+                const sell = r2(lines.reduce((a, l) => a + l.unit_sell, 0));
+                const { data: nb, error: nbErr } = await supabaseAdmin
+                  .from("bookings")
+                  .insert({
+                    user_id: parentTrip.user_id,
+                    trip_id: s.sub_trip_id,
+                    supplier_id: pb.supplier_id,
+                    confirmation_number: `GRP-${crypto.randomUUID().substring(0, 8).toUpperCase()}`,
+                    status: "pending",
+                    gross_sales: sell,
+                    total_price: sell,
+                    pricing_mode: pb.pricing_mode || "commission",
+                    commission_estimate: pb.commission_estimate,
+                    advisor_split_pct: pb.advisor_split_pct,
+                    agency_split_pct: pb.agency_split_pct,
+                    source: "native",
+                  })
+                  .select("id")
+                  .single();
+                if (nbErr || !nb) { console.error("Mirror booking failed:", nbErr); continue; }
+                await supabaseAdmin.from("booking_margin_lines").insert(
+                  lines.map((l) => ({
+                    booking_id: nb.id,
+                    user_id: parentTrip.user_id,
+                    source: l.source || "manual",
+                    quantity: 1,
+                    line_type: l.line_type,
+                    unit_cost: l.unit_cost,
+                    unit_sell: l.unit_sell,
+                    sort_order: l.sort_order,
+                    description: l.description,
+                    is_internal: l.is_internal,
+                    is_optional: l.is_optional,
+                    is_pass_through: l.is_pass_through,
+                    deposit_amount: 0,
+                  })),
+                );
+                mirrored++;
+              }
+
+              if (mirrored === 0) {
+                await supabaseAdmin.from("bookings").insert({
+                  user_id: parentTrip.user_id,
+                  trip_id: s.sub_trip_id,
+                  confirmation_number: `GRP-${String(s.sub_trip_id).substring(0, 8).toUpperCase()}`,
+                  status: "pending",
+                  gross_sales: subTotal,
+                  total_price: subTotal,
+                  net_sales: subTotal,
+                  commissionable_amount: subTotal,
+                  pricing_mode: "commission",
+                });
+              }
             }
           }
         }
