@@ -13,6 +13,7 @@ import { FilterSidebar } from "@/components/cruise-search/FilterSidebar";
 import { CruiseResults } from "@/components/cruise-search/CruiseResults";
 import { CompareDrawer } from "@/components/cruise-search/CompareDrawer";
 import { CruiseDetailsModal } from "@/components/cruise-search/CruiseDetailsModal";
+import { RequestQuoteDialog } from "@/components/cruise-search/RequestQuoteDialog";
 import { MscCruiseSearch } from "@/components/cruise-search/msc/MscCruiseSearch";
 import {
   AVAILABLE_DESTINATIONS,
@@ -72,14 +73,21 @@ export default function CruiseSearch() {
   const [hasSearched, setHasSearched] = useState(false);
   const [sailings, setSailings] = useState<WidgetySailing[]>([]);
   const [totalResults, setTotalResults] = useState(0);
-  const [priceCache, setPriceCache] = useState<Record<string, number | null>>({});
   const [comparingRefs, setComparingRefs] = useState<string[]>([]);
+
+  const [quoteSailing, setQuoteSailing] = useState<WidgetySailing | null>(null);
+  const [quoteOpen, setQuoteOpen] = useState(false);
 
   const [availableShips, setAvailableShips] = useState<{ title: string; slug: string }[]>([]);
   const [shipsLoading, setShipsLoading] = useState(false);
 
   const [detailsSailing, setDetailsSailing] = useState<WidgetySailing | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const handleRequestQuote = (s: WidgetySailing) => {
+    setQuoteSailing(s);
+    setQuoteOpen(true);
+  };
 
   // Date helpers (now driven directly by date-range calendar)
   const dateFrom = searchValues.dateFrom || "";
@@ -175,14 +183,6 @@ export default function CruiseSearch() {
       setSailings(results);
       setTotalResults(results.length);
       if (!results.length) toast.info("No cruises found. Try adjusting your search.");
-
-      // Pricing: CruiseFeed returns price with each sailing.
-      const cache: Record<string, number | null> = {};
-      for (const s of results) {
-        cache[s.holiday_ref] =
-          typeof (s as any).price_amount === "number" ? (s as any).price_amount : null;
-      }
-      setPriceCache(cache);
     } catch (err) {
       console.error("Cruise search error:", err);
       toast.error("Search failed: " + (err instanceof Error ? err.message : "Unknown error"));
@@ -197,22 +197,7 @@ export default function CruiseSearch() {
     setSailings([]);
     setHasSearched(false);
     setComparingRefs([]);
-    setPriceCache({});
   };
-
-  // Derive available filter options from current results
-  const priceBounds = useMemo<[number, number]>(() => {
-    const prices = Object.values(priceCache).filter((p): p is number => p != null && p > 0);
-    if (!prices.length) return [0, 20000];
-    const min = Math.floor(Math.min(...prices) / 100) * 100;
-    const max = Math.ceil(Math.max(...prices) / 100) * 100;
-    return [min, Math.max(max, min + 1000)];
-  }, [priceCache]);
-
-  // Initialize price slider when bounds change
-  useEffect(() => {
-    setFilters((f) => ({ ...f, priceRange: priceBounds }));
-  }, [priceBounds]);
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -243,37 +228,19 @@ export default function CruiseSearch() {
       if (n > 0 && (n < filters.durationRange[0] || (n > filters.durationRange[1] && filters.durationRange[1] < 30))) {
         return false;
       }
-      // Price
-      const price = priceCache[s.holiday_ref];
-      if (price != null && (price < filters.priceRange[0] || price > filters.priceRange[1])) {
-        return false;
-      }
       return true;
     });
 
     // Sort
     const arr = [...out];
-    if (sort === "price_asc") {
-      arr.sort((a, b) => {
-        const pa = priceCache[a.holiday_ref] ?? Infinity;
-        const pb = priceCache[b.holiday_ref] ?? Infinity;
-        return pa - pb;
-      });
-    } else if (sort === "date_asc") {
-      arr.sort((a, b) => (a.date_from || "").localeCompare(b.date_from || ""));
-    } else if (sort === "duration_asc") {
+    if (sort === "duration_asc") {
       arr.sort((a, b) => (a.nights || 999) - (b.nights || 999));
     } else {
-      // recommended: priced first, then earliest
-      arr.sort((a, b) => {
-        const ap = priceCache[a.holiday_ref] != null ? 0 : 1;
-        const bp = priceCache[b.holiday_ref] != null ? 0 : 1;
-        if (ap !== bp) return ap - bp;
-        return (a.date_from || "").localeCompare(b.date_from || "");
-      });
+      // recommended / date_asc: earliest departure first
+      arr.sort((a, b) => (a.date_from || "").localeCompare(b.date_from || ""));
     }
     return arr;
-  }, [sailings, filters, priceCache, sort]);
+  }, [sailings, filters, sort]);
 
   const toggleCompare = (ref: string) => {
     setComparingRefs((prev) => {
@@ -297,7 +264,6 @@ export default function CruiseSearch() {
       onChange={setFilters}
       availableMonths={availableMonths}
       availableShips={availableShips}
-      priceBounds={priceBounds}
     />
   );
 
@@ -357,18 +323,14 @@ export default function CruiseSearch() {
               loading={loading}
               sort={sort}
               onSortChange={setSort}
-              priceCache={priceCache}
               comparingRefs={comparingRefs}
               onToggleCompare={toggleCompare}
               onViewDetails={(s) => {
                 setDetailsSailing(s);
                 setDetailsOpen(true);
               }}
-              onSelect={(s) => {
-                setDetailsSailing(s);
-                setDetailsOpen(true);
-              }}
-              onResetFilters={() => setFilters({ ...DEFAULT_FILTERS, priceRange: priceBounds })}
+              onRequestQuote={handleRequestQuote}
+              onResetFilters={() => setFilters(DEFAULT_FILTERS)}
             />
           </div>
         ) : (
@@ -395,7 +357,6 @@ export default function CruiseSearch() {
 
         <CompareDrawer
           sailings={comparingSailings}
-          priceCache={priceCache}
           onRemove={(ref) => setComparingRefs((p) => p.filter((r) => r !== ref))}
           onClear={() => setComparingRefs([])}
         />
@@ -406,13 +367,19 @@ export default function CruiseSearch() {
           onOpenChange={setDetailsOpen}
           dateFrom={dateFrom}
           dateTo={dateTo}
-          priceCache={priceCache}
+          onRequestQuote={handleRequestQuote}
           alternateSailings={
             detailsSailing
               ? filteredSailings.filter((s) => s.holiday_ref !== detailsSailing.holiday_ref)
               : []
           }
           onSelectAlternateSailing={(s) => setDetailsSailing(s)}
+        />
+
+        <RequestQuoteDialog
+          sailing={quoteSailing}
+          open={quoteOpen}
+          onOpenChange={setQuoteOpen}
         />
       </div>
     </DashboardLayout>
