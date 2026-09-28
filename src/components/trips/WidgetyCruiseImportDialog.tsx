@@ -211,11 +211,11 @@ export function WidgetyCruiseImportDialog({ tripId, departDate, returnDate, dest
     }
   }, [open]);
 
-  const callWidgety = async (body: Record<string, any>) => {
-    const { data, error } = await supabase.functions.invoke("widgety-cruise", { body });
-    if (error) throw new Error(error.message || "Failed to call Widgety");
-    if (data?.error) throw new Error(data.error);
-    return data;
+  // Widgety access was revoked; never call the retired function (it returns 500/401).
+  const callWidgety = async (_body: Record<string, any>): Promise<any> => {
+    const friendly = "The old cruise catalog (Widgety) is no longer available. Use Cruise Search to find sailings and add them to this trip.";
+    toast.error(friendly);
+    throw new Error(friendly);
   };
 
   const handleAutoMatch = async () => {
