@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -64,6 +65,8 @@ const DEPARTURE_PORT_LABELS: Record<string, string> = {
 };
 
 export default function CruiseSearch() {
+  const [searchParams] = useSearchParams();
+  const tripIdFromQuery = searchParams.get("tripId") || undefined;
   const [searchValues, setSearchValues] = useState<SearchBarValues>(DEFAULT_SEARCH);
   const [filters, setFilters] = useState<CruiseFilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortOption>("recommended");
@@ -401,6 +404,7 @@ export default function CruiseSearch() {
         />
 
         <CruiseDetailsModal
+          defaultTripId={tripIdFromQuery}
           sailing={detailsSailing}
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
