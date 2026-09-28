@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -567,6 +568,32 @@ const TripDetail = () => {
                   <Badge variant="secondary">
                     {trip.trip_type.charAt(0).toUpperCase() + trip.trip_type.slice(1).replace(/_/g, " ")}
                   </Badge>
+                )}
+                {!trip.parent_trip_id && (
+                  <label className="flex items-center gap-2 text-[13px] text-muted-foreground cursor-pointer">
+                    <Switch
+                      checked={isGroupTrip}
+                      aria-label="Group trip"
+                      onCheckedChange={async (checked) => {
+                        if (!checked && subTrips && subTrips.length > 0) {
+                          toast.error("Remove sub-trips before converting back to a regular trip");
+                          return;
+                        }
+                        if (!window.confirm(checked ? "Convert this trip to a group trip?" : "Convert this group trip back to a regular trip?")) return;
+                        const { error } = await supabase
+                          .from("trips")
+                          .update({ trip_type: checked ? "group" : "regular" } as any)
+                          .eq("id", trip.id);
+                        if (error) {
+                          toast.error("Could not change trip type");
+                          return;
+                        }
+                        toast.success(checked ? "Converted to group trip" : "Converted to regular trip");
+                        fetchTrip();
+                      }}
+                    />
+                    Group trip
+                  </label>
                 )}
                 {(trip as any).trip_subtype && (
                   <Badge variant="outline">
