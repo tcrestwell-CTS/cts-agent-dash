@@ -1,13 +1,12 @@
 ---
-name: Cruise search quote-only pricing
-description: Cruise search shows NO prices anywhere — Request Quote creates a quote_requests lead; live pricing returns only in the generated quote
+name: Cruise search pricing display
+description: Cruise search SHOWS prices (decision reversed 2026-09-28); per-cabin fares, price filters/sort and live-offer link are all displayed
 type: design
 ---
-Cruise search (CruiseFeed `/cruises` search) is **quote-only** by Tim's decision (2026-09-28):
+Cruise search (CruiseFeed `/cruises` search) **shows prices** — Tim reversed the quote-only decision the same day (2026-09-28):
 
-- No fares are displayed anywhere: not on result cards, compare drawer, filters (price slider removed, price sort removed), or the details modal (fare panel, per-cabin prices, taxes, alternate-sailing prices, "View live offer" link all removed).
-- Every result shows "Pricing available on request" and a **Request Quote** CTA (`RequestQuoteDialog`).
-- Request Quote inserts into `quote_requests` (trip_type "cruise", sailing details + holiday_ref in `message`) → flows into the Leads pipeline, where the generated proposal/quote returns **live, cabin-by-cabin pricing** to the client.
-- Rationale: hidden prices push users through the quote request, and quotes now carry live CruiseFeed pricing.
-- "Add to Trip" stays enabled in the details modal as an internal agent booking tool and still carries fare data (lead fare notes, cabin choices) — internal only.
-- MSC direct tab (MscCruiseSearch/MscFareDrawer) still shows cached fares — flagged as inconsistent if Tim wants quote-only there too.
+- Result cards, compare drawer, filters (price slider + price sort), and the details modal (fare panel, per-cabin prices, taxes, OBC, alternate-sailing prices, "View live offer" link) all display pricing again.
+- Rationale: price transparency drives leads; visible "from" prices + a quote CTA outperforms quote-only for search traffic.
+- "Add to Trip" stays enabled in the details modal as an internal agent booking tool with fare data (lead fare notes, cabin choices).
+- The quote-request dialog was removed; a quote path can be re-added later as a CTA alongside visible prices if wanted.
+- MSC direct tab (MscCruiseSearch/MscFareDrawer) shows its cached fares — now consistent with the rest of search.
