@@ -31,6 +31,13 @@ export function CruiseCard({
   const type = getCruiseType(operatorSlug);
   const portPreview = getPortPreview(sailing);
   const shipTitle = getShipTitle(sailing);
+  const cabinFares = Array.from(
+    new Map(
+      (sailing.fares || [])
+        .filter((fare) => fare.available && typeof fare.price_amount === "number")
+        .map((fare) => [fare.cabin_class.trim().toLowerCase(), fare]),
+    ).values(),
+  ).slice(0, 4);
 
   return (
     <Card className={cn(
@@ -109,6 +116,28 @@ export function CruiseCard({
               {tags.includes("adults") && (
                 <Badge variant="secondary" className="text-[10px]">Adults Only</Badge>
               )}
+            </div>
+          )}
+
+          {cabinFares.length > 0 && (
+            <div className="mb-4 border-y py-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Cabin fares per person</p>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-2 md:grid-cols-4">
+                {cabinFares.map((fare) => (
+                  <button
+                    key={`${fare.cabin_class}-${fare.price_amount}`}
+                    type="button"
+                    onClick={() => onViewDetails?.(sailing)}
+                    className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    aria-label={`View ${fare.cabin_class} fare details`}
+                  >
+                    <span className="block truncate text-xs text-muted-foreground">{fare.cabin_class}</span>
+                    <span className="block text-sm font-semibold text-primary">
+                      {formatPrice(fare.price_amount as number)}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
