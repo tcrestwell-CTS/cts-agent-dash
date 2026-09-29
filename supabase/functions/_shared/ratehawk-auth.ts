@@ -16,7 +16,15 @@ export const RATEHAWK_BASE_URL =
     ? "https://api.ratehawk.com"
     : "https://api-sandbox.ratehawk.com";
 
+// Static-IP proxy (VPS). When RATEHAWK_PROXY_SECRET is set, all calls go through
+// the proxy, which injects the Basic auth itself — credentials are NOT sent.
+// Unset RATEHAWK_PROXY_SECRET to instantly roll back to direct calls.
+const PROXY_URL = (Deno.env.get("RATEHAWK_PROXY_URL") || "https://ratehawk-proxy.crestwellgetaways.com").replace(/\/$/, "");
+const PROXY_SECRET = Deno.env.get("RATEHAWK_PROXY_SECRET") ?? "";
+export const RATEHAWK_VIA_PROXY = PROXY_SECRET.length > 0;
+
 export function ratehawkConfigured(): boolean {
+  if (RATEHAWK_VIA_PROXY) return true;
   return !!Deno.env.get("RATEHAWK_KEY_ID") && !!Deno.env.get("RATEHAWK_KEY");
 }
 
@@ -31,13 +39,21 @@ export function ratehawkAuthHeader(): string {
 
 /** POST to a RateHawk endpoint. Throws `[status] message` on HTTP or envelope errors. */
 export async function ratehawkPost(path: string, body: unknown): Promise<any> {
-  const res = await fetch(`${RATEHAWK_BASE_URL}${path}`, {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  let url: string;
+  if (RATEHAWK_VIA_PROXY) {
+    url = `${PROXY_URL}${path}`;
+    headers["X-Proxy-Secret"] = PROXY_SECRET;
+  } else {
+    url = `${RATEHAWK_BASE_URL}${path}`;
+    headers.Authorization = ratehawkAuthHeader();
+  }
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: ratehawkAuthHeader(),
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
   const text = await res.text();

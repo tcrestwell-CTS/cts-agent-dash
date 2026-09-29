@@ -1,0 +1,12 @@
+{
+  "name": "ratehawk-proxy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-strip-types src/server.ts"
+  },
+  "engines": { "node": ">=22.6" },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
