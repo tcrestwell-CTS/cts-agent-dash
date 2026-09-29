@@ -8702,6 +8702,146 @@ export type Database = {
         }
         Relationships: []
       }
+      ratehawk_orders: {
+        Row: {
+          book_hash: string | null
+          booked_at: string | null
+          checkin: string
+          checkout: string
+          contact: Json | null
+          created_at: string
+          currency: string
+          environment: string
+          finish_attempts: number
+          guest_deposit_amount: number | null
+          hid: number | null
+          hotel_id: string | null
+          hotel_name: string | null
+          id: string
+          last_error: string | null
+          last_status_payload: Json | null
+          partner_order_id: string
+          payment_status: string
+          policy_changed: boolean
+          prebook_amount: number | null
+          prebook_cancellation: Json | null
+          price_change_accepted: boolean
+          price_change_pct: number | null
+          price_changed: boolean
+          raw_form: Json | null
+          raw_prebook: Json | null
+          residency: string
+          rh_item_id: number | null
+          rh_order_id: number | null
+          rh_payment_type: Json | null
+          room_name: string | null
+          rooms: Json | null
+          search_amount: number | null
+          search_cancellation: Json | null
+          search_guests: Json
+          source_hash: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          trip_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_hash?: string | null
+          booked_at?: string | null
+          checkin: string
+          checkout: string
+          contact?: Json | null
+          created_at?: string
+          currency?: string
+          environment?: string
+          finish_attempts?: number
+          guest_deposit_amount?: number | null
+          hid?: number | null
+          hotel_id?: string | null
+          hotel_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_status_payload?: Json | null
+          partner_order_id: string
+          payment_status?: string
+          policy_changed?: boolean
+          prebook_amount?: number | null
+          prebook_cancellation?: Json | null
+          price_change_accepted?: boolean
+          price_change_pct?: number | null
+          price_changed?: boolean
+          raw_form?: Json | null
+          raw_prebook?: Json | null
+          residency: string
+          rh_item_id?: number | null
+          rh_order_id?: number | null
+          rh_payment_type?: Json | null
+          room_name?: string | null
+          rooms?: Json | null
+          search_amount?: number | null
+          search_cancellation?: Json | null
+          search_guests?: Json
+          source_hash?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_hash?: string | null
+          booked_at?: string | null
+          checkin?: string
+          checkout?: string
+          contact?: Json | null
+          created_at?: string
+          currency?: string
+          environment?: string
+          finish_attempts?: number
+          guest_deposit_amount?: number | null
+          hid?: number | null
+          hotel_id?: string | null
+          hotel_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_status_payload?: Json | null
+          partner_order_id?: string
+          payment_status?: string
+          policy_changed?: boolean
+          prebook_amount?: number | null
+          prebook_cancellation?: Json | null
+          price_change_accepted?: boolean
+          price_change_pct?: number | null
+          price_changed?: boolean
+          raw_form?: Json | null
+          raw_prebook?: Json | null
+          residency?: string
+          rh_item_id?: number | null
+          rh_order_id?: number | null
+          rh_payment_type?: Json | null
+          room_name?: string | null
+          rooms?: Json | null
+          search_amount?: number | null
+          search_cancellation?: Json | null
+          search_guests?: Json
+          source_hash?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          trip_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratehawk_orders_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ratehawk_search_cache: {
         Row: {
           cache_key: string
