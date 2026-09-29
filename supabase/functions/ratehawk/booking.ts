@@ -193,12 +193,22 @@ export async function handleBookingAction(
         order = await patch(admin, order.id, { price_change_accepted: true, status: "prebooked" });
       }
       if (order.status !== "prebooked") throw bad(`Order is ${order.status}; booking form already created or not allowed`);
-      const resp = await ratehawkPost("/api/b2b/v3/hotel/order/booking/form", {
-        partner_order_id: order.partner_order_id,
-        book_hash: order.book_hash,
-        language: p.language || "en",
-        user_ip: ctx.clientIp && ctx.clientIp !== "unknown" ? ctx.clientIp : "34.237.67.148",
-      });
+      let resp: any;
+      try {
+        resp = await ratehawkPost("/api/b2b/v3/hotel/order/booking/form", {
+          partner_order_id: order.partner_order_id,
+          book_hash: order.book_hash,
+          language: p.language || "en",
+          user_ip: ctx.clientIp && ctx.clientIp !== "unknown" ? ctx.clientIp : "34.237.67.148",
+        });
+      } catch (e) {
+        // A timeout can still create the form upstream (retry then returns
+        // double_booking_form). No money has moved yet, so fail the order and
+        // restart from prebook with a fresh partner_order_id.
+        const msg = e instanceof Error ? e.message : String(e);
+        await patch(admin, order.id, { status: "failed", last_error: `booking/form: ${msg}` });
+        throw e;
+      }
       const d = resp?.data ?? {};
       const payTypes: any[] = d.payment_types ?? [];
       const b2b = payTypes.find((t) => t.type === "deposit");
@@ -310,12 +320,6 @@ export async function handleBookingAction(
       let order = await loadOrder(admin, p.order_id, userId, isAdmin);
       if (["finishing", "processing"].includes(order.status)) order = await pollFinishStatus(admin, order);
       return summarize(order);
-    }
-
-    case "debug_raw": {
-      // TEMP admin-only diagnostic
-      if (!isAdmin) throw bad("admin only");
-      return await ratehawkPostRaw(p.path, p.body);
     }
 
     case "list_orders": {
