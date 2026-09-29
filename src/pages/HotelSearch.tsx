@@ -47,7 +47,7 @@ import { HotelBookingVoucher } from "@/components/hotels/HotelBookingVoucher";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { RateHawkBookingDialog, type RateHawkBookTarget } from "@/components/hotels/RateHawkBookingDialog";
-import { RESIDENCY_OPTIONS, type RoomGuests } from "@/lib/ratehawkApi";
+import { RESIDENCY_OPTIONS, rhInvoke, type RoomGuests } from "@/lib/ratehawkApi";
 import { Plus, Trash2, ClipboardList } from "lucide-react";
 
 function getStars(categoryName: string): number {
@@ -129,6 +129,38 @@ export default function HotelSearch() {
     setRhAgesError(null);
     setRhSearched({ checkin: rhCheckIn, checkout: rhCheckOut, residency: rhResidency, guests });
     rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, hids: [Number(rhHotelId)], guests, residency: rhResidency });
+  };
+
+  // Search results only carry a match_hash; ETG requires hotel_page to get a bookable book_hash.
+  const [rhOpening, setRhOpening] = useState<string | null>(null);
+  const openRhBooking = async (hotel: any, rate: any, name: string, idx: number) => {
+    if (!rhSearched) return;
+    setRhOpening(`${hotel.hid}-${idx}`);
+    try {
+      const hp = await rhInvoke("hotel_page", {
+        hid: hotel.hid, checkin: rhSearched.checkin, checkout: rhSearched.checkout,
+        residency: rhSearched.residency, guests: rhSearched.guests,
+      });
+      const rates: any[] = hp?.rates ?? [];
+      const pick = rates.find((r) => rate.match_hash && r.match_hash === rate.match_hash)
+        ?? rates.find((r) => r.room_name === rate.room_name) ?? null;
+      if (!pick?.book_hash) { toast.error("This rate is no longer available. Search again for fresh rates."); return; }
+      const pt = rate.payment_options?.payment_types?.[0];
+      setRhBookTarget({
+        hid: hotel.hid, hotelId: hotel.id, hotelName: name, roomName: pick.room_name ?? rate.room_name,
+        bookHash: pick.book_hash,
+        // Compare prebook against what the advisor saw in search, so any change is surfaced.
+        amount: Number(pt?.show_amount ?? pick.amount),
+        currency: pt?.show_currency_code || pick.currency || "USD",
+        cancellation: pt?.cancellation_penalties ?? pick.cancellation_penalties ?? null,
+        checkin: rhSearched.checkin, checkout: rhSearched.checkout,
+        residency: rhSearched.residency, guests: rhSearched.guests,
+      });
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't open this rate");
+    } finally {
+      setRhOpening(null);
+    }
   };
 
   const [destination, setDestination] = useState("");
@@ -481,22 +513,10 @@ export default function HotelSearch() {
                                   <Button
                                     size="sm"
                                     className="mt-1"
-                                    disabled={!rate.book_hash || !pt?.show_amount || !rhSearched}
-                                    onClick={() => rhSearched && setRhBookTarget({
-                                      hid: hotel.hid,
-                                      hotelId: hotel.id,
-                                      hotelName: name,
-                                      roomName: rate.room_name,
-                                      bookHash: rate.book_hash!,
-                                      amount: Number(pt!.show_amount),
-                                      currency: pt?.show_currency_code || "USD",
-                                      cancellation: pt?.cancellation_penalties ?? null,
-                                      checkin: rhSearched.checkin,
-                                      checkout: rhSearched.checkout,
-                                      residency: rhSearched.residency,
-                                      guests: rhSearched.guests,
-                                    })}
+                                    disabled={!pt?.show_amount || !rhSearched || rhOpening !== null}
+                                    onClick={() => openRhBooking(hotel, rate, name, idx)}
                                   >
+                                    {rhOpening === `${hotel.hid}-${idx}` && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                                     Book
                                   </Button>
                                 </div>
