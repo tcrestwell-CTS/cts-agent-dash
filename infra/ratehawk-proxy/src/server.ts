@@ -95,8 +95,7 @@ createServer(async (req, res) => {
     headers["authorization"] = authHeader;
     headers["content-type"] ||= "application/json";
 
-    // RateHawk expects trailing slashes on its endpoints.
-    const upstream = await fetch(`${UPSTREAM}${path}/${url.search}`, {
+    const upstream = await fetch(`${UPSTREAM}${url.pathname}${url.search}`, {
       method: "POST",
       headers,
       body,
