@@ -8,7 +8,7 @@
 //  - "rebook"    : terminal for this rate — advisor must search/prebook again
 //  - "fix_input" : terminal until advisor corrects the submitted data
 //  - "contact"   : terminal, needs ETG account manager / API support
-export type Stage = "form" | "finish" | "status";
+export type Stage = "form" | "finish" | "status" | "cancel" | "info";
 export type Kind = "continue" | "retry_new_id" | "rebook" | "fix_input" | "contact";
 export interface ErrDef { kind: Kind; retryable: boolean; message: string }
 
@@ -94,7 +94,30 @@ export const STATUS_ERRORS: Record<string, ErrDef> = {
   not_allowed_host: T("contact", "RateHawk rejected our server's IP address. Contact tech support."),
 };
 
-const TABLES: Record<Stage, Record<string, ErrDef>> = { form: FORM_ERRORS, finish: FINISH_ERRORS, status: STATUS_ERRORS };
+// Cancel booking (docs: B2B API → Post booking → Cancel booking, fetched 2026-09-29).
+// ETG documents exactly: order_not_found, order_not_cancellable, sandbox_restriction,
+// lock, unknown. "Already cancelled" has no own code — ETG returns order_not_found
+// for orders not in completed/rejected state, so we confirm via order/info.
+// "continue" here = outcome unknown, verify via order/info before deciding.
+export const CANCEL_ERRORS: Record<string, ErrDef> = {
+  timeout: T("continue", "RateHawk timed out on the cancellation; checking the order to see if it went through."),
+  unknown: T("continue", "RateHawk had an internal error cancelling; checking the order to see if it went through."),
+  unknown_error: T("continue", "RateHawk had an internal error cancelling; checking the order to see if it went through."),
+  lock: T("continue", "A cancellation for this order is already in progress; checking the order instead of sending it twice."),
+  order_not_found: T("continue", "RateHawk says this order isn't cancellable in its current state (it may already be cancelled); checking the order."),
+  order_not_cancellable: T("contact", "RateHawk refused the cancellation: the stay has already started, or our contract can't cancel non-refundable bookings. Contact the RateHawk account manager."),
+  sandbox_restriction: T("fix_input", "A real hotel can't be cancelled in the sandbox (or the test hotel in production). Use the matching environment."),
+};
+
+// Retrieve bookings (order/info). Only documented code: page_out_of_range.
+export const INFO_ERRORS: Record<string, ErrDef> = {
+  timeout: T("continue", "RateHawk timed out fetching the order; try again shortly."),
+  unknown: T("continue", "RateHawk had a temporary error fetching the order; try again shortly."),
+  unknown_error: T("continue", "RateHawk had a temporary error fetching the order; try again shortly."),
+  page_out_of_range: T("contact", "RateHawk returned no page for this order lookup. Contact tech support."),
+};
+
+const TABLES: Record<Stage, Record<string, ErrDef>> = { form: FORM_ERRORS, finish: FINISH_ERRORS, status: STATUS_ERRORS, cancel: CANCEL_ERRORS, info: INFO_ERRORS };
 
 /** Normalise a RateHawk error payload to a code string. */
 export function errorCode(e: unknown): string | null {
