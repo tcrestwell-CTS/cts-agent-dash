@@ -473,6 +473,32 @@ export default function HotelSearch() {
                                   ) : (
                                     <p className="text-sm text-muted-foreground">Price unavailable</p>
                                   )}
+                                  {pt?.cancellation_penalties?.free_cancellation_before && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Free cancel before {new Date(pt.cancellation_penalties.free_cancellation_before).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    className="mt-1"
+                                    disabled={!rate.book_hash || !pt?.show_amount || !rhSearched}
+                                    onClick={() => rhSearched && setRhBookTarget({
+                                      hid: hotel.hid,
+                                      hotelId: hotel.id,
+                                      hotelName: name,
+                                      roomName: rate.room_name,
+                                      bookHash: rate.book_hash!,
+                                      amount: Number(pt!.show_amount),
+                                      currency: pt?.show_currency_code || "USD",
+                                      cancellation: pt?.cancellation_penalties ?? null,
+                                      checkin: rhSearched.checkin,
+                                      checkout: rhSearched.checkout,
+                                      residency: rhSearched.residency,
+                                      guests: rhSearched.guests,
+                                    })}
+                                  >
+                                    Book
+                                  </Button>
                                 </div>
                               </div>
                             );
@@ -817,6 +843,12 @@ export default function HotelSearch() {
           </div>
         )}
         </>)}
+
+        <RateHawkBookingDialog
+          open={!!rhBookTarget}
+          onOpenChange={(v) => !v && setRhBookTarget(null)}
+          target={rhBookTarget}
+        />
 
         {/* Booking Dialog */}
         <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
