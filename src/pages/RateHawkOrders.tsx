@@ -157,10 +157,10 @@ function OrderSheet({ order, onClose, onChanged, onResume }: { order: any | null
               <dt className="text-muted-foreground">Our reference</dt><dd className="font-mono text-xs break-all">{order.partner_order_id}</dd>
               <dt className="text-muted-foreground">RateHawk order</dt><dd className="font-mono text-xs">{rh?.order_id ?? order.rh_order_id ?? "—"}</dd>
               <dt className="text-muted-foreground">Hotel confirmation</dt><dd className="font-mono text-xs">{rh?.hotel_confirmation_number ?? info?.hotel_confirmation_number ?? "—"}</dd>
-              <dt className="text-muted-foreground">Guest deposit</dt><dd>{order.payment_status === "captured" ? `Collected (${order.stripe_payment_intent_id ?? ""})` : "Not collected"}</dd>
+              <dt className="text-muted-foreground">Guest deposit</dt><dd>{String(order.stripe_payment_intent_id ?? "").startsWith("sandbox-bypass") ? "Skipped (sandbox test)" : order.payment_status === "captured" ? `Collected (${order.stripe_payment_intent_id ?? ""})` : "Not collected"}</dd>
               {info?.free_cancellation_before && (<><dt className="text-muted-foreground">Free cancel before</dt><dd>{new Date(info.free_cancellation_before).toLocaleString()}</dd></>)}
               {info?.cancel_penalty && (<><dt className="text-muted-foreground">Cancel penalty</dt><dd>{money(info.cancel_penalty.amount, info.cancel_penalty.currency)}</dd></>)}
-              {info?.guest_refund?.status && (<><dt className="text-muted-foreground">Guest refund</dt><dd>{info.guest_refund.status} {info.guest_refund.amount != null ? money(info.guest_refund.amount, order.currency) : ""}</dd></>)}
+              {info?.guest_refund?.status && (<><dt className="text-muted-foreground">Guest refund</dt><dd>{({ not_applicable: "None due", succeeded: "Refunded", pending: "Pending", failed: "Failed — refund manually" } as Record<string, string>)[info.guest_refund.status] ?? info.guest_refund.status} {info.guest_refund.amount != null ? money(info.guest_refund.amount, order.currency) : ""}</dd></>)}
               {info?.info_synced_at && (<><dt className="text-muted-foreground">Synced with RateHawk</dt><dd>{new Date(info.info_synced_at).toLocaleString()}</dd></>)}
             </dl>
 
