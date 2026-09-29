@@ -102,6 +102,7 @@ export function RateHawkBookingDialog({
   const [notice, setNotice] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [stageDone, setStageDone] = useState(0);
+  const [depositSkipped, setDepositSkipped] = useState(false);
   const cancelled = useRef(false);
   const hotelName = target?.hotelName ?? resume?.hotelName ?? "Hotel";
 
@@ -124,7 +125,7 @@ export function RateHawkBookingDialog({
       return;
     }
     if (!target) return;
-    setOrderId(null); setPaymentCaptured(false); setStageDone(0);
+    setOrderId(null); setPaymentCaptured(false); setStageDone(0); setDepositSkipped(false);
     setRooms(buildRooms(target.guests)); setCurrency(target.currency);
     setStep("prebooking");
     (async () => {
@@ -199,6 +200,7 @@ export function RateHawkBookingDialog({
 
   const submitFinish = async (paymentIntentId: string | null) => {
     if (!orderId) return;
+    if (!paymentIntentId && sandboxBypass && !paymentCaptured) setDepositSkipped(true);
     setStep("submitting"); setError(null); setStageDone(3); setElapsed(0);
     const started = Date.now();
     const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
@@ -266,7 +268,11 @@ export function RateHawkBookingDialog({
 
         {/* Progress */}
         <ol className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          {STAGES.map((s, i) => (
+          {STAGES.map((s, i) => s.key === "payment" && depositSkipped ? (
+            <li key={s.key} className="flex items-center gap-1 text-muted-foreground">
+              <Circle className="h-3.5 w-3.5" /> <span className="line-through">{s.label}</span> (skipped — sandbox)
+            </li>
+          ) : (
             <li key={s.key} className={cn("flex items-center gap-1", i < stageDone ? "text-primary" : "text-muted-foreground")}>
               {i < stageDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : i === stageDone && busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Circle className="h-3.5 w-3.5" />}
               {s.label}
@@ -354,13 +360,13 @@ export function RateHawkBookingDialog({
             ))}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Guest email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Label htmlFor="rh-guest-email">Guest email</Label>
+                <Input id="rh-guest-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 {touched && emailErr && <p className="text-xs text-destructive">{emailErr}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Guest phone</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Label htmlFor="rh-guest-phone">Guest phone</Label>
+                <Input id="rh-guest-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 {touched && phoneErr && <p className="text-xs text-destructive">{phoneErr}</p>}
               </div>
               <div className="space-y-1 sm:col-span-2">
@@ -373,8 +379,8 @@ export function RateHawkBookingDialog({
             ) : (
               <div className="space-y-2">
                 <div className="space-y-1 max-w-xs">
-                  <Label>Guest deposit to collect now ({currency})</Label>
-                  <Input type="number" min={0.5} step="0.01" value={deposit} disabled={sandboxBypass} onChange={(e) => setDeposit(e.target.value)} />
+                  <Label htmlFor="rh-guest-deposit">Guest deposit to collect now ({currency})</Label>
+                  <Input id="rh-guest-deposit" type="number" min={0.5} step="0.01" value={deposit} disabled={sandboxBypass} onChange={(e) => setDeposit(e.target.value)} />
                   {touched && depositErr && <p className="text-xs text-destructive">{depositErr}</p>}
                 </div>
                 {env === "sandbox" && (
