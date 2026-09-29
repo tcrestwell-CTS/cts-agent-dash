@@ -45,6 +45,10 @@ import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput"
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { HotelBookingVoucher } from "@/components/hotels/HotelBookingVoucher";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
+import { RateHawkBookingDialog, type RateHawkBookTarget } from "@/components/hotels/RateHawkBookingDialog";
+import { RESIDENCY_OPTIONS, type RoomGuests } from "@/lib/ratehawkApi";
+import { Plus, Trash2, ClipboardList } from "lucide-react";
 
 function getStars(categoryName: string): number {
   const match = categoryName?.match(/(\d)/);
@@ -80,8 +84,12 @@ export default function HotelSearch() {
   const [rhHotelId, setRhHotelId] = useState("");
   const [rhCheckIn, setRhCheckIn] = useState("");
   const [rhCheckOut, setRhCheckOut] = useState("");
-  const [rhAdults, setRhAdults] = useState(2);
-  const [rhChildAges, setRhChildAges] = useState("");
+  const [rhRooms, setRhRooms] = useState<{ adults: number; ages: string }[]>([{ adults: 2, ages: "" }]);
+  const [rhResidency, setRhResidency] = useState("us");
+  // Snapshot of the criteria the current results were searched with (booking must match them)
+  const [rhSearched, setRhSearched] = useState<{ checkin: string; checkout: string; residency: string; guests: RoomGuests[] } | null>(null);
+  const [rhBookTarget, setRhBookTarget] = useState<RateHawkBookTarget | null>(null);
+  const [rhAgesError, setRhAgesError] = useState<string | null>(null);
 
   const handleSelectSupplier = (s: "hotelbeds" | "ratehawk") => {
     setSupplier(s);
@@ -89,6 +97,14 @@ export default function HotelSearch() {
       setRhCertLoaded(true);
       listCertificationHotels();
     }
+  };
+
+  const parseAges = (s: string): number[] | null => {
+    if (!s.trim()) return [];
+    const parts = s.split(",").map((a) => a.trim()).filter(Boolean);
+    const nums = parts.map((a) => Number(a));
+    if (nums.some((n) => !Number.isInteger(n) || n < 0 || n > 17)) return null;
+    return nums;
   };
 
   const handleRhSearch = () => {
@@ -104,11 +120,15 @@ export default function HotelSearch() {
       toast.error("Check-out date must be after check-in date.");
       return;
     }
-    const childAges = rhChildAges
-      .split(",")
-      .map((a) => parseInt(a.trim()))
-      .filter((a) => !isNaN(a) && a >= 0 && a <= 17);
-    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, hids: [Number(rhHotelId)], adults: rhAdults, children: childAges });
+    const guests: RoomGuests[] = [];
+    for (let i = 0; i < rhRooms.length; i++) {
+      const ages = parseAges(rhRooms[i].ages);
+      if (!ages) { setRhAgesError(`Room ${i + 1}: child ages must be whole numbers 0–17 (0 = infant), comma-separated.`); return; }
+      guests.push({ adults: Math.min(6, Math.max(1, rhRooms[i].adults)), children: ages });
+    }
+    setRhAgesError(null);
+    setRhSearched({ checkin: rhCheckIn, checkout: rhCheckOut, residency: rhResidency, guests });
+    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, hids: [Number(rhHotelId)], guests, residency: rhResidency });
   };
 
   const [destination, setDestination] = useState("");
