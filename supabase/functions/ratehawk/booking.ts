@@ -312,6 +312,12 @@ export async function handleBookingAction(
       return summarize(order);
     }
 
+    case "debug_raw": {
+      // TEMP admin-only diagnostic
+      if (!isAdmin) throw bad("admin only");
+      return await ratehawkPostRaw(p.path, p.body);
+    }
+
     case "list_orders": {
       let q = admin.from("ratehawk_orders").select("id, partner_order_id, rh_order_id, hotel_name, checkin, checkout, status, prebook_amount, currency, payment_status, stripe_payment_intent_id, last_error, created_at").order("created_at", { ascending: false }).limit(25);
       if (!isAdmin) q = q.eq("user_id", userId);
