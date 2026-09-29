@@ -29,8 +29,7 @@ function errFields(stage: Stage, c: { code: string; retryable: boolean; message:
 
 type Admin = any;
 
-const POLL_INTERVAL_MS = 3000;
-const POLL_MAX_ATTEMPTS = 15;
+const POLL_INTERVAL_MS = 1000;
 const POLL_MAX_MS = 60_000;
 
 const bad = (m: string) => new Error(`[400] ${m}`);
@@ -87,11 +86,8 @@ async function verifyStripeDeposit(piId: string, minCents: number) {
 
 async function pollFinishStatus(admin: Admin, order: any) {
   const started = Date.now();
-  let last: any = null;
-  for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS && Date.now() - started < POLL_MAX_MS; attempt++) {
-    last = await rhCall("/api/b2b/v3/hotel/order/booking/finish/status", {
-      partner_order_id: order.partner_order_id,
-    });
+  // ETG: poll ~every 1s, with a final check right at the timeout boundary.
+  const handle = async (last: any) => {
     if (last.status === "ok" && !last.error) {
       return await patch(admin, order.id, {
         status: "booked", booked_at: new Date().toISOString(), last_status_payload: last, last_error: null,
@@ -111,10 +107,23 @@ async function pollFinishStatus(admin: Admin, order: any) {
         });
       }
     }
+    return null;
+  };
+  const check = () => rhCall("/api/b2b/v3/hotel/order/booking/finish/status", {
+    partner_order_id: order.partner_order_id,
+  });
+
+  let last: any = null;
+  while (Date.now() - started < POLL_MAX_MS) {
+    last = await check();
+    const done = await handle(last);
+    if (done) return done;
     // processing, 3ds (unsupported for deposit), timeout/unknown/5xx -> keep polling
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
-  // Final check at the deadline (ETG recommendation) happened as the last loop iteration.
+  // Final check exactly at the timeout boundary.
+  const done = await handle(await check());
+  if (done) return done;
   return await patch(admin, order.id, {
     status: "processing", last_status_payload: last,
     advisor_message: "RateHawk is still confirming this booking. Check status again in a minute — do not rebook or refund yet.",
