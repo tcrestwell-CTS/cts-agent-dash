@@ -484,6 +484,8 @@ async function bookingActionImpl(
         return {
           guests: gs.map((g: any) => {
             if (!g.first_name?.trim() || !g.last_name?.trim()) throw bad(`room ${i + 1}: every guest needs first_name and last_name`);
+            // ETG: names may contain only unicode letters, spaces and - , . ’
+            for (const n of [g.first_name, g.last_name]) if (!/^[\p{L}\p{M} \-,.\u2019]+$/u.test(n.trim())) throw bad(`room ${i + 1}: "${n}" — guest names may contain only letters, spaces and - , . ’`);
             const out: any = { first_name: g.first_name.trim(), last_name: g.last_name.trim() };
             if (g.is_child) { out.is_child = true; out.age = Number(g.age); }
             if (g.gender) out.gender = g.gender;
@@ -544,7 +546,7 @@ async function bookingActionImpl(
             last_error: `booking/finish: ${c.code}`,
             ...errFields("finish", c),
             advisor_message: c.kind === "fix_input"
-              ? `${c.message} The guest deposit is held on this order; resubmit with corrected details.`
+              ? `${c.message}${fin?.debug?.validation_error ? ` (RateHawk: ${fin.debug.validation_error})` : ""} The guest deposit is held on this order; resubmit with corrected details.`
               : `${c.message} The guest deposit (${paymentRef}) was captured and must be refunded or used for a new booking.`,
           });
           return summarize(order);

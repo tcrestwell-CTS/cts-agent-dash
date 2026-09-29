@@ -52,6 +52,7 @@ export const FINISH_ERRORS: Record<string, ErrDef> = {
   incorrect_pay_uuid_format: T("contact", "Card payment data was rejected by RateHawk. Contact tech support."),
   card_type_not_supported: T("contact", "This card type isn't accepted for this rate. Choose a different rate."),
   return_path_required: T("contact", "This rate needs an online payment redirect we don't support. Choose a rate payable from our deposit account."),
+  invalid_params: T("fix_input", "RateHawk rejected the guest details (e.g. digits or symbols in a name — only letters, spaces and - , . ’ are allowed). Correct them and submit again."),
   email: T("fix_input", "The guest email address was rejected. Correct it and submit again."),
   incorrect_guests_number: T("fix_input", "Adult names don't match the number of adults searched. Fix the guest list (or search again with the right party)."),
   incorrect_children_data: T("fix_input", "Children or their ages don't match the search. Fix the guest list (or search again with the right ages)."),
