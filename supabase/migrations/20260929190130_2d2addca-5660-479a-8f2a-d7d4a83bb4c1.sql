@@ -1,0 +1,18 @@
+ALTER TABLE public.ratehawk_orders
+  ADD COLUMN IF NOT EXISTS cancel_quote jsonb,
+  ADD COLUMN IF NOT EXISTS cancel_requested_at timestamptz,
+  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
+  ADD COLUMN IF NOT EXISTS cancel_penalty_amount numeric,
+  ADD COLUMN IF NOT EXISTS cancel_penalty_currency text,
+  ADD COLUMN IF NOT EXISTS rh_amount_refunded numeric,
+  ADD COLUMN IF NOT EXISTS raw_cancel jsonb,
+  ADD COLUMN IF NOT EXISTS refund_status text,
+  ADD COLUMN IF NOT EXISTS refund_amount numeric,
+  ADD COLUMN IF NOT EXISTS stripe_refund_id text,
+  ADD COLUMN IF NOT EXISTS rh_order_info jsonb,
+  ADD COLUMN IF NOT EXISTS rh_status text,
+  ADD COLUMN IF NOT EXISTS hotel_confirmation_number text,
+  ADD COLUMN IF NOT EXISTS rh_free_cancellation_before timestamptz,
+  ADD COLUMN IF NOT EXISTS rh_is_cancellable boolean,
+  ADD COLUMN IF NOT EXISTS info_synced_at timestamptz,
+  ADD COLUMN IF NOT EXISTS last_drift jsonb;

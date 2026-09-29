@@ -8707,6 +8707,11 @@ export type Database = {
           advisor_message: string | null
           book_hash: string | null
           booked_at: string | null
+          cancel_penalty_amount: number | null
+          cancel_penalty_currency: string | null
+          cancel_quote: Json | null
+          cancel_requested_at: string | null
+          cancelled_at: string | null
           checkin: string
           checkout: string
           contact: Json | null
@@ -8719,9 +8724,12 @@ export type Database = {
           form_attempts: number
           guest_deposit_amount: number | null
           hid: number | null
+          hotel_confirmation_number: string | null
           hotel_id: string | null
           hotel_name: string | null
           id: string
+          info_synced_at: string | null
+          last_drift: Json | null
           last_error: string | null
           last_status_payload: Json | null
           partner_order_id: string
@@ -8733,13 +8741,21 @@ export type Database = {
           price_change_accepted: boolean
           price_change_pct: number | null
           price_changed: boolean
+          raw_cancel: Json | null
           raw_form: Json | null
           raw_prebook: Json | null
+          refund_amount: number | null
+          refund_status: string | null
           residency: string
+          rh_amount_refunded: number | null
           rh_error_code: string | null
+          rh_free_cancellation_before: string | null
+          rh_is_cancellable: boolean | null
           rh_item_id: number | null
           rh_order_id: number | null
+          rh_order_info: Json | null
           rh_payment_type: Json | null
+          rh_status: string | null
           room_name: string | null
           rooms: Json | null
           search_amount: number | null
@@ -8748,6 +8764,7 @@ export type Database = {
           source_hash: string | null
           status: string
           stripe_payment_intent_id: string | null
+          stripe_refund_id: string | null
           trip_id: string | null
           updated_at: string
           user_id: string
@@ -8756,6 +8773,11 @@ export type Database = {
           advisor_message?: string | null
           book_hash?: string | null
           booked_at?: string | null
+          cancel_penalty_amount?: number | null
+          cancel_penalty_currency?: string | null
+          cancel_quote?: Json | null
+          cancel_requested_at?: string | null
+          cancelled_at?: string | null
           checkin: string
           checkout: string
           contact?: Json | null
@@ -8768,9 +8790,12 @@ export type Database = {
           form_attempts?: number
           guest_deposit_amount?: number | null
           hid?: number | null
+          hotel_confirmation_number?: string | null
           hotel_id?: string | null
           hotel_name?: string | null
           id?: string
+          info_synced_at?: string | null
+          last_drift?: Json | null
           last_error?: string | null
           last_status_payload?: Json | null
           partner_order_id: string
@@ -8782,13 +8807,21 @@ export type Database = {
           price_change_accepted?: boolean
           price_change_pct?: number | null
           price_changed?: boolean
+          raw_cancel?: Json | null
           raw_form?: Json | null
           raw_prebook?: Json | null
+          refund_amount?: number | null
+          refund_status?: string | null
           residency: string
+          rh_amount_refunded?: number | null
           rh_error_code?: string | null
+          rh_free_cancellation_before?: string | null
+          rh_is_cancellable?: boolean | null
           rh_item_id?: number | null
           rh_order_id?: number | null
+          rh_order_info?: Json | null
           rh_payment_type?: Json | null
+          rh_status?: string | null
           room_name?: string | null
           rooms?: Json | null
           search_amount?: number | null
@@ -8797,6 +8830,7 @@ export type Database = {
           source_hash?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
           trip_id?: string | null
           updated_at?: string
           user_id: string
@@ -8805,6 +8839,11 @@ export type Database = {
           advisor_message?: string | null
           book_hash?: string | null
           booked_at?: string | null
+          cancel_penalty_amount?: number | null
+          cancel_penalty_currency?: string | null
+          cancel_quote?: Json | null
+          cancel_requested_at?: string | null
+          cancelled_at?: string | null
           checkin?: string
           checkout?: string
           contact?: Json | null
@@ -8817,9 +8856,12 @@ export type Database = {
           form_attempts?: number
           guest_deposit_amount?: number | null
           hid?: number | null
+          hotel_confirmation_number?: string | null
           hotel_id?: string | null
           hotel_name?: string | null
           id?: string
+          info_synced_at?: string | null
+          last_drift?: Json | null
           last_error?: string | null
           last_status_payload?: Json | null
           partner_order_id?: string
@@ -8831,13 +8873,21 @@ export type Database = {
           price_change_accepted?: boolean
           price_change_pct?: number | null
           price_changed?: boolean
+          raw_cancel?: Json | null
           raw_form?: Json | null
           raw_prebook?: Json | null
+          refund_amount?: number | null
+          refund_status?: string | null
           residency?: string
+          rh_amount_refunded?: number | null
           rh_error_code?: string | null
+          rh_free_cancellation_before?: string | null
+          rh_is_cancellable?: boolean | null
           rh_item_id?: number | null
           rh_order_id?: number | null
+          rh_order_info?: Json | null
           rh_payment_type?: Json | null
+          rh_status?: string | null
           room_name?: string | null
           rooms?: Json | null
           search_amount?: number | null
@@ -8846,6 +8896,7 @@ export type Database = {
           source_hash?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
           trip_id?: string | null
           updated_at?: string
           user_id?: string

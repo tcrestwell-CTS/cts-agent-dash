@@ -131,6 +131,133 @@ async function pollFinishStatus(admin: Admin, order: any) {
   });
 }
 
+// ---------- Cancellation + order/info (post-booking) ----------
+const num = (v: any): number | null => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+
+/** Evaluate a cached ETG cancellation_penalties object at `at`. Policies are
+ *  windows [start_at, end_at) (null = open-ended); amount_charge is what the
+ *  B2B partner pays if cancelled in that window. */
+function penaltyAt(cp: any, total: number | null, at = new Date()) {
+  const policies: any[] = Array.isArray(cp?.policies) ? cp.policies : [];
+  const t = at.getTime();
+  const win = policies.find((pol) => {
+    const s = pol.start_at ? Date.parse(pol.start_at + (/[zZ+]/.test(pol.start_at.slice(10)) ? "" : "Z")) : -Infinity;
+    const e = pol.end_at ? Date.parse(pol.end_at + (/[zZ+]/.test(pol.end_at.slice(10)) ? "" : "Z")) : Infinity;
+    return t >= s && t < e;
+  });
+  const penalty = win ? num(win.amount_charge ?? win.penalty?.amount ?? win.amount_show) : null;
+  const free = cp?.free_cancellation_before ?? null;
+  const kind = penalty == null ? "unknown"
+    : penalty <= 0 ? "free"
+    : total != null && penalty >= total - 0.005 ? "non_refundable" : "partial";
+  return { kind, penalty, free_cancellation_before: free, window: win ?? null };
+}
+
+async function stripeRefund(piId: string, cents: number, idemKey: string) {
+  const key = Deno.env.get("STRIPE_SECRET_KEY_CLIENT");
+  if (!key) throw new Error("Stripe client key not configured");
+  const res = await fetch("https://api.stripe.com/v1/refunds", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": idemKey },
+    body: new URLSearchParams({ payment_intent: piId, amount: String(cents), reason: "requested_by_customer", "metadata[source]": "ratehawk_cancel" }),
+  });
+  const r = await res.json();
+  if (!res.ok) throw new Error(r?.error?.message ?? `Stripe refund HTTP ${res.status}`);
+  return r;
+}
+
+async function fetchOrderInfo(partnerOrderId: string) {
+  const resp = await rhCall("/api/b2b/v3/hotel/order/info", {
+    ordering: { ordering_type: "desc", ordering_by: "created_at" },
+    pagination: { page_size: 1, page_number: 1 },
+    search: { partner_order_ids: [partnerOrderId] },
+    language: "en",
+  });
+  if (resp.status !== "ok" || resp.error) return { ok: false as const, resp, c: outcome("info", resp) };
+  return { ok: true as const, order: resp?.data?.orders?.[0] ?? null };
+}
+
+/** Guest refund = deposit x (RateHawk refunded / RateHawk sell). Driven by what
+ *  RateHawk confirms, not our cached policy. Currency-agnostic (sandbox is EUR). */
+async function settleGuestRefund(admin: Admin, order: any, rhRefunded: number | null, rhSell: number | null) {
+  const deposit = num(order.guest_deposit_amount) ?? 0;
+  const pi = order.stripe_payment_intent_id as string | null;
+  if (order.refund_status === "refunded" || order.refund_status === "not_applicable" || order.refund_status === "none_due") return order;
+  if (!pi || pi.startsWith("sandbox-bypass-") || deposit <= 0) {
+    return await patch(admin, order.id, { refund_status: "not_applicable", refund_amount: 0 });
+  }
+  if (rhRefunded == null || rhSell == null || rhSell <= 0) {
+    return await patch(admin, order.id, { refund_status: "review_required",
+      advisor_message: "Cancelled at RateHawk, but RateHawk didn't report refunded amounts. Review the guest deposit refund manually." });
+  }
+  const frac = Math.max(0, Math.min(1, rhRefunded / rhSell));
+  const cents = Math.round(deposit * frac * 100);
+  if (cents <= 0) return await patch(admin, order.id, { refund_status: "none_due", refund_amount: 0 });
+  try {
+    const r = await stripeRefund(pi, cents, `rh-cancel-${order.id}`);
+    return await patch(admin, order.id, { refund_status: "refunded", refund_amount: cents / 100, stripe_refund_id: r.id });
+  } catch (e) {
+    return await patch(admin, order.id, { refund_status: "refund_failed", refund_amount: cents / 100,
+      advisor_message: `Cancelled at RateHawk, but the Stripe refund of ${(cents / 100).toFixed(2)} failed: ${e instanceof Error ? e.message : e}. Refund manually.` });
+  }
+}
+
+/** Reconcile our row to RateHawk's order/info (source of truth). */
+async function reconcileFromInfo(admin: Admin, order: any, info: any) {
+  const rhStatus: string | null = info?.status ?? null;
+  const ci = info?.cancellation_info ?? null;
+  const fields: Record<string, unknown> = {
+    rh_order_info: info, rh_status: rhStatus, info_synced_at: new Date().toISOString(),
+    hotel_confirmation_number: info?.hotel_data?.order_id ?? order.hotel_confirmation_number ?? null,
+    rh_free_cancellation_before: ci?.free_cancellation_before ?? null,
+    rh_is_cancellable: typeof info?.is_cancellable === "boolean" ? info.is_cancellable : null,
+  };
+  if (info?.order_id && !order.rh_order_id) fields.rh_order_id = info.order_id;
+  const want = rhStatus === "cancelled" ? "cancelled"
+    : rhStatus === "completed" ? "booked"
+    : rhStatus === "failed" || rhStatus === "rejected" ? (order.payment_status === "captured" ? "needs_attention" : "failed")
+    : rhStatus === "noshow" ? "noshow" : null;
+  let drift: any = null;
+  if (want && want !== order.status && !(want === "booked" && order.status === "booked")) {
+    drift = { detected_at: new Date().toISOString(), local_status: order.status, ratehawk_status: rhStatus, applied_status: want };
+    fields.status = want;
+    fields.last_drift = drift;
+    if (want === "cancelled") {
+      fields.cancelled_at = info?.cancelled_at ?? new Date().toISOString();
+      const pen = num(info?.amount_payable?.amount);
+      if (pen != null && order.cancel_penalty_amount == null) { fields.cancel_penalty_amount = pen; fields.cancel_penalty_currency = info?.amount_payable?.currency_code ?? null; }
+      if (order.rh_amount_refunded == null) fields.rh_amount_refunded = num(info?.amount_refunded?.amount);
+      fields.advisor_message = "RateHawk shows this booking as cancelled; our record was updated to match.";
+    } else if (want === "booked") {
+      fields.booked_at = order.booked_at ?? new Date().toISOString();
+      fields.advisor_message = "RateHawk shows this booking as confirmed; our record was updated to match.";
+    } else if (want === "needs_attention") {
+      fields.advisor_message = `RateHawk shows this booking as ${rhStatus}. The guest deposit was captured and must be refunded or used for a new booking.`;
+    }
+  }
+  let updated = await patch(admin, order.id, fields);
+  if (updated.status === "cancelled" && updated.payment_status === "captured" && !updated.refund_status) {
+    updated = await settleGuestRefund(admin, updated, num(info?.amount_refunded?.amount), num(info?.amount_sell?.amount));
+  }
+  return { order: updated, drift };
+}
+
+function cancelView(o: any) {
+  return {
+    ...summarize(o),
+    rh_status: o.rh_status ?? null,
+    hotel_confirmation_number: o.hotel_confirmation_number ?? null,
+    free_cancellation_before: o.rh_free_cancellation_before ?? null,
+    is_cancellable: o.rh_is_cancellable ?? null,
+    cancelled_at: o.cancelled_at ?? null,
+    cancel_penalty: o.cancel_penalty_amount != null ? { amount: Number(o.cancel_penalty_amount), currency: o.cancel_penalty_currency } : null,
+    ratehawk_refunded: o.rh_amount_refunded != null ? Number(o.rh_amount_refunded) : null,
+    guest_refund: { status: o.refund_status ?? null, amount: o.refund_amount != null ? Number(o.refund_amount) : null, stripe_refund_id: o.stripe_refund_id ?? null },
+    last_drift: o.last_drift ?? null,
+    info_synced_at: o.info_synced_at ?? null,
+  };
+}
+
 export async function handleBookingAction(
   action: string,
   p: any,
@@ -396,6 +523,92 @@ export async function handleBookingAction(
       let order = await loadOrder(admin, p.order_id, userId, isAdmin);
       if (["finishing", "processing"].includes(order.status)) order = await pollFinishStatus(admin, order);
       return summarize(order);
+    }
+
+    case "order_info": {
+      let order = await loadOrder(admin, p.order_id, userId, isAdmin);
+      const r = await fetchOrderInfo(order.partner_order_id);
+      if (!r.ok) throw new Error(`[502] ${r.c.code}: ${r.c.message}`);
+      if (!r.order) {
+        return { ...cancelView(order), ratehawk: null,
+          note: "RateHawk has no finished order for this reference (order/info only lists orders whose status check returned ok; allow 1-2 minutes after confirmation)." };
+      }
+      const rec = await reconcileFromInfo(admin, order, r.order);
+      order = rec.order;
+      return { ...cancelView(order), drift: rec.drift, ratehawk: {
+        status: r.order.status, order_id: r.order.order_id, hotel_confirmation_number: r.order.hotel_data?.order_id ?? null,
+        is_cancellable: r.order.is_cancellable ?? null, cancellation_info: r.order.cancellation_info ?? null,
+        amount_sell: r.order.amount_sell ?? null, amount_payable: r.order.amount_payable ?? null, amount_refunded: r.order.amount_refunded ?? null,
+        checkin_at: r.order.checkin_at ?? null, checkout_at: r.order.checkout_at ?? null, supplier_data: r.order.supplier_data ?? null,
+      } };
+    }
+
+    case "cancel_quote": {
+      // Show the advisor the cost BEFORE they confirm. Refresh RateHawk's view
+      // first so the quote uses its current policy, falling back to prebook cache.
+      let order = await loadOrder(admin, p.order_id, userId, isAdmin);
+      if (order.status !== "booked") throw bad(`Only confirmed bookings can be cancelled (order is ${order.status})`);
+      const r = await fetchOrderInfo(order.partner_order_id);
+      let source = "prebook_cache", policy = order.prebook_cancellation, total = num(order.prebook_amount);
+      if (r.ok && r.order) {
+        order = (await reconcileFromInfo(admin, order, r.order)).order;
+        if (order.status !== "booked") return { ...cancelView(order), note: "RateHawk no longer shows this booking as confirmed; record reconciled." };
+        if (r.order.cancellation_info?.policies) {
+          source = "ratehawk_order_info";
+          policy = { free_cancellation_before: r.order.cancellation_info.free_cancellation_before,
+            policies: r.order.cancellation_info.policies.map((x: any) => ({ start_at: x.start_at, end_at: x.end_at, amount_charge: x.penalty?.amount })) };
+          total = num(r.order.amount_sell?.amount) ?? total;
+        }
+      }
+      const ev = penaltyAt(policy, total);
+      const deposit = num(order.guest_deposit_amount) ?? 0;
+      const estRefund = ev.penalty == null || total == null || total <= 0 ? null : Math.round(deposit * Math.max(0, 1 - ev.penalty / total) * 100) / 100;
+      const quote = { at: new Date().toISOString(), source, ...ev, total, currency: source === "ratehawk_order_info" ? r.ok && r.order?.amount_sell?.currency_code : order.currency,
+        is_cancellable: order.rh_is_cancellable, guest_deposit: deposit, estimated_guest_refund: estRefund };
+      order = await patch(admin, order.id, { cancel_quote: quote });
+      return { ...cancelView(order), quote, requires_confirmation: true,
+        message: ev.kind === "free" ? "Free cancellation — full guest deposit will be refunded."
+          : ev.kind === "non_refundable" ? `Non-refundable: RateHawk will charge the full ${ev.penalty}. No guest refund.`
+          : ev.kind === "partial" ? `Penalty ${ev.penalty} of ${total}. Estimated guest refund ${estRefund}.`
+          : "Cancellation cost couldn't be determined from the policy. RateHawk's response will decide the refund." };
+    }
+
+    case "cancel_booking": {
+      let order = await loadOrder(admin, p.order_id, userId, isAdmin);
+      if (order.status === "cancelled") return cancelView(order);
+      if (order.status !== "booked") throw bad(`Only confirmed bookings can be cancelled (order is ${order.status})`);
+      const q = order.cancel_quote;
+      if (!q || Date.now() - Date.parse(q.at) > 10 * 60_000) throw bad("Get a fresh cancel_quote (valid 10 minutes) and show it to the advisor first");
+      if (p.confirm !== true) throw bad("Send confirm: true after the advisor has reviewed the cancellation quote");
+      if (q.kind !== "free" && p.acknowledge_penalty !== true) throw bad(`This cancellation is ${q.kind} (penalty ${q.penalty ?? "unknown"}). Resend with acknowledge_penalty: true`);
+      order = await patch(admin, order.id, { cancel_requested_at: new Date().toISOString() });
+      const resp = await rhCall("/api/b2b/v3/hotel/order/cancel", { partner_order_id: order.partner_order_id });
+      if (resp.status === "ok" && !resp.error) {
+        const d = resp.data ?? {};
+        order = await patch(admin, order.id, {
+          status: "cancelled", cancelled_at: new Date().toISOString(), raw_cancel: resp, rh_status: "cancelled",
+          cancel_penalty_amount: num(d.amount_payable?.amount), cancel_penalty_currency: d.amount_payable?.currency_code ?? null,
+          rh_amount_refunded: num(d.amount_refunded?.amount),
+          rh_error_code: null, error_stage: null, error_retryable: null, last_error: null,
+          advisor_message: `Cancelled at RateHawk. Penalty ${d.amount_payable?.amount ?? "?"} ${d.amount_payable?.currency_code ?? ""}, supplier refund ${d.amount_refunded?.amount ?? "?"}.`,
+        });
+        order = await settleGuestRefund(admin, order, num(d.amount_refunded?.amount), num(d.amount_sell?.amount));
+        return cancelView(order);
+      }
+      const c = outcome("cancel", resp);
+      if (c.kind === "continue") {
+        // Unknown outcome / already cancelled / locked -> RateHawk's order/info decides.
+        const r = await fetchOrderInfo(order.partner_order_id);
+        if (r.ok && r.order) {
+          const rec = await reconcileFromInfo(admin, order, r.order);
+          if (rec.order.status === "cancelled") return cancelView(await patch(admin, order.id, { raw_cancel: resp }));
+        }
+        order = await patch(admin, order.id, { raw_cancel: resp, last_error: `order/cancel: ${c.code}`, ...errFields("cancel", c),
+          advisor_message: `${c.message} RateHawk still doesn't show it cancelled — check order info again in a minute before retrying.` });
+        return cancelView(order);
+      }
+      order = await patch(admin, order.id, { raw_cancel: resp, last_error: `order/cancel: ${c.code}`, ...errFields("cancel", c) });
+      return cancelView(order);
     }
 
     case "list_orders": {
