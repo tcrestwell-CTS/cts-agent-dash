@@ -63,6 +63,17 @@ function rateCancellation(rate: any) {
   const pt = rate?.payment_options?.payment_types?.[0];
   return pt?.cancellation_penalties ?? null;
 }
+// Search (serp) and prebook describe the same policy with different extra fields,
+// key order and number formats; compare only the terms that matter to the guest.
+function canonicalPolicy(c: any) {
+  if (!c) return null;
+  const t = (v: any) => { if (!v) return null; const d = new Date(String(v).endsWith("Z") || /[+-]\d\d:?\d\d$/.test(String(v)) ? v : `${v}Z`); return isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 16); };
+  const n = (v: any) => { const x = Number(v); return Number.isFinite(x) ? Math.round(x * 100) / 100 : null; };
+  const policies = (Array.isArray(c.policies) ? c.policies : [])
+    .map((q: any) => ({ start: t(q.start_at), end: t(q.end_at), charge: n(q.amount_charge ?? q.amount_show) }))
+    .sort((a: any, b: any) => String(a.start ?? "").localeCompare(String(b.start ?? "")));
+  return JSON.stringify({ free: t(c.free_cancellation_before), policies });
+}
 function normGuests(guests: any): { adults: number; children: number[] }[] {
   if (!Array.isArray(guests) || !guests.length) throw bad("guests (one entry per room) is required");
   return guests.map((g: any, i: number) => {
@@ -405,7 +416,7 @@ async function bookingActionImpl(
       const priceChanged = Math.abs(diff) >= 0.01 || resp?.data?.changes?.price_changed === true;
       const prebookCancel = rateCancellation(rate);
       const searchCancel = p.expected_cancellation_penalties ?? null;
-      const policyChanged = searchCancel != null && JSON.stringify(searchCancel) !== JSON.stringify(prebookCancel);
+      const policyChanged = searchCancel != null && canonicalPolicy(searchCancel) !== canonicalPolicy(prebookCancel);
 
       let partnerOrderId = newPartnerId();
       if (p.test_scenario_suffix) {
@@ -658,13 +669,15 @@ async function bookingActionImpl(
       const ev = penaltyAt(policy, total);
       const deposit = num(order.guest_deposit_amount) ?? 0;
       const estRefund = ev.penalty == null || total == null || total <= 0 ? null : Math.round(deposit * Math.max(0, 1 - ev.penalty / total) * 100) / 100;
+      const cur = (source === "ratehawk_order_info" && r.ok && r.order?.amount_sell?.currency_code) || order.currency || "USD";
+      const m = (v: number | null) => v == null ? "unknown" : `${cur} ${v.toFixed(2)}`;
       const quote = { at: new Date().toISOString(), source, ...ev, total, currency: source === "ratehawk_order_info" ? r.ok && r.order?.amount_sell?.currency_code : order.currency,
         is_cancellable: order.rh_is_cancellable, guest_deposit: deposit, estimated_guest_refund: estRefund };
       order = await patch(admin, order.id, { cancel_quote: quote });
       return { ...cancelView(order), quote, requires_confirmation: true,
         message: ev.kind === "free" ? "Free cancellation — full guest deposit will be refunded."
-          : ev.kind === "non_refundable" ? `Non-refundable: RateHawk will charge the full ${ev.penalty}. No guest refund.`
-          : ev.kind === "partial" ? `Penalty ${ev.penalty} of ${total}. Estimated guest refund ${estRefund}.`
+          : ev.kind === "non_refundable" ? `Non-refundable: RateHawk will charge the full ${m(ev.penalty)}. No guest refund.`
+          : ev.kind === "partial" ? `Penalty ${m(ev.penalty)} of ${m(total)}. Estimated guest refund ${m(estRefund)}.`
           : "Cancellation cost couldn't be determined from the policy. RateHawk's response will decide the refund." };
     }
 
@@ -675,7 +688,7 @@ async function bookingActionImpl(
       const q = order.cancel_quote;
       if (!q || Date.now() - Date.parse(q.at) > 10 * 60_000) throw bad("Get a fresh cancel_quote (valid 10 minutes) and show it to the advisor first");
       if (p.confirm !== true) throw bad("Send confirm: true after the advisor has reviewed the cancellation quote");
-      if (q.kind !== "free" && p.acknowledge_penalty !== true) throw bad(`This cancellation is ${q.kind} (penalty ${q.penalty ?? "unknown"}). Resend with acknowledge_penalty: true`);
+      if (q.kind !== "free" && p.acknowledge_penalty !== true) throw bad(`This cancellation is ${q.kind} (penalty ${q.penalty != null ? `${q.currency || "USD"} ${Number(q.penalty).toFixed(2)}` : "unknown"}). Resend with acknowledge_penalty: true`);
       order = await patch(admin, order.id, { cancel_requested_at: new Date().toISOString() });
       const resp = await rhCall("/api/b2b/v3/hotel/order/cancel", { partner_order_id: order.partner_order_id });
       if (resp.status === "ok" && !resp.error) {
