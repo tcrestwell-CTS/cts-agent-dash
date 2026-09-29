@@ -94,3 +94,31 @@ function describeUpstreamError(json: any, text: string): string {
   if (typeof json?.message === "string") return json.message;
   return text.slice(0, 300) || "(empty response body)";
 }
+
+/**
+ * POST without envelope-status enforcement. Needed for async endpoints like
+ * booking/finish/status where `status: "processing"` is a normal, non-final
+ * answer rather than an error. Still throws on non-2xx / non-JSON.
+ */
+export async function ratehawkPostRaw(path: string, body: unknown): Promise<any> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  let url: string;
+  if (RATEHAWK_VIA_PROXY) {
+    url = `${PROXY_URL}${path}`;
+    headers["X-Proxy-Secret"] = PROXY_SECRET;
+  } else {
+    url = `${RATEHAWK_BASE_URL}${path}`;
+    headers.Authorization = ratehawkAuthHeader();
+  }
+  const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+  const text = await res.text();
+  let json: any = null;
+  try { json = JSON.parse(text); } catch { /* non-JSON */ }
+  if (json === null) {
+    throw new Error(`[${res.ok ? 502 : res.status}] RateHawk ${path}: non-JSON response — ${text.slice(0, 300) || "(empty body)"}`);
+  }
+  return { httpStatus: res.status, ...json };
+}
