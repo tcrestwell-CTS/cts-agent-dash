@@ -45,6 +45,10 @@ import { HotelDestinationInput } from "@/components/trips/HotelDestinationInput"
 import { AddToTripSelector } from "@/components/search/AddToTripSelector";
 import { HotelBookingVoucher } from "@/components/hotels/HotelBookingVoucher";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
+import { RateHawkBookingDialog, type RateHawkBookTarget } from "@/components/hotels/RateHawkBookingDialog";
+import { RESIDENCY_OPTIONS, type RoomGuests } from "@/lib/ratehawkApi";
+import { Plus, Trash2, ClipboardList } from "lucide-react";
 
 function getStars(categoryName: string): number {
   const match = categoryName?.match(/(\d)/);
@@ -80,8 +84,12 @@ export default function HotelSearch() {
   const [rhHotelId, setRhHotelId] = useState("");
   const [rhCheckIn, setRhCheckIn] = useState("");
   const [rhCheckOut, setRhCheckOut] = useState("");
-  const [rhAdults, setRhAdults] = useState(2);
-  const [rhChildAges, setRhChildAges] = useState("");
+  const [rhRooms, setRhRooms] = useState<{ adults: number; ages: string }[]>([{ adults: 2, ages: "" }]);
+  const [rhResidency, setRhResidency] = useState("us");
+  // Snapshot of the criteria the current results were searched with (booking must match them)
+  const [rhSearched, setRhSearched] = useState<{ checkin: string; checkout: string; residency: string; guests: RoomGuests[] } | null>(null);
+  const [rhBookTarget, setRhBookTarget] = useState<RateHawkBookTarget | null>(null);
+  const [rhAgesError, setRhAgesError] = useState<string | null>(null);
 
   const handleSelectSupplier = (s: "hotelbeds" | "ratehawk") => {
     setSupplier(s);
@@ -89,6 +97,14 @@ export default function HotelSearch() {
       setRhCertLoaded(true);
       listCertificationHotels();
     }
+  };
+
+  const parseAges = (s: string): number[] | null => {
+    if (!s.trim()) return [];
+    const parts = s.split(",").map((a) => a.trim()).filter(Boolean);
+    const nums = parts.map((a) => Number(a));
+    if (nums.some((n) => !Number.isInteger(n) || n < 0 || n > 17)) return null;
+    return nums;
   };
 
   const handleRhSearch = () => {
@@ -104,11 +120,15 @@ export default function HotelSearch() {
       toast.error("Check-out date must be after check-in date.");
       return;
     }
-    const childAges = rhChildAges
-      .split(",")
-      .map((a) => parseInt(a.trim()))
-      .filter((a) => !isNaN(a) && a >= 0 && a <= 17);
-    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, hids: [Number(rhHotelId)], adults: rhAdults, children: childAges });
+    const guests: RoomGuests[] = [];
+    for (let i = 0; i < rhRooms.length; i++) {
+      const ages = parseAges(rhRooms[i].ages);
+      if (!ages) { setRhAgesError(`Room ${i + 1}: child ages must be whole numbers 0–17 (0 = infant), comma-separated.`); return; }
+      guests.push({ adults: Math.min(6, Math.max(1, rhRooms[i].adults)), children: ages });
+    }
+    setRhAgesError(null);
+    setRhSearched({ checkin: rhCheckIn, checkout: rhCheckOut, residency: rhResidency, guests });
+    rhSearch({ checkIn: rhCheckIn, checkOut: rhCheckOut, hids: [Number(rhHotelId)], guests, residency: rhResidency });
   };
 
   const [destination, setDestination] = useState("");
@@ -287,12 +307,12 @@ export default function HotelSearch() {
             Hotel Search
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Search hotels powered by HotelBeds or RateHawk — booking available via HotelBeds
+            Search and book hotels through HotelBeds or RateHawk
           </p>
         </div>
 
         {/* Supplier toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant={supplier === "hotelbeds" ? "default" : "outline"}
             size="sm"
@@ -308,9 +328,9 @@ export default function HotelSearch() {
             RateHawk
           </Button>
           {supplier === "ratehawk" && (
-            <Badge variant="outline" className="text-xs ml-1">
-              Search only — booking coming in a later phase
-            </Badge>
+            <Button variant="ghost" size="sm" asChild className="ml-auto">
+              <Link to="/hotels/orders"><ClipboardList className="h-4 w-4 mr-1" /> My RateHawk orders</Link>
+            </Button>
           )}
         </div>
 
@@ -321,10 +341,10 @@ export default function HotelSearch() {
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div className="space-y-2 lg:col-span-2">
-                    <Label>Test Hotel</Label>
+                    <Label>Hotel</Label>
                     <Select value={rhHotelId} onValueChange={setRhHotelId} disabled={certHotelsLoading}>
                       <SelectTrigger>
-                        <SelectValue placeholder={certHotelsLoading ? "Loading test hotels..." : "Select a certification test hotel"} />
+                        <SelectValue placeholder={certHotelsLoading ? "Loading hotels..." : "Select a hotel"} />
                       </SelectTrigger>
                       <SelectContent>
                         {certHotels.map((h) => (
@@ -344,25 +364,45 @@ export default function HotelSearch() {
                     <Input type="date" value={rhCheckOut} onChange={(e) => setRhCheckOut(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Adults</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={6}
-                      value={rhAdults}
-                      onChange={(e) => setRhAdults(parseInt(e.target.value) || 1)}
-                    />
+                    <Label>Guest residency / citizenship</Label>
+                    <Select value={rhResidency} onValueChange={setRhResidency}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {RESIDENCY_OPTIONS.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+                <div className="mt-4 space-y-2">
+                  <Label>Rooms</Label>
+                  {rhRooms.map((r, i) => (
+                    <div key={i} className="flex flex-wrap items-end gap-3">
+                      <span className="text-sm font-medium w-16 pb-2">Room {i + 1}</span>
+                      <div className="space-y-1 w-24">
+                        <span className="text-xs text-muted-foreground">Adults</span>
+                        <Input type="number" min={1} max={6} value={r.adults}
+                          onChange={(e) => setRhRooms((rs) => rs.map((x, j) => j === i ? { ...x, adults: parseInt(e.target.value) || 1 } : x))} />
+                      </div>
+                      <div className="space-y-1 w-56">
+                        <span className="text-xs text-muted-foreground">Child ages (0 = infant)</span>
+                        <Input value={r.ages} placeholder="e.g. 0, 17"
+                          onChange={(e) => setRhRooms((rs) => rs.map((x, j) => j === i ? { ...x, ages: e.target.value } : x))} />
+                      </div>
+                      {rhRooms.length > 1 && (
+                        <Button variant="ghost" size="icon" aria-label={`Remove room ${i + 1}`} onClick={() => setRhRooms((rs) => rs.filter((_, j) => j !== i))}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {rhAgesError && <p className="text-xs text-destructive">{rhAgesError}</p>}
+                </div>
                 <div className="flex items-end gap-4 mt-4">
-                  <div className="space-y-2 w-56">
-                    <Label>Child ages (comma-separated, optional)</Label>
-                    <Input
-                      value={rhChildAges}
-                      onChange={(e) => setRhChildAges(e.target.value)}
-                      placeholder="e.g. 7, 12"
-                    />
-                  </div>
+                  <Button variant="outline" size="sm" disabled={rhRooms.length >= 9} onClick={() => setRhRooms((rs) => [...rs, { adults: 2, ages: "" }])}>
+                    <Plus className="h-4 w-4 mr-1" /> Add room
+                  </Button>
                   <div className="flex-1" />
                   <Button onClick={handleRhSearch} disabled={rhLoading || !rhHotelId || !rhCheckIn || !rhCheckOut}>
                     {rhLoading ? (
@@ -376,7 +416,7 @@ export default function HotelSearch() {
               </CardContent>
             </Card>
 
-            {/* RateHawk results — read-only */}
+            {/* RateHawk results */}
             {rhLoading && (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -433,6 +473,32 @@ export default function HotelSearch() {
                                   ) : (
                                     <p className="text-sm text-muted-foreground">Price unavailable</p>
                                   )}
+                                  {pt?.cancellation_penalties?.free_cancellation_before && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Free cancel before {new Date(pt.cancellation_penalties.free_cancellation_before).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    className="mt-1"
+                                    disabled={!rate.book_hash || !pt?.show_amount || !rhSearched}
+                                    onClick={() => rhSearched && setRhBookTarget({
+                                      hid: hotel.hid,
+                                      hotelId: hotel.id,
+                                      hotelName: name,
+                                      roomName: rate.room_name,
+                                      bookHash: rate.book_hash!,
+                                      amount: Number(pt!.show_amount),
+                                      currency: pt?.show_currency_code || "USD",
+                                      cancellation: pt?.cancellation_penalties ?? null,
+                                      checkin: rhSearched.checkin,
+                                      checkout: rhSearched.checkout,
+                                      residency: rhSearched.residency,
+                                      guests: rhSearched.guests,
+                                    })}
+                                  >
+                                    Book
+                                  </Button>
                                 </div>
                               </div>
                             );
@@ -777,6 +843,12 @@ export default function HotelSearch() {
           </div>
         )}
         </>)}
+
+        <RateHawkBookingDialog
+          open={!!rhBookTarget}
+          onOpenChange={(v) => !v && setRhBookTarget(null)}
+          target={rhBookTarget}
+        />
 
         {/* Booking Dialog */}
         <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>

@@ -100,6 +100,7 @@ const TripPublishManager  = lazy(() => import("./pages/TripPublishManager"));
 const FlightSearch        = lazy(() => import("./pages/FlightSearch"));
 const FlightMonitoring    = lazy(() => import("./pages/FlightMonitoring"));
 const HotelSearch         = lazy(() => import("./pages/HotelSearch"));
+const RateHawkOrders      = lazy(() => import("./pages/RateHawkOrders"));
 const CruiseSearch        = lazy(() => import("./pages/CruiseSearch"));
 const TripInsurance       = lazy(() => import("./pages/TripInsurance"));
 const FeaturedTrips       = lazy(() => import("./pages/FeaturedTrips"));
@@ -281,6 +282,7 @@ const App = () => (
                 <Route path="/flights" element={<ProtectedRoute><FeatureRoute feature="flight_search"><FlightSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/flight-monitoring" element={<ProtectedRoute><FeatureRoute feature="flight_monitoring"><FlightMonitoring /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/hotels" element={<ProtectedRoute><FeatureRoute feature="hotel_search"><HotelSearch /></FeatureRoute></ProtectedRoute>} />
+                <Route path="/hotels/orders" element={<ProtectedRoute><FeatureRoute feature="hotel_search"><RateHawkOrders /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/hotelbeds-coverage" element={<ProtectedRoute><AdminRoute allowOfficeAdmin><HotelbedsCoverage /></AdminRoute></ProtectedRoute>} />
                 <Route path="/cruises" element={<ProtectedRoute><FeatureRoute feature="cruise_search"><CruiseSearch /></FeatureRoute></ProtectedRoute>} />
                 <Route path="/featured-trips" element={<ProtectedRoute><FeatureRoute feature="featured_trips"><FeaturedTrips /></FeatureRoute></ProtectedRoute>} />
