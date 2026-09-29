@@ -3,6 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, getClientIP } from "../_shared/rate-limiter.ts";
 import { RATEHAWK_ENV, ratehawkPost } from "../_shared/ratehawk-auth.ts";
+import { handleBookingAction } from "./booking.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -201,8 +202,14 @@ Deno.serve(async (req) => {
         break;
       }
 
-      default:
-        return json({ error: `Unknown action: ${action}` }, 400);
+      default: {
+        const admin = adminClient();
+        const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        result = await handleBookingAction(action, params, {
+          admin, userId: user.id, isAdmin: isAdmin === true, clientIp: getClientIP(req),
+        });
+        if (result === undefined) return json({ error: `Unknown action: ${action}` }, 400);
+      }
     }
 
     return json({ data: result, env: RATEHAWK_ENV });
