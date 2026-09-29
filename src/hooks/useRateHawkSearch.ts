@@ -64,6 +64,8 @@ export function useRateHawkSearch() {
     hids: number[];
     adults?: number;
     children?: number[];
+    guests?: { adults: number; children: number[] }[];
+    residency?: string;
   }) => {
     setLoading(true);
     setHotels([]);
@@ -73,7 +75,8 @@ export function useRateHawkSearch() {
         checkin: params.checkIn,
         checkout: params.checkOut,
         hids: params.hids,
-        guests: [{ adults: params.adults ?? 2, children: params.children ?? [] }],
+        guests: params.guests?.length ? params.guests : [{ adults: params.adults ?? 2, children: params.children ?? [] }],
+        residency: params.residency || "us",
       });
       const found: RateHawkHotel[] = result?.hotels ?? [];
       setHotels(found);
