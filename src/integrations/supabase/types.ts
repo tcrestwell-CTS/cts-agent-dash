@@ -8704,6 +8704,7 @@ export type Database = {
       }
       ratehawk_orders: {
         Row: {
+          advisor_message: string | null
           book_hash: string | null
           booked_at: string | null
           checkin: string
@@ -8712,7 +8713,10 @@ export type Database = {
           created_at: string
           currency: string
           environment: string
+          error_retryable: boolean | null
+          error_stage: string | null
           finish_attempts: number
+          form_attempts: number
           guest_deposit_amount: number | null
           hid: number | null
           hotel_id: string | null
@@ -8725,12 +8729,14 @@ export type Database = {
           policy_changed: boolean
           prebook_amount: number | null
           prebook_cancellation: Json | null
+          previous_partner_order_ids: string[]
           price_change_accepted: boolean
           price_change_pct: number | null
           price_changed: boolean
           raw_form: Json | null
           raw_prebook: Json | null
           residency: string
+          rh_error_code: string | null
           rh_item_id: number | null
           rh_order_id: number | null
           rh_payment_type: Json | null
@@ -8747,6 +8753,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          advisor_message?: string | null
           book_hash?: string | null
           booked_at?: string | null
           checkin: string
@@ -8755,7 +8762,10 @@ export type Database = {
           created_at?: string
           currency?: string
           environment?: string
+          error_retryable?: boolean | null
+          error_stage?: string | null
           finish_attempts?: number
+          form_attempts?: number
           guest_deposit_amount?: number | null
           hid?: number | null
           hotel_id?: string | null
@@ -8768,12 +8778,14 @@ export type Database = {
           policy_changed?: boolean
           prebook_amount?: number | null
           prebook_cancellation?: Json | null
+          previous_partner_order_ids?: string[]
           price_change_accepted?: boolean
           price_change_pct?: number | null
           price_changed?: boolean
           raw_form?: Json | null
           raw_prebook?: Json | null
           residency: string
+          rh_error_code?: string | null
           rh_item_id?: number | null
           rh_order_id?: number | null
           rh_payment_type?: Json | null
@@ -8790,6 +8802,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          advisor_message?: string | null
           book_hash?: string | null
           booked_at?: string | null
           checkin?: string
@@ -8798,7 +8811,10 @@ export type Database = {
           created_at?: string
           currency?: string
           environment?: string
+          error_retryable?: boolean | null
+          error_stage?: string | null
           finish_attempts?: number
+          form_attempts?: number
           guest_deposit_amount?: number | null
           hid?: number | null
           hotel_id?: string | null
@@ -8811,12 +8827,14 @@ export type Database = {
           policy_changed?: boolean
           prebook_amount?: number | null
           prebook_cancellation?: Json | null
+          previous_partner_order_ids?: string[]
           price_change_accepted?: boolean
           price_change_pct?: number | null
           price_changed?: boolean
           raw_form?: Json | null
           raw_prebook?: Json | null
           residency?: string
+          rh_error_code?: string | null
           rh_item_id?: number | null
           rh_order_id?: number | null
           rh_payment_type?: Json | null

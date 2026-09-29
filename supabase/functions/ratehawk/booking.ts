@@ -3,6 +3,29 @@
 // RateHawk itself is paid from our ETG B2B account (payment_type "deposit").
 // hotelpage/prebook responses are NEVER cached.
 import { RATEHAWK_ENV, ratehawkPost, ratehawkPostRaw } from "../_shared/ratehawk-auth.ts";
+import { classify, errorCode, type Stage } from "./errors.ts";
+
+const FORM_MAX_ATTEMPTS = 10; // ETG: limit create-booking retries to 10
+
+/** Never throws for upstream trouble: network errors / non-JSON / 5xx come back
+ *  as { status:"error", error:"timeout"|..., httpStatus } so the caller can
+ *  apply ETG's per-endpoint rules. */
+async function rhCall(path: string, body: unknown): Promise<any> {
+  try {
+    return await ratehawkPostRaw(path, body);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const m = msg.match(/^\[(\d{3})\]/);
+    return { status: "error", error: "network", httpStatus: m ? Number(m[1]) : 599, transport_error: msg };
+  }
+}
+function outcome(stage: Stage, resp: any) {
+  const code = errorCode(resp?.error);
+  return classify(stage, code, resp?.httpStatus);
+}
+function errFields(stage: Stage, c: { code: string; retryable: boolean; message: string }) {
+  return { rh_error_code: c.code, error_stage: stage, error_retryable: c.retryable, advisor_message: c.message };
+}
 
 type Admin = any;
 
@@ -66,23 +89,37 @@ async function pollFinishStatus(admin: Admin, order: any) {
   const started = Date.now();
   let last: any = null;
   for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS && Date.now() - started < POLL_MAX_MS; attempt++) {
-    last = await ratehawkPostRaw("/api/b2b/v3/hotel/order/booking/finish/status", {
+    last = await rhCall("/api/b2b/v3/hotel/order/booking/finish/status", {
       partner_order_id: order.partner_order_id,
     });
-    if (last.status === "ok") {
-      return await patch(admin, order.id, { status: "booked", booked_at: new Date().toISOString(), last_status_payload: last, last_error: null });
-    }
-    if (last.status === "error") {
-      // Payment already captured -> needs a human (refund/retry), never silent.
+    if (last.status === "ok" && !last.error) {
       return await patch(admin, order.id, {
-        status: "needs_attention",
-        last_error: `RateHawk booking failed after guest payment: ${typeof last.error === "string" ? last.error : JSON.stringify(last.error)}`,
-        last_status_payload: last,
+        status: "booked", booked_at: new Date().toISOString(), last_status_payload: last, last_error: null,
+        rh_error_code: null, error_stage: null, error_retryable: null, advisor_message: "Booking confirmed by RateHawk.",
       });
     }
+    if (last.status === "error" || last.error) {
+      const c = outcome("status", last);
+      if (c.kind !== "continue") {
+        // Guest deposit already captured -> a human must refund or rebook.
+        return await patch(admin, order.id, {
+          status: "needs_attention",
+          last_error: `booking/finish/status: ${c.code}`,
+          last_status_payload: last,
+          ...errFields("status", c),
+          advisor_message: `${c.message} The guest deposit (${order.stripe_payment_intent_id}) was captured and must be refunded or used for a new booking.`,
+        });
+      }
+    }
+    // processing, 3ds (unsupported for deposit), timeout/unknown/5xx -> keep polling
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
-  return await patch(admin, order.id, { status: "processing", last_status_payload: last });
+  // Final check at the deadline (ETG recommendation) happened as the last loop iteration.
+  return await patch(admin, order.id, {
+    status: "processing", last_status_payload: last,
+    advisor_message: "RateHawk is still confirming this booking. Check status again in a minute — do not rebook or refund yet.",
+    error_retryable: true,
+  });
 }
 
 export async function handleBookingAction(
@@ -193,22 +230,42 @@ export async function handleBookingAction(
         order = await patch(admin, order.id, { price_change_accepted: true, status: "prebooked" });
       }
       if (order.status !== "prebooked") throw bad(`Order is ${order.status}; booking form already created or not allowed`);
-      let resp: any;
-      try {
-        resp = await ratehawkPost("/api/b2b/v3/hotel/order/booking/form", {
+      // ETG rule: on timeout/unknown/5xx/double_booking_form/duplicate_reservation,
+      // retry with a NEW partner_order_id (max 10). No money has moved at this step,
+      // and the orphan form upstream simply expires, so this is safe.
+      let resp: any = null;
+      let attempts = order.form_attempts ?? 0;
+      const prevIds: string[] = [...(order.previous_partner_order_ids ?? [])];
+      while (true) {
+        attempts++;
+        resp = await rhCall("/api/b2b/v3/hotel/order/booking/form", {
           partner_order_id: order.partner_order_id,
           book_hash: order.book_hash,
           language: p.language || "en",
           user_ip: ctx.clientIp && ctx.clientIp !== "unknown" ? ctx.clientIp : "34.237.67.148",
         });
-      } catch (e) {
-        // A timeout can still create the form upstream (retry then returns
-        // double_booking_form). No money has moved yet, so fail the order and
-        // restart from prebook with a fresh partner_order_id.
-        const msg = e instanceof Error ? e.message : String(e);
-        await patch(admin, order.id, { status: "failed", last_error: `booking/form: ${msg}` });
-        throw e;
+        if (resp.status === "ok" && !resp.error) break;
+        const c = outcome("form", resp);
+        if (c.kind === "retry_new_id" && attempts < FORM_MAX_ATTEMPTS) {
+          prevIds.push(order.partner_order_id);
+          order = await patch(admin, order.id, {
+            partner_order_id: `CTS-RH-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+            previous_partner_order_ids: prevIds, form_attempts: attempts,
+            last_error: `booking/form ${c.code} (auto-retrying)`,
+          });
+          continue;
+        }
+        const tooMany = c.kind === "retry_new_id";
+        await patch(admin, order.id, {
+          status: c.kind === "rebook" ? "rebook_required" : "failed",
+          form_attempts: attempts, raw_form: resp,
+          last_error: `booking/form: ${c.code}`,
+          ...errFields("form", c),
+          ...(tooMany ? { error_retryable: false, advisor_message: "RateHawk failed to create the booking form 10 times in a row. Contact the RateHawk account manager (likely a contract setting)." } : {}),
+        });
+        throw bad(tooMany ? `RateHawk booking form failed ${attempts} times (${c.code})` : `${c.code}: ${c.message}`);
       }
+      order = await patch(admin, order.id, { form_attempts: attempts });
       const d = resp?.data ?? {};
       const payTypes: any[] = d.payment_types ?? [];
       const b2b = payTypes.find((t) => t.type === "deposit");
@@ -266,7 +323,9 @@ export async function handleBookingAction(
 
       // 1) Guest deposit MUST be captured before finish.
       let paymentRef: string;
-      if (p.sandbox_payment_bypass === true) {
+      if (order.payment_status === "captured" && order.stripe_payment_intent_id) {
+        paymentRef = order.stripe_payment_intent_id; // resubmission after a fix_input error
+      } else if (p.sandbox_payment_bypass === true) {
         if (RATEHAWK_ENV !== "sandbox" || !isAdmin) throw bad("sandbox_payment_bypass is only allowed for admins in sandbox");
         paymentRef = `sandbox-bypass-${order.partner_order_id}`;
       } else {
@@ -282,7 +341,7 @@ export async function handleBookingAction(
       }
       order = await patch(admin, order.id, {
         stripe_payment_intent_id: paymentRef,
-        guest_deposit_amount: p.sandbox_payment_bypass ? 0 : Number(p.guest_deposit_amount),
+        guest_deposit_amount: order.payment_status === "captured" ? order.guest_deposit_amount : (p.sandbox_payment_bypass ? 0 : Number(p.guest_deposit_amount)),
         payment_status: "captured",
         status: "finishing",
         rooms: rhRooms,
@@ -293,22 +352,30 @@ export async function handleBookingAction(
       // 2) finish (async on RateHawk's side)
       const pt = order.rh_payment_type;
       const lead = rhRooms[0].guests[0];
-      try {
-        await ratehawkPost("/api/b2b/v3/hotel/order/booking/finish", {
-          user: { email, phone, comment: p.comment || undefined },
-          supplier_data: { first_name_original: lead.first_name, last_name_original: lead.last_name, phone, email },
-          partner: { partner_order_id: order.partner_order_id },
-          language: p.language || "en",
-          rooms: rhRooms,
-          payment_type: { type: "deposit", amount: pt.amount, currency_code: pt.currency_code },
-        });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        order = await patch(admin, order.id, {
-          status: "needs_attention",
-          last_error: `booking/finish failed after guest payment ${paymentRef}: ${msg}`,
-        });
-        return { order_id: order.id, status: order.status, error: order.last_error, payment_reference: paymentRef, action_required: "refund_or_retry" };
+      const fin = await rhCall("/api/b2b/v3/hotel/order/booking/finish", {
+        user: { email, phone, comment: p.comment || undefined },
+        supplier_data: { first_name_original: lead.first_name, last_name_original: lead.last_name, phone, email },
+        partner: { partner_order_id: order.partner_order_id },
+        language: p.language || "en",
+        rooms: rhRooms,
+        payment_type: { type: "deposit", amount: pt.amount, currency_code: pt.currency_code },
+      });
+      if (fin.status !== "ok" || fin.error) {
+        const c = outcome("finish", fin);
+        // ETG: timeout/unknown/5xx and double_booking_finish mean "go check status",
+        // not "failed" — the booking may well be in progress upstream.
+        if (c.kind !== "continue") {
+          order = await patch(admin, order.id, {
+            status: c.kind === "fix_input" ? "form_created" : "needs_attention",
+            last_error: `booking/finish: ${c.code}`,
+            ...errFields("finish", c),
+            advisor_message: c.kind === "fix_input"
+              ? `${c.message} The guest deposit is held on this order; resubmit with corrected details.`
+              : `${c.message} The guest deposit (${paymentRef}) was captured and must be refunded or used for a new booking.`,
+          });
+          return summarize(order);
+        }
+        order = await patch(admin, order.id, { last_error: `booking/finish: ${c.code} (checking status)` });
       }
 
       // 3) poll until final
@@ -323,7 +390,7 @@ export async function handleBookingAction(
     }
 
     case "list_orders": {
-      let q = admin.from("ratehawk_orders").select("id, partner_order_id, rh_order_id, hotel_name, checkin, checkout, status, prebook_amount, currency, payment_status, stripe_payment_intent_id, last_error, created_at").order("created_at", { ascending: false }).limit(25);
+      let q = admin.from("ratehawk_orders").select("id, partner_order_id, rh_order_id, hotel_name, checkin, checkout, status, prebook_amount, currency, payment_status, stripe_payment_intent_id, last_error, rh_error_code, advisor_message, created_at").order("created_at", { ascending: false }).limit(25);
       if (!isAdmin) q = q.eq("user_id", userId);
       const { data, error } = await q;
       if (error) throw new Error(error.message);
@@ -345,6 +412,13 @@ function summarize(o: any) {
     currency: o.currency,
     payment_reference: o.stripe_payment_intent_id,
     error: o.last_error,
-    action_required: o.status === "needs_attention" ? "refund_or_retry" : o.status === "processing" ? "poll_booking_status" : null,
+    error_code: o.rh_error_code ?? null,
+    error_stage: o.error_stage ?? null,
+    retryable: o.error_retryable ?? null,
+    advisor_message: o.advisor_message ?? null,
+    action_required: o.status === "needs_attention" ? "refund_or_rebook"
+      : o.status === "processing" ? "poll_booking_status"
+      : o.status === "form_created" && o.error_stage === "finish" ? "correct_and_resubmit"
+      : o.status === "rebook_required" ? "search_again" : null,
   };
 }
