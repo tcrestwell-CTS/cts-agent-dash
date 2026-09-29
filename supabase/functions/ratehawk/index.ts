@@ -3,7 +3,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, getClientIP } from "../_shared/rate-limiter.ts";
 import { RATEHAWK_ENV, ratehawkPost } from "../_shared/ratehawk-auth.ts";
-import { handleBookingAction } from "./booking.ts";
+import { handleBookingAction, sweepProcessingOrders } from "./booking.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,6 +89,22 @@ function baseSearchBody(p: any) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Scheduled safety net (pg_cron): re-check orders stuck in "processing".
+  const cronToken = req.headers.get("x-cron-token");
+  if (cronToken) {
+    const admin = adminClient();
+    const { data: ok } = await admin.rpc("verify_cron_token", { p_name: "ratehawk_status_sweep", p_token: cronToken });
+    if (ok !== true) return json({ error: "Unauthorized" }, 401);
+    try {
+      const out = await sweepProcessingOrders(admin, 10);
+      console.log("ratehawk status sweep", JSON.stringify(out));
+      return json({ data: out, env: RATEHAWK_ENV });
+    } catch (e) {
+      console.error("ratehawk status sweep failed", e);
+      return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+    }
+  }
 
   // Auth check — same inline Bearer-JWT pattern as functions/hotelbeds.
   const authHeader = req.headers.get("Authorization");

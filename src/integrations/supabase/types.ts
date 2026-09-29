@@ -8705,6 +8705,7 @@ export type Database = {
       ratehawk_orders: {
         Row: {
           advisor_message: string | null
+          auto_status_checks: number
           book_hash: string | null
           booked_at: string | null
           cancel_penalty_amount: number | null
@@ -8741,6 +8742,7 @@ export type Database = {
           price_change_accepted: boolean
           price_change_pct: number | null
           price_changed: boolean
+          processing_since: string | null
           raw_cancel: Json | null
           raw_form: Json | null
           raw_prebook: Json | null
@@ -8763,6 +8765,8 @@ export type Database = {
           search_guests: Json
           source_hash: string | null
           status: string
+          status_check_lock_until: string | null
+          status_checked_at: string | null
           stripe_payment_intent_id: string | null
           stripe_refund_id: string | null
           trip_id: string | null
@@ -8771,6 +8775,7 @@ export type Database = {
         }
         Insert: {
           advisor_message?: string | null
+          auto_status_checks?: number
           book_hash?: string | null
           booked_at?: string | null
           cancel_penalty_amount?: number | null
@@ -8807,6 +8812,7 @@ export type Database = {
           price_change_accepted?: boolean
           price_change_pct?: number | null
           price_changed?: boolean
+          processing_since?: string | null
           raw_cancel?: Json | null
           raw_form?: Json | null
           raw_prebook?: Json | null
@@ -8829,6 +8835,8 @@ export type Database = {
           search_guests?: Json
           source_hash?: string | null
           status?: string
+          status_check_lock_until?: string | null
+          status_checked_at?: string | null
           stripe_payment_intent_id?: string | null
           stripe_refund_id?: string | null
           trip_id?: string | null
@@ -8837,6 +8845,7 @@ export type Database = {
         }
         Update: {
           advisor_message?: string | null
+          auto_status_checks?: number
           book_hash?: string | null
           booked_at?: string | null
           cancel_penalty_amount?: number | null
@@ -8873,6 +8882,7 @@ export type Database = {
           price_change_accepted?: boolean
           price_change_pct?: number | null
           price_changed?: boolean
+          processing_since?: string | null
           raw_cancel?: Json | null
           raw_form?: Json | null
           raw_prebook?: Json | null
@@ -8895,6 +8905,8 @@ export type Database = {
           search_guests?: Json
           source_hash?: string | null
           status?: string
+          status_check_lock_until?: string | null
+          status_checked_at?: string | null
           stripe_payment_intent_id?: string | null
           stripe_refund_id?: string | null
           trip_id?: string | null
@@ -12329,6 +12341,10 @@ export type Database = {
         Returns: Json
       }
       check_upcoming_payment_deadlines: { Args: never; Returns: undefined }
+      claim_ratehawk_status_check: {
+        Args: { p_lease_seconds: number; p_order_id: string }
+        Returns: boolean
+      }
       confirm_commission_payout: { Args: { p_edits: Json }; Returns: Json }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
@@ -12390,8 +12406,14 @@ export type Database = {
         Args: { _cap: number }
         Returns: number
       }
+      ratehawk_sweep_arm: { Args: never; Returns: undefined }
+      ratehawk_sweep_disarm_if_idle: { Args: never; Returns: boolean }
       recalc_trip_payment_rollup: {
         Args: { p_trip_id: string }
+        Returns: undefined
+      }
+      release_ratehawk_status_check: {
+        Args: { p_order_id: string }
         Returns: undefined
       }
       reorder_itinerary_items: { Args: { p_updates: Json }; Returns: number }
@@ -12402,6 +12424,10 @@ export type Database = {
       submit_qualify: {
         Args: { p_answers: Json; p_token: string }
         Returns: string
+      }
+      verify_cron_token: {
+        Args: { p_name: string; p_token: string }
+        Returns: boolean
       }
     }
     Enums: {

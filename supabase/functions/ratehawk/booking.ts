@@ -104,7 +104,26 @@ async function verifyStripeDeposit(piId: string, minCents: number) {
   return pi;
 }
 
-async function pollFinishStatus(admin: Admin, order: any) {
+const STATUS_LEASE_S = 90; // > POLL_MAX_MS so a live poll is never overlapped
+export const STUCK_PROCESSING_MS = 6 * 60 * 60 * 1000; // give up auto-checking after 6h
+
+/** Poll finish/status under a per-order DB lease so a manual check, the finish
+ *  flow and the scheduled sweep never hit RateHawk for the same order at once.
+ *  maxMs=0 -> a single check (used by the sweep). */
+async function pollFinishStatus(admin: Admin, order: any, maxMs = POLL_MAX_MS) {
+  const { data: claimed, error: claimErr } = await admin.rpc("claim_ratehawk_status_check", {
+    p_order_id: order.id, p_lease_seconds: STATUS_LEASE_S,
+  });
+  if (claimErr) throw new Error(`Status lock failed: ${claimErr.message}`);
+  if (!claimed) return { ...order, _status_check_in_progress: true };
+  try {
+    return await pollLocked(admin, order, maxMs);
+  } finally {
+    await admin.rpc("release_ratehawk_status_check", { p_order_id: order.id });
+  }
+}
+
+async function pollLocked(admin: Admin, order: any, maxMs: number) {
   const started = Date.now();
   // ETG: poll ~every 1s, with a final check right at the timeout boundary.
   const handle = async (last: any) => {
@@ -134,7 +153,7 @@ async function pollFinishStatus(admin: Admin, order: any) {
   });
 
   let last: any = null;
-  while (Date.now() - started < POLL_MAX_MS) {
+  while (Date.now() - started < maxMs) {
     last = await check();
     const done = await handle(last);
     if (done) return done;
@@ -142,13 +161,49 @@ async function pollFinishStatus(admin: Admin, order: any) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
   // Final check exactly at the timeout boundary.
-  const done = await handle(await check());
+  last = await check();
+  const done = await handle(last);
   if (done) return done;
   return await patch(admin, order.id, {
     status: "processing", last_status_payload: last,
-    advisor_message: "RateHawk is still confirming this booking. Check status again in a minute — do not rebook or refund yet.",
+    advisor_message: "RateHawk is still confirming this booking. It is re-checked automatically every few minutes — do not rebook or refund yet.",
     error_retryable: true,
   });
+}
+
+/** Scheduled safety net: re-check orders left in processing after the 60s window. */
+export async function sweepProcessingOrders(admin: Admin, limit = 10) {
+  const cutoff = new Date(Date.now() - 2 * 60_000).toISOString();
+  const { data: rows, error } = await admin.from("ratehawk_orders")
+    .select("*").in("status", ["processing", "finishing"]).lt("updated_at", cutoff)
+    .order("updated_at", { ascending: true }).limit(limit);
+  if (error) throw new Error(`Sweep lookup failed: ${error.message}`);
+  const results: any[] = [];
+  for (const o of rows ?? []) {
+    const since = Date.parse(o.processing_since ?? o.updated_at);
+    try {
+      if (Date.now() - since > STUCK_PROCESSING_MS) {
+        const { data: claimed } = await admin.rpc("claim_ratehawk_status_check", { p_order_id: o.id, p_lease_seconds: 30 });
+        if (!claimed) { results.push({ id: o.id, result: "locked" }); continue; }
+        try {
+          await patch(admin, o.id, {
+            status: "needs_attention", rh_error_code: "stuck_processing", error_stage: "status", error_retryable: false,
+            last_error: "booking/finish/status: still processing after 6h of automatic checks",
+            advisor_message: `RateHawk never confirmed this booking after 6 hours of automatic checks. Contact RateHawk support with partner order ${o.partner_order_id} before refunding the guest deposit (${o.stripe_payment_intent_id ?? "none"}) or rebooking.`,
+          });
+        } finally { await admin.rpc("release_ratehawk_status_check", { p_order_id: o.id }); }
+        results.push({ id: o.id, result: "flagged_stuck" });
+        continue;
+      }
+      await admin.from("ratehawk_orders").update({ auto_status_checks: (o.auto_status_checks ?? 0) + 1 }).eq("id", o.id);
+      const r = await pollFinishStatus(admin, o, 0);
+      results.push({ id: o.id, result: r._status_check_in_progress ? "locked" : r.status });
+    } catch (e) {
+      results.push({ id: o.id, result: "error", error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  const { data: disarmed } = await admin.rpc("ratehawk_sweep_disarm_if_idle");
+  return { checked: results.length, results, disarmed: disarmed === true };
 }
 
 // ---------- Cancellation + order/info (post-booking) ----------
