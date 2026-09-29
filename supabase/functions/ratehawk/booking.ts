@@ -10,14 +10,34 @@ const FORM_MAX_ATTEMPTS = 10; // ETG: limit create-booking retries to 10
 /** Never throws for upstream trouble: network errors / non-JSON / 5xx come back
  *  as { status:"error", error:"timeout"|..., httpStatus } so the caller can
  *  apply ETG's per-endpoint rules. */
+// Certification evidence: admin + sandbox callers may pass debug_trace:true to get
+// every upstream request/response of that call back (never enabled in production).
+let TRACE: any[] | null = null;
+function traced(path: string, body: unknown, response: unknown) {
+  if (TRACE) TRACE.push({ at: new Date().toISOString(), endpoint: path, request: body, response });
+}
 async function rhCall(path: string, body: unknown): Promise<any> {
   try {
-    return await ratehawkPostRaw(path, body);
+    const r = await ratehawkPostRaw(path, body);
+    traced(path, body, r);
+    return r;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const m = msg.match(/^\[(\d{3})\]/);
-    return { status: "error", error: "network", httpStatus: m ? Number(m[1]) : 599, transport_error: msg };
+    const r = { status: "error", error: "network", httpStatus: m ? Number(m[1]) : 599, transport_error: msg };
+    traced(path, body, r);
+    return r;
   }
+}
+async function rhPost(path: string, body: unknown): Promise<any> {
+  try { const r = await ratehawkPost(path, body); traced(path, body, r); return r; }
+  catch (e) { traced(path, body, { thrown: e instanceof Error ? e.message : String(e) }); throw e; }
+}
+// ETG sandbox test triggers: partner_order_id ending in these suffixes (docs: Sandbox → Test cases).
+const TEST_SUFFIXES = ["unknown_success", "unknown_soldout", "unknown_book_limit", "soldout", "book_limit"];
+function newPartnerId(prev?: string | null): string {
+  const suffix = TEST_SUFFIXES.find((x) => prev?.endsWith(`-${x}`));
+  return `CTS-RH-${Date.now()}-${crypto.randomUUID().slice(0, 8)}${suffix ? `-${suffix}` : ""}`;
 }
 function outcome(stage: Stage, resp: any) {
   const code = errorCode(resp?.error);
@@ -263,6 +283,19 @@ export async function handleBookingAction(
   p: any,
   ctx: { admin: Admin; userId: string; isAdmin: boolean; clientIp: string },
 ): Promise<any | undefined> {
+  const wantTrace = p?.debug_trace === true && ctx.isAdmin && RATEHAWK_ENV === "sandbox";
+  TRACE = wantTrace ? [] : null;
+  try {
+    const out = await bookingActionImpl(action, p, ctx);
+    return wantTrace && out && typeof out === "object" ? { ...out, _trace: TRACE } : out;
+  } finally { TRACE = null; }
+}
+
+async function bookingActionImpl(
+  action: string,
+  p: any,
+  ctx: { admin: Admin; userId: string; isAdmin: boolean; clientIp: string },
+): Promise<any | undefined> {
   const { admin, userId, isAdmin } = ctx;
   switch (action) {
     case "hotel_page": {
@@ -277,7 +310,7 @@ export async function handleBookingAction(
         currency: p.currency || "USD",
       };
       if (p.hid != null) body.hid = Number(p.hid); else body.id = String(p.id);
-      const resp = await ratehawkPost("/api/b2b/v3/search/hp", body);
+      const resp = await rhPost("/api/b2b/v3/search/hp", body);
       const hotel = resp?.data?.hotels?.[0] ?? null;
       return {
         hotel_id: hotel?.id ?? null,
@@ -303,7 +336,7 @@ export async function handleBookingAction(
       if (!Number.isFinite(expected) || expected <= 0) throw bad("expected_amount (price shown to guest) is required");
       if (!p.checkin || !p.checkout) throw bad("checkin and checkout are required");
       const guests = normGuests(p.guests);
-      const resp = await ratehawkPost("/api/b2b/v3/hotel/prebook", {
+      const resp = await rhPost("/api/b2b/v3/hotel/prebook", {
         hash,
         language: p.language || "en",
         price_increase_percent: Number.isFinite(Number(p.price_increase_percent)) ? Number(p.price_increase_percent) : 10,
@@ -319,7 +352,12 @@ export async function handleBookingAction(
       const searchCancel = p.expected_cancellation_penalties ?? null;
       const policyChanged = searchCancel != null && JSON.stringify(searchCancel) !== JSON.stringify(prebookCancel);
 
-      const partnerOrderId = `CTS-RH-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      let partnerOrderId = newPartnerId();
+      if (p.test_scenario_suffix) {
+        if (RATEHAWK_ENV !== "sandbox" || !isAdmin) throw bad("test_scenario_suffix is only allowed for admins in sandbox");
+        if (!TEST_SUFFIXES.includes(p.test_scenario_suffix)) throw bad(`test_scenario_suffix must be one of ${TEST_SUFFIXES.join(", ")}`);
+        partnerOrderId = `${partnerOrderId}-${p.test_scenario_suffix}`;
+      }
       const { data: order, error } = await admin.from("ratehawk_orders").insert({
         user_id: userId,
         trip_id: p.trip_id || null,
@@ -385,7 +423,7 @@ export async function handleBookingAction(
         if (c.kind === "retry_new_id" && attempts < FORM_MAX_ATTEMPTS) {
           prevIds.push(order.partner_order_id);
           order = await patch(admin, order.id, {
-            partner_order_id: `CTS-RH-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+            partner_order_id: newPartnerId(order.partner_order_id),
             previous_partner_order_ids: prevIds, form_attempts: attempts,
             last_error: `booking/form ${c.code} (auto-retrying)`,
           });
@@ -446,6 +484,8 @@ export async function handleBookingAction(
         return {
           guests: gs.map((g: any) => {
             if (!g.first_name?.trim() || !g.last_name?.trim()) throw bad(`room ${i + 1}: every guest needs first_name and last_name`);
+            // ETG: names may contain only unicode letters, spaces and - , . ’
+            for (const n of [g.first_name, g.last_name]) if (!/^[\p{L}\p{M} \-,.\u2019]+$/u.test(n.trim())) throw bad(`room ${i + 1}: "${n}" — guest names may contain only letters, spaces and - , . ’`);
             const out: any = { first_name: g.first_name.trim(), last_name: g.last_name.trim() };
             if (g.is_child) { out.is_child = true; out.age = Number(g.age); }
             if (g.gender) out.gender = g.gender;
@@ -506,7 +546,7 @@ export async function handleBookingAction(
             last_error: `booking/finish: ${c.code}`,
             ...errFields("finish", c),
             advisor_message: c.kind === "fix_input"
-              ? `${c.message} The guest deposit is held on this order; resubmit with corrected details.`
+              ? `${c.message}${fin?.debug?.validation_error ? ` (RateHawk: ${fin.debug.validation_error})` : ""} The guest deposit is held on this order; resubmit with corrected details.`
               : `${c.message} The guest deposit (${paymentRef}) was captured and must be refunded or used for a new booking.`,
           });
           return summarize(order);
