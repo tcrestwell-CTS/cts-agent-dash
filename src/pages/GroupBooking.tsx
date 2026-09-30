@@ -21,6 +21,7 @@ import { Minus, Plus, Check, ChevronLeft, ChevronRight, Accessibility, Loader2, 
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/utils";
+import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
 import { money, quoteBooking, type CabinOptionPricing, type Quote, type RoomInput } from "@/lib/groupPricing";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -152,7 +153,7 @@ export default function GroupBooking() {
         setCfg(d);
         const firstGroup = d.cabinOptions[0]?.category_group ?? null;
         setGroup(firstGroup);
-        const pk = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined) || d.stripe_publishable_key;
+        const pk = STRIPE_PUBLISHABLE_KEY;
         if (pk) setStripePromise(loadStripe(pk));
       })
       .catch((e) => setLoadError(e.message));

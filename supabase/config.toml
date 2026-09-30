@@ -114,3 +114,6 @@ verify_jwt = false
 
 [functions.generate-signed-ic-agreement]
 verify_jwt = false
+
+[functions.group-booking]
+    verify_jwt = false
