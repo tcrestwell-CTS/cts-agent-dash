@@ -35,6 +35,7 @@ import {
   Save,
   Facebook,
   Sparkles,
+  Search,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
