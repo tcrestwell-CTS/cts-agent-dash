@@ -436,6 +436,9 @@ const GroupLandingBuilder = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/trips/${tripId}/booking-setup`)}>
+            Booking wizard setup
+          </Button>
           {landingUrl && landingEnabled && (
             <Button variant="outline" size="sm" asChild>
               <a href={landingUrl} target="_blank" rel="noopener noreferrer">

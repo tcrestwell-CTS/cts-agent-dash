@@ -82,6 +82,7 @@ interface CabinOption {
 
 interface GroupLandingData {
   trip: {
+    booking_flow_enabled?: boolean;
     id: string;
     trip_name: string;
     destination: string | null;
@@ -369,6 +370,13 @@ export default function GroupLanding() {
   const additionalSections = content.additional_sections || [];
   const signupEnabled = content.signup_enabled !== false;
   const signupButtonLabel = content.signup_button_label || "Join This Trip";
+  const openSignup = () => {
+    if (data?.trip?.booking_flow_enabled && token) {
+      window.location.assign(`/group/${token}/book`);
+      return;
+    }
+    setShowSignupForm(true);
+  };
   const ctaEnabled = content.cta_enabled || false;
   const ctaButtonLabel = content.cta_button_label || "Learn More";
   const ctaLink = content.cta_link || "";
@@ -941,7 +949,7 @@ export default function GroupLanding() {
                     <Button
                       className="w-full text-base py-5 mt-1 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ backgroundColor: primaryColor, color: "white" }}
-                      onClick={() => setShowSignupForm(true)}
+                      onClick={openSignup}
                     >
                       <Users className="mr-2 h-4 w-4" />
                       {signupButtonLabel}
@@ -969,7 +977,7 @@ export default function GroupLanding() {
                   <Button
                     className="w-full text-base py-5 rounded-xl font-semibold"
                     style={{ backgroundColor: primaryColor, color: "white" }}
-                    onClick={() => setShowSignupForm(true)}
+                    onClick={openSignup}
                   >
                     <Users className="mr-2 h-4 w-4" />
                     {signupButtonLabel}
@@ -986,7 +994,7 @@ export default function GroupLanding() {
             <Button
               className="w-full text-base py-5 rounded-xl font-semibold"
               style={{ backgroundColor: primaryColor, color: "white" }}
-              onClick={() => setShowSignupForm(true)}
+              onClick={openSignup}
             >
               <Users className="mr-2 h-4 w-4" />
               {signupButtonLabel}

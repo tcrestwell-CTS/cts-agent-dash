@@ -140,7 +140,7 @@ async function processPaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
   log("checkout_payments synced", { payment_intent_id: pi.id });
 
   // ── CRM routing by metadata.payment_type ─────────────────────────────────
-  await routePaymentToCrm(pi);
+  await routePaymentToCrm(pi, stripeFee);
 }
 
 /**
@@ -148,7 +148,69 @@ async function processPaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
  * Reads pi.metadata.payment_type ("trip_installment" | "loan_repayment").
  * For subscription-driven invoices (loan autopay), falls back to subscription metadata.
  */
-async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
+/**
+ * Group booking wizard deposit (metadata.payment_type = "group_deposit").
+ * Idempotent: only acts while the group_booking is still pending_payment.
+ * Writes a paid trip_payments row on the sub-trip so QBO/reminders/recon
+ * treat it like any other client payment, and confirms the booking.
+ */
+async function applyGroupDeposit(pi: Stripe.PaymentIntent, meta: Record<string, string>, stripeFee: number) {
+  const gbId = meta.group_booking_id;
+  if (!gbId) { log("group_deposit missing group_booking_id", { id: pi.id }); return; }
+  const { data: gb, error } = await supabase
+    .from("group_bookings")
+    .select("id, status, user_id, sub_trip_id, booking_id, group_signup_id, contact_first_name, contact_last_name, contact_email")
+    .eq("id", gbId)
+    .maybeSingle();
+  if (error) throw new Error(`group_bookings lookup failed: ${error.message}`);
+  if (!gb || !gb.sub_trip_id) { log("group_deposit booking not found", { gbId }); return; }
+
+  const { data: claimed, error: claimErr } = await supabase
+    .from("group_bookings")
+    .update({ status: "deposit_paid", paid_at: new Date().toISOString() })
+    .eq("id", gbId)
+    .in("status", ["pending_payment", "payment_failed"])
+    .select("id");
+  if (claimErr) throw new Error(`group_bookings update failed: ${claimErr.message}`);
+  if (!claimed || claimed.length === 0) { log("group_deposit already applied", { gbId }); return; }
+
+  const paymentDate = new Date(pi.created * 1000).toISOString().split("T")[0];
+  const { data: tp, error: tpErr } = await supabase
+    .from("trip_payments")
+    .insert({
+      user_id: gb.user_id,
+      trip_id: gb.sub_trip_id,
+      booking_id: gb.booking_id,
+      amount: pi.amount / 100,
+      payment_date: paymentDate,
+      payment_type: "deposit",
+      payment_method: "stripe",
+      status: "paid",
+      details: "Group booking deposit",
+      stripe_payment_intent_id: pi.id,
+      stripe_fee: stripeFee > 0 ? stripeFee : null,
+      payer_name: `${gb.contact_first_name} ${gb.contact_last_name ?? ""}`.trim(),
+      payer_email: gb.contact_email,
+    })
+    .select("id")
+    .single();
+  if (tpErr) throw new Error(`group deposit trip_payments insert failed: ${tpErr.message}`);
+
+  await supabase.from("checkout_payments").update({ trip_payment_id: tp.id }).eq("stripe_payment_intent_id", pi.id);
+  if (gb.booking_id) await supabase.from("bookings").update({ status: "confirmed" }).eq("id", gb.booking_id);
+  if (gb.group_signup_id) await supabase.from("group_signups").update({ status: "deposit_paid" }).eq("id", gb.group_signup_id);
+  await supabase.from("agent_notifications").insert({
+    user_id: gb.user_id,
+    type: "group_booking",
+    title: `Group deposit received: ${gb.contact_first_name} ${gb.contact_last_name ?? ""}`.trim(),
+    message: `$${(pi.amount / 100).toFixed(2)} deposit paid`,
+    trip_id: gb.sub_trip_id,
+    trip_payment_id: tp.id,
+  });
+  log("group_deposit applied", { gbId, trip_payment_id: tp.id });
+}
+
+async function routePaymentToCrm(pi: Stripe.PaymentIntent, stripeFee = 0) {
   let meta: Record<string, string> = (pi.metadata as Record<string, string>) || {};
 
   // Subscription invoices: PI metadata is empty — pull from subscription metadata.
@@ -186,7 +248,12 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
       log("trip_installment missing trip_payment_id metadata", { id: pi.id });
       return;
     }
-    await applyTripInstallmentPayment(pi, tripPaymentId);
+    await applyTripInstallmentPayment(pi, tripPaymentId, stripeFee);
+    return;
+  }
+
+  if (paymentType === "group_deposit") {
+    await applyGroupDeposit(pi, meta, stripeFee);
     return;
   }
 
@@ -254,6 +321,7 @@ async function routePaymentToCrm(pi: Stripe.PaymentIntent) {
 async function applyTripInstallmentPayment(
   pi: Stripe.PaymentIntent,
   tripPaymentId: string,
+  stripeFee = 0,
 ): Promise<{
   installmentId: string;
   tripId: string | null;

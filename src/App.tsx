@@ -58,6 +58,8 @@ const SharedTrip          = lazy(() => import("./pages/SharedTrip"));
 const GroupLanding        = lazy(() => import("./pages/GroupLanding"));
 const GroupLandingBuilder = lazy(() => import("./pages/GroupLandingBuilder"));
 const GroupReservation    = lazy(() => import("./pages/GroupReservation"));
+const GroupBooking        = lazy(() => import("./pages/GroupBooking"));
+const GroupBookingSetup   = lazy(() => import("./pages/GroupBookingSetup"));
 const CCAuthorize         = lazy(() => import("./pages/CCAuthorize"));
 const ProposalView        = lazy(() => import("./pages/ProposalView"));
 const PaymentSuccess      = lazy(() => import("./pages/PaymentSuccess"));
@@ -301,6 +303,8 @@ const App = () => (
                 <Route path="/supplier-docs" element={<SupplierDocs />} />
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
+                <Route path="/group/:token/book" element={<GroupBooking />} />
+                <Route path="/trips/:tripId/booking-setup" element={<ProtectedRoute><GroupBookingSetup /></ProtectedRoute>} />
                 <Route path="/group/:token/reservation/:subTripId" element={<GroupReservation />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/proposal/:token" element={<ProposalView />} />
