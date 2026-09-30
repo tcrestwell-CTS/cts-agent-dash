@@ -554,7 +554,7 @@ export default function GroupLanding() {
                   <ul className="px-5 pb-5 pt-1 space-y-2.5 border-t border-gray-100">
                     {inclusions.map((item, idx) => (
                       <li key={idx} className="flex items-start gap-2.5 text-[15px] text-gray-700">
-                        <CheckCircle2 className="h-4.5 w-4.5 mt-0.5 shrink-0" style={{ color: primaryColor }} />
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: primaryColor }} />
                         <span>{item}</span>
                       </li>
                     ))}
