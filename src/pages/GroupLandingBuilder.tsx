@@ -622,6 +622,9 @@ const GroupLandingBuilder = () => {
                     <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowFeatureUrlInput(true)}>
                       <ClipboardPaste className="h-3.5 w-3.5 mr-1" /> Paste Image URL
                     </Button>
+                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowUnsplash(true)}>
+                      <Search className="h-3.5 w-3.5 mr-1" /> Search Unsplash
+                    </Button>
                     <Button size="sm" className="h-8 text-xs" onClick={() => featureFileRef.current?.click()} disabled={uploadingFeature}>
                       <ImagePlus className="h-3.5 w-3.5 mr-1" /> Add from library
                     </Button>
