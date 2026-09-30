@@ -304,7 +304,7 @@ const App = () => (
                 <Route path="/shared/:token" element={<SharedTrip />} />
                 <Route path="/group/:token" element={<GroupLanding />} />
                 <Route path="/group/:token/book" element={<GroupBooking />} />
-                <Route path="/trips/:id/booking-setup" element={<ProtectedRoute><GroupBookingSetup /></ProtectedRoute>} />
+                <Route path="/trips/:tripId/booking-setup" element={<ProtectedRoute><GroupBookingSetup /></ProtectedRoute>} />
                 <Route path="/group/:token/reservation/:subTripId" element={<GroupReservation />} />
                 <Route path="/authorize/:token" element={<CCAuthorize />} />
                 <Route path="/proposal/:token" element={<ProposalView />} />
