@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Save,
   Facebook,
+  Sparkles,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -94,6 +95,8 @@ const GroupLandingBuilder = () => {
   const [showFeatureUrlInput, setShowFeatureUrlInput] = useState(false);
   const [dragOverFeature, setDragOverFeature] = useState(false);
   const [draggedImageIdx, setDraggedImageIdx] = useState<number | null>(null);
+  const [aiIdea, setAiIdea] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const heroFileRef = useRef<HTMLInputElement>(null);
   const featureFileRef = useRef<HTMLInputElement>(null);
