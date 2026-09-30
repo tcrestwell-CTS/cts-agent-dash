@@ -368,6 +368,8 @@ export default function GroupLanding() {
   const content = data.trip.group_landing_content || {};
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
+  const inclusions: string[] = content.inclusions || [];
+  const [showInclusions, setShowInclusions] = useState(false);
   const signupEnabled = content.signup_enabled !== false;
   const signupButtonLabel = content.signup_button_label || "Join This Trip";
   const openSignup = () => {
@@ -531,6 +533,35 @@ export default function GroupLanding() {
             ) : descriptionPlain ? (
               <SafeHtml html={descriptionPlain} className="text-gray-700 leading-relaxed text-[15px]" />
             ) : null}
+
+            {/* ─── INCLUDED IN YOUR TRIP ────────── */}
+            {inclusions.length > 0 && (
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowInclusions((v) => !v)}
+                  aria-expanded={showInclusions}
+                  className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-lg font-bold text-gray-900">Included in your trip</span>
+                  {showInclusions ? (
+                    <ChevronUp className="h-5 w-5 text-gray-500 shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-gray-500 shrink-0" />
+                  )}
+                </button>
+                {showInclusions && (
+                  <ul className="px-5 pb-5 pt-1 space-y-2.5 border-t border-gray-100">
+                    {inclusions.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-[15px] text-gray-700">
+                        <CheckCircle2 className="h-4.5 w-4.5 mt-0.5 shrink-0" style={{ color: primaryColor }} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {/* ─── FEATURED PRE-STAY HOTEL ──────── */}
             {prestayHotel && (
