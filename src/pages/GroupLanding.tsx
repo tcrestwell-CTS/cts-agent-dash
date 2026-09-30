@@ -225,6 +225,7 @@ export default function GroupLanding() {
   const [depositDue, setDepositDue] = useState(0);
   const [showSignupForm, setShowSignupForm] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [showInclusions, setShowInclusions] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
 
@@ -370,7 +371,6 @@ export default function GroupLanding() {
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
   const inclusions: string[] = content.inclusions || [];
-  const [showInclusions, setShowInclusions] = useState(false);
   const signupEnabled = content.signup_enabled !== false;
   const signupButtonLabel = content.signup_button_label || "Join This Trip";
   const openSignup = () => {
