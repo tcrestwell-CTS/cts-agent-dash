@@ -60,6 +60,7 @@ interface AdditionalSection {
 interface LandingContent {
   feature_images?: FeatureImage[];
   additional_sections?: AdditionalSection[];
+  inclusions?: string[];
   signup_button_label?: string;
   signup_enabled?: boolean;
   cta_enabled?: boolean;
