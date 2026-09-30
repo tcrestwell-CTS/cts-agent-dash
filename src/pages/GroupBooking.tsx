@@ -245,9 +245,9 @@ export default function GroupBooking() {
     <div className="min-h-screen bg-muted/30" style={{ ["--brand" as any]: primary }}>
       {/* Header */}
       <header className="bg-background border-b">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to={`/group/${token}`} className="flex items-center gap-2">
-            {branding?.logo_url ? <img src={branding.logo_url} alt="" className="h-8" /> : <span className="font-semibold">{branding?.agency_name ?? "Crestwell Travel Services"}</span>}
+            {branding?.logo_url ? <img src={branding.logo_url} alt="" className="h-[80px] w-auto" /> : <span className="font-semibold">{branding?.agency_name ?? "Crestwell Travel Services"}</span>}
           </Link>
           <div className="text-sm text-muted-foreground hidden sm:block">
             {cfg.advisor?.full_name && <span>Your advisor: {cfg.advisor.full_name}</span>}
