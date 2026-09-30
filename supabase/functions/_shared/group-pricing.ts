@@ -92,7 +92,8 @@ export function quoteRoom(opt: CabinOptionPricing | null, room: RoomInput, cfg: 
   }
   const fare = r2(breakdown.reduce((s, b) => s + b.amount, 0));
   const taxes = r2((Number(cfg.taxes_fees_per_person) || 0) * guests);
-  const depositPP = opt.deposit_amount != null ? Number(opt.deposit_amount) : cfg.group_deposit_per_person != null ? Number(cfg.group_deposit_per_person) : 0;
+  // A room deposit of 0/blank means "not set" and falls back to the group deposit.
+  const depositPP = Number(opt.deposit_amount) > 0 ? Number(opt.deposit_amount) : Number(cfg.group_deposit_per_person) || 0;
   const deposit = r2(Math.min(depositPP * guests, fare + taxes));
   return { cabin_option_id: opt.id, guests, fare, taxes, per_person_display: Number(opt.price_per_person), breakdown, deposit };
 }
