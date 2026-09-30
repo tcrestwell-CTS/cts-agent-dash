@@ -4692,6 +4692,101 @@ export type Database = {
           },
         ]
       }
+      group_bookings: {
+        Row: {
+          addons: Json
+          booking_id: string | null
+          checkout_payment_id: string | null
+          client_id: string | null
+          contact_email: string
+          contact_first_name: string
+          contact_last_name: string | null
+          contact_phone: string | null
+          created_at: string
+          currency: string
+          deposit_cents: number
+          group_signup_id: string | null
+          id: string
+          ip_address: string | null
+          paid_at: string | null
+          pricing: Json
+          promo_code: string | null
+          rooms: Json
+          status: string
+          stripe_payment_intent_id: string | null
+          sub_trip_id: string | null
+          terms_accepted_at: string | null
+          total_cents: number
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          addons?: Json
+          booking_id?: string | null
+          checkout_payment_id?: string | null
+          client_id?: string | null
+          contact_email: string
+          contact_first_name: string
+          contact_last_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          currency?: string
+          deposit_cents: number
+          group_signup_id?: string | null
+          id?: string
+          ip_address?: string | null
+          paid_at?: string | null
+          pricing: Json
+          promo_code?: string | null
+          rooms: Json
+          status?: string
+          stripe_payment_intent_id?: string | null
+          sub_trip_id?: string | null
+          terms_accepted_at?: string | null
+          total_cents: number
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          addons?: Json
+          booking_id?: string | null
+          checkout_payment_id?: string | null
+          client_id?: string | null
+          contact_email?: string
+          contact_first_name?: string
+          contact_last_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          currency?: string
+          deposit_cents?: number
+          group_signup_id?: string | null
+          id?: string
+          ip_address?: string | null
+          paid_at?: string | null
+          pricing?: Json
+          promo_code?: string | null
+          rooms?: Json
+          status?: string
+          stripe_payment_intent_id?: string | null
+          sub_trip_id?: string | null
+          terms_accepted_at?: string | null
+          total_cents?: number
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_proposal_selections: {
         Row: {
           accessibility_requirements: string | null
@@ -10640,49 +10735,138 @@ export type Database = {
           },
         ]
       }
-      trip_cabin_options: {
+      trip_addons: {
         Row: {
-          capacity: number | null
-          category_name: string
           created_at: string
-          deposit_amount: number | null
           description: string | null
+          enabled: boolean
           id: string
           image_url: string | null
-          price_per_person: number
-          price_period: string
-          requires_double_occupancy: boolean
+          name: string
+          price: number
+          price_basis: string
           sort_order: number
           trip_id: string
           updated_at: string
         }
         Insert: {
-          capacity?: number | null
-          category_name: string
           created_at?: string
-          deposit_amount?: number | null
           description?: string | null
+          enabled?: boolean
           id?: string
           image_url?: string | null
-          price_per_person?: number
-          price_period?: string
-          requires_double_occupancy?: boolean
+          name: string
+          price?: number
+          price_basis?: string
           sort_order?: number
           trip_id: string
           updated_at?: string
         }
         Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          image_url?: string | null
+          name?: string
+          price?: number
+          price_basis?: string
+          sort_order?: number
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_addons_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_cabin_options: {
+        Row: {
+          accessible_available: boolean
+          badge: string | null
+          capacity: number | null
+          category_group: string
+          category_name: string
+          child_price: number | null
+          created_at: string
+          deposit_amount: number | null
+          description: string | null
+          features: Json
+          id: string
+          image_url: string | null
+          images: Json
+          inventory: number | null
+          price_per_person: number
+          price_period: string
+          requires_double_occupancy: boolean
+          single_supplement_pct: number
+          sleeps_max: number
+          sleeps_min: number
+          sold_out: boolean
+          sort_order: number
+          sqft: string | null
+          third_fourth_price: number | null
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          accessible_available?: boolean
+          badge?: string | null
           capacity?: number | null
-          category_name?: string
+          category_group?: string
+          category_name: string
+          child_price?: number | null
           created_at?: string
           deposit_amount?: number | null
           description?: string | null
+          features?: Json
           id?: string
           image_url?: string | null
+          images?: Json
+          inventory?: number | null
           price_per_person?: number
           price_period?: string
           requires_double_occupancy?: boolean
+          single_supplement_pct?: number
+          sleeps_max?: number
+          sleeps_min?: number
+          sold_out?: boolean
           sort_order?: number
+          sqft?: string | null
+          third_fourth_price?: number | null
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          accessible_available?: boolean
+          badge?: string | null
+          capacity?: number | null
+          category_group?: string
+          category_name?: string
+          child_price?: number | null
+          created_at?: string
+          deposit_amount?: number | null
+          description?: string | null
+          features?: Json
+          id?: string
+          image_url?: string | null
+          images?: Json
+          inventory?: number | null
+          price_per_person?: number
+          price_period?: string
+          requires_double_occupancy?: boolean
+          single_supplement_pct?: number
+          sleeps_max?: number
+          sleeps_min?: number
+          sold_out?: boolean
+          sort_order?: number
+          sqft?: string | null
+          third_fourth_price?: number | null
           trip_id?: string
           updated_at?: string
         }
@@ -11321,6 +11505,7 @@ export type Database = {
           allow_pdf_downloads: boolean
           approved_itinerary_id: string | null
           balance_due: number
+          booking_flow_enabled: boolean
           budget_change_request_message: string | null
           budget_change_requested: boolean | null
           budget_change_requested_at: string | null
@@ -11339,29 +11524,37 @@ export type Database = {
           created_at: string
           currency: string
           depart_date: string | null
+          depart_port: string | null
           departure_date: string | null
           deposit_amount: number | null
           deposit_override: boolean
           deposit_required: boolean | null
           destination: string | null
+          final_payment_due: string | null
           follow_up_due_at: string | null
+          group_deposit_per_person: number | null
+          group_included_items: Json
           group_landing_content: Json | null
           group_landing_description: string | null
           group_landing_enabled: boolean
           group_landing_headline: string | null
           group_landing_hero_url: string | null
+          group_terms: string | null
           hotel_name: string | null
           id: string
           itinerary_approved_at: string | null
           itinerary_approved_by_client_id: string | null
           itinerary_style: string
+          max_rooms_per_booking: number
           notes: string | null
           nurture_paused: boolean | null
           nurture_started: boolean | null
           parent_trip_id: string | null
           payment_mode: string
+          ports_of_call: Json
           post_trip_email_sent: boolean | null
           pricing_visibility: string
+          promo_codes: Json
           proposal_sent_at: string | null
           publish_override_at: string | null
           publish_override_by: string | null
@@ -11373,9 +11566,11 @@ export type Database = {
           selected_cabin_option_id: string | null
           share_token: string
           ship_name: string | null
+          ship_name_display: string | null
           source: string
           status: string
           tags: string[] | null
+          taxes_fees_per_person: number
           title: string | null
           total_commission_revenue: number
           total_commissionable_amount: number
@@ -11397,6 +11592,7 @@ export type Database = {
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
           balance_due?: number
+          booking_flow_enabled?: boolean
           budget_change_request_message?: string | null
           budget_change_requested?: boolean | null
           budget_change_requested_at?: string | null
@@ -11415,29 +11611,37 @@ export type Database = {
           created_at?: string
           currency?: string
           depart_date?: string | null
+          depart_port?: string | null
           departure_date?: string | null
           deposit_amount?: number | null
           deposit_override?: boolean
           deposit_required?: boolean | null
           destination?: string | null
+          final_payment_due?: string | null
           follow_up_due_at?: string | null
+          group_deposit_per_person?: number | null
+          group_included_items?: Json
           group_landing_content?: Json | null
           group_landing_description?: string | null
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
           group_landing_hero_url?: string | null
+          group_terms?: string | null
           hotel_name?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
           itinerary_style?: string
+          max_rooms_per_booking?: number
           notes?: string | null
           nurture_paused?: boolean | null
           nurture_started?: boolean | null
           parent_trip_id?: string | null
           payment_mode?: string
+          ports_of_call?: Json
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
+          promo_codes?: Json
           proposal_sent_at?: string | null
           publish_override_at?: string | null
           publish_override_by?: string | null
@@ -11449,9 +11653,11 @@ export type Database = {
           selected_cabin_option_id?: string | null
           share_token?: string
           ship_name?: string | null
+          ship_name_display?: string | null
           source?: string
           status?: string
           tags?: string[] | null
+          taxes_fees_per_person?: number
           title?: string | null
           total_commission_revenue?: number
           total_commissionable_amount?: number
@@ -11473,6 +11679,7 @@ export type Database = {
           allow_pdf_downloads?: boolean
           approved_itinerary_id?: string | null
           balance_due?: number
+          booking_flow_enabled?: boolean
           budget_change_request_message?: string | null
           budget_change_requested?: boolean | null
           budget_change_requested_at?: string | null
@@ -11491,29 +11698,37 @@ export type Database = {
           created_at?: string
           currency?: string
           depart_date?: string | null
+          depart_port?: string | null
           departure_date?: string | null
           deposit_amount?: number | null
           deposit_override?: boolean
           deposit_required?: boolean | null
           destination?: string | null
+          final_payment_due?: string | null
           follow_up_due_at?: string | null
+          group_deposit_per_person?: number | null
+          group_included_items?: Json
           group_landing_content?: Json | null
           group_landing_description?: string | null
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
           group_landing_hero_url?: string | null
+          group_terms?: string | null
           hotel_name?: string | null
           id?: string
           itinerary_approved_at?: string | null
           itinerary_approved_by_client_id?: string | null
           itinerary_style?: string
+          max_rooms_per_booking?: number
           notes?: string | null
           nurture_paused?: boolean | null
           nurture_started?: boolean | null
           parent_trip_id?: string | null
           payment_mode?: string
+          ports_of_call?: Json
           post_trip_email_sent?: boolean | null
           pricing_visibility?: string
+          promo_codes?: Json
           proposal_sent_at?: string | null
           publish_override_at?: string | null
           publish_override_by?: string | null
@@ -11525,9 +11740,11 @@ export type Database = {
           selected_cabin_option_id?: string | null
           share_token?: string
           ship_name?: string | null
+          ship_name_display?: string | null
           source?: string
           status?: string
           tags?: string[] | null
+          taxes_fees_per_person?: number
           title?: string | null
           total_commission_revenue?: number
           total_commissionable_amount?: number
@@ -12375,6 +12592,13 @@ export type Database = {
         }[]
       }
       get_trip_publish_readiness: { Args: { p_trip_id: string }; Returns: Json }
+      group_cabin_option_usage: {
+        Args: { p_trip_id: string }
+        Returns: {
+          cabin_option_id: string
+          rooms_taken: number
+        }[]
+      }
       has_feature_permission: {
         Args: { _feature_key: string; _user_id: string }
         Returns: boolean
