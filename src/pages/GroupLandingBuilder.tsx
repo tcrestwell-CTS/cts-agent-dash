@@ -54,6 +54,7 @@ interface AdditionalSection {
 interface LandingContent {
   feature_images: FeatureImage[];
   additional_sections: AdditionalSection[];
+  inclusions?: string[];
   signup_button_label?: string;
   signup_enabled?: boolean;
   cta_enabled?: boolean;
@@ -80,6 +81,8 @@ const GroupLandingBuilder = () => {
   // Rich content
   const [featureImages, setFeatureImages] = useState<FeatureImage[]>([]);
   const [additionalSections, setAdditionalSections] = useState<AdditionalSection[]>([]);
+  const [inclusions, setInclusions] = useState<string[]>([]);
+  const [inclusionInput, setInclusionInput] = useState("");
 
   // Settings
   const [signupEnabled, setSignupEnabled] = useState(true);
@@ -139,6 +142,7 @@ const GroupLandingBuilder = () => {
     };
     setFeatureImages(content.feature_images || []);
     setAdditionalSections(content.additional_sections || []);
+    setInclusions(content.inclusions || []);
     setSignupEnabled(content.signup_enabled !== false);
     setSignupButtonLabel(content.signup_button_label || "");
     setCtaEnabled(content.cta_enabled || false);
@@ -180,6 +184,7 @@ const GroupLandingBuilder = () => {
     const content: LandingContent = {
       feature_images: featureImages,
       additional_sections: additionalSections,
+      inclusions,
       signup_enabled: signupEnabled,
       signup_button_label: signupButtonLabel,
       cta_enabled: ctaEnabled,
