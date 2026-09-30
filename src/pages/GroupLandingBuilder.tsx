@@ -872,6 +872,13 @@ const GroupLandingBuilder = () => {
           </Card>
         </div>
       </div>
+
+      <UnsplashPicker
+        open={showUnsplash}
+        onOpenChange={setShowUnsplash}
+        defaultQuery={trip?.destination || trip?.title || ""}
+        onSelect={(url) => setFeatureImages((prev) => [...prev, { id: generateId(), url }])}
+      />
     </DashboardLayout>
   );
 };
