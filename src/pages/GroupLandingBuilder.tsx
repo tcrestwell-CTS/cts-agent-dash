@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateHeroImage } from "@/lib/heroImageQuality";
+import { UnsplashPicker } from "@/components/trips/UnsplashPicker";
 import {
   ArrowLeft,
   Eye,
@@ -34,6 +35,7 @@ import {
   Save,
   Facebook,
   Sparkles,
+  Search,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -97,6 +99,7 @@ const GroupLandingBuilder = () => {
   const [draggedImageIdx, setDraggedImageIdx] = useState<number | null>(null);
   const [aiIdea, setAiIdea] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [showUnsplash, setShowUnsplash] = useState(false);
 
   const heroFileRef = useRef<HTMLInputElement>(null);
   const featureFileRef = useRef<HTMLInputElement>(null);
@@ -620,6 +623,9 @@ const GroupLandingBuilder = () => {
                     <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowFeatureUrlInput(true)}>
                       <ClipboardPaste className="h-3.5 w-3.5 mr-1" /> Paste Image URL
                     </Button>
+                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setShowUnsplash(true)}>
+                      <Search className="h-3.5 w-3.5 mr-1" /> Search Unsplash
+                    </Button>
                     <Button size="sm" className="h-8 text-xs" onClick={() => featureFileRef.current?.click()} disabled={uploadingFeature}>
                       <ImagePlus className="h-3.5 w-3.5 mr-1" /> Add from library
                     </Button>
@@ -866,6 +872,13 @@ const GroupLandingBuilder = () => {
           </Card>
         </div>
       </div>
+
+      <UnsplashPicker
+        open={showUnsplash}
+        onOpenChange={setShowUnsplash}
+        defaultQuery={trip?.destination || trip?.title || ""}
+        onSelect={(url) => setFeatureImages((prev) => [...prev, { id: generateId(), url }])}
+      />
     </DashboardLayout>
   );
 };
