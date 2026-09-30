@@ -420,6 +420,7 @@ export default function GroupBooking() {
                                 <div>
                                   <div className="text-xs text-muted-foreground">Starting from</div>
                                   <div className="text-xl font-bold">{money(Number(o.price_per_person), currency)} <span className="text-xs font-normal text-muted-foreground">/person*</span></div>
+                                  {roomQuote.taxes > 0 && <div className="text-xs text-muted-foreground">+ {money(roomQuote.taxes, currency)} taxes & fees</div>}
                                   <div className="text-xs text-muted-foreground">{money(roomQuote.fare + roomQuote.taxes, currency)} Total/Room</div>
                                 </div>
                                 <Button size="sm" variant={selected ? "default" : "outline"} disabled={disabled} onClick={() => setRoom(roomIdx, { cabin_option_id: o.id })}>
