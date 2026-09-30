@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateHeroImage } from "@/lib/heroImageQuality";
+import { UnsplashPicker } from "@/components/trips/UnsplashPicker";
 import {
   ArrowLeft,
   Eye,
@@ -97,6 +98,7 @@ const GroupLandingBuilder = () => {
   const [draggedImageIdx, setDraggedImageIdx] = useState<number | null>(null);
   const [aiIdea, setAiIdea] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [showUnsplash, setShowUnsplash] = useState(false);
 
   const heroFileRef = useRef<HTMLInputElement>(null);
   const featureFileRef = useRef<HTMLInputElement>(null);
