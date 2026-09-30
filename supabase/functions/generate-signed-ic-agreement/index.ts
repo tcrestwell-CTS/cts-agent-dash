@@ -83,7 +83,72 @@ function planLabel(plan?: string): string {
   return plan ? `${plan}` : "Not specified";
 }
 
-async function buildPdf(input: {
+
+type DocKey = "ic_agreement" | "code_of_ethics" | "media_release" | "data_consent";
+
+interface DocDef {
+  key: DocKey;
+  title: string;
+  label: string;
+  required: boolean;
+  optionalNote?: string;
+  intro: string;
+  sections: { heading: string; body: string }[];
+  compensation?: { heading: string; body: string }[];
+}
+
+const DOCS: DocDef[] = [
+  {
+    key: "ic_agreement", title: "Independent Contractor Agreement", label: "Independent Contractor Agreement",
+    required: true, intro: INTRO, sections: SECTIONS, compensation: COMPENSATION,
+  },
+  {
+    key: "code_of_ethics", title: "Code of Ethics", label: "Code of Ethics", required: true,
+    intro: "This Code of Ethics (the \"Code\") applies to every independent contractor advisor (\"Contractor\") affiliated with Crestwell Travel Network (\"Company\"). Contractor agrees to conduct all travel-related business in accordance with this Code as a condition of continued affiliation.",
+    sections: [
+      { heading: "1. Honesty in Representations.", body: "Contractor will describe destinations, accommodations, transportation, pricing, and travel conditions accurately and will not knowingly misrepresent any product or service to a client. Contractor will promptly correct any error discovered after booking." },
+      { heading: "2. Client's Best Interest.", body: "Contractor will recommend travel products based on the client's stated needs, budget, and preferences, not solely on the commission or incentive a supplier offers Contractor." },
+      { heading: "3. Transparent Pricing.", body: "Contractor will disclose all fees charged directly by Contractor or Company before a client commits to purchase, and will not add undisclosed markups to supplier pricing." },
+      { heading: "4. Client Confidentiality.", body: "Contractor will safeguard client personal, payment, and travel information, use it solely to arrange and support the client's travel, and will not disclose it to third parties except as required to complete a booking or as required by law." },
+      { heading: "5. Conflicts of Interest.", body: "Contractor will disclose to Company and, where relevant, to the client, any financial or personal interest that could reasonably affect Contractor's recommendations." },
+      { heading: "6. Fair Dealing with Suppliers.", body: "Contractor will represent supplier products accurately, honor supplier terms and conditions, and will not engage in deceptive practices toward any supplier, consortium, or host agency." },
+      { heading: "7. Handling of Client Funds.", body: "Contractor will remit client payments through Company's booking and payment procedures and will not accept client funds outside those procedures except as Company expressly authorizes in writing." },
+      { heading: "8. Non-Discrimination.", body: "Contractor will provide services without discrimination on the basis of race, color, religion, sex, national origin, age, disability, or any other status protected by applicable law." },
+      { heading: "9. Professional Conduct.", body: "Contractor will communicate with clients, suppliers, and Company staff professionally and courteously, and will represent Company's reputation with integrity in all public-facing activity, including social media and marketing content." },
+      { heading: "10. Compliance.", body: "Contractor will comply with all applicable travel industry laws and regulations, including state seller-of-travel registration requirements described in the Independent Contractor Agreement, and with any supplier, consortium, or host agency terms applicable to bookings Contractor makes." },
+      { heading: "11. Reporting Concerns.", body: "Contractor will promptly report to Company any suspected violation of this Code by another Company-affiliated advisor, and any client complaint alleging a violation of this Code." },
+      { heading: "12. Enforcement.", body: "A violation of this Code may result in corrective action up to and including termination of Contractor's Independent Contractor Agreement, at Company's discretion, consistent with the termination provisions of that Agreement." },
+    ],
+  },
+  {
+    key: "media_release", title: "Media & Marketing Release", label: "Media & Marketing Release", required: false,
+    optionalNote: "This document is optional.",
+    intro: "This Media & Marketing Release (the \"Release\") is between Crestwell Travel Network (\"Company\") and the undersigned independent contractor advisor (\"Contractor\"). Signing this Release is optional and is not a condition of Contractor's Independent Contractor Agreement.",
+    sections: [
+      { heading: "1. Grant of Rights.", body: "Contractor grants Company a non-exclusive, royalty-free, worldwide license to use Contractor's name, likeness, voice, professional biography, photographs, video, and direct quotations or testimonials (collectively, \"Contractor Content\") in Company's marketing and promotional materials, including its website, social media accounts, email campaigns, print materials, and advertising." },
+      { heading: "2. Source of Content.", body: "Contractor Content may be supplied by Contractor directly or captured by Company at Company-hosted events, trainings, or promotional sessions Contractor participates in." },
+      { heading: "3. No Compensation.", body: "Contractor understands that no additional compensation is paid for use of Contractor Content under this Release." },
+      { heading: "4. Accuracy.", body: "Contractor represents that any testimonial or quotation Contractor provides reflects Contractor's genuine experience and opinion." },
+      { heading: "5. Duration.", body: "This Release remains in effect while Contractor is affiliated with Company and for a reasonable period afterward solely to allow Company to remove or phase out existing materials already in production or circulation. Contractor may revoke this Release at any time by written notice to Company; revocation applies to new materials and does not require Company to recall previously published materials." },
+      { heading: "6. No Obligation to Use.", body: "Company is under no obligation to use any Contractor Content." },
+    ],
+  },
+  {
+    key: "data_consent", title: "Data Processing Consent", label: "Data Processing Consent", required: true,
+    intro: "This Data Processing Consent (the \"Consent\") explains how Crestwell Travel Network (\"Company\") collects, uses, and stores the personal information of independent contractor advisors (\"Contractor\") in connection with onboarding, verification, and ongoing affiliation.",
+    sections: [
+      { heading: "1. Information Collected.", body: "Company collects information Contractor provides during application and onboarding, which may include name, address, phone number, email, date of birth, government-issued identification, Social Security Number or Taxpayer Identification Number, banking information for commission payouts, and information from third-party identity verification and background screening services used to evaluate applications." },
+      { heading: "2. Purpose of Processing.", body: "Company processes this information to evaluate Contractor's application, verify identity, administer Contractor's affiliation, calculate and pay commissions, issue required tax forms, maintain required business records, and comply with applicable law." },
+      { heading: "3. Third-Party Services.", body: "Company uses third-party services for identity verification, background screening, and payment processing. Information Contractor submits during onboarding may be shared with these providers solely to perform these functions on Company's behalf." },
+      { heading: "4. Data Security.", body: "Company takes reasonable measures to protect Contractor's personal information from unauthorized access, but no method of storage or transmission is completely secure." },
+      { heading: "5. Retention.", body: "Company retains Contractor's personal information for as long as reasonably necessary to fulfill the purposes described in this Consent, including any period required by tax, business record-keeping, or other applicable law after Contractor's affiliation ends." },
+      { heading: "6. Contractor's Rights.", body: "Contractor may request access to, correction of, or deletion of their personal information held by Company, subject to Company's legal and business record-keeping obligations, by contacting Company using the information on file." },
+      { heading: "7. Consent.", body: "By signing below, Contractor consents to Company's collection, use, and disclosure of Contractor's personal information as described in this Consent, which is required to complete onboarding and maintain Contractor's affiliation with Company." },
+    ],
+  },
+];
+
+async function buildPdf(def: DocDef, input: {
   fullName: string;
   email: string;
   plan?: string;
@@ -92,9 +157,9 @@ async function buildPdf(input: {
   agreements: Record<string, boolean>;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  doc.setTitle("Crestwell Travel Network - Independent Contractor Agreement");
+  doc.setTitle(`Crestwell Travel Network - ${def.title}`);
   doc.setAuthor("Crestwell Travel Services");
-  doc.setSubject("Signed Independent Contractor Agreement");
+  doc.setSubject(`Signed ${def.title}`);
 
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -148,7 +213,7 @@ async function buildPdf(input: {
   page.drawText("CRESTWELL TRAVEL NETWORK", {
     x: MARGIN, y: PAGE_H - 46, size: 17, font: bold, color: rgb(1, 1, 1),
   });
-  page.drawText("Independent Contractor Agreement", {
+  page.drawText(sanitize(def.title), {
     x: MARGIN, y: PAGE_H - 66, size: 11, font: regular, color: rgb(0.82, 0.71, 0.42),
   });
   page.drawText("A division of Crestwell Travel Services - Chattanooga, Tennessee", {
@@ -158,25 +223,28 @@ async function buildPdf(input: {
 
   text(`Contractor: ${input.fullName}`, { font: bold, size: 10 });
   text(`Email: ${input.email}`, { size: 9.5 });
-  text(`Plan Tier: ${planLabel(input.plan)}`, { size: 9.5 });
+  if (def.key === "ic_agreement") text(`Plan Tier: ${planLabel(input.plan)}`, { size: 9.5 });
   text(`Executed: ${input.signatureDate}`, { size: 9.5, gap: 8 });
+  if (def.optionalNote) text(def.optionalNote, { font: italic, size: 9.5, color: gray, gap: 6 });
 
-  text(INTRO, { gap: 8 });
+  text(def.intro, { gap: 8 });
 
-  for (const s of SECTIONS) {
+  for (const s of def.sections) {
     need(28);
     text(s.heading, { font: bold, size: 9.5 });
     text(s.body, { gap: 6 });
   }
 
-  need(40);
-  y -= 6;
-  page.drawText("SCHEDULE OF COMPENSATION", { x: MARGIN, y: y - 12, size: 12, font: bold, color: navy });
-  y -= 24;
-  for (const s of COMPENSATION) {
-    need(28);
-    text(s.heading, { font: bold, size: 9.5 });
-    text(s.body, { gap: 6 });
+  if (def.compensation) {
+    need(40);
+    y -= 6;
+    page.drawText("SCHEDULE OF COMPENSATION", { x: MARGIN, y: y - 12, size: 12, font: bold, color: navy });
+    y -= 24;
+    for (const s of def.compensation) {
+      need(28);
+      text(s.heading, { font: bold, size: 9.5 });
+      text(s.body, { gap: 6 });
+    }
   }
 
   // Signature block
@@ -193,16 +261,13 @@ async function buildPdf(input: {
   y -= 30;
 
   text(
-    "By typing their name below, Contractor acknowledges having read and agreed to this Agreement and the items indicated, and adopts the typed name as their legally binding electronic signature.",
+    `By typing their name below, Contractor acknowledges having read and agreed to this ${def.title}, and adopts the typed name as their legally binding electronic signature.`,
     { size: 9, color: gray, gap: 10 },
   );
 
-  const items: { label: string; key: string; required: boolean }[] = [
-    { label: "Independent Contractor Agreement", key: "ic_agreement", required: true },
-    { label: "Code of Ethics", key: "code_of_ethics", required: true },
-    { label: "Media & Marketing Release", key: "media_release", required: false },
-    { label: "Data Processing Consent", key: "data_consent", required: true },
-  ];
+  const items = def.key === "ic_agreement"
+    ? DOCS.map((d) => ({ label: d.label, key: d.key, required: d.required }))
+    : [{ label: def.label, key: def.key, required: def.required }];
 
   for (const item of items) {
     const checked = !!input.agreements[item.key];
@@ -248,7 +313,7 @@ async function buildPdf(input: {
   // Footers
   const pages = doc.getPages();
   const stamp = sanitize(
-    `Executed electronically ${new Date().toISOString()} - ${input.email} - Crestwell Travel Network`,
+    `${def.title} - executed electronically ${new Date().toISOString()} - ${input.email} - Crestwell Travel Network`,
   );
   pages.forEach((p, i) => {
     p.drawText(stamp, { x: MARGIN, y: 30, size: 6.5, font: regular, color: gray });
@@ -272,24 +337,28 @@ Deno.serve(async (req) => {
     const signature = String(body.signature || "").trim();
     const signature_date = String(body.signature_date || "").trim() ||
       new Date().toISOString().slice(0, 10);
+    // Per-document typed signatures; `signature` is the IC Agreement signature and the
+    // fallback for older forms that send one signature for the whole packet.
+    const sigInput = (body.signatures && typeof body.signatures === "object") ? body.signatures : {};
+    const sigFor = (k: DocKey) => String(sigInput[k] ?? (k === "ic_agreement" ? signature : "") ?? "").trim() || signature;
 
     const errors: string[] = [];
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.push("valid email is required");
-    if (!signature || signature.length < 2) errors.push("signature (typed name) is required");
     if (plan && !["starter", "professional", "elite"].includes(plan)) {
       errors.push("plan must be starter, professional, or elite");
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(signature_date)) errors.push("signature_date must be YYYY-MM-DD");
 
-    const agreements = {
+    const agreements: Record<DocKey, boolean> = {
       ic_agreement: body.ic_agreement === true || body.agreements?.ic_agreement === true,
       code_of_ethics: body.code_of_ethics === true || body.agreements?.code_of_ethics === true,
       media_release: body.media_release === true || body.agreements?.media_release === true,
       data_consent: body.data_consent === true || body.agreements?.data_consent === true,
     };
-    if (!agreements.ic_agreement) errors.push("ic_agreement must be accepted");
-    if (!agreements.code_of_ethics) errors.push("code_of_ethics must be accepted");
-    if (!agreements.data_consent) errors.push("data_consent must be accepted");
+    for (const d of DOCS) {
+      if (d.required && !agreements[d.key]) errors.push(`${d.key} must be accepted`);
+      if (agreements[d.key] && sigFor(d.key).length < 2) errors.push(`signature for ${d.key} (typed name) is required`);
+    }
 
     if (errors.length) {
       return new Response(JSON.stringify({ error: errors.join("; ") }), {
@@ -298,77 +367,68 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fullName = [first_name, last_name].filter(Boolean).join(" ") || signature;
-
-    const pdfBytes = await buildPdf({
-      fullName,
-      email,
-      plan,
-      signature,
-      signatureDate: signature_date,
-      agreements,
-    });
-
+    const fullName = [first_name, last_name].filter(Boolean).join(" ") || sigFor("ic_agreement");
     const db = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const slug = email.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const storagePath = `ic-agreement/${slug}/ic-agreement-${stamp}.pdf`;
-
-    const { error: upErr } = await db.storage.from(BUCKET).upload(storagePath, pdfBytes, {
-      contentType: "application/pdf",
-      upsert: true,
-    });
-    if (upErr) throw new Error(`storage upload failed: ${upErr.message}`);
-
-    // Best-effort link to an existing agent user account
     let userId: string | null = null;
-    const { data: prof } = await db
-      .from("profiles")
-      .select("user_id")
-      .ilike("email", email)
-      .maybeSingle();
+    const { data: prof } = await db.from("profiles").select("user_id").ilike("email", email).maybeSingle();
     if (prof?.user_id) userId = prof.user_id as string;
 
-    const { data: record, error: insErr } = await db
-      .from("signed_documents")
-      .insert({
-        user_id: userId,
-        email,
-        document_type: "ic_agreement",
-        plan: plan || null,
-        storage_bucket: BUCKET,
-        storage_path: storagePath,
-        signature,
-        signature_date,
-        agreements,
-      })
-      .select("id, created_at")
-      .single();
-    if (insErr) throw new Error(`record insert failed: ${insErr.message}`);
+    const slug = email.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const documents: Record<string, unknown>[] = [];
 
-    // Keep the onboarding row pointing at the latest signed copy (non-fatal)
-    await db
-      .from("ic_onboarding")
-      .update({ signed_agreement_path: storagePath })
-      .ilike("email", email);
+    // Optional documents that weren't accepted are skipped, not generated.
+    for (const def of DOCS.filter((d) => agreements[d.key])) {
+      const docSig = sigFor(def.key);
+      const pdfBytes = await buildPdf(def, {
+        fullName, email, plan, signature: docSig, signatureDate: signature_date, agreements,
+      });
+      const folder = def.key.replace(/_/g, "-");
+      const storagePath = `${folder}/${slug}/${folder}-${stamp}.pdf`;
+      const { error: upErr } = await db.storage.from(BUCKET).upload(storagePath, pdfBytes, {
+        contentType: "application/pdf", upsert: true,
+      });
+      if (upErr) throw new Error(`${def.key} storage upload failed: ${upErr.message}`);
 
-    const { data: signed } = await db.storage
-      .from(BUCKET)
-      .createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+      const { data: record, error: insErr } = await db.from("signed_documents").insert({
+        user_id: userId, email, document_type: def.key, plan: plan || null,
+        storage_bucket: BUCKET, storage_path: storagePath,
+        signature: docSig, signature_date, agreements,
+      }).select("id, created_at").single();
+      if (insErr) throw new Error(`${def.key} record insert failed: ${insErr.message}`);
+
+      const { data: signed } = await db.storage.from(BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 7);
+      documents.push({
+        document_type: def.key, document_id: record.id, storage_path: storagePath,
+        signed_url: signed?.signedUrl || null, created_at: record.created_at,
+      });
+    }
+
+    const ic = documents.find((d) => d.document_type === "ic_agreement")!;
+    // Keep the onboarding row pointing at the latest signed IC copy and per-document flags (non-fatal)
+    await db.from("ic_onboarding").update({
+      signed_agreement_path: ic.storage_path,
+      ic_agreement_signed: true,
+      code_of_ethics_signed: agreements.code_of_ethics,
+      media_release_signed: agreements.media_release,
+      data_consent_signed: agreements.data_consent,
+    }).ilike("email", email);
 
     return new Response(
       JSON.stringify({
         success: true,
-        document_id: record.id,
+        // Backward-compatible IC Agreement fields
+        document_id: ic.document_id,
         bucket: BUCKET,
-        storage_path: storagePath,
-        signed_url: signed?.signedUrl || null,
+        storage_path: ic.storage_path,
+        signed_url: ic.signed_url,
         signed_url_expires_in_seconds: 60 * 60 * 24 * 7,
-        created_at: record.created_at,
+        created_at: ic.created_at,
+        documents,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
