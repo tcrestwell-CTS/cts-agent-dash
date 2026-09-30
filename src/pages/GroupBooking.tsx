@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Minus, Plus, Check, ChevronLeft, ChevronRight, Accessibility, Loader2, Info, Tag, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
@@ -575,10 +575,12 @@ export default function GroupBooking() {
       </div>
 
       {/* ── Inclusions lightbox ── */}
-      <Dialog open={inclusionsOpen} onOpenChange={setInclusionsOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogTitle>What's included</DialogTitle>
-          <Carousel className="mt-2">
+      <Sheet open={inclusionsOpen} onOpenChange={setInclusionsOpen}>
+        <SheetContent side="right" className="sm:max-w-lg w-full">
+          <SheetHeader>
+            <SheetTitle>What's included</SheetTitle>
+          </SheetHeader>
+          <Carousel className="mt-6">
             <CarouselContent>
               {trip.group_included_items.map((s, i) => (
                 <CarouselItem key={i}>
@@ -593,8 +595,8 @@ export default function GroupBooking() {
             <CarouselPrevious />
             <CarouselNext />
           </Carousel>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
