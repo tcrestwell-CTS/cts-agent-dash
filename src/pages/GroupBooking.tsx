@@ -17,6 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Minus, Plus, Check, ChevronLeft, ChevronRight, Accessibility, Loader2, Info, Tag, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -142,6 +144,7 @@ export default function GroupBooking() {
   const [terms, setTerms] = useState(false);
   const [booking, setBooking] = useState<{ clientSecret: string; deposit_cents: number; booking_ref: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [inclusionsOpen, setInclusionsOpen] = useState(false);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
   // load config
@@ -257,6 +260,9 @@ export default function GroupBooking() {
         {/* ── Sidebar rail ── */}
         <aside className="space-y-5 lg:sticky lg:top-4 self-start bg-background rounded-lg border p-5">
           <div>
+            {trip.cover_image_url && (
+              <img src={trip.cover_image_url} alt={headline} className="w-full h-32 object-cover rounded-lg mb-3" />
+            )}
             <h2 className="text-lg font-bold leading-tight">{headline}</h2>
             <dl className="mt-3 text-sm space-y-1">
               {trip.depart_port && <div className="flex gap-2"><dt className="font-semibold w-24 shrink-0">Leaving from</dt><dd className="text-muted-foreground">{trip.depart_port}</dd></div>}
@@ -273,10 +279,16 @@ export default function GroupBooking() {
           </div>
 
           {trip.group_included_items?.length > 0 && (
-            <Accordion type="single" collapsible className="border-t pt-2">
-              <AccordionItem value="inc" className="border-0"><AccordionTrigger className="py-2 font-semibold">Included in your trip</AccordionTrigger>
-                <AccordionContent><ul className="text-sm text-muted-foreground space-y-1">{trip.group_included_items.map((s, i) => <li key={i} className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />{s}</li>)}</ul></AccordionContent></AccordionItem>
-            </Accordion>
+            <div className="border-t pt-2">
+              <Accordion type="single" collapsible>
+                <AccordionItem value="inc" className="border-0"><AccordionTrigger className="py-2 font-semibold">Included in your cruise</AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="text-sm text-muted-foreground space-y-1">{trip.group_included_items.slice(0, 5).map((s, i) => <li key={i} className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />{s}</li>)}</ul>
+                    <button type="button" className="text-sm text-primary underline-offset-2 hover:underline mt-2" onClick={() => setInclusionsOpen(true)}>View all that's included</button>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
           )}
 
           <div className="border-t pt-4">
@@ -561,6 +573,28 @@ export default function GroupBooking() {
           )}
         </main>
       </div>
+
+      {/* ── Inclusions lightbox ── */}
+      <Dialog open={inclusionsOpen} onOpenChange={setInclusionsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogTitle>What's included</DialogTitle>
+          <Carousel className="mt-2">
+            <CarouselContent>
+              {trip.group_included_items.map((s, i) => (
+                <CarouselItem key={i}>
+                  <div className="flex flex-col items-center justify-center gap-3 py-12 px-8 text-center min-h-[220px]">
+                    <Check className="h-8 w-8 text-primary" />
+                    <p className="text-base font-medium">{s}</p>
+                    <span className="text-xs text-muted-foreground">{i + 1} / {trip.group_included_items.length}</span>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
