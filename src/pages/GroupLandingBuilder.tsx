@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Save,
   Facebook,
+  Sparkles,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -94,6 +95,8 @@ const GroupLandingBuilder = () => {
   const [showFeatureUrlInput, setShowFeatureUrlInput] = useState(false);
   const [dragOverFeature, setDragOverFeature] = useState(false);
   const [draggedImageIdx, setDraggedImageIdx] = useState<number | null>(null);
+  const [aiIdea, setAiIdea] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const heroFileRef = useRef<HTMLInputElement>(null);
   const featureFileRef = useRef<HTMLInputElement>(null);
@@ -198,6 +201,39 @@ const GroupLandingBuilder = () => {
       toast.success("Landing page saved");
     }
     setSaving(false);
+  };
+
+  // ─── AI overview generator ────────────────────────
+  const generateOverview = async () => {
+    if (!aiIdea.trim()) {
+      toast.error("Type a brief idea first");
+      return;
+    }
+    setAiGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("itinerary-ai-action", {
+        body: {
+          action: "trip_overview",
+          tripName: trip?.name,
+          destination: trip?.destination,
+          departDate: trip?.start_date,
+          returnDate: trip?.end_date,
+          instructions: aiIdea.trim(),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const text = String(data?.overview || "").trim();
+      if (!text) throw new Error("The AI returned an empty response");
+      const html = text.split(/\n{2,}/).map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+      if (overviewRef.current) overviewRef.current.innerHTML = html;
+      setLandingDescription(html);
+      toast.success("Overview drafted — review and edit before saving");
+    } catch (e: any) {
+      toast.error(e.message || "AI request failed");
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
   // ─── Overview formatting ──────────────────────────
@@ -525,6 +561,25 @@ const GroupLandingBuilder = () => {
           {/* Overview */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Overview</Label>
+            <div className="flex items-start gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
+              <Textarea
+                value={aiIdea}
+                onChange={(e) => setAiIdea(e.target.value)}
+                placeholder="Brief idea for the overview, e.g. '7-night Mediterranean group cruise, highlight the private excursions and group dining'"
+                className="min-h-[60px] flex-1 text-sm bg-background"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={generateOverview}
+                disabled={aiGenerating}
+              >
+                {aiGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                Draft with AI
+              </Button>
+            </div>
             <div className="flex items-center gap-1 border rounded-md p-1 bg-muted/30">
               <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => execFormat("bold")} title="Bold">
                 <Bold className="h-3.5 w-3.5" />
