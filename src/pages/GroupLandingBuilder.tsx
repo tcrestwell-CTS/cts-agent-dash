@@ -618,6 +618,61 @@ const GroupLandingBuilder = () => {
 
           <Separator />
 
+          {/* Included in your trip */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Included in Your Trip</Label>
+            <p className="text-xs text-muted-foreground">
+              These appear as a collapsible "Included in your trip" list on the public page, right below the overview.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={inclusionInput}
+                onChange={(e) => setInclusionInput(e.target.value)}
+                placeholder="e.g. 4-night cruise accommodation"
+                className="text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const v = inclusionInput.trim();
+                    if (v) { setInclusions((prev) => [...prev, v]); setInclusionInput(""); }
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const v = inclusionInput.trim();
+                  if (v) { setInclusions((prev) => [...prev, v]); setInclusionInput(""); }
+                }}
+                disabled={!inclusionInput.trim()}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add
+              </Button>
+            </div>
+            {inclusions.length > 0 && (
+              <ul className="space-y-1.5">
+                {inclusions.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm">
+                    <span className="flex-1">{item}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive"
+                      onClick={() => setInclusions((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Featured Images */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
