@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Minus, Plus, Check, ChevronLeft, ChevronRight, Accessibility, Loader2, Info, Tag, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -575,27 +574,29 @@ export default function GroupBooking() {
         </main>
       </div>
 
-      {/* ── Inclusions lightbox ── */}
+      {/* ── Complete inclusions list ── */}
       <Sheet open={inclusionsOpen} onOpenChange={setInclusionsOpen}>
-        <SheetContent side="right" className="sm:max-w-lg w-full">
+        <SheetContent side="right" className="flex w-full flex-col sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>What's included</SheetTitle>
           </SheetHeader>
-          <Carousel className="mt-6">
-            <CarouselContent>
-              {trip.group_included_items.map((s, i) => (
-                <CarouselItem key={i}>
-                  <div className="flex flex-col items-center justify-center gap-3 py-12 px-8 text-center min-h-[220px]">
-                    <Check className="h-8 w-8 text-primary" />
-                    <p className="text-base font-medium">{s}</p>
-                    <span className="text-xs text-muted-foreground">{i + 1} / {trip.group_included_items.length}</span>
-                  </div>
-                </CarouselItem>
+          <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-2">
+            <ul className="divide-y rounded-lg border bg-background">
+              {trip.group_included_items.map((item, index) => (
+                <li key={`${item}-${index}`} className="flex items-start gap-3 px-4 py-4">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 pt-0.5 text-sm font-medium leading-6 text-foreground">
+                    {item}
+                  </span>
+                </li>
               ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-          </Carousel>
+            </ul>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              {trip.group_included_items.length} included item{trip.group_included_items.length === 1 ? "" : "s"}
+            </p>
+          </div>
         </SheetContent>
       </Sheet>
     </div>
