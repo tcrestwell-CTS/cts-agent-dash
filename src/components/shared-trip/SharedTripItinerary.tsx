@@ -9,6 +9,7 @@ interface SharedTripItineraryProps {
   departDate: string | null;
   primaryColor: string;
   optionBlocks?: any[];
+  showPricing?: boolean;
 }
 
 const categoryIcons: Record<string, string> = {
@@ -19,7 +20,7 @@ const categoryIcons: Record<string, string> = {
 
 const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
-function OptionBlockClient({ block, items, primaryColor }: { block: any; items: any[]; primaryColor: string }) {
+function OptionBlockClient({ block, items, primaryColor, showPricing }: { block: any; items: any[]; primaryColor: string; showPricing: boolean }) {
   const [selected, setSelected] = useState<string | null>(null);
 
   if (items.length === 0) return null;
@@ -35,12 +36,12 @@ function OptionBlockClient({ block, items, primaryColor }: { block: any; items: 
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-gray-700">{block.title}</span>
         <span className="text-xs text-gray-400">· {items.length} options</span>
-        {cheapestPrice != null && !selected && (
+        {showPricing && cheapestPrice != null && !selected && (
           <span className="text-xs font-medium ml-auto" style={{ color: primaryColor }}>
             from ${cheapestPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
         )}
-        {selectedPrice != null && selected && (
+        {showPricing && selectedPrice != null && selected && (
           <span className="text-xs font-bold ml-auto" style={{ color: primaryColor }}>
             ${selectedPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
@@ -75,7 +76,7 @@ function OptionBlockClient({ block, items, primaryColor }: { block: any; items: 
                   <div className="flex items-center gap-2">
                     <span className="text-base">{categoryIcons[item.category] || "📌"}</span>
                     <h5 className="font-semibold text-gray-900">{item.title}</h5>
-                    {item.item_price != null && (
+                    {showPricing && item.item_price != null && (
                       <span className="text-xs font-medium ml-auto whitespace-nowrap" style={{ color: isSelected ? primaryColor : '#6b7280' }}>
                         +${item.item_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
@@ -106,7 +107,7 @@ function OptionBlockClient({ block, items, primaryColor }: { block: any; items: 
   );
 }
 
-export default function SharedTripItinerary({ itinerary, departDate, primaryColor, optionBlocks = [] }: SharedTripItineraryProps) {
+export default function SharedTripItinerary({ itinerary, departDate, primaryColor, optionBlocks = [], showPricing = true }: SharedTripItineraryProps) {
   if (itinerary.length === 0 && optionBlocks.length === 0) {
     return (
       <div className="py-16 text-center">
@@ -223,7 +224,7 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                             className="text-white/70 text-sm mt-2 leading-relaxed line-clamp-3 [&_a]:text-white/90 [&_strong]:text-white [&_ul]:pl-3 [&_ol]:pl-3"
                           />
                         )}
-                        {item.item_price != null && (
+                        {showPricing && item.item_price != null && (
                           <p className="text-sm font-bold mt-3" style={{ color: "#facc15" }}>
                             ${item.item_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </p>
@@ -268,7 +269,7 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                           {item.notes && (
                             <p className="text-sm text-gray-400 mt-2 italic">{item.notes}</p>
                           )}
-                          {item.item_price != null && (
+                           {showPricing && item.item_price != null && (
                             <p className="text-sm font-bold mt-2" style={{ color: primaryColor }}>
                               ${item.item_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </p>
@@ -286,6 +287,7 @@ export default function SharedTripItinerary({ itinerary, departDate, primaryColo
                     block={block}
                     items={optionBlockItemMap[block.id] || []}
                     primaryColor={primaryColor}
+                    showPricing={showPricing}
                   />
                 ))}
               </div>

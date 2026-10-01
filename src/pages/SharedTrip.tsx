@@ -920,6 +920,7 @@ export default function SharedTrip() {
                 departDate={data.trip.depart_date}
                 primaryColor={primaryColor}
                 optionBlocks={publishedOptionBlocks}
+                showPricing={!isGroupTrip}
               />
               {data.trip.trip_type === "group" && token && publishedItinerary.length > 0 && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50">
