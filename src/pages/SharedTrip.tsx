@@ -438,6 +438,7 @@ export default function SharedTrip() {
   }
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
+  const isGroupTrip = data.trip.trip_type === "group";
 
   const itineraries = (data.itineraries || []).filter(
     (it) => (it.items?.length || 0) > 0 || (it.optionBlocks?.length || 0) > 0 || it.overview
@@ -574,10 +575,12 @@ export default function SharedTrip() {
   const formatDate = (dateStr: string) =>
     parseLocalDate(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  const navSections: { key: SectionKey; label: string }[] = [
-    { key: "your-trip", label: "Your Trip" },
-    { key: "pricing", label: "Pricing & Payment" },
-  ];
+  const navSections: { key: SectionKey; label: string }[] = isGroupTrip
+    ? [{ key: "your-trip", label: "Your Trip" }]
+    : [
+        { key: "your-trip", label: "Your Trip" },
+        { key: "pricing", label: "Pricing & Payment" },
+      ];
 
   return (
     <div className="min-h-screen bg-white">
@@ -746,17 +749,19 @@ export default function SharedTrip() {
       <SharedTripHero branding={data.branding} advisor={data.advisor} primaryColor={primaryColor} />
 
       {/* ── Sticky CTA bar (below hero, above fold) ───────────────────── */}
-      <CTABar
-        tripName={data.trip.trip_name}
-        destination={data.trip.destination}
-        departDate={data.trip.depart_date}
-        totalCost={liveTripTotal ?? data.trip.total_cost}
-        primaryColor={primaryColor}
-        hasMultipleItineraries={hasMultipleItineraries}
-        approvedItineraryId={approvedItineraryId}
-        termsAccepted={termsAccepted}
-        onScrollToAction={scrollToAction}
-      />
+      {!isGroupTrip && (
+        <CTABar
+          tripName={data.trip.trip_name}
+          destination={data.trip.destination}
+          departDate={data.trip.depart_date}
+          totalCost={liveTripTotal ?? data.trip.total_cost}
+          primaryColor={primaryColor}
+          hasMultipleItineraries={hasMultipleItineraries}
+          approvedItineraryId={approvedItineraryId}
+          termsAccepted={termsAccepted}
+          onScrollToAction={scrollToAction}
+        />
+      )}
 
       {/* ── Sticky anchor nav (appears after user scrolls past CTA bar) ── */}
       <StickyNav
@@ -773,12 +778,14 @@ export default function SharedTrip() {
         <div ref={yourTripRef} id="your-trip" className="scroll-mt-14 space-y-10">
 
           {/* How this works — 3-step process card */}
-          <SharedTripFlowSteps
-            itinerarySelected={Boolean(approvedItineraryId)}
-            budgetConfirmed={Boolean((data as any).budget?.confirmed)}
-            paymentReady={Boolean(termsAccepted)}
-            primaryColor={primaryColor}
-          />
+          {!isGroupTrip && (
+            <SharedTripFlowSteps
+              itinerarySelected={Boolean(approvedItineraryId)}
+              budgetConfirmed={Boolean((data as any).budget?.confirmed)}
+              paymentReady={Boolean(termsAccepted)}
+              primaryColor={primaryColor}
+            />
+          )}
 
           {/* Trip name/meta when no cover image */}
           {!data.trip.cover_image_url && (
@@ -913,6 +920,7 @@ export default function SharedTrip() {
                 departDate={data.trip.depart_date}
                 primaryColor={primaryColor}
                 optionBlocks={publishedOptionBlocks}
+                showPricing={!isGroupTrip}
               />
               {data.trip.trip_type === "group" && token && publishedItinerary.length > 0 && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50">
@@ -935,7 +943,7 @@ export default function SharedTrip() {
 
 
           {/* ─ Cabin / Category options ─ */}
-          {data.cabinOptions && data.cabinOptions.length > 0 && (
+          {!isGroupTrip && data.cabinOptions && data.cabinOptions.length > 0 && (
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-1">Cabin & Category Options</h2>
               <p className="text-sm text-gray-500 mb-6">Choose the category that works best for your travel party.</p>
@@ -1011,6 +1019,7 @@ export default function SharedTrip() {
         </div>
 
         {/* ── PRICING & PAYMENT section ─────────────────────────────────── */}
+        {!isGroupTrip && (
         <div ref={pricingRef} id="pricing" className="scroll-mt-14 space-y-8">
             <h2 className="text-2xl font-bold text-gray-900 border-t border-gray-100 pt-6">
               Pricing &amp; Payment
@@ -1078,6 +1087,7 @@ export default function SharedTrip() {
               />
             </div>
         </div>
+        )}
 
         <SharedTripFooter branding={data.branding} advisor={data.advisor} />
       </div>
