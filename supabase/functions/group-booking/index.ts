@@ -186,8 +186,9 @@ Deno.serve(async (req) => {
 
   const quote = quoteBooking(rooms, pricingOptions, pricingAddons, selectedAddons, pricingCfg, promoCode);
   if (quote.total <= 0) return json({ error: 'Nothing to book.' }, 400);
-  const depositCents = Math.round((quote.deposit_due > 0 ? quote.deposit_due : quote.total) * 100);
-  if (depositCents < 50) return json({ error: 'Deposit amount is too small to charge.' }, 400);
+  // Charge exactly what the guest was shown as due today — never fall back to the full total.
+  const depositCents = Math.round(Number(quote.deposit_due || 0) * 100);
+  if (depositCents < 50) return json({ error: 'No deposit is set up for this trip yet. Please contact your advisor to book.' }, 400);
 
   const supabase = admin();
   const currency = (trip.currency || 'usd').toLowerCase();

@@ -671,6 +671,15 @@ const TripDetail = () => {
               {guided ? "Exit guided mode" : "Guided builder"}
             </Button>
             <span id={PUBLISH_ANCHOR} className="contents" />
+            {!guided && (
+              <PublishTripButton
+                tripId={trip.id}
+                shareToken={(trip as any).share_token}
+                publishedAt={(trip as any).published_at}
+                updatedAt={trip.updated_at}
+                onPublished={fetchTrip}
+              />
+            )}
             <Dialog open={cloneOpen} onOpenChange={(o) => { setCloneOpen(o); if (!o) setCloneClient(null); }}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-[13px]" disabled={cloning}>
