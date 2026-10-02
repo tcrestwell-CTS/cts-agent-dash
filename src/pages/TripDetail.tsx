@@ -1157,7 +1157,7 @@ const TripDetail = () => {
                             </span>
                           </div>
                         )}
-                        {["lodging", "all_inclusive"].includes(
+                        {["lodging", "all_inclusive", "package"].includes(
                           ((trip as any).trip_subtype || trip.trip_type || "") as string
                         ) &&
                           (trip as any).hotel_name && (
