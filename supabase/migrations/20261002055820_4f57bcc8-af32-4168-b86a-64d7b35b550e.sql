@@ -1,0 +1,1 @@
+CREATE POLICY "Admins insert payout accounts" ON public.agent_payout_accounts FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
