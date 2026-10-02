@@ -48,7 +48,6 @@ import {
   AlertTriangle,
   Receipt,
   Map,
-  CreditCard,
   Ban,
 } from "lucide-react";
 import { format, differenceInDays, subDays, isPast, isFuture } from "date-fns";
@@ -68,7 +67,6 @@ import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
 import { BookingFinancialsDisplay } from "@/components/bookings/BookingFinancials";
 import { SupplierPaymentCard } from "@/components/bookings/SupplierPaymentCard";
 import { useMarginWarnings } from "@/hooks/useMarginWarnings";
-import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 import { generateInvoicePDF } from "@/lib/invoiceGenerator";
 import { InvoicePreviewDialog } from "@/components/trips/InvoicePreviewDialog";
 import { useBrandingSettings } from "@/hooks/useBrandingSettings";
@@ -167,7 +165,6 @@ const BookingDetail = () => {
   
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showCCAuthDialog, setShowCCAuthDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelPenalty, setCancelPenalty] = useState("");
@@ -410,13 +407,6 @@ const BookingDetail = () => {
               </a>
             </Button>
            )}
-          <Button
-            variant="outline"
-            onClick={() => setShowCCAuthDialog(true)}
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            CC Auth
-          </Button>
           <Button
             variant="outline"
             onClick={handleGenerateInvoice}
@@ -824,16 +814,6 @@ const BookingDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <CCAuthorizationDialog
-        open={showCCAuthDialog}
-        onOpenChange={setShowCCAuthDialog}
-        bookingId={booking.id}
-        clientId={booking.client_id}
-        clientName={booking.clients?.name || "Client"}
-        bookingAmount={booking.gross_sales || booking.total_amount}
-        bookingReference={booking.booking_reference}
-      />
 
       {/* Cancellation Details Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
