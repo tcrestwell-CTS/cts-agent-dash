@@ -42,7 +42,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing trigger_type or record" }), { status: 400 });
   }
 
-  const userId = record.user_id;
+  const userId = record.user_id ?? record.agent_user_id;
   if (!userId) {
     return new Response(JSON.stringify({ error: "No user_id on record" }), { status: 400 });
   }
