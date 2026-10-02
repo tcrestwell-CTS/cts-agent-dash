@@ -42,18 +42,30 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing trigger_type or record" }), { status: 400 });
   }
 
-  const userId = record.user_id;
+  const userId = record.user_id ?? record.agent_user_id;
   if (!userId) {
     return new Response(JSON.stringify({ error: "No user_id on record" }), { status: 400 });
   }
 
-  // ── Get active QBO connection for this user ──
-  const { data: connection } = await supabase
+  // ── Get active QBO connection for this user; fall back to the agency-wide
+  // connection (advisor-owned records like agent_subscription_payments carry
+  // the advisor's id, not the QBO-connected admin's). ──
+  let { data: connection } = await supabase
     .from("qbo_connections")
     .select("*")
     .eq("user_id", userId)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
+
+  if (!connection) {
+    const { data: agencyConn } = await supabase
+      .from("qbo_connections")
+      .select("*")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    connection = agencyConn;
+  }
 
   if (!connection) {
     // No QBO connection — silently skip (not an error)
