@@ -794,7 +794,8 @@ Deno.serve(async (req) => {
             Math.round((Number(parentTrip.total_gross_sales) / divisor) * 100) / 100;
 
           for (const s of splitRows) {
-            const subTotal = perSubTrip;
+            const shares = Math.max(1, Number(s.number_of_travelers) || 1);
+            const subTotal = Math.round(perSubTrip * shares * 100) / 100;
 
             await supabaseAdmin
               .from("trips")
@@ -861,8 +862,8 @@ Deno.serve(async (req) => {
                 const r2 = (n: number) => Math.round(n * 100) / 100;
                 const lines = plines.map((l) => ({
                   ...l,
-                  unit_cost: r2(Number(l.total_cost || 0) / divisor),
-                  unit_sell: r2(Number(l.total_sell || 0) / divisor),
+                  unit_cost: r2((Number(l.total_cost || 0) / divisor) * shares),
+                  unit_sell: r2((Number(l.total_sell || 0) / divisor) * shares),
                 }));
                 const sell = r2(lines.reduce((a, l) => a + l.unit_sell, 0));
                 const { data: nb, error: nbErr } = await supabaseAdmin
