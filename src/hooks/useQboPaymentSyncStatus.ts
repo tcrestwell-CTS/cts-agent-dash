@@ -79,7 +79,14 @@ export function useQboPaymentSyncStatus() {
         logsByPayment.set(pid, arr);
       });
 
-      return (payments ?? []).map((p): PaymentSyncRow => {
+      // Exclude payments tied to cancelled trips from the sync list entirely.
+      const visible = (payments ?? []).filter((p) => {
+        if (!p.trip_id) return true;
+        const t = tripMap.get(p.trip_id);
+        return String(t?.status ?? "").toLowerCase() !== "cancelled";
+      });
+
+      return visible.map((p): PaymentSyncRow => {
         const qbo = qboMap.get(p.id);
         const trip = p.trip_id ? tripMap.get(p.trip_id) : null;
         const history = logsByPayment.get(p.id) ?? [];
