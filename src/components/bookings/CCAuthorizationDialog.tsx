@@ -61,6 +61,7 @@ export function CCAuthorizationDialog({
     if (open) {
       fetchAuthorizations();
       setView("list");
+      setAmount(bookingAmount.toString());
       setCcData(null);
       setPassword("");
       setTimeLeft(60);
@@ -107,7 +108,7 @@ export function CCAuthorizationDialog({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [open, fetchAuthorizations]);
+  }, [open, fetchAuthorizations, bookingAmount]);
 
   // 60-second countdown timer
   useEffect(() => {
