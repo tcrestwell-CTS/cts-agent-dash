@@ -257,11 +257,9 @@ async function handleBookingConfirmed(
     TxnDate: (booking.created_at ?? new Date().toISOString()).split("T")[0],
   };
 
-  const resp = await qboFetch(`${qboBase}/invoice`, {
-    method: "POST",
-    headers: qboHeaders,
-    body: JSON.stringify(invoiceData),
-  });
+  const { classId } = await advisorClassForTrip(supabase, qboBase, qboHeaders, booking.trip_id);
+  applyClass(invoiceData, classId);
+  const resp = await postWithClassFallback(qboFetch, `${qboBase}/invoice`, qboHeaders, invoiceData);
   if (!resp.ok) {
     const errBody = await resp.text();
     throw new Error(`QBO Invoice creation failed: ${errBody}`);
@@ -347,27 +345,36 @@ async function handlePayoutApproved(
 
   const agencyRetained = booking.agency_margin_amount || 0;
 
-  const expense = {
+  // Attribute to the advisor: QBO Class + advisor vendor as payee, on a real expense account.
+  const { advisorId, classId } = await advisorClassForTrip(supabase, qboBase, qboHeaders, booking.trip_id);
+  const vendorId = await getAdvisorVendorId(supabase, advisorId);
+  const commissionExpenseId = await ensureQBOAccount(
+    qboBase, qboHeaders, "Advisor Commission Expense", "Cost of Goods Sold", "OtherCostsOfServiceCos",
+  );
+  const paymentAccountId = await ensureQBOAccount(
+    qboBase, qboHeaders, "Advisor Payouts Clearing", "Other Current Liability", "OtherCurrentLiabilities",
+  );
+
+  const expense: any = {
     PaymentType: "Check",
+    AccountRef: { value: paymentAccountId },
     TotalAmt: payoutAmount,
+    ...(vendorId ? { EntityRef: { value: vendorId, type: "Vendor" } } : {}),
     Line: [
       {
         Amount: payoutAmount,
         DetailType: "AccountBasedExpenseLineDetail",
         AccountBasedExpenseLineDetail: {
-          AccountRef: { value: "1", name: "Commission Expense" },
+          AccountRef: { value: commissionExpenseId },
         },
-        Description: `Advisor payout – Booking ${booking.booking_reference} (advisor share: ${payoutAmount}, agency retained: ${agencyRetained})`,
+        Description: `Advisor payout – Booking ${booking.booking_reference} (advisor share: ${payoutAmount}, agency retained: ${agencyRetained})${vendorId ? "" : " [advisor not yet synced as QBO vendor]"}`,
       },
     ],
     TxnDate: booking.override_approved_at?.split("T")[0] || new Date().toISOString().split("T")[0],
   };
+  applyClass(expense, classId);
 
-  const resp = await qboFetch(`${qboBase}/purchase`, {
-    method: "POST",
-    headers: qboHeaders,
-    body: JSON.stringify(expense),
-  });
+  const resp = await postWithClassFallback(qboFetch, `${qboBase}/purchase`, qboHeaders, expense);
 
   if (!resp.ok) {
     const errBody = await resp.text();
