@@ -13,6 +13,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { AddPaymentDialog } from "./AddPaymentDialog";
 import { SplitPaymentDialog } from "./SplitPaymentDialog";
 import { useTripPayerShares } from "@/hooks/useBookingPayerShares";
+import { CCAuthorizationDialog } from "@/components/bookings/CCAuthorizationDialog";
 
 import { SendFinancingLinkDialog } from "@/components/financing/SendFinancingLinkDialog";
 import { AffirmVirtualCardButton } from "./AffirmVirtualCardButton";
@@ -101,6 +102,7 @@ export function TripPayments({
   const { data: payerShares = [] } = useTripPayerShares(tripId);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [ccAuthDialogOpen, setCcAuthDialogOpen] = useState(false);
 
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailInvoiceOpen, setEmailInvoiceOpen] = useState(false);
@@ -255,6 +257,7 @@ export function TripPayments({
 
   // Get supplier name from the first booking if available
   const primarySupplier = bookings.find(b => b.suppliers?.name)?.suppliers?.name;
+  const ccAuthBooking = bookings.find((booking) => booking.id);
 
   const getInvoiceData = (invoiceNumber?: string): InvoiceData => ({
     invoiceNumber,
@@ -513,6 +516,16 @@ export function TripPayments({
           <CardHeader className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <CardTitle className="text-lg whitespace-nowrap">Expected Payments</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCcAuthDialogOpen(true)}
+                disabled={!ccAuthBooking || tripTotal <= 0 || !clientId}
+                title={!ccAuthBooking ? "Add a booking before requesting authorization" : "Request authorization for the calculated trip total"}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                CC Auth
+              </Button>
               <Button size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Log Payment
@@ -979,6 +992,18 @@ export function TripPayments({
         bookings={bookings}
         onPaymentCreated={onDataChange}
       />
+
+      {ccAuthBooking && clientId && (
+        <CCAuthorizationDialog
+          open={ccAuthDialogOpen}
+          onOpenChange={setCcAuthDialogOpen}
+          bookingId={ccAuthBooking.id}
+          clientId={clientId}
+          clientName={clientName || "Client"}
+          bookingAmount={tripTotal}
+          bookingReference={tripName || ccAuthBooking.booking_reference || "Trip"}
+        />
+      )}
 
       <InvoicePreviewDialog
         open={invoicePreviewOpen}
