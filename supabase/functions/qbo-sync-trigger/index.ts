@@ -351,9 +351,21 @@ async function handlePayoutApproved(
   const commissionExpenseId = await ensureQBOAccount(
     qboBase, qboHeaders, "Advisor Commission Expense", "Cost of Goods Sold", "OtherCostsOfServiceCos",
   );
-  const paymentAccountId = await ensureQBOAccount(
-    qboBase, qboHeaders, "Advisor Payouts Clearing", "Other Current Liability", "OtherCurrentLiabilities",
-  );
+  // Payouts are paid from the mapped advisor payout bank account (Bluevine);
+  // fall back to the clearing account if no mapping exists yet.
+  let paymentAccountId: string;
+  const { data: payoutBankMap } = await supabase
+    .from("qbo_account_mappings")
+    .select("qbo_account_id")
+    .eq("role", "advisor_payout_bank")
+    .maybeSingle();
+  if (payoutBankMap?.qbo_account_id) {
+    paymentAccountId = payoutBankMap.qbo_account_id;
+  } else {
+    paymentAccountId = await ensureQBOAccount(
+      qboBase, qboHeaders, "Advisor Payouts Clearing", "Other Current Liability", "OtherCurrentLiabilities",
+    );
+  }
 
   const expense: any = {
     PaymentType: "Check",
