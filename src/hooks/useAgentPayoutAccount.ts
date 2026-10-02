@@ -69,6 +69,7 @@ export function useAgentPayoutAccount(targetUserId?: string) {
     onSuccess: () => {
       toast.success("Payout details saved");
       qc.invalidateQueries({ queryKey: ["agent-payout-account", userId] });
+      qc.invalidateQueries({ queryKey: ["agent-payouts-all"] });
     },
     onError: (e: any) => toast.error(e?.message || "Failed to save payout details"),
   });
