@@ -160,6 +160,27 @@ serve(async (req) => {
       return new Response(JSON.stringify({ accounts }), { headers: jsonHeaders });
     }
 
+    // ── POST ?action=sync-advisor-classes ───────────────────────────
+    // One-shot: create a QBO Class for every advisor so per-advisor
+    // categories exist before the next invoice/payout sync.
+    if (urlPath === "sync-advisor-classes" && req.method === "POST") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+      const { data: advisors, error: advErr } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, full_name, agency_name");
+      if (advErr) {
+        return new Response(JSON.stringify({ error: advErr.message }), { status: 500, headers: jsonHeaders });
+      }
+      const results: any[] = [];
+      for (const a of advisors ?? []) {
+        const name = ((a.full_name || a.agency_name || "") as string).trim().slice(0, 100);
+        if (!name) continue;
+        const classId = await ensureAdvisorClass(qboBase, qboHeaders, name);
+        results.push({ advisor: name, class_id: classId, ok: !!classId });
+      }
+      return new Response(JSON.stringify({ results }), { headers: jsonHeaders });
+    }
+
     // ── POST ?action=set-default-accounts ───────────────────────────
     if (urlPath === "set-default-accounts" && req.method === "POST") {
       const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
