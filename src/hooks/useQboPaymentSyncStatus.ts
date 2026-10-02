@@ -54,7 +54,7 @@ export function useQboPaymentSyncStatus() {
           ? supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", ids)
           : Promise.resolve({ data: [] as any[] }),
         tripIds.length
-          ? supabase.from("trips").select("id, trip_name, client_id, clients:client_id(name)").in("id", tripIds)
+          ? supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", tripIds)
           : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("qbo_sync_logs")
@@ -79,7 +79,14 @@ export function useQboPaymentSyncStatus() {
         logsByPayment.set(pid, arr);
       });
 
-      return (payments ?? []).map((p): PaymentSyncRow => {
+      // Exclude payments tied to cancelled trips from the sync list entirely.
+      const visible = (payments ?? []).filter((p) => {
+        if (!p.trip_id) return true;
+        const t = tripMap.get(p.trip_id);
+        return String(t?.status ?? "").toLowerCase() !== "cancelled";
+      });
+
+      return visible.map((p): PaymentSyncRow => {
         const qbo = qboMap.get(p.id);
         const trip = p.trip_id ? tripMap.get(p.trip_id) : null;
         const history = logsByPayment.get(p.id) ?? [];
