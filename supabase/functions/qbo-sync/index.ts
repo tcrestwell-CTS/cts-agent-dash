@@ -486,11 +486,9 @@ serve(async (req) => {
         qboInvoice.CustomerRef = { value: qboCustomerId };
       }
 
-      const createResp = await fetch(`${qboBase}/invoice`, {
-        method: "POST",
-        headers: qboHeaders,
-        body: JSON.stringify(qboInvoice),
-      });
+      const { classId } = await advisorClassForTrip(supabaseAdmin, qboBase, qboHeaders, invoice.trip_id);
+      applyClass(qboInvoice, classId);
+      const createResp = await postWithClassFallback(fetch, `${qboBase}/invoice`, qboHeaders, qboInvoice);
 
       if (!createResp.ok) {
         const errText = await createResp.text();
