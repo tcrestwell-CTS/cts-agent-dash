@@ -52,6 +52,7 @@ const TRIP_TYPES = [
 const TRIP_SUBTYPES = [
   { value: "lodging", label: "Lodging" },
   { value: "all_inclusive", label: "All-Inclusive" },
+  { value: "package", label: "Package" },
   { value: "cruise", label: "Cruise" },
   { value: "flight", label: "Flight" },
   { value: "transportation", label: "Transportation" },
