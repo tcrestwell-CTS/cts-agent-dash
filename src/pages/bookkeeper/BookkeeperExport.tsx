@@ -276,7 +276,7 @@ export default function BookkeeperExport() {
       date: r.supplier_paid_date,
       supplier: r.suppliers?.name ?? "",
       trip: r.trips?.trip_name ?? "",
-      confirmation_number: r.confirmation_number ?? r.booking_reference ?? "",
+      confirmation_number: r.confirmation_number ?? "",
       amount: Number(r.supplier_paid_amount || 0),
       method: r.supplier_paid_method ?? "",
       reference: r.supplier_paid_reference ?? "",
