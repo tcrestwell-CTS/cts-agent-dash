@@ -392,7 +392,7 @@ async function handlePayoutApproved(
         AccountBasedExpenseLineDetail: {
           AccountRef: { value: commissionExpenseId },
         },
-        Description: `Advisor payout – Booking ${booking.booking_reference} (advisor share: ${payoutAmount}, agency retained: ${agencyRetained})${vendorId ? "" : " [advisor not yet synced as QBO vendor]"}`,
+        Description: `Advisor payout – Booking ${booking.confirmation_number ?? booking.id} (advisor share: ${payoutAmount}, agency retained: ${agencyRetained})${vendorId ? "" : " [advisor not yet synced as QBO vendor]"}`,
       },
     ],
     TxnDate: booking.override_approved_at?.split("T")[0] || new Date().toISOString().split("T")[0],
@@ -406,7 +406,10 @@ async function handlePayoutApproved(
     throw new Error(`QBO Expense (payout) failed: ${errBody}`);
   }
 
-  await logSync(supabase, userId, "auto-payout-approved", "success", 1);
+  const purchaseId = (await resp.json().catch(() => null))?.Purchase?.Id ?? null;
+  await logSync(supabase, userId, "auto-payout-approved", "success", 1, undefined, {
+    booking_id: booking.id, qbo_purchase_id: purchaseId, amount: payoutAmount, vendor_id: vendorId,
+  });
 }
 
 /**
