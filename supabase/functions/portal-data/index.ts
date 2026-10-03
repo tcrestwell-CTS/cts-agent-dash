@@ -748,7 +748,7 @@ const handler = async (req: Request): Promise<Response> => {
           description: b.suppliers?.name
             ? `${b.suppliers.name}${b.destination ? ` — ${b.destination}` : ""}`
             : b.trip_name || b.destination || "Booking",
-          reference: b.supplier_confirmation_number || b.confirmation_number || b.booking_reference || undefined,
+          reference: b.supplier_confirmation_number || b.confirmation_number || undefined,
           supplier: b.suppliers?.supplier_type || undefined,
           status: b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : undefined,
           amount: Number(b.gross_sales || b.total_price || 0),

@@ -35,7 +35,7 @@ export interface CancelledBooking {
   booking_reference: string;
   destination: string;
   trip_name: string | null;
-  total_amount: number;
+  total_amount?: number;
   gross_sales: number;
   status: string;
   cancelled_at: string | null;
