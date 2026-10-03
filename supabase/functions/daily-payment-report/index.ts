@@ -11,7 +11,6 @@ const corsHeaders = {
 
 const RECIPIENTS = [
   "tcrestwell@crestwellgetaways.com",
-  "bookkeepingredclay@gmail.com",
 ];
 
 function fmtMoney(n: number) {
