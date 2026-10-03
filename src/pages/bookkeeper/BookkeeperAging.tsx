@@ -227,7 +227,7 @@ function PayablesTab() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("bookings")
-        .select("id, booking_reference, status, supplier_paid_status, supplier_payout, gross_sales, created_at, trip_id, supplier_id, trips:trip_id(trip_name, departure_date)")
+        .select("id, booking_reference:confirmation_number, status, supplier_paid_status, supplier_payout, gross_sales, created_at, trip_id, supplier_id, trips:trip_id(trip_name, departure_date)")
         .in("supplier_paid_status", ["unpaid", "pending", "partial"])
         .order("created_at", { ascending: true })
         .limit(500);

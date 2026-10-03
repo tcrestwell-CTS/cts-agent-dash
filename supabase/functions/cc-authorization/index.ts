@@ -273,7 +273,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Get booking and client details
       const [bookingRes, clientRes, agentBrandingRes] = await Promise.all([
         supabaseAdmin.from("bookings")
-          .select("booking_reference, destination, trip_name, depart_date, return_date, total_amount, gross_sales")
+          .select("booking_reference:confirmation_number, destination, trip_name, depart_date, return_date, gross_sales")
           .eq("id", auth.booking_id).single(),
         supabaseAdmin.from("clients")
           .select("name, first_name, email")

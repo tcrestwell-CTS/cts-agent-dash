@@ -82,7 +82,7 @@ function useExpenseRows(year: number, month: number) {
         (supabase as any)
           .from("bookings")
           .select(
-            "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, booking_reference, confirmation_number, supplier_id, trip_id, trips:trip_id(trip_name)"
+            "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, confirmation_number, supplier_id, trip_id, trips:trip_id(trip_name)"
           )
           .eq("supplier_paid_status", "paid")
           .gte("supplier_paid_date", start)
@@ -276,7 +276,7 @@ export default function BookkeeperExport() {
       date: r.supplier_paid_date,
       supplier: r.suppliers?.name ?? "",
       trip: r.trips?.trip_name ?? "",
-      confirmation_number: r.confirmation_number ?? r.booking_reference ?? "",
+      confirmation_number: r.confirmation_number ?? "",
       amount: Number(r.supplier_paid_amount || 0),
       method: r.supplier_paid_method ?? "",
       reference: r.supplier_paid_reference ?? "",

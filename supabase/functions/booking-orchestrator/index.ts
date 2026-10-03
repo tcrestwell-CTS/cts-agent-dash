@@ -149,7 +149,7 @@ async function handleSupplierWebhook(
   const { data: bookings, error: findError } = await adminClient
     .from("bookings")
     .select("id, status, notes, user_id, client_id")
-    .or(`notes.ilike.%${escapeIlike(payload.confirmation_number)}%,booking_reference.eq.${payload.confirmation_number}`)
+    .or(`notes.ilike.%${escapeIlike(payload.confirmation_number)}%,confirmation_number.eq.${payload.confirmation_number}`)
     .limit(1);
 
   if (findError) {
@@ -190,7 +190,7 @@ async function handleSupplierWebhook(
       break;
 
     case "booking.updated":
-      if (payload.data.total_amount) updateData.total_amount = payload.data.total_amount;
+      if (payload.data.total_amount) updateData.gross_sales = payload.data.total_amount;
       if (payload.data.travelers) updateData.travelers = payload.data.travelers;
       if (payload.data.departure_date) updateData.depart_date = payload.data.departure_date;
       if (payload.data.return_date) updateData.return_date = payload.data.return_date;
@@ -309,7 +309,7 @@ async function handleAutomateStatus(
   // Build base query for departing bookings
   let departQuery = adminClient
     .from("bookings")
-    .select("id, booking_reference, destination, client_id, user_id")
+    .select("id, booking_reference:confirmation_number, destination, client_id, user_id")
     .eq("status", "confirmed")
     .lte("depart_date", today);
 
@@ -350,7 +350,7 @@ async function handleAutomateStatus(
     .from("bookings")
     .select(`
       id, 
-      booking_reference, 
+      booking_reference:confirmation_number, 
       destination, 
       client_id,
       user_id,
@@ -537,11 +537,11 @@ async function handleSyncBooking(
     .insert({
       user_id: user.id,
       client_id,
-      booking_reference: bookingReference,
+      confirmation_number: bookingReference,
       destination,
       depart_date,
       return_date,
-      total_amount: total_amount || 0,
+      gross_sales: total_amount || 0,
       travelers: travelers || 1,
       trip_name: trip_name || `${supplier_name || "External"} - ${destination}`,
       notes: bookingNotes,

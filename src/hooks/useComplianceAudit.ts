@@ -35,7 +35,7 @@ export interface CancelledBooking {
   booking_reference: string;
   destination: string;
   trip_name: string | null;
-  total_amount: number;
+  total_amount?: number;
   gross_sales: number;
   status: string;
   cancelled_at: string | null;
@@ -98,7 +98,7 @@ export function useCancelledBookings() {
       const { data, error } = await supabase
         .from("bookings")
         .select(`
-          id, booking_reference, destination, trip_name, total_amount,
+          id, booking_reference:confirmation_number, destination, trip_name,
           gross_sales, status, cancelled_at, cancellation_penalty,
           cancellation_refund_amount, cancellation_reason, user_id, created_at,
           clients (name)
