@@ -270,15 +270,31 @@ async function handleBookingConfirmed(
     TxnDate: (booking.created_at ?? new Date().toISOString()).split("T")[0],
   };
 
-  const { classId } = await advisorClassForTrip(supabase, qboBase, qboHeaders, booking.trip_id);
-  applyClass(invoiceData, classId);
-  const resp = await postWithClassFallback(qboFetch, `${qboBase}/invoice`, qboHeaders, invoiceData);
-  if (!resp.ok) {
-    const errBody = await resp.text();
-    throw new Error(`QBO Invoice creation failed: ${errBody}`);
+  // Adopt an existing QBO invoice with this DocNumber (mapping lost) instead of failing on duplicate.
+  let qboInvoiceId: string | undefined;
+  try {
+    const q = await qboFetch(
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT Id FROM Invoice WHERE DocNumber = '${docNum.replace(/'/g, "\\'")}'`)}`,
+      { headers: qboHeaders },
+    );
+    if (q.ok) qboInvoiceId = (await q.json())?.QueryResponse?.Invoice?.[0]?.Id;
+  } catch (e) {
+    console.warn(`[booking_confirmed] DocNumber lookup failed: ${e}`);
   }
-  const result = await resp.json();
-  const qboInvoiceId = result?.Invoice?.Id;
+
+  if (!qboInvoiceId) {
+    const { classId } = await advisorClassForTrip(supabase, qboBase, qboHeaders, booking.trip_id);
+    applyClass(invoiceData, classId);
+    const resp = await postWithClassFallback(qboFetch, `${qboBase}/invoice`, qboHeaders, invoiceData);
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      const dup = errBody.match(/DocNumber=.*?TxnType=Invoice with TxnId=(\d+)/);
+      if (dup) qboInvoiceId = dup[1];
+      else throw new Error(`QBO Invoice creation failed: ${errBody}`);
+    } else {
+      qboInvoiceId = (await resp.json())?.Invoice?.Id;
+    }
+  }
   if (!qboInvoiceId) throw new Error("QBO Invoice response missing Id");
 
   // ── 4. Persist mapping.
