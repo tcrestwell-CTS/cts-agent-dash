@@ -369,14 +369,16 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("cc-authorization decrypt: OAuth-only user, skipping password gate", user.email);
       }
 
-      // Get the authorization (RLS check via user_id match)
-      const { data: auth } = await supabaseAdmin
+      // Get the authorization: owner, or admin/office admin
+      const { data: isAdminDec } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isOfficeDec } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "office_admin" });
+      let decQ = supabaseAdmin
         .from("cc_authorizations")
         .select("*")
         .eq("id", authorization_id)
-        .eq("user_id", user.id)
-        .eq("status", "authorized")
-        .maybeSingle();
+        .eq("status", "authorized");
+      if (!isAdminDec && !isOfficeDec) decQ = decQ.eq("user_id", user.id);
+      const { data: auth } = await decQ.maybeSingle();
 
       if (!auth) {
         return new Response(JSON.stringify({ error: "Authorization not found or expired" }), {
@@ -433,8 +435,9 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      const bookingId = url.searchParams.get("booking_id");
-      if (!bookingId) {
+      const bookingIds = (url.searchParams.get("booking_ids") || url.searchParams.get("booking_id") || "")
+        .split(",").map((s) => s.trim()).filter(Boolean);
+      if (bookingIds.length === 0) {
         return new Response(JSON.stringify({ error: "booking_id required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -447,16 +450,19 @@ const handler = async (req: Request): Promise<Response> => {
         .lt("auto_delete_at", new Date().toISOString())
         .not("auto_delete_at", "is", null);
 
-      const { data, error } = await supabaseAdmin
+      const { data: isAdminList } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isOfficeList } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "office_admin" });
+
+      let listQ = supabaseAdmin
         .from("cc_authorizations")
         .select(`
           id, booking_id, client_id, authorization_amount, authorization_description,
           last_four, cardholder_name, status, authorized_at, expires_at,
           access_token, created_at, signature_url
         `)
-        .eq("booking_id", bookingId)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .in("booking_id", bookingIds);
+      if (!isAdminList && !isOfficeList) listQ = listQ.eq("user_id", user.id);
+      const { data, error } = await listQ.order("created_at", { ascending: false });
 
       if (error) throw error;
 
