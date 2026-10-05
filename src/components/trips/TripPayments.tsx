@@ -998,6 +998,7 @@ export function TripPayments({
           open={ccAuthDialogOpen}
           onOpenChange={setCcAuthDialogOpen}
           bookingId={ccAuthBooking.id}
+          relatedBookingIds={bookings.map((b) => b.id).filter(Boolean)}
           clientId={clientId}
           clientName={clientName || "Client"}
           bookingAmount={tripTotal}

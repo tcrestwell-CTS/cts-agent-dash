@@ -19,7 +19,7 @@ export interface CCAuthorization {
   signature_url: string | null;
 }
 
-export function useCCAuthorizations(bookingId: string | undefined) {
+export function useCCAuthorizations(bookingId: string | undefined, extraBookingIds?: string[]) {
   const { user } = useAuth();
   const [authorizations, setAuthorizations] = useState<CCAuthorization[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,7 @@ export function useCCAuthorizations(bookingId: string | undefined) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cc-authorization?action=list&booking_id=${bookingId}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cc-authorization?action=list&booking_ids=${encodeURIComponent([bookingId, ...(extraBookingIds || [])].filter(Boolean).join(","))}`,
         {
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
@@ -48,7 +48,7 @@ export function useCCAuthorizations(bookingId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [user, bookingId]);
+  }, [user, bookingId, (extraBookingIds || []).join(",")]);
 
   const createAuthorization = async (data: {
     booking_id: string;

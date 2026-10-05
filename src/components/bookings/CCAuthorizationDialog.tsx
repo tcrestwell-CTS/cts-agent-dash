@@ -34,12 +34,13 @@ interface CCAuthorizationDialogProps {
   clientName: string;
   bookingAmount: number;
   bookingReference: string;
+  relatedBookingIds?: string[];
 }
 
 export function CCAuthorizationDialog({
-  open, onOpenChange, bookingId, clientId, clientName, bookingAmount, bookingReference,
+  open, onOpenChange, bookingId, clientId, clientName, bookingAmount, bookingReference, relatedBookingIds,
 }: CCAuthorizationDialogProps) {
-  const { authorizations, loading, creating, fetchAuthorizations, createAuthorization, decryptCC } = useCCAuthorizations(bookingId);
+  const { authorizations, loading, creating, fetchAuthorizations, createAuthorization, decryptCC } = useCCAuthorizations(bookingId, relatedBookingIds);
   const [view, setView] = useState<"list" | "create" | "view-cc">("list");
   const [amount, setAmount] = useState(bookingAmount.toString());
   const [description, setDescription] = useState("");
