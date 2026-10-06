@@ -30,16 +30,26 @@ export function TodayActionItems() {
       const actions: ActionItem[] = [];
 
       // Payments due in next 14 days
-      const { data: payments } = await supabase
+      const { data: rawPayments } = await supabase
         .from("trip_payments")
-        .select("id, amount, due_date, trip_id, trips(trip_name, client_id, clients!trips_client_id_fkey(name))")
+        .select("id, amount, due_date, trip_id, trips(trip_name, status, total_paid, total_gross_sales, client_id, clients!trips_client_id_fkey(name))")
         .eq("status", "pending")
         .not("due_date", "is", null)
         .lte("due_date", addDays(now, 14).toISOString().split("T")[0])
         .order("due_date", { ascending: true })
-        .limit(5);
+        .limit(100);
 
-      for (const p of payments || []) {
+      // Skip cancelled/archived trips and trips already paid in full
+      const payments = (rawPayments || []).filter((p: any) => {
+        const t = p.trips;
+        if (!t) return false;
+        if (["cancelled", "archived", "completed"].includes(t.status)) return false;
+        const total = Number(t.total_gross_sales || 0);
+        if (total > 0 && Number(t.total_paid || 0) >= total - 0.01) return false;
+        return true;
+      }).slice(0, 5);
+
+      for (const p of payments) {
         const due = parseISO((p as any).due_date);
         const days = differenceInDays(due, now);
         const tripName = (p as any).trips?.trip_name || "Trip";
