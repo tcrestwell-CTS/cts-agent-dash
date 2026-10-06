@@ -32,8 +32,9 @@ export function TodayActionItems() {
       // Payments due in next 14 days
       const { data: rawPayments } = await supabase
         .from("trip_payments")
-        .select("id, amount, due_date, trip_id, trips(trip_name, status, total_paid, total_gross_sales, client_id, clients!trips_client_id_fkey(name))")
+        .select("id, amount, due_date, trip_id, trips!inner(trip_name, status, total_paid, total_gross_sales, client_id, user_id, clients!trips_client_id_fkey(name))")
         .eq("status", "pending")
+        .eq("trips.user_id", user!.id)
         .not("due_date", "is", null)
         .lte("due_date", addDays(now, 14).toISOString().split("T")[0])
         .order("due_date", { ascending: true })
@@ -71,6 +72,7 @@ export function TodayActionItems() {
         .from("trips")
         .select("id, trip_name, depart_date, client_id, clients!trips_client_id_fkey(name)")
         .in("status", ["confirmed", "booked"])
+        .eq("user_id", user!.id)
         .not("depart_date", "is", null)
         .gte("depart_date", now.toISOString().split("T")[0])
         .lte("depart_date", addDays(now, 14).toISOString().split("T")[0])
@@ -97,6 +99,7 @@ export function TodayActionItems() {
         .from("trips")
         .select("id, trip_name, updated_at, client_id, clients!trips_client_id_fkey(name)")
         .in("status", ["lead", "quoted"])
+        .eq("user_id", user!.id)
         .lt("updated_at", staleDate)
         .order("updated_at", { ascending: true })
         .limit(4);
