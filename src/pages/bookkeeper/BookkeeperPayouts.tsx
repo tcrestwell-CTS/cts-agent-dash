@@ -99,8 +99,8 @@ export default function BookkeeperPayouts() {
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
             </div>
             <p className="text-[13.5px] text-muted-foreground">
-              Commission paid and pending, by advisor. Owner commission is agency revenue and is
-              excluded{agencyRetained > 0 ? ` (${fmt(agencyRetained)} retained)` : ""}.
+              Advisor share of commission (after agency split), paid and pending. Owner commission and the
+              agency's split are retained{agencyRetained > 0 ? ` (${fmt(agencyRetained)})` : ""}.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !rows.length} className="text-[13px]">
