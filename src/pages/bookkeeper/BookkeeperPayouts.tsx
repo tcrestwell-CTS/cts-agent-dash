@@ -22,12 +22,29 @@ export default function BookkeeperPayouts() {
   const { data, isLoading } = useQuery({
     queryKey: ["bookkeeper-payouts"],
     queryFn: async () => {
-      const [commRes, profRes] = await Promise.all([
-        (supabase as any).from("commissions").select("user_id, amount, status, paid_date"),
+      const [commRes, profRes, splitRes] = await Promise.all([
+        (supabase as any).from("commissions").select("id, user_id, amount, status, paid_date"),
         (supabase as any).from("bookkeeper_profiles_view").select("user_id, full_name"),
+        (supabase as any).from("commission_splits").select("commission_id, recipient_user_id, role, amount, status"),
       ]);
       const profiles = new Map<string, string>();
       for (const p of profRes.data ?? []) profiles.set(p.user_id, p.full_name || "Unknown");
+      // Advisor share per commission: explicit agent split row wins; otherwise advisor split %.
+      const agentSplits = new Map<string, { amount: number; status: string }>();
+      for (const s of splitRes.data ?? []) {
+        if (s.role !== "agent") continue;
+        const prev = agentSplits.get(s.commission_id);
+        agentSplits.set(s.commission_id, {
+          amount: (prev?.amount ?? 0) + Number(s.amount || 0),
+          status: s.status,
+        });
+      }
+      const userIds = Array.from(new Set<string>((commRes.data ?? []).map((c: any) => c.user_id)));
+      const pcts = new Map<string, number>();
+      await Promise.all(userIds.map(async (uid) => {
+        const { data: pct } = await (supabase as any).rpc("get_advisor_split_pct", { p_user_id: uid });
+        pcts.set(uid, Number(pct ?? 0.7));
+      }));
       const map = new Map<string, { name: string; paid: number; pending: number; count: number }>();
       let agencyRetained = 0;
       for (const c of commRes.data ?? []) {
@@ -36,9 +53,14 @@ export default function BookkeeperPayouts() {
           agencyRetained += Number(c.amount || 0);
           continue;
         }
+        const split = agentSplits.get(c.id);
+        const gross = Number(c.amount || 0);
+        const share = split ? split.amount : gross * (pcts.get(c.user_id) ?? 0.7);
+        agencyRetained += gross - share;
         const e = map.get(c.user_id) || { name: profiles.get(c.user_id) || "Unknown", paid: 0, pending: 0, count: 0 };
-        if (c.status === "paid") e.paid += Number(c.amount || 0);
-        else e.pending += Number(c.amount || 0);
+        const paidOut = split ? split.status === "paid" : c.status === "paid";
+        if (paidOut) e.paid += share;
+        else e.pending += share;
         e.count += 1;
         map.set(c.user_id, e);
       }
@@ -77,8 +99,8 @@ export default function BookkeeperPayouts() {
               <PeriodLockButton year={new Date().getFullYear()} month={new Date().getMonth() + 1} />
             </div>
             <p className="text-[13.5px] text-muted-foreground">
-              Commission paid and pending, by advisor. Owner commission is agency revenue and is
-              excluded{agencyRetained > 0 ? ` (${fmt(agencyRetained)} retained)` : ""}.
+              Advisor share of commission (after agency split), paid and pending. Owner commission and the
+              agency's split are retained{agencyRetained > 0 ? ` (${fmt(agencyRetained)})` : ""}.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !rows.length} className="text-[13px]">
