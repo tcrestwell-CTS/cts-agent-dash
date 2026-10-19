@@ -74,7 +74,8 @@ function ReceivablesTab() {
       (trips ?? []).forEach((t: any) => (tripMap[t.id] = t));
       const paidMap: Record<string, number> = {};
       (pays ?? []).forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
-      const CLOSED = ["cancelled", "canceled", "archived", "completed"];
+      // Closed trips owe nothing; lead/quoted/planning trips aren't booked yet, so not receivables.
+      const CLOSED = ["cancelled", "canceled", "archived", "completed", "lead", "quoted", "planning", "inquiry"];
       return rows
         .filter((r: any) => !r.trip_id || (tripMap[r.trip_id] && !CLOSED.includes(String(tripMap[r.trip_id].status || "").toLowerCase())))
         .map((r: any) => {
