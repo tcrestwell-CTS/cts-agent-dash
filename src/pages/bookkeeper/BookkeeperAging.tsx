@@ -58,12 +58,33 @@ function ReceivablesTab() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("id, invoice_number, invoice_date, trip_name, client_name, total_amount, amount_paid, amount_remaining, status")
+        .select("id, invoice_number, invoice_date, trip_id, trip_name, client_name, total_amount, amount_paid, amount_remaining, status")
         .neq("status", "paid")
         .order("invoice_date", { ascending: true })
         .limit(500);
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      const tripIds = [...new Set(rows.map((r: any) => r.trip_id).filter(Boolean))];
+      if (tripIds.length === 0) return rows;
+      const [{ data: trips }, { data: pays }] = await Promise.all([
+        (supabase as any).from("trips").select("id, status, total_gross_sales").in("id", tripIds),
+        (supabase as any).from("trip_payments").select("trip_id, amount").eq("status", "paid").in("trip_id", tripIds),
+      ]);
+      const tripMap: Record<string, any> = {};
+      (trips ?? []).forEach((t: any) => (tripMap[t.id] = t));
+      const paidMap: Record<string, number> = {};
+      (pays ?? []).forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
+      const CLOSED = ["cancelled", "canceled", "archived", "completed"];
+      return rows
+        .filter((r: any) => !r.trip_id || (tripMap[r.trip_id] && !CLOSED.includes(String(tripMap[r.trip_id].status || "").toLowerCase())))
+        .map((r: any) => {
+          if (!r.trip_id) return r;
+          const total = Number(r.total_amount || 0);
+          const paid = paidMap[r.trip_id] || 0;
+          const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
+          return { ...r, amount_paid: paid, amount_remaining: Math.min(Number(r.amount_remaining || 0), remaining) };
+        });
+
     },
   });
 
