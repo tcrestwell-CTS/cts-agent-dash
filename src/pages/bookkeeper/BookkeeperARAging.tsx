@@ -106,7 +106,28 @@ export default function BookkeeperARAging() {
         .order("invoice_date", { ascending: true })
         .limit(1000);
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      const tripIds = [...new Set(rows.map((r: any) => r.trip_id).filter(Boolean))];
+      if (tripIds.length === 0) return rows;
+      const [{ data: trips }, { data: pays }] = await Promise.all([
+        (supabase as any).from("trips").select("id, status").in("id", tripIds),
+        (supabase as any).from("trip_payments").select("trip_id, amount").eq("status", "paid").in("trip_id", tripIds),
+      ]);
+      const tripStatus: Record<string, string> = {};
+      (trips ?? []).forEach((t: any) => (tripStatus[t.id] = String(t.status || "").toLowerCase()));
+      const paidMap: Record<string, number> = {};
+      (pays ?? []).forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
+      // Closed trips owe nothing; lead/quoted/planning trips aren't booked, so not receivables.
+      const EXCLUDE = ["cancelled", "canceled", "archived", "completed", "lead", "quoted", "planning", "inquiry"];
+      return rows
+        .filter((r: any) => !r.trip_id || (tripStatus[r.trip_id] !== undefined && !EXCLUDE.includes(tripStatus[r.trip_id])))
+        .map((r: any) => {
+          if (!r.trip_id) return r;
+          const paid = paidMap[r.trip_id] || 0;
+          const remaining = Math.max(0, Math.round((Number(r.total_amount || 0) - paid) * 100) / 100);
+          return { ...r, amount_paid: paid, amount_remaining: Math.min(Number(r.amount_remaining || 0), remaining) };
+        })
+        .filter((r: any) => Number(r.amount_remaining) > 0);
     },
   });
 
