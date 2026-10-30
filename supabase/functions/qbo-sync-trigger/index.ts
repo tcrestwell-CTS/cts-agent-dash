@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { isRealClientPayment, paymentRequestId } from "../_shared/qbo-payment-rules.ts";
+import { isRealClientPayment, paymentRequestId, pickExistingInvoice } from "../_shared/qbo-payment-rules.ts";
 import { advisorClassForTrip, applyClass, getAdvisorVendorId, postWithClassFallback } from "../_shared/qbo-advisor.ts";
 
 /**
@@ -961,6 +961,32 @@ async function handleClientPaymentReceived(
 
   // Payment may arrive before booking confirmation, or under an advisor whose
   // invoice was created by an admin. Resolve the trip invoice before posting cash.
+  // Before auto-creating, look for any QBO invoice this customer already has for
+  // the trip's invoice numbers (including advisor-suffixed ones) so we never post a second.
+  if (!qboInvoiceId && payment.trip_id) {
+    const { data: tripInvoices } = await supabase.from("invoices").select("id, invoice_number")
+      .eq("trip_id", payment.trip_id).order("created_at", { ascending: true });
+    const nums = (tripInvoices ?? []).map((i: any) => String(i.invoice_number ?? "")).filter(Boolean);
+    if (nums.length) {
+      const q = await fetch(`${qboBase}/query?query=${encodeURIComponent(
+        `SELECT Id, DocNumber, CustomerRef FROM Invoice WHERE CustomerRef = '${qboCustomerId}' MAXRESULTS 1000`)}`,
+        { headers: qboHeaders });
+      if (q.ok) {
+        const found = (await q.json())?.QueryResponse?.Invoice ?? [];
+        const existing = pickExistingInvoice(found, qboCustomerId, nums);
+        if (existing) {
+          qboInvoiceId = existing;
+          const local = tripInvoices![0];
+          localInvoiceId = local.id;
+          invoiceNumber = local.invoice_number;
+          await supabase.from("qbo_invoice_mappings").upsert({
+            user_id: userId, invoice_id: local.id, qbo_invoice_id: existing,
+            last_synced_at: new Date().toISOString(),
+          }, { onConflict: "user_id,invoice_id" });
+        }
+      } else throw new Error("Could not check QuickBooks for an existing trip invoice; retry later");
+    }
+  }
   if (!qboInvoiceId && payment.trip_id) {
     const { data: tripBooking } = await supabase.from("bookings").select("*")
       .eq("trip_id", payment.trip_id).order("created_at", { ascending: true }).limit(1).maybeSingle();

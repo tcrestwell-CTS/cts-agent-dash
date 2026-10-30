@@ -32,6 +32,16 @@ export interface PaymentSyncRow {
   }>;
 }
 
+async function inChunks(values: string[], run: (chunk: string[]) => PromiseLike<{ data: any[] | null; error: any }>) {
+  const data: any[] = [];
+  for (let i = 0; i < values.length; i += 150) {
+    const r = await run(values.slice(i, i + 150));
+    if (r.error) throw r.error;
+    data.push(...(r.data ?? []));
+  }
+  return { data };
+}
+
 export function useQboPaymentSyncStatus() {
   const { user } = useAuth();
   const { canViewFinancials, isLoading: permissionsLoading } = usePermissions();
@@ -41,24 +51,30 @@ export function useQboPaymentSyncStatus() {
     enabled: !!user && !permissionsLoading,
     queryFn: async (): Promise<PaymentSyncRow[]> => {
       if (!user) return [];
-      let paymentQuery = supabase
-        .from("trip_payments")
-        .select("id, trip_id, booking_id, amount, payment_date, status, payment_type, created_at, user_id")
-        .order("payment_date", { ascending: false, nullsFirst: false })
-        .limit(500);
-      if (!canViewFinancials) paymentQuery = paymentQuery.eq("user_id", user.id);
-      const { data: payments, error: pErr } = await paymentQuery;
-      if (pErr) throw pErr;
+      const payments: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        let paymentQuery = supabase
+          .from("trip_payments")
+          .select("id, trip_id, booking_id, amount, payment_date, status, payment_type, created_at, user_id")
+          .order("payment_date", { ascending: false, nullsFirst: false })
+          .order("id")
+          .range(from, from + 999);
+        if (!canViewFinancials) paymentQuery = paymentQuery.eq("user_id", user.id);
+        const { data: page, error: pErr } = await paymentQuery;
+        if (pErr) throw pErr;
+        payments.push(...(page ?? []));
+        if (!page || page.length < 1000) break;
+      }
 
       const ids = (payments ?? []).map((p) => p.id);
       const tripIds = Array.from(new Set((payments ?? []).map((p) => p.trip_id).filter(Boolean) as string[]));
 
       const [{ data: qboPays }, { data: trips }, { data: logs }] = await Promise.all([
         ids.length
-          ? supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", ids)
+          ? inChunks(ids, (c) => supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", c))
           : Promise.resolve({ data: [] as any[] }),
         tripIds.length
-          ? supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", tripIds)
+          ? inChunks(tripIds, (c) => supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", c))
           : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("qbo_sync_logs")
