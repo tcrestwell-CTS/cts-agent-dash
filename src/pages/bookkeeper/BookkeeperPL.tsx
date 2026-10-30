@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
+import { parseQboProfitLoss } from "@/lib/qboProfitLoss";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { PeriodLockButton } from "@/components/bookkeeper/PeriodLockButton";
@@ -24,44 +25,24 @@ import { KPITile } from "@/components/patterns/KPITile";
 const fmt = (n: number) =>
   Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
-function yearRange(y: number) {
-  return {
-    start: `${y}-01-01`,
-    end: `${y + 1}-01-01`,
-  };
-}
-
 function usePLData(year: number) {
   return useQuery({
-    queryKey: ["bookkeeper-pl", year],
+    queryKey: ["bookkeeper-pl-qbo", year],
     queryFn: async () => {
-      const { start, end } = yearRange(year);
-      const [incRes, expRes] = await Promise.all([
-        (supabase as any)
-          .from("trip_payments")
-          .select("amount, payment_date")
-          .eq("status", "paid")
-          .gte("payment_date", start)
-          .lt("payment_date", end),
-        (supabase as any)
-          .from("bookings")
-          .select("supplier_paid_amount, supplier_paid_date")
-          .eq("supplier_paid_status", "paid")
-          .gte("supplier_paid_date", start)
-          .lt("supplier_paid_date", end),
-      ]);
-      const months = Array.from({ length: 12 }, () => ({ income: 0, expense: 0 }));
-      for (const r of incRes.data ?? []) {
-        const m = new Date(r.payment_date + "T00:00:00").getMonth();
-        months[m].income += Number(r.amount || 0);
-      }
-      for (const r of expRes.data ?? []) {
-        if (!r.supplier_paid_date) continue;
-        const m = new Date(r.supplier_paid_date + "T00:00:00").getMonth();
-        months[m].expense += Number(r.supplier_paid_amount || 0);
-      }
-      return months;
+      return Promise.all(Array.from({ length: 12 }, async (_, index) => {
+        const month = String(index + 1).padStart(2, "0");
+        const lastDay = new Date(Date.UTC(year, index + 1, 0)).getUTCDate();
+        const params = new URLSearchParams({
+          action: "read-report", report: "ProfitAndLoss",
+          start_date: `${year}-${month}-01`, end_date: `${year}-${month}-${lastDay}`,
+        });
+        const { data, error } = await supabase.functions.invoke(`qbo-sync?${params}`, { method: "GET" });
+        if (error) throw new Error("QuickBooks P&L is unavailable. Please retry or check the QuickBooks connection.");
+        return parseQboProfitLoss(data);
+      }));
     },
+    staleTime: 60_000,
+    retry: false,
   });
 }
 
@@ -72,14 +53,15 @@ const MONTHS = [
 
 export default function BookkeeperPL() {
   const [year, setYear] = useState(new Date().getFullYear());
-  const { data, isLoading } = usePLData(year);
+  const { data, isLoading, error, refetch, isFetching } = usePLData(year);
   const logAction = useLogBookkeeperAction();
   useEffect(() => { logAction("view", "bookkeeper_pl", { year }); }, [logAction, year]);
 
   const totals = useMemo(() => {
     const income = (data ?? []).reduce((s, m) => s + m.income, 0);
     const expense = (data ?? []).reduce((s, m) => s + m.expense, 0);
-    return { income, expense, net: income - expense };
+    const net = (data ?? []).reduce((s, m) => s + m.net, 0);
+    return { income, expense, net };
   }, [data]);
 
   const years = [year + 1, year, year - 1, year - 2];
@@ -92,7 +74,7 @@ export default function BookkeeperPL() {
         year,
         income: row.income.toFixed(2),
         expense: row.expense.toFixed(2),
-        net: (row.income - row.expense).toFixed(2),
+        net: row.net.toFixed(2),
       })),
       `bookkeeper-pl-${year}`,
     );
@@ -110,7 +92,7 @@ export default function BookkeeperPL() {
                 <PeriodLockButton year={year} month={new Date().getMonth() + 1} />
               </div>
               <p className="text-[13.5px] text-muted-foreground">
-                Cash-basis income minus supplier expenses by month.
+                QuickBooks · Accrual basis · USD
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -122,6 +104,9 @@ export default function BookkeeperPL() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh QuickBooks P&L" title="Refresh QuickBooks P&L">
+                <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              </Button>
               <Button variant="outline" size="sm" onClick={exportCsv} disabled={isLoading || !(data?.length)} className="text-[13px]">
                 <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
               </Button>
@@ -129,21 +114,22 @@ export default function BookkeeperPL() {
           </div>
         </div>
 
+        {error && <p role="alert" className="text-destructive">{error.message}</p>}
         <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-3">
           <KPITile
             label="Total Income"
-            value={isLoading ? <Skeleton className="h-[26px] w-24" /> : fmt(totals.income)}
+            value={isLoading ? <Skeleton className="h-[26px] w-24" /> : error ? "—" : fmt(totals.income)}
           />
           <KPITile
             label="Total Expenses"
-            value={isLoading ? <Skeleton className="h-[26px] w-24" /> : fmt(totals.expense)}
+            value={isLoading ? <Skeleton className="h-[26px] w-24" /> : error ? "—" : fmt(totals.expense)}
           />
           <KPITile
             label="Net Income"
             value={
               isLoading ? (
                 <Skeleton className="h-[26px] w-24" />
-              ) : (
+              ) : error ? "—" : (
                 <span className={totals.net < 0 ? "text-destructive" : undefined}>{fmt(totals.net)}</span>
               )
             }
@@ -155,7 +141,7 @@ export default function BookkeeperPL() {
           <PanelBody>
             {isLoading ? (
               <TableSkeleton rows={12} cols={4} />
-            ) : (
+            ) : error ? null : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -172,9 +158,9 @@ export default function BookkeeperPL() {
                       <MoneyCell value={row.income} />
                       <MoneyCell value={row.expense} />
                       <MoneyCell
-                        value={row.income - row.expense}
+                        value={row.net}
                         bold
-                        className={row.income - row.expense < 0 ? "text-destructive" : undefined}
+                        className={row.net < 0 ? "text-destructive" : undefined}
                       />
                     </TableRow>
                   ))}
