@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Update Hawaii to November 20–27 only, cabin prices, and verify the page.
+- [x] Update Hawaii to November 20–27 only, cabin prices, and verify the page.
 
 
 ## Guided trip flow (approved 2026-09-27)
