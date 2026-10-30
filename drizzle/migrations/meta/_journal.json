@@ -8,6 +8,13 @@
       "when": 1791061231001,
       "tag": "0000_disable_cc_auth_auto_close_on_paid_in_full",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793400117177,
+      "tag": "0001_automatic_paid_client_receipts",
+      "breakpoints": true
     }
   ]
 }
