@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Clock, MinusCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, MinusCircle, EyeOff } from "lucide-react";
 import type { SyncState } from "@/hooks/useQboPaymentSyncStatus";
 
 export function PaymentSyncStatusBadge({ state }: { state: SyncState }) {
@@ -8,6 +8,8 @@ export function PaymentSyncStatusBadge({ state }: { state: SyncState }) {
   if (state === "failed")
     return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Failed</Badge>;
   if (state === "pending")
-    return <Badge className="bg-warning hover:bg-warning"><Clock className="w-3 h-3 mr-1" />Unpaid</Badge>;
+    return <Badge className="bg-warning hover:bg-warning"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+  if (state === "skipped")
+    return <Badge variant="outline"><EyeOff className="w-3 h-3 mr-1" />Skipped</Badge>;
   return <Badge variant="secondary"><MinusCircle className="w-3 h-3 mr-1" />Not eligible</Badge>;
 }

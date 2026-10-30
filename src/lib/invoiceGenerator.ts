@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import { TripPayment } from "@/hooks/useTripPayments";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
+import { isRealClientPayment as isInvoiceCashPayment } from "../../supabase/functions/_shared/qbo-payment-rules";
 
 export interface InvoiceData {
   invoiceNumber?: string;
@@ -81,21 +82,6 @@ const formatCurrency = (value: number) => {
     currency: "USD",
     minimumFractionDigits: 2,
   }).format(value);
-};
-
-const isInvoiceCashPayment = (payment: TripPayment) => {
-  const details = (payment.details || "").toLowerCase();
-  const isSchedulePlaceholder =
-    !!payment.due_date &&
-
-    !payment.payment_method &&
-    !payment.stripe_session_id &&
-    !payment.stripe_receipt_url &&
-    (["installment", "final", "final_balance"].includes(payment.payment_type) ||
-      details.startsWith("installment") ||
-      details.startsWith("final balance"));
-
-  return payment.status === "paid" && !isSchedulePlaceholder;
 };
 
 const isUpcomingPaymentDue = (payment: TripPayment) => payment.status === "pending" && !!payment.due_date;

@@ -1,6 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { isRealClientPayment, paymentRequestId } from "../_shared/qbo-payment-rules.ts";
+import {
+  CLIENT_FUNDS_PARENT,
+  CLIENT_FUNDS_QUALIFIED,
+  CLIENT_FUNDS_SUBACCOUNT,
+  CLIENT_FUNDS_MAPPING_ROLE,
+  invoiceRequestId,
+  isRealClientPayment,
+  paymentRequestId,
+  paymentSkipReason,
+  pickClientFundsAccount,
+  refundRequestId,
+  selectTripInvoiceId,
+  supplierBillRequestId,
+  supplierPaymentRequestId,
+  supplierSettlement,
+  tripInvoiceTag,
+} from "../_shared/qbo-payment-rules.ts";
 import { advisorClassForTrip, applyClass, getAdvisorVendorId, postWithClassFallback } from "../_shared/qbo-advisor.ts";
 
 /**
@@ -154,6 +170,9 @@ serve(async (req) => {
       case "client_payment_received":
         await handleClientPaymentReceived(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
+      case "client_payment_refunded":
+        await handleClientPaymentRefunded(supabase, qboBase, qboHeaders, userId, record, old_record, connection);
+        break;
       case "supplier_paid":
         await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
@@ -261,32 +280,33 @@ async function handleBookingConfirmed(
     invoice = created;
   }
 
-  // ── 2. Idempotency: skip if already mapped to QBO.
-  const { data: existingMap } = await supabase
-    .from("qbo_invoice_mappings")
-    .select("qbo_invoice_id")
-    .eq("invoice_id", invoice.id)
-    .maybeSingle();
-  if (existingMap?.qbo_invoice_id) {
+  // ── 2. One QuickBooks invoice per trip. Reuse a mapped, cached, or
+  // already-posted invoice before creating another (including a suffixed one).
+  const docNum = String(invoice.invoice_number).substring(0, 21);
+  const reused = await findExistingTripInvoice(
+    supabase, qboBase, qboHeaders, booking.trip_id, qboCustomerId, docNum, booking.confirmation_number,
+  );
+  if (reused) {
+    await rememberTripInvoice(supabase, userId, invoice.id, reused, booking.id);
     await logSync(supabase, userId, "auto-booking-confirmed", "success", 0,
-      undefined, { booking_id: booking.id, invoice_id: invoice.id, skipped: "already_mapped",
-      qbo_invoice_id: existingMap.qbo_invoice_id });
+      undefined, { booking_id: booking.id, invoice_id: invoice.id, skipped: "reused_trip_invoice",
+      qbo_invoice_id: reused });
     return;
   }
 
   // ── 3. Create QBO Invoice using the canonical CRM invoice number as DocNumber.
-  const docNum = String(invoice.invoice_number).substring(0, 21);
   const invoiceData: any = {
     CustomerRef: { value: qboCustomerId },
     Line: [
       {
         Amount: Number(invoice.total_amount ?? amount),
         DetailType: "SalesItemLineDetail",
-        SalesItemLineDetail: { ItemRef: { value: await ensureClientFundsItem(qboBase, qboHeaders) } },
+        SalesItemLineDetail: { ItemRef: { value: await ensureClientFundsItem(supabase, qboBase, qboHeaders) } },
         Description: `Booking ${booking.confirmation_number ?? booking.id} — ${trip.trip_name ?? "Travel"}`,
       },
     ],
     DocNumber: docNum,
+    PrivateNote: tripInvoiceTag(booking.trip_id),
     TxnDate: (booking.created_at ?? new Date().toISOString()).split("T")[0],
   };
 
@@ -311,7 +331,12 @@ async function handleBookingConfirmed(
   if (!qboInvoiceId) {
     const { classId } = await advisorClassForTrip(supabase, qboBase, qboHeaders, booking.trip_id);
     applyClass(invoiceData, classId);
-    const resp = await postWithClassFallback(qboFetch, `${qboBase}/invoice`, qboHeaders, invoiceData);
+    const resp = await postWithClassFallback(
+      qboFetch,
+      `${qboBase}/invoice?requestid=${encodeURIComponent(invoiceRequestId(booking.trip_id))}`,
+      qboHeaders,
+      invoiceData,
+    );
     if (!resp.ok) {
       const errBody = await resp.text();
       const dup = errBody.match(/DocNumber=.*?TxnType=Invoice with TxnId=(\d+)/);
@@ -324,7 +349,12 @@ async function handleBookingConfirmed(
       else if (dup) {
         // Number taken by another advisor's client — post under an advisor-suffixed number.
         invoiceData.DocNumber = `${docNum.substring(0, 15)}-${String(userId).substring(0, 5)}`;
-        const r2 = await postWithClassFallback(qboFetch, `${qboBase}/invoice`, qboHeaders, invoiceData);
+        const r2 = await postWithClassFallback(
+          qboFetch,
+          `${qboBase}/invoice?requestid=${encodeURIComponent(invoiceRequestId(booking.trip_id) + "s")}`,
+          qboHeaders,
+          invoiceData,
+        );
         if (!r2.ok) throw new Error(`QBO Invoice creation failed: ${await r2.text()}`);
         qboInvoiceId = (await r2.json())?.Invoice?.Id;
       } else throw new Error(`QBO Invoice creation failed: ${errBody}`);
@@ -333,6 +363,7 @@ async function handleBookingConfirmed(
     }
   }
   if (!qboInvoiceId) throw new Error("QBO Invoice response missing Id");
+  await rememberTripInvoice(supabase, userId, invoice.id, qboInvoiceId, booking.id);
 
   // ── 4. Persist mapping.
   const { error: mapErr } = await supabase
@@ -638,8 +669,22 @@ async function handleDepositPosted(
  * The supplier is auto-synced as a QBO Vendor if not already mapped.
  */
 async function handleSupplierPaid(
-  supabase: any, qboBase: string, qboHeaders: any, userId: string, booking: any, connection?: any
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, record: any, connection?: any
 ) {
+  const booking = await resolveSupplierBooking(supabase, record);
+  if (!booking?.id) throw new Error("Supplier payment has no booking to bill");
+
+  const { billTotal, payAmount } = supplierSettlement(booking);
+  if (payAmount <= 0 || billTotal <= 0) {
+    await logSync(supabase, userId, "auto-supplier-paid", "skipped", 0, "No supplier amount to settle", {
+      booking_id: booking.id,
+      supplier_paid_status: booking.supplier_paid_status,
+      supplier_paid_amount: booking.supplier_paid_amount,
+      supplier_payout: booking.supplier_payout,
+    });
+    return;
+  }
+
   // 1. Ensure supplier exists as a QBO Vendor
   let qboVendorId: string | null = null;
   if (booking.supplier_id) {
@@ -653,12 +698,12 @@ async function handleSupplierPaid(
       qboVendorId = await ensureQBOVendor(supabase, qboBase, qboHeaders, userId, supplier);
     }
   }
+  if (!qboVendorId) throw new Error("Supplier payment has no QuickBooks vendor");
 
   // 2. Auto-provision the Accounts Payable account (QBO usually has one by default)
-  const apAccountId = await ensureQBOAccount(qboBase, qboHeaders, "Accounts Payable (A/P)", "Accounts Payable", "AccountsPayable");
+  await ensureQBOAccount(qboBase, qboHeaders, "Accounts Payable (A/P)", "Accounts Payable", "AccountsPayable");
   const supplierExpenseId = await ensureQBOAccount(qboBase, qboHeaders, "Supplier Expense", "Expense", "OtherMiscellaneousServiceCost");
 
-  const amount = booking.supplier_paid_amount || booking.supplier_payout || 0;
   const txnDate = booking.supplier_paid_date || new Date().toISOString().split("T")[0];
 
   // Get supplier name for memo
@@ -669,49 +714,52 @@ async function handleSupplierPaid(
   }
 
   const memo = `Supplier payment – ${supplierName} – Booking ${booking.confirmation_number || booking.id}`;
-
-  // 3. Create a QBO Bill (represents what we owe the vendor)
-  const billData: any = {
-    TxnDate: txnDate,
-    PrivateNote: memo,
-    Line: [
-      {
-        Amount: amount,
-        DetailType: "AccountBasedExpenseLineDetail",
-        AccountBasedExpenseLineDetail: {
-          AccountRef: { value: supplierExpenseId, name: "Supplier Expense" },
-        },
-        Description: memo,
-      },
-    ],
-  };
-
-  if (qboVendorId) {
-    billData.VendorRef = { value: qboVendorId };
+  const docNumber = `SUP-${String(booking.id).replace(/-/g, "").slice(0, 12)}`;
+  const bill = await ensureSupplierBill(
+    supabase, qboBase, qboHeaders, booking, qboVendorId, supplierExpenseId, billTotal, txnDate, memo, docNumber, booking.id,
+  );
+  const settled = Math.round((bill.total - bill.balance) * 100) / 100;
+  const stillOwed = Math.round((payAmount - settled) * 100) / 100;
+  if (stillOwed <= 0.005) {
+    await logSync(supabase, userId, "auto-supplier-paid", "skipped", 0, "Supplier bill already settled", {
+      booking_id: booking.id, bill_id: bill.billId, pay_amount: payAmount, already_paid: settled,
+    });
+    return;
   }
-
-  const billResp = await qboFetch(`${qboBase}/bill`, {
-    method: "POST",
-    headers: qboHeaders,
-    body: JSON.stringify(billData),
-  });
-
-  if (!billResp.ok) {
-    const errBody = await billResp.text();
-    throw new Error(`QBO Bill creation failed: ${errBody}`);
+  const apply = Math.min(bill.balance, stillOwed);
+  const excess = Math.round((stillOwed - apply) * 100) / 100;
+  // Do not rewrite an existing bill. A later increase is a second bill.
+  if (excess > 0.005) {
+    const extraBill = await ensureSupplierBill(
+      supabase, qboBase, qboHeaders, booking, qboVendorId, supplierExpenseId, excess, txnDate,
+      `${memo} (additional)`, `${docNumber.slice(0, 18)}-2`, `${booking.id}:extra`,
+    );
+    await paySupplierBill(
+      supabase, qboBase, qboHeaders, connection, userId, booking, qboVendorId, extraBill.billId, excess, txnDate, memo, supplierName,
+      supplierPaymentRequestId(`${booking.id}x`, Math.round(excess * 100)),
+    );
   }
+  if (apply > 0.005) {
+    await paySupplierBill(
+      supabase, qboBase, qboHeaders, connection, userId, booking, qboVendorId, bill.billId, apply, txnDate, memo, supplierName,
+      supplierPaymentRequestId(booking.id, Math.round(payAmount * 100)),
+    );
+  }
+}
 
-  const billResult = await billResp.json();
-  const billId = billResult.Bill.Id;
-
-  // 4. Create a QBO BillPayment (marks the bill as paid)
+async function paySupplierBill(
+  supabase: any, qboBase: string, qboHeaders: any, connection: any, userId: string,
+  booking: any, qboVendorId: string, billId: string, amount: number, txnDate: string, memo: string, supplierName: string,
+  requestId: string,
+) {
   const paymentMethod = booking.supplier_paid_method || "check";
+  const card = ["credit_card", "virtual_card", "agency_card"].includes(paymentMethod);
   const billPaymentData: any = {
-    VendorRef: qboVendorId ? { value: qboVendorId } : undefined,
+    VendorRef: { value: qboVendorId },
     TotalAmt: amount,
-    PayType: paymentMethod === "credit_card" ? "CreditCard" : "Check",
+    PayType: card ? "CreditCard" : "Check",
     TxnDate: txnDate,
-    PrivateNote: `Payment – ${memo}`,
+    PrivateNote: `Payment – ${memo} booking:${booking.id}`,
     Line: [
       {
         Amount: amount,
@@ -720,7 +768,7 @@ async function handleSupplierPaid(
     ],
   };
 
-  if (paymentMethod === "credit_card") {
+  if (card) {
     // Resolve credit card account: prefer configured, then auto-detect first QBO "Credit Card" account
     const ccAccount = await resolvePaymentAccount(
       qboBase, qboHeaders,
@@ -742,20 +790,35 @@ async function handleSupplierPaid(
     };
   }
 
-  const payResp = await qboFetch(`${qboBase}/billpayment`, {
-    method: "POST",
-    headers: qboHeaders,
-    body: JSON.stringify(billPaymentData),
-  });
+  const payResp = await qboFetch(
+    `${qboBase}/billpayment?requestid=${encodeURIComponent(requestId)}`,
+    { method: "POST", headers: qboHeaders, body: JSON.stringify(billPaymentData) },
+  );
 
   if (!payResp.ok) {
     const errBody = await payResp.text();
     // Bill was created but payment failed — log but don't lose the bill
     console.error(`QBO BillPayment failed (Bill ${billId} exists):`, errBody);
     await logSync(supabase, userId, "auto-supplier-paid", "partial", 1, `Bill created (${billId}), BillPayment failed: ${errBody}`, {
-      amount, bill_id: billId, vendor_id: qboVendorId,
+      amount, bill_id: billId, vendor_id: qboVendorId, booking_id: booking.id,
     });
     return;
+  }
+
+  const payResult = await payResp.json();
+  const qboPaymentId = payResult?.BillPayment?.Id;
+  if (qboPaymentId) {
+    await supabase.from("qbo_bill_payments").insert({
+      qbo_id: String(qboPaymentId),
+      qbo_bill_id: String(billId),
+      qbo_vendor_id: qboVendorId,
+      total_amt: amount,
+      txn_date: txnDate,
+      trigger_managed: true,
+      sync_token: payResult?.BillPayment?.SyncToken ?? null,
+      raw_payload: payResult?.BillPayment ?? null,
+      synced_at: new Date().toISOString(),
+    });
   }
 
   await logSync(supabase, userId, "auto-supplier-paid", "success", 2, undefined, {
@@ -764,17 +827,109 @@ async function handleSupplierPaid(
     bill_id: billId,
     vendor_id: qboVendorId,
     supplier_name: supplierName,
+    qbo_bill_payment_id: qboPaymentId ?? null,
   });
+}
+
+async function resolveSupplierBooking(supabase: any, record: any) {
+  if (!record?.id) return record ?? null;
+  const { data: booking } = await supabase.from("bookings").select("*").eq("id", record.id).maybeSingle();
+  if (booking) return booking;
+  const { data: payment } = await supabase.from("trip_payments")
+    .select("booking_id, trip_id").eq("id", record.id).maybeSingle();
+  const bookingId = payment?.booking_id;
+  if (bookingId) {
+    const { data: linked } = await supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle();
+    if (linked) return linked;
+  }
+  const tripId = payment?.trip_id || record.trip_id;
+  if (!tripId) return null;
+  const { data: first } = await supabase.from("bookings").select("*")
+    .eq("trip_id", tripId).order("created_at", { ascending: true }).limit(1).maybeSingle();
+  return first ?? null;
+}
+
+async function ensureSupplierBill(
+  supabase: any, qboBase: string, qboHeaders: any, booking: any, vendorId: string, expenseAccountId: string,
+  amount: number, txnDate: string, memo: string, docNumber: string, cacheKey: string,
+): Promise<{ billId: string; total: number; balance: number }> {
+  const { data: cached } = await supabase.from("qbo_bills")
+    .select("qbo_id, total_amt, balance").eq("crm_supplier_payment_id", cacheKey).limit(1).maybeSingle();
+  let billId = cached?.qbo_id ? String(cached.qbo_id) : "";
+  if (!billId) {
+    const safeDoc = docNumber.replace(/'/g, "\\'");
+    const found = await qboFetch(
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT Id, TotalAmt, Balance FROM Bill WHERE DocNumber = '${safeDoc}'`)}`,
+      { headers: qboHeaders },
+    );
+    if (found.ok) billId = String((await found.json())?.QueryResponse?.Bill?.[0]?.Id ?? "");
+  }
+  if (billId) {
+    const current = await qboFetch(`${qboBase}/bill/${billId}`, { headers: qboHeaders });
+    if (!current.ok) throw new Error(`Failed to read supplier bill ${billId}: ${await current.text()}`);
+    const bill = (await current.json())?.Bill;
+    const total = Number(bill?.TotalAmt ?? cached?.total_amt ?? amount);
+    const balance = Number(bill?.Balance ?? cached?.balance ?? total);
+    await cacheSupplierBill(supabase, billId, vendorId, cacheKey, docNumber, total, balance, txnDate);
+    return { billId, total, balance };
+  }
+
+  const billData = {
+    VendorRef: { value: vendorId },
+    TxnDate: txnDate,
+    DocNumber: docNumber,
+    PrivateNote: `${memo} booking:${booking.id}`,
+    Line: [{
+      Amount: amount,
+      DetailType: "AccountBasedExpenseLineDetail",
+      AccountBasedExpenseLineDetail: { AccountRef: { value: expenseAccountId, name: "Supplier Expense" } },
+      Description: memo,
+    }],
+  };
+  const requestId = cacheKey.endsWith(":extra")
+    ? supplierBillRequestId(`${booking.id}x`)
+    : supplierBillRequestId(booking.id);
+  const billResp = await qboFetch(`${qboBase}/bill?requestid=${encodeURIComponent(requestId)}`, {
+    method: "POST", headers: qboHeaders, body: JSON.stringify(billData),
+  });
+  if (!billResp.ok) throw new Error(`QBO Bill creation failed: ${await billResp.text()}`);
+  const created = (await billResp.json())?.Bill;
+  if (!created?.Id) throw new Error("QBO Bill response missing Id");
+  const total = Number(created.TotalAmt ?? amount);
+  const balance = Number(created.Balance ?? total);
+  await cacheSupplierBill(supabase, String(created.Id), vendorId, cacheKey, docNumber, total, balance, txnDate);
+  return { billId: String(created.Id), total, balance };
+}
+
+async function cacheSupplierBill(
+  supabase: any, qboId: string, vendorId: string, cacheKey: string, docNumber: string,
+  total: number, balance: number, txnDate: string,
+) {
+  const { data: existing } = await supabase.from("qbo_bills").select("id").eq("qbo_id", qboId).maybeSingle();
+  const row = {
+    qbo_id: qboId,
+    qbo_vendor_id: vendorId,
+    crm_supplier_payment_id: cacheKey,
+    doc_number: docNumber,
+    total_amt: total,
+    balance,
+    txn_date: txnDate,
+    trigger_managed: true,
+    synced_at: new Date().toISOString(),
+  };
+  if (existing?.id) await supabase.from("qbo_bills").update(row).eq("id", existing.id);
+  else await supabase.from("qbo_bills").insert(row);
 }
 
 /**
  * Trip completed (revenue recognition)
- * → Debit "Client Deposit" (liability), Credit "Commission Revenue"
+ * → Debit client funds liability, Credit "Commission Revenue"
  */
 async function handleTripCompleted(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, trip: any
 ) {
-  const clientDepositId = await ensureQBOAccount(qboBase, qboHeaders, "Client Deposit", "Other Current Liability", "OtherCurrentLiabilities");
+  const clientFunds = await ensureClientFundsAccount(supabase, qboBase, qboHeaders);
+  const clientDepositId = clientFunds.id;
   const commissionRevenueId = await ensureQBOAccount(qboBase, qboHeaders, "Commission Revenue", "Income", "ServiceFeeIncome");
 
   // Phase 4: Prefer agency_gross_margin (margin engine) over legacy commission_revenue
@@ -801,7 +956,7 @@ async function handleTripCompleted(
         DetailType: "JournalEntryLineDetail",
         JournalEntryLineDetail: {
           PostingType: "Debit",
-          AccountRef: { value: clientDepositId, name: "Client Deposit" },
+          AccountRef: { value: clientDepositId, name: clientFunds.name },
         },
         Description: memo,
       },
@@ -852,7 +1007,11 @@ async function handleClientPaymentReceived(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, connection?: any
 ) {
   if (!isRealClientPayment(payment)) {
-    await logSync(supabase, userId, "auto-client-payment-received", "skipped", 0, "Not a real paid receipt");
+    await logSync(
+      supabase, userId, "auto-client-payment-received", "skipped", 0,
+      paymentSkipReason(payment) ?? "Not a real paid receipt",
+      { payment_id: payment.id, trip_id: payment.trip_id },
+    );
     return;
   }
   const amount = Number(payment.amount) || 0;
@@ -1105,23 +1264,218 @@ async function handleClientPaymentReceived(
 // In-memory cache for account IDs within a single function invocation
 const _accountCache = new Map<string, string>();
 
-async function ensureClientFundsItem(qboBase: string, headers: any): Promise<string> {
-  const name = "Client Travel Funds";
-  const accountId = await ensureQBOAccount(qboBase, headers, "Client Funds", "Other Current Liability", "OtherCurrentLiabilities");
-  const r = await qboFetch(`${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Item WHERE Name = '${name}'`)}`, { headers });
+async function mappedClientFundsAccount(supabase: any): Promise<string | null> {
+  const { data, error } = await supabase.from("qbo_account_mappings")
+    .select("qbo_account_id").eq("role", CLIENT_FUNDS_MAPPING_ROLE).maybeSingle();
+  if (error || !data?.qbo_account_id) return null;
+  return String(data.qbo_account_id);
+}
+
+/** Liability account for client trip money. Prefers Client Funds:Client Deposit. */
+async function ensureClientFundsAccount(supabase: any, qboBase: string, headers: any): Promise<{ id: string; name: string }> {
+  const cacheKey = CLIENT_FUNDS_QUALIFIED;
+  if (_accountCache.has(cacheKey)) return { id: _accountCache.get(cacheKey)!, name: cacheKey };
+  const mappedId = await mappedClientFundsAccount(supabase);
+  const listed = await qboFetch(
+    `${qboBase}/query?query=${encodeURIComponent("SELECT Id, Name, FullyQualifiedName, Active, SubAccount, ParentRef FROM Account WHERE AccountType = 'Other Current Liability' MAXRESULTS 200")}`,
+    { headers },
+  );
+  const accounts = listed.ok
+    ? (((await listed.json())?.QueryResponse?.Account ?? []) as any[]).map((a) => ({
+      id: String(a.Id),
+      name: a.Name ?? null,
+      fullyQualifiedName: a.FullyQualifiedName ?? null,
+      active: a.Active !== false,
+      subAccount: Boolean(a.SubAccount),
+      parentId: a.ParentRef?.value ? String(a.ParentRef.value) : null,
+    }))
+    : [];
+  const picked = pickClientFundsAccount(accounts, mappedId);
+  if (picked) {
+    _accountCache.set(cacheKey, picked.id);
+    return picked;
+  }
+  if (mappedId) {
+    _accountCache.set(cacheKey, mappedId);
+    return { id: mappedId, name: cacheKey };
+  }
+  const parentId = await ensureQBOAccount(qboBase, headers, CLIENT_FUNDS_PARENT, "Other Current Liability", "OtherCurrentLiabilities");
+  const created = await qboFetch(`${qboBase}/account?requestid=client-funds-client-deposit`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      Name: CLIENT_FUNDS_SUBACCOUNT,
+      AccountType: "Other Current Liability",
+      AccountSubType: "OtherCurrentLiabilities",
+      ParentRef: { value: parentId },
+      SubAccount: true,
+    }),
+  });
+  if (created.ok) {
+    const id = (await created.json())?.Account?.Id;
+    if (!id) throw new Error("Client Funds sub-account response missing Id");
+    _accountCache.set(cacheKey, String(id));
+    return { id: String(id), name: cacheKey };
+  }
+  const errText = await created.text();
+  const retry = await qboFetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT Id, FullyQualifiedName, ParentRef FROM Account WHERE Name = '${CLIENT_FUNDS_SUBACCOUNT}'`)}`,
+    { headers },
+  );
+  const existing = retry.ok
+    ? (((await retry.json())?.QueryResponse?.Account ?? []) as any[]).find((a) =>
+      a.FullyQualifiedName === CLIENT_FUNDS_QUALIFIED || String(a.ParentRef?.value ?? "") === String(parentId))
+    : null;
+  if (existing?.Id) {
+    _accountCache.set(cacheKey, String(existing.Id));
+    return { id: String(existing.Id), name: existing.FullyQualifiedName || cacheKey };
+  }
+  throw new Error(`Client Funds sub-account creation failed: ${errText}`);
+}
+
+async function ensureItemOnAccount(qboBase: string, headers: any, name: string, accountId: string, requestId: string): Promise<string> {
+  const safe = name.replace(/'/g, "\\'");
+  const r = await qboFetch(`${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Item WHERE Name = '${safe}'`)}`, { headers });
   if (!r.ok) throw new Error(`Client funds item lookup failed: ${await r.text()}`);
   const item = (await r.json())?.QueryResponse?.Item?.[0];
-  if (item) {
-    if (String(item.IncomeAccountRef?.value) !== String(accountId)) throw new Error("Client Travel Funds item is not mapped to Client Funds");
-    return String(item.Id);
-  }
-  const created = await qboFetch(`${qboBase}/item?requestid=client-travel-funds-item`, {
+  if (item?.Id && String(item.IncomeAccountRef?.value) === String(accountId)) return String(item.Id);
+  if (item?.Id) return "";
+  const created = await qboFetch(`${qboBase}/item?requestid=${encodeURIComponent(requestId)}`, {
     method: "POST", headers, body: JSON.stringify({ Name: name, Type: "Service", IncomeAccountRef: { value: accountId } }),
   });
   if (!created.ok) throw new Error(`Client funds item creation failed: ${await created.text()}`);
   const id = (await created.json())?.Item?.Id;
   if (!id) throw new Error("Client funds item response missing Id");
   return String(id);
+}
+
+async function ensureClientFundsItem(supabase: any, qboBase: string, headers: any): Promise<string> {
+  const account = await ensureClientFundsAccount(supabase, qboBase, headers);
+  const primary = await ensureItemOnAccount(qboBase, headers, "Client Travel Funds", account.id, "client-travel-funds-item");
+  if (primary) return primary;
+  // The existing item posts to a different account. Leave it (historical invoices
+  // use it) and post new invoices through an item on the client-deposit account.
+  const sibling = await ensureItemOnAccount(qboBase, headers, "Client Trip Deposits", account.id, "client-trip-deposits-item");
+  if (!sibling) throw new Error("Client Trip Deposits item is not mapped to the client funds account");
+  return sibling;
+}
+
+async function findExistingTripInvoice(
+  supabase: any, qboBase: string, qboHeaders: any, tripId: string, customerId: string,
+  docNumber: string | null, confirmation: string | null,
+): Promise<string | null> {
+  const { data: invoices } = await supabase.from("invoices").select("id").eq("trip_id", tripId);
+  const invoiceIds = (invoices ?? []).map((i: any) => i.id).filter(Boolean);
+  if (invoiceIds.length) {
+    const { data: maps } = await supabase.from("qbo_invoice_mappings")
+      .select("qbo_invoice_id").in("invoice_id", invoiceIds).limit(1);
+    if (maps?.[0]?.qbo_invoice_id) return String(maps[0].qbo_invoice_id);
+  }
+  const { data: bookings } = await supabase.from("bookings").select("id").eq("trip_id", tripId);
+  const bookingIds = (bookings ?? []).map((b: any) => b.id).filter(Boolean);
+  if (bookingIds.length) {
+    const { data: cached } = await supabase.from("qbo_invoices")
+      .select("qbo_id").in("crm_booking_id", bookingIds).limit(1);
+    if (cached?.[0]?.qbo_id) return String(cached[0].qbo_id);
+  }
+  const safeCustomer = String(customerId).replace(/'/g, "");
+  const q = await qboFetch(
+    `${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Invoice WHERE CustomerRef = '${safeCustomer}' MAXRESULTS 100`)}`,
+    { headers: qboHeaders },
+  );
+  if (!q.ok) return null;
+  const rows = ((await q.json())?.QueryResponse?.Invoice ?? []) as any[];
+  return selectTripInvoiceId(rows.map((r) => ({
+    id: String(r.Id),
+    docNumber: r.DocNumber ?? null,
+    privateNote: r.PrivateNote ?? null,
+    description: (r.Line ?? []).map((line: any) => line?.Description ?? "").join(" "),
+    customerId: r.CustomerRef?.value ? String(r.CustomerRef.value) : null,
+  })), { customerId, tripId, docNumber, confirmation });
+}
+
+async function rememberTripInvoice(supabase: any, userId: string, invoiceId: string, qboInvoiceId: string, bookingId: string) {
+  const { error: mapErr } = await supabase.from("qbo_invoice_mappings").upsert({
+    user_id: userId,
+    invoice_id: invoiceId,
+    qbo_invoice_id: String(qboInvoiceId),
+    last_synced_at: new Date().toISOString(),
+  }, { onConflict: "user_id,invoice_id" });
+  if (mapErr) console.error(`[booking_confirmed] mapping upsert failed: ${mapErr.message}`);
+  const { data: cached } = await supabase.from("qbo_invoices").select("id").eq("qbo_id", String(qboInvoiceId)).maybeSingle();
+  if (!cached) {
+    await supabase.from("qbo_invoices").insert({
+      qbo_id: String(qboInvoiceId),
+      crm_booking_id: bookingId,
+      trigger_managed: true,
+      synced_at: new Date().toISOString(),
+    });
+  }
+}
+
+async function handleClientPaymentRefunded(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, previous: any, connection?: any,
+) {
+  const prior = Number(previous?.refunded_amount) || 0;
+  const current = payment.status === "refunded"
+    ? Math.max(Number(payment.refunded_amount) || 0, Number(payment.amount) || 0)
+    : Number(payment.refunded_amount) || 0;
+  const delta = Math.round((current - prior) * 100) / 100;
+  if (delta <= 0.005) {
+    await logSync(supabase, userId, "auto-client-payment-refunded", "skipped", 0, "No refund amount", { payment_id: payment.id });
+    return;
+  }
+  const cents = Math.round(current * 100);
+  const idem = `client_refund:${payment.id}:${cents}`;
+  const { data: already } = await supabase.from("qbo_sync_logs").select("id").eq("idempotency_key", idem).eq("status", "success").maybeSingle();
+  if (already) {
+    await logSync(supabase, userId, "auto-client-payment-refunded", "skipped", 0, "Refund already posted", { payment_id: payment.id });
+    return;
+  }
+
+  let clientId: string | null = null;
+  if (payment.trip_id) {
+    const { data: trip } = await supabase.from("trips").select("client_id").eq("id", payment.trip_id).maybeSingle();
+    clientId = trip?.client_id ?? null;
+  }
+  if (!clientId) throw new Error("Refund has no client to credit");
+  const { data: client } = await supabase.from("clients").select("*").eq("id", clientId).single();
+  if (!client) throw new Error("Refund client was not found");
+  const qboCustomerId = await ensureQBOCustomer(supabase, qboBase, qboHeaders, userId, client);
+  const depositAccount = await resolvePaymentAccount(
+    qboBase, qboHeaders,
+    connection?.default_bank_account_id, connection?.default_bank_account_name,
+    "Bank",
+  );
+  const itemId = await ensureClientFundsItem(supabase, qboBase, qboHeaders);
+  const txnDate = (payment.payment_date || new Date().toISOString()).split("T")[0];
+  const body = {
+    CustomerRef: { value: qboCustomerId },
+    DepositToAccountRef: { value: depositAccount.id, name: depositAccount.name },
+    TxnDate: txnDate,
+    PrivateNote: `Client funds refund payment:${payment.id}`,
+    Line: [{
+      Amount: delta,
+      DetailType: "SalesItemLineDetail",
+      SalesItemLineDetail: { ItemRef: { value: itemId } },
+      Description: `Refund of client travel funds${payment.stripe_payment_intent_id ? ` [${payment.stripe_payment_intent_id}]` : ""}`,
+    }],
+  };
+  const resp = await qboFetch(
+    `${qboBase}/refundreceipt?requestid=${encodeURIComponent(refundRequestId(payment.id, cents))}`,
+    { method: "POST", headers: qboHeaders, body: JSON.stringify(body) },
+  );
+  if (!resp.ok) throw new Error(`QBO refund receipt failed: ${await resp.text()}`);
+  const refundId = (await resp.json())?.RefundReceipt?.Id ?? null;
+  await supabase.from("qbo_sync_logs").insert({
+    user_id: userId,
+    sync_type: "auto-client-payment-refunded",
+    direction: "push",
+    status: "success",
+    records_processed: 1,
+    idempotency_key: idem,
+    details: { payment_id: payment.id, trip_id: payment.trip_id, amount: delta, qbo_refund_id: refundId },
+  });
 }
 
 /**
@@ -1884,7 +2238,7 @@ async function handleInvoiceUpdated(
       {
         Amount: newTotal,
         DetailType: "SalesItemLineDetail",
-        SalesItemLineDetail: { ItemRef: { value: await ensureClientFundsItem(qboBase, qboHeaders) } },
+        SalesItemLineDetail: { ItemRef: { value: await ensureClientFundsItem(supabase, qboBase, qboHeaders) } },
         Description: `${invoice.trip_name ?? "Travel"} — Invoice ${invoice.invoice_number}`,
       },
     ],

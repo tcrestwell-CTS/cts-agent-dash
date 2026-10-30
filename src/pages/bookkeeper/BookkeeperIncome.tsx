@@ -24,6 +24,7 @@ import {
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { parseLocalDate } from "@/lib/utils";
 import { useAgencyOtherIncome } from "@/hooks/useAgencyOtherIncome";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -41,16 +42,17 @@ export default function BookkeeperIncome() {
     queryKey: ["bookkeeper-income", year, month],
     queryFn: async () => {
       const { start, end } = monthBounds(year, month);
-      const { data, error } = await (supabase as any)
-        .from("trip_payments")
-        .select("id, amount, payment_date, payment_method, payment_type, status, stripe_payment_intent_id, trip_id, trips:trip_id(trip_name)")
-        .eq("status", "paid")
-        .gte("payment_date", start)
-        .lt("payment_date", end)
-        .order("payment_date", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return data ?? [];
+      return fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("trip_payments")
+          .select("id, amount, payment_date, payment_method, payment_type, status, stripe_payment_intent_id, trip_id, trips:trip_id(trip_name)")
+          .eq("status", "paid")
+          .gte("payment_date", start)
+          .lt("payment_date", end)
+          .order("payment_date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
     },
   });
 

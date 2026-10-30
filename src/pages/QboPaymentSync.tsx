@@ -31,7 +31,7 @@ export default function QboPaymentSync() {
 
   const rows = data ?? [];
   const counts = useMemo(() => {
-    const c = { all: rows.length, synced: 0, failed: 0, pending: 0, not_eligible: 0 };
+    const c = { all: rows.length, synced: 0, failed: 0, pending: 0, skipped: 0, not_eligible: 0 };
     rows.forEach((r) => { c[r.sync_state]++; });
     return c;
   }, [rows]);
@@ -109,8 +109,8 @@ export default function QboPaymentSync() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {(["all", "synced", "pending", "failed", "not_eligible"] as const).map((k) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {(["all", "synced", "pending", "skipped", "failed", "not_eligible"] as const).map((k) => (
             <Card key={k} className="cursor-pointer" onClick={() => { setFilter(k); setPage(0); }}>
               <CardHeader className="pb-2"><CardTitle className="text-sm capitalize">{k.replace("_", " ")}</CardTitle></CardHeader>
               <CardContent><div className="text-2xl font-bold">{counts[k]}</div></CardContent>
@@ -126,6 +126,7 @@ export default function QboPaymentSync() {
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="synced">Synced</TabsTrigger>
                   <TabsTrigger value="pending">Pending</TabsTrigger>
+                  <TabsTrigger value="skipped">Skipped</TabsTrigger>
                   <TabsTrigger value="failed">Failed</TabsTrigger>
                   <TabsTrigger value="not_eligible">Not eligible</TabsTrigger>
                 </TabsList>
@@ -178,7 +179,7 @@ export default function QboPaymentSync() {
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button size="sm" variant="ghost" onClick={() => setDetail(r)}>Details</Button>
-                            {(r.sync_state === "pending" || r.sync_state === "failed") && (
+                            {(r.sync_state === "pending" || r.sync_state === "failed" || r.sync_state === "skipped") && (
                               <Button size="sm" onClick={() => pushOne(r.id)} disabled={busy.has(r.id)}>
                                 {busy.has(r.id) ? "..." : "Push"}
                               </Button>

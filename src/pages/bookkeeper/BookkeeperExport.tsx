@@ -20,6 +20,7 @@ import { SemanticStatusPill } from "@/components/patterns/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { exportToCSV, formatCurrencyForExport, formatDateForExport } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { fetchSupplierMap, fetchClientMap, fetchProfileMap } from "@/lib/bookkeeperLookups";
@@ -53,19 +54,21 @@ function useIncomeRows(year: number, month: number) {
   return useQuery({
     queryKey: ["export-income", year, month],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("trip_payments")
-        .select(
-          "id, payment_date, amount, payment_type, payment_method, status, stripe_payment_intent_id, qbo_payment_id, qbo_sync_status, trip_id, booking_id, trips:trip_id(trip_name, client_id)"
-        )
-        .eq("status", "paid")
-        .gte("payment_date", start)
-        .lt("payment_date", end)
-        .order("payment_date", { ascending: true })
-        .limit(1000);
-      if (error) throw error;
-      const clientMap = await fetchClientMap((data ?? []).map((r: any) => r.trips?.client_id));
-      return (data ?? []).map((r: any) => ({
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("trip_payments")
+          .select(
+            "id, payment_date, amount, payment_type, payment_method, status, stripe_payment_intent_id, qbo_payment_id, qbo_sync_status, trip_id, booking_id, trips:trip_id(trip_name, client_id)"
+          )
+          .eq("status", "paid")
+          .gte("payment_date", start)
+          .lt("payment_date", end)
+          .order("payment_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      const clientMap = await fetchClientMap(data.map((r: any) => r.trips?.client_id));
+      return data.map((r: any) => ({
         ...r,
         trips: r.trips ? { ...r.trips, clients: clientMap[r.trips.client_id] ?? null } : r.trips,
       }));
@@ -78,34 +81,38 @@ function useExpenseRows(year: number, month: number) {
   return useQuery({
     queryKey: ["export-expenses", year, month],
     queryFn: async () => {
-      const [supRes, feeRes] = await Promise.all([
-        (supabase as any)
-          .from("bookings")
-          .select(
-            "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, confirmation_number, supplier_id, trip_id, trips:trip_id(trip_name)"
-          )
-          .eq("supplier_paid_status", "paid")
-          .gte("supplier_paid_date", start)
-          .lt("supplier_paid_date", end)
-          .limit(1000),
-        (supabase as any)
-          .from("trip_payments")
-          .select("id, payment_date, stripe_fee, stripe_payment_intent_id, trip_id")
-          .eq("status", "paid")
-          .gt("stripe_fee", 0)
-          .gte("payment_date", start)
-          .lt("payment_date", end)
-          .limit(1000),
+      const [suppliers, fees] = await Promise.all([
+        fetchAllRows<any>((from, to) =>
+          (supabase as any)
+            .from("bookings")
+            .select(
+              "id, supplier_paid_date, supplier_paid_amount, supplier_paid_method, supplier_paid_reference, confirmation_number, supplier_id, trip_id, trips:trip_id(trip_name)"
+            )
+            .eq("supplier_paid_status", "paid")
+            .gte("supplier_paid_date", start)
+            .lt("supplier_paid_date", end)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        fetchAllRows<any>((from, to) =>
+          (supabase as any)
+            .from("trip_payments")
+            .select("id, payment_date, stripe_fee, stripe_payment_intent_id, trip_id")
+            .eq("status", "paid")
+            .gt("stripe_fee", 0)
+            .gte("payment_date", start)
+            .lt("payment_date", end)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
-      if (supRes.error) throw supRes.error;
-      if (feeRes.error) throw feeRes.error;
-      const supMap = await fetchSupplierMap((supRes.data ?? []).map((r: any) => r.supplier_id));
+      const supMap = await fetchSupplierMap(suppliers.map((r: any) => r.supplier_id));
       return {
-        suppliers: (supRes.data ?? []).map((r: any) => ({
+        suppliers: suppliers.map((r: any) => ({
           ...r,
           suppliers: supMap[r.supplier_id] ?? null,
         })),
-        fees: feeRes.data ?? [],
+        fees,
       };
     },
   });
@@ -116,16 +123,18 @@ function useCommissionRows(year: number, month: number) {
   return useQuery({
     queryKey: ["export-commissions", year, month],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("commissions")
-        .select("id, user_id, booking_id, amount, rate, status, paid_date, created_at")
-        .gte("created_at", start)
-        .lt("created_at", end)
-        .limit(1000);
-      if (error) throw error;
-      const userIds = Array.from(new Set((data ?? []).map((r: any) => r.user_id).filter(Boolean)));
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("commissions")
+          .select("id, user_id, booking_id, amount, rate, status, paid_date, created_at")
+          .gte("created_at", start)
+          .lt("created_at", end)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      const userIds = Array.from(new Set(data.map((r: any) => r.user_id).filter(Boolean)));
       const profMap = await fetchProfileMap(userIds as string[]);
-      return (data ?? []).map((r: any) => ({ ...r, profile: profMap[r.user_id] }));
+      return data.map((r: any) => ({ ...r, profile: profMap[r.user_id] }));
     },
   });
 }
@@ -135,16 +144,19 @@ function usePayoutRegister(year: number) {
   return useQuery({
     queryKey: ["export-1099", year],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("commissions")
-        .select("user_id, amount, status, paid_date")
-        .eq("status", "paid")
-        .gte("paid_date", start)
-        .lt("paid_date", end)
-        .limit(5000);
-      if (error) throw error;
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("commissions")
+          .select("user_id, amount, status, paid_date")
+          .eq("status", "paid")
+          .gte("paid_date", start)
+          .lt("paid_date", end)
+          .order("paid_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       const totals = new Map<string, number>();
-      (data ?? []).forEach((r: any) => {
+      data.forEach((r: any) => {
         totals.set(r.user_id, (totals.get(r.user_id) || 0) + Number(r.amount || 0));
       });
       const userIds = Array.from(totals.keys());
@@ -162,16 +174,18 @@ function useARAging() {
   return useQuery({
     queryKey: ["export-ar-aging"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("invoices")
-        .select(
-          "id, invoice_number, invoice_date, trip_name, client_name, total_amount, amount_paid, amount_remaining, status"
-        )
-        .gt("amount_remaining", 0)
-        .limit(2000);
-      if (error) throw error;
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("invoices")
+          .select(
+            "id, invoice_number, invoice_date, trip_name, client_name, total_amount, amount_paid, amount_remaining, status"
+          )
+          .gt("amount_remaining", 0)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       const today = new Date();
-      return (data ?? []).map((i: any) => {
+      return data.map((i: any) => {
         const created = i.invoice_date ? new Date(i.invoice_date + "T00:00:00") : today;
         const days = Math.max(0, differenceInDays(today, created));
         return {
@@ -193,15 +207,17 @@ function useAPAging() {
   return useQuery({
     queryKey: ["export-ap-aging"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("bookings")
-        .select(
-          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, supplier_id, trips:trip_id(trip_name, return_date)"
-        )
-        .neq("supplier_paid_status", "paid")
-        .in("status", ["confirmed", "completed"])
-        .limit(2000);
-      if (error) throw error;
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("bookings")
+          .select(
+            "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, supplier_id, trips:trip_id(trip_name, return_date)"
+          )
+          .neq("supplier_paid_status", "paid")
+          .in("status", ["confirmed", "completed"])
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       const today = new Date();
       const supMap = await fetchSupplierMap((data ?? []).map((b: any) => b.supplier_id));
       return (data ?? [])

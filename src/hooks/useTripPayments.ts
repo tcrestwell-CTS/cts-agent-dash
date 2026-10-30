@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isRealClientPayment } from "../../supabase/functions/_shared/qbo-payment-rules";
 
 export interface TripPayment {
   id: string;
@@ -71,24 +72,8 @@ export interface UpdatePaymentData {
 }
 
 
-export const isInvoiceCashPayment = (payment: Pick<TripPayment, "status" | "due_date" | "payment_method" | "stripe_session_id" | "stripe_receipt_url" | "payment_type" | "details" | "payment_date">) => {
-  const details = (payment.details || "").toLowerCase();
-  // A scheduled installment/final row is part of the payment PLAN, never money
-  // received on its own. Actual money always arrives as a separate cash/Stripe
-  // row (payment_method / stripe ids set). Counting a schedule row as cash just
-  // because it was flagged paid double-counts the same dollars and understates
-  // the invoice balance.
-  const isSchedulePlaceholder =
-    !!payment.due_date &&
-    !payment.payment_method &&
-    !payment.stripe_session_id &&
-    !payment.stripe_receipt_url &&
-    (["installment", "final", "final_balance"].includes(payment.payment_type) ||
-      details.startsWith("installment") ||
-      details.startsWith("final balance"));
-
-  return payment.status === "paid" && !isSchedulePlaceholder;
-};
+/** Real client cash only. Covered schedule rows and placeholders are excluded. */
+export const isInvoiceCashPayment = isRealClientPayment;
 
 
 export function useTripPayments(tripId: string | undefined, tripTotal?: number) {

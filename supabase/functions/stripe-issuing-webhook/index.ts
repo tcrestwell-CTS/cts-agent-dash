@@ -159,6 +159,7 @@ serve(async (req) => {
 
       const payment = cardId ? await findPaymentByCardId(cardId) : null;
       if (payment) {
+        const alreadyUsed = payment.virtual_card_status === "used";
         // 1. Cancel/lock the card to prevent further use
         try {
           await stripe.issuing.cards.update(cardId, { status: "canceled" });
@@ -167,49 +168,49 @@ serve(async (req) => {
           console.error(`Failed to cancel card ${cardId}:`, cancelErr.message);
         }
 
-        // 2. Update trip_payment status
+        // 2. Settle the supplier bill from the charge before marking the card used,
+        // so a retry does not post a second bill. The booking update fires the
+        // supplier-paid QuickBooks trigger.
+        if (!alreadyUsed) {
+          const charge = transactionAmount / 100;
+          let bookingId = payment.booking_id as string | null;
+          if (!bookingId && payment.trip_id) {
+            const { data: booking } = await supabase.from("bookings")
+              .select("id").eq("trip_id", payment.trip_id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+            bookingId = booking?.id ?? null;
+          }
+          if (bookingId) {
+            const { data: booking } = await supabase.from("bookings")
+              .select("supplier_payout, supplier_paid_amount, supplier_paid_status")
+              .eq("id", bookingId).maybeSingle();
+            const payout = Number(booking?.supplier_payout || 0);
+            const already = Number(booking?.supplier_paid_amount || 0);
+            const next = Math.round((already + charge) * 100) / 100;
+            const status = payout > 0 && next + 0.009 < payout ? "partial" : "paid";
+            const { error: billErr } = await supabase.from("bookings").update({
+              status: "confirmed",
+              supplier_paid_status: status,
+              supplier_paid_amount: next,
+              supplier_paid_date: new Date().toISOString().split("T")[0],
+              supplier_paid_method: "virtual_card",
+            }).eq("id", bookingId);
+            if (billErr) console.error("Failed to settle supplier booking:", billErr.message);
+          } else {
+            console.error("Virtual card charge has no booking to bill", payment.id);
+          }
+        }
+
+        // 3. Update trip_payment status. supplier_paid_at records the manual flag
+        // without changing a booking that was just settled above.
         await supabase
           .from("trip_payments")
           .update({
             virtual_card_status: "used",
             status: "paid",
+            supplier_paid_at: new Date().toISOString(),
+            supplier_payment_method: "virtual_card",
           })
           .eq("id", payment.id);
-
-        // 3. If linked to a booking, update booking status to confirmed
-        if (payment.booking_id) {
-          await supabase
-            .from("bookings")
-            .update({ status: "confirmed" })
-            .eq("id", payment.booking_id);
-        }
-
-        // 4. Fire QBO supplier_paid journal entry
-        try {
-          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-          await fetch(`${supabaseUrl}/functions/v1/qbo-sync-trigger`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${serviceKey}`,
-            },
-            body: JSON.stringify({
-              trigger_type: "supplier_paid",
-              record: {
-                id: payment.id,
-                user_id: payment.user_id,
-                trip_id: payment.trip_id,
-                amount: transactionAmount / 100,
-                payment_date: new Date().toISOString().split("T")[0],
-                details: `Virtual card charge – ${transaction.merchant_data?.name || "Supplier"}`,
-              },
-            }),
-          });
-          console.log("Fired qbo-sync-trigger supplier_paid");
-        } catch (qboErr: any) {
-          console.error("Failed to fire qbo-sync-trigger:", qboErr.message);
-        }
 
         // 5. Notify the agent
         const formattedAmount = new Intl.NumberFormat("en-US", {

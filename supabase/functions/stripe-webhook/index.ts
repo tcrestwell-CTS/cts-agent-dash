@@ -807,6 +807,46 @@ async function _processChargeRefundedImpl(charge: Stripe.Charge) {
       .update({ status: "refunded" })
       .eq("id", payment.id);
   }
+
+  await applyRefundToTripPayments(charge);
+}
+
+/** Mark the CRM receipt refunded and let the QBO trigger post a client-funds refund receipt. */
+async function applyRefundToTripPayments(charge: Stripe.Charge) {
+  const pi = typeof charge.payment_intent === "string"
+    ? charge.payment_intent
+    : charge.payment_intent?.id ?? null;
+  if (!pi) return;
+  const refunded = Math.round(charge.amount_refunded ?? 0) / 100;
+  if (refunded <= 0) return;
+
+  const { data: payments, error } = await supabase
+    .from("trip_payments")
+    .select("id, amount, status")
+    .eq("stripe_payment_intent_id", pi)
+    .order("created_at", { ascending: true });
+  if (error || !payments?.length) {
+    if (error) log("trip payment refund lookup failed", { message: error.message, pi });
+    return;
+  }
+
+  let remaining = refunded;
+  for (const payment of payments) {
+    if (remaining <= 0.004) break;
+    const amount = Number(payment.amount) || 0;
+    const next = Math.min(amount, remaining);
+    remaining = Math.round((remaining - next) * 100) / 100;
+    const full = amount > 0 && next + 0.009 >= amount;
+    const patch: Record<string, unknown> = { refunded_amount: Math.round(next * 100) / 100 };
+    if (full) patch.status = "refunded";
+    const { error: upErr } = await supabase.from("trip_payments").update(patch).eq("id", payment.id);
+    if (upErr) {
+      log("trip payment refund update failed", { id: payment.id, message: upErr.message });
+      if (full && payment.status !== "refunded") {
+        await supabase.from("trip_payments").update({ status: "refunded" }).eq("id", payment.id);
+      }
+    }
+  }
 }
 
 async function processDisputeCreated(dispute: Stripe.Dispute) {
