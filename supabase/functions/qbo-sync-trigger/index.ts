@@ -274,10 +274,16 @@ async function handleBookingConfirmed(
   let qboInvoiceId: string | undefined;
   try {
     const q = await qboFetch(
-      `${qboBase}/query?query=${encodeURIComponent(`SELECT Id FROM Invoice WHERE DocNumber = '${docNum.replace(/'/g, "\\'")}'`)}`,
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT Id, CustomerRef, TotalAmt FROM Invoice WHERE DocNumber = '${docNum.replace(/'/g, "\\'")}'`)}`,
       { headers: qboHeaders },
     );
-    if (q.ok) qboInvoiceId = (await q.json())?.QueryResponse?.Invoice?.[0]?.Id;
+    // Invoice numbers are per-advisor sequences in one shared QBO company, so only
+    // adopt an existing invoice when it belongs to this same customer.
+    if (q.ok) {
+      const found = ((await q.json())?.QueryResponse?.Invoice ?? []) as any[];
+      qboInvoiceId = found.find((i) => String(i?.CustomerRef?.value) === String(qboCustomerId))?.Id;
+      if (!qboInvoiceId && found.length) invoiceData.DocNumber = `${docNum.substring(0, 15)}-${String(userId).substring(0, 5)}`;
+    }
   } catch (e) {
     console.warn(`[booking_confirmed] DocNumber lookup failed: ${e}`);
   }
@@ -289,8 +295,19 @@ async function handleBookingConfirmed(
     if (!resp.ok) {
       const errBody = await resp.text();
       const dup = errBody.match(/DocNumber=.*?TxnType=Invoice with TxnId=(\d+)/);
-      if (dup) qboInvoiceId = dup[1];
-      else throw new Error(`QBO Invoice creation failed: ${errBody}`);
+      let sameCustomer = false;
+      if (dup) {
+        const g = await qboFetch(`${qboBase}/invoice/${dup[1]}`, { headers: qboHeaders });
+        if (g.ok) sameCustomer = String((await g.json())?.Invoice?.CustomerRef?.value) === String(qboCustomerId);
+      }
+      if (dup && sameCustomer) qboInvoiceId = dup[1];
+      else if (dup) {
+        // Number taken by another advisor's client — post under an advisor-suffixed number.
+        invoiceData.DocNumber = `${docNum.substring(0, 15)}-${String(userId).substring(0, 5)}`;
+        const r2 = await postWithClassFallback(qboFetch, `${qboBase}/invoice`, qboHeaders, invoiceData);
+        if (!r2.ok) throw new Error(`QBO Invoice creation failed: ${await r2.text()}`);
+        qboInvoiceId = (await r2.json())?.Invoice?.Id;
+      } else throw new Error(`QBO Invoice creation failed: ${errBody}`);
     } else {
       qboInvoiceId = (await resp.json())?.Invoice?.Id;
     }
@@ -1213,7 +1230,21 @@ async function ensureQBOVendor(
     .eq("supplier_id", supplier.id)
     .single();
 
-  if (mapping) return mapping.qbo_vendor_id;
+  if (mapping?.qbo_vendor_id) {
+    // Stale mappings (wrong realm, or a Customer id) make QBO reject Bills with
+    // error 6000 — confirm the id is still an active Vendor before trusting it.
+    const v = await fetch(
+      `${qboBase}/query?query=${encodeURIComponent(`SELECT Id FROM Vendor WHERE Id = '${String(mapping.qbo_vendor_id).replace(/'/g, "")}'`)}`,
+      { headers: qboHeaders },
+    );
+    if (v.ok && (await v.json())?.QueryResponse?.Vendor?.[0]?.Id) return mapping.qbo_vendor_id;
+    if (v.ok) {
+      console.warn(`[ensureQBOVendor] dropping stale vendor mapping ${mapping.qbo_vendor_id} for supplier ${supplier.id}`);
+      await supabase.from("qbo_supplier_mappings").delete().eq("user_id", userId).eq("supplier_id", supplier.id);
+    } else {
+      return mapping.qbo_vendor_id;
+    }
+  }
 
   // Check QBO by DisplayName to avoid duplicates
   const displayName = supplier.name.substring(0, 100);
