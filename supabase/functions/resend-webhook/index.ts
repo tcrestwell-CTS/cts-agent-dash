@@ -10,10 +10,15 @@ import { Webhook } from "npm:svix@1.32.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const WEBHOOK_SECRET = Deno.env.get("RESEND_WEBHOOK_SECRET")!;
+const WEBHOOK_SECRET = Deno.env.get("RESEND_WEBHOOK_SECRET") ?? "";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
-const wh = new Webhook(WEBHOOK_SECRET);
+// Build lazily so a missing/invalid secret returns a clear error instead of a boot crash (502).
+let wh: Webhook | null = null;
+function getWebhook(): Webhook {
+  if (!wh) wh = new Webhook(WEBHOOK_SECRET);
+  return wh;
+}
 
 type EventMapping = {
   statField?: string;
@@ -47,7 +52,7 @@ serve(async (req) => {
 
   let event: any;
   try {
-    event = wh.verify(rawBody, headers);
+    event = getWebhook().verify(rawBody, headers);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return new Response("Invalid signature", { status: 401 });
