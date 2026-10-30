@@ -58,7 +58,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing trigger_type or record" }), { status: 400 });
   }
 
-  if (trigger_type === "client_payment_received") {
+  if (trigger_type === "client_payment_received" || trigger_type === "client_payment_refunded") {
     const { data: persisted, error } = await supabase.from("trip_payments").select("*").eq("id", record.id).maybeSingle();
     if (error || !persisted) return new Response(JSON.stringify({ error: "Payment not found" }), { status: 400 });
     record = persisted;
@@ -153,6 +153,9 @@ serve(async (req) => {
         break;
       case "client_payment_received":
         await handleClientPaymentReceived(supabase, qboBase, qboHeaders, userId, record, connection);
+        break;
+      case "client_payment_refunded":
+        await handleClientPaymentRefunded(supabase, qboBase, qboHeaders, userId, record, connection);
         break;
       case "supplier_paid":
         await handleSupplierPaid(supabase, qboBase, qboHeaders, userId, record, connection);
@@ -1122,6 +1125,53 @@ async function handleClientPaymentReceived(
       deposit_account: depositAccount.name,
     }
   );
+}
+
+// A refund returns client money from the bank and reduces the Client Funds
+// liability via a RefundReceipt on the Client Travel Funds item — no income or
+// expense account is touched, so agency P&L is unchanged by design.
+async function handleClientPaymentRefunded(
+  supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, connection?: any
+) {
+  if (payment.status !== "refunded") {
+    await logSync(supabase, userId, "auto-client-payment-refunded", "skipped", 0, "Payment is not refunded");
+    return;
+  }
+  if (payment.qbo_refund_id) {
+    await logSync(supabase, userId, "auto-client-payment-refunded", "skipped", 0, "Refund already in QuickBooks");
+    return;
+  }
+  const amount = Number(payment.amount) || 0;
+  if (amount <= 0) return;
+  const { data: original } = await supabase.from("qbo_payments")
+    .select("qbo_id, qbo_customer_id").eq("crm_payment_id", payment.id).maybeSingle();
+  if (!original?.qbo_customer_id) {
+    throw new Error("Original payment is not in QuickBooks yet; sync it before posting the refund");
+  }
+  const itemId = await ensureClientFundsItem(qboBase, qboHeaders);
+  const bank = await resolvePaymentAccount(qboBase, qboHeaders,
+    connection?.default_bank_account_id, connection?.default_bank_account_name, "Bank");
+  const txnDate = payment.refunded_at || new Date().toISOString().split("T")[0];
+  const body = {
+    CustomerRef: { value: original.qbo_customer_id },
+    TxnDate: txnDate,
+    DepositToAccountRef: { value: bank.id, name: bank.name },
+    PrivateNote: `Client refund of payment ${original.qbo_id}${payment.refund_reason ? ` – ${payment.refund_reason}` : ""}`,
+    Line: [{ Amount: amount, DetailType: "SalesItemLineDetail",
+      Description: "Refund of client travel funds",
+      SalesItemLineDetail: { ItemRef: { value: itemId }, Qty: 1, UnitPrice: amount } }],
+  };
+  const resp = await qboFetch(`${qboBase}/refundreceipt?requestid=${encodeURIComponent(`rf-${payment.id}`)}`, {
+    method: "POST", headers: qboHeaders, body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(`QBO refund creation failed: ${await resp.text()}`);
+  const refundId = (await resp.json())?.RefundReceipt?.Id;
+  if (!refundId) throw new Error("QBO refund response missing Id");
+  await supabase.from("trip_payments").update({ qbo_refund_id: String(refundId) }).eq("id", payment.id);
+  await logSync(supabase, userId, "auto-client-payment-refunded", "success", 1, undefined, {
+    amount, payment_id: payment.id, trip_id: payment.trip_id, qbo_refund_id: refundId,
+    original_qbo_payment_id: original.qbo_id, bank_account: bank.name,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
