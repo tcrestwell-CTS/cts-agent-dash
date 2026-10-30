@@ -36,13 +36,13 @@ export async function sendGroupEventEmails(opts: {
     const { data: prior } = await opts.admin.from('email_logs').select('id').eq('idempotency_key', key).eq('status', 'sent').maybeSingle();
     if (prior) return;
     const result = await deliverGroupEmail(message, apiKey, opts.brand.from, opts.brand.replyTo, key);
-    const { error } = await opts.admin.from('email_logs').upsert({
+    const { error } = await opts.admin.from('email_logs').insert({
       user_id: opts.userId, client_id: message.audience === 'client' ? opts.clientId ?? null : null,
       to_email: message.to, subject: message.subject, template: `${opts.template}_${message.audience}`,
       status: result.status, error_message: result.error, provider_message_id: result.id,
       sent_at: result.status === 'sent' ? new Date().toISOString() : null,
       idempotency_key: key, attempt_count: 1, metadata: { ...opts.metadata, audience: message.audience },
-    }, { onConflict: 'idempotency_key' });
+    });
     if (error) console.error('Group email logging failed:', error.message);
     if (result.error) console.error('Group email failed:', message.audience, result.error);
   };
