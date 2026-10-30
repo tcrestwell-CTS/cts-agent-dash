@@ -161,6 +161,29 @@ serve(async (req) => {
       return new Response(JSON.stringify({ accounts }), { headers: jsonHeaders });
     }
 
+    // ── GET ?action=read-report&report=GeneralLedger&start_date&end_date ──
+    // Read-only report passthrough for bookkeeping review (admin roles only).
+    if (urlPath === "read-report" && req.method === "GET") {
+      const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+      const allowed = ["GeneralLedger", "TransactionList", "ProfitAndLoss", "ProfitAndLossDetail"];
+      const report = syncUrl.searchParams.get("report") || "";
+      if (!allowed.includes(report)) {
+        return new Response(JSON.stringify({ error: "Report not allowed" }), { status: 400, headers: jsonHeaders });
+      }
+      const { data: rr } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
+      if (!(rr ?? []).some((r: any) => ["admin", "office_admin", "bookkeeper"].includes(r.role))) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: jsonHeaders });
+      }
+      const params = new URLSearchParams();
+      for (const k of ["start_date", "end_date", "account", "columns", "minorversion"]) {
+        const v = syncUrl.searchParams.get(k);
+        if (v) params.set(k, v);
+      }
+      const r = await fetch(`${qboBase}/reports/${report}?${params.toString()}`, { headers: qboHeaders });
+      const body = await r.text();
+      return new Response(body, { status: r.ok ? 200 : 502, headers: jsonHeaders });
+    }
+
     // ── POST ?action=sync-advisor-classes ───────────────────────────
     // One-shot: create a QBO Class for every advisor so per-advisor
     // categories exist before the next invoice/payout sync.
