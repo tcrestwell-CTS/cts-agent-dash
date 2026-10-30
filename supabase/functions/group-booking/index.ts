@@ -389,7 +389,7 @@ Deno.serve(async (req) => {
     const reservationUrl = `https://app.crestwelltravels.com/group/${encodeURIComponent(token)}/reservation/${subTrip.id}`;
     const details = `<p>${escapeHtml(trip.trip_name)} — ${rooms.length} room(s), ${quote.guests} guest(s).</p><p>Deposit requested: ${amount}. Payment is pending; this email is not a receipt or a confirmed supplier reservation.</p>`;
     await sendGroupEventEmails({
-      admin: supabase, brand, userId: trip.user_id, eventId: gb.id, template: 'group_booking_signup', clientId,
+      admin: supabase, brand, apiKey: Deno.env.get('RESEND_API_KEY'), userId: trip.user_id, eventId: gb.id, template: 'group_booking_signup', clientId,
       clientEmail: email, clientSubject: `Your signup for ${trip.trip_name}`,
       clientHtml: `<p>Hello ${escapeHtml(name)},</p>${details}<p><a href="${reservationUrl}">View your reservation</a></p><p>${escapeHtml(brand.agencyName)}</p>`,
       advisorSubject: `New group booking signup: ${name}`,

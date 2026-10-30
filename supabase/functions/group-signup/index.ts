@@ -579,7 +579,7 @@ Deno.serve(async (req) => {
           const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
           const html = buildProposalReviewEmail({ brand, travelerName: escapeHtml(travelerName), tripName: escapeHtml(parentTrip.trip_name), sailing: escapeHtml(sailing.label), cabin: escapeHtml(cabin.name), hotel: escapeHtml(`${hotel.name} — ${room.name}`), total: quotedTotal, serviceCharges: serviceChargeEstimate, freeAtSeaEstimate });
           await sendGroupEventEmails({
-            admin: supabaseAdmin, brand, userId: parentTrip.user_id, eventId: proposal.id,
+            admin: supabaseAdmin, brand, apiKey: Deno.env.get("RESEND_API_KEY"), userId: parentTrip.user_id, eventId: proposal.id,
             template: "hawaii_proposal_review", clientId: existingClient?.id,
             clientEmail: normalizedEmail, clientSubject: "We received your Hawaii 2027 selections", clientHtml: html,
             advisorSubject: `Hawaii selections to review: ${travelerName}`,
@@ -1101,7 +1101,7 @@ Deno.serve(async (req) => {
           });
 
           await sendGroupEventEmails({
-            admin: supabaseAdmin, brand, userId: parentTrip.user_id, eventId: subTrip.id,
+            admin: supabaseAdmin, brand, apiKey: Deno.env.get("RESEND_API_KEY"), userId: parentTrip.user_id, eventId: subTrip.id,
             template: "group_signup_confirmation", clientId,
             clientEmail: email.toLowerCase().trim(), clientSubject: `You're signed up for ${parentTrip.trip_name}`, clientHtml: html,
             advisorSubject: `New group signup: ${clientName}`,

@@ -25,12 +25,12 @@ export async function deliverGroupEmail(
 }
 
 export async function sendGroupEventEmails(opts: {
-  admin: any; brand: { from: string; replyTo: string }; userId: string;
+  admin: any; brand: { from: string; replyTo: string }; userId: string; apiKey?: string;
   eventId: string; template: string; clientId?: string | null;
   clientEmail: string; clientSubject: string; clientHtml: string;
   advisorSubject: string; advisorHtml: string; metadata: Record<string, unknown>;
 }) {
-  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const apiKey = opts.apiKey;
   const sendOne = async (message: GroupEmail) => {
     const key = `${opts.template}-${opts.eventId}-${message.audience}`;
     const { data: prior } = await opts.admin.from('email_logs').select('id').eq('idempotency_key', key).eq('status', 'sent').maybeSingle();
