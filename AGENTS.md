@@ -1,4 +1,5 @@
 # Project Architecture Rules
+- Bookkeeper P&L reads monthly QuickBooks ProfitAndLoss reports via the authenticated qbo-sync read-report action, never client receipt minus supplier disbursement totals — client-funds movement is not agency profit.
 - Group signup, Hawaii selections, and wizard booking emails use `_shared/group-emails.ts` with event/audience idempotency, owner-account recipients, and success/failure logs — saved submissions must not silently lose advisor or client email copies.
 
 - Keep authenticated advisor writing assistance in the existing `itinerary-ai-action` function so itinerary and trip-page copy share one guarded AI boundary.
