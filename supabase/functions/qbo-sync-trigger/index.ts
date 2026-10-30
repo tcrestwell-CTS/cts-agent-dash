@@ -32,6 +32,19 @@ serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const sharedSecret = Deno.env.get("CW_AGENT_SECRET");
+  const trusted = bearer === SUPABASE_SERVICE_ROLE_KEY ||
+    Boolean(sharedSecret && req.headers.get("x-agent-secret") === sharedSecret);
+  if (!trusted) {
+    const { data: auth, error: authError } = await supabase.auth.getUser(bearer);
+    if (authError || !auth.user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id);
+    if (!(roles ?? []).some((r: { role: string }) => ["admin", "office_admin", "bookkeeper"].includes(r.role))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+  }
+
   let body: any;
   try {
     body = await req.json();
@@ -39,9 +52,16 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { trigger_type, record, old_record } = body;
+  const { trigger_type, old_record } = body;
+  let record = body.record;
   if (!trigger_type || !record) {
     return new Response(JSON.stringify({ error: "Missing trigger_type or record" }), { status: 400 });
+  }
+
+  if (trigger_type === "client_payment_received") {
+    const { data: persisted, error } = await supabase.from("trip_payments").select("*").eq("id", record.id).maybeSingle();
+    if (error || !persisted) return new Response(JSON.stringify({ error: "Payment not found" }), { status: 400 });
+    record = persisted;
   }
 
   const userId = record.user_id ?? record.agent_user_id;
