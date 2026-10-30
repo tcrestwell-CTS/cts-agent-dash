@@ -1,4 +1,6 @@
 # Roadmap
+- [x] Add/deploy group advisor notifications and logged client copies; tests passed and Tim's saved Hawaii copies accepted for sending.
+- [ ] Confirm inbox arrival: blocked by unavailable delivery-status access and recipient confirmation; Lovable sender-domain setup also needs verification in More → Emails.
 - [x] Update Hawaii to November 20–27 only, cabin prices, and verify the page.
 
 
