@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { isRealClientPayment, paymentRequestId } from "../_shared/qbo-payment-rules.ts";
 import { advisorClassForTrip, applyClass, getAdvisorVendorId, postWithClassFallback } from "../_shared/qbo-advisor.ts";
 
 /**
@@ -31,6 +32,19 @@ serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const sharedSecret = Deno.env.get("CW_AGENT_SECRET");
+  const trusted = bearer === SUPABASE_SERVICE_ROLE_KEY ||
+    Boolean(sharedSecret && req.headers.get("x-agent-secret") === sharedSecret);
+  if (!trusted) {
+    const { data: auth, error: authError } = await supabase.auth.getUser(bearer);
+    if (authError || !auth.user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id);
+    if (!(roles ?? []).some((r: { role: string }) => ["admin", "office_admin", "bookkeeper"].includes(r.role))) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+  }
+
   let body: any;
   try {
     body = await req.json();
@@ -38,9 +52,16 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { trigger_type, record, old_record } = body;
+  const { trigger_type, old_record } = body;
+  let record = body.record;
   if (!trigger_type || !record) {
     return new Response(JSON.stringify({ error: "Missing trigger_type or record" }), { status: 400 });
+  }
+
+  if (trigger_type === "client_payment_received") {
+    const { data: persisted, error } = await supabase.from("trip_payments").select("*").eq("id", record.id).maybeSingle();
+    if (error || !persisted) return new Response(JSON.stringify({ error: "Payment not found" }), { status: 400 });
+    record = persisted;
   }
 
   const userId = record.user_id ?? record.agent_user_id;
@@ -204,7 +225,6 @@ async function handleBookingConfirmed(
     .from("invoices")
     .select("id, invoice_number, total_amount")
     .eq("trip_id", booking.trip_id)
-    .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -262,7 +282,7 @@ async function handleBookingConfirmed(
       {
         Amount: Number(invoice.total_amount ?? amount),
         DetailType: "SalesItemLineDetail",
-        SalesItemLineDetail: { ItemRef: { value: "1", name: "Services" } },
+        SalesItemLineDetail: { ItemRef: { value: await ensureClientFundsItem(qboBase, qboHeaders) } },
         Description: `Booking ${booking.confirmation_number ?? booking.id} — ${trip.trip_name ?? "Travel"}`,
       },
     ],
@@ -831,6 +851,10 @@ async function handleTripCompleted(
 async function handleClientPaymentReceived(
   supabase: any, qboBase: string, qboHeaders: any, userId: string, payment: any, connection?: any
 ) {
+  if (!isRealClientPayment(payment)) {
+    await logSync(supabase, userId, "auto-client-payment-received", "skipped", 0, "Not a real paid receipt");
+    return;
+  }
   const amount = Number(payment.amount) || 0;
   if (amount <= 0) {
     await logSync(supabase, userId, "auto-client-payment-received", "skipped", 0, "Zero amount");
@@ -891,7 +915,6 @@ async function handleClientPaymentReceived(
       .from("invoices")
       .select("id, invoice_number, total_amount, amount_remaining")
       .eq("trip_id", payment.trip_id)
-      .eq("user_id", userId)
       .order("created_at", { ascending: true });
 
     if (localInvoices && localInvoices.length > 0) {
@@ -904,7 +927,6 @@ async function handleClientPaymentReceived(
       const { data: mapping } = await supabase
         .from("qbo_invoice_mappings")
         .select("qbo_invoice_id")
-        .eq("user_id", userId)
         .eq("invoice_id", target.id)
         .single();
 
@@ -936,6 +958,25 @@ async function handleClientPaymentReceived(
       }
     }
   }
+
+  // Payment may arrive before booking confirmation, or under an advisor whose
+  // invoice was created by an admin. Resolve the trip invoice before posting cash.
+  if (!qboInvoiceId && payment.trip_id) {
+    const { data: tripBooking } = await supabase.from("bookings").select("*")
+      .eq("trip_id", payment.trip_id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (!tripBooking) throw new Error("Client payment has no booking to invoice; retry after booking is created");
+    await handleBookingConfirmed(supabase, qboBase, qboHeaders, userId, tripBooking);
+    const { data: canonicalInvoice } = await supabase.from("invoices").select("id, invoice_number")
+      .eq("trip_id", payment.trip_id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (canonicalInvoice) {
+      localInvoiceId = canonicalInvoice.id;
+      invoiceNumber = canonicalInvoice.invoice_number;
+      const { data: mapped } = await supabase.from("qbo_invoice_mappings").select("qbo_invoice_id")
+        .eq("invoice_id", canonicalInvoice.id).maybeSingle();
+      qboInvoiceId = mapped?.qbo_invoice_id ?? null;
+    }
+  }
+  if (!qboInvoiceId) throw new Error("Client payment invoice could not be resolved; refusing unapplied payment");
 
   // 2b. Payment plans are billed in QBO as one invoice per installment
   // (INV-2026-00055-01, -02, …). A single payment — especially an early payoff —
@@ -1007,7 +1048,7 @@ async function handleClientPaymentReceived(
     ];
   }
 
-  const resp = await qboFetch(`${qboBase}/payment`, {
+  const resp = await qboFetch(`${qboBase}/payment?requestid=${encodeURIComponent(paymentRequestId(payment.id))}`, {
     method: "POST",
     headers: qboHeaders,
     body: JSON.stringify(paymentData),
@@ -1024,7 +1065,7 @@ async function handleClientPaymentReceived(
 
   // Write local cache so future replays are idempotent and gate 7.2 closes.
   if (qboPaymentId) {
-    await supabase.from("qbo_payments").upsert({
+    const { error: cacheError } = await supabase.from("qbo_payments").upsert({
       qbo_id: String(qboPaymentId),
       qbo_customer_id: qboCustomerId,
       qbo_invoice_id: qboInvoiceId ? String(qboInvoiceId) : null,
@@ -1037,6 +1078,7 @@ async function handleClientPaymentReceived(
       raw_payload: result?.Payment ?? null,
       synced_at: new Date().toISOString(),
     }, { onConflict: "qbo_id" });
+    if (cacheError) throw new Error(`QBO payment ${qboPaymentId} exists but cache write failed: ${cacheError.message}`);
   }
 
   await logSync(
@@ -1062,6 +1104,25 @@ async function handleClientPaymentReceived(
 
 // In-memory cache for account IDs within a single function invocation
 const _accountCache = new Map<string, string>();
+
+async function ensureClientFundsItem(qboBase: string, headers: any): Promise<string> {
+  const name = "Client Travel Funds";
+  const accountId = await ensureQBOAccount(qboBase, headers, "Client Funds", "Other Current Liability", "OtherCurrentLiabilities");
+  const r = await qboFetch(`${qboBase}/query?query=${encodeURIComponent(`SELECT * FROM Item WHERE Name = '${name}'`)}`, { headers });
+  if (!r.ok) throw new Error(`Client funds item lookup failed: ${await r.text()}`);
+  const item = (await r.json())?.QueryResponse?.Item?.[0];
+  if (item) {
+    if (String(item.IncomeAccountRef?.value) !== String(accountId)) throw new Error("Client Travel Funds item is not mapped to Client Funds");
+    return String(item.Id);
+  }
+  const created = await qboFetch(`${qboBase}/item?requestid=client-travel-funds-item`, {
+    method: "POST", headers, body: JSON.stringify({ Name: name, Type: "Service", IncomeAccountRef: { value: accountId } }),
+  });
+  if (!created.ok) throw new Error(`Client funds item creation failed: ${await created.text()}`);
+  const id = (await created.json())?.Item?.Id;
+  if (!id) throw new Error("Client funds item response missing Id");
+  return String(id);
+}
 
 /**
  * Ensure a QBO Account exists by name. Creates it if missing.
@@ -1823,7 +1884,7 @@ async function handleInvoiceUpdated(
       {
         Amount: newTotal,
         DetailType: "SalesItemLineDetail",
-        SalesItemLineDetail: { ItemRef: { value: "1", name: "Services" } },
+        SalesItemLineDetail: { ItemRef: { value: await ensureClientFundsItem(qboBase, qboHeaders) } },
         Description: `${invoice.trip_name ?? "Travel"} — Invoice ${invoice.invoice_number}`,
       },
     ],
