@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export type SyncState = "synced" | "failed" | "pending" | "not_eligible";
 
@@ -33,17 +34,20 @@ export interface PaymentSyncRow {
 
 export function useQboPaymentSyncStatus() {
   const { user } = useAuth();
+  const { canViewFinancials, isLoading: permissionsLoading } = usePermissions();
 
   return useQuery({
-    queryKey: ["qbo-payment-sync-status", user?.id],
-    enabled: !!user,
+    queryKey: ["qbo-payment-sync-status", user?.id, canViewFinancials],
+    enabled: !!user && !permissionsLoading,
     queryFn: async (): Promise<PaymentSyncRow[]> => {
-      const { data: payments, error: pErr } = await supabase
+      if (!user) return [];
+      let paymentQuery = supabase
         .from("trip_payments")
         .select("id, trip_id, booking_id, amount, payment_date, status, payment_type, created_at, user_id")
-        .eq("user_id", user!.id)
         .order("payment_date", { ascending: false, nullsFirst: false })
         .limit(500);
+      if (!canViewFinancials) paymentQuery = paymentQuery.eq("user_id", user.id);
+      const { data: payments, error: pErr } = await paymentQuery;
       if (pErr) throw pErr;
 
       const ids = (payments ?? []).map((p) => p.id);
