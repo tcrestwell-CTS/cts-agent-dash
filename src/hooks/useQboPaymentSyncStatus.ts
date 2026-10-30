@@ -32,6 +32,16 @@ export interface PaymentSyncRow {
   }>;
 }
 
+async function inChunks(values: string[], run: (chunk: string[]) => PromiseLike<{ data: any[] | null; error: any }>) {
+  const data: any[] = [];
+  for (let i = 0; i < values.length; i += 150) {
+    const r = await run(values.slice(i, i + 150));
+    if (r.error) throw r.error;
+    data.push(...(r.data ?? []));
+  }
+  return { data };
+}
+
 export function useQboPaymentSyncStatus() {
   const { user } = useAuth();
   const { canViewFinancials, isLoading: permissionsLoading } = usePermissions();
@@ -61,10 +71,10 @@ export function useQboPaymentSyncStatus() {
 
       const [{ data: qboPays }, { data: trips }, { data: logs }] = await Promise.all([
         ids.length
-          ? supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", ids)
+          ? inChunks(ids, (c) => supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", c))
           : Promise.resolve({ data: [] as any[] }),
         tripIds.length
-          ? supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", tripIds)
+          ? inChunks(tripIds, (c) => supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", c))
           : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("qbo_sync_logs")

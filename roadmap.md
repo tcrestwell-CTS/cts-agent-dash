@@ -17,3 +17,12 @@
 - [x] 4. Per-item AI actions in itinerary builder
 - [x] 5. Autosave itinerary edits + remove full refetch per edit
 - [x] 6. Unified copy engine (sub-trips + templates), tested on real group-trip copies before switch
+
+## QBO review follow-ups (2026-10-30)
+- [x] Post cash/check paid installments with no method
+- [x] Check QuickBooks for an existing trip invoice before auto-creating one
+- [x] Keep new client money on parent Client Funds (older Client Deposit entries left as-is)
+- [x] Remove 500-row cap on sync status list
+- [ ] Refunds to QuickBooks
+- [ ] Partially paid supplier bills
+- [ ] Virtual-card supplier charges
