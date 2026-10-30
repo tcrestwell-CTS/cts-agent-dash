@@ -41,14 +41,20 @@ export function useQboPaymentSyncStatus() {
     enabled: !!user && !permissionsLoading,
     queryFn: async (): Promise<PaymentSyncRow[]> => {
       if (!user) return [];
-      let paymentQuery = supabase
-        .from("trip_payments")
-        .select("id, trip_id, booking_id, amount, payment_date, status, payment_type, created_at, user_id")
-        .order("payment_date", { ascending: false, nullsFirst: false })
-        .limit(500);
-      if (!canViewFinancials) paymentQuery = paymentQuery.eq("user_id", user.id);
-      const { data: payments, error: pErr } = await paymentQuery;
-      if (pErr) throw pErr;
+      const payments: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        let paymentQuery = supabase
+          .from("trip_payments")
+          .select("id, trip_id, booking_id, amount, payment_date, status, payment_type, created_at, user_id")
+          .order("payment_date", { ascending: false, nullsFirst: false })
+          .order("id")
+          .range(from, from + 999);
+        if (!canViewFinancials) paymentQuery = paymentQuery.eq("user_id", user.id);
+        const { data: page, error: pErr } = await paymentQuery;
+        if (pErr) throw pErr;
+        payments.push(...(page ?? []));
+        if (!page || page.length < 1000) break;
+      }
 
       const ids = (payments ?? []).map((p) => p.id);
       const tripIds = Array.from(new Set((payments ?? []).map((p) => p.trip_id).filter(Boolean) as string[]));
