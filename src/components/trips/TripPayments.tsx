@@ -894,6 +894,40 @@ export function TripPayments({
                                 tripName={tripName}
                               />
                             )}
+                            {payment.status === "paid" && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" aria-label="Mark as refunded">
+                                    <RefreshCw className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Mark payment as refunded?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Records that {formatCurrency(payment.amount)} was returned to the client and posts a refund to QuickBooks.
+                                      This does not send money back through Stripe — issue the card refund there first.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={async () => {
+                                        const { error } = await supabase.from("trip_payments").update({
+                                          status: "refunded",
+                                          refunded_at: new Date().toISOString().split("T")[0],
+                                        }).eq("id", payment.id);
+                                        if (error) { toast.error("Could not mark refunded"); return; }
+                                        toast.success("Marked refunded — syncing to QuickBooks");
+                                        onDataChange?.();
+                                      }}
+                                    >
+                                      Mark refunded
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
