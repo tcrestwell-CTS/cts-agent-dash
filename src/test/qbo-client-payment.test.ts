@@ -12,6 +12,7 @@ describe("automatic QuickBooks client payments", () => {
     expect(isRealClientPayment({ status: "paid", amount: 514.67, payment_date: "2026-10-03", due_date: "2026-10-03", payment_type: "installment" })).toBe(false);
   });
   it("uses the same QuickBooks request identity on every retry", () => {
-    expect(paymentRequestId("62d71977-261b-4358-a497-96aa9e1a532a")).toBe("client-payment-62d71977-261b-4358-a497-96aa9e1a532a");
+    expect(paymentRequestId("62d71977-261b-4358-a497-96aa9e1a532a")).toBe("cp-62d71977-261b-4358-a497-96aa9e1a532a");
+    expect(paymentRequestId("62d71977-261b-4358-a497-96aa9e1a532a").length).toBeLessThanOrEqual(50);
   });
 });

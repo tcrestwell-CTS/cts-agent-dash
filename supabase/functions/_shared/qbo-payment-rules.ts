@@ -13,5 +13,5 @@ export function isRealClientPayment(payment: {
 }
 
 export function paymentRequestId(id: string) {
-  return `client-payment-${id}`;
+  return `cp-${id}`;
 }
