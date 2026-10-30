@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Restore group advisor notifications and client copies; verify delivery results.
 - [x] Update Hawaii to November 20–27 only, cabin prices, and verify the page.
 
 

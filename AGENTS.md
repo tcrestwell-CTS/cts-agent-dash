@@ -1,4 +1,5 @@
 # Project Architecture Rules
+- Group signup, Hawaii selections, and wizard booking emails use `_shared/group-emails.ts` with event/audience idempotency, owner-account recipients, and success/failure logs — saved submissions must not silently lose advisor or client email copies.
 
 - Keep authenticated advisor writing assistance in the existing `itinerary-ai-action` function so itinerary and trip-page copy share one guarded AI boundary.
 - RateHawk booking (hotel_page→prebook→form→finish→status) lives in `supabase/functions/ratehawk/booking.ts`; guest deposit is a Stripe client-account PaymentIntent verified server-side before `booking/finish`, and RateHawk is paid from the ETG B2B deposit — keeps supplier and guest money separate.
