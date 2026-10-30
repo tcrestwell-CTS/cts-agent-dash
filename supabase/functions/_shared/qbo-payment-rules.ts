@@ -2,6 +2,7 @@
 // cash/check installments that carry no payment method or Stripe receipt.
 export function isRealClientPayment(payment: {
   status?: string; amount?: number | string; payment_date?: string | null;
+  [key: string]: unknown;
 }) {
   return payment.status === "paid" && Number(payment.amount) > 0 && Boolean(payment.payment_date);
 }
