@@ -1,6 +1,6 @@
 # Roadmap
 - [x] Verify real Carnival supplier payment ($1,004.76, bill 2141) in QuickBooks and the signed-in app; refresh bills/payment cache without reposting.
-- [ ] Align app P&L with QuickBooks: app treats client receipts/supplier disbursements as income/expenses; QuickBooks uses client-funds liabilities. Blocked pending approval of reporting/accounting changes; no matching P&L claimed.
+- [ ] Reconcile October client funds against app receipts/disbursements without misclassifying client money, explain any P&L difference, and verify another real paid supplier payment without duplicates.
 - [x] Add/deploy group advisor notifications and logged client copies; tests passed and Tim's saved Hawaii copies accepted for sending.
 - [ ] Confirm inbox arrival: blocked by unavailable delivery-status access and recipient confirmation; Lovable sender-domain setup also needs verification in More → Emails.
 - [x] Update Hawaii to November 20–27 only, cabin prices, and verify the page.
