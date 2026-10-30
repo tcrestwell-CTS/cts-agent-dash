@@ -19,6 +19,9 @@
 
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { resolveAgentBranding } from '../_shared/agent-branding.ts';
+import { sendGroupEventEmails } from '../_shared/group-emails.ts';
+import { escapeHtml } from '../_shared/rentalEmail.ts';
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../_shared/rate-limiter.ts';
 import { quoteBooking, type AddonPricing, type CabinOptionPricing, type RoomInput } from '../_shared/group-pricing.ts';
 
@@ -377,6 +380,25 @@ Deno.serve(async (req) => {
     message: `${rooms.length} room(s), ${quote.guests} guest(s), deposit ${(depositCents / 100).toFixed(2)} ${currency.toUpperCase()} pending on ${trip.trip_name}`,
     trip_id: trip.id,
   });
+
+  // This records a signup with payment pending, never a paid-deposit receipt.
+  try {
+    const brand = await resolveAgentBranding(supabase, trip.user_id);
+    const name = `${first_name} ${last_name}`.trim();
+    const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(depositCents / 100);
+    const reservationUrl = `https://app.crestwelltravels.com/group/${encodeURIComponent(token)}/reservation/${subTrip.id}`;
+    const details = `<p>${escapeHtml(trip.trip_name)} — ${rooms.length} room(s), ${quote.guests} guest(s).</p><p>Deposit requested: ${amount}. Payment is pending; this email is not a receipt or a confirmed supplier reservation.</p>`;
+    await sendGroupEventEmails({
+      admin: supabase, brand, userId: trip.user_id, eventId: gb.id, template: 'group_booking_signup', clientId,
+      clientEmail: email, clientSubject: `Your signup for ${trip.trip_name}`,
+      clientHtml: `<p>Hello ${escapeHtml(name)},</p>${details}<p><a href="${reservationUrl}">View your reservation</a></p><p>${escapeHtml(brand.agencyName)}</p>`,
+      advisorSubject: `New group booking signup: ${name}`,
+      advisorHtml: `<p>${escapeHtml(name)} submitted a group booking.</p><p>Email: ${escapeHtml(email)}</p>${details}<p><a href="https://app.crestwelltravels.com/trips/${subTrip.id}">Review traveler trip</a></p>`,
+      metadata: { source: 'group-booking', trip_id: trip.id, sub_trip_id: subTrip.id, group_booking_id: gb.id },
+    });
+  } catch (error) {
+    console.error('Group booking email failed:', error);
+  }
 
   return json({
     ok: true,

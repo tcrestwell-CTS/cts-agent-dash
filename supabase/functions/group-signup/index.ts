@@ -1,6 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rate-limiter.ts";
 import { resolveAgentBranding } from "../_shared/agent-branding.ts";
+import { sendGroupEventEmails } from "../_shared/group-emails.ts";
+import { escapeHtml } from "../_shared/rentalEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -574,15 +576,16 @@ Deno.serve(async (req) => {
         });
 
         try {
-          const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-          if (RESEND_API_KEY) {
-            const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
-            const { Resend } = await import("npm:resend@4.0.0");
-            const resend = new Resend(RESEND_API_KEY);
-            const subject = `We received your Hawaii 2027 selections`;
-            const sendResp = await resend.emails.send({ from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`, to: [normalizedEmail], subject, html: buildProposalReviewEmail({ brand, travelerName, tripName: parentTrip.trip_name, sailing: sailing.label, cabin: cabin.name, hotel: `${hotel.name} — ${room.name}`, total: quotedTotal, serviceCharges: serviceChargeEstimate, freeAtSeaEstimate }), replyTo: brand.replyTo || "info@crestwellgetaways.com" });
-            if (!(sendResp as any)?.error) await supabaseAdmin.from("email_logs").insert({ to_email: normalizedEmail, subject, template: "hawaii_proposal_review", status: "sent", provider_message_id: (sendResp as any)?.data?.id || null, metadata: { source: "group-signup", trip_id: parentTrip.id, proposal_selection_id: proposal.id } });
-          }
+          const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
+          const html = buildProposalReviewEmail({ brand, travelerName: escapeHtml(travelerName), tripName: escapeHtml(parentTrip.trip_name), sailing: escapeHtml(sailing.label), cabin: escapeHtml(cabin.name), hotel: escapeHtml(`${hotel.name} — ${room.name}`), total: quotedTotal, serviceCharges: serviceChargeEstimate, freeAtSeaEstimate });
+          await sendGroupEventEmails({
+            admin: supabaseAdmin, brand, userId: parentTrip.user_id, eventId: proposal.id,
+            template: "hawaii_proposal_review", clientId: existingClient?.id,
+            clientEmail: normalizedEmail, clientSubject: "We received your Hawaii 2027 selections", clientHtml: html,
+            advisorSubject: `Hawaii selections to review: ${travelerName}`,
+            advisorHtml: `<p>${escapeHtml(travelerName)} submitted selections for ${escapeHtml(parentTrip.trip_name)}.</p><p>Email: ${escapeHtml(normalizedEmail)}<br>Phone: ${escapeHtml(clean(phone, 40))}<br>Payment preference: ${escapeHtml(paymentPreference.replaceAll("_", " "))}</p><p><a href="${APP_URL}/trips/${parentTrip.id}">Review trip</a></p>${html}`,
+            metadata: { source: "group-signup", trip_id: parentTrip.id, proposal_selection_id: proposal.id },
+          });
         } catch (emailError) {
           console.error("Proposal confirmation email failed:", emailError);
         }
@@ -1071,9 +1074,7 @@ Deno.serve(async (req) => {
 
       // Send a branded confirmation email with their personal reservation link.
       try {
-        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-        if (RESEND_API_KEY) {
-          const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
+        const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
           const { data: cabinRow } = selected_cabin_option_id
             ? await supabaseAdmin
                 .from("trip_cabin_options")
@@ -1099,37 +1100,14 @@ Deno.serve(async (req) => {
             groupUrl,
           });
 
-          const { Resend } = await import("npm:resend@4.0.0");
-          const resend = new Resend(RESEND_API_KEY);
-          const sendResp = await resend.emails.send({
-            from: brand.from || `${brand.agencyName} <noreply@crestwellgetaways.com>`,
-            to: [email.toLowerCase().trim()],
-            subject: `You're signed up for ${parentTrip.trip_name}`,
-            html,
-            replyTo: brand.replyTo || "info@crestwellgetaways.com",
+          await sendGroupEventEmails({
+            admin: supabaseAdmin, brand, userId: parentTrip.user_id, eventId: subTrip.id,
+            template: "group_signup_confirmation", clientId,
+            clientEmail: email.toLowerCase().trim(), clientSubject: `You're signed up for ${parentTrip.trip_name}`, clientHtml: html,
+            advisorSubject: `New group signup: ${clientName}`,
+            advisorHtml: `<p>${escapeHtml(clientName)} signed up for ${escapeHtml(parentTrip.trip_name)} with ${travelerCount} traveler(s).</p><p>Email: ${escapeHtml(email)}<br>Deposit requested: ${fmt(depositAmount)} (not a payment receipt)</p><p><a href="${APP_URL}/trips/${subTrip.id}">Review traveler trip</a></p>`,
+            metadata: { source: "group-signup", trip_id: parentTrip.id, sub_trip_id: subTrip.id, pay_url: payUrl || null, reservation_url: reservationUrl },
           });
-
-          if ((sendResp as any)?.error) {
-            console.error("Group signup confirmation email failed:", (sendResp as any).error);
-          } else {
-            // Mirror to email_logs for the Email Activity dashboard.
-            await supabaseAdmin.from("email_logs").insert({
-              client_id: clientId,
-              to_email: email.toLowerCase().trim(),
-              subject: `You're signed up for ${parentTrip.trip_name}`,
-              template: "group_signup_confirmation",
-              status: "sent",
-              provider_message_id: (sendResp as any)?.data?.id || null,
-              metadata: {
-                source: "group-signup",
-                trip_id: parentTrip.id,
-                sub_trip_id: subTrip.id,
-                pay_url: payUrl || null,
-                reservation_url: reservationUrl,
-              },
-            });
-          }
-        }
       } catch (emailErr) {
         console.error("Failed to send group signup confirmation:", emailErr);
       }
