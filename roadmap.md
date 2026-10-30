@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Wire paid client-payment inserts and updates to automatic QBO invoice/payment posting; verify Tara's real receipts without new charges.
 - [x] Verify real Carnival supplier payment ($1,004.76, bill 2141) in QuickBooks and the signed-in app; refresh bills/payment cache without reposting.
 - [x] Compare October client funds: app receipts $3,137.97; actual supplier payments $2,736.74; app additionally treats Nattaya's $123.80 advisor payout as supplier cash-out. QuickBooks October accrual net $238.96 is not app cash-flow net $277.43.
 - [x] Replay Jessica's existing $835.76 paid payment through deployed sync; verify duplicate-safe skip against QBO payment 2145 (no new charge or duplicate).
