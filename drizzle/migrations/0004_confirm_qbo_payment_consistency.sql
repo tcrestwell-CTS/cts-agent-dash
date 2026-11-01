@@ -1,0 +1,1 @@
+COMMENT ON FUNCTION public.invoice_cash_amount(public.trip_payments) IS 'Canonical client cash receipt net of refunds; installed by payment consistency migration 0003.';
