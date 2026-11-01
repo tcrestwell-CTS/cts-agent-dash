@@ -19,8 +19,8 @@
 - [x] 6. Unified copy engine (sub-trips + templates), tested on real group-trip copies before switch
 
 ## QBO review follow-ups (2026-10-30)
-- [ ] Apply one payment-consistency migration copy and verify trip balances; blocked until Tim confirms a database export.
-- [ ] Verify and deploy qbo-sync-trigger, stripe-webhook, and stripe-issuing-webhook after the migration.
+- [x] Apply one payment-consistency migration copy after Tim confirms downloaded database export; 0003 applied through the managed migrator.
+- [x] Deploy qbo-sync-trigger, stripe-webhook, and stripe-issuing-webhook after the migration; 20 accounting tests passed.
 - [x] Post cash/check paid installments with no method
 - [x] Check QuickBooks for an existing trip invoice before auto-creating one
 - [x] Keep new client money on parent Client Funds (older Client Deposit entries left as-is)
