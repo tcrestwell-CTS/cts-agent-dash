@@ -36,7 +36,8 @@ type Role = {
     | "loan_interest_clearing"
     | "loan_receivable"
     | "interest_income"
-    | "operating_bank";
+    | "operating_bank"
+    | "client_funds";
   label: string;
   hint: string;
   filter: (a: QboAccount) => boolean;
@@ -78,6 +79,12 @@ const ROLES: Role[] = [
     label: "Operating Bank",
     hint: "Physical bank account that receives Stripe payouts. Used as the destination for clearing-account transfers.",
     filter: (a) => a.account_type === "Bank",
+  },
+  {
+    key: "client_funds",
+    label: "Client Funds",
+    hint: "Liability account for client trip money. New invoices and refunds post here. Leave unset to use Client Funds:Client Deposit.",
+    filter: (a) => a.account_type === "Other Current Liability",
   },
 ];
 

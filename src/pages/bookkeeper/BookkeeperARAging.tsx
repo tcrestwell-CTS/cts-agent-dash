@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { fetchClientMap } from "@/lib/bookkeeperLookups";
+import { fetchAllRows, fetchInChunks } from "@/lib/fetchAllRows";
 import {
   EmptyState,
   SortableHead,
@@ -96,27 +97,33 @@ export default function BookkeeperARAging() {
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["ar-aging-invoices"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("invoices")
-        .select(
-          "id, invoice_number, invoice_date, trip_name, client_name, total_amount, amount_paid, amount_remaining, status, trip_id, client_id"
-        )
-        .neq("status", "paid")
-        .gt("amount_remaining", 0)
-        .order("invoice_date", { ascending: true })
-        .limit(1000);
-      if (error) throw error;
-      const rows = data ?? [];
+      const rows = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("invoices")
+          .select(
+            "id, invoice_number, invoice_date, trip_name, client_name, total_amount, amount_paid, amount_remaining, status, trip_id, client_id"
+          )
+          .neq("status", "paid")
+          .gt("amount_remaining", 0)
+          .order("invoice_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       const tripIds = [...new Set(rows.map((r: any) => r.trip_id).filter(Boolean))];
       if (tripIds.length === 0) return rows;
-      const [{ data: trips }, { data: pays }] = await Promise.all([
-        (supabase as any).from("trips").select("id, status").in("id", tripIds),
-        (supabase as any).from("trip_payments").select("trip_id, amount").eq("status", "paid").in("trip_id", tripIds),
-      ]);
+      const trips = await fetchInChunks<any>(tripIds, (chunk) =>
+        (supabase as any).from("trips").select("id, status").in("id", chunk));
+      const pays: any[] = [];
+      for (let i = 0; i < tripIds.length; i += 50) {
+        const chunk = tripIds.slice(i, i + 50);
+        pays.push(...await fetchAllRows<any>((from, to) =>
+          (supabase as any).from("trip_payments").select("trip_id, amount").eq("status", "paid").in("trip_id", chunk).order("id", { ascending: true }).range(from, to),
+        ));
+      }
       const tripStatus: Record<string, string> = {};
-      (trips ?? []).forEach((t: any) => (tripStatus[t.id] = String(t.status || "").toLowerCase()));
+      trips.forEach((t: any) => (tripStatus[t.id] = String(t.status || "").toLowerCase()));
       const paidMap: Record<string, number> = {};
-      (pays ?? []).forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
+      pays.forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
       // Closed trips owe nothing; lead/quoted/planning trips aren't booked, so not receivables.
       const EXCLUDE = ["cancelled", "canceled", "archived", "completed", "lead", "quoted", "planning", "inquiry"];
       return rows
@@ -136,18 +143,20 @@ export default function BookkeeperARAging() {
     queryKey: ["ar-aging-installments"],
     queryFn: async () => {
       const today = new Date().toISOString().slice(0, 10);
-      const { data, error } = await (supabase as any)
-        .from("trip_payments")
-        .select(
-          "id, amount, due_date, payment_type, status, details, trip_id, trips:trip_id(trip_name, client_id)"
-        )
-        .eq("status", "pending")
-        .lt("due_date", today)
-        .order("due_date", { ascending: true })
-        .limit(500);
-      if (error) throw error;
-      const clientMap = await fetchClientMap((data ?? []).map((r: any) => r.trips?.client_id));
-      return (data ?? []).map((r: any) => ({
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("trip_payments")
+          .select(
+            "id, amount, due_date, payment_type, status, details, trip_id, trips:trip_id(trip_name, client_id)"
+          )
+          .eq("status", "pending")
+          .lt("due_date", today)
+          .order("due_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      const clientMap = await fetchClientMap(data.map((r: any) => r.trips?.client_id));
+      return data.map((r: any) => ({
         ...r,
         trips: r.trips ? { ...r.trips, clients: clientMap[r.trips.client_id] ?? null } : r.trips,
       }));

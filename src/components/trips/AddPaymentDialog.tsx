@@ -665,6 +665,7 @@ Crestwell Travel Services`
                     <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                     <SelectItem value="check">Check</SelectItem>
                     <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="zelle">Zelle</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                     <SelectItem value="flexpay">Flexpay (Pay Monthly)</SelectItem>
                   </SelectContent>

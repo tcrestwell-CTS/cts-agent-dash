@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 /**
  * Agency "other income" — revenue the agency earns outside of trip commissions:
@@ -58,17 +59,16 @@ export function useAgentSubscriptionPayments(range?: AgencyOtherIncomeRange) {
   return useQuery({
     queryKey: ["agent-subscription-payments", range?.start ?? null, range?.end ?? null],
     queryFn: async () => {
-      let q = (supabase as any)
-        .from("agent_subscription_payments")
-        .select("*")
-        .order("payment_date", { ascending: false })
-        .limit(1000);
-
-      if (range) q = q.gte("payment_date", range.start).lt("payment_date", range.end);
-
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as AgentSubscriptionPayment[];
+      return fetchAllRows<AgentSubscriptionPayment>((from, to) => {
+        let q = (supabase as any)
+          .from("agent_subscription_payments")
+          .select("*")
+          .order("payment_date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to);
+        if (range) q = q.gte("payment_date", range.start).lt("payment_date", range.end);
+        return q;
+      });
     },
     enabled: !!user,
   });
@@ -80,39 +80,40 @@ export function useAgencyOtherIncome(range?: AgencyOtherIncomeRange) {
   return useQuery({
     queryKey: ["agency-other-income", range?.start ?? null, range?.end ?? null],
     queryFn: async () => {
-      let subsQuery = (supabase as any)
-        .from("agent_subscription_payments")
-        .select("id, agent_user_id, plan_name, amount, payment_date, stripe_payment_intent_id, status")
-        .eq("status", "paid")
-        .limit(1000);
-      let loanQuery = (supabase as any)
-        .from("loan_payment_schedules")
-        .select(
-          "id, paid_date, principal_amount, interest_amount, total_payment, payment_number, status, loan_application_id, stripe_payment_intent_id",
-        )
-        .eq("status", "paid")
-        .limit(1000);
-
-      if (range) {
-        subsQuery = subsQuery.gte("payment_date", range.start).lt("payment_date", range.end);
-        loanQuery = loanQuery.gte("paid_date", range.start).lt("paid_date", range.end);
-      }
-
-      const [subsRes, loanRes, profilesRes] = await Promise.all([
-        subsQuery,
-        loanQuery,
-        (supabase as any).from("profiles").select("user_id, full_name"),
+      const [subs, loans, profiles] = await Promise.all([
+        fetchAllRows<any>((from, to) => {
+          let q = (supabase as any)
+            .from("agent_subscription_payments")
+            .select("id, agent_user_id, plan_name, amount, payment_date, stripe_payment_intent_id, status")
+            .eq("status", "paid")
+            .order("id", { ascending: true })
+            .range(from, to);
+          if (range) q = q.gte("payment_date", range.start).lt("payment_date", range.end);
+          return q;
+        }),
+        fetchAllRows<any>((from, to) => {
+          let q = (supabase as any)
+            .from("loan_payment_schedules")
+            .select(
+              "id, paid_date, principal_amount, interest_amount, total_payment, payment_number, status, loan_application_id, stripe_payment_intent_id",
+            )
+            .eq("status", "paid")
+            .order("id", { ascending: true })
+            .range(from, to);
+          if (range) q = q.gte("paid_date", range.start).lt("paid_date", range.end);
+          return q;
+        }),
+        fetchAllRows<any>((from, to) =>
+          (supabase as any).from("profiles").select("user_id, full_name").order("user_id", { ascending: true }).range(from, to),
+        ),
       ]);
 
-      if (subsRes.error) throw subsRes.error;
-      if (loanRes.error) throw loanRes.error;
-
       const nameMap = new Map<string, string>(
-        (profilesRes.data ?? []).map((p: any) => [p.user_id, p.full_name || "Advisor"]),
+        profiles.map((p: any) => [p.user_id, p.full_name || "Advisor"]),
       );
 
       const rows: OtherIncomeRow[] = [
-        ...(subsRes.data ?? []).map((s: any) => ({
+        ...subs.map((s: any) => ({
           id: `sub-${s.id}`,
           source: "agent_subscription" as const,
           label: `${nameMap.get(s.agent_user_id) || "Advisor"} — ${s.plan_name || "Advisor subscription"}`,
@@ -121,7 +122,7 @@ export function useAgencyOtherIncome(range?: AgencyOtherIncomeRange) {
           principal: 0,
           reference: s.stripe_payment_intent_id ?? null,
         })),
-        ...(loanRes.data ?? []).map((l: any) => ({
+        ...loans.map((l: any) => ({
           id: `loan-${l.id}`,
           source: "loan_interest" as const,
           label: `Loan repayment — installment ${l.payment_number ?? "—"}`,

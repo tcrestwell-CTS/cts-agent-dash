@@ -10,11 +10,23 @@ import { exportToCSV } from "@/lib/csvExport";
 import { useEffect, useMemo } from "react";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { fetchSupplierMap } from "@/lib/bookkeeperLookups";
+import { fetchAllRows, fetchInChunks } from "@/lib/fetchAllRows";
 import { format, differenceInDays } from "date-fns";
 import { BookkeeperBreadcrumb, EmptyState, TableSkeleton, MoneyCell } from "@/components/bookkeeper/shared";
 import { Panel, PanelHeader, PanelBody } from "@/components/patterns/Panel";
 import { KPITile, KPIGrid } from "@/components/patterns/KPITile";
 import { SemanticStatusPill, type SemanticStatus } from "@/components/patterns/StatusPill";
+
+async function fetchPaidAmounts(tripIds: string[]) {
+  const rows: any[] = [];
+  for (let i = 0; i < tripIds.length; i += 50) {
+    const chunk = tripIds.slice(i, i + 50);
+    rows.push(...await fetchAllRows<any>((from, to) =>
+      (supabase as any).from("trip_payments").select("trip_id, amount").eq("status", "paid").in("trip_id", chunk).order("id", { ascending: true }).range(from, to),
+    ));
+  }
+  return rows;
+}
 
 const fmt = (n: number) =>
   Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -56,24 +68,26 @@ function ReceivablesTab() {
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["bookkeeper-aging-ar"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("invoices")
-        .select("id, invoice_number, invoice_date, trip_id, trip_name, client_name, total_amount, amount_paid, amount_remaining, status")
-        .neq("status", "paid")
-        .order("invoice_date", { ascending: true })
-        .limit(500);
-      if (error) throw error;
-      const rows = data ?? [];
+      const rows = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("invoices")
+          .select("id, invoice_number, invoice_date, trip_id, trip_name, client_name, total_amount, amount_paid, amount_remaining, status")
+          .neq("status", "paid")
+          .order("invoice_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       const tripIds = [...new Set(rows.map((r: any) => r.trip_id).filter(Boolean))];
       if (tripIds.length === 0) return rows;
-      const [{ data: trips }, { data: pays }] = await Promise.all([
-        (supabase as any).from("trips").select("id, status, total_gross_sales").in("id", tripIds),
-        (supabase as any).from("trip_payments").select("trip_id, amount").eq("status", "paid").in("trip_id", tripIds),
+      const [trips, pays] = await Promise.all([
+        fetchInChunks<any>(tripIds, (chunk) =>
+          (supabase as any).from("trips").select("id, status, total_gross_sales").in("id", chunk)),
+        fetchPaidAmounts(tripIds),
       ]);
       const tripMap: Record<string, any> = {};
-      (trips ?? []).forEach((t: any) => (tripMap[t.id] = t));
+      trips.forEach((t: any) => (tripMap[t.id] = t));
       const paidMap: Record<string, number> = {};
-      (pays ?? []).forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
+      pays.forEach((p: any) => (paidMap[p.trip_id] = (paidMap[p.trip_id] || 0) + Number(p.amount || 0)));
       // Closed trips owe nothing; lead/quoted/planning trips aren't booked yet, so not receivables.
       const CLOSED = ["cancelled", "canceled", "archived", "completed", "lead", "quoted", "planning", "inquiry"];
       return rows
@@ -93,15 +107,16 @@ function ReceivablesTab() {
     queryKey: ["bookkeeper-aging-ar-overdue-scheduled"],
     queryFn: async () => {
       const today = new Date().toISOString().slice(0, 10);
-      const { data, error } = await (supabase as any)
-        .from("trip_payments")
-        .select("id, amount, due_date, payment_type, status, trip_id, trips:trip_id(trip_name)")
-        .in("status", ["scheduled", "pending"])
-        .lt("due_date", today)
-        .order("due_date", { ascending: true })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
+      return fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("trip_payments")
+          .select("id, amount, due_date, payment_type, status, trip_id, trips:trip_id(trip_name)")
+          .in("status", ["scheduled", "pending"])
+          .lt("due_date", today)
+          .order("due_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
     },
   });
 
@@ -247,15 +262,17 @@ function PayablesTab() {
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookkeeper-aging-ap"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("bookings")
-        .select("id, booking_reference:confirmation_number, status, supplier_paid_status, supplier_payout, gross_sales, created_at, trip_id, supplier_id, trips:trip_id(trip_name, departure_date)")
-        .in("supplier_paid_status", ["unpaid", "pending", "partial"])
-        .order("created_at", { ascending: true })
-        .limit(500);
-      if (error) throw error;
-      const supMap = await fetchSupplierMap((data ?? []).map((r: any) => r.supplier_id));
-      return (data ?? []).map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("bookings")
+          .select("id, booking_reference:confirmation_number, status, supplier_paid_status, supplier_payout, gross_sales, created_at, trip_id, supplier_id, trips:trip_id(trip_name, departure_date)")
+          .in("supplier_paid_status", ["unpaid", "pending", "partial"])
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      const supMap = await fetchSupplierMap(data.map((r: any) => r.supplier_id));
+      return data.map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
     },
   });
 

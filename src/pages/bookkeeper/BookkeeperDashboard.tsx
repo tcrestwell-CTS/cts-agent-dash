@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { DollarSign, TrendingUp, Banknote, FileWarning, ArrowRight, AlertTriangle, FileText, Receipt } from "lucide-react";
 import { useBookkeeperAlerts, useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { useEffect } from "react";
@@ -35,12 +36,15 @@ function useStripeFeeKpis() {
     queryFn: async () => {
       const mtd = startOfMonthDate();
       const ytd = startOfYearDate();
-      const { data, error } = await (supabase as any)
-        .from("stripe_payouts")
-        .select("fee_total, amount, net_amount, arrival_date")
-        .gte("arrival_date", ytd);
-      if (error) throw error;
-      const rows = data ?? [];
+      const rows = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("stripe_payouts")
+          .select("fee_total, amount, net_amount, arrival_date")
+          .gte("arrival_date", ytd)
+          .order("arrival_date", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       let feesMtd = 0, feesYtd = 0, grossYtd = 0;
       for (const r of rows) {
         const fee = Number(r.fee_total || 0);
@@ -60,28 +64,37 @@ function useBookkeeperKpis() {
     queryFn: async () => {
       const since = startOfMonthISO();
 
-      const [incomeRes, expensesRes, unattribRes] = await Promise.all([
-        (supabase as any)
-          .from("trip_payments")
-          .select("amount, payment_date, status")
-          .eq("status", "paid")
-          .gte("payment_date", since),
-        (supabase as any)
-          .from("bookings")
-          .select("supplier_paid_amount, supplier_paid_date, supplier_paid_status")
-          .eq("supplier_paid_status", "paid")
-          .gte("supplier_paid_date", since.slice(0, 10)),
+      const [incomeRows, expenseRows, unattribRes] = await Promise.all([
+        fetchAllRows<any>((from, to) =>
+          (supabase as any)
+            .from("trip_payments")
+            .select("amount, payment_date, status")
+            .eq("status", "paid")
+            .gte("payment_date", since)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        fetchAllRows<any>((from, to) =>
+          (supabase as any)
+            .from("bookings")
+            .select("supplier_paid_amount, supplier_paid_date, supplier_paid_status")
+            .eq("supplier_paid_status", "paid")
+            .gte("supplier_paid_date", since.slice(0, 10))
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
         (supabase as any)
           .from("checkout_payments")
           .select("id", { count: "exact", head: true })
           .eq("payment_type", "unattributed_deposit"),
       ]);
+      if (unattribRes.error) throw unattribRes.error;
 
-      const mtdIncome = (incomeRes.data ?? []).reduce(
+      const mtdIncome = incomeRows.reduce(
         (s, r: any) => s + Number(r.amount || 0),
         0,
       );
-      const mtdExpenses = (expensesRes.data ?? []).reduce(
+      const mtdExpenses = expenseRows.reduce(
         (s, r: any) => s + Number(r.supplier_paid_amount || 0),
         0,
       );

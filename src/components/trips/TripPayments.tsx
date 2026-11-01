@@ -27,6 +27,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { applyPaymentToInstallments } from "@/lib/applyPaymentToInstallments";
+import { isSchedulePlaceholder } from "../../../supabase/functions/_shared/qbo-payment-rules";
 import PaymentTimelineVisual from "@/components/shared-trip/PaymentTimelineVisual";
 import {
   Tooltip,
@@ -211,12 +212,7 @@ export function TripPayments({
     // Only real money (a cash/Stripe payment row) can be allocated against the
     // schedule. Marking a scheduled installment paid must NOT also consume other
     // installments — that would apply the same dollars twice.
-    const isScheduleRow =
-      !!payment?.due_date &&
-      !payment?.payment_method &&
-      !payment?.stripe_session_id &&
-      !payment?.stripe_receipt_url &&
-      ["installment", "final", "final_balance"].includes(payment?.payment_type || "");
+    const isScheduleRow = !!payment && isSchedulePlaceholder(payment);
 
     await updatePayment(paymentId, {
       status: "paid",
@@ -916,6 +912,7 @@ export function TripPayments({
                                         const { error } = await supabase.from("trip_payments").update({
                                           status: "refunded",
                                           refunded_at: new Date().toISOString().split("T")[0],
+                                          refunded_amount: Number(payment.amount) || 0,
                                         }).eq("id", payment.id);
                                         if (error) { toast.error("Could not mark refunded"); return; }
                                         toast.success("Marked refunded — syncing to QuickBooks");

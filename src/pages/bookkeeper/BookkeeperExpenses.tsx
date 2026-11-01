@@ -25,6 +25,7 @@ import {
   MoneyCell,
 } from "@/components/bookkeeper/shared";
 import { parseLocalDate } from "@/lib/utils";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 
 const fmt = (n: number) => Number(n).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
@@ -42,32 +43,36 @@ export default function BookkeeperExpenses() {
     queryKey: ["bookkeeper-expenses", year, month],
     queryFn: async () => {
       const { start, end } = monthBounds(year, month);
-      const { data, error } = await (supabase as any)
-        .from("bookings")
-        .select("id, confirmation_number, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name)")
-        .eq("supplier_paid_status", "paid")
-        .gte("supplier_paid_date", start)
-        .lt("supplier_paid_date", end)
-        .order("supplier_paid_date", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      const supMap = await fetchSupplierMap((data ?? []).map((r: any) => r.supplier_id));
-      return (data ?? []).map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("bookings")
+          .select("id, confirmation_number, supplier_paid_amount, supplier_paid_date, supplier_paid_method, trip_id, supplier_id, trips:trip_id(trip_name)")
+          .eq("supplier_paid_status", "paid")
+          .gte("supplier_paid_date", start)
+          .lt("supplier_paid_date", end)
+          .order("supplier_paid_date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      const supMap = await fetchSupplierMap(data.map((r: any) => r.supplier_id));
+      return data.map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
     },
   });
 
   const { data: ytdData, isLoading: ytdLoading } = useQuery({
     queryKey: ["bookkeeper-expenses-ytd", year],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("bookings")
-        .select("supplier_paid_amount")
-        .eq("supplier_paid_status", "paid")
-        .gte("supplier_paid_date", `${year}-01-01`)
-        .lte("supplier_paid_date", `${year}-12-31`)
-        .limit(1000);
-      if (error) throw error;
-      return (data ?? []).reduce((s: number, r: any) => s + Number(r.supplier_paid_amount || 0), 0);
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("bookings")
+          .select("supplier_paid_amount")
+          .eq("supplier_paid_status", "paid")
+          .gte("supplier_paid_date", `${year}-01-01`)
+          .lte("supplier_paid_date", `${year}-12-31`)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      return data.reduce((s: number, r: any) => s + Number(r.supplier_paid_amount || 0), 0);
     },
   });
 

@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { fetchAllRows, fetchInChunks } from "@/lib/fetchAllRows";
+import { isRealClientPayment, paymentSkipReason } from "../../supabase/functions/_shared/qbo-payment-rules";
 
-export type SyncState = "synced" | "failed" | "pending" | "not_eligible";
+export type SyncState = "synced" | "failed" | "pending" | "skipped" | "not_eligible";
 
 export interface PaymentSyncRow {
   id: string;
@@ -32,16 +34,6 @@ export interface PaymentSyncRow {
   }>;
 }
 
-async function inChunks(values: string[], run: (chunk: string[]) => PromiseLike<{ data: any[] | null; error: any }>) {
-  const data: any[] = [];
-  for (let i = 0; i < values.length; i += 150) {
-    const r = await run(values.slice(i, i + 150));
-    if (r.error) throw r.error;
-    data.push(...(r.data ?? []));
-  }
-  return { data };
-}
-
 export function useQboPaymentSyncStatus() {
   const { user } = useAuth();
   const { canViewFinancials, isLoading: permissionsLoading } = usePermissions();
@@ -51,47 +43,43 @@ export function useQboPaymentSyncStatus() {
     enabled: !!user && !permissionsLoading,
     queryFn: async (): Promise<PaymentSyncRow[]> => {
       if (!user) return [];
-      const payments: any[] = [];
-      for (let from = 0; ; from += 1000) {
+      const payments = await fetchAllRows<any>((from, to) => {
         let paymentQuery = supabase
           .from("trip_payments")
-          .select("id, trip_id, booking_id, amount, payment_date, status, payment_type, created_at, user_id")
+          .select("id, trip_id, booking_id, amount, payment_date, due_date, status, payment_type, payment_method, details, notes, stripe_session_id, stripe_receipt_url, stripe_payment_intent_id, created_at, user_id")
           .order("payment_date", { ascending: false, nullsFirst: false })
-          .order("id")
-          .range(from, from + 999);
+          .order("id", { ascending: true })
+          .range(from, to);
         if (!canViewFinancials) paymentQuery = paymentQuery.eq("user_id", user.id);
-        const { data: page, error: pErr } = await paymentQuery;
-        if (pErr) throw pErr;
-        payments.push(...(page ?? []));
-        if (!page || page.length < 1000) break;
-      }
+        return paymentQuery;
+      });
 
-      const ids = (payments ?? []).map((p) => p.id);
-      const tripIds = Array.from(new Set((payments ?? []).map((p) => p.trip_id).filter(Boolean) as string[]));
+      const ids = payments.map((p) => p.id);
+      const tripIds = Array.from(new Set(payments.map((p) => p.trip_id).filter(Boolean) as string[]));
 
-      const [{ data: qboPays }, { data: trips }, { data: logs }] = await Promise.all([
-        ids.length
-          ? inChunks(ids, (c) => supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", c))
-          : Promise.resolve({ data: [] as any[] }),
-        tripIds.length
-          ? inChunks(tripIds, (c) => supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", c))
-          : Promise.resolve({ data: [] as any[] }),
-        supabase
-          .from("qbo_sync_logs")
-          .select("id, sync_type, status, error_message, details, created_at")
-          .ilike("sync_type", "%payment%")
-          .order("created_at", { ascending: false })
-          .limit(1000),
+      const [qboPays, trips, logs] = await Promise.all([
+        fetchInChunks(ids, (chunk) =>
+          supabase.from("qbo_payments").select("crm_payment_id, qbo_id, qbo_invoice_id, synced_at").in("crm_payment_id", chunk)),
+        fetchInChunks(tripIds, (chunk) =>
+          supabase.from("trips").select("id, trip_name, status, client_id, clients:client_id(name)").in("id", chunk)),
+        fetchAllRows<any>((from, to) =>
+          supabase
+            .from("qbo_sync_logs")
+            .select("id, sync_type, status, error_message, details, created_at")
+            .ilike("sync_type", "%payment%")
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: true })
+            .range(from, to)),
       ]);
 
       const qboMap = new Map<string, any>();
-      (qboPays ?? []).forEach((q) => qboMap.set(q.crm_payment_id, q));
+      qboPays.forEach((q) => qboMap.set(q.crm_payment_id, q));
 
       const tripMap = new Map<string, any>();
-      (trips ?? []).forEach((t: any) => tripMap.set(t.id, t));
+      trips.forEach((t: any) => tripMap.set(t.id, t));
 
       const logsByPayment = new Map<string, any[]>();
-      (logs ?? []).forEach((l: any) => {
+      logs.forEach((l: any) => {
         const pid = l.details?.payment_id || l.details?.crm_payment_id;
         if (!pid) return;
         const arr = logsByPayment.get(pid) ?? [];
@@ -100,7 +88,7 @@ export function useQboPaymentSyncStatus() {
       });
 
       // Exclude payments tied to cancelled trips from the sync list entirely.
-      const visible = (payments ?? []).filter((p) => {
+      const visible = payments.filter((p) => {
         if (!p.trip_id) return true;
         const t = tripMap.get(p.trip_id);
         return String(t?.status ?? "").toLowerCase() !== "cancelled";
@@ -111,9 +99,11 @@ export function useQboPaymentSyncStatus() {
         const trip = p.trip_id ? tripMap.get(p.trip_id) : null;
         const history = logsByPayment.get(p.id) ?? [];
         const lastLog = history[0];
+        const skipReason = paymentSkipReason(p) ?? (lastLog?.status === "skipped" ? lastLog.error_message : null);
         let sync_state: SyncState;
         if (qbo) sync_state = "synced";
-        else if (p.status !== "paid") sync_state = "not_eligible";
+        else if (p.status !== "paid" && p.status !== "refunded") sync_state = "not_eligible";
+        else if (skipReason || !isRealClientPayment(p)) sync_state = p.status === "paid" || p.status === "refunded" ? "skipped" : "not_eligible";
         else if (lastLog?.status === "error") sync_state = "failed";
         else sync_state = "pending";
 
@@ -132,7 +122,9 @@ export function useQboPaymentSyncStatus() {
           qbo_invoice_id: qbo?.qbo_invoice_id ?? null,
           synced_at: qbo?.synced_at ?? null,
           sync_state,
-          last_error: lastLog?.status === "error" ? lastLog?.error_message ?? null : null,
+          last_error: sync_state === "skipped"
+            ? (skipReason ?? lastLog?.error_message ?? null)
+            : lastLog?.status === "error" ? lastLog?.error_message ?? null : null,
           last_log_at: lastLog?.created_at ?? null,
           log_history: history,
         };

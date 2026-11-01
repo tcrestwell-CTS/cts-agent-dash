@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToCSV } from "@/lib/csvExport";
 import { useLogBookkeeperAction } from "@/hooks/useBookkeeperAudit";
 import { fetchSupplierMap } from "@/lib/bookkeeperLookups";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import {
   EmptyState,
   SortableHead,
@@ -92,18 +93,20 @@ export default function BookkeeperAPAging() {
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["ap-aging-bookings"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("bookings")
-        .select(
-          "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, trip_id, supplier_id, trips:trip_id(trip_name, return_date, departure_date)"
-        )
-        .neq("supplier_paid_status", "paid")
-        .in("status", ["confirmed", "completed"])
-        .order("created_at", { ascending: true })
-        .limit(1000);
-      if (error) throw error;
-      const supMap = await fetchSupplierMap((data ?? []).map((r: any) => r.supplier_id));
-      return (data ?? []).map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
+      const data = await fetchAllRows<any>((from, to) =>
+        (supabase as any)
+          .from("bookings")
+          .select(
+            "id, confirmation_number, status, supplier_paid_status, supplier_payout, created_at, trip_id, supplier_id, trips:trip_id(trip_name, return_date, departure_date)"
+          )
+          .neq("supplier_paid_status", "paid")
+          .in("status", ["confirmed", "completed"])
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      const supMap = await fetchSupplierMap(data.map((r: any) => r.supplier_id));
+      return data.map((r: any) => ({ ...r, suppliers: supMap[r.supplier_id] ?? null }));
     },
   });
 
