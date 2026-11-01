@@ -6,6 +6,7 @@ import {
   refundRequestId,
   invoiceRequestId,
   selectTripInvoiceId,
+  pickExistingInvoice,
   pickClientFundsAccount,
   supplierSettlement,
   planInstallmentApplication,
@@ -18,6 +19,9 @@ describe("automatic QuickBooks client payments", () => {
   });
   it("does not post unpaid installments", () => {
     expect(isRealClientPayment({ status: "pending", amount: 514.67, payment_date: "2026-10-03" })).toBe(false);
+  });
+  it("posts a paid receipt that has a date even when no method was stored", () => {
+    expect(isRealClientPayment({ status: "paid", amount: 514.67, payment_date: "2026-10-03" })).toBe(true);
   });
   it("does not treat cancelled schedule rows marked paid as cash receipts", () => {
     expect(isRealClientPayment({ status: "paid", amount: 514.67, payment_date: "2026-10-03", due_date: "2026-10-03", payment_type: "installment" })).toBe(false);
@@ -51,6 +55,12 @@ describe("automatic QuickBooks client payments", () => {
       status: "paid", amount: 315.27, payment_date: "2026-10-03", due_date: "2026-10-03",
       payment_type: "payment", details: "Final balance (adjusted — paid in full Oct 2026)",
     })).toBe(false);
+  });
+  it("reuses this customer's existing or suffixed invoice instead of creating another", () => {
+    const found = [{ Id: "9", DocNumber: "INV-2026-00124", CustomerRef: { value: "77" } },
+      { Id: "12", DocNumber: "INV-2026-00130-abcde", CustomerRef: { value: "55" } }];
+    expect(pickExistingInvoice(found, "55", ["INV-2026-00130"])).toBe("12");
+    expect(pickExistingInvoice(found, "55", ["INV-2026-00124"])).toBe(null);
   });
   it("uses the same QuickBooks request identity on every retry", () => {
     const id = "62d71977-261b-4358-a497-96aa9e1a532a";

@@ -4,8 +4,27 @@
 -- Invoice amount_paid is corrected the next time a payment on that trip changes
 -- (a bulk invoice update would fan out to the Kandi webhook).
 
+-- Safe if 0002_trip_payment_refunds_qbo already added the metadata columns.
 ALTER TABLE public.trip_payments
+  ADD COLUMN IF NOT EXISTS refunded_at date,
+  ADD COLUMN IF NOT EXISTS refund_reason text,
+  ADD COLUMN IF NOT EXISTS qbo_refund_id text,
   ADD COLUMN IF NOT EXISTS refunded_amount numeric NOT NULL DEFAULT 0;
+
+-- One refund path: trigger_qbo_client_payment posts the receipt. Lovable's
+-- trg_qbo_client_refund would post a second one, so retire it.
+CREATE OR REPLACE FUNCTION public.trigger_qbo_client_refund()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'extensions'
+AS $$
+BEGIN
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_qbo_client_refund ON public.trip_payments;
 
 CREATE OR REPLACE FUNCTION public.is_invoice_cash_payment(p public.trip_payments)
 RETURNS boolean

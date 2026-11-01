@@ -10,6 +10,7 @@ import {
   paymentRequestId,
   paymentSkipReason,
   pickClientFundsAccount,
+  pickExistingInvoice,
   refundRequestId,
   selectTripInvoiceId,
   supplierBillRequestId,
@@ -74,7 +75,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing trigger_type or record" }), { status: 400 });
   }
 
-  if (trigger_type === "client_payment_received") {
+  if (trigger_type === "client_payment_received" || trigger_type === "client_payment_refunded") {
     const { data: persisted, error } = await supabase.from("trip_payments").select("*").eq("id", record.id).maybeSingle();
     if (error || !persisted) return new Response(JSON.stringify({ error: "Payment not found" }), { status: 400 });
     record = persisted;
@@ -1120,6 +1121,32 @@ async function handleClientPaymentReceived(
 
   // Payment may arrive before booking confirmation, or under an advisor whose
   // invoice was created by an admin. Resolve the trip invoice before posting cash.
+  // Before auto-creating, look for any QBO invoice this customer already has for
+  // the trip's invoice numbers (including advisor-suffixed ones) so we never post a second.
+  if (!qboInvoiceId && payment.trip_id) {
+    const { data: tripInvoices } = await supabase.from("invoices").select("id, invoice_number")
+      .eq("trip_id", payment.trip_id).order("created_at", { ascending: true });
+    const nums = (tripInvoices ?? []).map((i: any) => String(i.invoice_number ?? "")).filter(Boolean);
+    if (nums.length) {
+      const q = await fetch(`${qboBase}/query?query=${encodeURIComponent(
+        `SELECT Id, DocNumber, CustomerRef FROM Invoice WHERE CustomerRef = '${qboCustomerId}' MAXRESULTS 1000`)}`,
+        { headers: qboHeaders });
+      if (q.ok) {
+        const found = (await q.json())?.QueryResponse?.Invoice ?? [];
+        const existing = pickExistingInvoice(found, qboCustomerId, nums);
+        if (existing) {
+          qboInvoiceId = existing;
+          const local = tripInvoices![0];
+          localInvoiceId = local.id;
+          invoiceNumber = local.invoice_number;
+          await supabase.from("qbo_invoice_mappings").upsert({
+            user_id: userId, invoice_id: local.id, qbo_invoice_id: existing,
+            last_synced_at: new Date().toISOString(),
+          }, { onConflict: "user_id,invoice_id" });
+        }
+      } else throw new Error("Could not check QuickBooks for an existing trip invoice; retry later");
+    }
+  }
   if (!qboInvoiceId && payment.trip_id) {
     const { data: tripBooking } = await supabase.from("bookings").select("*")
       .eq("trip_id", payment.trip_id).order("created_at", { ascending: true }).limit(1).maybeSingle();
@@ -1425,6 +1452,11 @@ async function handleClientPaymentRefunded(
     await logSync(supabase, userId, "auto-client-payment-refunded", "skipped", 0, "No refund amount", { payment_id: payment.id });
     return;
   }
+  const fullAmount = Number(payment.amount) || 0;
+  if (payment.qbo_refund_id && prior <= 0.005 && delta + 0.005 >= fullAmount && fullAmount > 0) {
+    await logSync(supabase, userId, "auto-client-payment-refunded", "skipped", 0, "Refund already in QuickBooks", { payment_id: payment.id });
+    return;
+  }
   const cents = Math.round(current * 100);
   const idem = `client_refund:${payment.id}:${cents}`;
   const { data: already } = await supabase.from("qbo_sync_logs").select("id").eq("idempotency_key", idem).eq("status", "success").maybeSingle();
@@ -1448,12 +1480,12 @@ async function handleClientPaymentRefunded(
     "Bank",
   );
   const itemId = await ensureClientFundsItem(supabase, qboBase, qboHeaders);
-  const txnDate = (payment.payment_date || new Date().toISOString()).split("T")[0];
+  const txnDate = (payment.refunded_at || payment.payment_date || new Date().toISOString()).split("T")[0];
   const body = {
     CustomerRef: { value: qboCustomerId },
     DepositToAccountRef: { value: depositAccount.id, name: depositAccount.name },
     TxnDate: txnDate,
-    PrivateNote: `Client funds refund payment:${payment.id}`,
+    PrivateNote: `Client funds refund payment:${payment.id}${payment.refund_reason ? ` – ${payment.refund_reason}` : ""}`,
     Line: [{
       Amount: delta,
       DetailType: "SalesItemLineDetail",
@@ -1467,6 +1499,9 @@ async function handleClientPaymentRefunded(
   );
   if (!resp.ok) throw new Error(`QBO refund receipt failed: ${await resp.text()}`);
   const refundId = (await resp.json())?.RefundReceipt?.Id ?? null;
+  if (refundId) {
+    await supabase.from("trip_payments").update({ qbo_refund_id: String(refundId) }).eq("id", payment.id);
+  }
   await supabase.from("qbo_sync_logs").insert({
     user_id: userId,
     sync_type: "auto-client-payment-refunded",

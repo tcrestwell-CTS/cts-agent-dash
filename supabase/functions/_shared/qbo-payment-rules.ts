@@ -138,7 +138,10 @@ export function selectTripInvoiceId(
   const tagged = sameCustomer.find((c) => (c.privateNote ?? "").includes(tag));
   if (tagged) return tagged.id;
   if (wanted.docNumber) {
-    const doc = sameCustomer.find((c) => c.docNumber === wanted.docNumber);
+    const prefix = wanted.docNumber.substring(0, 15);
+    const doc = sameCustomer.find((c) =>
+      c.docNumber === wanted.docNumber ||
+      (prefix.length > 0 && String(c.docNumber ?? "").startsWith(`${prefix}-`)));
     if (doc) return doc.id;
   }
   const confirmation = (wanted.confirmation ?? "").trim();
@@ -234,4 +237,15 @@ export function planInstallmentApplication(
     }
   }
   return { updates, markedPaid, reducedRemainder };
+}
+
+/** Find an existing QBO invoice for this customer whose DocNumber is one of the
+ *  trip's invoice numbers or an advisor-suffixed variant of it. */
+export function pickExistingInvoice(
+  found: Array<{ Id?: string; DocNumber?: string; CustomerRef?: { value?: string } }>,
+  customerId: string, docNumbers: string[],
+): string | null {
+  const hit = found.find((i) => String(i?.CustomerRef?.value) === String(customerId) &&
+    docNumbers.some((d) => i.DocNumber === d || String(i.DocNumber ?? "").startsWith(`${d.substring(0, 15)}-`)));
+  return hit?.Id ? String(hit.Id) : null;
 }
