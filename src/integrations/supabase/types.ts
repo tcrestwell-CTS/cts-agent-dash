@@ -11243,7 +11243,6 @@ export type Database = {
           payment_type: string
           qbo_refund_id: string | null
           refund_reason: string | null
-          refunded_amount: number
           refunded_at: string | null
           status: string
           stripe_fee: number | null
@@ -11279,7 +11278,6 @@ export type Database = {
           payment_type?: string
           qbo_refund_id?: string | null
           refund_reason?: string | null
-          refunded_amount?: number
           refunded_at?: string | null
           status?: string
           stripe_fee?: number | null
@@ -11315,7 +11313,6 @@ export type Database = {
           payment_type?: string
           qbo_refund_id?: string | null
           refund_reason?: string | null
-          refunded_amount?: number
           refunded_at?: string | null
           status?: string
           stripe_fee?: number | null
