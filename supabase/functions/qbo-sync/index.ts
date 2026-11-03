@@ -75,6 +75,22 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
       connection = sharedConn ?? null;
+      // Recover a renewal race only after QuickBooks confirms the saved token.
+      if (!connection) {
+        const { data: candidate } = await supabaseAdmin.from("qbo_connections").select("*")
+          .eq("is_active", false).gt("token_expires_at", new Date(Date.now() + 60_000).toISOString())
+          .order("updated_at", { ascending: false }).limit(1).maybeSingle();
+        if (candidate) {
+          const verification = await fetch(`${QBO_BASE}/${candidate.realm_id}/companyinfo/${candidate.realm_id}`, {
+            headers: { Authorization: `Bearer ${candidate.access_token}`, Accept: "application/json" },
+          });
+          if (verification.ok) {
+            const { data: recovered } = await supabaseAdmin.from("qbo_connections").update({ is_active: true })
+              .eq("id", candidate.id).eq("access_token", candidate.access_token).select("*").maybeSingle();
+            connection = recovered;
+          }
+        }
+      }
     }
   }
 
