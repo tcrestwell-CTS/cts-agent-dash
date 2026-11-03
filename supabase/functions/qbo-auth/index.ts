@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+import { refreshQboConnection } from "../_shared/qbo-token.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -265,45 +267,7 @@ serve(async (req) => {
         );
       }
 
-      const basicAuth = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
-      const tokenResp = await fetch(QBO_TOKEN_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-        },
-        body: new URLSearchParams({
-          grant_type: "refresh_token",
-          refresh_token: connection.refresh_token,
-        }),
-      });
-
-      if (!tokenResp.ok) {
-        const errText = await tokenResp.text();
-        console.error("QBO token refresh failed:", tokenResp.status, errText);
-        await supabaseAdmin
-          .from("qbo_connections")
-          .update({ is_active: false })
-          .eq("id", connection.id);
-
-        return new Response(
-          JSON.stringify({ error: "Token refresh failed. Please reconnect." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const tokens = await tokenResp.json();
-      const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
-
-      await supabaseAdmin
-        .from("qbo_connections")
-        .update({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          token_expires_at: newExpiresAt,
-        })
-        .eq("id", connection.id);
+      await refreshQboConnection(supabaseAdmin, connection, QBO_CLIENT_ID, QBO_CLIENT_SECRET);
 
       return new Response(
         JSON.stringify({ success: true }),
@@ -358,69 +322,20 @@ serve(async (req) => {
         // Auto-refresh if token is expired or expiring within 5 minutes
         const tokenExpiry = new Date(connection.token_expires_at);
         if (tokenExpiry <= new Date(Date.now() + 5 * 60 * 1000)) {
-          console.log("QBO status: token expired/expiring, attempting auto-refresh");
-          const basicAuth = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
-          const tokenResp = await fetch(QBO_TOKEN_URL, {
-            method: "POST",
-            headers: {
-              Authorization: `Basic ${basicAuth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-              Accept: "application/json",
-            },
-            body: new URLSearchParams({
-              grant_type: "refresh_token",
-              refresh_token: connection.refresh_token,
-            }),
-          });
-
-          if (tokenResp.ok) {
-            const tokens = await tokenResp.json();
-            const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
-            await supabaseAdmin
-              .from("qbo_connections")
-              .update({
-                access_token: tokens.access_token,
-                refresh_token: tokens.refresh_token,
-                token_expires_at: newExpiresAt,
-              })
-              .eq("id", connection.id);
-            console.log("QBO status: token auto-refreshed successfully");
-
-            return new Response(
-              JSON.stringify({
-                connected: true,
-                refreshed: true,
-                connection: {
-                  realm_id: connection.realm_id,
-                  company_name: connection.company_name,
-                  is_active: true,
-                  token_expires_at: newExpiresAt,
-                  created_at: connection.created_at,
-                },
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          } else {
-            console.error("QBO status: auto-refresh failed, marking inactive");
-            await supabaseAdmin
-              .from("qbo_connections")
-              .update({ is_active: false })
-              .eq("id", connection.id);
-
-            return new Response(
-              JSON.stringify({
-                connected: false,
-                needs_reconnect: true,
-                connection: {
-                  realm_id: connection.realm_id,
-                  company_name: connection.company_name,
-                  is_active: false,
-                  token_expires_at: connection.token_expires_at,
-                  created_at: connection.created_at,
-                },
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+          try {
+            const renewed = await refreshQboConnection(supabaseAdmin, connection, QBO_CLIENT_ID, QBO_CLIENT_SECRET);
+            return new Response(JSON.stringify({ connected: true, refreshed: true, connection: {
+              realm_id: renewed.realm_id, company_name: renewed.company_name, is_active: true,
+              token_expires_at: renewed.token_expires_at, created_at: renewed.created_at,
+            }}), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          } catch (error) {
+            const needsReconnect = error instanceof Error && error.message.includes("Please reconnect");
+            return new Response(JSON.stringify({ connected: !needsReconnect, renewal_pending: !needsReconnect, needs_reconnect: needsReconnect,
+              error: error instanceof Error ? error.message : "QuickBooks renewal failed",
+              connection: { realm_id: connection.realm_id, company_name: connection.company_name,
+                is_active: !needsReconnect, token_expires_at: connection.token_expires_at,
+                created_at: connection.created_at },
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
         }
       }

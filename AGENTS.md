@@ -1,6 +1,7 @@
 # Project Architecture Rules
 - Real paid trip-payment inserts and status transitions post through qbo-sync-trigger, which resolves the trip invoice regardless of invoice creator, uses a Client Funds service item and stable QBO payment request IDs — receipts must apply once without becoming agency income.
 - Bookkeeper P&L reads monthly QuickBooks ProfitAndLoss reports via the authenticated qbo-sync read-report action, never client receipt minus supplier disbursement totals — client-funds movement is not agency profit.
+- QBO auth, reports and sync triggers renew through `_shared/qbo-token.ts` with conditional writes and newer-token recovery; concurrent refresh failures must not deactivate a successfully renewed connection.
 - Group signup, Hawaii selections, and wizard booking emails use `_shared/group-emails.ts` with event/audience idempotency, owner-account recipients, and success/failure logs — saved submissions must not silently lose advisor or client email copies.
 
 - Keep authenticated advisor writing assistance in the existing `itinerary-ai-action` function so itinerary and trip-page copy share one guarded AI boundary.

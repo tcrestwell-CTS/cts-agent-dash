@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Fix concurrent QBO renewal disconnections; deployed three functions, 23 tests passed, signed-in July net $2,565.55 and October net $238.96 verified; connection active.
 - [x] Wire paid client-payment inserts and updates to automatic QBO invoice/payment posting; Tara invoice 2161 and payments 2162/2163 verified, replay skipped, no new charges.
 - [x] Verify real Carnival supplier payment ($1,004.76, bill 2141) in QuickBooks and the signed-in app; refresh bills/payment cache without reposting.
 - [x] Compare October client funds: app receipts $3,137.97; actual supplier payments $2,736.74; app additionally treats Nattaya's $123.80 advisor payout as supplier cash-out. QuickBooks October accrual net $238.96 is not app cash-flow net $277.43.
