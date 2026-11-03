@@ -73,6 +73,8 @@ export function useBookkeeperAlerts() {
           .from("checkout_payments")
           .select("id", { count: "exact", head: true })
           .eq("payment_type", "unattributed_deposit")
+          .eq("status", "succeeded")
+          .is("trip_id", null)
           .lt("created_at", sevenAgo),
       ]);
       return {

@@ -200,7 +200,8 @@ function useUnattributedCount(enabled: boolean) {
         .from("checkout_payments")
         .select("id", { count: "exact", head: true })
         .eq("payment_type", "unattributed_deposit")
-        .neq("status", "succeeded");
+        .eq("status", "succeeded")
+        .is("trip_id", null);
       if (error) {
         console.error("Unattributed count error:", error);
         return 0;
