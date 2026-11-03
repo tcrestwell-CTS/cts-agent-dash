@@ -18,6 +18,7 @@ import {
   supplierSettlement,
   tripInvoiceTag,
 } from "../_shared/qbo-payment-rules.ts";
+import { refreshQboConnection } from "../_shared/qbo-token.ts";
 import { advisorClassForTrip, applyClass, getAdvisorVendorId, postWithClassFallback } from "../_shared/qbo-advisor.ts";
 
 /**
@@ -114,37 +115,14 @@ serve(async (req) => {
   // ── Auto-refresh token if near expiry ──
   const tokenExpiry = new Date(connection.token_expires_at);
   if (tokenExpiry <= new Date(Date.now() + 60_000)) {
-    const QBO_CLIENT_ID = Deno.env.get("QBO_CLIENT_ID")!;
-    const QBO_CLIENT_SECRET = Deno.env.get("QBO_CLIENT_SECRET")!;
-    const basicAuth = btoa(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`);
-
-    const tokenResp = await fetch("https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${basicAuth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: connection.refresh_token,
-      }),
-    });
-
-    if (!tokenResp.ok) {
-      await supabase.from("qbo_connections").update({ is_active: false }).eq("id", connection.id);
-      await logSync(supabase, userId, trigger_type, "error", 0, "Token refresh failed during auto-sync");
-      return new Response(JSON.stringify({ error: "Token refresh failed" }), { status: 500 });
+    try {
+      connection = await refreshQboConnection(supabase, connection,
+        Deno.env.get("QBO_CLIENT_ID") ?? "", Deno.env.get("QBO_CLIENT_SECRET") ?? "");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "QuickBooks renewal failed";
+      await logSync(supabase, userId, trigger_type, "error", 0, message);
+      return new Response(JSON.stringify({ error: message }), { status: 503 });
     }
-
-    const tokens = await tokenResp.json();
-    connection.access_token = tokens.access_token;
-    connection.refresh_token = tokens.refresh_token;
-    await supabase.from("qbo_connections").update({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-    }).eq("id", connection.id);
   }
 
   const qboBase = `${QBO_BASE}/${connection.realm_id}`;

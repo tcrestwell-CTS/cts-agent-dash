@@ -29,7 +29,8 @@ function usePLData(year: number) {
   return useQuery({
     queryKey: ["bookkeeper-pl-qbo", year],
     queryFn: async () => {
-      return Promise.all(Array.from({ length: 12 }, async (_, index) => {
+      const months = [];
+      for (let index = 0; index < 12; index++) {
         const month = String(index + 1).padStart(2, "0");
         const lastDay = new Date(Date.UTC(year, index + 1, 0)).getUTCDate();
         const params = new URLSearchParams({
@@ -38,8 +39,9 @@ function usePLData(year: number) {
         });
         const { data, error } = await supabase.functions.invoke(`qbo-sync?${params}`, { method: "GET" });
         if (error) throw new Error("QuickBooks P&L is unavailable. Please retry or check the QuickBooks connection.");
-        return parseQboProfitLoss(data);
-      }));
+        months.push(parseQboProfitLoss(data));
+      }
+      return months;
     },
     staleTime: 60_000,
     retry: false,
