@@ -47,7 +47,8 @@ export default function BookkeeperPacket() {
         supabase.from("bookings").select("id", { count: "exact", head: true })
           .neq("supplier_paid_status", "paid").in("status", ["confirmed", "completed"]),
         (supabase as any).from("checkout_payments").select("id", { count: "exact", head: true })
-          .eq("payment_type", "unattributed_deposit"),
+          .eq("payment_type", "unattributed_deposit")
+          .eq("status", "succeeded").is("trip_id", null),
       ]);
       return {
         qbo: !!(qboRes.data && qboRes.data.length > 0),
