@@ -329,10 +329,11 @@ serve(async (req) => {
               token_expires_at: renewed.token_expires_at, created_at: renewed.created_at,
             }}), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           } catch (error) {
-            return new Response(JSON.stringify({ connected: true, renewal_pending: true,
+            const needsReconnect = error instanceof Error && error.message.includes("Please reconnect");
+            return new Response(JSON.stringify({ connected: !needsReconnect, renewal_pending: !needsReconnect, needs_reconnect: needsReconnect,
               error: error instanceof Error ? error.message : "QuickBooks renewal failed",
               connection: { realm_id: connection.realm_id, company_name: connection.company_name,
-                is_active: connection.is_active, token_expires_at: connection.token_expires_at,
+                is_active: !needsReconnect, token_expires_at: connection.token_expires_at,
                 created_at: connection.created_at },
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
