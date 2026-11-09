@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateHeroImage } from "@/lib/heroImageQuality";
 import { UnsplashPicker } from "@/components/trips/UnsplashPicker";
+import type { CelebrationConfig } from "@/components/group/CelebrationSection";
 import {
   ArrowLeft,
   Eye,
@@ -60,6 +61,7 @@ interface LandingContent {
   cta_enabled?: boolean;
   cta_button_label?: string;
   cta_link?: string;
+  celebration?: CelebrationConfig;
 }
 
 const generateId = () => crypto.randomUUID();
@@ -90,6 +92,28 @@ const GroupLandingBuilder = () => {
   const [ctaEnabled, setCtaEnabled] = useState(false);
   const [ctaButtonLabel, setCtaButtonLabel] = useState("");
   const [ctaLink, setCtaLink] = useState("");
+
+  const [celebration, setCelebration] = useState<CelebrationConfig>({ enabled: false, photos: [] });
+  const [uploadingCeleb, setUploadingCeleb] = useState(false);
+  const celebFileRef = useRef<HTMLInputElement>(null);
+  const updateCeleb = (patch: Partial<CelebrationConfig>) => setCelebration((c) => ({ ...c, ...patch }));
+  const uploadCelebPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploadingCeleb(true);
+    const added: { id: string; url: string }[] = [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/") || file.size > 8 * 1024 * 1024) { toast.error(`${file.name}: image under 8MB required`); continue; }
+      const id = generateId();
+      const path = `${tripId}/celebration-${id}.${file.name.split(".").pop()}`;
+      const { error } = await supabase.storage.from("trip-covers").upload(path, file, { upsert: true, cacheControl: "31536000" });
+      if (error) { toast.error(`Failed to upload ${file.name}`); continue; }
+      added.push({ id, url: supabase.storage.from("trip-covers").getPublicUrl(path).data.publicUrl });
+    }
+    setCelebration((c) => ({ ...c, photos: [...(c.photos || []), ...added] }));
+    if (added.length) toast.success(`${added.length} photo(s) added — remember to save`);
+    setUploadingCeleb(false);
+    if (celebFileRef.current) celebFileRef.current.value = "";
+  };
 
   // UI state
   const [heroUrlInput, setHeroUrlInput] = useState("");
@@ -148,6 +172,7 @@ const GroupLandingBuilder = () => {
     setCtaEnabled(content.cta_enabled || false);
     setCtaButtonLabel(content.cta_button_label || "");
     setCtaLink(content.cta_link || "");
+    setCelebration(content.celebration || { enabled: false, photos: [] });
     setLoading(false);
   };
 
@@ -190,6 +215,7 @@ const GroupLandingBuilder = () => {
       cta_enabled: ctaEnabled,
       cta_button_label: ctaButtonLabel,
       cta_link: ctaLink,
+      celebration,
     };
 
     const { error } = await supabase
@@ -668,6 +694,55 @@ const GroupLandingBuilder = () => {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Celebration */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium">Celebration: countdown, cruise details &amp; photo slideshow</Label>
+                <p className="text-xs text-muted-foreground">Counts down to the sail date. Photos of the guest of honor play as a slideshow.</p>
+              </div>
+              <Switch checked={!!celebration.enabled} onCheckedChange={(v) => updateCeleb({ enabled: v })} aria-label="Show celebration section" />
+            </div>
+            {celebration.enabled && (
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div><Label className="text-xs">Guest of honor</Label><Input value={celebration.honoree_name || ""} onChange={(e) => updateCeleb({ honoree_name: e.target.value })} placeholder="Claire" /></div>
+                  <div><Label className="text-xs">Occasion</Label><Input value={celebration.occasion || ""} onChange={(e) => updateCeleb({ occasion: e.target.value })} placeholder="60th birthday" /></div>
+                  <div><Label className="text-xs">Cruise line</Label><Input value={celebration.cruise_line || ""} onChange={(e) => updateCeleb({ cruise_line: e.target.value })} placeholder="Virgin Voyages" /></div>
+                  <div><Label className="text-xs">Ship</Label><Input value={celebration.ship_name || ""} onChange={(e) => updateCeleb({ ship_name: e.target.value })} placeholder="Valiant Lady" /></div>
+                  <div><Label className="text-xs">Departure port</Label><Input value={celebration.embark_port || ""} onChange={(e) => updateCeleb({ embark_port: e.target.value })} /></div>
+                  <div><Label className="text-xs">Boarding time (countdown target)</Label><Input type="time" value={celebration.embark_time || ""} onChange={(e) => updateCeleb({ embark_time: e.target.value })} /></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Slideshow photos ({celebration.photos?.length || 0})</Label>
+                  <Button type="button" size="sm" variant="outline" disabled={uploadingCeleb} onClick={() => celebFileRef.current?.click()}>
+                    {uploadingCeleb ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5 mr-1" />} Add photos
+                  </Button>
+                  <input ref={celebFileRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => uploadCelebPhotos(e.target.files)} />
+                </div>
+                {(celebration.photos?.length || 0) > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {celebration.photos!.map((p, i) => (
+                      <div key={p.id} className="space-y-1">
+                        <div className="relative aspect-square overflow-hidden rounded-md border">
+                          <img src={p.url} alt="" className="h-full w-full object-cover" />
+                          <Button type="button" size="icon" variant="destructive" className="absolute right-1 top-1 h-6 w-6" aria-label="Remove photo"
+                            onClick={() => updateCeleb({ photos: celebration.photos!.filter((x) => x.id !== p.id) })}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <Input className="h-7 text-xs" placeholder="Caption (optional)" value={p.caption || ""}
+                          onChange={(e) => updateCeleb({ photos: celebration.photos!.map((x, j) => j === i ? { ...x, caption: e.target.value } : x) })} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
