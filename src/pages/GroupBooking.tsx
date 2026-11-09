@@ -193,7 +193,7 @@ export default function GroupBooking() {
     }));
 
   const guestsTotal = rooms.reduce((s, r) => s + r.adults + r.children, 0);
-  const lowestPP = (opts: CabinOption[]) => Math.min(...opts.filter((o) => !o.sold_out).map((o) => Number(o.price_per_person) / (o.price_period === "cabin" ? 2 : 1))));
+  const lowestPP = (opts: CabinOption[]) => Math.min(...opts.filter((o) => !o.sold_out).map((o) => Number(o.price_per_person) / (o.price_period === "cabin" ? 2 : 1)));
 
   // ── Step gates ──
   const canLeavePartySize = rooms.every((r) => r.adults >= 1);
