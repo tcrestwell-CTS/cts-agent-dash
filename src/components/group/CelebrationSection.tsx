@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Anchor, Ship, MapPin, Calendar, PartyPopper } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { parseLocalDate } from "@/lib/utils";
 
 export interface CelebrationPhoto {
   id: string;

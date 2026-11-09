@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
+import { CelebrationSection, type CelebrationConfig } from "@/components/group/CelebrationSection";
 import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { HawaiiProposal } from "@/components/group/HawaiiProposal";
 import { SafeHtml } from "@/components/ui/rich-text-editor";
@@ -66,6 +67,7 @@ interface LandingContent {
   cta_enabled?: boolean;
   cta_button_label?: string;
   cta_link?: string;
+  celebration?: CelebrationConfig;
 }
 
 interface CabinOption {
@@ -371,6 +373,14 @@ export default function GroupLanding() {
   const featureImages = content.feature_images || [];
   const additionalSections = content.additional_sections || [];
   const inclusions: string[] = content.inclusions || [];
+  const celebration = content.celebration;
+  const celebrationPorts = Array.from(
+    new Set(
+      data.itineraryHighlights
+        .filter((i) => i.location && /,/.test(i.location) && !/deck|ship/i.test(i.location))
+        .map((i) => i.location as string)
+    )
+  ).filter((l) => !celebration?.embark_port || !l.includes(celebration.embark_port.split(",")[0]));
   const signupEnabled = content.signup_enabled !== false;
   const signupButtonLabel = content.signup_button_label || "Join This Trip";
   const openSignup = () => {
@@ -534,6 +544,16 @@ export default function GroupLanding() {
             ) : descriptionPlain ? (
               <SafeHtml html={descriptionPlain} className="text-gray-700 leading-relaxed text-[15px]" />
             ) : null}
+
+            {celebration?.enabled && (
+              <CelebrationSection
+                config={celebration}
+                departDate={data.trip.depart_date}
+                returnDate={data.trip.return_date}
+                ports={celebrationPorts}
+                accentColor={accentColor}
+              />
+            )}
 
             {/* ─── INCLUDED IN YOUR TRIP ────────── */}
             {inclusions.length > 0 && (
