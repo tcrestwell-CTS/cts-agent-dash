@@ -7,6 +7,7 @@ export type CabinOptionPricing = {
   category_group: string;
   category_name: string;
   price_per_person: number;
+  price_period?: string | null;
   third_fourth_price: number | null;
   child_price: number | null;
   single_supplement_pct: number;
@@ -79,6 +80,13 @@ export function quoteRoom(opt: CabinOptionPricing | null, room: RoomInput, cfg: 
   const guests = Math.max(0, (room.adults || 0) + (room.children || 0));
   if (!opt || guests === 0) {
     return { cabin_option_id: room.cabin_option_id, guests, fare: 0, taxes: 0, per_person_display: opt ? Number(opt.price_per_person) : 0, breakdown: [], deposit: 0 };
+  }
+  if (opt.price_period === "cabin") {
+    const fare = r2(Number(opt.price_per_person) || 0);
+    const taxes = r2((Number(cfg.taxes_fees_per_person) || 0) * guests);
+    const depositPP = Number(opt.deposit_amount) > 0 ? Number(opt.deposit_amount) : Number(cfg.group_deposit_per_person) || 0;
+    return { cabin_option_id: opt.id, guests, fare, taxes, per_person_display: r2(fare / guests),
+      breakdown: [{ seat: 1, label: "Cabin total", amount: fare }], deposit: r2(Math.min(depositPP * guests, fare + taxes)) };
   }
   const breakdown: RoomQuote["breakdown"] = [];
   let seat = 0;

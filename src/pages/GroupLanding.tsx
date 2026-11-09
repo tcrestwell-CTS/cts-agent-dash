@@ -683,7 +683,7 @@ export default function GroupLanding() {
                           <thead>
                             <tr className="text-left text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200 bg-gray-50">
                               <th className="px-4 py-3 font-semibold">Option</th>
-                              <th className="px-4 py-3 font-semibold text-right">Per Person</th>
+                              <th className="px-4 py-3 font-semibold text-right">{data.cabinOptions.every((c) => c.price_period === "cabin") ? "Cabin Total (USD)" : "Price (USD)"}</th>
                               {data.cabinOptions.some((c) => c.requires_double_occupancy) && (
                                 <th className="px-4 py-3 font-semibold text-right">Cabin Total (2)</th>
                               )}
@@ -710,6 +710,7 @@ export default function GroupLanding() {
                                   <span className="text-base font-bold" style={{ color: primaryColor }}>
                                     {currency(cabin.price_per_person)}
                                   </span>
+                                  {cabin.price_period !== "cabin" && (<span className="block text-[11px] text-muted-foreground">per person</span>)}
                                   {cabin.price_period === "night" && (
                                     <span className="block text-[11px] text-gray-400">per night</span>
                                   )}
@@ -717,7 +718,7 @@ export default function GroupLanding() {
                                 {data.cabinOptions.some((c) => c.requires_double_occupancy) && (
                                   <td className="px-4 py-3.5 text-right font-semibold text-gray-700">
                                     {cabin.requires_double_occupancy
-                                      ? currency(cabin.price_per_person * 2 * (cabin.price_period === "night" ? 1 : 1))
+                                      ? currency(cabin.price_per_person * (cabin.price_period === "cabin" ? 1 : 2))
                                       : "—"}
                                   </td>
                                 )}
@@ -1348,7 +1349,7 @@ export default function GroupLanding() {
                         <option value="">Select a cabin type...</option>
                         {data.cabinOptions.map((cabin) => (
                           <option key={cabin.id} value={cabin.id}>
-                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/person{cabin.price_period === 'night' ? ' / night' : ''}{cabin.requires_double_occupancy ? ' (2 travelers min)' : ''}
+                            {cabin.category_name} — ${cabin.price_per_person.toLocaleString()}/{cabin.price_period === "cabin" ? "cabin" : "person"}{cabin.price_period === 'night' ? ' / night' : ''}{cabin.requires_double_occupancy ? ' (2 travelers min)' : ''}
                           </option>
                         ))}
                       </select>

@@ -11,6 +11,14 @@ const veranda: CabinOptionPricing = {
 const cfg = { taxes_fees_per_person: 0, group_deposit_per_person: 250, promo_codes: [] };
 
 describe("group pricing", () => {
+  it.each([2730, 2450, 12600])("charges the $%s cabin total once regardless of guest count", (amount) => {
+    for (const adults of [1, 2]) {
+      const opt = { ...veranda, price_period: "cabin", price_per_person: amount };
+      const q = quoteBooking([{ cabin_option_id: "v1", adults, children: 0 }], [opt], [], [], cfg);
+      expect(q.fare_subtotal).toBe(amount);
+      expect(q.deposit_due).toBe(250 * adults);
+    }
+  });
   it("prices two adults at $886 each (Celebrity example = $1,772)", () => {
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [veranda], [], [], cfg, null);
     expect(q.fare_subtotal).toBe(1772);

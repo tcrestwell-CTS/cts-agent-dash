@@ -29,3 +29,6 @@
 - [ ] Refunds to QuickBooks
 - [ ] Partially paid supplier bills
 - [ ] Virtual-card supplier charges
+
+## Claire cabin prices
+- [ ] Update three total-cabin fares and Essential Fare label; verify public signup calculations and page.

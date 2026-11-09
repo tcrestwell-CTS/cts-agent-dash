@@ -193,7 +193,7 @@ export default function GroupBooking() {
     }));
 
   const guestsTotal = rooms.reduce((s, r) => s + r.adults + r.children, 0);
-  const lowestPP = (opts: CabinOption[]) => Math.min(...opts.filter((o) => !o.sold_out).map((o) => Number(o.price_per_person)));
+  const lowestPP = (opts: CabinOption[]) => Math.min(...opts.filter((o) => !o.sold_out).map((o) => Number(o.price_per_person) / (o.price_period === "cabin" ? 2 : 1))));
 
   // ── Step gates ──
   const canLeavePartySize = rooms.every((r) => r.adults >= 1);
@@ -418,7 +418,7 @@ export default function GroupBooking() {
                               <div className="mt-auto pt-3 flex items-end justify-between">
                                 <div>
                                   <div className="text-xs text-muted-foreground">Starting from</div>
-                                  <div className="text-xl font-bold">{money(Number(o.price_per_person), currency)} <span className="text-xs font-normal text-muted-foreground">/person*</span></div>
+                                  <div className="text-xl font-bold">{money(Number(o.price_per_person), currency)} <span className="text-xs font-normal text-muted-foreground">/{o.price_period === "cabin" ? "cabin" : "person*"}</span></div>
                                   {roomQuote.taxes > 0 && <div className="text-xs text-muted-foreground">+ {money(roomQuote.taxes, currency)} taxes & fees</div>}
                                   <div className="text-xs text-muted-foreground">{money(roomQuote.fare + roomQuote.taxes, currency)} Total/Room</div>
                                 </div>
