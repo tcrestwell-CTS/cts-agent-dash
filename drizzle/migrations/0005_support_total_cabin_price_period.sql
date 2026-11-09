@@ -1,0 +1,3 @@
+ALTER TABLE public.trip_cabin_options DROP CONSTRAINT trip_cabin_options_price_period_check;
+ALTER TABLE public.trip_cabin_options ADD CONSTRAINT trip_cabin_options_price_period_check CHECK (price_period IN ('trip', 'night', 'cabin'));
+COMMENT ON COLUMN public.trip_cabin_options.price_period IS 'trip = per person per trip; night = per person per night; cabin = total per cabin per trip stored in price_per_person for compatibility.';

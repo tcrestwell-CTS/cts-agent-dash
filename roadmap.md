@@ -29,3 +29,6 @@
 - [ ] Refunds to QuickBooks
 - [ ] Partially paid supplier bills
 - [ ] Virtual-card supplier charges
+
+## Claire cabin prices
+- [x] Update three total-cabin fares and Essential Fare label; six pricing tests passed, preview table and signup labels verified, functions deployed. Publication of frontend labels remains user-controlled.

@@ -27,7 +27,7 @@ interface CabinOption {
   capacity: number | null;
   image_url: string | null;
   sort_order: number;
-  price_period?: 'trip' | 'night';
+  price_period?: 'trip' | 'night' | 'cabin';
 }
 
 interface CabinAvailabilitySectionProps {
@@ -206,7 +206,7 @@ export function BalconyCabinsSection({ tripId }: CabinAvailabilitySectionProps) 
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{cabin.category_name}</span>
                       <Badge variant="outline" className="text-xs">
-                        {formatCurrency(cabin.price_per_person)} / person{cabin.price_period === 'night' ? ' / night' : ''}
+                        {formatCurrency(cabin.price_per_person)} / {cabin.price_period === "cabin" ? "cabin" : "person"}{cabin.price_period === 'night' ? ' / night' : ''}
                       </Badge>
                       {cabin.deposit_amount != null && cabin.deposit_amount > 0 && (
                         <Badge variant="secondary" className="text-xs">

@@ -19,7 +19,7 @@ interface CabinOption {
   capacity: number | null;
   image_url: string | null;
   sort_order: number;
-  price_period?: 'trip' | 'night';
+  price_period?: 'trip' | 'night' | 'cabin';
   requires_double_occupancy?: boolean;
 }
 
@@ -41,7 +41,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     deposit_amount: string;
     capacity: string;
     image_url: string;
-    price_period: 'trip' | 'night';
+    price_period: 'trip' | 'night' | 'cabin';
     requires_double_occupancy: boolean;
   } | null>(null);
 
@@ -52,7 +52,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
     deposit_amount: "",
     capacity: "",
     image_url: "",
-    price_period: "trip" as 'trip' | 'night',
+    price_period: "trip" as 'trip' | 'night' | 'cabin',
     requires_double_occupancy: false,
   });
 
@@ -125,7 +125,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
       deposit_amount: String(opt.deposit_amount ?? ""),
       capacity: opt.capacity != null ? String(opt.capacity) : "",
       image_url: opt.image_url ?? "",
-      price_period: (opt.price_period as 'trip' | 'night') ?? 'trip',
+      price_period: (opt.price_period as 'trip' | 'night' | 'cabin') ?? 'trip',
       requires_double_occupancy: !!opt.requires_double_occupancy,
     });
   };
@@ -223,7 +223,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-sm">Price Per Person</Label>
+                    <Label className="text-sm">{editDraft.price_period === "cabin" ? "Price Per Cabin" : "Price Per Person"}</Label>
                     <Input
                       type="number"
                       min="0"
@@ -236,10 +236,10 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
                         type="checkbox"
                         checked={editDraft.price_period === 'night'}
                         onChange={(e) =>
-                          setEditDraft((p) => p && ({ ...p, price_period: e.target.checked ? 'night' : 'trip' }))
+                          setEditDraft((p) => p && ({ ...p, price_period: e.target.checked ? 'night' : p.price_period === 'cabin' ? 'cabin' : 'trip' }))
                         }
                       />
-                      Price is per person, per night
+                      {editDraft.price_period === "cabin" ? "Price is per cabin, per trip" : "Price is per person, per night"}
                     </label>
                   </div>
                   <div className="space-y-1.5">
@@ -316,7 +316,7 @@ export function CabinOptionsManager({ tripId, onDataChange }: CabinOptionsManage
               <div className="flex items-center gap-2">
                 <span className="font-medium">{opt.category_name}</span>
                 <Badge variant="outline" className="text-xs">
-                  {formatCurrency(opt.price_per_person)} / person{opt.price_period === 'night' ? ' / night' : ''}
+                  {formatCurrency(opt.price_per_person)} / {opt.price_period === "cabin" ? "cabin" : "person"}{opt.price_period === 'night' ? ' / night' : ''}
                 </Badge>
                 {opt.requires_double_occupancy && (
                   <Badge variant="secondary" className="text-xs">

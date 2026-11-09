@@ -17,3 +17,5 @@
 - QBO advisor payout expenses are paid from the bank account mapped to role `advisor_payout_bank` in `qbo_account_mappings` (currently Bluevine Checking), falling back to the "Advisor Payouts Clearing" liability account when unmapped — keeps the funding account configurable without code changes.
 - qbo-sync-trigger resolves the QBO connection by record user_id, falling back to the single active agency-wide connection — advisor-owned records (e.g. agent_subscription_payments, keyed by agent_user_id) post to the agency's QBO company, not a per-advisor one.
 - Client refunds post once through qbo-sync-trigger `client_payment_refunded` (trigger_qbo_client_payment): a full or partial Stripe refund writes one QuickBooks refund receipt against client funds and stores the id on trip_payments.qbo_refund_id — refunds reduce the client-funds liability and never touch P&L.
+
+- Cabin price_period `cabin` stores a whole-room trip fare in price_per_person; signup and shared wizard pricing charge it once, while deposits remain per traveler — prevents multiplying cabin quotes by occupancy.

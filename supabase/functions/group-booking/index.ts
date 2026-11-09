@@ -77,6 +77,7 @@ function toPricingOption(o: any): CabinOptionPricing {
     category_group: o.category_group,
     category_name: o.category_name,
     price_per_person: Number(o.price_per_person),
+    price_period: o.price_period,
     third_fourth_price: o.third_fourth_price == null ? null : Number(o.third_fourth_price),
     child_price: o.child_price == null ? null : Number(o.child_price),
     single_supplement_pct: Number(o.single_supplement_pct ?? 100),

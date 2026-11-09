@@ -745,7 +745,7 @@ Deno.serve(async (req) => {
             const diff = Math.round((ret.getTime() - dep.getTime()) / 86400000);
             nights = Math.max(1, diff);
           }
-          const grossSales = (cabin.price_per_person || 0) * travelerCount * nights;
+          const grossSales = (cabin.price_per_person || 0) * (cabin.price_period === "cabin" ? 1 : travelerCount) * nights;
           const confirmNum = `GRP-${subTrip.id.substring(0, 8).toUpperCase()}`;
           cabinLabel = cabin.category_name || "";
           depositAmount = Number(cabin.deposit_amount || 0) * travelerCount;
