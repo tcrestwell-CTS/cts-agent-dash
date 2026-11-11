@@ -21,6 +21,7 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
   const [accepted, setAccepted] = useState(false);
   const [gallery, setGallery] = useState<{ room: string; photos: string[]; index: number } | null>(null);
   const step = (d: number) => setGallery((g) => g && { ...g, index: (g.index + d + g.photos.length) % g.photos.length });
+  const [resortAmenitiesOpen, setResortAmenitiesOpen] = useState(false);
   const [amenitiesView, setAmenitiesView] = useState<{ room: string; amenities: string[] } | null>(null);
   const [form, setForm] = useState({
     date_id: "", room_id: "", guests_per_room: "", guest_names: [] as string[],
@@ -106,6 +107,7 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
       <p className="flex items-center gap-2 text-muted-foreground mt-3"><MapPin className="h-4 w-4 text-accent" /> {config.hotel.location}</p>
       <p className="text-muted-foreground mt-4 max-w-3xl leading-relaxed">{config.hotel.summary}</p>
       <ul className="flex flex-wrap gap-2 mt-6">{config.hotel.highlights.map((h) => <li key={h} className="text-sm border border-border rounded-full px-4 py-1.5 bg-card">{h}</li>)}</ul>
+      {!!config.hotel.amenityGroups?.length && <button type="button" onClick={() => setResortAmenitiesOpen(true)} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"><Sparkles className="h-4 w-4" />View all resort services & amenities</button>}
       <div className="mt-10 overflow-x-auto border border-border rounded-lg bg-card">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-primary text-primary-foreground"><tr><th className="p-4 text-left">Suite</th><th className="p-4 text-left">Guests per room</th>{config.dates.map((d) => <th key={d.id} className="p-4 text-right"><span className="block">{d.label}</span><span className="text-xs font-normal text-primary-foreground/70">{d.nights} nights · from</span></th>)}</tr></thead>
@@ -193,6 +195,12 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
           <Button type="button" variant="secondary" size="icon" aria-label="Next photo" onClick={() => step(1)} className="absolute right-2 top-1/2 -translate-y-1/2"><ChevronRight className="h-5 w-5" /></Button>
         </div>}
         {gallery && <div className="flex gap-2 overflow-x-auto pt-1">{gallery.photos.map((src, i) => <button key={src} type="button" aria-label={`Show photo ${i + 1}`} onClick={() => setGallery({ ...gallery, index: i })} className={`shrink-0 rounded overflow-hidden ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${i === gallery.index ? "ring-2 ring-accent" : "opacity-70"}`}><img src={src} alt="" className="h-14 w-24 object-cover" /></button>)}</div>}
+      </DialogContent>
+    </Dialog>
+    <Dialog open={resortAmenitiesOpen} onOpenChange={setResortAmenitiesOpen}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogTitle className="font-display text-xl text-primary">{config.hotel.name} services & amenities</DialogTitle>
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-5 mt-2">{config.hotel.amenityGroups?.map((g) => <section key={g.title}><h3 className="text-xs uppercase font-bold tracking-[0.15em] text-accent">{g.title}</h3><ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">{g.items.map((a) => <li key={a} className="flex items-start gap-2"><Check className="h-4 w-4 text-accent shrink-0 mt-0.5" />{a}</li>)}</ul></section>)}</div>
       </DialogContent>
     </Dialog>
     <Dialog open={!!amenitiesView} onOpenChange={(o) => !o && setAmenitiesView(null)}>
