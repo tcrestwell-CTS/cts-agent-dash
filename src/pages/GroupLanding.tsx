@@ -44,6 +44,7 @@ import { parseLocalDate } from "@/lib/utils";
 import { CelebrationSection, type CelebrationConfig } from "@/components/group/CelebrationSection";
 import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGallery";
 import { HawaiiProposal } from "@/components/group/HawaiiProposal";
+import { ResortGroupProposal } from "@/components/group/ResortGroupProposal";
 import { SafeHtml } from "@/components/ui/rich-text-editor";
 
 interface FeatureImage {
@@ -361,6 +362,9 @@ export default function GroupLanding() {
 
   if ((data.trip.group_landing_content as any)?.proposal_config?.proposal_type === "hawaii_2027" && token) {
     return <HawaiiProposal token={token} data={data} />;
+  }
+  if ((data.trip.group_landing_content as any)?.proposal_config?.proposal_type === "resort_group_v1" && token) {
+    return <ResortGroupProposal token={token} data={data} />;
   }
 
   const primaryColor = data.branding?.primary_color || "#1a365d";
