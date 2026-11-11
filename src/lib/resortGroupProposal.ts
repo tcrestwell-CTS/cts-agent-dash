@@ -11,6 +11,8 @@ export interface ResortRoomOption {
   pricingNote: string;
   /** Optional room photo URLs shown in a click-to-enlarge gallery. */
   photos?: string[];
+  /** Optional in-room amenities listed for guests. */
+  amenities?: string[];
 }
 
 export interface ResortDateOption {
@@ -59,8 +61,8 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
       sizeSqFt: 657,
       minGuests: 1,
       maxGuests: 2,
-      pricesByDate: { "2027-02-18": 2366 },
-      pricingNote: "February rate shown is for 3 nights, 1 guest, plus taxes. Shared-room and March pricing confirmed by your advisor.",
+      pricesByDate: { "2027-02-18": 2886, "2027-03-18": 2605 },
+      pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
     },
     {
       id: "double-oceanfront-suite",
@@ -68,8 +70,8 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
       details: "Oceanfront suite · Two beds · All-inclusive",
       minGuests: 1,
       maxGuests: 4,
-      pricesByDate: {},
-      pricingNote: "Pricing confirmed by your advisor.",
+      pricesByDate: { "2027-02-18": 3246, "2027-03-18": 2942 },
+      pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
     },
     {
       id: "presidential-suite",
@@ -79,8 +81,21 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
       minGuests: 1,
       maxGuests: 2,
       reservedFor: "Bride's upgraded suite",
-      pricesByDate: { "2027-02-18": 4482 },
-      pricingNote: "February rate shown is for 3 nights, 1 guest, plus taxes. Shared-room and March pricing confirmed by your advisor.",
+      pricesByDate: { "2027-02-18": 5466, "2027-03-18": 5410 },
+      pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
+      photos: [
+        "/__l5e/assets-v1/fc51928d-6957-48f3-ac65-2807e951a1c0/zilara-presidential-suite-1.png",
+        "/__l5e/assets-v1/e376f6b6-1c44-49cc-9c69-856f43f953c8/zilara-presidential-suite-2.png",
+        "/__l5e/assets-v1/3afa83f2-2852-4e6b-8688-5270c2e06d8c/zilara-presidential-suite-3.png",
+        "/__l5e/assets-v1/f9a0f725-15ce-4271-b199-e0198f84debe/zilara-presidential-suite-4.png",
+        "/__l5e/assets-v1/338cd91c-854d-4608-a515-45df641bf1af/zilara-presidential-suite-5.png",
+      ],
+      amenities: [
+        "Private bathroom", "Safe", "Coffee", "Air conditioning", "Suitable for guests with allergies",
+        "TV", "Bottled water", "Towels", "Toiletries", "Pillow menu", "Microwave",
+        "Ironing facilities", "Hairdryer", "Fridge", "Wardrobe", "Mirror", "Kettle or coffee maker",
+        "Telephone", "Blackout blinds", "Fan", "Desk", "Dining area", "Workspace",
+      ],
     },
   ],
 };
