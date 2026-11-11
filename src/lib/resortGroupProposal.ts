@@ -69,6 +69,10 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
         "/__l5e/assets-v1/4e0bb9f0-43fa-493a-b26d-7a81108282c3/zilara-luxury-double-200.png",
         "/__l5e/assets-v1/36fe4d64-5a29-4464-b232-9141a39e6a19/zilara-luxury-double-201.png",
       ],
+      amenities: [
+        "Private bathroom", "Safe", "Coffee", "Air conditioning", "TV",
+        "Toiletries", "Hairdryer", "Fridge", "Workspace",
+      ],
     },
     {
       id: "double-oceanfront-suite",
