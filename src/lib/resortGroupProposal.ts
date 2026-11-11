@@ -57,8 +57,8 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
     {
       id: "luxury-double-junior-oceanfront",
       name: "Luxury Double Junior Suite Oceanfront",
-      details: "657 sq ft · Ocean view balcony · In-room jetted tub · All-inclusive",
-      sizeSqFt: 657,
+      details: "765 sq ft · Ocean view balcony · In-room jetted tub · All-inclusive",
+      sizeSqFt: 765,
       minGuests: 1,
       maxGuests: 2,
       pricesByDate: { "2027-02-18": 2886, "2027-03-18": 2605 },
@@ -68,26 +68,28 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
         "/__l5e/assets-v1/e7823174-80b6-4b66-8a60-0b83bcc6a85f/zilara-luxury-double-199.png",
         "/__l5e/assets-v1/4e0bb9f0-43fa-493a-b26d-7a81108282c3/zilara-luxury-double-200.png",
         "/__l5e/assets-v1/36fe4d64-5a29-4464-b232-9141a39e6a19/zilara-luxury-double-201.png",
+      ],
+      amenities: [
+        "Private bathroom", "Safe", "Coffee", "Air conditioning", "TV",
+        "Towels", "Toiletries", "Hairdryer", "Fridge", "Mirror", "Telephone",
+      ],
+    },
+    {
+      id: "double-oceanfront-suite",
+      name: "Double Oceanfront Suite",
+      details: "657 sq ft · Oceanfront · Two beds · All-inclusive",
+      sizeSqFt: 657,
+      minGuests: 1,
+      maxGuests: 4,
+      pricesByDate: { "2027-02-18": 3246, "2027-03-18": 2942 },
+      pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
+      photos: [
         "/__l5e/assets-v1/65caa990-6d32-412d-bcd5-35f80a5887f0/zilara-luxury-double-202.png",
         "/__l5e/assets-v1/2852b3ef-1e2e-4f1c-acab-47d6da6952ea/zilara-luxury-double-203.png",
       ],
       amenities: [
         "Private bathroom", "Safe", "Coffee", "Air conditioning", "TV",
         "Toiletries", "Hairdryer", "Fridge", "Workspace",
-      ],
-    },
-    {
-      id: "double-oceanfront-suite",
-      name: "Double Oceanfront Suite",
-      details: "765 sq ft · Oceanfront · Two beds · All-inclusive",
-      sizeSqFt: 765,
-      minGuests: 1,
-      maxGuests: 4,
-      pricesByDate: { "2027-02-18": 3246, "2027-03-18": 2942 },
-      pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
-      amenities: [
-        "Private bathroom", "Safe", "Coffee", "Air conditioning", "TV",
-        "Towels", "Toiletries", "Hairdryer", "Fridge", "Mirror", "Telephone",
       ],
     },
     {
