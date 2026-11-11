@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { BedDouble, CalendarDays, Check, ChevronRight, Crown, Hotel, MapPin, Plane, Users } from "lucide-react";
+import { BedDouble, CalendarDays, Check, ChevronRight, Crown, Hotel, MapPin, Plane, Sparkles, Users } from "lucide-react";
 import crestwellLogo from "@/assets/CTN-Logo.png";
 import heroImage from "@/assets/cancun-zilara-hero.jpg";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
   const [accepted, setAccepted] = useState(false);
   const [gallery, setGallery] = useState<{ room: string; photos: string[]; index: number } | null>(null);
   const step = (d: number) => setGallery((g) => g && { ...g, index: (g.index + d + g.photos.length) % g.photos.length });
+  const [amenitiesView, setAmenitiesView] = useState<{ room: string; amenities: string[] } | null>(null);
   const [form, setForm] = useState({
     date_id: "", room_id: "", guests_per_room: "", guest_names: [] as string[],
     email: "", phone: "", flight_choice: "", departure_airport: "", cabin_class: "economy", flight_notes: "",
@@ -108,7 +109,7 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
       <div className="mt-10 overflow-x-auto border border-border rounded-lg bg-card">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-primary text-primary-foreground"><tr><th className="p-4 text-left">Suite</th><th className="p-4 text-left">Guests per room</th>{config.dates.map((d) => <th key={d.id} className="p-4 text-right"><span className="block">{d.label}</span><span className="text-xs font-normal text-primary-foreground/70">{d.nights} nights · from</span></th>)}</tr></thead>
-          <tbody>{config.rooms.map((r) => <tr key={r.id} className="border-t border-border"><td className="p-4"><span className="font-semibold">{r.name}</span>{r.reservedFor && <span className="ml-2 text-[10px] uppercase font-bold text-accent">{r.reservedFor}</span>}<span className="block text-xs text-muted-foreground mt-1">{r.details}</span>{!!r.photos?.length && <button type="button" onClick={() => setGallery({ room: r.name, photos: r.photos!, index: 0 })} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"><Images className="h-3.5 w-3.5" />View {r.photos.length} photos</button>}</td><td className="p-4">{r.minGuests}–{r.maxGuests}</td>{config.dates.map((d) => { const p = r.pricesByDate[d.id]; return <td key={d.id} className="p-4 text-right tabular-nums">{p ? <><strong>{money(p)}</strong><span className="block text-xs text-muted-foreground">1 guest + taxes</span></> : <span className="text-muted-foreground">Advisor to confirm</span>}</td>; })}</tr>)}</tbody>
+          <tbody>{config.rooms.map((r) => <tr key={r.id} className="border-t border-border"><td className="p-4"><span className="font-semibold">{r.name}</span>{r.reservedFor && <span className="ml-2 text-[10px] uppercase font-bold text-accent">{r.reservedFor}</span>}<span className="block text-xs text-muted-foreground mt-1">{r.details}</span>{!!r.photos?.length && <button type="button" onClick={() => setGallery({ room: r.name, photos: r.photos!, index: 0 })} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"><Images className="h-3.5 w-3.5" />View {r.photos.length} photos</button>}{!!r.amenities?.length && <button type="button" onClick={() => setAmenitiesView({ room: r.name, amenities: r.amenities! })} className="mt-2 ml-3 inline-flex items-center gap-1 text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"><Sparkles className="h-3.5 w-3.5" />{r.amenities.length} amenities</button>}</td><td className="p-4">{r.minGuests}–{r.maxGuests}</td>{config.dates.map((d) => { const p = r.pricesByDate[d.id]; return <td key={d.id} className="p-4 text-right tabular-nums">{p ? <><strong>{money(p)}</strong><span className="block text-xs text-muted-foreground">1 guest + taxes</span></> : <span className="text-muted-foreground">Advisor to confirm</span>}</td>; })}</tr>)}</tbody>
         </table>
       </div>
       <p className="text-xs text-muted-foreground mt-3">Prices are estimates we found for 1 guest and are not guaranteed. Shared-room pricing, taxes and availability are confirmed before booking.</p>
@@ -126,6 +127,7 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
               </fieldset>
               <fieldset><legend className="proposal-step-title"><span>2</span>Choose your room</legend>
                 <div className="grid sm:grid-cols-3 gap-3 mt-4">{config.rooms.map((r) => { const p = form.date_id ? r.pricesByDate[form.date_id] : undefined; return <button type="button" key={r.id} onClick={() => pickRoom(r.id)} aria-pressed={form.room_id === r.id} className={`proposal-choice items-start ${form.room_id === r.id ? "proposal-choice-active" : ""}`}>{r.reservedFor ? <Crown className="h-5 w-5 shrink-0" /> : <BedDouble className="h-5 w-5 shrink-0" />}<span><strong>{r.name}</strong>{r.reservedFor && <small className="text-accent font-semibold">{r.reservedFor}</small>}<small>{r.details}</small><small>Up to {r.maxGuests} guests · {p ? `from ${money(p)}` : "price to confirm"}</small></span></button>; })}</div>
+                {!!room?.amenities?.length && <div className="mt-4 border border-border rounded-lg bg-background p-4"><p className="text-xs uppercase font-bold tracking-[0.15em] text-accent">In this suite</p><ul className="flex flex-wrap gap-x-5 gap-y-1.5 mt-2 text-sm text-muted-foreground">{room.amenities.map((a) => <li key={a} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-accent shrink-0" />{a}</li>)}</ul></div>}
               </fieldset>
               <fieldset><legend className="proposal-step-title"><span>3</span>Guests in this room</legend>
                 {!room ? <p className="proposal-empty">Choose a room first.</p> : <div className="mt-4 space-y-4">
@@ -191,6 +193,13 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
           <Button type="button" variant="secondary" size="icon" aria-label="Next photo" onClick={() => step(1)} className="absolute right-2 top-1/2 -translate-y-1/2"><ChevronRight className="h-5 w-5" /></Button>
         </div>}
         {gallery && <div className="flex gap-2 overflow-x-auto pt-1">{gallery.photos.map((src, i) => <button key={src} type="button" aria-label={`Show photo ${i + 1}`} onClick={() => setGallery({ ...gallery, index: i })} className={`shrink-0 rounded overflow-hidden ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${i === gallery.index ? "ring-2 ring-accent" : "opacity-70"}`}><img src={src} alt="" className="h-14 w-24 object-cover" /></button>)}</div>}
+      </DialogContent>
+    </Dialog>
+    <Dialog open={!!amenitiesView} onOpenChange={(o) => !o && setAmenitiesView(null)}>
+      <DialogContent className="max-w-2xl bg-card">
+        <DialogTitle className="font-display text-xl text-primary">{amenitiesView?.room} amenities</DialogTitle>
+        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 mt-2 text-sm text-muted-foreground">{amenitiesView?.amenities.map((a) => <li key={a} className="flex items-center gap-2"><Check className="h-4 w-4 text-accent shrink-0" />{a}</li>)}</ul>
+        <p className="text-xs text-muted-foreground mt-4">Amenities are listed by the resort and confirmed before booking.</p>
       </DialogContent>
     </Dialog>
   </main>;
