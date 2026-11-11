@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ChevronLeft, Images } from "lucide-react";
 import { money } from "@/lib/hawaiiProposal";
 import { CABIN_CLASSES, FLIGHT_CHOICES, WAMSLEY_PROPOSAL_CONFIG, type ResortGroupProposalConfig } from "@/lib/resortGroupProposal";
 import { toast } from "sonner";
@@ -17,6 +19,8 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [gallery, setGallery] = useState<{ room: string; photos: string[]; index: number } | null>(null);
+  const step = (d: number) => setGallery((g) => g && { ...g, index: (g.index + d + g.photos.length) % g.photos.length });
   const [form, setForm] = useState({
     date_id: "", room_id: "", guests_per_room: "", guest_names: [] as string[],
     email: "", phone: "", flight_choice: "", departure_airport: "", cabin_class: "economy", flight_notes: "",
@@ -104,7 +108,7 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
       <div className="mt-10 overflow-x-auto border border-border rounded-lg bg-card">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-primary text-primary-foreground"><tr><th className="p-4 text-left">Suite</th><th className="p-4 text-left">Guests per room</th>{config.dates.map((d) => <th key={d.id} className="p-4 text-right"><span className="block">{d.label}</span><span className="text-xs font-normal text-primary-foreground/70">{d.nights} nights · from</span></th>)}</tr></thead>
-          <tbody>{config.rooms.map((r) => <tr key={r.id} className="border-t border-border"><td className="p-4"><span className="font-semibold">{r.name}</span>{r.reservedFor && <span className="ml-2 text-[10px] uppercase font-bold text-accent">{r.reservedFor}</span>}<span className="block text-xs text-muted-foreground mt-1">{r.details}</span></td><td className="p-4">{r.minGuests}–{r.maxGuests}</td>{config.dates.map((d) => { const p = r.pricesByDate[d.id]; return <td key={d.id} className="p-4 text-right tabular-nums">{p ? <><strong>{money(p)}</strong><span className="block text-xs text-muted-foreground">1 guest + taxes</span></> : <span className="text-muted-foreground">Advisor to confirm</span>}</td>; })}</tr>)}</tbody>
+          <tbody>{config.rooms.map((r) => <tr key={r.id} className="border-t border-border"><td className="p-4"><span className="font-semibold">{r.name}</span>{r.reservedFor && <span className="ml-2 text-[10px] uppercase font-bold text-accent">{r.reservedFor}</span>}<span className="block text-xs text-muted-foreground mt-1">{r.details}</span>{!!r.photos?.length && <button type="button" onClick={() => setGallery({ room: r.name, photos: r.photos!, index: 0 })} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"><Images className="h-3.5 w-3.5" />View {r.photos.length} photos</button>}</td><td className="p-4">{r.minGuests}–{r.maxGuests}</td>{config.dates.map((d) => { const p = r.pricesByDate[d.id]; return <td key={d.id} className="p-4 text-right tabular-nums">{p ? <><strong>{money(p)}</strong><span className="block text-xs text-muted-foreground">1 guest + taxes</span></> : <span className="text-muted-foreground">Advisor to confirm</span>}</td>; })}</tr>)}</tbody>
         </table>
       </div>
       <p className="text-xs text-muted-foreground mt-3">Prices are estimates we found for 1 guest and are not guaranteed. Shared-room pricing, taxes and availability are confirmed before booking.</p>
@@ -178,6 +182,17 @@ export function ResortGroupProposal({ token, data }: { token: string; data: any 
         </div>
       </section>
     </form>
+    <Dialog open={!!gallery} onOpenChange={(o) => !o && setGallery(null)}>
+      <DialogContent className="max-w-5xl p-3 bg-card" onKeyDown={(e) => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); }}>
+        <DialogTitle className="font-display text-lg text-primary px-1">{gallery?.room} · {gallery ? gallery.index + 1 : 0} of {gallery?.photos.length}</DialogTitle>
+        {gallery && <div className="relative">
+          <img src={gallery.photos[gallery.index]} alt={`${gallery.room} photo ${gallery.index + 1}`} className="w-full max-h-[75vh] object-contain rounded-md bg-muted" />
+          <Button type="button" variant="secondary" size="icon" aria-label="Previous photo" onClick={() => step(-1)} className="absolute left-2 top-1/2 -translate-y-1/2"><ChevronLeft className="h-5 w-5" /></Button>
+          <Button type="button" variant="secondary" size="icon" aria-label="Next photo" onClick={() => step(1)} className="absolute right-2 top-1/2 -translate-y-1/2"><ChevronRight className="h-5 w-5" /></Button>
+        </div>}
+        {gallery && <div className="flex gap-2 overflow-x-auto pt-1">{gallery.photos.map((src, i) => <button key={src} type="button" aria-label={`Show photo ${i + 1}`} onClick={() => setGallery({ ...gallery, index: i })} className={`shrink-0 rounded overflow-hidden ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${i === gallery.index ? "ring-2 ring-accent" : "opacity-70"}`}><img src={src} alt="" className="h-14 w-24 object-cover" /></button>)}</div>}
+      </DialogContent>
+    </Dialog>
   </main>;
 }
 
