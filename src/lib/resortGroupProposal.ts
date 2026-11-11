@@ -63,6 +63,12 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
       maxGuests: 2,
       pricesByDate: { "2027-02-18": 2886, "2027-03-18": 2605 },
       pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
+      photos: [
+        "/__l5e/assets-v1/2558cb02-6ba3-4dba-b0e8-ecf1a5aaa19c/zilara-luxury-double-198.png",
+        "/__l5e/assets-v1/e7823174-80b6-4b66-8a60-0b83bcc6a85f/zilara-luxury-double-199.png",
+        "/__l5e/assets-v1/4e0bb9f0-43fa-493a-b26d-7a81108282c3/zilara-luxury-double-200.png",
+        "/__l5e/assets-v1/36fe4d64-5a29-4464-b232-9141a39e6a19/zilara-luxury-double-201.png",
+      ],
     },
     {
       id: "double-oceanfront-suite",
