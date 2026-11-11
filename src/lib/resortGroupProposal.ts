@@ -9,6 +9,8 @@ export interface ResortRoomOption {
   /** Known 3-night price for a single guest, by date option id. Missing = advisor to confirm. */
   pricesByDate: Record<string, number | undefined>;
   pricingNote: string;
+  /** Optional room photo URLs shown in a click-to-enlarge gallery. */
+  photos?: string[];
 }
 
 export interface ResortDateOption {
