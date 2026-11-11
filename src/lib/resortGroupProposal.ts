@@ -73,11 +73,16 @@ export const WAMSLEY_PROPOSAL_CONFIG: ResortGroupProposalConfig = {
     {
       id: "double-oceanfront-suite",
       name: "Double Oceanfront Suite",
-      details: "Oceanfront suite · Two beds · All-inclusive",
+      details: "765 sq ft · Oceanfront · Two beds · All-inclusive",
+      sizeSqFt: 765,
       minGuests: 1,
       maxGuests: 4,
       pricesByDate: { "2027-02-18": 3246, "2027-03-18": 2942 },
       pricingNote: "Rates shown are for 3 nights, plus taxes and a resort fee of about MXN 497 paid at the hotel. Final shared-room pricing confirmed by your advisor.",
+      amenities: [
+        "Private bathroom", "Safe", "Coffee", "Air conditioning", "TV",
+        "Towels", "Toiletries", "Hairdryer", "Fridge", "Mirror", "Telephone",
+      ],
     },
     {
       id: "presidential-suite",
