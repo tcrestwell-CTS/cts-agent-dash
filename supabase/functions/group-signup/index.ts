@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
       const travelNotes = travelNoteParts.join(" | ") || null;
 
       // Validate fields shared by both generic signups and proposal requests.
-      if (!signupToken || !email || (action !== "submit_proposal_selection" && !first_name)) {
+      if (!signupToken || !email || (action !== "submit_proposal_selection" && action !== "submit_resort_selection" && !first_name)) {
         return new Response(
           JSON.stringify({ error: "Missing required fields: token, first_name, email" }),
           {
@@ -471,6 +471,66 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
+      }
+
+      if (action === "submit_resort_selection") {
+        const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const config = parentTrip.group_landing_content?.proposal_config;
+        if (config?.proposal_type !== "resort_group_v1") return json({ error: "This proposal is not available" }, 400);
+        const date = (config.dates || []).find((d: any) => d.id === body.date_id);
+        const room = (config.rooms || []).find((r: any) => r.id === body.room_id);
+        const guests = Number(body.guests_per_room);
+        const guestNames: string[] = Array.isArray(body.guest_names) ? body.guest_names.map((n: unknown) => clean(n, 120)).filter(Boolean) : [];
+        const flightChoice = ["need_flights", "own_flights", "undecided"].includes(body.flight_choice) ? body.flight_choice : null;
+        const airport = clean(body.departure_airport, 80);
+        const cabinClass = ["economy", "premium_economy", "business"].includes(body.cabin_class) ? body.cabin_class : "economy";
+        const paymentPreference = ["planned_payments", "flexpay", "affirm", "undecided"].includes(body.payment_preference) ? body.payment_preference : "undecided";
+        if (!date || !room || !Number.isInteger(guests) || guests < Number(room.minGuests || 1) || guests > Number(room.maxGuests || 2) || guestNames.length !== guests || !flightChoice || (flightChoice === "need_flights" && airport.length < 3) || body.disclosure_accepted !== true) {
+          return json({ error: "Please choose dates, a room, guests per room with every guest name, and a flight preference" }, 400);
+        }
+        const knownPrice = Number(room.pricesByDate?.[date.id] || 0);
+        const nights = Number(date.nights) || 3;
+        const normalizedEmail = email.toLowerCase().trim();
+        const travelerName = guestNames[0];
+        const { data: existingClient } = await supabaseAdmin.from("clients").select("id").eq("user_id", parentTrip.user_id).eq("email", normalizedEmail).maybeSingle();
+        const { data: proposal, error: proposalError } = await supabaseAdmin.from("group_proposal_selections").insert({
+          trip_id: parentTrip.id, user_id: parentTrip.user_id, client_id: existingClient?.id || null,
+          traveler_name: travelerName, second_traveler_name: guestNames.slice(1).join(", ") || null,
+          email: normalizedEmail, phone: clean(phone, 40) || null, party_size: guests,
+          sailing_id: date.id, sailing_label: date.label, cruise_start_date: date.checkIn, cruise_end_date: date.checkOut, cruise_nights: nights,
+          cabin_id: room.id, cabin_category: room.name, cabin_price_per_person: knownPrice, cabin_total: knownPrice,
+          hotel_id: config.hotel?.id || "resort", hotel_name: config.hotel?.name || "Resort", hotel_room_id: room.id, hotel_room_type: room.name,
+          hotel_check_in: date.checkIn, hotel_check_out: date.checkOut, hotel_nights: nights,
+          hotel_nightly_rate: knownPrice ? Math.round((knownPrice / nights) * 100) / 100 : 0, hotel_base_total: knownPrice, hotel_known_fees: 0,
+          free_at_sea_selection: "not_applicable", excursions_selection: "not_applicable",
+          optional_upgrades: { payment_preference: paymentPreference, flight_choice: flightChoice, departure_airport: airport || null, cabin_class: flightChoice === "need_flights" ? cabinClass : null, flight_notes: clean(body.flight_notes, 500) || null, guest_names: guestNames, price_known: knownPrice > 0 },
+          estimated_known_total: knownPrice, quoted_total: knownPrice,
+          confirmation_items: ["Room availability and shared-occupancy pricing", "Resort taxes and fees", "Cancellation and payment terms", "Airfare, if requested"],
+          special_requests: clean(body.special_requests, 1500) || null, additional_comments: clean(body.additional_comments, 1500) || null,
+          disclosure_version: config.version || "resort-group-v1", disclosure_accepted_at: new Date().toISOString(),
+          status: "advisor_review", booking_status: "not_created", payment_status: "not_requested",
+        }).select("id").single();
+        if (proposalError || !proposal) { console.error("Failed to save resort selection:", proposalError); return json({ error: "Unable to save your selections" }, 500); }
+        const flightLabel = flightChoice === "need_flights" ? `Flights needed from ${airport}` : flightChoice === "own_flights" ? "Booking own flights" : "Flights undecided";
+        await supabaseAdmin.from("agent_notifications").insert({
+          user_id: parentTrip.user_id, type: "group_proposal_review", trip_id: parentTrip.id,
+          title: `${parentTrip.trip_name}: ${travelerName}`,
+          message: `${guestNames.join(", ")} chose ${date.label}, ${room.name} (${guests} guest${guests === 1 ? "" : "s"}). ${flightLabel}.`,
+        });
+        try {
+          const brand = await resolveAgentBranding(supabaseAdmin, parentTrip.user_id);
+          const rows = [["Dates", date.label], ["Resort", config.hotel?.name || ""], ["Room", room.name], ["Guests in room", guestNames.join(", ")], ["Flights", flightLabel], ["Room estimate", knownPrice ? fmt(knownPrice) : "Advisor to confirm"]];
+          const html = `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033"><h1 style="font-family:Georgia,serif">Room request received</h1><p>Thank you! Your Crestwell advisor will confirm availability, final pricing and terms before anything is booked or charged.</p><table style="width:100%;border-collapse:collapse">${rows.map(([k, v]) => `<tr><td style="padding:8px;border-bottom:1px solid #ddd">${k}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:right"><strong>${escapeHtml(String(v))}</strong></td></tr>`).join("")}</table></div>`;
+          await sendGroupEventEmails({
+            admin: supabaseAdmin, brand, apiKey: Deno.env.get("RESEND_API_KEY"), userId: parentTrip.user_id, eventId: proposal.id,
+            template: "resort_proposal_review", clientId: existingClient?.id,
+            clientEmail: normalizedEmail, clientSubject: `We received your ${parentTrip.trip_name} room request`, clientHtml: html,
+            advisorSubject: `Room request to review: ${travelerName}`,
+            advisorHtml: `<p>${escapeHtml(travelerName)} submitted a room request for ${escapeHtml(parentTrip.trip_name)}.</p><p>Email: ${escapeHtml(normalizedEmail)}<br>Phone: ${escapeHtml(clean(phone, 40))}</p><p><a href="${APP_URL}/trips/${parentTrip.id}">Review trip</a></p>${html}`,
+            metadata: { source: "group-signup", trip_id: parentTrip.id, proposal_selection_id: proposal.id },
+          });
+        } catch (e) { console.error("Resort confirmation email failed:", e); }
+        return json({ success: true, proposalSelectionId: proposal.id, status: "advisor_review" });
       }
 
       if (action === "submit_proposal_selection") {

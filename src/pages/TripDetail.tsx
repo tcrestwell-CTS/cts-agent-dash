@@ -1363,7 +1363,7 @@ const TripDetail = () => {
                   <CabinOptionsManager tripId={trip.id} onDataChange={fetchTrip} />
                 )}
 
-                {isGroupTrip && (trip as any).group_landing_content?.proposal_config?.proposal_type === "hawaii_2027" && (
+                {isGroupTrip && (trip as any).group_landing_content?.proposal_config?.proposal_type && (
                   <GroupProposalSelections tripId={trip.id} />
                 )}
 
