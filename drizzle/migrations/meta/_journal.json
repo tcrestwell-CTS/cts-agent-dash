@@ -71,6 +71,13 @@
       "when": 1794675582845,
       "tag": "0009_route_rental_submissions_through_existing_handler",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794675601849,
+      "tag": "0010_validate_initial_lead_and_onboarding_submissions",
+      "breakpoints": true
     }
   ]
 }
