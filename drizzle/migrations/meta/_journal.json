@@ -50,6 +50,13 @@
       "when": 1794671258677,
       "tag": "0006_event_rsvps",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794675419881,
+      "tag": "0007_scope_circle_briefings_and_form_upload_access",
+      "breakpoints": true
     }
   ]
 }

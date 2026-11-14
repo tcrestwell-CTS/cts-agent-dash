@@ -1,4 +1,6 @@
 # Project Architecture Rules
+- Form-upload reads and deletes resolve ownership through the form ID path prefix and intake_forms.user_id, with role-checked staff exceptions; anonymous guest uploads have no reliable uploader identity.
+- Circle briefing reads require an assigned advisor or staff role; a valid login alone must not grant access.
 - Real paid trip-payment inserts and status transitions post through qbo-sync-trigger, which resolves the trip invoice regardless of invoice creator, uses a Client Funds service item and stable QBO payment request IDs — receipts must apply once without becoming agency income.
 - Bookkeeper P&L reads monthly QuickBooks ProfitAndLoss reports via the authenticated qbo-sync read-report action, never client receipt minus supplier disbursement totals — client-funds movement is not agency profit.
 - QBO auth, reports and sync triggers renew through `_shared/qbo-token.ts` with conditional writes and newer-token recovery; concurrent refresh failures must not deactivate a successfully renewed connection.
