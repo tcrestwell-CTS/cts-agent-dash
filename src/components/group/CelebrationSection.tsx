@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Anchor, Ship, MapPin, Calendar, PartyPopper } from "lucide-react";
+import { ChevronLeft, ChevronRight, Anchor, Ship, MapPin, Calendar, PartyPopper, Camera, ExternalLink, Smartphone } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 
@@ -7,6 +7,19 @@ export interface CelebrationPhoto {
   id: string;
   url: string;
   caption?: string;
+}
+
+export interface CelebrationPhotoShare {
+  title?: string;
+  description?: string;
+  qr_image_url?: string;
+  album_url?: string;
+}
+
+export interface CelebrationAppLink {
+  label: string;
+  url: string;
+  note?: string;
 }
 
 export interface CelebrationConfig {
@@ -18,6 +31,8 @@ export interface CelebrationConfig {
   embark_port?: string;
   embark_time?: string; // "HH:mm"
   photos?: CelebrationPhoto[];
+  photo_share?: CelebrationPhotoShare;
+  app_links?: CelebrationAppLink[];
 }
 
 interface Props {
@@ -199,6 +214,72 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
         </dl>
         <p className="sr-only">This page is for the {occasion}.</p>
       </div>
+
+      {/* Shared photo album */}
+      {config.photo_share && (config.photo_share.qr_image_url || config.photo_share.album_url) && (
+        <div className="rounded-2xl border border-gray-200 p-6 md:p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Camera className="h-5 w-5" style={{ color: accentColor }} />
+            {config.photo_share.title || "Share your photos"}
+          </h2>
+          {config.photo_share.description && (
+            <p className="text-sm text-gray-600 mb-5 max-w-2xl">{config.photo_share.description}</p>
+          )}
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {config.photo_share.qr_image_url && (
+              <img
+                src={config.photo_share.qr_image_url}
+                alt={`QR code linking to the shared photo album${name ? ` for ${name}` : ""}`}
+                className="w-full max-w-sm rounded-xl border border-gray-200"
+                loading="lazy"
+              />
+            )}
+            {config.photo_share.album_url && (
+              <div className="space-y-3 text-center sm:text-left">
+                <p className="text-sm text-gray-600">
+                  Scan the code with your phone's camera, or open the album directly:
+                </p>
+                <a
+                  href={config.photo_share.album_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{ background: accentColor }}
+                >
+                  Open the shared album <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Cruise line app links */}
+      {config.app_links && config.app_links.length > 0 && (
+        <div className="rounded-2xl border border-gray-200 p-6 md:p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Smartphone className="h-5 w-5" style={{ color: accentColor }} />
+            Get the {config.cruise_line || "cruise line"} app
+          </h2>
+          <p className="text-sm text-gray-600 mb-5 max-w-2xl">
+            Download the official app before you sail to manage your booking, view the daily schedule, make dining
+            reservations, and chat with your travel party on board.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {config.app_links.map((link) => (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {link.label} <ExternalLink className="h-4 w-4 text-gray-500" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
