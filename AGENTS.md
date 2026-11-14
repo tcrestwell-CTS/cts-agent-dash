@@ -1,4 +1,5 @@
 # Project Architecture Rules
+- Manual supplier receipt confirmation updates only the linked payment flag; its locked database trigger adds the actual amount to the same-trip booking, and QBO never infers bookings from trip order.
 - Form-upload reads and deletes resolve ownership through the form ID path prefix and intake_forms.user_id, with role-checked staff exceptions; anonymous guest uploads have no reliable uploader identity.
 - Circle briefing reads require an assigned advisor or staff role; a valid login alone must not grant access.
 - Public financing and rental submissions use the existing service-side allowlisted handlers; payment IP logs are server-write-only to prevent fabricated financial records.
