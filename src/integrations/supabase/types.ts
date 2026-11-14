@@ -4328,6 +4328,50 @@ export type Database = {
         }
         Relationships: []
       }
+      event_rsvps: {
+        Row: {
+          attending: boolean
+          created_at: string
+          email: string
+          id: string
+          name: string
+          party_size: number
+          section_id: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          attending: boolean
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          party_size?: number
+          section_id: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          attending?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          party_size?: number
+          section_id?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exception_queue: {
         Row: {
           amount: number | null
@@ -12576,6 +12620,10 @@ export type Database = {
       }
       confirm_commission_payout: { Args: { p_edits: Json }; Returns: Json }
       get_advisor_split_pct: { Args: { p_user_id: string }; Returns: number }
+      get_event_rsvp_total: {
+        Args: { p_section_id: string; p_token: string }
+        Returns: number
+      }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       get_proposal: {
         Args: { p_token: string }
@@ -12661,6 +12709,17 @@ export type Database = {
       reveal_cw_agent_secret: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      submit_event_rsvp: {
+        Args: {
+          p_attending: boolean
+          p_email: string
+          p_name: string
+          p_party_size: number
+          p_section_id: string
+          p_token: string
+        }
+        Returns: number
+      }
       submit_qualify: {
         Args: { p_answers: Json; p_token: string }
         Returns: string

@@ -43,6 +43,13 @@
       "when": 1794249785656,
       "tag": "0005_support_total_cabin_price_period",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794671258677,
+      "tag": "0006_event_rsvps",
+      "breakpoints": true
     }
   ]
 }

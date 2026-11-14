@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { EventRsvpForm } from "@/components/group/EventRsvp";
 import {
   MapPin,
   Calendar,
@@ -57,6 +58,7 @@ interface AdditionalSection {
   id: string;
   title: string;
   content: string;
+  rsvp_enabled?: boolean;
 }
 
 interface LandingContent {
@@ -874,6 +876,9 @@ export default function GroupLanding() {
                       {isExpanded && section.content && (
                         <div className="px-4 pb-4 text-gray-600 leading-relaxed whitespace-pre-wrap text-[15px]">
                           {section.content}
+                          {section.rsvp_enabled && token && (
+                            <EventRsvpForm token={token} sectionId={section.id} accentColor={accentColor} />
+                          )}
                         </div>
                       )}
                     </div>

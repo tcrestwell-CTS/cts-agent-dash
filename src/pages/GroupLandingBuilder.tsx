@@ -1,3 +1,4 @@
+import { EventRsvpList } from "@/components/group/EventRsvp";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -50,6 +51,7 @@ interface AdditionalSection {
   id: string;
   title: string;
   content: string;
+  rsvp_enabled?: boolean;
 }
 
 interface LandingContent {
@@ -454,7 +456,7 @@ const GroupLandingBuilder = () => {
     ]);
   };
 
-  const updateSection = (id: string, field: "title" | "content", value: string) => {
+  const updateSection = (id: string, field: "title" | "content" | "rsvp_enabled", value: string | boolean) => {
     setAdditionalSections((prev) =>
       prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
     );
@@ -886,6 +888,12 @@ const GroupLandingBuilder = () => {
                   onChange={(e) => updateSection(section.id, "content", e.target.value)}
                   rows={4}
                 />
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!section.rsvp_enabled}
+                    onChange={(e) => updateSection(section.id, "rsvp_enabled", e.target.checked)} />
+                  Collect RSVPs and headcount for this event
+                </label>
+                {section.rsvp_enabled && tripId && <EventRsvpList tripId={tripId} sectionId={section.id} />}
               </div>
             ))}
 
