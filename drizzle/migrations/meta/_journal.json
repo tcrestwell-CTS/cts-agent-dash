@@ -78,6 +78,13 @@
       "when": 1794675601849,
       "tag": "0010_validate_initial_lead_and_onboarding_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794675894748,
+      "tag": "0011_require_explicit_booking_for_supplier_payment_flag",
+      "breakpoints": true
     }
   ]
 }

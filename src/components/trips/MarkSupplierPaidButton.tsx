@@ -94,44 +94,19 @@ export function MarkSupplierPaidButton({
     try {
       const { data: payment, error: loadErr } = await supabase
         .from("trip_payments")
-        .select("booking_id, trip_id")
+        .select("booking_id, trip_id, amount, supplier_paid_at")
         .eq("id", paymentId)
         .single();
       if (loadErr) throw loadErr;
 
-      let bookingId = payment?.booking_id ?? null;
-      if (!bookingId && payment?.trip_id) {
-        const { data: booking, error: findErr } = await supabase
-          .from("bookings")
-          .select("id")
-          .eq("trip_id", payment.trip_id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        if (findErr) throw findErr;
-        bookingId = booking?.id ?? null;
+      if (!payment?.booking_id) {
+        throw new Error("Link this payment to the correct supplier booking before marking it paid.");
       }
-
-      if (bookingId) {
-        const { data: booking, error: bookingErr } = await supabase
-          .from("bookings")
-          .select("supplier_payout, supplier_paid_amount, supplier_paid_status")
-          .eq("id", bookingId)
-          .single();
-        if (bookingErr) throw bookingErr;
-        const recorded = Number(booking.supplier_paid_amount || 0);
-        const payout = Number(booking.supplier_payout || 0);
-        const nextAmount = recorded > 0 ? recorded : payout;
-        if (booking.supplier_paid_status !== "paid" || recorded <= 0) {
-          const { error: settleErr } = await supabase.from("bookings").update({
-            supplier_paid_status: "paid",
-            supplier_paid_amount: nextAmount > 0 ? nextAmount : null,
-            supplier_paid_date: new Date().toISOString().split("T")[0],
-            supplier_paid_method: method,
-            supplier_paid_reference: reference.trim() || null,
-          }).eq("id", bookingId);
-          if (settleErr) throw settleErr;
-        }
+      if (payment.supplier_paid_at) {
+        throw new Error("This supplier payment has already been recorded. Refresh the payment list.");
+      }
+      if (!Number.isFinite(amount) || amount <= 0 || Math.round(Number(payment.amount) * 100) !== Math.round(amount * 100)) {
+        throw new Error("The payment amount has changed or is invalid. Refresh the payment list.");
       }
 
       const { error } = await supabase
@@ -141,13 +116,13 @@ export function MarkSupplierPaidButton({
           supplier_payment_method: method,
           supplier_payment_ref: reference.trim() || null,
         })
-        .eq("id", paymentId);
+        .eq("id", paymentId)
+        .is("supplier_paid_at", null)
+        .select("id")
+        .single();
 
       if (error) throw error;
 
-      if (!bookingId) {
-        toast.warning("Saved on the payment, but this trip has no booking to bill in QuickBooks.");
-      }
       toast.success(
         `Supplier payment recorded — ${formatCurrency(amount)} via ${METHOD_LABELS[method]}.`
       );

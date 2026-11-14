@@ -19,6 +19,7 @@ import {
   tripInvoiceTag,
 } from "../_shared/qbo-payment-rules.ts";
 import { refreshQboConnection } from "../_shared/qbo-token.ts";
+import { resolveSupplierBooking } from "../_shared/supplier-booking.ts";
 import { advisorClassForTrip, applyClass, getAdvisorVendorId, postWithClassFallback } from "../_shared/qbo-advisor.ts";
 
 /**
@@ -808,24 +809,6 @@ async function paySupplierBill(
     supplier_name: supplierName,
     qbo_bill_payment_id: qboPaymentId ?? null,
   });
-}
-
-async function resolveSupplierBooking(supabase: any, record: any) {
-  if (!record?.id) return record ?? null;
-  const { data: booking } = await supabase.from("bookings").select("*").eq("id", record.id).maybeSingle();
-  if (booking) return booking;
-  const { data: payment } = await supabase.from("trip_payments")
-    .select("booking_id, trip_id").eq("id", record.id).maybeSingle();
-  const bookingId = payment?.booking_id;
-  if (bookingId) {
-    const { data: linked } = await supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle();
-    if (linked) return linked;
-  }
-  const tripId = payment?.trip_id || record.trip_id;
-  if (!tripId) return null;
-  const { data: first } = await supabase.from("bookings").select("*")
-    .eq("trip_id", tripId).order("created_at", { ascending: true }).limit(1).maybeSingle();
-  return first ?? null;
 }
 
 async function ensureSupplierBill(
