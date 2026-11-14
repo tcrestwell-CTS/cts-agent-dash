@@ -366,6 +366,114 @@
 }
 
 /* Modal entry animation used by src/components/patterns/Modal.tsx */
+/* Claire's celebration: editorial typography and restrained metallic accents. */
+.luxury-celebration {
+  --background: 40 25% 98%;
+  --foreground: 213 40% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 213 40% 17%;
+  --primary: 213 45% 16%;
+  --primary-foreground: 40 30% 96%;
+  --accent: 42 47% 48%;
+  --accent-foreground: 213 45% 16%;
+  --muted: 40 18% 94%;
+  --muted-foreground: 213 13% 40%;
+  --border: 40 17% 83%;
+  --input: 40 17% 75%;
+  --ring: 42 47% 48%;
+  --celebration-overlay: 213 45% 9%;
+  --celebration-shadow: 0 12px 35px hsl(213 45% 16% / 0.08);
+  letter-spacing: 0;
+}
+.luxury-celebration * { letter-spacing: 0; }
+.luxury-celebration :is(h1, h2, h3),
+.luxury-celebration .celebration-advisor .text-lg {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 500;
+}
+.luxury-celebration .celebration-hero > div:first-child { height: 540px; }
+.luxury-celebration .celebration-hero img[fetchpriority="high"] { object-position: center 42%; }
+.luxury-celebration .celebration-hero-shade { background: hsl(var(--celebration-overlay) / 0.43); }
+.luxury-celebration .celebration-hero h1 {
+  color: hsl(var(--primary-foreground));
+  font-size: 52px;
+  line-height: 1.12;
+  max-width: 850px;
+}
+.luxury-celebration .celebration-hero span {
+  background: none;
+  border-radius: 0;
+  padding-left: 0;
+  color: hsl(var(--primary-foreground));
+}
+.luxury-celebration .celebration-main { max-width: 1280px; padding-top: 64px; }
+.luxury-celebration .celebration-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 64px; }
+.luxury-celebration .celebration-content > * + * { margin-top: 48px; }
+.luxury-celebration :is(.text-gray-900, .text-gray-800, .text-gray-700) { color: hsl(var(--foreground)); }
+.luxury-celebration :is(.text-gray-600, .text-gray-500, .text-gray-400) { color: hsl(var(--muted-foreground)); }
+.luxury-celebration :is(.bg-gray-50, .bg-gray-100) { background-color: hsl(var(--muted)); }
+.luxury-celebration :is(.border-gray-200, .border-gray-100) { border-color: hsl(var(--border)); }
+.luxury-celebration .rounded-2xl,
+.luxury-celebration .rounded-xl { border-radius: 8px; }
+.luxury-celebration .celebration-experience { display: flex; flex-direction: column; gap: 48px; }
+.luxury-celebration .celebration-experience > * { margin-top: 0; }
+.luxury-celebration .celebration-countdown {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: 0;
+  border-radius: 0;
+  padding: 40px 24px;
+}
+.luxury-celebration .celebration-countdown > p:first-child { color: hsl(var(--accent)) !important; }
+.luxury-celebration .celebration-countdown .countdown-unit { background: none; border-right: 1px solid hsl(var(--accent) / 0.4); border-radius: 0; }
+.luxury-celebration .celebration-countdown .countdown-unit:last-child { border: 0; }
+.luxury-celebration .celebration-countdown .countdown-unit > div:first-child {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 400;
+  color: hsl(var(--primary-foreground));
+}
+.luxury-celebration .celebration-countdown :is(.text-gray-500, .text-gray-600) { color: hsl(var(--primary-foreground) / 0.8); }
+.luxury-celebration :is(.celebration-cruise, .celebration-photo-share, .celebration-apps) {
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+  border-radius: 0;
+  padding: 32px 0 0;
+}
+.luxury-celebration h2 { font-size: 28px; line-height: 1.3; }
+.luxury-celebration .celebration-cruise dl { gap: 24px 32px; }
+.luxury-celebration .celebration-cruise dt { margin-bottom: 8px; font-size: 12px; text-transform: uppercase; }
+.luxury-celebration .celebration-cruise dd { font-weight: 500; line-height: 1.8; }
+.luxury-celebration .celebration-photo-share img { max-width: 240px; border-radius: 4px; }
+.luxury-celebration .celebration-photo-share a { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)); border-radius: 4px; }
+.luxury-celebration .celebration-apps a { border-color: hsl(var(--border)); color: hsl(var(--foreground)); border-radius: 4px; }
+.luxury-celebration .celebration-advisor > .rounded-2xl { border: 1px solid hsl(var(--border)); box-shadow: var(--celebration-shadow); background: hsl(var(--card)); }
+.luxury-celebration .celebration-events > div { border: 0; border-bottom: 1px solid hsl(var(--border)); border-radius: 0; }
+.luxury-celebration .celebration-events > div > button { height: auto; min-height: 72px; padding: 20px 0; white-space: normal; border-radius: 0; }
+.luxury-celebration .celebration-events > div > button h3 { font-size: 24px; }
+.luxury-celebration .celebration-events > div > div { padding: 0 0 28px; }
+.luxury-celebration .celebration-events form { padding-top: 8px; }
+.luxury-celebration .celebration-events form button { background: hsl(var(--card)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
+.luxury-celebration .celebration-events form :is(button[aria-pressed="true"], button[type="submit"]) { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; }
+.luxury-celebration table th { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 16px; }
+.luxury-celebration table td { padding: 20px 16px; }
+.luxury-celebration :is(a, button, input):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+@media (max-width: 1023px) {
+  .luxury-celebration .celebration-layout { grid-template-columns: minmax(0, 1fr); gap: 48px; }
+}
+@media (max-width: 640px) {
+  .luxury-celebration .celebration-hero > div:first-child { height: 500px; }
+  .luxury-celebration .celebration-hero h1 { font-size: 34px; }
+  .luxury-celebration .celebration-hero img:not([fetchpriority]) { height: 100px; max-width: 100%; }
+  .luxury-celebration .celebration-main { padding-top: 32px; }
+  .luxury-celebration .celebration-countdown { padding: 28px 12px; }
+  .luxury-celebration .celebration-countdown .countdown-unit > div:first-child { font-size: 30px; }
+  .luxury-celebration .celebration-countdown .countdown-unit > div:last-child { font-size: 10px; }
+  .luxury-celebration h2 { font-size: 25px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .luxury-celebration * { transition: none !important; animation: none !important; }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
