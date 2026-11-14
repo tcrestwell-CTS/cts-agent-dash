@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Fix supplier-paid booking guessing in the page, payment trigger, and QBO resolver; verify linked partial amounts and unlinked safety.
 - [x] Fix concurrent QBO renewal disconnections; deployed three functions, 23 tests passed, signed-in July net $2,565.55 and October net $238.96 verified; connection active.
 - [x] Wire paid client-payment inserts and updates to automatic QBO invoice/payment posting; Tara invoice 2161 and payments 2162/2163 verified, replay skipped, no new charges.
 - [x] Verify real Carnival supplier payment ($1,004.76, bill 2141) in QuickBooks and the signed-in app; refresh bills/payment cache without reposting.
