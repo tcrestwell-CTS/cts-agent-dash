@@ -1,0 +1,1 @@
+DROP POLICY "Anon can submit car rental requests" ON public.car_rental_requests;
