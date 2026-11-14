@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Anchor, Ship, MapPin, Calendar, PartyPopper, Camera, ExternalLink, Smartphone } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface CelebrationPhoto {
   id: string;
@@ -92,10 +93,10 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
   const go = (d: number) => setIdx((i) => (i + d + photos.length) % photos.length);
 
   return (
-    <section className="space-y-8" aria-label="Celebration">
+    <section className="celebration-experience space-y-8" aria-label="Celebration">
       {/* Countdown */}
       {cd && (
-        <div className="rounded-2xl border border-gray-200 p-6 md:p-8 text-center">
+        <div className="celebration-countdown rounded-lg border border-border p-6 md:p-8 text-center">
           <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider" style={{ color: accentColor }}>
             <PartyPopper className="h-4 w-4" />
             {cd.done ? "We've set sail" : `Countdown to sail away${name ? ` for ${name}` : ""}`}
@@ -108,7 +109,7 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
                 ["Minutes", cd.minutes],
                 ["Seconds", cd.seconds],
               ].map(([label, v]) => (
-                <div key={label as string} className="rounded-xl bg-gray-50 py-4">
+                <div key={label as string} className="countdown-unit rounded-md bg-muted py-4">
                   <div className="text-3xl md:text-5xl font-bold tabular-nums text-gray-900">
                     {label === "Days" ? v : pad(v as number)}
                   </div>
@@ -128,7 +129,7 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
 
       {/* Photo slideshow */}
       {photos.length > 0 && (
-        <div className="space-y-3">
+        <div className="celebration-slideshow space-y-3">
           <h2 className="text-2xl font-bold text-gray-900">
             {name ? `Celebrating ${name}` : "Celebrating together"}
           </h2>
@@ -152,12 +153,12 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
             ))}
             {photos.length > 1 && (
               <>
-                <button type="button" onClick={() => go(-1)} aria-label="Previous photo" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/85 p-2 shadow hover:bg-white focus-visible:outline focus-visible:outline-2">
-                  <ChevronLeft className="h-5 w-5 text-gray-800" />
-                </button>
-                <button type="button" onClick={() => go(1)} aria-label="Next photo" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/85 p-2 shadow hover:bg-white focus-visible:outline focus-visible:outline-2">
-                  <ChevronRight className="h-5 w-5 text-gray-800" />
-                </button>
+                <Button type="button" variant="secondary" size="icon" onClick={() => go(-1)} aria-label="Previous photo" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button type="button" variant="secondary" size="icon" onClick={() => go(1)} aria-label="Next photo" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full">
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
               </>
             )}
           </div>
@@ -180,7 +181,7 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
       )}
 
       {/* Cruise info */}
-      <div className="rounded-2xl border border-gray-200 p-6">
+      <div className="celebration-cruise rounded-lg border border-border p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Ship className="h-5 w-5" style={{ color: accentColor }} /> Cruise details
         </h2>
@@ -217,7 +218,7 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
 
       {/* Shared photo album */}
       {config.photo_share && (config.photo_share.qr_image_url || config.photo_share.album_url) && (
-        <div className="rounded-2xl border border-gray-200 p-6 md:p-8">
+        <div className="celebration-photo-share rounded-lg border border-border p-6 md:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
             <Camera className="h-5 w-5" style={{ color: accentColor }} />
             {config.photo_share.title || "Share your photos"}
@@ -256,7 +257,7 @@ export function CelebrationSection({ config, departDate, returnDate, ports, acce
 
       {/* Cruise line app links */}
       {config.app_links && config.app_links.length > 0 && (
-        <div className="rounded-2xl border border-gray-200 p-6 md:p-8">
+        <div className="celebration-apps rounded-lg border border-border p-6 md:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
             <Smartphone className="h-5 w-5" style={{ color: accentColor }} />
             Get the {config.cruise_line || "cruise line"} app

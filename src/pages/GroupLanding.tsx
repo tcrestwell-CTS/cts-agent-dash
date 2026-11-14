@@ -380,6 +380,7 @@ export default function GroupLanding() {
   const additionalSections = content.additional_sections || [];
   const inclusions: string[] = content.inclusions || [];
   const celebration = content.celebration;
+  const isClaireCelebration = token === "cccb3ae4b7d9178092ba9ca5";
   const celebrationPorts = Array.from(
     new Set(
       data.itineraryHighlights
@@ -442,7 +443,7 @@ export default function GroupLanding() {
   const canonicalUrl = `${typeof window !== "undefined" ? window.location.origin : "https://app.crestwelltravels.com"}/group/${token}`;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className={isClaireCelebration ? "luxury-celebration min-h-screen bg-background text-foreground" : "min-h-screen bg-white"}>
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
@@ -457,7 +458,7 @@ export default function GroupLanding() {
         {pageImage && <meta name="twitter:image" content={pageImage} />}
       </Helmet>
       {/* ─── HERO SECTION ─────────────────────────── */}
-      <div className="relative w-full">
+      <div className="celebration-hero relative w-full">
         {data.trip.cover_image_url ? (
           <>
             <div className="w-full h-[380px] md:h-[480px] relative overflow-hidden">
@@ -470,7 +471,7 @@ export default function GroupLanding() {
                 sizes="100vw"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+              <div className={isClaireCelebration ? "celebration-hero-shade absolute inset-0" : "absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"} />
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
               <div className="max-w-6xl mx-auto">
@@ -537,10 +538,10 @@ export default function GroupLanding() {
       </div>
 
       {/* ─── MAIN CONTENT ─────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-14">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 items-start">
+      <div className="celebration-main max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-14">
+        <div className="celebration-layout grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 items-start">
           {/* ─── LEFT COLUMN ──────────────────────── */}
-          <div className="space-y-10">
+          <div className="celebration-content space-y-10">
             {/* Overview */}
             {descriptionHtml ? (
               <div
@@ -852,7 +853,7 @@ export default function GroupLanding() {
 
             {/* ─── ADDITIONAL SECTIONS (accordion) ── */}
             {additionalSections.length > 0 && (
-              <div className="space-y-3">
+              <div className="celebration-events space-y-3">
                 {additionalSections.map((section) => {
                   const isExpanded = expandedSections[section.id] ?? false;
                   return (
@@ -860,8 +861,10 @@ export default function GroupLanding() {
                       key={section.id}
                       className="border border-gray-200 rounded-xl overflow-hidden"
                     >
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => toggleSection(section.id)}
+                        aria-expanded={isExpanded}
                         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
                       >
                         <h3 className="text-lg font-semibold text-gray-900">
@@ -872,7 +875,7 @@ export default function GroupLanding() {
                         ) : (
                           <ChevronDown className="h-5 w-5 text-gray-400 shrink-0" />
                         )}
-                      </button>
+                      </Button>
                       {isExpanded && section.content && (
                         <div className="px-4 pb-4 text-gray-600 leading-relaxed whitespace-pre-wrap text-[15px]">
                           {section.content}
@@ -905,7 +908,7 @@ export default function GroupLanding() {
           </div>
 
           {/* ─── RIGHT COLUMN: Advisor Card (sticky) ── */}
-          <div className="lg:sticky lg:top-8 space-y-5">
+          <div className="celebration-advisor lg:sticky lg:top-8 space-y-5">
             {/* Advisor Card */}
             {data.advisor && (
               <Card className="overflow-hidden shadow-xl border-0 rounded-2xl">
@@ -913,7 +916,7 @@ export default function GroupLanding() {
                 <div
                   className="relative h-24"
                   style={{
-                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}bb)`,
+                    background: isClaireCelebration ? "hsl(var(--primary))" : `linear-gradient(135deg, ${primaryColor}, ${primaryColor}bb)`,
                   }}
                 >
                   {data.branding?.tagline && (

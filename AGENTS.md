@@ -19,3 +19,4 @@
 - Client refunds post once through qbo-sync-trigger `client_payment_refunded` (trigger_qbo_client_payment): a full or partial Stripe refund writes one QuickBooks refund receipt against client funds and stores the id on trip_payments.qbo_refund_id — refunds reduce the client-funds liability and never touch P&L.
 
 - Cabin price_period `cabin` stores a whole-room trip fare in price_per_person; signup and shared wizard pricing charge it once, while deposits remain per traveler — prevents multiplying cabin quotes by occupancy.
+- Celebration-specific presentation is scoped by the landing page's theme class with semantic CSS tokens; shared signup and RSVP behavior stays unchanged so visual refreshes do not affect other groups.
