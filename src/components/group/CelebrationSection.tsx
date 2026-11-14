@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Anchor, Ship, MapPin, Calendar, PartyPopper } from "lucide-react";
+import { ChevronLeft, ChevronRight, Anchor, Ship, MapPin, Calendar, PartyPopper, Camera, ExternalLink, Smartphone } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
 
@@ -7,6 +7,19 @@ export interface CelebrationPhoto {
   id: string;
   url: string;
   caption?: string;
+}
+
+export interface CelebrationPhotoShare {
+  title?: string;
+  description?: string;
+  qr_image_url?: string;
+  album_url?: string;
+}
+
+export interface CelebrationAppLink {
+  label: string;
+  url: string;
+  note?: string;
 }
 
 export interface CelebrationConfig {
@@ -18,6 +31,8 @@ export interface CelebrationConfig {
   embark_port?: string;
   embark_time?: string; // "HH:mm"
   photos?: CelebrationPhoto[];
+  photo_share?: CelebrationPhotoShare;
+  app_links?: CelebrationAppLink[];
 }
 
 interface Props {
