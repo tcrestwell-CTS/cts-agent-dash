@@ -64,6 +64,13 @@
       "when": 1794675563269,
       "tag": "0008_harden_selected_public_submissions_and_catalog_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794675582845,
+      "tag": "0009_route_rental_submissions_through_existing_handler",
+      "breakpoints": true
     }
   ]
 }
