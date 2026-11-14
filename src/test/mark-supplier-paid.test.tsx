@@ -27,7 +27,7 @@ describe("manual supplier payment confirmation", () => {
     expect(mocks.from.mock.calls).toEqual([["trip_payments"]]);
   });
   it("saves only the linked receipt flag and lets the atomic trigger apply the actual $300", async () => {
-    const update = vi.fn(() => ({ eq: () => ({ is: () => ({ select: () => ({ single: async () => ({ data: { id: "receipt" }, error: null }) }) }) }) }));
+    const update = vi.fn((_payload: Record<string, unknown>) => ({ eq: () => ({ is: () => ({ select: () => ({ single: async () => ({ data: { id: "receipt" }, error: null }) }) }) }) }));
     mocks.from.mockReturnValue({ update, select: () => ({ eq: () => ({ single: async () => ({
       data: { booking_id: "hotel", trip_id: "flight-and-hotel", amount: 300, supplier_paid_at: null }, error: null,
     }) }) }) });
