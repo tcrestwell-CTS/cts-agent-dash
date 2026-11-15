@@ -85,6 +85,13 @@
       "when": 1794675894748,
       "tag": "0011_require_explicit_booking_for_supplier_payment_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794782604176,
+      "tag": "0012_tighten_public_circle_hotel_upload_policies",
+      "breakpoints": true
     }
   ]
 }
