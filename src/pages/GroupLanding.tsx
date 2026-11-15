@@ -879,9 +879,9 @@ export default function GroupLanding() {
                         variant="ghost"
                         onClick={() => toggleSection(section.id)}
                         aria-expanded={isExpanded}
-                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                        className="w-full h-auto flex items-center justify-between gap-3 p-4 text-left whitespace-normal hover:bg-gray-50 transition-colors"
                       >
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="min-w-0 text-lg font-semibold text-gray-900">
                           {section.title || "Details"}
                         </h3>
                         {isExpanded ? (
