@@ -58,6 +58,7 @@ interface LandingContent {
   feature_images: FeatureImage[];
   additional_sections: AdditionalSection[];
   inclusions?: string[];
+  notice_banner?: { enabled?: boolean; text?: string };
   signup_button_label?: string;
   signup_enabled?: boolean;
   cta_enabled?: boolean;
@@ -87,6 +88,10 @@ const GroupLandingBuilder = () => {
   const [additionalSections, setAdditionalSections] = useState<AdditionalSection[]>([]);
   const [inclusions, setInclusions] = useState<string[]>([]);
   const [inclusionInput, setInclusionInput] = useState("");
+
+  // Notice banner
+  const [noticeEnabled, setNoticeEnabled] = useState(false);
+  const [noticeText, setNoticeText] = useState("");
 
   // Settings
   const [signupEnabled, setSignupEnabled] = useState(true);
@@ -169,6 +174,8 @@ const GroupLandingBuilder = () => {
     setFeatureImages(content.feature_images || []);
     setAdditionalSections(content.additional_sections || []);
     setInclusions(content.inclusions || []);
+    setNoticeEnabled(content.notice_banner?.enabled || false);
+    setNoticeText(content.notice_banner?.text || "");
     setSignupEnabled(content.signup_enabled !== false);
     setSignupButtonLabel(content.signup_button_label || "");
     setCtaEnabled(content.cta_enabled || false);
@@ -212,6 +219,7 @@ const GroupLandingBuilder = () => {
       feature_images: featureImages,
       additional_sections: additionalSections,
       inclusions,
+      notice_banner: { enabled: noticeEnabled, text: noticeText.trim() },
       signup_enabled: signupEnabled,
       signup_button_label: signupButtonLabel,
       cta_enabled: ctaEnabled,
@@ -642,6 +650,26 @@ const GroupLandingBuilder = () => {
               style={{ wordBreak: "break-word" }}
               data-placeholder="Share what makes this trip special — highlights, inclusions, what's planned..."
             />
+          </div>
+
+          <Separator />
+
+          {/* Notice banner */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Notice Banner</Label>
+            <p className="text-xs text-muted-foreground">
+              A short notice shown in a band across the very top of the public page.
+            </p>
+            <Textarea
+              value={noticeText}
+              onChange={(e) => setNoticeText(e.target.value)}
+              placeholder="e.g. Pre-paid gratuities are not included in your cruise fare — contact your advisor to arrange payment."
+              className="min-h-[70px] text-sm"
+            />
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Show notice banner</Label>
+              <Switch checked={noticeEnabled} onCheckedChange={setNoticeEnabled} />
+            </div>
           </div>
 
           <Separator />
