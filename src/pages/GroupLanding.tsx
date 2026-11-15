@@ -39,6 +39,7 @@ import {
   Compass,
   Users,
   BedDouble,
+  Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import { parseLocalDate } from "@/lib/utils";
@@ -65,6 +66,7 @@ interface LandingContent {
   feature_images?: FeatureImage[];
   additional_sections?: AdditionalSection[];
   inclusions?: string[];
+  notice_banner?: { enabled?: boolean; text?: string };
   signup_button_label?: string;
   signup_enabled?: boolean;
   cta_enabled?: boolean;
@@ -380,6 +382,8 @@ export default function GroupLanding() {
   const additionalSections = content.additional_sections || [];
   const inclusions: string[] = content.inclusions || [];
   const celebration = content.celebration;
+  const noticeText = content.notice_banner?.text?.trim() || "";
+  const noticeEnabled = !!content.notice_banner?.enabled && noticeText.length > 0;
   const isClaireCelebration = token === "cccb3ae4b7d9178092ba9ca5";
   const celebrationPorts = Array.from(
     new Set(
@@ -457,6 +461,16 @@ export default function GroupLanding() {
         <meta name="twitter:description" content={pageDescription} />
         {pageImage && <meta name="twitter:image" content={pageImage} />}
       </Helmet>
+      {/* ─── NOTICE BANNER ────────────────────────── */}
+      {noticeEnabled && (
+        <div className="celebration-notice border-b" role="note">
+          <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 flex items-start gap-3">
+            <Info className="h-4 w-4 shrink-0 mt-1" aria-hidden="true" />
+            <p className="text-[13px] md:text-sm leading-relaxed">{noticeText}</p>
+          </div>
+        </div>
+      )}
+
       {/* ─── HERO SECTION ─────────────────────────── */}
       <div className="celebration-hero relative w-full">
         {data.trip.cover_image_url ? (

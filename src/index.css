@@ -474,6 +474,24 @@
   .luxury-celebration * { transition: none !important; animation: none !important; }
 }
 
+/* Public group landing: top-of-page notice banner */
+.celebration-notice {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+.celebration-notice svg {
+  color: hsl(var(--accent));
+}
+.luxury-celebration .celebration-notice {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-bottom: 1px solid hsl(var(--accent) / 0.45);
+}
+.luxury-celebration .celebration-notice svg {
+  color: hsl(var(--accent));
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
