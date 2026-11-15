@@ -83,15 +83,15 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (n: n
 
 function ProgressBar({ step, onJump }: { step: StepIndex; onJump: (s: StepIndex) => void }) {
   return (
-    <ol className="grid grid-cols-6 gap-2">
+    <ol className="flex flex-wrap items-start gap-x-3 gap-y-2">
       {STEPS.map((label, i) => {
         const done = i < step, active = i === step;
         return (
-          <li key={label}>
-            <button type="button" disabled={!done} onClick={() => onJump(i as StepIndex)} className="w-full text-left disabled:cursor-default">
-              <div className={`h-1 rounded-full mb-2 ${active ? "bg-primary" : done ? "bg-primary/60" : "bg-muted"}`} />
-              <span className={`text-[11px] sm:text-xs flex items-center gap-1 ${active ? "font-semibold text-foreground" : done ? "text-primary underline-offset-2 hover:underline" : "text-muted-foreground"}`}>
-                {done && <Check className="h-3 w-3" />}{label}
+          <li key={label} className="shrink-0">
+            <button type="button" disabled={!done} onClick={() => onJump(i as StepIndex)} className="text-left disabled:cursor-default">
+              <div className={`h-1 w-8 rounded-full mb-2 ${active ? "bg-primary" : done ? "bg-primary/60" : "bg-muted"}`} />
+              <span className={`text-[10px] sm:text-xs flex items-center gap-1 whitespace-nowrap ${active ? "font-semibold text-foreground" : done ? "text-primary underline-offset-2 hover:underline" : "text-muted-foreground"}`}>
+                {done && <Check className="h-3 w-3 shrink-0" />}{label}
               </span>
             </button>
           </li>
