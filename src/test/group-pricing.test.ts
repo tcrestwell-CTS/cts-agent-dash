@@ -11,6 +11,15 @@ const veranda: CabinOptionPricing = {
 const cfg = { taxes_fees_per_person: 0, group_deposit_per_person: 250, promo_codes: [] };
 
 describe("group pricing", () => {
+  it("prices an Obama solo package with only hotel allocation changing, including 15% overhead", () => {
+    const soloBase = 1900 + 30 + 45 + 125;
+    const option = { ...veranda, price_per_person: Math.round(soloBase * 1.15 * 100) / 100, single_supplement_pct: 0, deposit_amount: 300, sleeps_min: 1, sleeps_max: 1 };
+    const q = quoteBooking([{ cabin_option_id: "v1", adults: 1, children: 0 }], [option], [], [], cfg);
+    expect(q.total).toBe(2415);
+    expect(q.total - 1322.50).toBe(1092.50);
+    expect(q.deposit_due).toBe(300);
+    expect(q.total - q.deposit_due).toBe(2115);
+  });
   it("adds 15% overhead to the Obama $2,300 base cost for a $2,645 package", () => {
     const basePP = 1900 / 2 + 30 + 45 + 250 / 2;
     const packagePP = Math.round(basePP * 1.15 * 100) / 100;
