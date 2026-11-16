@@ -11,6 +11,19 @@ const veranda: CabinOptionPricing = {
 const cfg = { taxes_fees_per_person: 0, group_deposit_per_person: 250, promo_codes: [] };
 
 describe("group pricing", () => {
+  it("prices the Obama two-person package at $2,300 from hotel, museum, river tour and dinner", () => {
+    const packagePP = 1900 / 2 + 30 + 45 + 250 / 2;
+    const option = { ...veranda, price_per_person: packagePP, deposit_amount: 300, sleeps_min: 2, sleeps_max: 2 };
+    const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [option], [], [], { ...cfg, group_deposit_per_person: 300 });
+    expect(q.total).toBe(2300);
+    expect(q.rooms[0].per_person_display).toBe(1150);
+  });
+  it("applies the Obama $300 per-person deposit toward the total, leaving $1,700 for two", () => {
+    const option = { ...veranda, price_per_person: 1150, deposit_amount: 300 };
+    const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [option], [], [], cfg);
+    expect(q.deposit_due).toBe(600);
+    expect(q.total - q.deposit_due).toBe(1700);
+  });
   it.each([2730, 2450, 12600])("charges the $%s cabin total once regardless of guest count", (amount) => {
     for (const adults of [1, 2]) {
       const opt = { ...veranda, price_period: "cabin", price_per_person: amount };
