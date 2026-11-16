@@ -11,29 +11,32 @@ const veranda: CabinOptionPricing = {
 const cfg = { taxes_fees_per_person: 0, group_deposit_per_person: 250, promo_codes: [] };
 
 describe("group pricing", () => {
-  it("prices an Obama solo package with only hotel allocation changing, including 15% overhead", () => {
-    const soloBase = 1900 + 30 + 45 + 125;
-    const option = { ...veranda, price_per_person: Math.round(soloBase * 1.15 * 100) / 100, single_supplement_pct: 0, deposit_amount: 300, sleeps_min: 1, sleeps_max: 1 };
+  it("prices an Obama solo package with only hotel allocation changing, 15% overhead and 18% profit margin", () => {
+    const soloBase = 1900 + 30 + 45 + 125 + 144 + 101;
+    const option = { ...veranda, price_per_person: Math.ceil(soloBase * 1.15 / 0.82 * 100) / 100, single_supplement_pct: 0, deposit_amount: 300, sleeps_min: 1, sleeps_max: 1 };
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 1, children: 0 }], [option], [], [], cfg);
-    expect(q.total).toBe(2415);
-    expect(q.total - 1322.50).toBe(1092.50);
+    expect(q.total).toBe(3288.72);
+    expect(Math.round((q.total - 1956.41) * 100) / 100).toBe(1332.31);
     expect(q.deposit_due).toBe(300);
-    expect(q.total - q.deposit_due).toBe(2115);
+    expect(q.total - q.deposit_due).toBe(2988.72);
   });
-  it("adds 15% overhead to the Obama $2,300 base cost for a $2,645 package", () => {
-    const basePP = 1900 / 2 + 30 + 45 + 250 / 2;
-    const packagePP = Math.round(basePP * 1.15 * 100) / 100;
+  it("divides the Obama 20-guest total with CityPASS and food tour, 15% overhead and 18% profit margin", () => {
+    const supplierTotal = 10 * 1900 + 20 * (30 + 45 + 125 + 144 + 101);
+    const overheadTotal = supplierTotal * 0.15;
+    const packagePP = Math.ceil((supplierTotal + overheadTotal) / 0.82 / 20 * 100) / 100;
     const option = { ...veranda, price_per_person: packagePP, deposit_amount: 300, sleeps_min: 2, sleeps_max: 2 };
-    const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [option], [], [], { ...cfg, group_deposit_per_person: 300 });
-    expect(q.total).toBe(2645);
-    expect(q.total - basePP * 2).toBe(345);
-    expect(q.rooms[0].per_person_display).toBe(1322.50);
+    const q = quoteBooking(Array.from({ length: 10 }, () => ({ cabin_option_id: "v1", adults: 2, children: 0 })), [option], [], [], { ...cfg, group_deposit_per_person: 300 });
+    expect(supplierTotal).toBe(27900);
+    expect(overheadTotal).toBe(4185);
+    expect(q.total).toBe(39128.20);
+    expect((q.total - supplierTotal - overheadTotal) / q.total).toBeGreaterThanOrEqual(0.18);
+    expect(q.rooms[0].per_person_display).toBe(1956.41);
   });
-  it("applies the Obama $300 per-person deposit toward the total, leaving $2,045 for two", () => {
-    const option = { ...veranda, price_per_person: 1322.50, deposit_amount: 300 };
+  it("keeps the Obama $300 per-person deposit, leaving $3,312.82 for two", () => {
+    const option = { ...veranda, price_per_person: 1956.41, deposit_amount: 300 };
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [option], [], [], cfg);
     expect(q.deposit_due).toBe(600);
-    expect(q.total - q.deposit_due).toBe(2045);
+    expect(q.total - q.deposit_due).toBe(3312.82);
   });
   it.each([2730, 2450, 12600])("charges the $%s cabin total once regardless of guest count", (amount) => {
     for (const adults of [1, 2]) {
