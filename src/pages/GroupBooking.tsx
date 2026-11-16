@@ -439,7 +439,11 @@ export default function GroupBooking() {
               <div className="flex justify-between pt-2">
                 <Button variant="ghost" onClick={() => roomIdx > 0 ? setRoomIdx(roomIdx - 1) : setStep(0)}><ChevronLeft className="h-4 w-4 mr-1" /> Back</Button>
                 {roomIdx < rooms.length - 1
-                  ? <Button size="lg" disabled={!rooms[roomIdx].cabin_option_id} onClick={() => setRoomIdx(roomIdx + 1)}>Next room <ChevronRight className="h-4 w-4 ml-1" /></Button>
+                  ? <Button size="lg" disabled={(() => {
+                      const room = rooms[roomIdx];
+                      const option = room.cabin_option_id ? optById.get(room.cabin_option_id) : null;
+                      return !option || option.sold_out || !roomFitsOption(option, room) || (!!room.accessible && !option.accessible_available);
+                    })()} onClick={() => setRoomIdx(roomIdx + 1)}>Next room <ChevronRight className="h-4 w-4 ml-1" /></Button>
                   : <Button size="lg" disabled={!canLeaveRooms} onClick={() => setStep(cfg.addons.length ? 2 : 3)}>Continue <ChevronRight className="h-4 w-4 ml-1" /></Button>}
               </div>
             </section>
