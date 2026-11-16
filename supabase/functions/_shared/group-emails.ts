@@ -40,7 +40,7 @@ export async function sendGroupEventEmails(opts: {
       user_id: opts.userId, client_id: message.audience === 'client' ? opts.clientId ?? null : null,
       to_email: message.to, subject: message.subject, template: `${opts.template}_${message.audience}`,
       status: result.status, error_message: result.error, provider_message_id: result.id,
-      sent_at: result.status === 'sent' ? new Date().toISOString() : null,
+      sent_at: new Date().toISOString(),
       idempotency_key: key, attempt_count: 1, metadata: { ...opts.metadata, audience: message.audience },
     });
     if (error) console.error('Group email logging failed:', error.message);
