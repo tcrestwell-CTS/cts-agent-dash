@@ -32,6 +32,14 @@ describe("group pricing", () => {
     expect((q.total - supplierTotal - overheadTotal) / q.total).toBeCloseTo(0.10, 5);
     expect(q.rooms[0].per_person_display).toBe(876.17);
   });
+  it("charges an Obama child only the $23 museum admission with 5% overhead and 10% margin", () => {
+    const childPrice = Math.ceil(23 * 1.05 / 0.90 * 100 - 1e-8) / 100;
+    const option = { ...veranda, price_per_person: 876.17, child_price: childPrice, deposit_amount: 300, sleeps_max: 3 };
+    const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 1 }], [option], [], [], cfg);
+    expect(childPrice).toBe(26.84);
+    expect(q.total).toBe(1779.18);
+    expect(q.deposit_due).toBe(900);
+  });
   it("keeps the Obama $300 per-person deposit, leaving $1,152.34 for two", () => {
     const option = { ...veranda, price_per_person: 876.17, deposit_amount: 300 };
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [option], [], [], cfg);
