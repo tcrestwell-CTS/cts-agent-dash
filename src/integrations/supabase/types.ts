@@ -4740,6 +4740,7 @@ export type Database = {
         Row: {
           addons: Json
           booking_id: string | null
+          cc_authorization_id: string | null
           checkout_payment_id: string | null
           client_id: string | null
           contact_email: string
@@ -4753,6 +4754,7 @@ export type Database = {
           id: string
           ip_address: string | null
           paid_at: string | null
+          payment_preference: string | null
           pricing: Json
           promo_code: string | null
           rooms: Json
@@ -4768,6 +4770,7 @@ export type Database = {
         Insert: {
           addons?: Json
           booking_id?: string | null
+          cc_authorization_id?: string | null
           checkout_payment_id?: string | null
           client_id?: string | null
           contact_email: string
@@ -4781,6 +4784,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           paid_at?: string | null
+          payment_preference?: string | null
           pricing: Json
           promo_code?: string | null
           rooms: Json
@@ -4796,6 +4800,7 @@ export type Database = {
         Update: {
           addons?: Json
           booking_id?: string | null
+          cc_authorization_id?: string | null
           checkout_payment_id?: string | null
           client_id?: string | null
           contact_email?: string
@@ -4809,6 +4814,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           paid_at?: string | null
+          payment_preference?: string | null
           pricing?: Json
           promo_code?: string | null
           rooms?: Json
@@ -11595,6 +11601,7 @@ export type Database = {
           group_landing_enabled: boolean
           group_landing_headline: string | null
           group_landing_hero_url: string | null
+          group_payment_flow: string
           group_terms: string | null
           hotel_name: string | null
           id: string
@@ -11682,6 +11689,7 @@ export type Database = {
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
           group_landing_hero_url?: string | null
+          group_payment_flow?: string
           group_terms?: string | null
           hotel_name?: string | null
           id?: string
@@ -11769,6 +11777,7 @@ export type Database = {
           group_landing_enabled?: boolean
           group_landing_headline?: string | null
           group_landing_hero_url?: string | null
+          group_payment_flow?: string
           group_terms?: string | null
           hotel_name?: string | null
           id?: string
