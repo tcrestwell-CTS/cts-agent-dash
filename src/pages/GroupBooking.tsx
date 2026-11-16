@@ -8,6 +8,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { buildPaymentSchedule, finalPaymentDate, type PaymentPreference, type ScheduledPayment } from "@/lib/groupPaymentSchedule";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
@@ -47,7 +49,7 @@ type Config = {
     cover_image_url: string | null; group_landing_headline: string | null; ship_name: string | null; ship_name_display: string | null;
     depart_port: string | null; ports_of_call: string[]; taxes_fees_per_person: number; group_deposit_per_person: number | null;
     final_payment_due: string | null; group_included_items: string[]; group_terms: string | null; max_rooms_per_booking: number;
-    promo_codes: any[]; currency: string | null;
+    promo_codes: any[]; currency: string | null; group_payment_flow?: string | null;
   };
   cabinOptions: CabinOption[];
   addons: Addon[];
@@ -81,10 +83,10 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (n: n
   );
 }
 
-function ProgressBar({ step, onJump }: { step: StepIndex; onJump: (s: StepIndex) => void }) {
+function ProgressBar({ step, onJump, labels = STEPS }: { step: StepIndex; onJump: (s: StepIndex) => void; labels?: readonly string[] }) {
   return (
     <ol className="flex flex-wrap items-start gap-x-3 gap-y-2">
-      {STEPS.map((label, i) => {
+      {labels.map((label, i) => {
         const done = i < step, active = i === step;
         return (
           <li key={label} className="shrink-0">
@@ -143,6 +145,8 @@ export default function GroupBooking() {
   const [terms, setTerms] = useState(false);
   const [booking, setBooking] = useState<{ clientSecret: string; deposit_cents: number; booking_ref: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [payPref, setPayPref] = useState<PaymentPreference>("monthly");
+  const [reservation, setReservation] = useState<{ booking_ref: string; authorization_url: string; schedule: ScheduledPayment[]; payment_preference: PaymentPreference } | null>(null);
   const [inclusionsOpen, setInclusionsOpen] = useState(false);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
@@ -216,11 +220,16 @@ export default function GroupBooking() {
         body: JSON.stringify({
           action: "book", token, rooms,
           addons: Object.entries(addonSel).map(([addon_id, quantity]) => ({ addon_id, quantity })),
-          promo_code: promo || null, contact, terms_accepted: terms,
+          promo_code: promo || null, contact, terms_accepted: terms, payment_preference: payPref,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start your booking");
+      if (data.flow === "cc_auth") {
+        setReservation({ booking_ref: data.booking_ref, authorization_url: data.authorization_url, schedule: data.schedule, payment_preference: data.payment_preference });
+        setStep(6);
+        return;
+      }
       setBooking({ clientSecret: data.clientSecret, deposit_cents: data.deposit_cents, booking_ref: data.booking_ref });
       setStep(5);
     } catch (e: any) {
