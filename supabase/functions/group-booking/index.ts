@@ -23,6 +23,7 @@ import { resolveAgentBranding } from '../_shared/agent-branding.ts';
 import { sendGroupEventEmails } from '../_shared/group-emails.ts';
 import { escapeHtml } from '../_shared/rentalEmail.ts';
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../_shared/rate-limiter.ts';
+import { buildPaymentSchedule, type PaymentPreference } from '../_shared/group-payment-schedule.ts';
 import { quoteBooking, roomFitsOption, type AddonPricing, type CabinOptionPricing, type RoomInput } from '../_shared/group-pricing.ts';
 
 const corsHeaders = {
@@ -38,7 +39,7 @@ const TRIP_COLS =
   'id, user_id, trip_name, destination, depart_date, return_date, status, trip_type, cover_image_url, ' +
   'group_landing_enabled, booking_flow_enabled, group_landing_headline, group_landing_description, group_landing_content, ' +
   'ship_name, ship_name_display, depart_port, ports_of_call, taxes_fees_per_person, group_deposit_per_person, ' +
-  'final_payment_due, group_included_items, group_terms, max_rooms_per_booking, promo_codes, currency';
+  'final_payment_due, group_included_items, group_terms, max_rooms_per_booking, promo_codes, currency, group_payment_flow';
 
 async function loadTrip(token: string) {
   const supabase = admin();
@@ -309,6 +310,10 @@ Deno.serve(async (req) => {
     .single();
   if (gbErr || !gb) return json({ error: 'Could not save your booking.' }, 500);
 
+  if (trip.group_payment_flow === 'cc_auth') {
+    return await finishCcAuthReservation({ supabase, trip, token, body, quote, rooms, gb, subTrip, booking, signup, clientId, first_name, last_name, email, currency, depositCents });
+  }
+
   // 7. Stripe PaymentIntent for the deposit (same raw-fetch convention as create-payment-intent)
   const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY_CLIENT');
   if (!STRIPE_SECRET_KEY) return json({ error: 'Payments are not configured.' }, 500);
@@ -410,3 +415,75 @@ Deno.serve(async (req) => {
     quote,
   });
 });
+
+// ── Card-authorization flow: reservation + CC auth form + payment schedule (no charge at signup) ──
+async function finishCcAuthReservation(a: any) {
+  const { supabase, trip, token, body, quote, rooms, gb, subTrip, booking, signup, clientId, first_name, last_name, email, currency, depositCents } = a;
+  const pref: PaymentPreference = ['uplift', 'affirm'].includes(body.payment_preference) ? body.payment_preference : 'monthly';
+  const prefLabel = pref === 'uplift' ? 'Uplift Flexpay' : pref === 'affirm' ? 'Affirm' : 'Monthly payments';
+  const ref = `GRP-${subTrip.id.slice(0, 8).toUpperCase()}`;
+  const deposit = depositCents / 100;
+  const today = new Date().toISOString().slice(0, 10);
+  const schedule = buildPaymentSchedule(quote.total, deposit, trip.depart_date, today, pref);
+
+  if (!booking?.id) return json({ error: 'Could not save your booking.' }, 500);
+
+  const { data: auth, error: authErr } = await supabase
+    .from('cc_authorizations')
+    .insert({ booking_id: booking.id, client_id: clientId, user_id: trip.user_id, authorization_amount: deposit, authorization_description: `${trip.trip_name} deposit (${ref}). Payment option: ${prefLabel}.`, status: 'pending' })
+    .select('id, access_token')
+    .single();
+  if (authErr || !auth) return json({ error: 'Could not create your card authorization form.' }, 500);
+
+  const { error: payErr } = await supabase.from('trip_payments').insert(schedule.map((p) => ({
+    trip_id: subTrip.id,
+    booking_id: booking.id,
+    user_id: trip.user_id,
+    amount: p.amount,
+    due_date: p.due_date,
+    payment_date: null,
+    payment_type: p.payment_type,
+    status: 'pending',
+    payment_method_choice: p.payment_type === 'deposit' ? 'cc_authorization' : pref,
+    payer_name: `${first_name} ${last_name}`.trim(),
+    payer_email: email,
+    details: p.payment_type === 'deposit' ? 'Deposit — charge using the signed card authorization' : `${prefLabel} — group signup ${ref}`,
+  })));
+  if (payErr) console.error('Schedule insert failed:', payErr);
+
+  await supabase.from('group_bookings').update({ status: 'reserved', payment_preference: pref, cc_authorization_id: auth.id }).eq('id', gb.id);
+  if (signup?.id) await supabase.from('group_signups').update({ status: 'reserved' }).eq('id', signup.id);
+
+  const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
+  const fmtD = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const authUrl = `https://app.crestwelltravels.com/authorize/${auth.access_token}`;
+  const reservationUrl = `https://app.crestwelltravels.com/group/${encodeURIComponent(token)}/reservation/${subTrip.id}`;
+  const rows = schedule.map((p) => `<tr><td style="padding:4px 12px 4px 0">${fmtD(p.due_date)}</td><td style="padding:4px 12px 4px 0">${p.payment_type === 'deposit' ? 'Deposit' : p.payment_type === 'installment' ? 'Monthly payment' : 'Final payment'}</td><td style="padding:4px 0;text-align:right">${fmt(p.amount)}</td></tr>`).join('');
+  const financeNote = pref === 'monthly' ? '' : `<p>You chose <strong>${prefLabel}</strong> for your remaining balance. Your advisor will send your ${prefLabel} application link. Until it is approved, the balance below remains due by the final payment date.</p>`;
+  const name = `${first_name} ${last_name}`.trim();
+
+  await supabase.from('agent_notifications').insert({
+    user_id: trip.user_id,
+    type: 'group_booking',
+    title: `New reservation: ${name}`,
+    message: `${rooms.length} room(s), ${quote.guests} guest(s) on ${trip.trip_name}. Total ${fmt(quote.total)}, deposit ${fmt(deposit)} awaiting card authorization. Payment option: ${prefLabel}.`,
+    trip_id: trip.id,
+  });
+
+  try {
+    const brand = await resolveAgentBranding(supabase, trip.user_id);
+    const details = `<p><strong>${escapeHtml(trip.trip_name)}</strong> — reference ${ref}<br>${rooms.length} room(s), ${quote.guests} guest(s). Estimated total ${fmt(quote.total)}.</p>`;
+    await sendGroupEventEmails({
+      admin: supabase, brand, apiKey: Deno.env.get('RESEND_API_KEY'), userId: trip.user_id, eventId: gb.id, template: 'group_booking_reservation', clientId,
+      clientEmail: email, clientSubject: `Reservation received: ${trip.trip_name}`,
+      clientHtml: `<p>Hello ${escapeHtml(name)},</p><p>Thank you — your reservation has been received.</p>${details}<p><strong>Next step:</strong> please complete the secure card authorization form so we can process your ${fmt(deposit)} deposit.</p><p><a href="${authUrl}" style="display:inline-block;background:#1e3a5f;color:#ffffff;padding:12px 20px;border-radius:6px;text-decoration:none">Complete card authorization</a></p>${financeNote}<p><strong>Payment schedule</strong></p><table style="border-collapse:collapse;font-size:14px">${rows}</table><p>Final payment is due 30 days before departure. Rates and availability are confirmed once your deposit is processed.</p><p><a href="${reservationUrl}">View your reservation</a></p><p>${escapeHtml(brand.agencyName)}</p>`,
+      advisorSubject: `New reservation: ${name} — ${trip.trip_name}`,
+      advisorHtml: `<p>${escapeHtml(name)} (${escapeHtml(email)}) reserved.</p>${details}<p>Payment option: <strong>${prefLabel}</strong>. Card authorization sent for the ${fmt(deposit)} deposit; charge it once authorized.</p><table style="border-collapse:collapse;font-size:14px">${rows}</table><p><a href="https://app.crestwelltravels.com/trips/${subTrip.id}">Review traveler trip</a></p>`,
+      metadata: { source: 'group-booking', flow: 'cc_auth', trip_id: trip.id, sub_trip_id: subTrip.id, group_booking_id: gb.id },
+    });
+  } catch (error) {
+    console.error('Group reservation email failed:', error);
+  }
+
+  return json({ ok: true, flow: 'cc_auth', group_booking_id: gb.id, booking_ref: ref, authorization_url: `/authorize/${auth.access_token}`, payment_preference: pref, schedule, deposit_cents: depositCents, total_cents: Math.round(quote.total * 100), quote });
+}
