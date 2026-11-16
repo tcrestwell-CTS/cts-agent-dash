@@ -8,6 +8,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { buildPaymentSchedule, finalPaymentDate, type PaymentPreference, type ScheduledPayment } from "@/lib/groupPaymentSchedule";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
@@ -47,7 +49,7 @@ type Config = {
     cover_image_url: string | null; group_landing_headline: string | null; ship_name: string | null; ship_name_display: string | null;
     depart_port: string | null; ports_of_call: string[]; taxes_fees_per_person: number; group_deposit_per_person: number | null;
     final_payment_due: string | null; group_included_items: string[]; group_terms: string | null; max_rooms_per_booking: number;
-    promo_codes: any[]; currency: string | null;
+    promo_codes: any[]; currency: string | null; group_payment_flow?: string | null;
   };
   cabinOptions: CabinOption[];
   addons: Addon[];
@@ -81,10 +83,10 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (n: n
   );
 }
 
-function ProgressBar({ step, onJump }: { step: StepIndex; onJump: (s: StepIndex) => void }) {
+function ProgressBar({ step, onJump, labels = STEPS }: { step: StepIndex; onJump: (s: StepIndex) => void; labels?: readonly string[] }) {
   return (
     <ol className="flex flex-wrap items-start gap-x-3 gap-y-2">
-      {STEPS.map((label, i) => {
+      {labels.map((label, i) => {
         const done = i < step, active = i === step;
         return (
           <li key={label} className="shrink-0">
@@ -143,6 +145,8 @@ export default function GroupBooking() {
   const [terms, setTerms] = useState(false);
   const [booking, setBooking] = useState<{ clientSecret: string; deposit_cents: number; booking_ref: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [payPref, setPayPref] = useState<PaymentPreference>("monthly");
+  const [reservation, setReservation] = useState<{ booking_ref: string; authorization_url: string; schedule: ScheduledPayment[]; payment_preference: PaymentPreference } | null>(null);
   const [inclusionsOpen, setInclusionsOpen] = useState(false);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
@@ -216,11 +220,16 @@ export default function GroupBooking() {
         body: JSON.stringify({
           action: "book", token, rooms,
           addons: Object.entries(addonSel).map(([addon_id, quantity]) => ({ addon_id, quantity })),
-          promo_code: promo || null, contact, terms_accepted: terms,
+          promo_code: promo || null, contact, terms_accepted: terms, payment_preference: payPref,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start your booking");
+      if (data.flow === "cc_auth") {
+        setReservation({ booking_ref: data.booking_ref, authorization_url: data.authorization_url, schedule: data.schedule, payment_preference: data.payment_preference });
+        setStep(6);
+        return;
+      }
       setBooking({ clientSecret: data.clientSecret, deposit_cents: data.deposit_cents, booking_ref: data.booking_ref });
       setStep(5);
     } catch (e: any) {
@@ -241,6 +250,18 @@ export default function GroupBooking() {
   const { trip, branding } = cfg;
   const primary = branding?.primary_color || "#1a365d";
   const headline = trip.group_landing_headline || trip.trip_name;
+  const ccFlow = trip.group_payment_flow === "cc_auth";
+  const stepLabels = ccFlow ? ["Party Size", "Room Selection", "Add-ons", "Review", "Guest Info", "Confirmation"] : STEPS;
+  const todayIso = new Date().toLocaleDateString("en-CA");
+  const previewSchedule = ccFlow && trip.depart_date ? buildPaymentSchedule(quote.total, quote.deposit_due, trip.depart_date, todayIso, payPref) : [];
+  const payLabel = (p: ScheduledPayment) => p.payment_type === "deposit" ? "Deposit" : p.payment_type === "installment" ? "Monthly payment" : "Final payment";
+  const ScheduleTable = ({ items }: { items: ScheduledPayment[] }) => (
+    <table className="w-full text-sm">
+      <tbody>
+        {items.map((p, i) => <tr key={i} className="border-t first:border-0"><td className="py-1 text-muted-foreground">{fmtDate(p.due_date)}</td><td className="py-1">{payLabel(p)}</td><td className="py-1 text-right">{money(p.amount, currency)}</td></tr>)}
+      </tbody>
+    </table>
+  );
 
   // ── Render ──
   return (
@@ -322,7 +343,7 @@ export default function GroupBooking() {
 
         {/* ── Main ── */}
         <main className="space-y-6">
-          {step < 6 && <ProgressBar step={step} onJump={(s) => setStep(s)} />}
+          {step < 6 && <ProgressBar step={step} labels={stepLabels} onJump={(s) => setStep(s)} />}
 
           {/* Step 0: Party size */}
           {step === 0 && (
@@ -545,6 +566,24 @@ export default function GroupBooking() {
                   ))}
                 </div>
               ))}
+              {ccFlow && (
+                <div className="bg-background border rounded-lg p-5 space-y-4">
+                  <div><h3 className="font-semibold">How would you like to pay?</h3><p className="text-sm text-muted-foreground">Nothing is charged today. After you submit, you'll get a secure card authorization form for your {money(quote.deposit_due, currency)} deposit.</p></div>
+                  <RadioGroup value={payPref} onValueChange={(v) => setPayPref(v as PaymentPreference)} className="space-y-2">
+                    {([
+                      ["monthly", "Monthly payments", "Equal monthly payments, with the final payment due 30 days before the trip."],
+                      ["uplift", "Uplift Flexpay", "Finance your balance with Uplift. Your advisor will send the application link."],
+                      ["affirm", "Affirm", "Finance your balance with Affirm. Your advisor will send the application link."],
+                    ] as const).map(([v, title, desc]) => (
+                      <label key={v} htmlFor={`pay-${v}`} className="flex items-start gap-3 rounded-md border p-3 cursor-pointer has-[:checked]:border-primary">
+                        <RadioGroupItem id={`pay-${v}`} value={v} className="mt-1" />
+                        <span className="min-w-0"><span className="block font-medium text-sm">{title}</span><span className="block text-xs text-muted-foreground">{desc}</span></span>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                  {previewSchedule.length > 0 && <div><p className="text-sm font-medium mb-1">Your payment schedule{trip.depart_date ? ` (final payment ${fmtDate(finalPaymentDate(trip.depart_date))})` : ""}</p><ScheduleTable items={previewSchedule} /></div>}
+                </div>
+              )}
               <div className="bg-background border rounded-lg p-5 space-y-3">
                 <label className="flex items-start gap-3 text-sm"><Checkbox checked={terms} onCheckedChange={(v) => setTerms(!!v)} className="mt-0.5" /><span>I agree to the booking terms{trip.group_terms ? "" : " and the supplier's cancellation policy"}.</span></label>
                 {trip.group_terms && <details className="text-xs text-muted-foreground"><summary className="cursor-pointer text-primary">Read the booking terms</summary><p className="whitespace-pre-wrap mt-2">{trip.group_terms}</p></details>}
@@ -552,7 +591,7 @@ export default function GroupBooking() {
               <div className="flex justify-between pt-2">
                 <Button variant="ghost" onClick={() => setStep(3)}><ChevronLeft className="h-4 w-4 mr-1" /> Back</Button>
                 <Button size="lg" disabled={!guestsValid || !contactValid || !terms || submitting} onClick={submitBooking}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Continue to Payment <ChevronRight className="h-4 w-4 ml-1" />
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{ccFlow ? "Submit Reservation" : "Continue to Payment"} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </section>
@@ -569,6 +608,23 @@ export default function GroupBooking() {
                       <PayForm depositCents={booking.deposit_cents} currency={currency} onPaid={() => setStep(6)} />
                     </Elements>}
               </div>
+            </section>
+          )}
+
+          {step === 6 && reservation && (
+            <section className="bg-background border rounded-lg p-6 sm:p-8 space-y-4">
+              <div className="text-center space-y-2">
+                <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 grid place-items-center"><Check className="h-7 w-7 text-primary" /></div>
+                <h1 className="text-2xl font-bold">Reservation received</h1>
+                <p className="text-muted-foreground">Reference <span className="font-mono font-semibold">{reservation.booking_ref}</span>. A confirmation with these details is on its way to {contact.email}.</p>
+              </div>
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <p className="text-sm"><span className="font-semibold">Next step:</span> complete the secure card authorization form so {cfg.advisor?.full_name || "your advisor"} can process your deposit.</p>
+                <Button asChild size="lg" className="w-full sm:w-auto"><a href={reservation.authorization_url}>Complete card authorization</a></Button>
+              </div>
+              {reservation.payment_preference !== "monthly" && <p className="text-sm text-muted-foreground">You chose {reservation.payment_preference === "uplift" ? "Uplift Flexpay" : "Affirm"} for your balance. Your advisor will send the application link.</p>}
+              <div><p className="text-sm font-medium mb-1">Payment schedule</p><ScheduleTable items={reservation.schedule} /></div>
+              <div className="text-center"><Button asChild variant="outline"><Link to={`/group/${token}`}>Back to the trip page</Link></Button></div>
             </section>
           )}
 
