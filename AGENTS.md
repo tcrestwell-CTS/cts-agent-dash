@@ -26,3 +26,4 @@
 
 - Cabin price_period `cabin` stores a whole-room trip fare in price_per_person; signup and shared wizard pricing charge it once, while deposits remain per traveler — prevents multiplying cabin quotes by occupancy.
 - Celebration-specific presentation is scoped by the landing page's theme class with semantic CSS tokens; shared signup and RSVP behavior stays unchanged so visual refreshes do not affect other groups.
+- Package-specific child-sharing eligibility lives in the shared group-pricing roomFitsOption helper, used by both the wizard and booking validation; all other options retain total-guest occupancy checks to avoid relaxing unrelated room limits.

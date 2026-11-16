@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { quoteBooking, type CabinOptionPricing } from "@/lib/groupPricing";
+import { quoteBooking, roomFitsOption, type CabinOptionPricing } from "@/lib/groupPricing";
 
 const veranda: CabinOptionPricing = {
   id: "v1", category_group: "Veranda", category_name: "Veranda", price_per_person: 886,
@@ -11,6 +11,16 @@ const veranda: CabinOptionPricing = {
 const cfg = { taxes_fees_per_person: 0, group_deposit_per_person: 250, promo_codes: [] };
 
 describe("group pricing", () => {
+  it("allows children to share the Obama hotel allocation without admitting extra adults", () => {
+    const shared = { ...veranda, id: "937c23e4-1130-466c-bb3a-2525434f3b1e", price_per_person: 876.17, child_price: 26.84, sleeps_min: 2, sleeps_max: 2 };
+    const solo = { ...shared, id: "82ddff91-705b-458f-832a-00dfccea4922", price_per_person: 1717.34, sleeps_min: 1, sleeps_max: 1 };
+    expect(roomFitsOption(shared, { cabin_option_id: shared.id, adults: 2, children: 1 })).toBe(true);
+    expect(roomFitsOption(solo, { cabin_option_id: solo.id, adults: 1, children: 1 })).toBe(true);
+    expect(roomFitsOption(shared, { cabin_option_id: shared.id, adults: 1, children: 1 })).toBe(false);
+    expect(roomFitsOption(solo, { cabin_option_id: solo.id, adults: 2, children: 0 })).toBe(false);
+    expect(roomFitsOption(veranda, { cabin_option_id: veranda.id, adults: 2, children: 3 })).toBe(false);
+    expect(quoteBooking([{ cabin_option_id: solo.id, adults: 1, children: 1 }], [solo], [], [], cfg).total).toBe(1744.18);
+  });
   it("prices an Obama solo package with only hotel allocation changing, 5% overhead and 10% profit margin", () => {
     const soloBase = 1442 + 30;
     const option = { ...veranda, price_per_person: Math.ceil(soloBase * 1.05 / 0.90 * 100) / 100, single_supplement_pct: 0, deposit_amount: 300, sleeps_min: 1, sleeps_max: 1 };
