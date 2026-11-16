@@ -692,7 +692,7 @@ export default function GroupLanding() {
             )}
 
             {/* ─── CABIN SELECTIONS: comparison table ────────── */}
-            {data.cabinOptions && data.cabinOptions.length > 0 && (
+            {!data?.trip?.booking_flow_enabled && data.cabinOptions && data.cabinOptions.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                   <BedDouble className="h-6 w-6" style={{ color: primaryColor }} />
