@@ -12,31 +12,41 @@ const cfg = { taxes_fees_per_person: 0, group_deposit_per_person: 250, promo_cod
 
 describe("group pricing", () => {
   it("prices an Obama solo package with only hotel allocation changing, 5% overhead and 10% profit margin", () => {
-    const soloBase = 1900 + 30 + 45 + 125 + 144 + 101;
+    const soloBase = 1442 + 30;
     const option = { ...veranda, price_per_person: Math.ceil(soloBase * 1.05 / 0.90 * 100) / 100, single_supplement_pct: 0, deposit_amount: 300, sleeps_min: 1, sleeps_max: 1 };
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 1, children: 0 }], [option], [], [], cfg);
-    expect(q.total).toBe(2735.84);
-    expect(Math.round((q.total - 1627.50) * 100) / 100).toBe(1108.34);
+    expect(q.total).toBe(1717.34);
+    expect(Math.round((q.total - 876.17) * 100) / 100).toBe(841.17);
     expect(q.deposit_due).toBe(300);
-    expect(q.total - q.deposit_due).toBe(2435.84);
+    expect(q.total - q.deposit_due).toBe(1417.34);
   });
-  it("divides the Obama 20-guest total with CityPASS and food tour, 5% overhead and 10% profit margin", () => {
-    const supplierTotal = 10 * 1900 + 20 * (30 + 45 + 125 + 144 + 101);
+  it("divides the Obama 20-guest Hyatt Place and museum total with 5% overhead and 10% profit margin", () => {
+    const supplierTotal = 10 * 1442 + 20 * 30;
     const overheadTotal = supplierTotal * 0.05;
     const packagePP = Math.ceil((supplierTotal + overheadTotal) / 0.90 / 20 * 100) / 100;
     const option = { ...veranda, price_per_person: packagePP, deposit_amount: 300, sleeps_min: 2, sleeps_max: 2 };
     const q = quoteBooking(Array.from({ length: 10 }, () => ({ cabin_option_id: "v1", adults: 2, children: 0 })), [option], [], [], { ...cfg, group_deposit_per_person: 300 });
-    expect(supplierTotal).toBe(27900);
-    expect(overheadTotal).toBe(1395);
-    expect(q.total).toBe(32550);
-    expect((q.total - supplierTotal - overheadTotal) / q.total).toBe(0.10);
-    expect(q.rooms[0].per_person_display).toBe(1627.50);
+    expect(supplierTotal).toBe(15020);
+    expect(overheadTotal).toBe(751);
+    expect(q.total).toBe(17523.40);
+    expect((q.total - supplierTotal - overheadTotal) / q.total).toBeCloseTo(0.10, 5);
+    expect(q.rooms[0].per_person_display).toBe(876.17);
   });
-  it("keeps the Obama $300 per-person deposit, leaving $2,655 for two", () => {
-    const option = { ...veranda, price_per_person: 1627.50, deposit_amount: 300 };
+  it("keeps the Obama $300 per-person deposit, leaving $1,152.34 for two", () => {
+    const option = { ...veranda, price_per_person: 876.17, deposit_amount: 300 };
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 0 }], [option], [], [], cfg);
     expect(q.deposit_due).toBe(600);
-    expect(q.total - q.deposit_due).toBe(2655);
+    expect(q.total - q.deposit_due).toBe(1152.34);
+  });
+  it.each([["river", 45, 52.50], ["dinner", 125, 145.84], ["citypass", 144, 168], ["food", 101, 117.84]])("charges the optional %s only when selected", (id, supplier, price) => {
+    const option = { ...veranda, price_per_person: 876.17, deposit_amount: 300 };
+    const addons = [{ id: String(id), name: String(id), price: Math.ceil(Number(supplier) * 1.05 / 0.90 * 100 - 1e-8) / 100, price_basis: "per_person" as const }];
+    const rooms = [{ cabin_option_id: "v1", adults: 2, children: 0 }];
+    expect(addons[0].price).toBe(price);
+    expect(quoteBooking(rooms, [option], addons, [], cfg).total).toBe(1752.34);
+    const selected = quoteBooking(rooms, [option], addons, [{ addon_id: String(id), quantity: 1 }], cfg);
+    expect(selected.addons_total).toBe(Number(price) * 2);
+    expect(selected.deposit_due).toBe(600);
   });
   it.each([2730, 2450, 12600])("charges the $%s cabin total once regardless of guest count", (amount) => {
     for (const adults of [1, 2]) {
