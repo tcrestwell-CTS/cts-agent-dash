@@ -40,7 +40,7 @@ describe("group pricing", () => {
   });
   it.each([["river", 45, 52.50], ["dinner", 125, 145.84], ["citypass", 144, 168], ["food", 101, 117.84]])("charges the optional %s only when selected", (id, supplier, price) => {
     const option = { ...veranda, price_per_person: 876.17, deposit_amount: 300 };
-    const addons = [{ id: String(id), name: String(id), price: Math.ceil(Number(supplier) * 1.05 / 0.90 * 100) / 100, price_basis: "per_person" as const }];
+    const addons = [{ id: String(id), name: String(id), price: Math.ceil(Number(supplier) * 1.05 / 0.90 * 100 - 1e-8) / 100, price_basis: "per_person" as const }];
     const rooms = [{ cabin_option_id: "v1", adults: 2, children: 0 }];
     expect(addons[0].price).toBe(price);
     expect(quoteBooking(rooms, [option], addons, [], cfg).total).toBe(1752.34);
