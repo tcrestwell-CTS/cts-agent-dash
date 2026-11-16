@@ -97,7 +97,7 @@ export function quoteRoom(opt: CabinOptionPricing | null, room: RoomInput, cfg: 
     const taxes = r2((Number(cfg.taxes_fees_per_person) || 0) * guests);
     const depositPP = Number(opt.deposit_amount) > 0 ? Number(opt.deposit_amount) : Number(cfg.group_deposit_per_person) || 0;
     return { cabin_option_id: opt.id, guests, fare, taxes, per_person_display: r2(fare / guests),
-      breakdown: [{ seat: 1, label: "Cabin total", amount: fare }], deposit: r2(Math.min(depositPP * guests, fare + taxes)) };
+      breakdown: [{ seat: 1, label: "Cabin total", amount: fare }], deposit: r2(Math.min(depositPP * Math.max(0, room.adults || 0), fare + taxes)) };
   }
   const breakdown: RoomQuote["breakdown"] = [];
   let seat = 0;
@@ -112,8 +112,9 @@ export function quoteRoom(opt: CabinOptionPricing | null, room: RoomInput, cfg: 
   const fare = r2(breakdown.reduce((s, b) => s + b.amount, 0));
   const taxes = r2((Number(cfg.taxes_fees_per_person) || 0) * guests);
   // A room deposit of 0/blank means "not set" and falls back to the group deposit.
+  // Deposits are per adult — children sharing the room pay no deposit.
   const depositPP = Number(opt.deposit_amount) > 0 ? Number(opt.deposit_amount) : Number(cfg.group_deposit_per_person) || 0;
-  const deposit = r2(Math.min(depositPP * guests, fare + taxes));
+  const deposit = r2(Math.min(depositPP * Math.max(0, room.adults || 0), fare + taxes));
   return { cabin_option_id: opt.id, guests, fare, taxes, per_person_display: Number(opt.price_per_person), breakdown, deposit };
 }
 
