@@ -48,7 +48,7 @@ describe("group pricing", () => {
     const q = quoteBooking([{ cabin_option_id: "v1", adults: 2, children: 1 }], [option], [], [], cfg);
     expect(childPrice).toBe(26.84);
     expect(q.total).toBe(1779.18);
-    expect(q.deposit_due).toBe(900);
+    expect(q.deposit_due).toBe(600); // deposits are per adult; children pay none
   });
   it("keeps the Obama $300 per-person deposit, leaving $1,152.34 for two", () => {
     const option = { ...veranda, price_per_person: 876.17, deposit_amount: 300 };
