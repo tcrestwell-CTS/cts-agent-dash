@@ -365,7 +365,7 @@ export default function GroupBooking() {
               {rooms.length < (trip.max_rooms_per_booking ?? 4) && (
                 <Button variant="outline" onClick={() => setRooms((rs) => [...rs, emptyRoom()])}>Add another room <Plus className="h-4 w-4 ml-1" /></Button>
               )}
-              <div className="flex justify-end pt-2"><Button size="lg" disabled={!canLeavePartySize} onClick={goRooms}>Continue to Room Selection <ChevronRight className="h-4 w-4 ml-1" /></Button></div>
+              <div className="flex justify-end pt-2"><Button size="lg" disabled={!canLeavePartySize} onClick={goRooms}>Continue to Package Selection <ChevronRight className="h-4 w-4 ml-1" /></Button></div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">*Starting from price is per person based on double occupancy in the lowest available category and includes group taxes and fees. Deposit is due at booking; the balance follows the payment schedule in your booking terms.</p>
             </section>
           )}
@@ -392,11 +392,15 @@ export default function GroupBooking() {
               {(() => {
                 const opts = (groups.find(([g]) => g === group)?.[1] ?? []);
                 const room = rooms[roomIdx];
+                const visibleOpts = opts.filter((o) => roomFitsOption(o, room));
                 return (
                   <>
-                    <p className="text-sm text-muted-foreground">{opts.length} option{opts.length === 1 ? "" : "s"} available</p>
+                    <p className="text-sm text-muted-foreground">{visibleOpts.length} option{visibleOpts.length === 1 ? "" : "s"} available</p>
+                    {visibleOpts.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No packages fit this party size — go back and adjust the number of guests or rooms.</p>
+                    )}
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      {opts.map((o) => {
+                      {visibleOpts.map((o) => {
                         const fits = roomFitsOption(o, room);
                         const accessibleOk = !room.accessible || o.accessible_available;
                         const disabled = o.sold_out || !fits || !accessibleOk;
