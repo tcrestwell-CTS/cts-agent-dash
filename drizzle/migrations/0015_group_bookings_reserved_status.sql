@@ -1,0 +1,2 @@
+ALTER TABLE public.group_bookings DROP CONSTRAINT IF EXISTS group_bookings_status_check;
+ALTER TABLE public.group_bookings ADD CONSTRAINT group_bookings_status_check CHECK (status = ANY (ARRAY['pending_payment','deposit_paid','payment_failed','cancelled','reserved']));

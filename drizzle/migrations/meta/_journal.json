@@ -106,6 +106,13 @@
       "when": 1794859772049,
       "tag": "0014_group_cc_auth_payment_flow",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794860122322,
+      "tag": "0015_group_bookings_reserved_status",
+      "breakpoints": true
     }
   ]
 }
