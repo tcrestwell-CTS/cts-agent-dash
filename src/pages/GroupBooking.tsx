@@ -23,7 +23,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/utils";
 import { STRIPE_PUBLISHABLE_KEY } from "@/lib/stripePublishableKey";
-import { money, quoteBooking, type CabinOptionPricing, type Quote, type RoomInput } from "@/lib/groupPricing";
+import { money, quoteBooking, childrenShareRoom, roomFitsOption, type CabinOptionPricing, type Quote, type RoomInput } from "@/lib/groupPricing";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type CabinOption = CabinOptionPricing & {
@@ -197,7 +197,10 @@ export default function GroupBooking() {
 
   // ── Step gates ──
   const canLeavePartySize = rooms.every((r) => r.adults >= 1);
-  const canLeaveRooms = rooms.every((r) => r.cabin_option_id && optById.get(r.cabin_option_id) && !optById.get(r.cabin_option_id)!.sold_out);
+  const canLeaveRooms = rooms.every((r) => {
+    const option = r.cabin_option_id ? optById.get(r.cabin_option_id) : null;
+    return option && !option.sold_out && roomFitsOption(option, r) && (!r.accessible || option.accessible_available);
+  });
   const guestsValid = rooms.every((r) => r.guests.slice(0, r.adults + r.children).every((g) => g.first_name.trim() && g.last_name.trim() && g.birthdate));
   const contactValid = contact.first_name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email);
 
@@ -389,13 +392,12 @@ export default function GroupBooking() {
               {(() => {
                 const opts = (groups.find(([g]) => g === group)?.[1] ?? []);
                 const room = rooms[roomIdx];
-                const guestsInRoom = room.adults + room.children;
                 return (
                   <>
                     <p className="text-sm text-muted-foreground">{opts.length} option{opts.length === 1 ? "" : "s"} available</p>
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {opts.map((o) => {
-                        const fits = guestsInRoom >= o.sleeps_min && guestsInRoom <= o.sleeps_max;
+                        const fits = roomFitsOption(o, room);
                         const accessibleOk = !room.accessible || o.accessible_available;
                         const disabled = o.sold_out || !fits || !accessibleOk;
                         const selected = room.cabin_option_id === o.id;
@@ -411,7 +413,7 @@ export default function GroupBooking() {
                             <div className="p-4 flex-1 flex flex-col gap-2">
                               <h3 className="text-lg font-semibold leading-tight">{o.category_name}</h3>
                               <ul className="text-sm text-muted-foreground list-disc ml-4 space-y-0.5">
-                                <li>Sleeps {o.sleeps_min}{o.sleeps_max > o.sleeps_min ? `-${o.sleeps_max}` : ""}.{o.sqft ? ` ${o.sqft} sq. ft.` : ""}{o.accessible_available ? " *Accessible" : ""}</li>
+                                <li>{childrenShareRoom(o) ? `${o.sleeps_min} adult${o.sleeps_min === 1 ? "" : "s"}; children share the room, subject to hotel confirmation.` : `Sleeps ${o.sleeps_min}${o.sleeps_max > o.sleeps_min ? `-${o.sleeps_max}` : ""}.`}{o.sqft ? ` ${o.sqft} sq. ft.` : ""}{o.accessible_available ? " *Accessible" : ""}</li>
                                 {(o.features ?? []).slice(0, 3).map((f, i) => <li key={i}>{f}</li>)}
                               </ul>
                               {o.description && <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>}
@@ -423,7 +425,7 @@ export default function GroupBooking() {
                                   <div className="text-xs text-muted-foreground">{money(roomQuote.fare + roomQuote.taxes, currency)} Total/Room</div>
                                 </div>
                                 <Button size="sm" variant={selected ? "default" : "outline"} disabled={disabled} onClick={() => setRoom(roomIdx, { cabin_option_id: o.id })}>
-                                  {o.sold_out ? "Sold out" : !fits ? `Sleeps ${o.sleeps_min}-${o.sleeps_max}` : !accessibleOk ? "Not accessible" : selected ? <><Check className="h-4 w-4 mr-1" />Selected</> : "Select"}
+                                  {o.sold_out ? "Sold out" : !fits ? childrenShareRoom(o) ? `${o.sleeps_min} adult${o.sleeps_min === 1 ? "" : "s"} required` : `Sleeps ${o.sleeps_min}-${o.sleeps_max}` : !accessibleOk ? "Not accessible" : selected ? <><Check className="h-4 w-4 mr-1" />Selected</> : "Select"}
                                 </Button>
                               </div>
                             </div>

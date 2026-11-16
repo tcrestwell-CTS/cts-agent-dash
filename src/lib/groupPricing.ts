@@ -68,6 +68,17 @@ export type Quote = {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+// These museum packages allocate the hotel by adult occupancy; children share
+// the room and pay the configured admission fare, not another hotel package.
+export function childrenShareRoom(opt: CabinOptionPricing): boolean {
+  return opt.id === "937c23e4-1130-466c-bb3a-2525434f3b1e" || opt.id === "82ddff91-705b-458f-832a-00dfccea4922";
+}
+
+export function roomFitsOption(opt: CabinOptionPricing, room: RoomInput): boolean {
+  const occupancy = childrenShareRoom(opt) ? room.adults : room.adults + room.children;
+  return occupancy >= opt.sleeps_min && occupancy <= opt.sleeps_max;
+}
+
 export function seatPrice(opt: CabinOptionPricing, seat: number, isChild: boolean, guestsInRoom: number): number {
   const base = Number(opt.price_per_person) || 0;
   if (guestsInRoom === 1) return r2(base * (1 + (Number(opt.single_supplement_pct) || 0) / 100));

@@ -23,7 +23,7 @@ import { resolveAgentBranding } from '../_shared/agent-branding.ts';
 import { sendGroupEventEmails } from '../_shared/group-emails.ts';
 import { escapeHtml } from '../_shared/rentalEmail.ts';
 import { checkRateLimit, getClientIP, rateLimitResponse } from '../_shared/rate-limiter.ts';
-import { quoteBooking, type AddonPricing, type CabinOptionPricing, type RoomInput } from '../_shared/group-pricing.ts';
+import { quoteBooking, roomFitsOption, type AddonPricing, type CabinOptionPricing, type RoomInput } from '../_shared/group-pricing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -104,13 +104,12 @@ function validateRooms(rooms: RoomInput[], options: CabinOptionPricing[]): strin
   const byId = new Map(options.map((o) => [o.id, o]));
   for (let i = 0; i < rooms.length; i++) {
     const r = rooms[i];
-    const guests = r.adults + r.children;
     if (r.adults < 1) return `Room ${i + 1} needs at least one adult.`;
     if (!r.cabin_option_id) return `Choose a stateroom for room ${i + 1}.`;
     const opt = byId.get(r.cabin_option_id);
     if (!opt) return `Room ${i + 1}: that stateroom is no longer offered.`;
     if (opt.sold_out) return `Room ${i + 1}: ${opt.category_name} is sold out.`;
-    if (guests < opt.sleeps_min || guests > opt.sleeps_max) return `Room ${i + 1}: ${opt.category_name} sleeps ${opt.sleeps_min}-${opt.sleeps_max}.`;
+    if (!roomFitsOption(opt, r)) return `Room ${i + 1}: the party does not match ${opt.category_name}'s occupancy requirements.`;
   }
   return null;
 }
