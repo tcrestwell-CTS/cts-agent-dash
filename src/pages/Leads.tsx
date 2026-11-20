@@ -62,6 +62,15 @@ type QuoteRequest = {
   assigned_agent_id: string | null;
   assigned_at: string | null;
   funnel_name: string | null;
+  pipeline_stage?: string | null;
+  booking_value?: number | null;
+  lost_reason?: string | null;
+  next_follow_up_at?: string | null;
+  first_contacted_at?: string | null;
+  landing_page?: string | null;
+  referrer?: string | null;
+  lead_source?: string | null;
+  utm_campaign?: string | null;
 };
 
 // ─── Proposal Review Gate ────────────────────────────────────────────────────
@@ -286,6 +295,81 @@ const stageConfig: Record<string, { color: string; label: string }> = {
   "Call Needed": { color: "bg-warning/15 text-warning border-warning/30", label: "Call Needed" },
   "new": { color: "bg-muted text-muted-foreground border-border", label: "New" },
 };
+
+// ─── Pipeline stage control ──────────────────────────────────────────────────
+const PIPELINE_STAGES: { value: string; label: string }[] = [
+  { value: "new_lead", label: "New Lead" },
+  { value: "contacted", label: "Contacted" },
+  { value: "qualified", label: "Qualified" },
+  { value: "quote_sent", label: "Quote Sent" },
+  { value: "follow_up", label: "Follow-up" },
+  { value: "booked", label: "Booked" },
+  { value: "lost", label: "Lost" },
+];
+const LOST_REASONS = ["Price too high", "Chose another agency", "Booked direct", "Trip cancelled / postponed", "No response", "Not a fit", "Other"];
+
+function PipelineStageControl({ lead, refetch }: { lead: QuoteRequest; refetch: () => void }) {
+  const [stage, setStage] = useState(lead.pipeline_stage || "new_lead");
+  const [value, setValue] = useState(lead.booking_value != null ? String(lead.booking_value) : "");
+  const [reason, setReason] = useState(lead.lost_reason || "");
+  const [saving, setSaving] = useState(false);
+
+  const needsValue = stage === "booked";
+  const needsReason = stage === "lost";
+  const invalid = (needsValue && !(parseFloat(value) > 0)) || (needsReason && !reason);
+
+  const save = async () => {
+    setSaving(true);
+    const now = new Date().toISOString();
+    const update: Record<string, unknown> = {
+      pipeline_stage: stage,
+      booking_value: needsValue ? parseFloat(value) : null,
+      lost_reason: needsReason ? reason : null,
+      lost_at: needsReason ? now : null,
+    };
+    if (stage === "booked") update.status = "booked";
+    if (stage === "lost") update.status = "closed";
+    if (stage !== "new_lead" && !lead.first_contacted_at) update.first_contacted_at = now;
+    const { error } = await supabase.from("quote_requests").update(update as never).eq("id", lead.id);
+    setSaving(false);
+    if (error) { toast.error("Could not update pipeline stage"); return; }
+    toast.success("Pipeline stage updated");
+    refetch();
+  };
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <p className="text-xs text-muted-foreground">Pipeline stage</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={stage} onValueChange={setStage}>
+          <SelectTrigger className="w-[160px] h-8"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {PIPELINE_STAGES.map((st) => <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {needsValue && (
+          <Input className="w-[140px] h-8" type="number" min="0" step="0.01" placeholder="Booking value $" value={value} onChange={(e) => setValue(e.target.value)} />
+        )}
+        {needsReason && (
+          <Select value={reason} onValueChange={setReason}>
+            <SelectTrigger className="w-[210px] h-8"><SelectValue placeholder="Lost reason (required)" /></SelectTrigger>
+            <SelectContent>
+              {LOST_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <Button size="sm" disabled={saving || invalid || stage === (lead.pipeline_stage || "new_lead") && value === (lead.booking_value != null ? String(lead.booking_value) : "") && reason === (lead.lost_reason || "")} onClick={save}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+      {(lead.lead_source || lead.landing_page) && (
+        <p className="text-xs text-muted-foreground">
+          Source: {lead.lead_source || "direct"}{lead.referrer ? ` (${lead.referrer})` : ""}{lead.landing_page ? ` · landed on ${lead.landing_page}` : ""}{lead.utm_campaign ? ` · campaign ${lead.utm_campaign}` : ""}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function ScoreBar({ score }: { score: number | null }) {
   if (score === null) return <span className="text-xs text-muted-foreground">—</span>;
@@ -549,6 +633,7 @@ function LeadProposalSheet({
             </div>
 
             <AssignAgentControl lead={lead} refetch={refetch} />
+            <PipelineStageControl key={lead.id + (lead.pipeline_stage || "")} lead={lead} refetch={refetch} />
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="space-y-1">

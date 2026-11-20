@@ -177,6 +177,22 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
     status:          stageToStatus[stage] || 'new',
   }).eq('id', lead_id);
 
+  // Keep the CRM pipeline in step with AI scoring — only moves leads still in New Lead
+  const stageToPipeline: Record<string, string> = {
+    'Qualified':    'qualified',
+    'Quote Needed': 'contacted',
+    'Call Needed':  'contacted',
+    'Unqualified':  'lost',
+  };
+  const pipeline = stageToPipeline[stage];
+  if (pipeline) {
+    await supabase.from('quote_requests').update(
+      pipeline === 'lost'
+        ? { pipeline_stage: 'lost', lost_reason: 'Unqualified (AI)', lost_at: new Date().toISOString() }
+        : { pipeline_stage: pipeline },
+    ).eq('id', lead_id).eq('pipeline_stage', 'new_lead');
+  }
+
   // 4. Send notification email
   const stageColor: Record<string, string> = {
     'Qualified':    '#22c55e',
