@@ -137,6 +137,12 @@ async function scheduleSequence(db: any, lead: any): Promise<{ scheduled: number
     console.log(`Skip sequence — ${lead.email} is ${lead.ai_stage}, not Qualified`);
     return { scheduled: 0 };
   }
+  // Quote Needed / Call Needed sequences apply to leads created from 2026-11-20 on,
+  // so older leads don't receive surprise emails. Qualified leads keep their original behavior.
+  if (lead.ai_stage !== 'Qualified' && new Date(lead.created_at) < new Date('2026-11-20T00:00:00-05:00')) {
+    console.log(`Skip sequence — ${lead.email} predates the ${lead.ai_stage} cutoff`);
+    return { scheduled: 0 };
+  }
   if (lead.sequence_started) {
     console.log(`Sequence already started for ${lead.email}`);
     return { scheduled: 0 };
