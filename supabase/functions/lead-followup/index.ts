@@ -1,5 +1,5 @@
 // supabase/functions/lead-followup/index.ts
-// Qualified leads only. Claude generates every email fresh.
+// Qualified, Quote Needed and Call Needed leads. Claude generates every email fresh.
 // Modes:
 //   POST { lead_id }      — schedule 5-step sequence (called by qualify-lead after scoring)
 //   POST { run_due:true } — process due steps (called by pg_cron hourly)
@@ -24,7 +24,7 @@ const STEPS = [
   { step: 4, delay_days: 21 },
 ];
 
-const STOP_STATUSES = ['booked', 'declined', 'do_not_contact'];
+const STOP_STATUSES = ['booked', 'declined', 'do_not_contact', 'closed'];
 
 // ── Claude email generator ──────────────────────────────────────────────────
 async function claudeEmail(step: number, lead: any, brand: any): Promise<{ subject: string; html: string }> {
@@ -133,7 +133,7 @@ function wrapEmail(body: string, brand?: { agencyName: string; logoUrl: string |
 
 // ── Schedule sequence ───────────────────────────────────────────────────────
 async function scheduleSequence(db: any, lead: any): Promise<{ scheduled: number }> {
-  if (lead.ai_stage !== 'Qualified') {
+  if (!['Qualified', 'Quote Needed', 'Call Needed'].includes(lead.ai_stage)) {
     console.log(`Skip sequence — ${lead.email} is ${lead.ai_stage}, not Qualified`);
     return { scheduled: 0 };
   }
