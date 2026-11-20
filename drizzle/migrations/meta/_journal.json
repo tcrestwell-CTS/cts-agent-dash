@@ -113,6 +113,13 @@
       "when": 1794860122322,
       "tag": "0015_group_bookings_reserved_status",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795142798867,
+      "tag": "0016_quote_requests_pipeline_attribution",
+      "breakpoints": true
     }
   ]
 }

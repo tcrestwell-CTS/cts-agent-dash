@@ -8524,12 +8524,14 @@ export type Database = {
           ai_tags: string[] | null
           assigned_agent_id: string | null
           assigned_at: string | null
+          booking_value: number | null
           budget: string | null
           converted_trip_id: string | null
           created_at: string | null
           departure_date: string | null
           destination: string | null
           email: string
+          first_contacted_at: string | null
           first_name: string
           flexibility: string | null
           funnel_id: string | null
@@ -8538,10 +8540,15 @@ export type Database = {
           gclid: string | null
           group_type: string | null
           id: string
+          landing_page: string | null
           last_name: string
           lead_source: string | null
+          lost_at: string | null
+          lost_reason: string | null
           message: string | null
+          next_follow_up_at: string | null
           phone: string | null
+          pipeline_stage: string
           proposal_approved_at: string | null
           proposal_draft: string | null
           proposal_expires_at: string | null
@@ -8552,6 +8559,7 @@ export type Database = {
           proposal_viewed_at: string | null
           raw_answers: Json | null
           referral_source: string | null
+          referrer: string | null
           selected_option: string | null
           sequence_paused: boolean | null
           sequence_started: boolean | null
@@ -8575,12 +8583,14 @@ export type Database = {
           ai_tags?: string[] | null
           assigned_agent_id?: string | null
           assigned_at?: string | null
+          booking_value?: number | null
           budget?: string | null
           converted_trip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           destination?: string | null
           email: string
+          first_contacted_at?: string | null
           first_name: string
           flexibility?: string | null
           funnel_id?: string | null
@@ -8589,10 +8599,15 @@ export type Database = {
           gclid?: string | null
           group_type?: string | null
           id?: string
+          landing_page?: string | null
           last_name: string
           lead_source?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
           message?: string | null
+          next_follow_up_at?: string | null
           phone?: string | null
+          pipeline_stage?: string
           proposal_approved_at?: string | null
           proposal_draft?: string | null
           proposal_expires_at?: string | null
@@ -8603,6 +8618,7 @@ export type Database = {
           proposal_viewed_at?: string | null
           raw_answers?: Json | null
           referral_source?: string | null
+          referrer?: string | null
           selected_option?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
@@ -8626,12 +8642,14 @@ export type Database = {
           ai_tags?: string[] | null
           assigned_agent_id?: string | null
           assigned_at?: string | null
+          booking_value?: number | null
           budget?: string | null
           converted_trip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           destination?: string | null
           email?: string
+          first_contacted_at?: string | null
           first_name?: string
           flexibility?: string | null
           funnel_id?: string | null
@@ -8640,10 +8658,15 @@ export type Database = {
           gclid?: string | null
           group_type?: string | null
           id?: string
+          landing_page?: string | null
           last_name?: string
           lead_source?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
           message?: string | null
+          next_follow_up_at?: string | null
           phone?: string | null
+          pipeline_stage?: string
           proposal_approved_at?: string | null
           proposal_draft?: string | null
           proposal_expires_at?: string | null
@@ -8654,6 +8677,7 @@ export type Database = {
           proposal_viewed_at?: string | null
           raw_answers?: Json | null
           referral_source?: string | null
+          referrer?: string | null
           selected_option?: string | null
           sequence_paused?: boolean | null
           sequence_started?: boolean | null
