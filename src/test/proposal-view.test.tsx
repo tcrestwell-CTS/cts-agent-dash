@@ -39,6 +39,16 @@ afterEach(cleanup);
 const approvalCalls = () => mocks.rpc.mock.calls.filter(([name]) => name === "approve_proposal");
 
 describe("individual proposal approval", () => {
+  it.each(["sent", "viewed"])("tracks a valid %s proposal through the existing RPC, without client-side notifications", async (status) => {
+    stored = { ...proposal, proposal_status: status };
+    open();
+    await screen.findByRole("button");
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === "mark_proposal_viewed")).toEqual([
+      ["mark_proposal_viewed", { p_token: "test-token" }],
+    ]);
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+
   it("records the selected option once and reopens approved without another write", async () => {
     const view = open();
     const button = await screen.findByRole("button");

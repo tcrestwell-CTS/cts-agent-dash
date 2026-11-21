@@ -120,6 +120,13 @@
       "when": 1795142798867,
       "tag": "0016_quote_requests_pipeline_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795275592644,
+      "tag": "0017_notify_first_proposal_view",
+      "breakpoints": true
     }
   ]
 }

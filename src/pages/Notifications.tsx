@@ -2,7 +2,7 @@ import { useAgentNotifications } from "@/hooks/useAgentNotifications";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CreditCard, CheckCircle2, ExternalLink, Clock, MessageCircle } from "lucide-react";
+import { Bell, CreditCard, CheckCircle2, ExternalLink, Clock, MessageCircle, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ export default function Notifications() {
 
   const getIcon = (type: string) => {
     switch (type) {
+      case "proposal_viewed": return Eye;
       case "itinerary_approved": return CheckCircle2;
       case "payment_reminder": return Clock;
       case "option_selected": return ExternalLink;
@@ -87,7 +88,9 @@ export default function Notifications() {
                       )}
                       onClick={() => {
                         if (!n.is_read) markAsRead.mutate(n.id);
-                        if (n.type === "client_message" && n.client_id) {
+                        if (n.type === "proposal_viewed") {
+                          navigate("/leads");
+                        } else if (n.type === "client_message" && n.client_id) {
                           navigate(`/contacts/${n.client_id}?messages=1`);
                         } else if (n.trip_id) {
                           navigate(`/trips/${n.trip_id}`);

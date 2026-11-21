@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Bell, Menu, CheckCircle2, ExternalLink, CreditCard } from "lucide-react";
+import { Sun, Moon, Bell, Menu, CheckCircle2, ExternalLink, CreditCard, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -103,6 +103,7 @@ export function Header({ onMobileMenuClick, showMobileMenuButton }: HeaderProps)
                 ) : (
                   notifications.slice(0, 10).map((n) => {
                     const NotifIcon =
+                      n.type === "proposal_viewed" ? Eye :
                       n.type === "itinerary_approved" ? CheckCircle2 :
                       n.type === "payment_reminder" ? Bell :
                       n.type === "option_selected" ? ExternalLink :
@@ -116,7 +117,10 @@ export function Header({ onMobileMenuClick, showMobileMenuButton }: HeaderProps)
                         )}
                         onClick={() => {
                           if (!n.is_read) markAsRead.mutate(n.id);
-                          if (n.type === "client_message" && n.client_id) {
+                          if (n.type === "proposal_viewed") {
+                            navigate("/leads");
+                            setNotifOpen(false);
+                          } else if (n.type === "client_message" && n.client_id) {
                             navigate(`/contacts/${n.client_id}?messages=1`);
                             setNotifOpen(false);
                           } else if (n.trip_id) {
