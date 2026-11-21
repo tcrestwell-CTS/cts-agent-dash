@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Refine individual proposal approval messaging; 46 tests and preview browser checks passed, including repeat/error/mobile and group route. No publishing; ready-action contract absent, so advisor follow-up is used (docs/proposal-approval-review.md).
 - [x] Fix supplier-paid booking guessing in the page, payment trigger, and QBO resolver; explicit same-trip link required, actual amounts applied atomically, QBO resolver deployed, regression checks passed without moving real money.
 - [x] Fix concurrent QBO renewal disconnections; deployed three functions, 23 tests passed, signed-in July net $2,565.55 and October net $238.96 verified; connection active.
 - [x] Wire paid client-payment inserts and updates to automatic QBO invoice/payment posting; Tara invoice 2161 and payments 2162/2163 verified, replay skipped, no new charges.
