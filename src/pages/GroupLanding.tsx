@@ -710,6 +710,9 @@ export default function GroupLanding() {
                 </a>
                 <div className="min-w-0 text-center sm:text-left">
                   <h3 className="text-lg font-bold text-gray-900">St. Kitts Tour — Split the Cost</h3>
+                  <p className="mt-1 text-sm font-semibold" style={{ color: primaryColor }}>
+                    $50.00 per person
+                  </p>
                   <p className="mt-1 text-sm text-gray-600 leading-relaxed">
                     Scan the QR code (or tap it) to join our Settle Up group and chip in your share of the
                     St. Kitts island tour.
