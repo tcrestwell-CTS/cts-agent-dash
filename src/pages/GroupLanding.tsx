@@ -692,43 +692,7 @@ export default function GroupLanding() {
               </a>
             )}
 
-            {/* ─── ST. KITTS TOUR: Settle Up cost-split QR (Claire's celebration only) ── */}
-            {isClaireCelebration && (
-              <div className="rounded-2xl border border-gray-200 p-5 flex flex-col sm:flex-row items-center gap-5">
-                <a
-                  href="https://join.settleup.app/QB4vgpCQHV26eZDcxOOi"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0"
-                  aria-label="Open the Settle Up group to split the St. Kitts tour cost"
-                >
-                  <img
-                    src={claireSettleUpQr}
-                    alt="QR code linking to the Settle Up group for the St. Kitts tour cost"
-                    className="h-36 w-36 rounded-lg border border-gray-100"
-                  />
-                </a>
-                <div className="min-w-0 text-center sm:text-left">
-                  <h3 className="text-lg font-bold text-gray-900">St. Kitts Tour — Split the Cost</h3>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: primaryColor }}>
-                    $50.00 per person
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600 leading-relaxed">
-                    Scan the QR code (or tap it) to join our Settle Up group and chip in your share of the
-                    St. Kitts island tour.
-                  </p>
-                  <a
-                    href="https://join.settleup.app/QB4vgpCQHV26eZDcxOOi"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-                    style={{ color: primaryColor }}
-                  >
-                    Open Settle Up <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-              </div>
-            )}
+
 
             {/* ─── CABIN SELECTIONS: comparison table ────────── */}
             {!data?.trip?.booking_flow_enabled && data.cabinOptions && data.cabinOptions.length > 0 && (
@@ -932,6 +896,42 @@ export default function GroupLanding() {
                       {isExpanded && section.content && (
                         <div className="px-4 pb-4 text-gray-600 leading-relaxed whitespace-pre-wrap text-[15px]">
                           {section.content}
+                          {isClaireCelebration && /birthplace|island tour/i.test(section.title || "") && (
+                            <div className="mt-4 rounded-2xl border border-gray-200 p-5 flex flex-col sm:flex-row items-center gap-5 not-prose">
+                              <a
+                                href="https://join.settleup.app/QB4vgpCQHV26eZDcxOOi"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="shrink-0"
+                                aria-label="Open the Settle Up group to split the St. Kitts tour cost"
+                              >
+                                <img
+                                  src={claireSettleUpQr}
+                                  alt="QR code linking to the Settle Up group for the St. Kitts tour cost"
+                                  className="h-36 w-36 rounded-lg border border-gray-100"
+                                />
+                              </a>
+                              <div className="min-w-0 text-center sm:text-left">
+                                <h4 className="text-base font-bold text-gray-900">Split the Tour Cost</h4>
+                                <p className="mt-1 text-sm font-semibold" style={{ color: primaryColor }}>
+                                  $50.00 per person
+                                </p>
+                                <p className="mt-1 text-sm text-gray-600 leading-relaxed">
+                                  Scan the QR code (or tap it) to join our Settle Up group and chip in your
+                                  share of the St. Kitts island tour.
+                                </p>
+                                <a
+                                  href="https://join.settleup.app/QB4vgpCQHV26eZDcxOOi"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+                                  style={{ color: primaryColor }}
+                                >
+                                  Open Settle Up <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
                           {section.rsvp_enabled && token && (
                             <EventRsvpForm token={token} sectionId={section.id} accentColor={accentColor} />
                           )}
