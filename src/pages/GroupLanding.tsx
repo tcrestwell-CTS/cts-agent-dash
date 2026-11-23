@@ -48,6 +48,7 @@ import { ItineraryGallery, getItemImages } from "@/components/shared/ItineraryGa
 import { HawaiiProposal } from "@/components/group/HawaiiProposal";
 import { ResortGroupProposal } from "@/components/group/ResortGroupProposal";
 import { SafeHtml } from "@/components/ui/rich-text-editor";
+import claireSettleUpQr from "@/assets/claire-settleup-qr.png";
 
 interface FeatureImage {
   id: string;
@@ -689,6 +690,41 @@ export default function GroupLanding() {
                 </div>
                 <ExternalLink className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-600 transition-colors" />
               </a>
+            )}
+
+            {/* ─── ST. KITTS TOUR: Settle Up cost-split QR (Claire's celebration only) ── */}
+            {isClaireCelebration && (
+              <div className="rounded-2xl border border-gray-200 p-5 flex flex-col sm:flex-row items-center gap-5">
+                <a
+                  href="https://join.settleup.app/QB4vgpCQHV26eZDcxOOi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                  aria-label="Open the Settle Up group to split the St. Kitts tour cost"
+                >
+                  <img
+                    src={claireSettleUpQr}
+                    alt="QR code linking to the Settle Up group for the St. Kitts tour cost"
+                    className="h-36 w-36 rounded-lg border border-gray-100"
+                  />
+                </a>
+                <div className="min-w-0 text-center sm:text-left">
+                  <h3 className="text-lg font-bold text-gray-900">St. Kitts Tour — Split the Cost</h3>
+                  <p className="mt-1 text-sm text-gray-600 leading-relaxed">
+                    Scan the QR code (or tap it) to join our Settle Up group and chip in your share of the
+                    St. Kitts island tour.
+                  </p>
+                  <a
+                    href="https://join.settleup.app/QB4vgpCQHV26eZDcxOOi"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+                    style={{ color: primaryColor }}
+                  >
+                    Open Settle Up <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </div>
             )}
 
             {/* ─── CABIN SELECTIONS: comparison table ────────── */}
